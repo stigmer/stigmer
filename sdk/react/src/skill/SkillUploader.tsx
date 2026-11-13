@@ -6,6 +6,7 @@ import { cn } from "@stigmer/design-tokens";
 import type { Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components.js";
 import { cardClasses } from "../internal/surface/Card.js";
+import { Notice } from "../internal/surface/Notice.js";
 import { UploadIcon } from "../internal/UploadIcon.js";
 import { useSkillUpload } from "./useSkillUpload.js";
 import { usePushSkill } from "./usePushSkill.js";
@@ -346,20 +347,19 @@ function PreviewPhase({
         </div>
       )}
 
-      {/* Duplicate warning: the kit's caution notice, the theme's audited
-          at-risk status pair with a foreground title. */}
+      {/* Duplicate warning: the kit's at-risk notice. */}
       {isDuplicate && (
-        <div className="stg:flex stg:items-start stg:gap-2.5 stg:border-b stg:border-border stg:bg-status-degraded-subtle stg:px-4 stg:py-3" role="alert">
-          <WarningIcon className="stg:mt-0.5 stg:size-4 stg:shrink-0 stg:text-status-degraded" />
-          <div className="stg:min-w-0 stg:flex-1">
-            <p className="stg:text-sm stg:font-medium stg:text-foreground">
-              No changes detected
-            </p>
-            <p className="stg:mt-0.5 stg:text-xs stg:text-status-degraded">
-              This skill&apos;s content is identical to the current version. Pushing will create a new version record with the same content.
-            </p>
-          </div>
-        </div>
+        <Notice
+          tone="paused"
+          role="alert"
+          icon={<WarningIcon className="stg:size-4" />}
+          headline="No changes detected"
+          className="stg:mx-4 stg:my-3"
+        >
+          <p className="stg:m-0">
+            This skill&apos;s content is identical to the current version. Pushing will create a new version record with the same content.
+          </p>
+        </Notice>
       )}
 
       {isCheckingDuplicate && (

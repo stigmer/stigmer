@@ -4,7 +4,7 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { isDeletedReference } from "@stigmer/client";
 import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
-import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
+import { StatusBadge } from "../status/StatusBadge.js";
 import type { WorkbenchColumnDef } from "../resource-workbench/types.js";
 import { deriveRoutineState, formatNextFire } from "./routineState.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";

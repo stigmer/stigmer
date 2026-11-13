@@ -10,6 +10,9 @@ import {
   unwrapEnclosingMarkdownFence,
 } from "../internal/markdown-components.js";
 import { Button } from "../button/Button.js";
+import { StatusBadge } from "../status/StatusBadge.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
+import { Notice } from "../internal/surface/Notice.js";
 import { useFileContent } from "../file/useFileContent.js";
 import { useBuildFromPlanHotkey } from "../run/use-build-from-plan-hotkey.js";
 import type { SessionPlan } from "../library/detect-plan-file.js";
@@ -105,13 +108,12 @@ export function PlanEditor({
   if (error || effectiveText === null) {
     return (
       <PlanEditorFrame>
-        <div className="stg:flex stg:flex-col stg:items-center stg:gap-2 stg:px-4 stg:py-8 stg:text-center">
-          <p className="stg:text-xs stg:text-muted-foreground">
-            Couldn&rsquo;t load the plan{error ? `: ${error.message}` : "."}
-          </p>
-          <Button variant="ghost" size="xs" onClick={refetch}>
-            Retry
-          </Button>
+        <div className="stg:px-4 stg:py-4">
+          {error ? (
+            <ErrorMessage error={error} title="Couldn't load the plan." retry={refetch} />
+          ) : (
+            <Notice tone="failed" headline="Couldn't load the plan." act={{ label: "Try again", onClick: refetch }} />
+          )}
         </div>
       </PlanEditorFrame>
     );
@@ -164,20 +166,15 @@ export function PlanEditor({
         <div className="stg:ml-auto stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-3">
           {activeDraft?.isEdited && (
             <span className="stg:inline-flex stg:items-center stg:gap-2">
-              <span className="stg:rounded-md stg:bg-accent stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
-                Edited
-              </span>
+              <StatusBadge phase="draft" label="Edited" />
               <Button variant="ghost" size="xs" onClick={() => activeDraft.setDraft(null)}>
                 Revert
               </Button>
             </span>
           )}
           {readOnly ? (
-            <span
-              role="status"
-              className="stg:rounded-md stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground"
-            >
-              Superseded by a newer plan
+            <span role="status" className="stg:inline-flex">
+              <StatusBadge phase="disabled" label="Superseded by a newer plan" />
             </span>
           ) : (
             onBuildFromPlan && (

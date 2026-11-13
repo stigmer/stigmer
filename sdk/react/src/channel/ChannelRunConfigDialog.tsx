@@ -7,6 +7,7 @@ import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb
 import type { RunConfig } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { Button } from "../button/Button.js";
+import { Notice } from "../internal/surface/Notice.js";
 import { IconButton } from "../button/IconButton.js";
 import { DialogShell } from "../internal/DialogShell.js";
 import { ModelSelector } from "../models/ModelSelector.js";
@@ -245,12 +246,7 @@ function ChannelRunConfigDialogBody({
         </div>
 
         {error && (
-          <div
-            role="alert"
-            className="stg:rounded-md stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:px-3 stg:py-2 stg:text-xs stg:text-destructive"
-          >
-            {saveErrorMessage(error, "channel")}
-          </div>
+          <Notice tone="failed" headline={saveErrorMessage(error, "channel")} />
         )}
       </div>
 

@@ -21,6 +21,8 @@ import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { RenameSlugField } from "../resource-detail/RenameSlugField.js";
+import { Tag } from "../internal/surface/Tag.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -220,7 +222,7 @@ export function OrgProfilePanel({
   // -----------------------------------------------------------------------
 
   if (fetchError) {
-    return <ErrorMessage error={fetchError} title="The profile could not be read" retry={refetch} className={className} />;
+    return <ErrorMessage error={fetchError} title="Couldn't load the profile." retry={refetch} className={className} />;
   }
 
   if (!organization) return null;
@@ -416,19 +418,16 @@ function FederationIssuersSummary({ orgId }: { orgId: string }) {
         {isLoading ? (
           <SettingsSkeleton label="Loading federation issuers" rows={1} />
         ) : federationIssuers.length === 0 && deniedCreate ? (
-          <p className="stg:text-xs stg:text-muted-foreground">
-            {FEDERATION_ISSUERS_MANAGED_BY_ADMINS}
-          </p>
+          <EmptyState variant="first-use" size="inline" title={FEDERATION_ISSUERS_MANAGED_BY_ADMINS} className="stg:px-0" />
         ) : federationIssuers.length === 0 ? (
-          <p className="stg:text-xs stg:text-muted-foreground">
-            No federation issuers configured.{" "}
+          <EmptyState variant="first-use" size="inline" title="No federation issuers configured." className="stg:px-0">
             <a
               href="/settings/federation-issuers"
               className="stg:text-primary stg:hover:text-primary-hover stg:underline stg:underline-offset-2"
             >
               Set up federated authentication
             </a>
-          </p>
+          </EmptyState>
         ) : (
           <div className="stg:space-y-1.5">
             {federationIssuers.map((issuer) => {
@@ -445,9 +444,7 @@ function FederationIssuersSummary({ orgId }: { orgId: string }) {
                   <ShieldSmallIcon />
                   <span className="stg:text-foreground stg:truncate">{displayName}</span>
                   {isJit && (
-                    <span className="stg:rounded-full stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-1.5 stg:py-px stg:text-2xs stg:font-medium stg:text-primary">
-                      JIT
-                    </span>
+                    <Tag>JIT</Tag>
                   )}
                 </div>
               );

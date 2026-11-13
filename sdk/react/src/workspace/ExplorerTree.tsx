@@ -10,7 +10,8 @@ import { useWorkspaceFiles } from "./useWorkspaceFiles.js";
 import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
 import type { WorkspaceFileLister } from "./WorkspaceFileLister.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
-import { Button } from "../button/Button.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 import { IconButton } from "../button/IconButton.js";
 
 /** Props for {@link ExplorerTree}. */
@@ -194,18 +195,13 @@ function ExplorerRootBody({
 
   if (error) {
     return (
-      <div className="stg:px-2 stg:py-2 stg:text-xs stg:text-destructive">
-        Failed to list files: {error.message}
-        <Button variant="ghost" size="xs" onClick={onRetry} className="stg:ml-2 stg:text-destructive stg:hover:bg-destructive-subtle">
-          Retry
-        </Button>
-      </div>
+      <ErrorMessage error={error} title="Couldn't load the files." retry={onRetry} className="stg:m-2" />
     );
   }
 
   if (tree.length === 0) {
     return (
-      <p className="stg:px-3 stg:py-2 stg:text-xs stg:text-muted-foreground">No files found.</p>
+      <EmptyState variant="first-use" size="inline" title="No files found." description="" />
     );
   }
 

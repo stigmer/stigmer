@@ -10,16 +10,17 @@
  */
 import { useCallback } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { cn } from "@stigmer/design-tokens";
 import { iamRoleDisplayName } from "@stigmer/client";
 import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { useResourceAccess } from "../grant/useResourceAccess.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import type { EmptyStateAction } from "../empty-state/types.js";
 import { orgRoleOf } from "./org-role.js";
 import { useServiceAccountList } from "./useServiceAccountList.js";
 import { List, ListRow } from "../internal/surface/List.js";
+import { Tag } from "../internal/surface/Tag.js";
 
 /** Props for {@link ServiceAccountListPanel}. */
 export interface ServiceAccountListPanelProps {
@@ -30,6 +31,12 @@ export interface ServiceAccountListPanelProps {
   /** Re-expose refetch so a parent re-reads the list after a change. */
   readonly onRefetchRef?: (refetch: () => void) => void;
   readonly className?: string;
+  /**
+   * The page's create act, carried by the empty list (the same label and
+   * handler as the page header's button). Absent when the caller may not
+   * create one, or a create is already open.
+   */
+  readonly emptyAction?: EmptyStateAction;
 }
 
 /**
@@ -50,6 +57,7 @@ export function ServiceAccountListPanel({
   org,
   onOpen,
   onRefetchRef,
+  emptyAction,
   className,
 }: ServiceAccountListPanelProps) {
   const { serviceAccounts, isLoading, error, refetch } = useServiceAccountList(
@@ -72,7 +80,7 @@ export function ServiceAccountListPanel({
   }
 
   if (error) {
-    return <ErrorMessage error={error} title="The service accounts could not be read" retry={refetch} className={className} />;
+    return <ErrorMessage error={error} title="Couldn't load the service accounts." retry={refetch} className={className} />;
   }
 
   if (serviceAccounts.length === 0) {
@@ -81,7 +89,8 @@ export function ServiceAccountListPanel({
         variant="first-use"
         title="No service accounts yet"
         description="Make one for each CI job, script or integration, so it keeps working when the person who set it up leaves."
-        className={cn("stg:rounded-lg stg:border stg:border-dashed stg:border-border", className)}
+        action={emptyAction}
+        className={className}
       />
     );
   }
@@ -111,9 +120,7 @@ export function ServiceAccountListPanel({
             }
             description={createdAt ? `Created ${formatShortDate(timestampDate(createdAt))}` : undefined}
             trailing={
-              <span className="stg:shrink-0 stg:rounded-md stg:border stg:border-border stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-foreground">
-                {access.isLoading ? "…" : role ? iamRoleDisplayName(role.role) : "No role"}
-              </span>
+              <Tag>{access.isLoading ? "…" : role ? iamRoleDisplayName(role.role) : "No role"}</Tag>
             }
           />
         );

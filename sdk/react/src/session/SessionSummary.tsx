@@ -29,7 +29,7 @@ import { durationWords } from "./duration-words.js";
 import { turnOutcome } from "./turn-outcome.js";
 import { isChannelOriginSession } from "./channelOrigin.js";
 import { sessionStatus } from "./session-status.js";
-import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
+import { StatusBadge } from "../status/StatusBadge.js";
 
 /** Props for {@link SessionSummary}. */
 export interface SessionSummaryProps {

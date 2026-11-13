@@ -311,7 +311,7 @@ describe("PlanSection", () => {
     cleanup();
     client.subscription.getAgentHours.mockRejectedValue(new StigmerError("internal", "the ledger is down", Code.Internal));
     renderSection(client);
-    expect((await screen.findByRole("alert")).textContent).toContain("Agent hours could not be read");
+    expect((await screen.findByRole("alert")).textContent).toContain("Couldn't load the agent hours.");
   });
 
   it("lists the plans cheapest first, and names what a switch down gives up but not a switch up", async () => {

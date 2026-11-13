@@ -33,7 +33,7 @@ import { Button } from "../button/Button.js";
 import { Card } from "../internal/surface/Card.js";
 import { NoOrganization } from "./NoOrganization.js";
 import { SettingsPage } from "./SettingsPage.js";
-import { PermissionGate } from "../grant/PermissionGate.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { useOrg } from "../organization/OrgProvider.js";
 import { CreateTeamForm } from "../team/CreateTeamForm.js";
 import { TeamDetailPanel } from "../team/TeamDetailPanel.js";
@@ -59,6 +59,11 @@ export function TeamsSection() {
   const list = useTeamList(teamsServed && orgId ? orgId : null);
   const { refetch } = list;
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
+  const startCreate = useCallback(() => setFlow({ phase: "creating" }), []);
+  // One answer offers both acts: the header's "New team" and the empty
+  // list's.
+  const createCheck = useCheckPermission(orgId ? { kind: "organization", id: orgId } : null, "can_create_team");
+  const canCreate = !createCheck.isLoading && createCheck.allowed && !planLacksTeams;
 
   const handleCreated = useCallback(
     (team: Team) => {
@@ -88,12 +93,10 @@ export function TeamsSection() {
       actions={
         orgId &&
         flow.phase === "idle" &&
-        !planLacksTeams && (
-          <PermissionGate resource={{ kind: "organization", id: orgId }} relation="can_create_team">
-            <Button size="sm" onClick={() => setFlow({ phase: "creating" })}>
-              New team
-            </Button>
-          </PermissionGate>
+        canCreate && (
+          <Button size="sm" onClick={startCreate}>
+            New team
+          </Button>
         )
       }
       unavailable={
@@ -126,6 +129,7 @@ export function TeamsSection() {
           error={list.error}
           onRetry={refetch}
           onOpen={(team) => setFlow({ phase: "viewing", team })}
+          emptyAction={canCreate ? { label: "New team", onClick: startCreate } : undefined}
         />
       )}
     </SettingsPage>

@@ -4,6 +4,7 @@ import type { BackgroundCommandView, ToolUse } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import { DecisionButton } from "../internal/DecisionButton.js";
 import { InCardDecisionError } from "../internal/InCardDecisionError.js";
+import { Tag } from "../internal/surface/Tag.js";
 import { ThreadCardHeaderControl } from "../internal/thread-card/index.js";
 import { formatElapsed, useElapsedSince } from "../internal/useElapsedSince.js";
 import { useBackgroundStop } from "./BackgroundCommandContext.js";
@@ -56,12 +57,7 @@ export function BackgroundCommandTrail({ toolUse }: { readonly toolUse: ToolUse 
   const failed = background.state === "failed_to_start" || background.state === "timed_out" || (background.state === "exited" && background.exitCode !== 0);
   return (
     <>
-      <span
-        className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:text-2xs stg:font-medium stg:leading-none stg:text-muted-foreground"
-        data-cursor-target="background-command-chip"
-      >
-        Background
-      </span>
+      <Tag data-cursor-target="background-command-chip">Background</Tag>
       <span
         className={cn(
           "stg:shrink-0 stg:tabular-nums",

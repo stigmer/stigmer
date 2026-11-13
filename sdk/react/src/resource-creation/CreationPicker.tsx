@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { IconButton } from "../button/IconButton.js";
 import { cardClasses } from "../internal/surface/Card.js";
+import { Tag } from "../internal/surface/Tag.js";
 import type { ResourceTemplate } from "./templates/types.js";
 import { TemplateGallery } from "./TemplateGallery.js";
 
@@ -200,9 +201,7 @@ function OptionCard({
         <span className="stg:text-xs stg:text-muted-foreground">{description}</span>
       </div>
       {badge && (
-        <span className="stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
-          {badge}
-        </span>
+        <Tag>{badge}</Tag>
       )}
     </button>
   );

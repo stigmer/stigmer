@@ -276,7 +276,7 @@ describe("ChannelsPanel", () => {
     );
 
     await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
-    expect(screen.getByText("Installed").className.split(" ")).toContain("stg:text-status-ready");
+    expect(screen.getByText("Installed").className.split(" ")).toContain("stg:text-[var(--stgm-status-ready)]");
     expect(screen.getByText(/Acme HQ/)).toBeTruthy();
     // Installed channels expose the serving switch, not a connect button.
     expect(screen.getByRole("switch")).toBeTruthy();
@@ -1043,7 +1043,7 @@ describe("ChannelsPanel", () => {
     );
 
     await waitFor(() =>
-      expect(screen.getByText(/failed to load channels/i)).toBeTruthy(),
+      expect(screen.getByText("Couldn't load the channels.")).toBeTruthy(),
     );
   });
 

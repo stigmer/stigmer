@@ -114,7 +114,8 @@ describe("OAuthAppsSection", () => {
     cleanup();
     stubs.allowed = new Set(["can_create_oauth_app"]);
     renderSection();
-    expect(screen.getByRole("button", { name: /New OAuth app/ })).toBeTruthy();
+    // The header offers it, and so does the empty list.
+    expect(screen.getAllByRole("button", { name: /New OAuth app/ })).toHaveLength(2);
   });
 
   it("names the organization's admins, not an empty configuration, to a caller who may not create OAuth apps", () => {

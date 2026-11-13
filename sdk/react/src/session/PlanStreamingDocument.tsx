@@ -6,6 +6,7 @@ import {
   PLAN_DOCUMENT_MARKDOWN_COMPONENTS,
   extractLeadingH1,
 } from "../internal/markdown-components.js";
+import { StatusBadge } from "../status/StatusBadge.js";
 
 /** Props for {@link PlanStreamingDocument}. */
 export interface PlanStreamingDocumentProps {
@@ -52,12 +53,8 @@ export function PlanStreamingDocument({
       className="stg:mx-auto stg:flex stg:w-full stg:max-w-3xl stg:flex-col stg:gap-3 stg:px-4 stg:py-3"
     >
       <div className="stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-2">
-        <span
-          role="status"
-          className="stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground"
-        >
-          <WritingDot />
-          Writing…
+        <span role="status" className="stg:inline-flex">
+          <StatusBadge phase="running" label="Writing…" />
         </span>
       </div>
 
@@ -80,18 +77,5 @@ export function PlanStreamingDocument({
         </div>
       </div>
     </div>
-  );
-}
-
-/**
- * The pill's pulsing dot — a CSS animation inside `.stgm`, covered by the
- * stylesheet's global `prefers-reduced-motion` rule.
- */
-function WritingDot() {
-  return (
-    <span
-      aria-hidden="true"
-      className="stg:size-1.5 stg:animate-pulse stg:rounded-full stg:bg-primary"
-    />
   );
 }

@@ -125,7 +125,7 @@ function BillingContent({
   }
 
   if (error) {
-    return <ErrorMessage error={error} title="The billing account could not be read" retry={refetch} />;
+    return <ErrorMessage error={error} title="Couldn't load the billing account." retry={refetch} />;
   }
 
   if (!account) return null;

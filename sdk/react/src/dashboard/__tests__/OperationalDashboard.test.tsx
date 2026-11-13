@@ -228,8 +228,8 @@ describe("OperationalDashboard", () => {
     render(<OperationalDashboard org="acme" firstStepLinks={LINKS} />);
 
     const alert = screen.getByRole("alert");
-    expect(alert.textContent).toContain("The week's figures could not be read");
-    fireEvent.click(within(alert).getByRole("button", { name: /retry/i }));
+    expect(alert.textContent).toContain("Couldn't load this week's figures.");
+    fireEvent.click(within(alert).getByRole("button", { name: "Try again" }));
     expect(state.refetch).toHaveBeenCalled();
     expect(screen.queryByText("Completed")).toBeNull();
   });

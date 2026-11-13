@@ -4,6 +4,10 @@ import { useCallback, useEffect, useRef } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { DialogShell } from "../internal/DialogShell.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { Notice } from "../internal/surface/Notice.js";
+import { Tag } from "../internal/surface/Tag.js";
+import type { StatusPhase } from "../resource-workbench/types.js";
+import { StatusBadge } from "../status/StatusBadge.js";
 import { toast } from "../feedback/toast.js";
 import { keptChangeSentences } from "./keptChanges.js";
 import { RedactedSecretsNotice } from "./RedactedSecretsNotice.js";
@@ -183,12 +187,7 @@ export function ApplyManifestDialog({
 
         {/* Validation error */}
         {manifest.validationError && (
-          <div
-            role="alert"
-            className="stg:rounded-md stg:border stg:border-destructive stg:bg-card stg:px-3 stg:py-2.5 stg:text-sm stg:text-destructive"
-          >
-            {manifest.validationError}
-          </div>
+          <Notice tone="failed" headline={manifest.validationError} />
         )}
 
         {/* Per-document preview */}
@@ -236,9 +235,7 @@ function PreviewRow({ entry }: { readonly entry: ManifestPreviewEntry }) {
   return (
     <li className="stg:rounded-md stg:border stg:border-border stg:bg-card stg:px-3 stg:py-2">
       <div className="stg:flex stg:items-center stg:gap-2">
-        <span className="stg:inline-flex stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-xs stg:font-medium stg:text-muted-foreground">
-          {entry.document.handler.displayName}
-        </span>
+        <Tag>{entry.document.handler.displayName}</Tag>
         <span className="stg:text-sm stg:font-medium stg:text-foreground">
           {entry.document.name}
         </span>
@@ -263,20 +260,17 @@ function PreviewRow({ entry }: { readonly entry: ManifestPreviewEntry }) {
 }
 
 function ActionBadge({ entry }: { readonly entry: ManifestPreviewEntry }) {
-  const label = badgeLabel(entry);
-  return (
-    <span
-      className={cn(
-        "stg:inline-flex stg:rounded stg:px-1.5 stg:py-0.5 stg:text-xs stg:font-medium",
-        entry.status === "failed"
-          ? "stg:bg-card stg:text-destructive stg:border stg:border-destructive"
-          : "stg:bg-muted stg:text-muted-foreground",
-      )}
-    >
-      {label}
-    </span>
-  );
+  return <StatusBadge phase={ENTRY_PHASES[entry.status]} label={badgeLabel(entry)} />;
 }
+
+/** The status pill's phase for each document's apply state. */
+const ENTRY_PHASES: Readonly<Record<ManifestPreviewEntry["status"], StatusPhase>> = {
+  pending: "pending",
+  applying: "running",
+  applied: "ready",
+  failed: "failed",
+  skipped: "disabled",
+};
 
 function badgeLabel(entry: ManifestPreviewEntry): string {
   switch (entry.status) {

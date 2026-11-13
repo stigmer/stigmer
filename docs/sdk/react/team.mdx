@@ -226,6 +226,7 @@ All visual properties flow through `--stgm-*` design tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    emptyAction: { type: "EmptyStateAction", description: "The page's create act, carried by the empty list (the same label and handler as the page header's button). Absent when the caller may not create one, or a create is already open." },
     error: { type: "Error | null", description: "", required: true },
     isLoading: { type: "boolean", description: "", required: true },
     onOpen: { type: "(team: Team) => void", description: "Fired when a person opens a team.", required: true },

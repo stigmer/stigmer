@@ -9,9 +9,12 @@ import {
   type RoutineFire,
 } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Pagination } from "../internal/Pagination.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
+import type { StatusPhase } from "../resource-workbench/types.js";
+import { StatusBadge } from "../status/StatusBadge.js";
 import { useRoutineFires } from "./useRoutineFires.js";
 
 /** Props for {@link RoutineFiresTable}. */
@@ -89,7 +92,7 @@ export function RoutineFiresTable({
   if (fires.length === 0) {
     return (
       <div className={className}>
-        <EmptyFires />
+        <EmptyFires size="panel" />
       </div>
     );
   }
@@ -179,14 +182,7 @@ function FireTableRow({
       )}
     >
       <span role="cell">
-        <span
-          className={cn(
-            "stg:inline-flex stg:items-center stg:rounded-full stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium",
-            badge.className,
-          )}
-        >
-          {badge.label}
-        </span>
+        <StatusBadge phase={badge.phase} label={badge.label} />
       </span>
       <span role="cell" className="stg:hidden stg:text-xs stg:text-muted-foreground stg:sm:block">
         {fireOriginLabel(fire.origin)}
@@ -282,7 +278,7 @@ export function RoutineFiresCompactList({
     );
   }
   if (fires.length === 0) {
-    return <EmptyFires />;
+    return <EmptyFires size="inline" />;
   }
   return (
     <ul className={cn(UNSTYLED_LIST, "stg:divide-y stg:divide-border")}>
@@ -316,14 +312,7 @@ function CompactFireRow({
   return (
     <li className="stg:flex stg:flex-col stg:gap-1 stg:px-4 stg:py-2.5">
       <div className="stg:flex stg:items-center stg:gap-2">
-        <span
-          className={cn(
-            "stg:inline-flex stg:items-center stg:rounded-full stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium",
-            badge.className,
-          )}
-        >
-          {badge.label}
-        </span>
+        <StatusBadge phase={badge.phase} label={badge.label} />
         <span className="stg:text-xs stg:text-muted-foreground">
           {fireOriginLabel(fire.origin)}
         </span>
@@ -376,12 +365,15 @@ function CompactFireRow({
 // Shared pieces
 // ---------------------------------------------------------------------------
 
-function EmptyFires() {
+/** No fire recorded yet: the page's panel, or one line inside the routine's card. */
+function EmptyFires({ size }: { readonly size: "panel" | "inline" }) {
   return (
-    <p className="stg:px-4 stg:py-6 stg:text-center stg:text-xs stg:text-muted-foreground">
-      No fires yet. Every fire, on its schedule, by hand or over the API,
-      is recorded here, a refused one included.
-    </p>
+    <EmptyState
+      variant="first-use"
+      size={size}
+      title="No fires yet"
+      description="Every fire, on its schedule, by hand or over the API, is recorded here, a refused one included."
+    />
   );
 }
 
@@ -435,32 +427,33 @@ function StartedByLabel({ startedBy }: { readonly startedBy: FireStartedBy }) {
 }
 
 /**
- * Verbatim-label badges for a fire's outcome, colored by health: each tinted
- * arm is a status pill pair the theme contract measures (the at-risk pair for
- * the two outcomes that need the owner's attention), and Skipped and Unknown
- * are the muted panel pair.
+ * Verbatim-label status pills for a fire's outcome, phased by health: the
+ * running and ready phases for a fire under way or done, the degraded
+ * (at-risk) phase for the two outcomes that need the owner's attention, the
+ * failed phase for a fire that failed or timed out, and the disabled phase
+ * for Skipped and Unknown.
  */
 export function fireOutcomeBadge(outcome: RoutineFireOutcome): {
   label: string;
-  className: string;
+  phase: StatusPhase;
 } {
   switch (outcome) {
     case RoutineFireOutcome.STARTED:
-      return { label: "Started", className: "stg:bg-status-running-subtle stg:text-status-running" };
+      return { label: "Started", phase: "running" };
     case RoutineFireOutcome.COMPLETED:
-      return { label: "Completed", className: "stg:bg-status-ready-subtle stg:text-status-ready" };
+      return { label: "Completed", phase: "ready" };
     case RoutineFireOutcome.REFUSED:
-      return { label: "Refused", className: "stg:bg-status-degraded-subtle stg:text-status-degraded" };
+      return { label: "Refused", phase: "degraded" };
     case RoutineFireOutcome.TARGET_MISSING:
-      return { label: "Target missing", className: "stg:bg-status-degraded-subtle stg:text-status-degraded" };
+      return { label: "Target missing", phase: "degraded" };
     case RoutineFireOutcome.SKIPPED:
-      return { label: "Skipped", className: "stg:bg-muted stg:text-muted-foreground" };
+      return { label: "Skipped", phase: "disabled" };
     case RoutineFireOutcome.FAILED:
-      return { label: "Failed", className: "stg:bg-status-failed-subtle stg:text-status-failed" };
+      return { label: "Failed", phase: "failed" };
     case RoutineFireOutcome.TIMED_OUT:
-      return { label: "Timed out", className: "stg:bg-status-failed-subtle stg:text-status-failed" };
+      return { label: "Timed out", phase: "failed" };
     default:
-      return { label: "Unknown", className: "stg:bg-muted stg:text-muted-foreground" };
+      return { label: "Unknown", phase: "disabled" };
   }
 }
 

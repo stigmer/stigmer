@@ -5,6 +5,7 @@ import { cn } from "@stigmer/design-tokens";
 import type { InlineEditBaseProps, KeyValueRow } from "./types.js";
 import { Button } from "../button/Button.js";
 import { IconButton } from "../button/IconButton.js";
+import { Tag } from "../internal/surface/Tag.js";
 
 /** Props for {@link InlineEditKeyValue}. */
 export interface InlineEditKeyValueProps extends InlineEditBaseProps {
@@ -113,14 +114,10 @@ export function InlineEditKeyValue({
                   </span>
                 )}
                 {showSecretToggle && (
-                  <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
-                    {row.isSecret ? "secret" : "config"}
-                  </span>
+                  <Tag>{row.isSecret ? "secret" : "config"}</Tag>
                 )}
                 {showOptionalToggle && row.optional && (
-                  <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground-subtle">
-                    optional
-                  </span>
+                  <Tag className="stg:text-muted-foreground">optional</Tag>
                 )}
                 {row.description && (
                   <span className="stg:text-xs stg:text-muted-foreground">{row.description}</span>

@@ -19,6 +19,7 @@ import { PermissionGate } from "../grant/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { Button } from "../button/Button.js";
+import { Tag } from "../internal/surface/Tag.js";
 
 /** Props for {@link FederationIssuerDetailPanel}. */
 export interface FederationIssuerDetailPanelProps {
@@ -423,15 +424,13 @@ function FieldInput({
 }
 
 // ---------------------------------------------------------------------------
-// Provisioning mode badge
+// Provisioning mode tag
 // ---------------------------------------------------------------------------
 
 function ProvisioningModeBadge({ spec }: { spec: FederationIssuer["spec"] }) {
   if (spec?.createAccountsOnSignIn) {
     return (
-      <span className="stg:inline-flex stg:items-center stg:rounded-full stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-primary">
-        JIT
-      </span>
+      <Tag>JIT</Tag>
     );
   }
   return null;

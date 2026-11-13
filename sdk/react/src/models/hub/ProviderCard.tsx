@@ -19,6 +19,9 @@ import { Button } from "../../button/index.js";
 import { CopyButton, useCopy } from "../../internal/CopyBlock.js";
 import { UNSTYLED_LIST } from "../../internal/element-resets.js";
 import { cardClasses } from "../../internal/surface/Card.js";
+import { tagClasses } from "../../internal/surface/Tag.js";
+import type { StatusPhase } from "../../resource-workbench/types.js";
+import { StatusBadge } from "../../status/StatusBadge.js";
 import { useProviderKeyActions, type ProviderKeyProvider } from "../../billing/useProviderKeys.js";
 import { HARNESS_META, HARNESS_OPTIONS } from "@stigmer/react-core/internal";
 import { presentationOf } from "../provider-presentation.js";
@@ -269,7 +272,7 @@ export function ProviderCard({
   );
 }
 
-/** The provider's state in a few words, with a dot that is solid when it serves. */
+/** The provider's state in a few words, on the status pill: ready when it serves, grey when it does not or the server cannot see. */
 function StateLabel({
   availability,
   local,
@@ -279,29 +282,15 @@ function StateLabel({
   readonly local: boolean;
   readonly parentOrgName: string | undefined;
 }) {
-  const served = availability.state === "served";
-  return (
-    <span
-      className={cn(
-        "stg:inline-flex stg:items-center stg:gap-1.5 stg:whitespace-nowrap stg:rounded-full stg:border stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium",
-        served ? "stg:border-border stg:bg-success-subtle stg:text-foreground" : "stg:border-border stg:text-muted-foreground",
-      )}
-    >
-      <span
-        aria-hidden
-        className={cn(
-          "stg:size-1.5 stg:rounded-full",
-          served
-            ? "stg:bg-success"
-            : availability.state === "missing"
-              ? "stg:border stg:border-muted-foreground"
-              : "stg:bg-muted-foreground",
-        )}
-      />
-      {stateWords(availability, local, parentOrgName)}
-    </span>
-  );
+  return <StatusBadge phase={STATE_PHASES[availability.state]} label={stateWords(availability, local, parentOrgName)} />;
 }
+
+/** The status pill's phase for each availability state. */
+const STATE_PHASES: Readonly<Record<ProviderAvailability["state"], StatusPhase>> = {
+  served: "ready",
+  missing: "disabled",
+  unknown: "pending",
+};
 
 /** What serves a provider, in the server's report. */
 type ServedSource = Extract<ProviderAvailability, { readonly state: "served" }>["source"];
@@ -433,10 +422,7 @@ function Unlocks({
                 {engineModels.slice(0, named).map((model) => (
                   <li
                     key={model.modelId}
-                    className={cn(
-                      "stg:whitespace-nowrap stg:rounded-md stg:border stg:border-border stg:px-1.5 stg:py-0.5 stg:text-2xs",
-                      served ? "stg:bg-background stg:text-foreground" : "stg:text-muted-foreground",
-                    )}
+                    className={cn(tagClasses(), !served && "stg:text-muted-foreground")}
                   >
                     {model.displayName}
                   </li>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { ChevronDown, Plus } from "lucide-react";
+import { ChevronDown, MessagesSquare, Plus } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import { chatPath, getUserMessage } from "@stigmer/client";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
@@ -10,6 +10,7 @@ import { ChannelInstallState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1
 import { toast } from "../feedback/toast.js";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Menu, MenuContent, MenuItem, MenuTrigger } from "../internal/menu.js";
 import { useChannelAppList } from "../channel-app/useChannelAppList.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
@@ -284,11 +285,7 @@ export function ChannelsPanel({
   }
 
   if (error) {
-    return (
-      <div className="stg:py-8 stg:text-center stg:text-sm stg:text-destructive">
-        Failed to load channels
-      </div>
-    );
+    return <ErrorMessage error={error} title="Couldn't load the channels." retry={refetch} className={className} />;
   }
 
   // The provider of the in-flight connect flow: chosen by the user in
@@ -561,13 +558,7 @@ function ChannelEmptyState({
   return (
     <EmptyState
       variant="first-use"
-      icon={
-        <span className="stg:flex stg:items-center stg:gap-2">
-          {CHANNEL_TYPES.map((t) => (
-            <t.Icon key={t.id} className="stg:size-10" />
-          ))}
-        </span>
-      }
+      icon={<MessagesSquare />}
       title="No channels yet"
       description={
         "Give this agent a chat link to send or embed, or connect it to " +

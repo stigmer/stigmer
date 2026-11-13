@@ -1,9 +1,9 @@
 /**
  * Pins RunPhaseBadge, a public export: each run phase reads as its label,
- * announced as a status, in its phase colour; a run waiting for approval
- * is drawn in the at-risk colour and a completed run in the ready colour
- * the theme contract measures as text on the page and on a card, never the
- * badge-fill amber or green; and an unspecified phase renders nothing.
+ * announced as a status, drawn as the console's one status pill in the
+ * state it reads as (a run waiting for approval or paused at risk, a
+ * completed run ready, a failed or terminated run failed, a cancelled run
+ * off); and an unspecified phase renders nothing.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -14,19 +14,21 @@ afterEach(cleanup);
 
 describe("RunPhaseBadge", () => {
   it.each([
-    [RunPhase.RUN_PENDING, "Pending", "stg:text-muted-foreground"],
-    [RunPhase.RUN_IN_PROGRESS, "Running", "stg:text-foreground"],
-    [RunPhase.RUN_COMPLETED, "Completed", "stg:text-status-ready"],
-    [RunPhase.RUN_FAILED, "Failed", "stg:text-destructive"],
-    [RunPhase.RUN_CANCELLED, "Cancelled", "stg:text-muted-foreground"],
-    [RunPhase.RUN_TERMINATED, "Terminated", "stg:text-destructive"],
-    [RunPhase.RUN_WAITING_FOR_APPROVAL, "Waiting for approval", "stg:text-status-degraded"],
-    [RunPhase.RUN_PAUSED, "Paused", "stg:text-muted-foreground"],
-  ])("shows phase %i as %s in %s", (phase, label, colorClass) => {
+    [RunPhase.RUN_PENDING, "Pending", "pending"],
+    [RunPhase.RUN_IN_PROGRESS, "Running", "running"],
+    [RunPhase.RUN_COMPLETED, "Completed", "ready"],
+    [RunPhase.RUN_FAILED, "Failed", "failed"],
+    [RunPhase.RUN_CANCELLED, "Cancelled", "disabled"],
+    [RunPhase.RUN_TERMINATED, "Terminated", "failed"],
+    [RunPhase.RUN_WAITING_FOR_APPROVAL, "Waiting for approval", "degraded"],
+    [RunPhase.RUN_PAUSED, "Paused", "degraded"],
+  ])("shows phase %i as %s in the %s pill", (phase, label, status) => {
     render(<RunPhaseBadge phase={phase} />);
     const badge = screen.getByRole("status", { name: label });
     expect(badge.textContent).toBe(label);
-    expect(badge.className.split(" ")).toContain(colorClass);
+    const pill = badge.firstElementChild as HTMLElement;
+    expect(pill.className).toContain(`--stgm-status-${status}-subtle`);
+    expect(pill.className).toContain("stg:h-5");
   });
 
   it("renders nothing for an unspecified phase", () => {

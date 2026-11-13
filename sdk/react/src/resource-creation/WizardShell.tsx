@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/design-tokens";
+import { Tag } from "../internal/surface/Tag.js";
 import type { WizardShellProps } from "./types.js";
 import { StepIndicator } from "./StepIndicator.js";
 import { WizardNav } from "./WizardNav.js";
@@ -116,8 +117,8 @@ function MobileProgress({
   readonly total: number;
 }) {
   return (
-    <span className="stg:inline-flex stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-2 stg:py-0.5 stg:text-2xs stg:font-semibold stg:text-primary-foreground">
+    <Tag>
       {current}/{total}
-    </span>
+    </Tag>
   );
 }

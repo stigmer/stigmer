@@ -2,11 +2,12 @@ import { useMemo, createElement } from "react";
 import { Package, SearchX, Lock, AlertCircle } from "lucide-react";
 import type { UseEmptyStateOptions, UseEmptyStateReturn } from "./types.js";
 
-const ICON_CLASSES = "stg:h-10 stg:w-10";
+const ICON_CLASSES = "stg:size-5";
 
 function resolveDefaults(
   variant: UseEmptyStateOptions["variant"],
   resourceLabel: string,
+  query: string | undefined,
 ): { title: string; description: string } {
   switch (variant) {
     case "first-use":
@@ -16,19 +17,18 @@ function resolveDefaults(
       };
     case "zero-results":
       return {
-        title: "No results found",
-        description: "Try adjusting your search or filters.",
+        title: query ? `Nothing matches \u201c${query}\u201d` : "Nothing matches your search",
+        description: `Check the spelling, or clear the search to see every ${resourceLabel === "resources" ? "item" : resourceLabel.replace(/s$/, "")}.`,
       };
     case "permission":
       return {
-        title: `No access to ${resourceLabel}`,
-        description:
-          "You don't have permission to view these resources. Contact your organization admin.",
+        title: `Only an admin can open ${resourceLabel}`,
+        description: "Ask an admin of this organization for access.",
       };
     case "error":
       return {
-        title: "Something went wrong",
-        description: "We couldn't load this content. Please try again.",
+        title: "Couldn't load this.",
+        description: "Try again in a moment.",
       };
   }
 }
@@ -68,10 +68,10 @@ function resolveRole(
  * ```
  */
 export function useEmptyState(options: UseEmptyStateOptions): UseEmptyStateReturn {
-  const { variant, resourceLabel = "resources", title, description, errorMessage } = options;
+  const { variant, resourceLabel = "resources", title, description, errorMessage, query } = options;
 
   return useMemo(() => {
-    const defaults = resolveDefaults(variant, resourceLabel);
+    const defaults = resolveDefaults(variant, resourceLabel, query);
     return {
       title: title ?? defaults.title,
       description:
@@ -81,5 +81,5 @@ export function useEmptyState(options: UseEmptyStateOptions): UseEmptyStateRetur
       defaultIcon: resolveIcon(variant),
       role: resolveRole(variant),
     };
-  }, [variant, resourceLabel, title, description, errorMessage]);
+  }, [variant, resourceLabel, title, description, errorMessage, query]);
 }

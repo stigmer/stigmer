@@ -1,7 +1,9 @@
 "use client";
 
 import { cn } from "@stigmer/design-tokens";
+import { Tag } from "../internal/surface/Tag.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
+import { StatusBadge } from "../status/StatusBadge.js";
 import type { VersionTimelineEntryProps } from "./types.js";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
 
@@ -104,17 +106,9 @@ export function VersionTimelineEntry({
             </span>
           )}
 
-          {entry.tag && (
-            <span className="stg:shrink-0 stg:rounded-full stg:bg-primary-subtle stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-primary">
-              {entry.tag}
-            </span>
-          )}
+          {entry.tag && <Tag>{entry.tag}</Tag>}
 
-          {entry.isCurrent && (
-            <span className="stg:shrink-0 stg:rounded-full stg:bg-status-ready-subtle stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-status-ready">
-              current
-            </span>
-          )}
+          {entry.isCurrent && <StatusBadge phase="ready" label="current" />}
 
           {trailing && (
             <div className="stg:ml-auto stg:shrink-0">{trailing}</div>

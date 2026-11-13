@@ -172,7 +172,7 @@ function AddMcpServerForm({
       {error instanceof PluginReadRefusal ? (
         <PrepareRefusal error={error} />
       ) : (
-        error && <ErrorMessage error={error} title="The server could not be added" />
+        error && <ErrorMessage error={error} title="Couldn't add the server." />
       )}
 
       <footer className="stg:flex stg:justify-end stg:gap-2 stg:pt-1">

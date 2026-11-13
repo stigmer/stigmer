@@ -39,6 +39,7 @@ import { HOOK_WARNING_KINDS } from "@stigmer/plugin-package";
 import { DIALECT_LABELS } from "@stigmer/plugin-package/client";
 import { useManageAccess } from "../access/useManageAccess.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell.js";
@@ -491,10 +492,12 @@ function LoadingSkeleton({ className }: { readonly className?: string }) {
 
 function NotFoundState({ className }: { readonly className?: string }) {
   return (
-    <div role="status" className={cn("stg:flex stg:flex-col stg:items-center stg:gap-2 stg:py-12 stg:text-center", className)}>
-      <PluginIcon className="stg:size-10 stg:text-muted-foreground-faint" />
-      <p className="stg:text-sm stg:font-medium stg:text-muted-foreground">Plugin not installed</p>
-      <p className="stg:text-xs stg:text-muted-foreground">No plugin with this name is installed in the organization.</p>
-    </div>
+    <EmptyState
+      variant="first-use"
+      icon={<PluginIcon />}
+      title="Plugin not installed"
+      description="No plugin with this name is installed in the organization."
+      className={className}
+    />
   );
 }

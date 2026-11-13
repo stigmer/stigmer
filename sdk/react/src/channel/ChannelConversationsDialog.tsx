@@ -6,12 +6,12 @@ import { MessageSquare, User, X } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import { DialogShell } from "../internal/DialogShell.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
-import { getUserMessage } from "@stigmer/client";
 import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { channelSessionExternalUserKey } from "../session/channelOrigin.js";
 import { useChannelSessions } from "./useChannelSessions.js";
@@ -111,7 +111,7 @@ function ChannelConversationsDialogBody({
 }) {
   const channelName =
     channel.metadata?.name || channel.metadata?.slug || "this channel";
-  const { sessions, isLoading, error, hasMore, loadMore, isLoadingMore, loadMoreError } =
+  const { sessions, isLoading, error, refetch, hasMore, loadMore, isLoadingMore, loadMoreError } =
     useChannelSessions(channel.metadata?.id ?? "");
 
   return (
@@ -143,9 +143,7 @@ function ChannelConversationsDialogBody({
         {isLoading ? (
           <ConversationsSkeleton />
         ) : error ? (
-          <p className="stg:px-2 stg:py-6 stg:text-center stg:text-sm stg:text-destructive">
-            {getUserMessage(error)}
-          </p>
+          <ErrorMessage error={error} title="Couldn't load the sessions." retry={refetch} />
         ) : sessions.length === 0 ? (
           <EmptyState
             variant="first-use"

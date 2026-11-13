@@ -2,9 +2,10 @@
 
 import { useMemo } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { buildAgentProto, getUserMessage, serializeManifest } from "@stigmer/client";
+import { buildAgentProto, serializeManifest } from "@stigmer/client";
 import type { AgentInput } from "@stigmer/client";
 import type { AgentWizardData } from "./types.js";
+import { ErrorMessage } from "../../error/ErrorMessage.js";
 import { useOrgSlugForId } from "../../organization/useOrgRefs.js";
 
 /** Props for {@link ReviewStep}. */
@@ -107,16 +108,7 @@ export function ReviewStep({
       </div>
 
       {/* Error display */}
-      {error && (
-        <div className="stg:rounded-md stg:border stg:border-destructive stg:bg-muted-faint stg:px-4 stg:py-3" role="alert">
-          <p className="stg:text-sm stg:font-medium stg:text-destructive">
-            Failed to create agent
-          </p>
-          <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">
-            {getUserMessage(error)}
-          </p>
-        </div>
-      )}
+      {error && <ErrorMessage error={error} title="Couldn't create the agent." />}
 
       {/* Creating state */}
       {isCreating && (

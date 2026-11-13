@@ -86,7 +86,7 @@ describe("EditResourceYamlDialog — apply-error affordance", () => {
       "spec change refused by an apply-time guard",
     );
     expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Dismiss error" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Dismiss" })).toBeTruthy();
   });
 
   it("Try again re-invokes apply without reopening the dialog", () => {
@@ -101,7 +101,7 @@ describe("EditResourceYamlDialog — apply-error affordance", () => {
     editState = { error: new Error("guard refused") };
     renderDialog();
 
-    fireEvent.click(screen.getByRole("button", { name: "Dismiss error" }));
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
     expect(clearErrorMock).toHaveBeenCalled();
   });
 

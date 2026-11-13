@@ -122,9 +122,8 @@ describe("ChannelAppsSection", () => {
     cleanup();
     stubs.allowed = new Set(["can_create_channel_app"]);
     renderSection();
-    expect(
-      screen.getByRole("button", { name: /New channel app/ }),
-    ).toBeTruthy();
+    // The header offers it, and so does the empty list.
+    expect(screen.getAllByRole("button", { name: /New channel app/ })).toHaveLength(2);
   });
 
   it("names the organization's admins, not an empty registry, to a caller who may not create channel apps", () => {

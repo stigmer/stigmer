@@ -317,7 +317,7 @@ describe("OrgPreferencesPanel", () => {
     const client = {
       organization: {
         get: vi.fn(async () => {
-          // A read that may succeed again: the shared error offers Retry.
+          // A read that may succeed again: the shared error offers Try again.
           throw new ConnectError("boom", Code.Unavailable);
         }),
         update: vi.fn(),
@@ -329,7 +329,7 @@ describe("OrgPreferencesPanel", () => {
     renderPanel(client);
 
     expect(await screen.findByRole("alert")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
   });
 });
 

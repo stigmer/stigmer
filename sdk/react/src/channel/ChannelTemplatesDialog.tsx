@@ -5,14 +5,15 @@ import { ExternalLink, LayoutTemplate, X } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import { DialogShell } from "../internal/DialogShell.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
-import { getUserMessage } from "@stigmer/client";
 import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import type { ChannelTemplate } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
+import { Tag } from "../internal/surface/Tag.js";
 import { TruncatedText } from "../internal/truncated-text.js";
-import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
+import { StatusBadge } from "../status/StatusBadge.js";
 import {
   channelPresentationOf,
   DEFAULT_CHANNEL_PRESENTATION,
@@ -246,7 +247,7 @@ function ChannelTemplatesList({
 }: {
   readonly channel: Channel;
 }) {
-  const { templates, isLoading, error } = useChannelTemplateList(
+  const { templates, isLoading, error, refetch } = useChannelTemplateList(
     channel.metadata?.slug ?? "",
     channel.metadata?.org ?? "",
   );
@@ -258,11 +259,7 @@ function ChannelTemplatesList({
   if (error) {
     // The server's copy is the teaching state past the pre-check —
     // its refusals name the fix (scope, token, app binding) verbatim.
-    return (
-      <p className="stg:px-2 stg:py-6 stg:text-center stg:text-sm stg:text-destructive">
-        {getUserMessage(error)}
-      </p>
-    );
+    return <ErrorMessage error={error} title="Couldn't load the templates." retry={refetch} />;
   }
 
   if (templates.length === 0) {
@@ -382,11 +379,7 @@ function TemplateBody({ body }: { readonly body: string }) {
 
 /** Provider-verbatim fact rendered small and quiet (category, header). */
 function FactChip({ children }: { readonly children: ReactNode }) {
-  return (
-    <span className="stg:shrink-0 stg:rounded stg:bg-muted-subtle stg:px-1.5 stg:py-0.5 stg:text-xs stg:text-muted-foreground">
-      {children}
-    </span>
-  );
+  return <Tag>{children}</Tag>;
 }
 
 function WhatsAppManagerLink({ label }: { readonly label: string }) {

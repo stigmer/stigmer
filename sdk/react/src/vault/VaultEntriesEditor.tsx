@@ -26,6 +26,7 @@ import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { normalizeAddress } from "./address.js";
 import { INPUT_CLASS } from "./styles.js";
 import { Button } from "../button/Button.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
 
 const SECRET_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
@@ -139,7 +140,7 @@ export function VaultEntriesEditor({
           Matched by name, such as OPENAI_API_KEY. Saved values are never shown again.
         </p>
         {secrets.length === 0 ? (
-          <p className="stg:text-xs stg:text-muted-foreground">No secrets saved.</p>
+          <EmptyState variant="first-use" size="inline" title="No secrets saved." className="stg:px-0" />
         ) : (
           <ul className={cn(UNSTYLED_LIST, "stg:space-y-1.5")}>
             {secrets.map(([name, secret]) => (
@@ -174,7 +175,7 @@ export function VaultEntriesEditor({
           https://mcp.linear.app/mcp or github.com.
         </p>
         {connections.length === 0 ? (
-          <p className="stg:text-xs stg:text-muted-foreground">No logins saved.</p>
+          <EmptyState variant="first-use" size="inline" title="No logins saved." className="stg:px-0" />
         ) : (
           <ul className={cn(UNSTYLED_LIST, "stg:space-y-1.5")}>
             {connections.map(([address, connection]) => (

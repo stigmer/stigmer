@@ -2,6 +2,7 @@
 
 import { cn } from "@stigmer/design-tokens";
 import { IconButton } from "../button/IconButton.js";
+import { Tag } from "../internal/surface/Tag.js";
 import type { ReactNode } from "react";
 
 export interface SectionProps {
@@ -52,9 +53,7 @@ export function Section({
           {title}
         </h3>
         {count != null && count > 0 && (
-          <span className="stg:inline-flex stg:h-5 stg:min-w-5 stg:items-center stg:justify-center stg:rounded-full stg:bg-muted stg:px-1 stg:text-2xs stg:font-semibold stg:text-muted-foreground">
-            {countIsLowerBound ? `${count}+` : count}
-          </span>
+          <Tag>{countIsLowerBound ? `${count}+` : count}</Tag>
         )}
         {(headerActions || onEdit) && (
           <div className="stg:ml-auto stg:flex stg:items-center stg:gap-1">

@@ -199,7 +199,7 @@ export function PlanSection({
     return (
       <ErrorMessage
         error={readError}
-        title="The plan could not be read"
+        title="Couldn't load the plan."
         retry={() => {
           current.refetch();
           catalog.refetch();

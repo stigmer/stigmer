@@ -5,7 +5,6 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { MessageSquare, TriangleAlert, User } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
-import { getUserMessage } from "@stigmer/client";
 import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import {
   ChannelConversationListFilter,
@@ -16,6 +15,7 @@ import { formatRelativeTime } from "../activity/format-relative-time.js";
 import { channelProviderOf } from "../channel/providers.js";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 import {
   Tooltip,
   TooltipContent,
@@ -160,9 +160,7 @@ export function ConversationListPane({
         {isLoading ? (
           <ListSkeleton />
         ) : error ? (
-          <p className="stg:px-2 stg:py-6 stg:text-center stg:text-sm stg:text-destructive">
-            {getUserMessage(error)}
-          </p>
+          <ErrorMessage error={error} title="Couldn't load the conversations." />
         ) : conversations.length === 0 ? (
           channels.length === 0 ? (
             <EmptyState

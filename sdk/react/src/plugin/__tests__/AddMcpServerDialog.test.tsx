@@ -170,7 +170,7 @@ describe("AddMcpServerDialog", () => {
     fillServer("linear");
     fireEvent.click(addButton());
 
-    expect(await screen.findByText("The server could not be added")).toBeTruthy();
+    expect(await screen.findByText("Couldn't add the server.")).toBeTruthy();
     expect(screen.getByText(/a plugin named 'linear' is installed already/)).toBeTruthy();
     expect(onAdded).not.toHaveBeenCalled();
   });

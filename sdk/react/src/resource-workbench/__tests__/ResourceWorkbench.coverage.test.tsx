@@ -35,7 +35,7 @@ describe("ResourceWorkbench search", () => {
     expect(input.value).toBe("review");
 
     await waitFor(() => expect(listFn).toHaveBeenCalledWith(expect.objectContaining({ query: "review" })));
-    await waitFor(() => expect(screen.getByText("No results match your filters")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Nothing matches \u201creview\u201d")).toBeTruthy());
     expect(screen.queryByText("No agents yet")).toBeNull();
   });
 });

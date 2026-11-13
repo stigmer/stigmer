@@ -19,7 +19,7 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { cardClasses } from "../internal/surface/Card.js";
 import { SettingsPage } from "../settings/SettingsPage.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
-import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
+import { StatusBadge } from "../status/StatusBadge.js";
 import { deriveLicenseCustomers } from "./license-customers.js";
 import {
   coveredThroughDay,
@@ -146,7 +146,7 @@ export function LicensesConsole({ className, now }: LicensesConsoleProps) {
   }
 
   if (list.error) {
-    return frame(<ErrorMessage error={list.error} title="The licenses could not be read" retry={list.refetch} />);
+    return frame(<ErrorMessage error={list.error} title="Couldn't load the licenses." retry={list.refetch} />);
   }
 
   // A just-issued license is shown before the list's refetch returns it.
@@ -209,7 +209,7 @@ export function LicensesConsole({ className, now }: LicensesConsoleProps) {
     licenses.length === 0 ? (
       <EmptyState
         variant="first-use"
-        icon={<FileBadge className="stg:size-10" aria-hidden="true" />}
+        icon={<FileBadge aria-hidden="true" />}
         title="No licenses issued yet"
         description="Issue the first one: name the customer, choose the term and set what it unlocks. Every license appears here, ordered by when it needs renewing."
         action={{
@@ -217,7 +217,6 @@ export function LicensesConsole({ className, now }: LicensesConsoleProps) {
           onClick: () => startIssue(),
           icon: <Plus className={ICON} aria-hidden="true" />,
         }}
-        className="stg:rounded-lg stg:border stg:border-dashed stg:border-border"
       />
     ) : (
       // Narrow-host guard (the ResourceTable idiom): the scroll container

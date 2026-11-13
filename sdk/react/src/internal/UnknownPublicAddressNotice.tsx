@@ -1,5 +1,7 @@
 "use client";
 
+import { Notice } from "./surface/Notice.js";
+
 /** Props for {@link UnknownPublicAddressNotice}. */
 export interface UnknownPublicAddressNoticeProps {
   /** What cannot be shown, as it reads mid-sentence ("the callback URL"). */
@@ -23,9 +25,15 @@ export function UnknownPublicAddressNotice({
   subject,
 }: UnknownPublicAddressNoticeProps) {
   return (
-    <p className="stg:text-2xs stg:text-muted-foreground">
-      This app doesn&apos;t know your Stigmer server&apos;s public address, so
-      it can&apos;t show {subject}.
-    </p>
+    <Notice
+      tone="plain"
+      role="note"
+      headline={
+        <>
+          This app doesn&apos;t know your Stigmer server&apos;s public address, so
+          it can&apos;t show {subject}.
+        </>
+      }
+    />
   );
 }

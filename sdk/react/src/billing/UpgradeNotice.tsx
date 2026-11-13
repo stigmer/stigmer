@@ -1,9 +1,9 @@
 "use client";
 
-import { cn } from "@stigmer/design-tokens";
 import { getErrorReason, getUserMessage } from "@stigmer/client";
 import { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 import { FEATURE_COPY, isNamedFeature } from "../internal/features.js";
+import { Notice } from "../internal/surface/Notice.js";
 
 /**
  * The reason Stigmer Cloud refuses an act the organization's plan does not
@@ -86,17 +86,12 @@ export function UpgradeNotice({
       : `${label} ${plural ? "need" : "needs"} the ${unlockingPlanName} plan or above.`;
   const message = error ? getUserMessage(error) : ahead;
   return (
-    <div
-      className={cn(
-        "stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:px-3 stg:py-2 stg:text-xs",
-        className,
-      )}
+    <Notice
+      tone="plain"
       role="status"
-    >
-      <p className="stg:text-foreground">{message}</p>
-      <a href={billingHref} className="stg:mt-1 stg:inline-block stg:font-medium stg:text-primary stg:hover:underline">
-        View plans
-      </a>
-    </div>
+      headline={message}
+      link={{ label: "View plans", href: billingHref }}
+      className={className}
+    />
   );
 }

@@ -6,6 +6,7 @@ import type { ResourceTemplate, TemplateCategory } from "./templates/types.js";
 import { TEMPLATE_CATEGORY_LABELS } from "./templates/types.js";
 import { useTemplateFilter } from "./useTemplateFilter.js";
 import { TemplateCard } from "./TemplateCard.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -159,9 +160,18 @@ export function TemplateGallery<TData>({
         </div>
       ) : (
         (emptyContent ?? (
-          <div className="stg:py-8 stg:text-center stg:text-sm stg:text-muted-foreground">
-            No templates match your search.
-          </div>
+          <EmptyState
+            variant="zero-results"
+            resourceLabel="templates"
+            query={query.trim() || undefined}
+            action={{
+              label: "Clear search",
+              onClick: () => {
+                setQuery("");
+                setActiveCategory(null);
+              },
+            }}
+          />
         ))
       )}
     </div>

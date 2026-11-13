@@ -5,6 +5,7 @@
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { TextContentView } from "./TextContentView.js";
 import { useFileDownloadUrl } from "../file/useFile.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 
 /** Props for {@link FileBody}. */
 export interface FileBodyProps {
@@ -81,7 +82,9 @@ function FileImage({ file }: { readonly file: StigmerFile }) {
   const name = file.spec?.filename ?? "";
   if (error) {
     return (
-      <div className="stg:p-8 stg:text-center stg:text-sm stg:text-destructive">{error.message}</div>
+      <div className="stg:p-4">
+        <ErrorMessage error={error} title="Couldn't load the file." />
+      </div>
     );
   }
   if (!url) {

@@ -11,6 +11,8 @@ import { MessageEntry, type ThreadMessage } from "./MessageEntry.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
 import { isInternalTool } from "@stigmer/react-core/internal";
 import { SpinnerIcon } from "../internal/thread-card/glyphs.js";
+import { StatusBadge } from "../status/StatusBadge.js";
+import type { StatusPhase } from "../resource-workbench/types.js";
 
 /** Props for {@link SubagentSection}. */
 export interface SubagentSectionProps {
@@ -190,14 +192,7 @@ function CollapsibleCard({
             <SpinnerIcon size={12} />
           </span>
         )}
-        <span
-          className={cn(
-            "stg:shrink-0 stg:rounded stg:px-1 stg:py-0.5 stg:text-2xs stg:font-medium stg:leading-none",
-            statusInfo.badgeClass,
-          )}
-        >
-          {statusInfo.label}
-        </span>
+        <StatusBadge phase={statusInfo.phase} label={statusInfo.label} />
         {isRunning ? (
           <RunningDuration startedAt={startedAt} />
         ) : (
@@ -429,7 +424,7 @@ function threadWaits(thread: Thread): boolean {
 interface SubagentStatusInfo {
   label: string;
   colorClass: string;
-  badgeClass: string;
+  phase: StatusPhase;
   icon: () => React.JSX.Element;
 }
 
@@ -437,27 +432,27 @@ const SUB_AGENT_STATUS_MAP: Record<Thread["state"], SubagentStatusInfo> = {
   running: {
     label: "Running",
     colorClass: "stg:text-foreground",
-    badgeClass: "stg:bg-muted stg:text-foreground",
+    phase: "running",
     // Sized up to match this map's 12px siblings (the glyph defaults to 10).
     icon: () => <SpinnerIcon size={12} />,
   },
   completed: {
     label: "Completed",
     colorClass: "stg:text-status-ready",
-    badgeClass: "stg:bg-status-ready-subtle stg:text-status-ready",
+    phase: "ready",
     icon: CheckCircleIcon,
   },
   failed: {
     label: "Failed",
     colorClass: "stg:text-destructive",
-    badgeClass: "stg:bg-status-failed-subtle stg:text-status-failed",
+    phase: "failed",
     icon: XCircleIcon,
   },
   // Its turn ended before the subagent finished.
   stopped: {
     label: "Stopped",
     colorClass: "stg:text-muted-foreground",
-    badgeClass: "stg:bg-muted stg:text-muted-foreground",
+    phase: "disabled",
     icon: XCircleIcon,
   },
 };

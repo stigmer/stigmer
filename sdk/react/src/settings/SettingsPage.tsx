@@ -77,12 +77,7 @@ export function SettingsPage({ title, description, actions, unavailable, denied 
       {unavailable ? (
         <CloudFeatureNotice>{unavailable}</CloudFeatureNotice>
       ) : denial !== null ? (
-        <EmptyState
-          variant="permission"
-          title={denial.title}
-          description={denial.description}
-          className="stg:rounded-lg stg:border stg:border-border"
-        />
+        <EmptyState variant="permission" title={denial.title} description={denial.description} />
       ) : (
         children
       )}

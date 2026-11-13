@@ -33,6 +33,7 @@ import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { UNSTYLED_FIELDSET, UNSTYLED_LIST } from "../internal/element-resets.js";
 import { keptReference } from "../internal/kept-reference.js";
+import { tagClasses } from "../internal/surface/Tag.js";
 
 /** The roles a first sign-in may grant; owner is never offered, since ownership is assigned explicitly. */
 const SIGN_IN_ROLE_OPTIONS: readonly { readonly value: IamRole; readonly label: string }[] = [
@@ -98,7 +99,7 @@ export function OrgEmbeddingPanel({ org, serviceAccountsHref, onUpdated, classNa
   }
 
   if (fetchError) {
-    return <ErrorMessage error={fetchError} title="The embedding settings could not be read" retry={refetch} className={className} />;
+    return <ErrorMessage error={fetchError} title="Couldn't load the embedding settings." retry={refetch} className={className} />;
   }
 
   if (!organization) return null;
@@ -309,7 +310,7 @@ function EmbeddingForm({
             {draft.allowedOrigins.map((origin) => (
               <li
                 key={origin}
-                className="stg:inline-flex stg:items-center stg:gap-1 stg:rounded-full stg:border stg:border-border-muted stg:bg-muted-subtle stg:px-2 stg:py-0.5 stg:font-mono stg:text-2xs stg:text-foreground"
+                className={tagClasses({ mono: true })}
               >
                 {origin}
                 {canEdit && (

@@ -20,6 +20,7 @@ import { hooksSummary } from "@stigmer/client";
 import type { PluginPackage } from "@stigmer/plugin-package";
 import { DIALECT_LABELS } from "@stigmer/plugin-package/client";
 import { ErrorMessage } from "../error/ErrorMessage.js";
+import { Notice } from "../internal/surface/Notice.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import type { InstallOrigin, PreparedInstall } from "./sources/read.js";
 import { PluginReadRefusal } from "./sources/read.js";
@@ -151,25 +152,24 @@ export function PrepareRefusal({
 }) {
   if (error instanceof PluginReadRefusal) {
     return (
-      <div role="alert" className="stg:rounded-md stg:border stg:border-destructive stg:p-3 stg:text-sm">
-        <p className="stg:font-medium stg:text-foreground">{error.subject}:</p>
-        <ul className="stg:mt-1 stg:list-disc stg:space-y-0.5 stg:pl-5 stg:text-foreground">
+      <Notice tone="failed" role="alert" headline={`${error.subject}:`}>
+        <ul className="stg:m-0 stg:list-disc stg:space-y-0.5 stg:pl-5">
           {error.errors.map((finding, index) => (
             <li key={`e${index}`}>{finding.message}</li>
           ))}
         </ul>
         {error.warnings.length > 0 && (
-          <ul className="stg:mt-2 stg:list-disc stg:space-y-0.5 stg:pl-5 stg:text-muted-foreground">
+          <ul className="stg:m-0 stg:mt-1 stg:list-disc stg:space-y-0.5 stg:pl-5 stg:text-muted-foreground">
             {error.warnings.map((finding, index) => (
               <li key={`w${index}`}>{finding.message}</li>
             ))}
           </ul>
         )}
-        {hint && <p className="stg:mt-2 stg:text-muted-foreground">{hint}</p>}
-      </div>
+        {hint && <p className="stg:m-0 stg:mt-1 stg:text-muted-foreground">{hint}</p>}
+      </Notice>
     );
   }
-  return <ErrorMessage error={error} {...(retry && { retry })} title="The plugin could not be read" />;
+  return <ErrorMessage error={error} {...(retry && { retry })} title="Couldn't load the plugin." />;
 }
 
 function Block({ title, children }: { readonly title: string; readonly children: React.ReactNode }) {

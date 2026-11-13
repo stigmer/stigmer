@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { EmptyState } from "../empty-state/EmptyState.js";
 import type { MultiFileDiffResult } from "./types.js";
 import { DiffViewer } from "./DiffViewer.js";
 import { DiffFileList } from "./DiffFileList.js";
@@ -55,19 +56,13 @@ export function MultiFileDiffView({
 
   if (diff.files.length === 0) {
     return (
-      <div
-        role="status"
-        className={cn(
-          "stg:flex stg:flex-col stg:items-center stg:gap-2 stg:py-12 stg:text-center",
-          className,
-        )}
-      >
-        <NoDiffIcon className="stg:size-8 stg:text-muted-foreground-faint" />
-        <p className="stg:text-sm stg:text-muted-foreground">No differences found</p>
-        <p className="stg:text-xs stg:text-muted-foreground-subtle">
-          These two versions have identical content.
-        </p>
-      </div>
+      <EmptyState
+        variant="first-use"
+        icon={<NoDiffIcon />}
+        title="No differences found"
+        description="These two versions have identical content."
+        className={className}
+      />
     );
   }
 

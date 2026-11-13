@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { Button } from "../button/Button.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
 import type { VersionTimelineProps } from "./types.js";
 import { VersionTimelineEntry } from "./VersionTimelineEntry.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
@@ -70,7 +71,15 @@ export function VersionTimeline({
   }
 
   if (entries.length === 0) {
-    return <EmptyState message={emptyMessage} className={className} />;
+    return (
+      <EmptyState
+        variant="first-use"
+        icon={<HistoryIcon />}
+        title={emptyMessage}
+        description=""
+        className={className}
+      />
+    );
   }
 
   const compareLabel = compareSelection
@@ -176,27 +185,6 @@ function TimelineSkeleton({ className }: { readonly className?: string }) {
         </div>
       ))}
     </LoadingRegion>
-  );
-}
-
-function EmptyState({
-  message,
-  className,
-}: {
-  readonly message: string;
-  readonly className?: string;
-}) {
-  return (
-    <div
-      role="status"
-      className={cn(
-        "stg:flex stg:flex-col stg:items-center stg:gap-2 stg:py-8 stg:text-center",
-        className,
-      )}
-    >
-      <HistoryIcon className="stg:size-8 stg:text-muted-foreground-faint" />
-      <p className="stg:text-sm stg:text-muted-foreground">{message}</p>
-    </div>
   );
 }
 

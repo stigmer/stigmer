@@ -127,7 +127,7 @@ describe("AgentQualityReportView in the Quality tab", () => {
       ),
     });
     const alert = await screen.findByRole("alert");
-    expect(alert.textContent).toContain("Access denied");
+    expect(alert.textContent).toContain("You don't have access to this.");
     expect(alert.textContent).toContain("you cannot view this organization");
   });
 

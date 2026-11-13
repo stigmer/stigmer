@@ -3,6 +3,7 @@
 import type { ApiResourceRefView } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 import { cn } from "@stigmer/design-tokens";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
+import { tagClasses } from "../internal/surface/Tag.js";
 
 /**
  * The human-readable identity-source label for a principal, or `""` when none
@@ -26,7 +27,7 @@ export interface ProviderBadgeProps {
 }
 
 /**
- * A subtle pill naming the identity source an account belongs to.
+ * A neutral tag naming the identity source an account belongs to.
  *
  * Renders nothing when no provider label is available (an account whose
  * provisioning mode names no provider), so it never adds empty chrome.
@@ -43,13 +44,7 @@ export function ProviderBadge({ principal, className }: ProviderBadgeProps) {
     <Tooltip>
       <TooltipTrigger
         render={
-          <span
-            className={cn(
-              "stg:inline-flex stg:items-center stg:rounded stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium",
-              "stg:bg-muted-subtle stg:text-muted-foreground",
-              className,
-            )}
-          />
+          <span className={cn(tagClasses(), className)} />
         }
       >
         {label}

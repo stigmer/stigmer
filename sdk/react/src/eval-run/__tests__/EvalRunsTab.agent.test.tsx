@@ -516,8 +516,8 @@ describe("EvalRunsTab on an agent", () => {
       return newer;
     });
     render(<EvalRunsTab agent={agentWith(["thermos"])} />, { wrapper: wrap(mock) });
-    expect(await screen.findByText("Could not read the Before eval run")).toBeDefined();
-    expect(screen.queryByText("Could not read the After eval run")).toBeNull();
+    expect(await screen.findByText("Couldn't load the Before eval run.")).toBeDefined();
+    expect(screen.queryByText("Couldn't load the After eval run.")).toBeNull();
     expect(screen.queryByText("Loading the comparison…")).toBeNull();
   });
 

@@ -14,7 +14,9 @@ import {
   isDeletedReference,
 } from "@stigmer/client";
 import { maskedEdit, saveErrorMessage } from "@stigmer/react-core/internal";
+import { EmptyState } from "../empty-state/EmptyState.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
+import { Tag } from "../internal/surface/Tag.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
 import { useManageAccess } from "../access/useManageAccess.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
@@ -1225,9 +1227,7 @@ function EnvContent({
           <code className="stg:shrink-0 stg:font-mono stg:text-sm stg:font-medium stg:text-foreground">
             {name}
           </code>
-          <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
-            {env.isSecret ? "secret" : "config"}
-          </span>
+          <Tag>{env.isSecret ? "secret" : "config"}</Tag>
           {env.description && (
             <span className="stg:text-xs stg:text-muted-foreground">
               {env.description}
@@ -1276,21 +1276,13 @@ function LoadingSkeleton({ className }: { readonly className?: string }) {
 
 function NotFoundState({ className }: { readonly className?: string }) {
   return (
-    <div
-      role="status"
-      className={cn(
-        "stg:flex stg:flex-col stg:items-center stg:gap-2 stg:py-12 stg:text-center",
-        className,
-      )}
-    >
-      <AgentIcon className="stg:size-10 stg:text-muted-foreground-faint" />
-      <p className="stg:text-sm stg:font-medium stg:text-muted-foreground">
-        Agent not found
-      </p>
-      <p className="stg:text-xs stg:text-muted-foreground-subtle">
-        This agent doesn&apos;t exist or you don&apos;t have access to it.
-      </p>
-    </div>
+    <EmptyState
+      variant="first-use"
+      icon={<AgentIcon />}
+      title="Agent not found"
+      description="This agent doesn't exist or you don't have access to it."
+      className={className}
+    />
   );
 }
 

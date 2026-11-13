@@ -6,6 +6,7 @@ import { type ResourceRef } from "@stigmer/client";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { Button } from "../button/Button.js";
+import { Notice } from "../internal/surface/Notice.js";
 import { IconButton } from "../button/IconButton.js";
 import { ChannelToolCredentials } from "./ChannelToolCredentials.js";
 import { useSaveChannel } from "./useSaveChannel.js";
@@ -155,12 +156,7 @@ function ChannelCredentialsDialogBody({
         />
 
         {error && (
-          <div
-            role="alert"
-            className="stg:mt-3 stg:rounded-md stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:px-3 stg:py-2 stg:text-xs stg:text-destructive"
-          >
-            {saveErrorMessage(error, "channel")}
-          </div>
+          <Notice tone="failed" headline={saveErrorMessage(error, "channel")} className="stg:mt-3" />
         )}
       </div>
 

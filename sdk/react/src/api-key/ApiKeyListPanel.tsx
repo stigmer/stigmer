@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { ApiKey } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
@@ -17,6 +16,7 @@ import { LastUsedLabel } from "../internal/LastUsedLabel.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import type { EmptyStateAction } from "../empty-state/types.js";
 import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
 import { List, ListRow } from "../internal/surface/List.js";
 
@@ -37,6 +37,12 @@ export interface ApiKeyListPanelProps {
    * "2h ago" drifts with every replay.
    */
   readonly now?: Date;
+  /**
+   * The page's create act, carried by the empty list (the same label and
+   * handler as the page header's button). Absent when the caller may not
+   * create one, or a create is already open.
+   */
+  readonly emptyAction?: EmptyStateAction;
 }
 
 /**
@@ -68,6 +74,7 @@ export interface ApiKeyListPanelProps {
  */
 export function ApiKeyListPanel({
   onRefetchRef,
+  emptyAction,
   className,
   now,
 }: ApiKeyListPanelProps) {
@@ -86,6 +93,7 @@ export function ApiKeyListPanel({
       onRetry={refetch}
       emptyText="No API keys yet"
       emptyDescription="Make one for the CLI on a server, a CI job or a script. You see its value once, when it is made."
+      emptyAction={emptyAction}
       className={className}
       now={now}
       pager={pager}
@@ -110,6 +118,8 @@ export interface ApiKeyListViewProps {
   readonly emptyText: string;
   /** What to do about an empty list, under its heading. */
   readonly emptyDescription?: string;
+  /** The empty list's act: the page's create button, when it has one. */
+  readonly emptyAction?: EmptyStateAction;
   readonly className?: string;
   readonly now?: Date;
   /** The list's paging state, for its "Load more" footer. */
@@ -139,6 +149,7 @@ export function ApiKeyListView({
   onRetry,
   emptyText,
   emptyDescription,
+  emptyAction,
   className,
   now,
   pager,
@@ -151,7 +162,7 @@ export function ApiKeyListView({
   }
 
   if (error) {
-    return <ErrorMessage error={error} title="The API keys could not be read" retry={onRetry} className={className} />;
+    return <ErrorMessage error={error} title="Couldn't load the API keys." retry={onRetry} className={className} />;
   }
 
   if (apiKeys.length === 0) {
@@ -160,7 +171,8 @@ export function ApiKeyListView({
         variant="first-use"
         title={emptyText}
         description={emptyDescription}
-        className={cn("stg:rounded-lg stg:border stg:border-dashed stg:border-border", className)}
+        action={emptyAction}
+        className={className}
       />
     );
   }

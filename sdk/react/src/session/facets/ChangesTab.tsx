@@ -1,6 +1,8 @@
 "use client";
 
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { GitPullRequest } from "lucide-react";
+import { EmptyState } from "../../empty-state/EmptyState.js";
 import { UNSTYLED_LIST } from "../../internal/element-resets.js";
 import { useSessionWriteBacks } from "../useSessionWriteBacks.js";
 import { WriteBackCard } from "../../run/WriteBackCard.js";
@@ -60,26 +62,29 @@ export function ChangesTab({
   }
 
   if (expectsWriteBack) {
-    return (
-      <div className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:px-4 stg:py-8 stg:text-center">
-        <p className="stg:text-xs stg:text-muted-foreground">
-          {isSettled
-            ? "No changes have been pushed yet. When the agent changes files " +
-              "and you approve them, they are pushed to a branch and pull " +
-              "request here."
-            : "Changes stay in the session workspace while you review them. " +
-              "Approved changes are pushed to a branch and pull request here."}
-        </p>
-      </div>
+    return isSettled ? (
+      <EmptyState
+        variant="first-use"
+        icon={<GitPullRequest />}
+        title="No changes have been pushed yet."
+        description="When the agent changes files and you approve them, they are pushed to a branch and pull request here."
+      />
+    ) : (
+      <EmptyState
+        variant="first-use"
+        icon={<GitPullRequest />}
+        title="Changes stay in the session workspace while you review them."
+        description="Approved changes are pushed to a branch and pull request here."
+      />
     );
   }
 
   return (
-    <div className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:px-4 stg:py-8 stg:text-center">
-      <p className="stg:text-xs stg:text-muted-foreground">
-        No changes yet. Pull requests will appear here once the agent pushes
-        its work back to your repository.
-      </p>
-    </div>
+    <EmptyState
+      variant="first-use"
+      icon={<GitPullRequest />}
+      title="No changes yet."
+      description="Pull requests will appear here once the agent pushes its work back to your repository."
+    />
   );
 }

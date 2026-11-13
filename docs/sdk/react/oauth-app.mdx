@@ -285,6 +285,7 @@ All visual properties flow through `--stgm-*` design tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    emptyAction: { type: "EmptyStateAction", description: "The page's create act, carried by the empty list (the same label and handler as the page header's button). Absent when the caller may not create one, or a create is already open." },
     emptyDescription: { type: "string", description: "What to do about the empty list, under OAuthAppListPanelProps.emptyState." },
     emptyState: { type: "string", description: "Shown when the list is empty. Defaults to \"No OAuth apps configured yet.\" The list holds only the apps the caller may view (the organization's admins, and anyone granted viewer on an app), so a host that knows the caller may not manage OAuth apps should say who does instead." },
     onEdit: { type: "(app: OAuthApp) => void", description: "Fired when the user wants to view/edit an OAuth app. When provided, rows become interactive with a pencil icon button. When absent, rows remain static (backward compatible)." },

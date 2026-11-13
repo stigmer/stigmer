@@ -20,10 +20,12 @@
 import { useCallback, useId, useRef, useState } from "react";
 import { getUserMessage } from "@stigmer/client";
 import { VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
-import { PermissionGate } from "../grant/PermissionGate.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { Button } from "../button/Button.js";
 import { Card } from "../internal/surface/Card.js";
+import { Tag } from "../internal/surface/Tag.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
+import type { EmptyStateAction } from "../empty-state/types.js";
 import { useVaultSignIn } from "../vault/useVaultSignIn.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
 import { CreateVaultForm } from "../vault/CreateVaultForm.js";
@@ -49,18 +51,23 @@ export function VaultsSection() {
     listRefetchRef.current?.();
   }, []);
 
+  const startCreate = useCallback(() => setShowCreate(true), []);
+  // One answer offers both acts: the header's "New shared vault" and the
+  // empty list's.
+  const createCheck = useCheckPermission(org ? { kind: "organization", id: org } : null, "can_create_shared_vault");
+  const canCreate = !createCheck.isLoading && createCheck.allowed;
+
   return (
     <SettingsPage
       title="Vaults"
       description="The logins and secrets your agents use: your own, in My vault, and your organization's, in shared vaults."
       actions={
         !showCreate &&
-        org && (
-          <PermissionGate resource={{ kind: "organization", id: org }} relation="can_create_shared_vault">
-            <Button size="sm" onClick={() => setShowCreate(true)}>
-              New shared vault
-            </Button>
-          </PermissionGate>
+        org &&
+        canCreate && (
+          <Button size="sm" onClick={startCreate}>
+            New shared vault
+          </Button>
         )
       }
     >
@@ -75,6 +82,7 @@ export function VaultsSection() {
             onCreated={handleCreated}
             onCancelCreate={() => setShowCreate(false)}
             onRefetchRef={handleRefetchRef}
+            emptyAction={canCreate && !showCreate ? { label: "New shared vault", onClick: startCreate } : undefined}
           />
         </div>
       )}
@@ -99,13 +107,11 @@ function MyVaultCard({ org }: { org: string }) {
   return (
     <section aria-labelledby={headingId} className="stg:flex stg:flex-col stg:gap-3">
       <div className="stg:flex stg:flex-col stg:gap-1">
-        <div className="stg:flex stg:items-baseline stg:gap-2">
+        <div className="stg:flex stg:items-center stg:gap-2">
           <h3 id={headingId} className="stg:m-0 stg:text-foreground stg:text-sm stg:font-semibold">
             My vault
           </h3>
-          <span className="stg:bg-primary-subtle stg:text-primary stg:rounded-full stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider">
-            You
-          </span>
+          <Tag>You</Tag>
         </div>
         <p className="stg:m-0 stg:text-muted-foreground stg:text-xs">
           Your own logins and secrets. A chat that includes My vault uses them for the messages you send, never a
@@ -117,7 +123,12 @@ function MyVaultCard({ org }: { org: string }) {
       {myVault.isLoading ? (
         <SettingsSkeleton label="Loading My vault" rows={2} />
       ) : myVault.error && !myVault.vault ? (
-        <ErrorMessage error={myVault.error} title="My vault could not be read" retry={myVault.refetch} />
+        <ErrorMessage
+          error={myVault.error}
+          title="Couldn't load My vault."
+          comfort="Nothing in it is lost; only this page's read failed."
+          retry={myVault.refetch}
+        />
       ) : (
         <VaultEntriesEditor
           vault={myVault.vault}
@@ -150,12 +161,14 @@ function SharedVaultsCard({
   onCreated,
   onCancelCreate,
   onRefetchRef,
+  emptyAction,
 }: {
   readonly org: string;
   readonly showCreate: boolean;
   readonly onCreated: () => void;
   readonly onCancelCreate: () => void;
   readonly onRefetchRef: (refetch: () => void) => void;
+  readonly emptyAction: EmptyStateAction | undefined;
 }) {
   const headingId = useId();
 
@@ -177,7 +190,7 @@ function SharedVaultsCard({
         </Card>
       )}
 
-      <VaultListPanel org={org} onRefetchRef={onRefetchRef} />
+      <VaultListPanel org={org} onRefetchRef={onRefetchRef} emptyAction={emptyAction} />
     </section>
   );
 }

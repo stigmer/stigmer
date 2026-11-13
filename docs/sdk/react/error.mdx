@@ -11,13 +11,14 @@ Import from `@stigmer/react-sdk`. The hooks and helpers on this page also import
 
 ### ErrorMessage
 
-Inline error display that classifies errors and renders a
-category-appropriate message with optional retry and expandable
-technical details (RPC method and path).
+A failure, as the console draws one: a note in the failed tone with a
+bold sentence on what happened, the error's own message under it, what
+wasn't lost when the page knows, one act (Try again, or Sign in again),
+and Copy details (the category, and the RPC method and path) for
+whoever fixes it.
 
-Uses `classifyError()`, `getUserMessage()`, `getRpcMetadata()`, and
-`isRetryableError()` from `@stigmer/client` to provide structured,
-user-friendly error rendering.
+Uses `classifyError()`, `getUserMessage()` and `getRpcMetadata()` from
+`@stigmer/client`.
 
 All visual properties flow through `--stgm-*` design tokens. No
 Console-specific dependencies — safe for platform builder embedding.
@@ -27,16 +28,18 @@ Console-specific dependencies — safe for platform builder embedding.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    comfort: { type: "ReactNode", description: "What wasn't lost, when the page knows (\"Your organization's vaults are safe; only this page's read failed.\"). Drawn under the error's own line." },
     error: { type: "Error | null", description: "The error to display. Renders nothing when `null`.", required: true },
-    retry: { type: "() => void", description: "Callback to retry the failed operation. Shows a \"Retry\" button when provided **and** the error is retryable (server or unavailable category)." },
-    title: { type: "string", description: "Override the default title derived from the error category." },
+    retry: { type: "() => void", description: "Callback to retry the failed operation. Shows \"Try again\" when provided and trying again can help (the server failed or didn't answer, the request was cancelled, or the cause is unknown)." },
+    signIn: { type: "() => void", description: "Signs the person in again. Shows \"Sign in again\" when the error is that they're signed out." },
+    title: { type: "string", description: "The headline, in the page's words (\"Couldn't load the members.\"). When omitted, a plain sentence for the error's category." },
   }}
 />
 
 ```tsx
 function AgentName({ slug }: { slug: string }) {
   const { agent, error, refetch } = useAgent("acme", slug);
-  if (error) return <ErrorMessage error={error} retry={refetch} />;
+  if (error) return <ErrorMessage error={error} title="Couldn't load the agent." retry={refetch} />;
   return <h1>{agent?.metadata?.name}</h1>;
 }
 ```

@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@stigmer/design-tokens";
+import { Notice } from "../internal/surface/Notice.js";
 import { useEnvironmentAvailability } from "../server-info.js";
 import { ENVIRONMENTS_NOT_ON_SERVER_BANNER } from "./copy.js";
 
@@ -28,14 +28,13 @@ export function EnvironmentsNotOnServerNotice({ className }: EnvironmentsNotOnSe
     return null;
   }
   return (
-    <p
-      role="note"
-      className={cn(
-        "stg:rounded-md stg:border stg:border-border stg:bg-muted stg:px-3 stg:py-2 stg:text-sm stg:text-foreground",
-        className,
-      )}
-    >
-      {ENVIRONMENTS_NOT_ON_SERVER_BANNER}
-    </p>
+    <Notice tone="plain" role="note" headline={BANNER_HEADLINE} className={className}>
+      <p className="stg:m-0">{BANNER_LINE}</p>
+    </Notice>
   );
 }
+
+/** The banner's first sentence, the notice's headline, and the rest, the line under it. */
+const BANNER_SPLIT = ENVIRONMENTS_NOT_ON_SERVER_BANNER.indexOf(". ") + 1;
+const BANNER_HEADLINE = ENVIRONMENTS_NOT_ON_SERVER_BANNER.slice(0, BANNER_SPLIT);
+const BANNER_LINE = ENVIRONMENTS_NOT_ON_SERVER_BANNER.slice(BANNER_SPLIT).trim();

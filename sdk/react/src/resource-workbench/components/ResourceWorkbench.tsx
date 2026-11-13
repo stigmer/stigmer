@@ -238,8 +238,8 @@ export function ResourceWorkbench<TData = SearchResult>({
   getItemId = defaultGetId as (item: TData) => string,
   refetchToken,
   emptyIcon,
-  emptyTitle = "No resources found",
-  emptyDescription = "Try adjusting your search or filters.",
+  emptyTitle,
+  emptyDescription,
   emptyAction,
   onRetry,
   headerAction,
@@ -296,6 +296,13 @@ export function ResourceWorkbench<TData = SearchResult>({
   // --- Inspector ---------------------------------------------------------
   const [inspectedItem, setInspectedItem] = useState<TData | null>(null);
   const inspectorEnabled = !!renderInspector;
+
+  // --- Clear search: the zero-results act empties the search and every filter.
+  const { setQuery, clearFilters } = filtersHook;
+  const clearSearch = useCallback(() => {
+    setQuery("");
+    clearFilters();
+  }, [setQuery, clearFilters]);
 
   const handleItemClick = useCallback(
     (item: TData) => {
@@ -383,44 +390,29 @@ export function ResourceWorkbench<TData = SearchResult>({
               errorMessage={collection.error!.message}
               action={
                 onRetry
-                  ? { label: "Retry", onClick: onRetry ?? collection.refetch }
+                  ? { label: "Try again", onClick: onRetry ?? collection.refetch }
                   : undefined
               }
             />
           )}
 
-          {showEmpty && (
-            <EmptyState
-              variant={
-                filtersHook.hasActiveFilters || filtersHook.debouncedQuery
-                  ? "zero-results"
-                  : "first-use"
-              }
-              icon={emptyIcon}
-              title={
-                filtersHook.hasActiveFilters || filtersHook.debouncedQuery
-                  ? "No results match your filters"
-                  : emptyTitle
-              }
-              description={
-                filtersHook.hasActiveFilters || filtersHook.debouncedQuery
-                  ? "Try adjusting your search or removing some filters."
-                  : emptyDescription
-              }
-              action={
-                filtersHook.hasActiveFilters
-                  ? {
-                      label: "Clear filters",
-                      onClick: filtersHook.clearFilters,
-                    }
-                  : undefined
-              }
-            >
-              {!filtersHook.hasActiveFilters && !filtersHook.debouncedQuery
-                ? emptyAction
-                : undefined}
-            </EmptyState>
-          )}
+          {showEmpty &&
+            (filtersHook.hasActiveFilters || filtersHook.debouncedQuery ? (
+              <EmptyState
+                variant="zero-results"
+                query={filtersHook.query.trim() || undefined}
+                action={{ label: "Clear search", onClick: clearSearch }}
+              />
+            ) : (
+              <EmptyState
+                variant="first-use"
+                icon={emptyIcon}
+                title={emptyTitle}
+                description={emptyDescription}
+              >
+                {emptyAction}
+              </EmptyState>
+            ))}
 
           {showContent && viewMode === "table" && collection.table && (
             <ResourceTable

@@ -31,6 +31,7 @@ import {
   useModelCatalogView,
   type ModelCatalogRow,
 } from "./useModelCatalogView.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
 
 /** Props for {@link ModelCatalogConsole}. */
 export interface ModelCatalogConsoleProps {
@@ -132,7 +133,7 @@ export function ModelCatalogConsole({ className }: ModelCatalogConsoleProps) {
       {view.isLoading ? (
         <SettingsSkeleton label="Loading the model catalog" rows={4} />
       ) : view.error ? (
-        <ErrorMessage error={view.error} title="The model catalog could not be read" retry={view.refetch} />
+        <ErrorMessage error={view.error} title="Couldn't load the model catalog." retry={view.refetch} />
       ) : (
         <ModelCatalogBody
           view={view}
@@ -250,11 +251,22 @@ function ModelCatalogBody({
           <span className="stg:text-right">Variants</span>
         </div>
         {view.models.length === 0 ? (
-          <p className="stg:px-3.5 stg:py-2.5 stg:text-xs stg:text-muted-foreground">
-            {view.modelQuery.trim() !== ""
-              ? `No models match "${view.modelQuery.trim()}".`
-              : "The catalog is empty — has the baseline seed migration run?"}
-          </p>
+          view.modelQuery.trim() !== "" ? (
+            <EmptyState
+              variant="zero-results"
+              size="inline"
+              resourceLabel="models"
+              query={view.modelQuery.trim()}
+              action={{ label: "Clear search", onClick: () => view.setModelQuery("") }}
+            />
+          ) : (
+            <EmptyState
+              variant="first-use"
+              size="inline"
+              title="The catalog is empty — has the baseline seed migration run?"
+              action={{ label: "Add model", onClick: view.openCreate }}
+            />
+          )
         ) : (
           <ul role="list" aria-label="Models" className={UNSTYLED_LIST}>
             {view.models.map((row) => (

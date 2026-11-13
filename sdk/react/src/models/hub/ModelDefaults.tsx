@@ -10,8 +10,8 @@
 
 import { useCallback, useEffect, useId, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { getUserMessage } from "@stigmer/client";
 import { saveErrorMessage } from "@stigmer/react-core/internal";
+import { ErrorMessage } from "../../error/ErrorMessage.js";
 import { LoadingRegion } from "../../internal/LoadingRegion.js";
 import { UNSTYLED_LIST } from "../../internal/element-resets.js";
 import { cardClasses } from "../../internal/surface/Card.js";
@@ -103,9 +103,7 @@ export function ModelDefaults({ readinessOf, className }: ModelDefaultsProps) {
           <div className="stg:h-8 stg:animate-pulse stg:rounded stg:bg-muted-subtle" />
         </LoadingRegion>
       ) : error && !account ? (
-        <p role="alert" className="stg:px-4 stg:py-3 stg:text-xs stg:text-destructive">
-          {getUserMessage(error)}
-        </p>
+        <ErrorMessage error={error} retry={refetch} className="stg:m-4" />
       ) : (
         <ul className={cn(UNSTYLED_LIST, "stg:divide-y stg:divide-border-muted")}>
           {HARNESS_OPTIONS.map((harness) => (

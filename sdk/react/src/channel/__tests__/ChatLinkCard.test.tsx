@@ -162,7 +162,7 @@ describe("ChatLinkCard", () => {
     expect(screen.getByText("/chat/chn_1")).toBeTruthy();
     expect(screen.queryByText(/tok123/)).toBeNull();
     expect(screen.getByText("Anyone with the link")).toBeTruthy();
-    expect(screen.getByText("Active").className.split(" ")).toContain("stg:text-status-ready");
+    expect(screen.getByText("Active").className.split(" ")).toContain("stg:text-[var(--stgm-status-ready)]");
   });
 
   it("shows an organization link's audience and a paused link's state", () => {

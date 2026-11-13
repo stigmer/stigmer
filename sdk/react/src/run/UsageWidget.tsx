@@ -18,6 +18,7 @@ import { cn } from "@stigmer/design-tokens";
 import { useSessionUsage, type ModelUsageEntry } from "@stigmer/react-core";
 import { formatCalls, formatCompactCount, formatTokens } from "../usage/format.js";
 import { ServedByLine } from "../usage/ServedByLine.js";
+import { Tag } from "../internal/surface/Tag.js";
 
 /** Props for {@link UsageWidget}. */
 export interface UsageWidgetProps {
@@ -75,9 +76,7 @@ export function UsageWidget({ runs, className }: UsageWidgetProps) {
           {formatTokens(usage.totalTokens)}
         </span>
         {usage.isEstimated && (
-          <span className="stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:text-2xs stg:font-medium stg:leading-none stg:text-muted-foreground">
-            Estimated
-          </span>
+          <Tag>Estimated</Tag>
         )}
       </div>
 

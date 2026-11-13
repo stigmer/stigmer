@@ -171,9 +171,9 @@ describe("PlanEditor", () => {
     renderEditor({ stigmer: failing });
 
     await waitFor(() =>
-      expect(screen.getByText(/Couldn’t load the plan/)).toBeTruthy(),
+      expect(screen.getByText(/Couldn.t load the plan/)).toBeTruthy(),
     );
-    expect(screen.getByText("Retry")).toBeTruthy();
+    expect(screen.getByText("Try again")).toBeTruthy();
   });
 });
 

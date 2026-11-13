@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { FederationIssuer } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
@@ -13,9 +12,11 @@ import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import type { EmptyStateAction } from "../empty-state/types.js";
 import { Button } from "../button/Button.js";
 import { IconButton } from "../button/IconButton.js";
 import { List, ListRow } from "../internal/surface/List.js";
+import { Tag } from "../internal/surface/Tag.js";
 
 /** Props for {@link FederationIssuerListPanel}. */
 export interface FederationIssuerListPanelProps {
@@ -36,6 +37,12 @@ export interface FederationIssuerListPanelProps {
   readonly emptyDescription?: string;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
+  /**
+   * The page's create act, carried by the empty list (the same label and
+   * handler as the page header's button). Absent when the caller may not
+   * create one, or a create is already open.
+   */
+  readonly emptyAction?: EmptyStateAction;
 }
 
 /**
@@ -70,6 +77,7 @@ export function FederationIssuerListPanel({
   onRefetchRef,
   emptyState = "No federation issuers configured.",
   emptyDescription = "Add one, and this organization accepts the tokens that platform issues.",
+  emptyAction,
   className,
 }: FederationIssuerListPanelProps) {
   const { federationIssuers, isLoading, error, refetch } =
@@ -85,7 +93,7 @@ export function FederationIssuerListPanel({
   }
 
   if (error) {
-    return <ErrorMessage error={error} title="The federation issuers could not be read" retry={refetch} className={className} />;
+    return <ErrorMessage error={error} title="Couldn't load the federation issuers." retry={refetch} className={className} />;
   }
 
   if (federationIssuers.length === 0) {
@@ -94,7 +102,8 @@ export function FederationIssuerListPanel({
         variant="first-use"
         title={emptyState}
         description={emptyDescription}
-        className={cn("stg:rounded-lg stg:border stg:border-dashed stg:border-border", className)}
+        action={emptyAction}
+        className={className}
       />
     );
   }
@@ -206,9 +215,7 @@ function IssuerRow({
         <>
           <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-3 stg:text-xs stg:text-muted-foreground">
             {isJit && (
-              <span className="stg:inline-flex stg:items-center stg:rounded-full stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-primary">
-                JIT
-              </span>
+              <Tag>JIT</Tag>
             )}
             {createdAt && (
               <Tooltip>

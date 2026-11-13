@@ -211,13 +211,13 @@ describe("AccountPreferencesPanel", () => {
 
   it("shows the fetch error with a retry action when whoAmI fails", async () => {
     const whoAmI = vi.fn(async () => {
-      // A read that may succeed again: the shared error offers Retry.
+      // A read that may succeed again: the shared error offers Try again.
       throw new ConnectError("boom", Code.Unavailable);
     });
     renderPanel(createMockStigmer({ whoAmI }));
 
     expect(await screen.findByRole("alert")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
   });
 
   describe("memory consent", () => {

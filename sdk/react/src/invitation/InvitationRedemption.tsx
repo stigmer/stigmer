@@ -12,6 +12,9 @@ import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { Card } from "../internal/surface/Card.js";
 import { Button } from "../button/Button.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
+import { Notice } from "../internal/surface/Notice.js";
+import { Tag } from "../internal/surface/Tag.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -158,10 +161,7 @@ export function InvitationRedemption({
   if (fetchError) {
     return (
       <div className={cn("stg:mx-auto stg:max-w-sm", className)}>
-        <ErrorCard
-          message={getUserMessage(fetchError)}
-          onRetry={refetch}
-        />
+        <ErrorMessage error={fetchError} retry={refetch} />
       </div>
     );
   }
@@ -170,7 +170,7 @@ export function InvitationRedemption({
   if (!preview) {
     return (
       <div className={cn("stg:mx-auto stg:max-w-sm", className)}>
-        <ErrorCard message="This invitation could not be found." />
+        <Notice tone="failed" headline="This invitation could not be found." />
       </div>
     );
   }
@@ -181,7 +181,7 @@ export function InvitationRedemption({
     const roleName = iamRoleDisplayName(preview.role);
     return (
       <div className={cn("stg:mx-auto stg:max-w-sm", className)}>
-        <div className="stg:rounded-lg stg:border stg:border-primary/30 stg:bg-primary-subtle stg:p-6 stg:text-center stg:shadow-sm">
+        <div className="stg:rounded-lg stg:border stg:border-border stg:bg-primary-subtle stg:p-6 stg:text-center stg:shadow-sm">
           <SuccessIcon />
           <h2 className="stg:mt-3 stg:text-base stg:font-semibold stg:text-foreground">
             You&rsquo;ve joined {orgName}
@@ -230,10 +230,10 @@ export function InvitationRedemption({
 
         {/* Role + expiry details */}
         <div className="stg:mt-4 stg:flex stg:flex-col stg:items-center stg:gap-1.5 stg:text-center">
-          <span className="stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:border-border stg:bg-muted stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:text-foreground">
+          <Tag>
             <ShieldIcon />
             {roleName} access
-          </span>
+          </Tag>
           <span className="stg:text-2xs stg:text-muted-foreground">
             {grantableRoleDescription(ApiResourceKind.organization, preview.role)}
           </span>
@@ -285,37 +285,7 @@ export function InvitationRedemption({
 // ---------------------------------------------------------------------------
 
 function InvalidNotice({ reason }: { reason: string }) {
-  return (
-    <div className="stg:mt-4 stg:rounded-md stg:bg-muted-subtle stg:px-3 stg:py-2.5 stg:text-center">
-      <WarningIcon />
-      <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">
-        {reason || "This invitation is no longer valid."}
-      </p>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// ErrorCard (internal)
-// ---------------------------------------------------------------------------
-
-function ErrorCard({
-  message,
-  onRetry,
-}: {
-  message: string;
-  onRetry?: () => void;
-}) {
-  return (
-    <div className="stg:rounded-lg stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:p-6 stg:text-center stg:shadow-sm">
-      <p className="stg:text-sm stg:text-destructive">{message}</p>
-      {onRetry && (
-        <Button variant="ghost" size="xs" onClick={onRetry} className="stg:mt-3">
-          Try again
-        </Button>
-      )}
-    </div>
-  );
+  return <Notice tone="plain" headline={reason || "This invitation is no longer valid."} className="stg:mt-4" />;
 }
 
 // ---------------------------------------------------------------------------
@@ -380,26 +350,6 @@ function ShieldIcon() {
       className="stg:shrink-0"
     >
       <path d="M8 1.5l5.5 2v4.5c0 3.5-2.5 5.5-5.5 7-3-1.5-5.5-3.5-5.5-7V3.5L8 1.5z" />
-    </svg>
-  );
-}
-
-function WarningIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className="stg:mx-auto stg:text-muted-foreground"
-    >
-      <circle cx="8" cy="8" r="6" />
-      <path d="M8 5v3.5M8 10.5v.5" />
     </svg>
   );
 }

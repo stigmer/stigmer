@@ -225,13 +225,13 @@ describe("CON-04 every settings page shares one frame, and shows its loading and
   });
 });
 
-describe("CON-04 a settings page whose read fails says so, and Retry reads it again", () => {
+describe("CON-04 a settings page whose read fails says so, and Try again reads it again", () => {
   it.each(PAGES)("%s recovers from a server that fails each read once", async (...page) => {
     const asked = new Set<string>();
     const { container } = draw(page, "failing-once", asked);
     await pageHeading();
     const seen: string[] = [];
-    // Each Retry may lead to the next read (the billing account, then its
+    // Each Try again may lead to the next read (the billing account, then its
     // plan), which fails once in turn; the page settles once none is left.
     for (let round = 0; round < 5; round += 1) {
       await waitFor(() => expect(container.querySelectorAll("[aria-busy='true']")).toHaveLength(0), { timeout: 3000 });
@@ -240,7 +240,7 @@ describe("CON-04 a settings page whose read fails says so, and Retry reads it ag
       if (alerts.length === 0) break;
       for (const alert of alerts) {
         seen.push(alert.textContent ?? "");
-        fireEvent.click(within(alert).getByRole("button", { name: "Retry" }));
+        fireEvent.click(within(alert).getByRole("button", { name: "Try again" }));
       }
     }
     expect(screen.queryAllByRole("alert").map((alert) => alert.textContent)).toEqual([]);

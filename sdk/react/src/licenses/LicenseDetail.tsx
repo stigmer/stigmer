@@ -7,7 +7,8 @@ import type { License } from "@stigmer/apis/ai/stigmer/billing/license/v1/api_pb
 import { Button } from "../button/index.js";
 import { cardClasses } from "../internal/surface/Card.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
-import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
+import { StatusBadge } from "../status/StatusBadge.js";
+import { Notice } from "../internal/surface/Notice.js";
 import {
   coveredThroughDay,
   formatDayFromToday,
@@ -99,13 +100,11 @@ export function LicenseDetail({
       </div>
 
       {issued && (
-        <p
-          className="stg:m-0 stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:px-3 stg:py-2 stg:text-sm stg:text-foreground"
-          role="status"
-        >
-          License issued and signed. Copy the ticket below and send it to{" "}
-          {customer?.contactEmail || "the customer"}.
-        </p>
+        <Notice tone="plain" headline="License issued and signed.">
+          <p className="stg:m-0">
+            Copy the ticket below and send it to {customer?.contactEmail || "the customer"}.
+          </p>
+        </Notice>
       )}
 
       <LicenseTicketPanel ticket={ticket} isLoading={!issuedTicket && read.isLoading} error={read.error} />

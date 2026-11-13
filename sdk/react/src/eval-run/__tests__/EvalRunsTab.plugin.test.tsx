@@ -485,7 +485,7 @@ describe("EvalRunsTab on a plugin", () => {
       return newer;
     });
     render(<EvalRunsTab plugin={plugin} />, { wrapper: wrap(mock) });
-    const alert = await screen.findByText("Could not read the Before eval run");
+    const alert = await screen.findByText("Couldn't load the Before eval run.");
     expect(alert).toBeDefined();
     expect(screen.queryByText("Loading the comparison…")).toBeNull();
   });

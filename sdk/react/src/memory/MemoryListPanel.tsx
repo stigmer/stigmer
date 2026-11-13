@@ -79,7 +79,7 @@ export function MemoryListPanel({ org, className, now }: MemoryListPanelProps) {
   }
 
   if (error) {
-    return <ErrorMessage error={error} title="Your memories could not be read" retry={refetch} className={className} />;
+    return <ErrorMessage error={error} title="Couldn't load your memories." retry={refetch} className={className} />;
   }
 
   if (memories.length === 0) {
@@ -88,7 +88,7 @@ export function MemoryListPanel({ org, className, now }: MemoryListPanelProps) {
         variant="first-use"
         title="Nothing remembered yet"
         description="When an agent proposes a fact worth keeping, it appears here for your decision."
-        className={cn("stg:rounded-lg stg:border stg:border-dashed stg:border-border", className)}
+        className={className}
       />
     );
   }
@@ -250,7 +250,7 @@ function MemoryRow({
     return (
       <div
         role="listitem"
-        className="stg:flex stg:items-center stg:justify-between stg:gap-3 stg:rounded-lg stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:px-3 stg:py-2.5"
+        className="stg:flex stg:items-center stg:justify-between stg:gap-3 stg:rounded-lg stg:border stg:border-border stg:bg-destructive-subtle stg:px-3 stg:py-2.5"
       >
         <div className="stg:min-w-0 stg:flex-1">
           <p className="stg:text-xs stg:text-foreground">

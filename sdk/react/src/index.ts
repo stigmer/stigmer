@@ -737,7 +737,7 @@ export { exampleLaunch, useLinkedLaunch, type SessionLaunch, type LaunchMode, ty
 // The example a launch is built from, as `exampleLaunch` names it.
 export type { Example } from "@stigmer/examples";
 export { AgentProfileHeader, useAgentFacts, type AgentProfileHeaderProps, type AgentFact } from "./agent/AgentProfileHeader.js";
-export type { EmptyStateProps } from "./empty-state/index.js";
+export type { EmptyStateProps, EmptyStateSize } from "./empty-state/index.js";
 
 // Usage — org-level usage report hook, dashboard panel, and date-range utilities
 export {
@@ -844,9 +844,12 @@ export type {
   InlineEditBaseProps,
 } from "./inline-edit/index.js";
 
+// Status — the console's one status pill
+export { StatusBadge } from "./status/index.js";
+export type { StatusBadgeProps } from "./status/index.js";
+
 // Resource Workbench — headless hooks, view components, and composed shell for resource collection management
 export {
-  StatusBadge,
   ColumnHeader,
   SelectionCheckbox,
   ResourceTable,
@@ -860,7 +863,6 @@ export {
   ResourceAvatar,
 } from "./resource-workbench/index.js";
 export type {
-  StatusBadgeProps,
   ColumnHeaderProps,
   SelectionCheckboxProps,
   ResourceTableProps,

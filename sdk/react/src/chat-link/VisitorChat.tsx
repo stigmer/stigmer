@@ -1,14 +1,16 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
+import { Link2Off } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
-import { getUserMessage, type ResourceRef } from "@stigmer/client";
+import type { ResourceRef } from "@stigmer/client";
 import type { ChannelAgentProfile } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/io_pb";
 import { AgentChat } from "../agent-chat/AgentChat.js";
 import { useChannelAgentProfile } from "./useChannelAgentProfile.js";
 import type { ChatLinkAudience } from "./webChannelDraft.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
-import { Button } from "../button/Button.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -147,11 +149,7 @@ export function VisitorChat({
   if (error) {
     return (
       <div className={cn("stg:flex stg:h-full stg:w-full stg:items-center stg:justify-center", className)}>
-        <StateCard
-          title="Something went wrong"
-          message={getUserMessage(error)}
-          onRetry={refetch}
-        />
+        <ErrorMessage error={error} title="Something went wrong" retry={refetch} className="stg:mx-6 stg:w-full stg:max-w-sm" />
       </div>
     );
   }
@@ -163,9 +161,12 @@ export function VisitorChat({
   if (!profile || !agentRef) {
     return (
       <div className={cn("stg:flex stg:h-full stg:w-full stg:items-center stg:justify-center", className)}>
-        <StateCard
+        <EmptyState
+          variant="first-use"
+          icon={<Link2Off />}
           title="This agent isn't available"
-          message="The link may be incorrect, or it may have been turned off."
+          description="The link may be incorrect, or it may have been turned off."
+          className="stg:mx-6 stg:w-full stg:max-w-sm"
         />
       </div>
     );
@@ -261,28 +262,6 @@ function LoadingSkeleton() {
       <div className="stg:mx-auto stg:h-8 stg:w-8 stg:animate-pulse stg:rounded-md stg:bg-muted" />
       <div className="stg:mx-auto stg:h-4 stg:w-2/3 stg:animate-pulse stg:rounded stg:bg-muted" />
       <div className="stg:mx-auto stg:h-3 stg:w-1/2 stg:animate-pulse stg:rounded stg:bg-muted" />
-    </div>
-  );
-}
-
-function StateCard({
-  title,
-  message,
-  onRetry,
-}: {
-  readonly title: string;
-  readonly message: string;
-  readonly onRetry?: () => void;
-}) {
-  return (
-    <div className="stg:mx-6 stg:w-full stg:max-w-sm stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-6 stg:text-center stg:shadow-sm">
-      <h2 className="stg:text-base stg:font-semibold stg:text-foreground">{title}</h2>
-      <p className="stg:mt-1 stg:text-sm stg:text-muted-foreground">{message}</p>
-      {onRetry && (
-        <Button onClick={onRetry} className="stg:mt-4">
-          Try again
-        </Button>
-      )}
     </div>
   );
 }
