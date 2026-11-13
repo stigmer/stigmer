@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { SCROLL_REGION_FOCUS, scrollRegion } from "./scroll-region.js";
 import { useCopyFeedback } from "./useCopyFeedback.js";
 
 /**
@@ -10,7 +11,10 @@ import { useCopyFeedback } from "./useCopyFeedback.js";
  * pair with. Internal: not exported from the package.
  */
 
-/** A multi-line copyable value (an app manifest, a command) in a scrollable block. */
+/**
+ * A multi-line copyable value (an app manifest, a command) in a scrollable
+ * block, which the keyboard reaches as a region named by `label`.
+ */
 export function CopyBlock({
   label,
   value,
@@ -31,9 +35,11 @@ export function CopyBlock({
         <CopyButton copied={copied} onCopy={copy} copyTargetId={copyTargetId} />
       </div>
       <pre
+        {...scrollRegion(label)}
         className={cn(
           "stg:max-h-40 stg:overflow-auto stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle",
           "stg:px-2.5 stg:py-2 stg:font-mono stg:text-2xs stg:leading-relaxed stg:text-foreground",
+          SCROLL_REGION_FOCUS,
         )}
       >
         {value}

@@ -6,6 +6,7 @@ import { isBackgroundRunning, toDisplayFileChange } from "@stigmer/client";
 import type { ToolResultView, ToolUse } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import { BoundedContent } from "../internal/BoundedContent.js";
+import { SCROLL_REGION_FOCUS, scrollRegion } from "../internal/scroll-region.js";
 import { FileChangeDiff } from "./FileChangesView.js";
 import { useFileReviewRowChange } from "@stigmer/react-core";
 import { McpToolDetail } from "./McpToolDetail.js";
@@ -281,7 +282,13 @@ function CategoryDetail({
 function FileContentBlock({ content, truncated }: { content: string; truncated: boolean }) {
   return (
     <BoundedContent cursorTarget="tool-detail-expand">
-      <pre tabIndex={0} className="stg:overflow-x-auto stg:whitespace-pre stg:rounded-md stg:border stg:border-border-muted stg:bg-muted-faint stg:px-3 stg:py-2 stg:font-mono stg:text-xs stg:text-foreground">
+      <pre
+        {...scrollRegion("File content")}
+        className={cn(
+          "stg:overflow-x-auto stg:whitespace-pre stg:rounded-md stg:border stg:border-border-muted stg:bg-muted-faint stg:px-3 stg:py-2 stg:font-mono stg:text-xs stg:text-foreground",
+          SCROLL_REGION_FOCUS,
+        )}
+      >
         {content}
       </pre>
       {truncated && <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">Part of the file</p>}

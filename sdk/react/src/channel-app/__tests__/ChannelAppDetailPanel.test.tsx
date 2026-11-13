@@ -144,3 +144,16 @@ describe("ChannelAppDetailPanel rename", () => {
     expect(rename.mock.calls[0]).toEqual([expect.objectContaining({ resourceId: SLACK_APP.metadata?.id, slug: "renamed-slug" })]);
   });
 });
+
+describe("ChannelAppDetailPanel manifest block", () => {
+  // stigmer/stigmer#2899: the manifest scrolls inside its block, so a
+  // keyboard user reaches it as a named region with the kit's focus ring.
+  it("names the completed manifest as a focusable region", async () => {
+    renderPanel(vi.fn(async () => ({ isAuthorized: false })));
+
+    const region = await screen.findByRole("region", { name: "Completed app manifest" });
+    expect(region.tabIndex).toBe(0);
+    expect(region.className).toContain("stg:focus-visible:ring-2");
+    expect(region.textContent).toContain("Acme Slack");
+  });
+});

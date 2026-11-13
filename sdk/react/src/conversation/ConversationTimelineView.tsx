@@ -11,6 +11,7 @@ import { channelProviderOf, type ChannelProviderId } from "../channel/providers.
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { JumpToLatestButton } from "../internal/JumpToLatestButton.js";
+import { SCROLL_REGION_FOCUS, scrollRegion } from "../internal/scroll-region.js";
 import {
   Tooltip,
   TooltipContent,
@@ -129,13 +130,14 @@ export function ConversationTimelineView({
     // The provider is context-only (no DOM node); one per view arms
     // every status-glyph tooltip below (the WorkspaceSidebar precedent).
     <TooltipProvider>
-      <div
-        aria-label="Conversation timeline"
-        className={cn("stg:relative stg:flex stg:min-h-0 stg:flex-1 stg:flex-col", className)}
-      >
+      <div className={cn("stg:relative stg:flex stg:min-h-0 stg:flex-1 stg:flex-col", className)}>
         <div
           ref={scrollRef}
-          className="stg:min-h-0 stg:flex-1 stg:overflow-y-auto stg:[overflow-anchor:none] stg:px-4 stg:py-3"
+          {...scrollRegion("Conversation timeline")}
+          className={cn(
+            "stg:min-h-0 stg:flex-1 stg:overflow-y-auto stg:[overflow-anchor:none] stg:px-4 stg:py-3",
+            SCROLL_REGION_FOCUS,
+          )}
         >
           {!showsCustomerMessages && descriptor && (
             <div className="stg:mb-3 stg:flex stg:items-start stg:gap-2 stg:rounded-md stg:border stg:border-border stg:bg-muted-faint stg:px-3 stg:py-2 stg:text-xs stg:text-muted-foreground">
@@ -177,7 +179,7 @@ export function ConversationTimelineView({
               {days.map((day) => (
                 <div key={day.label}>
                   <div
-                    className="stg:my-2 stg:text-center stg:text-xs stg:text-muted-foreground-faint"
+                    className="stg:my-2 stg:text-center stg:text-xs stg:text-muted-foreground"
                     role="separator"
                   >
                     {day.label}
@@ -356,7 +358,7 @@ function ItemFooter({ item }: { readonly item: ConversationTimelineItem }) {
     : "";
 
   return (
-    <p className="stg:mt-1 stg:flex stg:items-center stg:justify-end stg:gap-1 stg:text-xs stg:text-muted-foreground-faint">
+    <p className="stg:mt-1 stg:flex stg:items-center stg:justify-end stg:gap-1 stg:text-xs stg:text-muted-foreground">
       <span>{time}</span>
       {attempt === "failed" && (
         <StatusHint

@@ -164,7 +164,7 @@ export function VendorChannelCard({
           <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
             {presentation.describeChannel(channel)}
           </p>
-          <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground-faint">
+          <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
             {presentation.servingLine(servingAppName)}
           </p>
         </>

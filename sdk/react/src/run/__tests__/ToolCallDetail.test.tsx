@@ -380,6 +380,16 @@ describe("ToolCallDetail — read body", () => {
     expect(screen.getByText("Part of the file")).toBeTruthy();
   });
 
+  // stigmer/stigmer#2899: the file's lines scroll sideways, so the block
+  // is a named region a keyboard user tabs to and sees focused.
+  it("names the lines read as a focusable region with the focus ring", () => {
+    render(<ToolCallDetail toolUse={toolUse({ name: "Read", input: { path: "notes.md" }, result: "# Notes\n" })} />);
+    const region = screen.getByRole("region", { name: "File content" });
+    expect(region.tabIndex).toBe(0);
+    expect(region.className).toContain("stg:focus-visible:ring-2");
+    expect(region.textContent).toBe("# Notes\n");
+  });
+
   it("opens a failed read to its error", () => {
     const { container } = render(
       <ToolCallDetail toolUse={toolUse({ name: "Read", input: { path: "secret.md" }, isError: true, result: "permission denied" })} />,

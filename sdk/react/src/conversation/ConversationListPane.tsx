@@ -417,7 +417,7 @@ const ConversationRow = memo(function ConversationRow({
             )}
           </div>
           {contact !== null && (
-            <p className="stg:mt-0.5 stg:truncate stg:text-xs stg:text-muted-foreground-faint">
+            <p className="stg:mt-0.5 stg:truncate stg:text-xs stg:text-muted-foreground">
               {contact}
             </p>
           )}
@@ -431,7 +431,7 @@ const ConversationRow = memo(function ConversationRow({
         {(lastActivity !== null || awaiting !== null) && (
           <span className="stg:flex stg:shrink-0 stg:flex-col stg:items-end stg:gap-1">
             {lastActivity && (
-              <span className="stg:text-xs stg:text-muted-foreground-faint">
+              <span className="stg:text-xs stg:text-muted-foreground">
                 {formatRelativeTime(lastActivity, now)}
               </span>
             )}
