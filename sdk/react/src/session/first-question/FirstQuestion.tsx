@@ -25,6 +25,7 @@ import { EXAMPLES, type Example } from "@stigmer/examples";
 import { Button } from "../../button/Button.js";
 import { Notice } from "../../internal/surface/Notice.js";
 import { CopyButton, useCopy } from "../../internal/CopyBlock.js";
+import { usePublicBaseUrl } from "../../public-base-url-context.js";
 import type { FirstChoice, FirstChoiceFailure, FirstChoicePending } from "./useStartFromExample.js";
 
 /** The question, as the person reads it. */
@@ -61,12 +62,6 @@ export interface FirstQuestionProps {
   readonly onDescribe: (words: string) => void;
   /** Leaves the question for today's launcher, for this visit. */
   readonly onJustChat: () => void;
-  /**
-   * This console's public API address (`usePublicBaseUrl`), written into the
-   * coding-agent prompt; without one the prompt leaves the coding agent to
-   * ask where Stigmer runs.
-   */
-  readonly codingAgentAddress?: string | null;
 }
 
 /** A file's name in a chip, the way the composer shows an attachment. */
@@ -196,10 +191,14 @@ function DescribeOwn({ pending, failure, onDescribe, onJustChat }: Pick<FirstQue
   );
 }
 
-/** The coding-agent door: the line under the cards, and the prompt with Copy once opened. */
-function CodingAgentDoor({ address, disabled, onJustChat }: { readonly address: string | null | undefined; readonly disabled: boolean; readonly onJustChat: () => void }) {
+/**
+ * The coding-agent door: the line under the cards, and the prompt with Copy
+ * once opened, naming this console's public API address (`usePublicBaseUrl`)
+ * when it knows one, so the coding agent sets up against this server.
+ */
+function CodingAgentDoor({ disabled, onJustChat }: { readonly disabled: boolean; readonly onJustChat: () => void }) {
   const [open, setOpen] = useState(false);
-  const prompt = codingAgentPrompt(address);
+  const prompt = codingAgentPrompt(usePublicBaseUrl());
   const { copied, copy } = useCopy(prompt);
   const panelId = useId();
   const labelId = useId();
@@ -258,7 +257,7 @@ function CodingAgentDoor({ address, disabled, onJustChat }: { readonly address: 
  * "Just chat with Stigmer". Presentational; {@link useStartFromExample}
  * makes the agents.
  */
-export function FirstQuestion({ examples = EXAMPLES, pending, failure, onPick, onDescribe, onJustChat, codingAgentAddress }: FirstQuestionProps) {
+export function FirstQuestion({ examples = EXAMPLES, pending, failure, onPick, onDescribe, onJustChat }: FirstQuestionProps) {
   const headingId = useId();
   const failedExample = failure !== null ? examples.find((example) => example.id === failure.of) : undefined;
   return (
@@ -284,7 +283,7 @@ export function FirstQuestion({ examples = EXAMPLES, pending, failure, onPick, o
         <PickFailure failure={failure} onRetry={() => onPick(failedExample)} onJustChat={onJustChat} />
       )}
       <DescribeOwn pending={pending} failure={failure} onDescribe={onDescribe} onJustChat={onJustChat} />
-      <CodingAgentDoor address={codingAgentAddress} disabled={pending !== null} onJustChat={onJustChat} />
+      <CodingAgentDoor disabled={pending !== null} onJustChat={onJustChat} />
     </section>
   );
 }
