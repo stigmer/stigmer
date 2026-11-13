@@ -331,7 +331,7 @@ export function ResourceWorkbench<TData = SearchResult>({
       className={cn("stg:flex stg:flex-col stg:gap-3", className)}
     >
       {/* --- Toolbar: search + filters + view switcher; none when it would hold nothing --- */}
-      {(searchable || viewModes.length > 1 || headerAction != null) && (
+      {(searchable || viewModes.length > 1 || (headerAction != null && headerAction !== false)) && (
         <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2">
           {searchable ? (
             <div className="stg:relative stg:flex-1">
