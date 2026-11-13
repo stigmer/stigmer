@@ -9,11 +9,13 @@
 // console reads), a subagent's start and
 // end with its tool uses indented beneath (its task call's line, once the
 // call returns, carries its span: "✓ task (1m 4s)"), the platform's notes, a context
-// compaction, the turn's errors, and how each ask was answered. No ANSI, no
+// compaction, the turn's errors, how each ask was answered, and one line
+// each time the turn starts waiting for a sandbox with room ("… Waiting
+// for a sandbox", from the turn's liveness, which the stream asks for). No ANSI, no
 // frames. Each fold is compared with the last by reference, so a turn no event
 // touched is not walked again, and everything already written stays written.
 
-import { backgroundEndingLine, extractShellIntent, formatElapsed, type SessionFold, type ToolUse, type Turn, type TurnItem } from "@stigmer/client";
+import { backgroundEndingLine, extractShellIntent, formatElapsed, SANDBOX_WAIT_PHRASE, type SessionFold, type ToolUse, type Turn, type TurnItem } from "@stigmer/client";
 import { answerWord, type ApproveDefault, type AskAnswer } from "./answer.js";
 import type { HeadlessRenderer } from "./headless.js";
 import type { LineWriter } from "./render-ndjson.js";
@@ -34,6 +36,8 @@ export class PlaintextRenderer implements HeadlessRenderer {
   private readonly toolStates = new Map<string, string>();
   private readonly backgroundStates = new Map<string, string>();
   private readonly threadStates = new Map<string, string>();
+  /** The runs whose turn waits for a sandbox now, so a wait's line is written once, at its start. */
+  private readonly waitingForSandbox = new Set<string>();
 
   constructor(private readonly opts: PlaintextRendererOptions) {}
 
@@ -57,10 +61,24 @@ export class PlaintextRenderer implements HeadlessRenderer {
     if (message !== undefined && this.once(message.id)) {
       this.opts.status.write(`\n> ${message.text}\n\n`);
     }
+    this.renderSandboxWait(turn);
     this.renderItems(turn.items, "", true);
     for (const error of turn.errors) {
       if (this.once(error.id)) this.opts.status.write(`  ✗ ${error.message}\n`);
     }
+  }
+
+  // A wait for a sandbox is said once when it starts; a later wait of the
+  // same turn (after a pause, or run again) is said again.
+  private renderSandboxWait(turn: Turn): void {
+    const waiting = !turn.ended && turn.liveness?.awaitingSandboxMs !== undefined;
+    if (!waiting) {
+      this.waitingForSandbox.delete(turn.runId);
+      return;
+    }
+    if (this.waitingForSandbox.has(turn.runId)) return;
+    this.waitingForSandbox.add(turn.runId);
+    this.opts.status.write(`  … ${SANDBOX_WAIT_PHRASE}\n`);
   }
 
   // The primary thread's messages are the answer and go to stdout; a

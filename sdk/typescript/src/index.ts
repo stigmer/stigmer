@@ -444,6 +444,7 @@ export {
   activityPhrase,
   describeTurnActivity,
   formatElapsed,
+  SANDBOX_WAIT_PHRASE,
   settledStepsPhrase,
   stepsSpanMs,
   type TodoProgress,

@@ -7,7 +7,8 @@
  * well as outside it; the pending bubble and the live turn's matching
  * message share one key so the bubble updates in place; no key repeats. The
  * set-up indicator shows only for a live turn that has not started
- * responding (pending, then awaiting the first output, under one key); to-do
+ * responding (pending, then awaiting the first output, under one key), and
+ * carries the server's wait for a sandbox from the pending turn's liveness; to-do
  * calls never render as rows; and a turn's plan card (`<run>-todos`, the
  * to-dos card when the host keeps its own) anchors after its opening
  * message or thinking, before its first work, or at its tail, once per
@@ -227,6 +228,18 @@ describe("buildThreadItems key generation", () => {
       expect(item?.key).toBe("setup-progress");
       expect(item?.serverPhase).toBe("cloning");
       expect(item?.isAwaitingResponse).toBeUndefined();
+    });
+
+    it("carries the server's wait for a sandbox from the pending turn's liveness, beside the stored phase", () => {
+      const run = runOf(R, { status: { setupProgress: { currentPhase: "Waiting for a sandbox" } } });
+      const [pending] = turnsOf(user(R, "Hello"), status(R, "pending"));
+      const waiting = { ...pending!, liveness: { operations: [], awaitingModelMs: undefined, awaitingSandboxMs: 80_000 } };
+      const item = setup(buildThreadItems([waiting], [run]));
+
+      expect(item?.awaitingSandboxMs).toBe(80_000);
+      expect(item?.serverPhase).toBe("Waiting for a sandbox");
+      const placed = { ...waiting, liveness: { operations: [], awaitingModelMs: undefined } };
+      expect(setup(buildThreadItems([placed], [run]))?.awaitingSandboxMs, "a liveness without the wait").toBeUndefined();
     });
 
     it("shows for a live turn with no status yet, with no set-up phase", () => {

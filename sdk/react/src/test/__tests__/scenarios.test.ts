@@ -4,7 +4,8 @@
  * adapter builds (one ask while an approval waits, an undecided review set,
  * a running and a finished subagent, a failed turn with its error, a usage
  * report only where usage is claimed, a long turn's to-dos and what it has
- * open, a finished session's Files and origin); that the adapter's live turn, phase
+ * open, a turn waiting for a sandbox with the server's wait and the run's
+ * phase text, a finished session's Files and origin); that the adapter's live turn, phase
  * and composer state follow the hook's rules; that its actions are inert;
  * and that no scenario carries a timestamp other than the frozen instant's.
  * Beside the states: the scripted turn the docs play, its parts in the order
@@ -176,8 +177,15 @@ describe("the scenario catalogue", () => {
     expect(conversationOf(scenarios.busy)).toMatchObject({ activePhase: "running", isStoppable: true });
   });
 
-  it("holds a liveness preview only where a turn works, and Files only where a turn returned them", () => {
-    for (const name of SCENARIO_NAMES.filter((n) => n !== "busy")) expect(scenarios[name].liveness, name).toBeUndefined();
+  it("holds a turn waiting for a sandbox: pending, the server's wait on its liveness, the phase text on its run", () => {
+    const turn = onlyTurn("waiting-for-sandbox");
+    expect([turn.status?.phase, turn.ended, turn.liveness?.awaitingSandboxMs]).toEqual(["pending", false, 80_000]);
+    expect(scenarios["waiting-for-sandbox"].runs[0]?.status?.setupProgress?.currentPhase).toBe("Waiting for a sandbox");
+    expect(conversationOf(scenarios["waiting-for-sandbox"])).toMatchObject({ activePhase: "pending" });
+  });
+
+  it("holds a liveness preview only where a turn works or waits for a sandbox, and Files only where a turn returned them", () => {
+    for (const name of SCENARIO_NAMES.filter((n) => n !== "busy" && n !== "waiting-for-sandbox")) expect(scenarios[name].liveness, name).toBeUndefined();
     for (const name of SCENARIO_NAMES.filter((n) => n !== "finished")) expect(scenarios[name].files, name).toEqual([]);
   });
 
@@ -435,6 +443,8 @@ describe("the ending turns", () => {
     });
     expect(status("fail-app-unreachable")).toMatchObject({ stopCause: "failed", stopDetail: { kind: "app_unreachable", model: "", app: "issue-tracker" } });
     expect(status("fail-cost-cap")).toMatchObject({ phase: "terminated", stopCause: "budget_reached", stopDetail: { kind: "cost_cap" } });
+    expect(status("fail-no-sandbox-room")).toMatchObject({ phase: "failed", stopCause: "infrastructure", stopDetail: { kind: "no_sandbox_room" } });
+    expect(endingStories["fail-no-sandbox-room"].fold.turns[0]!.items, "a turn that never started did nothing").toEqual([]);
     expect(status("fail-user-stop")).toMatchObject({ phase: "cancelled", stopCause: "user" });
     expect(status("fail-user-stop")?.stopDetail).toBeUndefined();
     expect(status("fail-generic-model")?.stopDetail).toBeUndefined();

@@ -30,7 +30,8 @@ describe("the wait for a sandbox with room", () => {
       "Every sandbox was busy for 15 minutes, so this turn didn't start. Nothing was lost: run it again to wait for room.",
     );
     expect(sandboxWaitRanOutCopy(60)).toContain("busy for 1 minute,");
-    expect(sandboxWaitRanOutCopy(150)).toContain("busy for 3 minutes,");
+    expect(sandboxWaitRanOutCopy(150), "never longer than the wait: 2m 30s is 2 minutes").toContain("busy for 2 minutes,");
+    expect(sandboxWaitRanOutCopy(119)).toContain("busy for 1 minute,");
     expect(sandboxWaitRanOutCopy(45)).toContain("busy for 45 seconds,");
     expect(sandboxWaitRanOutCopy(0)).toBe(
       "Every sandbox was busy, so this turn didn't start. Nothing was lost: run it again once one is free.",

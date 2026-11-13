@@ -116,11 +116,15 @@ export function sandboxWaitRanOutCopy(limitSeconds: number): string {
   return `Every sandbox was busy for ${waitLength(limitSeconds)}, so this turn didn't start. Nothing was lost: run it again to wait for room.`;
 }
 
-/** "45 seconds", "1 minute", "15 minutes": whole minutes from a minute on. */
+/**
+ * "45 seconds", "1 minute", "15 minutes": whole minutes from a minute on,
+ * floored, so the sentence never says every sandbox was busy for longer
+ * than the server waited.
+ */
 function waitLength(seconds: number): string {
   if (seconds < 60) {
     return seconds === 1 ? "1 second" : `${seconds} seconds`;
   }
-  const minutes = Math.round(seconds / 60);
+  const minutes = Math.floor(seconds / 60);
   return minutes === 1 ? "1 minute" : `${minutes} minutes`;
 }
