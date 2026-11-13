@@ -33,6 +33,15 @@
  * kept presenting the boot credential and every read after the rotation
  * was refused (config.ts header; ProxyArtifactStorage holds its credential
  * the same way).
+ *
+ * A checkpoint the platform refuses as too large (413) is named
+ * (`CheckpointTooLargeError`), never retried: the conversation's history,
+ * images included, no longer fits the platform's checkpoint cap, so running
+ * the turn again would fail the same way. The turn ends with "start a new
+ * session" (`stop-kind.ts` `settleThrown`, stigmer#3091). A turn saves each
+ * step before the next (`durability: "sync"`), and a new message with its
+ * images is the graph's input, so on an image-heavy conversation this is
+ * the first refusal the turn meets, before the model is called.
  */
 
 import type { RunnableConfig } from "@langchain/core/runnables";
@@ -99,6 +108,24 @@ function configCheckpointId(config: RunnableConfig): string | undefined {
 
 function configOrg(config: RunnableConfig): string | undefined {
   return config.configurable?.org as string | undefined;
+}
+
+/** The name a checkpoint refused as too large carries; `stop-kind.ts` reads it. */
+export const CHECKPOINT_TOO_LARGE_ERROR = "CheckpointTooLargeError";
+
+/**
+ * A checkpoint or its writes refused by the platform as too large: the
+ * message is the person's sentence, and the request it names stays beside it
+ * for support.
+ */
+export class CheckpointTooLargeError extends Error {
+  constructor(request: string, status: number) {
+    super(
+      "This conversation has grown past what Stigmer can save between steps (its images count in full). " +
+        `Start a new session to keep going. (${request} refused: ${status})`,
+    );
+    this.name = CHECKPOINT_TOO_LARGE_ERROR;
+  }
 }
 
 /** Retry policy plus the per-request bound; every field is defaulted. */
@@ -261,6 +288,7 @@ export class HttpCheckpointSaver extends BaseCheckpointSaver {
       headers: this.headers,
       body: JSON.stringify(doc),
     });
+    if (resp.status === 413) throw new CheckpointTooLargeError("Checkpoint PUT", resp.status);
     if (!resp.ok) {
       throw new Error(`Checkpoint PUT failed: ${resp.status} ${resp.statusText}`);
     }
@@ -316,6 +344,7 @@ export class HttpCheckpointSaver extends BaseCheckpointSaver {
       headers: this.headers,
       body: JSON.stringify({ writes: docs }),
     });
+    if (resp.status === 413) throw new CheckpointTooLargeError("Checkpoint writes PUT", resp.status);
     if (!resp.ok) {
       throw new Error(`Checkpoint writes PUT failed: ${resp.status} ${resp.statusText}`);
     }
