@@ -10,7 +10,10 @@
 // write calls named (`path` on the Stigmer harness, `file_path` on the
 // Claude one), less the Files it returned, which the agent saved under the
 // workspace's `.stigmer/outputs/`; only a captured change
-// can be shown without the inspector. The cost is the runner's
+// can be shown without the inspector. Each change carries the file of its
+// turn's review that names it, matched as the steps' badges match (an
+// absolute path still finds it), so the block can say how it stands and
+// offer its Undo. The cost is the runner's
 // display-only estimate (RunStatus.streaming_usage); zero or absent reads
 // as no figure.
 
@@ -20,16 +23,27 @@ import {
   describeTurnActivity,
   resolveToolKind,
   type DisplayFileChange,
+  type FileReviewFile,
+  type FileReviewSet,
   type ToolUse,
   type Turn,
   type TurnPhase,
 } from "@stigmer/client";
+import { fileForRowPath } from "@stigmer/react-core";
 import { deriveRunFileChanges } from "../run/deriveRunFileChanges.js";
+
+/** A changed file's place in its turn's review: the set that names it and the file, with its state. */
+export interface TurnChangeReview {
+  readonly changeSetId: string;
+  readonly file: FileReviewFile;
+}
 
 /** A path the turn changed, with its captured change when the run recorded one. */
 export interface TurnChange {
   readonly path: string;
   readonly captured: DisplayFileChange | undefined;
+  /** Its turn's review file; undefined when the turn's edits were not offered for review. */
+  readonly review?: TurnChangeReview | undefined;
 }
 
 /** One turn's outcome. */
@@ -42,6 +56,8 @@ export interface TurnOutcomeView {
   readonly files: readonly StigmerFile[];
   /** The workspace paths the turn changed, in the order it changed them. */
   readonly changes: readonly TurnChange[];
+  /** The turn's review sets, for an Undo of all its files. */
+  readonly reviewSets: readonly FileReviewSet[];
   /** The runner's estimated cost in USD; undefined when it reported none. */
   readonly estimatedCostUsd: number | undefined;
 }
@@ -66,9 +82,25 @@ export function turnOutcome(turn: Turn, files: readonly StigmerFile[], run: Run 
     phase: turn.ended ? turn.status?.phase : undefined,
     elapsedMs: describeTurnActivity(turn, Date.now()).elapsedMs,
     files: returned,
-    changes: [...new Set(paths)].map((path) => ({ path, captured: capturedByPath.get(path) })),
+    changes: [...new Set(paths)].map((path) => ({ path, captured: capturedByPath.get(path), review: reviewOf(turn.fileReview, path) })),
+    reviewSets: turn.fileReview,
     estimatedCostUsd: cost !== undefined && cost > 0 ? cost : undefined,
   };
+}
+
+/** The changes that still stand: an undone file is put back, so it no longer counts. */
+export function standingChanges(outcome: TurnOutcomeView): readonly TurnChange[] {
+  return outcome.changes.filter((change) => change.review?.file.state !== "undone");
+}
+
+/** The review file of `path` across a turn's sets (a later set wins), or undefined. */
+function reviewOf(sets: readonly FileReviewSet[], path: string): TurnChangeReview | undefined {
+  for (let i = sets.length - 1; i >= 0; i--) {
+    const set = sets[i]!;
+    const file = fileForRowPath(set, path);
+    if (file !== null) return { changeSetId: set.changeSetId, file };
+  }
+  return undefined;
 }
 
 /** The path an edit or write call names, whichever harness made it; "" when it names none. */

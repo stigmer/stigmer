@@ -50,7 +50,6 @@ export type Preset = (typeof PRESETS)[number];
 /** Every scene's id: its address, and the start of its pictures' names. */
 export type SceneId =
   | `thread-${ThreadState}`
-  | "file-review-dock"
   | "models-hub-none"
   | "models-hub-connected"
   | "models-hub-local"
@@ -207,7 +206,7 @@ const SESSION_SCENES = [
   },
   {
     id: "session-file-review",
-    title: "Session: the turn ended and its two file edits wait above the composer for Keep or Undo",
+    title: "Session: the turn ended with two file edits, shown once under Changed with their Undo",
     widths: ["desktop", "narrow"],
   },
   {
@@ -677,7 +676,7 @@ const THREAD_TITLES: Readonly<Record<(typeof THREAD_STATES)[number], string>> = 
   streaming: "the agent's reply streaming",
   tools: "tool calls: one returned, one still running",
   approval: "a tool call waiting for approval, with its decision",
-  "file-review": "a finished turn whose file edits wait for review",
+  "file-review": "a finished turn with two file edits, each one it can undo",
   "subagent-running": "a subagent at work",
   "subagent-finished": "a subagent finished",
   failed: "a failed turn",
@@ -692,7 +691,6 @@ export const SCENES: readonly Scene[] = [
     title: `Thread: ${THREAD_TITLES[state]}`,
     widths: ["desktop", "narrow"] as const,
   })),
-  { id: "file-review-dock", title: "File review dock: two edited files waiting for a decision", widths: ["desktop"] },
   { id: "models-hub-none", title: "Models & providers: an admin, nothing connected yet", widths: ["desktop", "narrow"] },
   {
     id: "models-hub-connected",

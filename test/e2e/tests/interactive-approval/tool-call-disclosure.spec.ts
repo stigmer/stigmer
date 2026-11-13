@@ -9,11 +9,11 @@
 //
 // Determinism: the run is created with `auto_approve_all`, so no
 // pre-execution GATE interrupts the seeded turns. On this capture-substrate
-// stack the flowed writes still pause the run at the REVIEW boundary
-// (apply-then-review; capture is deliberately gate-independent, so file review
-// opens even under the bypass), which the specs resolve through the real
-// file-review card ("Keep all") — making this file the e2e coverage of the
-// apply-then-review flow as well as of row persistence. Tool choice is the
+// stack the flowed writes are captured for review (apply-then-review; capture
+// is deliberately gate-independent, so review opens even under the bypass),
+// and the turn still ends: the specs open the settled session once its
+// finished turn lists its Changed files, making this file the e2e coverage of
+// the apply-then-review flow as well as of row persistence. Tool choice is the
 // Stigmer harness's built-ins (write_file / read_file); the shell and MCP
 // bodies are covered exhaustively at the jsdom layer where the result shape is
 // controllable.

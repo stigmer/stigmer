@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import type { Turn } from "@stigmer/client";
+import { renderOutcomeOf, undecidedTurn } from "./__fixtures__/undecided-turn";
 
 // ---------------------------------------------------------------------------
 // Wiring-contract tests for the read-only `"observer"` audience
@@ -7,7 +9,8 @@ import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 //
 // Two invariants are pinned:
 // 1. `audience="observer"` renders a pure transcript — no composer, no
-//    interaction callbacks on the thread, no decision surfaces — while the
+//    interaction callbacks on the thread, no decision surfaces (no Undo on
+//    the newest turn's changed files) — while the
 //    session panel (usage/outputs inspection) stays available.
 // 2. A Slack or WhatsApp session (the `stigmer.ai/channel-conversation-key` label)
 //    self-selects observer regardless of the host's audience, so a pasted
@@ -37,14 +40,6 @@ vi.mock("../../run/MessageThread", () => ({
   },
 }));
 
-const fileReviewDockProps: CapturedProps[] = [];
-vi.mock("../../run/FileReviewDock", () => ({
-  FileReviewDock: (props: CapturedProps) => {
-    fileReviewDockProps.push(props);
-    return <div data-testid="file-review-dock-probe" />;
-  },
-}));
-
 const setupTabProps: CapturedProps[] = [];
 vi.mock("../facets/SetupTab", () => ({
   SetupTab: (props: CapturedProps) => {
@@ -69,12 +64,15 @@ const stubWorkspace = {
   clear: vi.fn(),
 };
 
+/** The conversation's newest turn: it edited a file its review holds undecided. */
+const NEWEST = undecidedTurn("run_1");
+
 const stubConv = {
   org: "acme",
   session: { spec: {} } as Record<string, unknown>,
   isLoading: false,
   loadError: null,
-  turns: [],
+  turns: [NEWEST] as Turn[],
   runs: [],
   activeTurn: null,
   activeRun: null,
@@ -206,8 +204,11 @@ function expectReadOnlyTranscript() {
   expect(thread.onBuildFromPlan).toBeUndefined();
   expect(thread.planActionsDisabled).toBe(true);
 
-  // The file-review decision surface never mounts.
-  expect(fileReviewDockProps).toHaveLength(0);
+  // A turn's changed files show with no Undo: the outcome the thread
+  // draws for the newest turn offers none.
+  renderOutcomeOf(thread, NEWEST);
+  expect(screen.getAllByText("a.ts").length).toBeGreaterThan(0);
+  expect(screen.queryByRole("button", { name: /^Undo/ })).toBeNull();
 
   // The session panel stays available — inspecting usage/outputs is
   // the point of observability.
@@ -217,7 +218,6 @@ function expectReadOnlyTranscript() {
 beforeEach(() => {
   composerProps.length = 0;
   threadProps.length = 0;
-  fileReviewDockProps.length = 0;
   setupTabProps.length = 0;
   stubConv.session = { spec: {} };
 });

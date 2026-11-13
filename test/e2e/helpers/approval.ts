@@ -480,30 +480,35 @@ export function approvalPeekBar(page: Page): Locator {
   return page.getByRole("button", { name: /approvals? needed/ });
 }
 
-/** The session-scoped auto-approve indicator (shown after APPROVE_ALL). */
 /**
- * The file-review dock's bulk "Keep all" decision button. On a
- * capture-substrate stack, a session with file review on applies every write
- * during the turn (apply-then-review — even under `auto_approve_all`, by
- * design: capture is gate-independent), the turn ends, and the dock offers its
- * edits; this is the real UI that keeps them.
+ * A finished turn's Changed group: each file the turn edited, once, with its
+ * line counts and, for whoever may decide on the newest turn, an Undo. On a
+ * capture-substrate stack a session with file review on applies every write
+ * during the turn (apply-then-review, even under `auto_approve_all`: capture
+ * is gate-independent), the turn ends, and the group lists its edits.
  */
-export function fileReviewApproveButton(page: Page): Locator {
-  return page.locator('[data-cursor-target="file-review-approve"]');
+export function changedGroup(page: Page): Locator {
+  return page.getByRole("group", { name: "Changed" });
 }
 
-/** The dock's bulk "Undo" decision button: puts every file of the set back. */
-export function fileReviewRejectButton(page: Page): Locator {
-  return page.locator('[data-cursor-target="file-review-reject"]');
+/** One changed file's Undo (`turn-file-undo`); the first, or the one named `fileName`. */
+export function turnFileUndo(page: Page, fileName?: string): Locator {
+  const all = page.locator('[data-cursor-target="turn-file-undo"]');
+  return fileName === undefined ? all.first() : page.getByRole("button", { name: `Undo ${fileName}`, exact: true });
+}
+
+/** The Changed group's "Undo all" (`turn-file-undo-all`), shown with two or more undecided files. */
+export function turnFileUndoAll(page: Page): Locator {
+  return page.locator('[data-cursor-target="turn-file-undo-all"]');
 }
 
 /**
- * Drive a seeded write-bearing run to a settled review: wait for the turn to
- * end (review never holds it), open the session, keep its edits with the
- * dock's bulk "Keep all", and wait for the dock to leave. Returns with the
- * page ON the session, showing the settled timeline. Shared by the disclosure
- * and file-review specs — the canonical way a capture-stack write run reaches
- * a settled timeline.
+ * Bring a seeded write-bearing run to its settled timeline: wait for the
+ * turn to end (review never holds it; the next message keeps what is still
+ * undecided), open the session, and wait for the finished turn's Changed
+ * group. Returns with the page ON the session. Shared by the disclosure and
+ * file-review specs: the canonical way a capture-stack write run reaches a
+ * settled timeline.
  */
 export async function settleThroughFileReview(
   page: Page,
@@ -517,10 +522,10 @@ export async function settleThroughFileReview(
     );
   }
   await page.goto(`/sessions/${seeded.sessionId}`);
-  await fileReviewApproveButton(page).click({ timeout: 30_000 });
-  await fileReviewApproveButton(page).waitFor({ state: "detached", timeout: 30_000 });
+  await changedGroup(page).waitFor({ state: "visible", timeout: 30_000 });
 }
 
+/** The session-scoped auto-approve indicator (shown after APPROVE_ALL). */
 export function autoApproveIndicator(page: Page): Locator {
   return page.getByRole("status").filter({ hasText: /Auto-approving tool calls/ });
 }

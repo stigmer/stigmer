@@ -35,10 +35,10 @@ export interface ChangesTabProps {
  * sessions whose write-back hasn't happened yet.
  *
  * Local file changes deliberately do NOT render here: they live in the
- * transcript, where each stamped edit row shows its diff in place and the
- * per-turn decision bar carries the review controls and file list
- * (`FileReviewCard`). This facet is exclusively the git OUTCOME surface —
- * what was reviewed there lands here as a branch and pull request.
+ * transcript, where each edit row shows its diff in place and each finished
+ * turn's Changed group lists its files with Undo. This facet is exclusively
+ * the git OUTCOME surface: a turn's work lands here as a branch and pull
+ * request.
  */
 export function ChangesTab({
   runs: executions,

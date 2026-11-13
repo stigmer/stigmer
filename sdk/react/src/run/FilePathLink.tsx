@@ -85,9 +85,8 @@ export function FilePathLink({
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
-      // Hosts rely on the click stopping here: a file review row whose own
-      // controls (Keep/Discard) must never fight the link (FileReviewCard),
-      // and any host row with a click of its own. A tool row's header needs
+      // Hosts rely on the click stopping here: any host row with a click of
+      // its own must never fight the link. A tool row's header needs
       // nothing from it: the link is lifted beside the row's toggle, never
       // inside it.
       e.stopPropagation();

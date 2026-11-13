@@ -24,10 +24,6 @@ vi.mock("../../run/MessageThread", () => ({
 vi.mock("../SessionSummary", () => ({
   SessionSummary: () => <div data-testid="summary-probe" />,
 }));
-vi.mock("../../run/FileReviewDock", () => ({
-  FileReviewDock: () => <div data-testid="file-review-dock-probe" />,
-}));
-
 // The header menu is asserted through its real trigger.
 
 const stubWorkspace = {

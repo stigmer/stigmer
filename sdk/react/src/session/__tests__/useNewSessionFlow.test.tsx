@@ -17,12 +17,16 @@
  * empty list and each pick is remembered, a seed never; a guest takes
  * neither. The chat box's Files ride the first run's `fileIds`, and the
  * person's originals are released once the run exists, and on a failed
- * start too, so no File of theirs outlives the attempt.
+ * start too, so no File of theirs outlives the attempt. The conversation
+ * asks for file review (each turn's edits get Undo) by its audience's
+ * default, on only for `"integrator"` (`fileReviewByDefault`), unless the
+ * host's `fileReview` says otherwise; off, the field is left unset.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { fileReviewByDefault } from "../audience";
 import type { ReactNode } from "react";
 import { DEFAULT_MODEL_ID, parseRegistryJson } from "@stigmer/react-core";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
@@ -122,6 +126,17 @@ function defaultOptions() {
     onError: vi.fn(),
   };
 }
+
+describe("fileReviewByDefault", () => {
+  it.each([
+    ["integrator", true],
+    ["endUser", false],
+    ["guest", false],
+    ["observer", false],
+  ] as const)("%s → %s", (audience, on) => {
+    expect(fileReviewByDefault(audience)).toBe(on);
+  });
+});
 
 describe("useNewSessionFlow", () => {
   beforeEach(() => {
@@ -418,17 +433,22 @@ describe("useNewSessionFlow", () => {
       expect(opts.onError).toHaveBeenCalledOnce();
     });
 
-    it("turns file review on for the conversation it starts", async () => {
-      const opts = defaultOptions();
+    it.each([
+      ["integrator", undefined, true],
+      ["endUser", undefined, undefined],
+      ["integrator", false, undefined],
+      ["endUser", true, true],
+    ] as const)("asks the %s audience's conversation for file review per its default unless the host says (host: %s → %s)", async (audience, fileReview, sent) => {
+      const opts = { ...defaultOptions(), audience, fileReview };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
       await act(async () => {
         await result.current.submit("Hello");
       });
 
-      // The console shows each turn's edits with Keep and Undo after the
-      // turn, so every conversation it starts asks for review.
-      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.fileReview).toBe(true);
+      // On, the create asks for review (each turn's edits get Undo); off,
+      // it leaves the field unset, the wire's own default.
+      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.fileReview).toBe(sent);
     });
 
     it("passes harness in the sessionSpec", async () => {
@@ -1205,6 +1225,8 @@ describe("useNewSessionFlow", () => {
         slug: "support-bot",
         version: "v2",
       });
+      // A chat-link guest's conversation records no edits for Undo.
+      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.fileReview).toBeUndefined();
       expect(opts.onSessionCreated).toHaveBeenCalledWith("sess-new");
     });
 

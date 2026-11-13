@@ -105,14 +105,16 @@ through, each drawn from the same data the kit's tests use.
   alt="A long reply in markdown: a heading, a numbered list, a code block and a table"
 />
 
-## Reviewing file edits
+## Undoing file edits
 
-`FileReviewDock` sits above the composer while a turn's file edits wait for a
-decision.
+A finished turn lists the files it edited once, under its answer, each with
+its line counts. The edits are already in place; whoever may decide can undo
+one file or all of them on the newest turn, and the next message keeps the
+rest. Turn this on for your users with `fileReview` on `AgentChat`.
 
 <Live
-  name="file-review-dock"
-  alt="The review dock over two edited files waiting for a decision"
+  name="session-file-review"
+  alt="A finished turn's two edited files under Changed, each with its line counts and Undo"
 />
 
 ## The console's parts

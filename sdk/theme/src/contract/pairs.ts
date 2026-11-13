@@ -181,7 +181,6 @@ const READY_TEXT_SURFACES = [
   },
   { surface: "--stgm-muted-subtle", where: "on a hovered fold (TodoCard toggle)" },
   { surface: "--stgm-accent-hover", where: "on a hovered icon button (PlanFileCard copied tick)" },
-  { surface: "--stgm-success-subtle", where: "on the selected keep verdict (FileReviewCard)" },
 ] as const;
 
 const SYNTAX = [

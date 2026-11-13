@@ -32,10 +32,6 @@ vi.mock("../../run/MessageThread", () => ({
   },
 }));
 
-vi.mock("../../run/FileReviewDock", () => ({
-  FileReviewDock: () => <div data-testid="file-review-dock-probe" />,
-}));
-
 const stubWorkspace = {
   entries: [],
   hasEntries: false,

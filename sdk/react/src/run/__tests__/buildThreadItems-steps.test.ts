@@ -8,8 +8,7 @@
  * the to-dos card and the calls in time order. The working turn folds a
  * stretch of calls once every call in it returned and no background
  * command still runs; an ended turn's stretches never fold. A turn that
- * completed leads with its answer, then its outcome, plan card and file
- * reviews, then one "How it got there" item holding everything else in
+ * completed leads with its answer, then its outcome and plan card, then one "How it got there" item holding everything else in
  * time order (none when nothing else is left), and its outcome is never
  * repeated at the thread's end; a turn that failed or stopped keeps time
  * order.
@@ -285,7 +284,7 @@ describe("buildThreadItems finished turn", () => {
     expect(keys(build(events, { includeOutcomes: true }))).toEqual([`${R}-spec`, `outcome-${R}`, `${R}-how`]);
   });
 
-  it("keeps its plan card and file reviews outside the fold, after the outcome", () => {
+  it("keeps its plan card outside the fold, after the outcome", () => {
     const turns = turnsOf(
       user(R, "plan it"),
       status(R, "running"),
@@ -297,13 +296,12 @@ describe("buildThreadItems finished turn", () => {
       decided(R, "cs1", "keep"),
     );
     const run = runOf(R, { spec: { interactionMode: InteractionMode.PLAN } });
-    const items = buildThreadItems(turns, [run], { includeOutcomes: true, includeFileReviewRecords: true });
+    const items = buildThreadItems(turns, [run], { includeOutcomes: true });
 
     expect(items.map((i) => [i.kind, i.key])).toEqual([
       ["message", `${R}-spec`],
       ["message", m(R, 1)],
       ["outcome", `outcome-${R}`],
-      ["file-review-record", "file-review-cs1"],
       ["plan-completion", `${R}-plan-completion`],
       ["how-it-got-there", `${R}-how`],
     ]);

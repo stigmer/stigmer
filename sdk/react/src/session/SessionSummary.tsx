@@ -26,7 +26,7 @@ import { cn } from "@stigmer/design-tokens";
 import { useStigmer } from "@stigmer/react-core";
 import { useFetch } from "@stigmer/react-core/internal";
 import { durationWords } from "./duration-words.js";
-import { turnOutcome } from "./turn-outcome.js";
+import { standingChanges, turnOutcome } from "./turn-outcome.js";
 import { isChannelOriginSession } from "./channelOrigin.js";
 import { sessionStatus } from "./session-status.js";
 import { StatusBadge } from "../status/StatusBadge.js";
@@ -84,7 +84,8 @@ export function SessionSummary({ session, turns, runs, files, showCost, routineH
   const outcomes = turns.map((turn) => turnOutcome(turn, files, runs.find((run) => run.metadata?.id === turn.runId)));
   const elapsedMs = outcomes.reduce((sum, outcome) => sum + outcome.elapsedMs, 0);
   const made = outcomes.reduce((sum, outcome) => sum + outcome.files.length, 0);
-  const changed = new Set(outcomes.flatMap((outcome) => outcome.changes.map((change) => change.path))).size;
+  // An undone file was put back, so the count is what still stands.
+  const changed = new Set(outcomes.flatMap((outcome) => standingChanges(outcome).map((change) => change.path))).size;
   const cost = outcomes.reduce((sum, outcome) => sum + (outcome.estimatedCostUsd ?? 0), 0);
   const asked = session.spec?.subject || turns[0]?.userMessage?.text || "";
 

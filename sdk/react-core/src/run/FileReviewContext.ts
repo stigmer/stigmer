@@ -28,7 +28,8 @@ import {
  * without a provider render no badge.
  *
  * Read-only by design: the row badge is presentation, never a decision
- * surface — decisions live on the set's decision bar ({@link FileReviewCard}).
+ * surface; a turn's files are undone from its Changed group (the React kit's
+ * `TurnOutcome`).
  */
 export interface FileReviewContextValue {
   /** Each turn's file reviews from the session's fold, keyed by the turn's run id. */

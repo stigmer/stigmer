@@ -87,6 +87,14 @@ export interface NewSessionViewerProps {
   readonly includeMyVault?: boolean;
 
   /**
+   * Whether the conversation records each turn's file edits so the person
+   * can undo them after the turn. The edits apply as they are made either
+   * way. Defaults to on for the `"integrator"` audience and off for
+   * `"endUser"` and `"guest"` (see `useNewSessionFlow`'s `fileReview`).
+   */
+  readonly fileReview?: boolean;
+
+  /**
    * Shared vaults the conversation uses, in order (the first holding a
    * key or login wins), after the sender's My vault when it is included.
    * An app that embeds Stigmer names here the vaults its users' chats
@@ -301,6 +309,7 @@ export function NewSessionViewer({
   enableLocal = false,
   onBrowseLocalFolder,
   includeMyVault,
+  fileReview,
   vaults,
   audience = "integrator",
   runConfig,
@@ -355,6 +364,7 @@ export function NewSessionViewer({
     onSessionCreated: handleSessionCreated,
     onError,
     includeMyVault: includesMyVault,
+    fileReview,
     vaults,
     defaultHarness,
     accountDefaults,

@@ -1,12 +1,12 @@
-// File-review card UX, end-to-end against the CAPTURE-substrate stack
-// (deterministic via the mock LLM proxy). Apply-then-review is where the
-// file DIFF surface lives now: in a session with file review on (the console
-// turns it on for every conversation it starts), a flowed write is captured,
-// the turn ends, and the dock presents the before/after diff with the
-// Keep-all / Undo decisions. These pin what that card shows, plus the two
-// decisions working on a finished turn — the successor of the pre-capture
-// "gate renders the diff" checks; how the dock LOOKS, in light and dark, is
-// the kit's gallery's (test/visual, the `file-review-dock` scene)
+// A turn's edited files, end-to-end against the CAPTURE-substrate stack
+// (deterministic via the mock LLM proxy). In a session with file review on
+// (the console turns it on for the conversations it starts), a flowed write
+// is captured, the turn ends, and the finished turn's Changed group lists
+// the file once with an Undo; the write's step opens to its diff. These pin
+// that the file shows once with its Undo, that Undo on a finished turn puts
+// it back (card and row read Undone), and the settled row's inline diff;
+// how the group LOOKS, in light and dark, is the kit's gallery's
+// (test/visual, the `session-file-review` and `session-file-undone` scenes)
 // (tool-card-ux.spec.ts pins the gate's proposed-content card on the
 // file-gate stack; the review flow's FUNCTIONAL coverage rides
 // tool-call-disclosure.spec.ts, which resolves reviews to settle its runs).
@@ -21,8 +21,8 @@ import {
   settleThroughFileReview,
   writeFileBlock,
   awaitRunPhase,
-  fileReviewApproveButton,
-  fileReviewRejectButton,
+  changedGroup,
+  turnFileUndo,
   toolCallRow,
   fileDiff,
   openHowItGotThere,
@@ -34,7 +34,7 @@ import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 const mockUrl = getMockControlUrl();
 const fileGates = isFileGateStack();
 
-test.describe("file-review card (deterministic mock LLM)", () => {
+test.describe("a turn's changed files and Undo (deterministic mock LLM)", () => {
   test.skip(
     mockUrl === null,
     "Requires the mock-LLM stack — run via `make test-e2e-approval` (STIGMER_E2E_MOCK_LLM=1)",
@@ -57,7 +57,7 @@ test.describe("file-review card (deterministic mock LLM)", () => {
     await control.reset();
   });
 
-  test("review card presents the captured diff with its decisions", async ({
+  test("a finished turn's edited file shows once under Changed, with Undo, and its step opens to the diff", async ({
     page,
     stigmerClient,
   }) => {
@@ -67,8 +67,7 @@ test.describe("file-review card (deterministic mock LLM)", () => {
       ],
     });
     // The write flows (apply-then-review) and the turn ends; review never
-    // holds it. The dock offering the finished turn's edit is the surface
-    // under test.
+    // holds it. The finished turn's Changed group is the surface under test.
     await awaitRunPhase(
       stigmerClient,
       seeded.runId,
@@ -77,20 +76,22 @@ test.describe("file-review card (deterministic mock LLM)", () => {
 
     await page.goto(`/sessions/${seeded.sessionId}`);
 
-    // The review card is up with its bulk decision after the turn ended;
-    // the captured change's added lines render as the reviewable diff, on
-    // the write's step (one of the finished turn's steps, opened).
-    await expect(fileReviewApproveButton(page)).toBeVisible({ timeout: 30_000 });
+    // The file shows once, with its Undo, after the turn ended; the
+    // captured change's added lines render as the diff on the write's step
+    // (one of the finished turn's steps, opened).
+    await expect(turnFileUndo(page, "e2e-review.txt")).toBeVisible({ timeout: 30_000 });
+    await expect(changedGroup(page).getByText("e2e-review.txt", { exact: true })).toHaveCount(1);
+    await expect(page.getByText(/Approve all|Keep all|files reviewed/)).toHaveCount(0);
     await openHowItGotThere(page);
     await toolCallRow(page).first().locator('[data-cursor-target="thread-card-toggle"]').click();
     await expect(page.getByText("alpha")).toBeVisible();
   });
 
-  // Undo on a finished turn: the console's one other decision. The server
-  // starts a turn that puts the file back; the dock leaves and the edit's row
-  // reads the verdict. (That the undo's own turn never shows in the thread is
-  // pinned by useSessionConversation's unit tests.)
-  test("undo on a finished turn settles the review and the row reads Discarded", async ({
+  // Undo on a finished turn: the server starts a turn that puts the file
+  // back; the file's card and the edit's row read Undone. (That the undo's
+  // own turn never shows in the thread is pinned by useSessionConversation's
+  // unit tests.)
+  test("undo on a finished turn puts the file back: its card and its row read Undone", async ({
     page,
     stigmerClient,
   }) => {
@@ -100,18 +101,19 @@ test.describe("file-review card (deterministic mock LLM)", () => {
     await awaitRunPhase(stigmerClient, seeded.runId, RunPhase.RUN_COMPLETED);
     await page.goto(`/sessions/${seeded.sessionId}`);
 
-    await fileReviewRejectButton(page).click({ timeout: 30_000 });
-    await expect(fileReviewApproveButton(page)).toHaveCount(0, { timeout: 30_000 });
+    await turnFileUndo(page, "e2e-undo.txt").click({ timeout: 30_000 });
+    await expect(changedGroup(page).getByText("Undone", { exact: true })).toBeVisible({ timeout: 30_000 });
+    await expect(turnFileUndo(page, "e2e-undo.txt")).toHaveCount(0);
     // The write is a step of the finished turn, under "How it got there".
     await openHowItGotThere(page);
-    await expect(toolCallRow(page).first().getByText("Discarded")).toBeVisible({ timeout: 30_000 });
+    await expect(toolCallRow(page).first().getByText("Undone", { exact: true })).toBeVisible({ timeout: 30_000 });
   });
 
   // --- The settled (kept) write's inline additive diff ---------------------
   // Moved here from tool-card-ux.spec.ts: the settled row's diff is
   // capture-fed, so it exists only on this stack shape. The finished turn's
-  // review settles through the real dock ("Keep all"), then the kept row must present the
-  // additive diff with de-duplicated stats and the neutral card border.
+  // edit stays in place, and its row must present the additive diff with
+  // de-duplicated stats and the neutral card border.
   test("completed write shows an inline additive diff", async ({
     page,
     stigmerClient,
@@ -121,7 +123,7 @@ test.describe("file-review card (deterministic mock LLM)", () => {
     });
     await settleThroughFileReview(page, stigmerClient, seeded);
 
-    // The kept write is a closed step of the finished turn: open the turn's
+    // The write is a closed step of the finished turn: open the turn's
     // steps, then the step, which shows its diff in place.
     await openHowItGotThere(page);
     // Scoped to the settled tool ROW: the page also renders the
@@ -141,8 +143,8 @@ test.describe("file-review card (deterministic mock LLM)", () => {
     // border with no accent — guard its computed width so the layer fix
     // covers plain cards too (a tolerant screenshot cannot see a 1px line;
     // the kit's gallery holds the card's border in both colour modes with no
-    // tolerance). Polled: the steps re-render as the kept review settles,
-    // and a style read from a node detached mid-render comes back empty.
+    // tolerance). Polled: the steps re-render as the session loads, and a
+    // style read from a node detached mid-render comes back empty.
     const stepsCard = page.getByRole("button", { name: /^How it got there/ }).first().locator("..");
     const readBorder = () =>
       stepsCard.evaluate((el) => {

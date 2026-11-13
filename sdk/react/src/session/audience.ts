@@ -11,7 +11,7 @@
  *   embedding platform; the end user chats, picks a model, toggles
  *   Agent/Plan mode, and attaches workspaces, but never reconfigures
  *   the agent. The organisms lock the agent and hide the integrator
- *   pickers, in both the composer and the inspector's Setup tab.
+ *   pickers, in the composer and in the panel's configuration view.
  * - `"guest"` — an anonymous visitor of an agent's public chat link or
  *   embed, authenticated by a guest token. Pure chat: everything
  *   `"endUser"` hides plus the model, harness, and Agent/Plan pickers,
@@ -62,6 +62,18 @@ export type SessionAudience = "integrator" | "endUser" | "guest" | "observer";
  */
 export function includesMyVaultByDefault(audience: SessionAudience): boolean {
   return audience !== "guest";
+}
+
+/**
+ * Whether a conversation started for this audience records each turn's file
+ * edits for Undo when the host says nothing. The edits apply as they are
+ * made either way; review adds the Undo after each turn. On for the
+ * Console and the desktop app (`"integrator"`), where a person's own
+ * repository is edited; off for an app's end users and a chat link's
+ * guests, as the wire's own default is. A host overrides it (`fileReview`).
+ */
+export function fileReviewByDefault(audience: SessionAudience): boolean {
+  return audience === "integrator";
 }
 
 /**

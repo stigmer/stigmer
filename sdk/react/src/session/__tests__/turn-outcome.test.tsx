@@ -125,6 +125,7 @@ function completedWith(files: TurnOutcomeView["files"], changes: readonly string
     elapsedMs: 3_000,
     files,
     changes: changes.map((path) => ({ path, captured: undefined })),
+    reviewSets: [],
     estimatedCostUsd: undefined,
   };
 }

@@ -225,6 +225,10 @@
       "promise": "A message sent in a docs demo gets a scripted answer, never an error."
     },
     {
+      "id": "KIT-14",
+      "promise": "A turn's changed and made files appear once in the conversation, and only someone who may decide sees Undo."
+    },
+    {
       "id": "CON-01",
       "promise": "The console never offers an act the server refuses.",
       "pending": [

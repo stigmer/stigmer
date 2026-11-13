@@ -10,7 +10,8 @@
 // preview layout a host asks for per kind; the density tier, the status
 // vocabulary read from `ToolUse.state`, duration chips from the use and
 // result times, the Approved/Denied answer badge, the file-review badge a
-// file-edit row reads from its turn's review by path, and the header's
+// file-edit row reads from its turn's review by path ("Undone" or "Couldn't
+// undo"; nothing for an undecided or kept file), and the header's
 // controls: one toggle laid over the row, named for what the row is and
 // carrying a cut-off detail's full text, with the file control a sibling
 // that acts without toggling.
@@ -841,17 +842,19 @@ describe("ToolCallItem file-review badge", () => {
     return container.querySelector('[data-cursor-target="file-review-row-badge"]');
   }
 
-  it("badges an edit row 'Pending review' while its file is undecided", () => {
-    const { container } = renderEditRow(setWith("undecided"));
-    expect(badge(container)?.textContent).toBe("Pending review");
+  it("shows no badge on an edit row while its file is undecided or kept", () => {
+    for (const state of ["undecided", "kept"] as const) {
+      const { container, unmount } = renderEditRow(setWith(state));
+      expect(badge(container), state).toBeNull();
+      unmount();
+    }
   });
 
-  it("flips the badge to the file's state once it is decided", () => {
+  it("badges an edit row 'Undone' once its file is undone or undoing, and 'Couldn't undo' when the undo failed", () => {
     const cases = [
-      ["kept", "Kept"],
-      ["undoing", "Discarded"],
-      ["undone", "Discarded"],
-      ["undo_failed", "Review failed"],
+      ["undoing", "Undone"],
+      ["undone", "Undone"],
+      ["undo_failed", "Couldn't undo"],
     ] as const;
     for (const [state, label] of cases) {
       const { container, unmount } = renderEditRow(setWith(state));
@@ -861,13 +864,13 @@ describe("ToolCallItem file-review badge", () => {
   });
 
   it("shows no badge for a file the review does not hold, a row that edits no file, or without a provider", () => {
-    const otherFile = renderEditRow(setWith("undecided"), editRow("/workspace/other.md"));
+    const otherFile = renderEditRow(setWith("undone"), editRow("/workspace/other.md"));
     expect(badge(otherFile.container)).toBeNull();
     cleanup();
 
     // A read of the same path is not an edit: it never carries the badge.
     const read = renderEditRow(
-      setWith("undecided"),
+      setWith("undone"),
       toolUse({ name: "Read", input: { path: "/workspace/notes.md" }, result: "x" }),
     );
     expect(badge(read.container)).toBeNull();

@@ -82,8 +82,8 @@ interface BulkOption {
 }
 
 /**
- * The terminal file-review decision surface — the linear-log analogue of the
- * web's composer-docked `FileReviewDock`/`FileReviewCard`.
+ * The terminal file-review decision surface, in the linear log. (The web
+ * kit lists a finished turn's files once, with Undo, under its answer.)
  *
  * Renders `N files awaiting review` and, gated by `changeSetReviewability`:
  * bulk Approve/Keep all + Reject all (a complete set is keepable as-is; a

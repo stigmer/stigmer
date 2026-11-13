@@ -646,7 +646,8 @@ own), not as tool-call approvals; what is decided is read back from the
 session's events (`FileReviewSet`).
 
 Platform builders who render their own review UI use this hook directly;
-[`FileReviewCard`](#filereviewcard) takes the decision callback it produces.
+the React kit's session viewer sends its Undo through the same call
+(`useSessionConversation().reviewFileChanges`).
 
 **Signature**
 
@@ -1266,66 +1267,6 @@ function FileLink({ file, org }: { file: File; org: string }) {
 ```
 
 
-### FileReviewDock
-
-The composer-docked decision surface for pending file reviews: renders each
-undecided `FileReviewSet` as an interactive [`FileReviewCard`](#filereviewcard)
-decision bar, pinned in the fixed strip above the composer.
-
-WHY DOCKED, NOT IN-THREAD. The transcript's stamped edit rows are
-observational — they show what changed, badged with the live review state —
-but the newest turn's open decision must never scroll out of view. An
-in-thread card does exactly that on a long conversation. The turn does not
-wait on it: its edits are already applied, Undo puts a file back, and the
-next message keeps whatever is still undecided. Docking the bar to
-the composer keeps the pending decision visible regardless of scroll
-position, matching the shape of Cursor's own review bar. Once decided, the
-dock empties and the thread's read-only record (and the rows' Kept/Discarded
-badges) carry the history.
-
-This placement deliberately diverges from tool approvals, which stay inline
-on their rows (with `ApprovalPeekBar` as the scroll backstop): an approval is
-call-anchored — "run *this* command" — while a file review is a turn-scoped
-aggregate over many calls, with no single row that owns it.
-
-The expanded per-file body is height-capped with internal scroll: a set that
-needs per-file attention starts expanded (see [`FileReviewCard`](#filereviewcard)), and an
-unconstrained list in a fixed strip would swallow the viewport.
-
-Purely presentational — the data and decision routing live in
-`useSessionConversation` (headless-first). `SessionViewer` wires it
-in by default; platform builders composing a custom layout mount it over the
-same seam.
-
-**Props** — `FileReviewDockProps`
-
-<TypeTable
-  type={{
-    captures: { type: "ReadonlyMap<string, FileChangeSet>", description: "The captured bytes of the sets, by change set id, when the caller holds the runs (`useSessionConversation().fileChangeCaptures`): each file's capture provenance renders from them." },
-    className: { type: "string", description: "Additional CSS class names for the root container." },
-    decisionErrors: { type: "ReadonlyMap<string, Error>", description: "Per-decision failures, keyed like submittingDecisionKeys — surfaced in-card beside the control that failed." },
-    fileReviewSets: { type: "readonly FileReviewSet[]", description: "The sets with files still undecided. Renders nothing when empty. Feed this from `useSessionConversation().fileReviewSets` — the newest turn's undecided sets, finished or not, the same seam whose `reviewFileChanges` decides them, so what the dock shows and what it can decide are consistent by construction.", required: true },
-    onSubmit: { type: "(changeSetId: string, action: FileReviewAction, options: ReviewFileChangesOptions) => void", description: "Called when the person decides on one of the docked sets. Wire to `useSessionConversation().reviewFileChanges` (or an equivalent useReviewFileChanges-backed handler bound to the session).", required: true },
-    submittingDecisionKeys: { type: "ReadonlySet<string>", description: "Decision keys (fileDecisionKey) currently being submitted. Drives per-control loading state — see FileReviewCardProps.submittingDecisionKeys." },
-  }}
-/>
-
-```tsx
-function ReviewDock({ sessionId, org }: { sessionId: string; org: string }) {
-  const conv = useSessionConversation(sessionId, org);
-  return (
-    <FileReviewDock
-      fileReviewSets={conv.fileReviewSets}
-      captures={conv.fileChangeCaptures}
-      onSubmit={conv.reviewFileChanges}
-      submittingDecisionKeys={conv.submittingFileDecisionKeys}
-      decisionErrors={conv.fileDecisionErrors}
-    />
-  );
-}
-```
-
-
 ### FileRow
 
 The File host of the shared [`FileRowView`](#filerowview): it owns the
@@ -1489,7 +1430,6 @@ All visual properties flow through `--stgm-*` tokens.
     runScores: { type: "boolean", description: "Show run scores: thumbs up and down on each completed turn's final answer and the run-health flags beside them. The thread then reads the session's scores once (and again shortly after a turn completes, while it is graded). Off by default, and a thread with it off makes no score request; `SessionViewer` sets it from its audience." },
     sandboxWorkspaceRoot: { type: "string", description: "Absolute sandbox workspace root (e.g. `/home/daytona/workspace`). When provided, shell commands and tool output normalize absolute sandbox paths to workspace-relative display paths.  Pass an empty string or omit for local sessions where paths are the user's own filesystem (no normalization needed)." },
     scrollOnSend: { type: "boolean", description: "Scroll to the reader's own message when they send one from a scrolled-up position (the WhatsApp convention: showing the result of the reader's own action is Nielsen #1 system-status feedback). The send moment is the pendingUserMessage transition from empty to present; the pin re-engages follow mode, so the optimistic bubble and the streamed reply stay in view. Incoming content is unaffected — it still never moves a scrolled-up reader.  Default `true` on all three SDK thread surfaces at once — a deliberate exception to opt-in defaults: cross-surface consistency is the point, and a per-surface opt-in would re-create the inconsistency it fixes. Set `false` to keep today's leave-the-reader-alone behavior." },
-    showFileReviewRecords: { type: "boolean", description: "Render each *settled* file review as a read-only record card at its anchor in the thread (after the last row that edited one of its files) — the durable history of what changed and how it was decided. This is the only in-thread trace for changes made by shell commands, so the surface that owns the session history should enable it.  The thread never renders *decision* controls: a set still undecided on a live turn is deliberately NOT emitted here — its decision surface is the composer-docked FileReviewDock, which cannot scroll out of view. The edit rows' badges carry the pending state in-thread." },
     slots: { type: "MessageThreadSlots", description: "Component overrides for the thread's chrome — see MessageThreadSlots. Omitted slots render the built-ins; omitting the prop entirely changes nothing.", typeDescriptionLink: "#messagethreadslots" },
     stopBackgroundErrors: { type: "ReadonlyMap<string, Error>", description: "Each tool use's last failed background stop, keyed by its id, shown on its row. Supply useStopBackgroundCommand's `errorsByToolUseId`." },
     stoppingBackgroundToolUseIds: { type: "ReadonlySet<string>", description: "The tool uses whose background stop is in flight, by id. Only meaningful with `onStopBackgroundCommand`." },
@@ -2407,29 +2347,27 @@ function fileChangeKindOf(change: string): FileChangeKind
 
 ### FileChangeProgressBar
 
-The live "N files changed so far" strip for a turn that is still running.
+The live "Changing 2 files" strip for a turn that is still running.
 
 WHY IT EXISTS. The transcript streams per-edit tool rows, but a change made by
 a shell command (a `sed`, a build step) has no tool row, and there is no
-running net-of-many-edits rollup until the turn ends. This bar fills that gap:
-a compact, NON-INTERACTIVE count of the workspace delta accumulating during
-the turn, pinned above the composer where the [`FileReviewDock`](#filereviewdock) will later
-appear. The two are mutually exclusive per turn (progress shows while CAPTURING;
-the dock shows once AWAITING_REVIEW), so the bar hands off cleanly to the dock.
+running net-of-many-edits rollup until the turn ends. This strip fills that
+gap above the composer: the count and line counts so far, opening to each
+file in the same words the finished turn's Changed group uses (New,
+Deleted, nothing for an edit), so the files read as one thing moving from
+changing to changed.
 
 NEVER A DECISION SURFACE. Progress is non-authoritative and carries no file
-bodies — it is never reviewable or decidable. The reviewed diff is the
-turn-boundary candidate ([`FileReviewDock`](#filereviewdock) / the stamped transcript rows).
-A secret-like path is surfaced by name with its counts withheld (zeroed), so
-`FileLineStats` renders nothing for it.
+bodies. A secret-like path is surfaced by name with its counts withheld
+(zeroed), so `FileLineStats` renders nothing for it.
 
-A11Y. Only the summary count is an `aria-live` region — the per-file list is
-not — so a screen reader hears "3 files changing" as the count moves, not a
-per-file barrage on every ~2s refresh.
+A11Y. Only the summary count is an `aria-live` region; the per-file list is
+not, so a screen reader hears the count move, not a per-file barrage on
+every refresh.
 
 Purely presentational (headless-first): the data lives in
-`useSessionConversation().fileChangeProgress`. `SessionViewer` mounts it above
-the dock by default.
+`useSessionConversation().fileChangeProgress`. `SessionViewer` mounts it
+above the composer.
 
 ```tsx
 function ChangeProgress({ sessionId, org }: { sessionId: string; org: string }) {
@@ -2446,7 +2384,7 @@ Props for [`FileChangeProgressBar`](#filechangeprogressbar).
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    progress: { type: "FileChangeProgress | undefined", description: "The transient mid-run progress snapshot for the active turn. Feed this from `useSessionConversation().fileChangeProgress`. Renders nothing when undefined or when no files have changed yet — the server clears it once the turn's change set leaves CAPTURING, so the bar disappears exactly when the decision surface (FileReviewDock) takes over.", required: true },
+    progress: { type: "FileChangeProgress | undefined", description: "The transient mid-run progress snapshot for the active turn. Feed this from `useSessionConversation().fileChangeProgress`. Renders nothing when undefined or when no files have changed yet: the server clears it once the turn's changes are captured, when the same files show under the finished turn's Changed group.", required: true },
   }}
 />
 
@@ -2568,82 +2506,6 @@ unless every incompleteness is binary and acknowledged.
 What a decision does to a turn's changes: keep them, or put them back.
 
 
-### FileReviewCard
-
-Renders a turn's file changes (`FileReviewSet`) as a **compact
-decision bar**: one line carrying the set summary and the whole-set
-decision controls, with the
-per-file detail behind an expander. What the expander holds depends on
-`FileReviewCardProps.showDiffs`: the diff-rich body (default — for
-surfaces where this card is the only review surface) or a compact file list
-(the session thread, whose stamped edit rows already show every diff in
-place). A set that needs per-file attention (binary acknowledgment, blocked
-files, mid-review) starts expanded.
-
-File edits are reviewed as a captured workspace delta, not tool calls, so this
-is a dedicated decision surface distinct from the message transcript and the
-tool-approval [`ApprovalCard`](#approvalcard). The reviewer can decide each file
-individually (Keep / Discard, a `"file"` decision) or act on the whole set
-at once (Keep / Discard all, a `"change_set"` decision). Kept bytes stay;
-discarded ones are put back, verified against the digest the person saw.
-
-The set stays offered until every file has a verdict, so a partially
-decided set stays actionable. A per-file verdict is changeable while the
-set is still open: clicking the other option records a new decision (the
-last one wins).
-
-A `binary-only` set (binary files are the only blocker) can be kept in one
-action: the bulk button reads "Keep all" and carries the acknowledgment.
-A `blocked` set (something unavailable to review) cannot be approved
-as a whole — the Approve button is disabled with an explanation, and the
-per-file path is the escape: keep the reviewable files and discard the rest.
-
-Each non-reviewable file is labeled honestly by [`fileReviewability`](#filereviewability): a
-`binary` change has no text diff to review; an `unavailable` change is one
-whose diff isn't available at all (a secret path whose bytes were never
-captured, or an incomplete diff). Both are discard-only, and their Keep
-affordance is disabled with the reason associated via `aria-describedby`.
-Files captured outside normal git tracking (gitignored / non-git CAS) carry
-a small provenance badge, read from the capture, so the reviewer knows the
-change is not part of the repo's tracked history.
-
-Wrapped in `React.memo` — the session fold keeps an unchanged set's
-reference, so review cards skip re-renders during unrelated stream updates.
-
-```tsx
-import type { FileReviewSet } from "@stigmer/client";
-
-function ReviewCard({ sessionId, set }: { sessionId: string; set: FileReviewSet }) {
-  const { reviewFileChanges, submittingDecisionKeys } = useReviewFileChanges();
-  return (
-    <FileReviewCard
-      fileReviewSet={set}
-      onSubmit={(action, opts) => reviewFileChanges(sessionId, set.changeSetId, action, opts)}
-      submittingDecisionKeys={submittingDecisionKeys}
-    />
-  );
-}
-```
-
-
-### FileReviewCardProps
-
-Props for [`FileReviewCard`](#filereviewcard).
-
-<TypeTable
-  type={{
-    capture: { type: "FileChangeSet | null", description: "The set's captured bytes (its run's change set), when the caller already holds the run: the diffs and each file's capture provenance render from it. Omitted, the card reads the run itself, and only when it shows diffs." },
-    className: { type: "string", description: "Additional CSS class names for the root container." },
-    decisionErrors: { type: "ReadonlyMap<string, Error>", description: "Per-decision failures, keyed exactly like submittingDecisionKeys (via fileDecisionKey) — the set's id for a whole-set decision, the `setId:fileChangeId` for a per-file one. A failed decision is surfaced in-card, beside the control that failed (and the optimistic verdict reverts), so the reviewer sees *which* action did not take and why. Supply useReviewFileChanges's `decisionErrors`." },
-    fileReviewSet: { type: "FileReviewSet", description: "The turn's changes and how each file stands, from the session's fold (`Turn.fileReview`). Decisions, verdicts and progress are read from it.", required: true },
-    interactive: { type: "boolean", description: "Whether the card presents decision controls. Defaults to `true` (the live review surface). Set to `false` to render a **settled** set read-only: each file's verdict is shown, but the decision controls and error affordances are omitted — a historical record of what changed and how it was decided, not an actionable gate." },
-    onSubmit: { type: "(action: FileReviewAction, options: ReviewFileChangesOptions) => void", description: "Called when the person decides. The consumer (typically the session's dock or a platform builder's surface) sends it via useReviewFileChanges. A whole-set Keep/Discard sends `\"change_set\"` scope; a per-file one sends `\"file\"` scope with the file's id. Optional and ignored when FileReviewCardProps.interactive is `false`." },
-    showDiffs: { type: "boolean", description: "Whether the expanded body renders each file's diff. Defaults to `true` — the right default wherever this card is the *only* review surface (standalone platform-builder embeds).  `MessageThread` passes `false`: the transcript's stamped edit rows already show every diff in place, so the expanded body collapses to a compact file list (kind letter + linked path + `+N −M` + per-file controls) and the card stays purely the decision surface. Decision semantics — digests, scopes, acknowledgments — are identical in both modes; this is presentation only (opt-in with a backward-compatible default)." },
-    submittingDecisionKeys: { type: "ReadonlySet<string>", description: "The decision keys currently being submitted — exactly the set useReviewFileChanges returns as `submittingDecisionKeys`. A card has more than one decision target (the whole set plus each file), so it takes the keyed set rather than a single boolean and derives each control's in-flight state via fileDecisionKey." },
-  }}
-/>
-
-
 ### FileReviewContext
 
 Context that supplies the session's file reviews to the tool rows.
@@ -2667,7 +2529,8 @@ fold keeps unchanged set references), and an empty default so consumers
 without a provider render no badge.
 
 Read-only by design: the row badge is presentation, never a decision
-surface — decisions live on the set's decision bar ([`FileReviewCard`](#filereviewcard)).
+surface; a turn's files are undone from its Changed group (the React kit's
+`TurnOutcome`).
 
 <TypeTable
   type={{

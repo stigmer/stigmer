@@ -8,8 +8,9 @@
  * its turn, by path, and — end to end through `MessageThread` — that entry is
  * built from the turn's own `fileReview` and reaches the nested row.
  *
- * The per-row badge resolution itself (pending/kept/discarded/none) is
- * covered exhaustively in `ToolCallItem.test.tsx`; here the emphasis is the
+ * A row says only what changed its edit since: "Undone", or "Couldn't
+ * undo"; an undecided or kept edit says nothing. The per-row resolution
+ * itself is covered in `ToolCallItem.test.tsx`; here the emphasis is the
  * SUBAGENT wiring.
  */
 
@@ -64,18 +65,22 @@ function badge(container: HTMLElement): Element | null {
 }
 
 describe("subagent row badges (SubagentSection)", () => {
-  it("badges a subagent edit row 'Pending review' while its file is undecided", () => {
-    const { container } = renderSubagentRow(subagentWithEdit("completed"), turnReview("undecided"));
-    expect(badge(container)?.textContent).toBe("Pending review");
-  });
-
-  it("flips a subagent row to the file's verdict once it is decided", () => {
-    const kept = renderSubagentRow(subagentWithEdit("completed"), turnReview("kept"));
-    expect(badge(kept.container)?.textContent).toBe("Kept");
+  it("shows no badge on a subagent edit row while its file is undecided or kept", () => {
+    const undecided = renderSubagentRow(subagentWithEdit("completed"), turnReview("undecided"));
+    expect(badge(undecided.container)).toBeNull();
     cleanup();
 
-    const discarded = renderSubagentRow(subagentWithEdit("completed"), turnReview("undone"));
-    expect(badge(discarded.container)?.textContent).toBe("Discarded");
+    const kept = renderSubagentRow(subagentWithEdit("completed"), turnReview("kept"));
+    expect(badge(kept.container)).toBeNull();
+  });
+
+  it("badges a subagent row 'Undone' once its file is undone, and 'Couldn't undo' when the undo failed", () => {
+    const undone = renderSubagentRow(subagentWithEdit("completed"), turnReview("undone"));
+    expect(badge(undone.container)?.textContent).toBe("Undone");
+    cleanup();
+
+    const failed = renderSubagentRow(subagentWithEdit("completed"), turnReview("undo_failed"));
+    expect(badge(failed.container)?.textContent).toBe("Couldn't undo");
   });
 
   it("shows no badge when the turn has no review, or the row's file is not in it", () => {
@@ -83,7 +88,7 @@ describe("subagent row badges (SubagentSection)", () => {
     expect(badge(noReview.container)).toBeNull();
     cleanup();
 
-    const pathMiss = renderSubagentRow(subagentWithEdit("completed", "src/other.ts"), turnReview("kept"));
+    const pathMiss = renderSubagentRow(subagentWithEdit("completed", "src/other.ts"), turnReview("undone"));
     expect(badge(pathMiss.container)).toBeNull();
   });
 });
@@ -130,7 +135,7 @@ describe("subagent row badges (MessageThread integration)", () => {
   /**
    * A live turn that delegated to a subagent which edited a file: the
    * turn's `task` call carries the subagent's thread (running, so its card
-   * auto-opens), and the turn's review holds the file.
+   * auto-opens), and the turn's review holds the file, already undone.
    */
   function turnWithSubagentEdit(): Turn {
     const task = toolUse({ id: "sa-1", name: "task", state: "running", thread: subagentWithEdit("running") });
@@ -144,7 +149,7 @@ describe("subagent row badges (MessageThread integration)", () => {
       todos: [],
       structuredOutput: undefined,
       memory: undefined,
-      fileReview: [turnReview("undecided")],
+      fileReview: [turnReview("undone")],
       errors: [],
       answer: "Delegating.",
       liveness: undefined,
@@ -152,8 +157,8 @@ describe("subagent row badges (MessageThread integration)", () => {
   }
 
   it("badges a subagent row from its turn's file review", () => {
-    render(<MessageThread turns={[turnWithSubagentEdit()]} showFileReviewRecords />);
+    render(<MessageThread turns={[turnWithSubagentEdit()]} />);
     const el = document.querySelector('[data-cursor-target="file-review-row-badge"]');
-    expect(el?.textContent).toBe("Pending review");
+    expect(el?.textContent).toBe("Undone");
   });
 });

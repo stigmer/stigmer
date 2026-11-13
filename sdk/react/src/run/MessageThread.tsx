@@ -55,7 +55,6 @@ import {
 } from "./LivenessStatusLine.js";
 import { ApprovalCard, type ApprovalCardProps } from "./ApprovalCard.js";
 import { RunErrorNotice, type RunErrorNoticeProps } from "./RunErrorNotice.js";
-import { FileReviewCard } from "./FileReviewCard.js";
 import { SummarizationCard } from "./SummarizationCard.js";
 import { PlanCompletionCard, type PlanCompletionCardProps } from "./PlanCompletionCard.js";
 import { PlanFileCard, type PlanFileCardProps } from "./PlanFileCard.js";
@@ -300,21 +299,6 @@ export interface MessageThreadProps {
    */
   readonly stopBackgroundErrors?: ReadonlyMap<string, Error>;
   /**
-   * Render each *settled* file review as a read-only record card at its
-   * anchor in the thread (after the last row that edited one of its files)
-   * — the durable history of what changed and how it was decided. This is
-   * the only in-thread trace for changes made by shell commands, so the
-   * surface that owns the session history should enable it.
-   *
-   * The thread never renders *decision* controls: a set still undecided on
-   * a live turn is deliberately NOT emitted here — its decision surface is
-   * the composer-docked {@link FileReviewDock}, which cannot scroll out of
-   * view. The edit rows' badges carry the pending state in-thread.
-   *
-   * @default false
-   */
-  readonly showFileReviewRecords?: boolean;
-  /**
    * The conversation's resources from the session spec. When provided,
    * file paths in tool call rendering become interactive: a path in a git
    * repository opens on GitHub, a path in a local folder offers
@@ -529,7 +513,6 @@ export type ThreadItem =
       readonly key: string;
     }
   | { readonly kind: "approval-request"; readonly toolUse: ToolUse; readonly key: string }
-  | { readonly kind: "file-review-record"; readonly fileReviewSet: FileReviewSet; readonly key: string }
   | { readonly kind: "setup-progress"; readonly resources: readonly SessionResource[]; readonly serverPhase?: string; readonly isAwaitingResponse?: boolean; readonly key: string }
   | { readonly kind: "recalled-memories"; readonly recall: MemoryRecall; readonly facts: readonly RecalledMemoryFact[]; readonly key: string }
   | { readonly kind: "context-compacted"; readonly compacted: CompactedItem; readonly key: string }
@@ -608,7 +591,6 @@ export interface BuildThreadItemsOptions {
   readonly pendingMessageFailed?: boolean;
   /** Mark the live turn's message editable. */
   readonly editableActiveTurn?: boolean;
-  readonly includeFileReviewRecords?: boolean;
   /** Suppress a plan being written behind a live plan card. */
   readonly collapseStreamingPlan?: boolean;
   readonly pendingFiles?: readonly MessageFileView[] | null;
@@ -686,75 +668,6 @@ function collectThreadToolUseIds(thread: Thread, target: Set<string>): void {
 }
 
 /**
- * Records, for each of a turn's file reviews, the index of the just-pushed
- * tool-group item when one of its rows edited a file of the review — later
- * groups overwrite, so the map converges on each set's LAST editing row. That
- * index is where the set's record anchors: the record appears where the
- * turn's editing activity ended, not at the thread tail.
- */
-function recordFileReviewAnchors(
-  toolUses: readonly ToolUse[],
-  itemIndex: number,
-  sets: readonly FileReviewSet[],
-  anchorIndexBySetId: Map<string, number>,
-): void {
-  if (sets.length === 0) return;
-  for (const toolUse of toolUses) {
-    const category = resolveToolCategoryFromCall(toolUse).category;
-    if (category !== "write" && category !== "edit" && category !== "delete") continue;
-    const path = extractPrimaryArg(toolUse);
-    if (!path) continue;
-    for (const set of sets) {
-      if (fileForRowPath(set, path)) anchorIndexBySetId.set(set.changeSetId, itemIndex);
-    }
-  }
-}
-
-/**
- * Inserts one turn's settled file-review records into its own thread
- * segment: each set's read-only `file-review-record` item is spliced
- * immediately after the last row that edited one of its files
- * ({@link recordFileReviewAnchors}); a set no row edited (its changes were
- * made by shell commands) falls back to the segment's tail — this record is
- * that set's ONLY in-thread trace, so it is never dropped.
- *
- * A set still undecided on a live turn is deliberately NOT emitted: its
- * decision surface is the composer-docked `FileReviewDock`, which cannot
- * scroll out of view, and the edit rows' badges carry the pending state in
- * place. The same set re-enters here as a record once its turn ends.
- */
-function insertFileReviewItems(
-  items: ThreadItem[],
-  sets: readonly FileReviewSet[],
-  anchorIndexBySetId: ReadonlyMap<string, number>,
-  turnEnded: boolean,
-): void {
-  const anchored: { index: number; item: ThreadItem }[] = [];
-  const tail: ThreadItem[] = [];
-  for (const set of sets) {
-    if (set.files.length === 0) continue;
-    if (!turnEnded && set.undecided) continue;
-    const item: ThreadItem = {
-      kind: "file-review-record",
-      fileReviewSet: set,
-      key: `file-review-${set.changeSetId}`,
-    };
-    const index = anchorIndexBySetId.get(set.changeSetId);
-    if (index !== undefined) anchored.push({ index, item });
-    else tail.push(item);
-  }
-  // Splice in ascending anchor order with a running offset so earlier inserts
-  // do not displace later anchors.
-  anchored.sort((a, b) => a.index - b.index);
-  let offset = 0;
-  for (const { index, item } of anchored) {
-    items.splice(index + 1 + offset, 0, item);
-    offset++;
-  }
-  items.push(...tail);
-}
-
-/**
  * Builds a flat list of renderable thread items from a session's folded
  * turns and their runs.
  *
@@ -774,7 +687,6 @@ export function buildThreadItems(
     resources,
     pendingMessageFailed = false,
     editableActiveTurn = false,
-    includeFileReviewRecords = false,
     collapseStreamingPlan = false,
     pendingFiles,
     queued = [],
@@ -853,8 +765,6 @@ export function buildThreadItems(
     const streamingPlan =
       collapseStreamingPlan && isActiveTurn ? findStreamingPlan(turn, run) : undefined;
 
-    const fileReviewAnchors = new Map<string, number>();
-    const reviewSets = includeFileReviewRecords ? turn.fileReview : [];
 
     // A turn that keeps a to-do list draws it as its plan, every step under
     // the item it served (turnSteps); a step that waits for a person stays
@@ -975,7 +885,6 @@ export function buildThreadItems(
       // background, and none failed: a failure stays in view.
       const settled = group.every((tool) => tool.result !== undefined && !isBackgroundRunning(tool) && stepTense(tool) !== "failed");
       items.push({ kind: "tool-group", toolUses: group, key: `${group[0]!.id}-tc`, ...(isActiveTurn && settled ? { fold: true } : {}) });
-      recordFileReviewAnchors(group, items.length - 1, reviewSets, fileReviewAnchors);
       for (const toolUse of group) inlineToolUseIds.add(toolUse.id);
       group = [];
     };
@@ -1082,13 +991,8 @@ export function buildThreadItems(
     // still surfaces — never silently dropped.
     emitTodos();
 
-    // Settled records land inside this turn's segment, at their anchors.
-    if (reviewSets.length > 0) {
-      insertFileReviewItems(items, reviewSets, fileReviewAnchors, turn.ended);
-    }
-
     // A turn that finished leads with its answer: the answer, what it made
-    // and changed (its outcome), its plan document and its file reviews,
+    // and changed (its outcome), its plan document,
     // then one line that opens to how it got there, in time order. A turn
     // at work keeps time order; one that stopped or failed keeps its steps
     // in view, because there the steps are the story.
@@ -1097,8 +1001,8 @@ export function buildThreadItems(
       const segment = items.splice(segmentStart);
       const answerKey = scoredMessageId ?? (planMessageId !== undefined && !collapsePlanMessage ? planMessageId : undefined);
       const lead = segment.filter((item) => item.key === answerKey);
-      const kept = segment.filter((item) => item.kind === "plan-completion" || item.kind === "file-review-record");
-      const working = segment.filter((item) => !lead.includes(item) && item.kind !== "plan-completion" && item.kind !== "file-review-record");
+      const kept = segment.filter((item) => item.kind === "plan-completion");
+      const working = segment.filter((item) => !lead.includes(item) && item.kind !== "plan-completion");
       items.push(...lead);
       if (includeOutcomes) items.push({ kind: "outcome", turn, key: `outcome-${turn.runId}` });
       items.push(...kept);
@@ -1310,7 +1214,6 @@ export function MessageThread({
   onStopBackgroundCommand,
   stoppingBackgroundToolUseIds,
   stopBackgroundErrors,
-  showFileReviewRecords = false,
   resources,
   onFilePathClick,
   sandboxWorkspaceRoot,
@@ -1344,7 +1247,6 @@ export function MessageThread({
         resources,
         pendingMessageFailed,
         editableActiveTurn,
-        includeFileReviewRecords: showFileReviewRecords,
         collapseStreamingPlan,
         pendingFiles,
         queued,
@@ -1358,7 +1260,7 @@ export function MessageThread({
         ...(turnEnding !== undefined ? { endingViewer: turnEnding.viewer } : {}),
         ...(turnEnding?.names !== undefined ? { endingNames: turnEnding.names } : {}),
       }),
-    [turns, runs, pendingUserMessage, includeApprovals, resources, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingFiles, queued, agentVersionLabel, planFiles, turnOutcome, ambientLiveness, slots?.TodoCard, slots?.TodoRow, turnEnding?.viewer, turnEnding?.names],
+    [turns, runs, pendingUserMessage, includeApprovals, resources, pendingMessageFailed, editableActiveTurn, collapseStreamingPlan, pendingFiles, queued, agentVersionLabel, planFiles, turnOutcome, ambientLiveness, slots?.TodoCard, slots?.TodoRow, turnEnding?.viewer, turnEnding?.names],
   );
   const presentation = useMemo<ThreadPresentation>(() => ({ turnOutcome, ...(turnEnding !== undefined ? { turnEnding } : {}) }), [turnOutcome, turnEnding]);
 
@@ -1658,7 +1560,7 @@ export interface ThreadItemRendererProps {
  *
  * Slot resolution happens here, per case, as `slots?.X ?? X` — no merged
  * defaults object, no allocation, and the memoized row wrappers below
- * (`ApprovalCardRow`, `FileReviewRecordRow`) keep their callback
+ * (`ApprovalCardRow`) keep their callback
  * stabilization around whichever component renders inside them.
  *
  * Does not receive a `key` prop — the caller is responsible for
@@ -1778,8 +1680,6 @@ export function ThreadItemRenderer({
           ApprovalCardComponent={slots?.ApprovalCard ?? ApprovalCard}
         />
       );
-    case "file-review-record":
-      return <FileReviewRecordRow fileReviewSet={item.fileReviewSet} />;
     case "setup-progress": {
       const Setup = slots?.SetupProgress ?? SetupProgress;
       return (
@@ -2136,32 +2036,3 @@ const ApprovalCardRow = memo(function ApprovalCardRow({
   );
 });
 
-// ---------------------------------------------------------------------------
-// FileReviewRecordRow — a settled file review's read-only in-thread record
-// ---------------------------------------------------------------------------
-
-/**
- * Renders a settled file review as a read-only record at its position in the
- * transcript — what changed and how it was decided ("2 kept · 1 discarded").
- * Never interactive: the pending decision surface is the composer-docked
- * `FileReviewDock`, not a thread item (see {@link insertFileReviewItems}).
- */
-const FileReviewRecordRow = memo(function FileReviewRecordRow({
-  fileReviewSet,
-}: {
-  readonly fileReviewSet: FileReviewSet;
-}) {
-  const { changeSetsById } = useContext(FileReviewContext);
-  return (
-    <FileReviewCard
-      fileReviewSet={fileReviewSet}
-      capture={changeSetsById.get(fileReviewSet.changeSetId) ?? null}
-      interactive={false}
-      // The thread's stamped edit rows already show every diff in place, so
-      // the record renders its compact file-list body — the history never
-      // duplicates the transcript's diffs.
-      showDiffs={false}
-      className="stg:mx-4"
-    />
-  );
-});

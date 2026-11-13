@@ -185,7 +185,7 @@ function threadEvents(taskId: string, state: "running" | "completed", reply: str
   return events;
 }
 
-/** A review set's `stigmer.file_review.changes`: two edited files, both undecided. */
+/** A review set's `stigmer.file_review.changes`: two edited files, both still undecided (each can be undone). */
 function reviewEvent(): SessionEvent {
   const file = (id: string, path: string, change: string, linesAdded: number, linesRemoved: number) => ({
     fileChangeId: id,
@@ -461,8 +461,8 @@ function build(name: ScenarioName): Scenario {
         samples.runStatusEvent("waiting"),
       ]);
     case "file-review":
-      return loaded(name, "the turn ended and its file edits wait for review", [
-        ...samples.turnEvents({ message, phase: "running", reply: "I changed two files; review them before keeping." }),
+      return loaded(name, "the turn ended with two file edits, each one it can undo", [
+        ...samples.turnEvents({ message, phase: "running", reply: "Invoices now round once, at the total. I added a rounding helper and used it in invoice.ts." }),
         reviewEvent(),
         samples.runStatusEvent("completed"),
       ]);

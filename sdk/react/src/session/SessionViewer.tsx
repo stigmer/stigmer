@@ -16,14 +16,12 @@ import type { SessionStreamingPlan } from "./inspector/SessionInspectorRegion.js
 import { isTerminalPhase } from "@stigmer/react-core/internal";
 import { MessageThread, type MessageThreadSlots } from "../run/MessageThread.js";
 import { FileChangeProgressBar } from "../run/FileChangeProgressBar.js";
-import { FileReviewDock } from "../run/FileReviewDock.js";
-import { FilePathContext, type FilePathContextValue } from "../run/FilePathContext.js";
 import { ThreadSkeleton } from "../run/ThreadSkeleton.js";
 import { SessionComposer } from "../composer/index.js";
 import { AgentHoursNotice, agentHoursUsedUp } from "../billing/AgentHoursNotice.js";
 import { ChatActivityReporterContext } from "../agent-chat/chat-activity.js";
 import { chatActivityOf } from "../agent-chat/chat-activity-of.js";
-import { TurnOutcome } from "./TurnOutcome.js";
+import { TurnOutcome, type TurnOutcomeUndo } from "./TurnOutcome.js";
 import { turnOutcome, type TurnChange } from "./turn-outcome.js";
 import { TurnChangeDialog } from "./TurnChangeDialog.js";
 import { FilePreviewModal } from "../run/FilePreviewModal.js";
@@ -947,7 +945,22 @@ const ConversationColumn = memo(function ConversationColumn({
   const extraSettings = useMemo(() => (isGuest ? undefined : [runSettingsRow]), [isGuest, runSettingsRow]);
 
   // Each ended turn closes with what it produced, from the conversation's
-  // Files and the turn's own run.
+  // Files and the turn's own run. Its changed files are the one place a
+  // turn's edits are seen and undone: Undo for whoever decides (never a
+  // reader, a teammate or a guest, whose credential is refused file
+  // decisions, stigmer#1481), and only on the newest turn, whose undecided
+  // edits the next message keeps.
+  const reviewFileChanges = conv.reviewFileChanges;
+  const decidesFiles = !isObserver && !isParticipant && !isGuest;
+  const newestRunId = conv.turns.at(-1)?.runId;
+  const turnUndo = useMemo<TurnOutcomeUndo>(
+    () => ({
+      onUndo: (changeSetId, options) => void reviewFileChanges(changeSetId, "undo", options).catch(() => undefined),
+      busyKeys: conv.submittingFileDecisionKeys,
+      errors: conv.fileDecisionErrors,
+    }),
+    [reviewFileChanges, conv.submittingFileDecisionKeys, conv.fileDecisionErrors],
+  );
   const renderTurnOutcome = useCallback(
     (turn: Turn) => (
       <TurnOutcome
@@ -955,9 +968,10 @@ const ConversationColumn = memo(function ConversationColumn({
         onOpenFile={onOpenOutputFile}
         canOpenChange={canOpenTurnChange}
         onOpenChange={onOpenTurnChange}
+        undo={decidesFiles && turn.runId === newestRunId ? turnUndo : undefined}
       />
     ),
-    [files, conv.runs, onOpenOutputFile, canOpenTurnChange, onOpenTurnChange],
+    [files, conv.runs, onOpenOutputFile, canOpenTurnChange, onOpenTurnChange, decidesFiles, newestRunId, turnUndo],
   );
   // Answer failures are NOT folded into this banner: they surface in-card,
   // beside the exact gate that failed (see MessageThread's answerErrors →
@@ -1088,20 +1102,6 @@ const ConversationColumn = memo(function ConversationColumn({
     [flow.handleSubmit, editingExecutionId],
   );
 
-  // The composer-docked FileReviewDock sits OUTSIDE MessageThread, so the
-  // thread's own FilePathContext provider does not reach it. This provider
-  // gives the dock's file list the same path resolution and click routing
-  // (open in the panel's viewer; GitHub/copy fallback) as the transcript —
-  // one click behavior for a path everywhere in the session. Memoized so the
-  // dock's memoized cards are not invalidated by unrelated renders.
-  const dockFilePathCtx = useMemo<FilePathContextValue>(
-    () => ({
-      resources: conv.resources ?? [],
-      onFilePathClick,
-    }),
-    [conv.resources, onFilePathClick],
-  );
-
   return (
     <div ref={columnRef} className="stg:flex stg:h-full stg:min-w-0 stg:flex-col">
       {conv.session !== null && hasTurns && (
@@ -1150,7 +1150,6 @@ const ConversationColumn = memo(function ConversationColumn({
         onStopBackgroundCommand={isObserver || isParticipant ? undefined : conv.stopBackgroundCommand}
         stoppingBackgroundToolUseIds={conv.stoppingBackgroundToolUseIds}
         stopBackgroundErrors={conv.stopBackgroundErrors}
-        showFileReviewRecords
         // Editing a message stops the run it started: an owner's act.
         onEditMessage={
           isObserver || isParticipant || !conv.isStoppable ? undefined : handleEditMessage
@@ -1222,29 +1221,9 @@ const ConversationColumn = memo(function ConversationColumn({
             error={flow.agentVersion.updateError}
           />
         )}
-        {/* Pending file reviews dock here — pinned above the composer so the
-            newest turn's Keep and Undo stay in view after the turn ends,
-            however long the thread. The thread renders only observational
-            rows (badges) and read-only settled records; this is the one
-            decision surface. Observers get the read-only progress strip but
-            never the decision dock. */}
-        <FilePathContext.Provider value={dockFilePathCtx}>
-          {/* Mid-run live capture: the "N files changed so far" strip for
-              a still-running turn. Mutually exclusive with the dock below —
-              progress shows while CAPTURING, the dock once AWAITING_REVIEW — so it
-              hands off cleanly when review opens. Non-interactive. */}
-          <FileChangeProgressBar progress={conv.fileChangeProgress} />
-          {/* A guest credential is refused file decisions (stigmer#1481). */}
-          {!isObserver && !isParticipant && !isGuest && (
-            <FileReviewDock
-              fileReviewSets={conv.fileReviewSets}
-              captures={conv.fileChangeCaptures}
-              onSubmit={conv.reviewFileChanges}
-              submittingDecisionKeys={conv.submittingFileDecisionKeys}
-              decisionErrors={conv.fileDecisionErrors}
-            />
-          )}
-        </FilePathContext.Provider>
+        {/* While the turn works, the files it is changing so far; once it
+            ends, the same files show under its Changed group. */}
+        <FileChangeProgressBar progress={conv.fileChangeProgress} />
         {/* Only an approval holds a turn for the owner; file review never
             does, and the next message keeps what is still undecided. */}
         {isParticipant && conv.asks.length > 0 && (

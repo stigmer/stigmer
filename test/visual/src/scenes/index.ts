@@ -4,7 +4,6 @@
 import { agentInAppScene } from "./in-app.tsx";
 import { PRESETS, THREAD_STATES, type Preset, type SceneId, type ThreadState } from "../catalog.ts";
 import { inheritedOpenAiKey, NOTHING_CONNECTED, NOTHING_ON_THE_RUNNER, ownAnthropicKey } from "../fixtures.ts";
-import { fileReviewDockScene } from "./conversation.tsx";
 import { agentChatScene } from "./agent-chat.tsx";
 import { agentProfileScene } from "./agent.tsx";
 import { fromHooksScene } from "./from-hooks.tsx";
@@ -86,7 +85,6 @@ const presets = Object.fromEntries(PRESETS.map((preset) => [`preset-${preset}`, 
 /** Every scene's drawing, built when the page draws it. */
 export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   ...threads,
-  "file-review-dock": fileReviewDockScene,
   "models-hub-none": () => modelsHubScene(NOTHING_CONNECTED, [], "admin"),
   "models-hub-connected": () => modelsHubScene(CONNECTED, [ownAnthropicKey(), inheritedOpenAiKey()], "admin"),
   "models-hub-local": modelsHubLocalScene,

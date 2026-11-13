@@ -338,8 +338,8 @@ export function ApprovalCardBody({
   // captured yet: the gate shows the PROPOSED change from the tool's input —
   // the write/edit content when it carries one (path suppressed: the header
   // has it); a neutral "no preview" notice when only a path is known;
-  // otherwise the shared args view for non-file tools. (The turn's captured
-  // changes are reviewed in FileReviewCard, not here.)
+  // otherwise the shared args view for non-file tools. (The turn's changed
+  // files show once it ends, under its Changed group, not here.)
   let preview: ReactNode = null;
   if (isWriteEdit && writeContent === null) {
     // No proposed content: the header's sentence and path say what the
@@ -487,7 +487,7 @@ export function ApprovalCardBody({
           via the session's global banner. A thread can hold many gates (each
           inline tool row, plus the bottom backstop), so a failure must name the
           one it belongs to; the optimistic spinner has already reverted, and
-          this explains the snap-back. Shared with FileReviewCard. */}
+          this explains the snap-back. */}
       {error && (
         <InCardDecisionError
           error={error}

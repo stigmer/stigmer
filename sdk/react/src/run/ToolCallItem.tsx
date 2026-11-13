@@ -25,7 +25,7 @@ import { MemoryProposalCardBody } from "../memory/MemoryProposalCard.js";
 import { useApproval } from "./ApprovalContext.js";
 import { BackgroundCommandTrail, BackgroundStopError } from "./BackgroundCommandStatus.js";
 import { useFileReviewRowState } from "@stigmer/react-core";
-import type { FileReviewRowState } from "@stigmer/react-core";
+import { CHANGE_WORDS } from "../session/turn-change-words.js";
 import { FilePathLink } from "./FilePathLink.js";
 import { splitDisplayPath } from "./file-path-resolver.js";
 import { subagentSubjectOf } from "@stigmer/react-core";
@@ -170,11 +170,10 @@ export const ToolCallItem = memo(function ToolCallItem({
 
   const approvalBadge = getApprovalBadge(toolUse);
 
-  // A file edit badges the live review state of the file it changed (pending
-  // review / kept / discarded): its turn's file review, matched by the row's
-  // path. Null for any other row and for every honest-degradation case.
+  // A file edit says only what changed it since: Undone, or Couldn't undo
+  // (its turn's file review, matched by the row's path). A kept or
+  // undecided edit says nothing: it is in place, which is what an edit is.
   const reviewState = useFileReviewRowState(toolUse.runId, isFileEditCategory(category) ? primaryArg : null);
-  const reviewBadge = reviewState ? REVIEW_BADGE[reviewState] : null;
 
   // A file step names its file in its line; the name is the file's own
   // control (it opens the file, or copies its path), so the line reads
@@ -215,9 +214,9 @@ export const ToolCallItem = memo(function ToolCallItem({
     <>
       {approvalBadge && <StatusBadge phase={approvalBadge.phase} label={approvalBadge.label} />}
 
-      {reviewBadge && (
+      {(reviewState === "discarded" || reviewState === "failed") && (
         <span className="stg:inline-flex stg:shrink-0" data-cursor-target="file-review-row-badge">
-          <StatusBadge phase={reviewBadge.phase} label={reviewBadge.label} />
+          {reviewState === "discarded" ? <Tag>{CHANGE_WORDS.undone}</Tag> : <StatusBadge phase="failed" label={CHANGE_WORDS.undoFailed} />}
         </span>
       )}
 
@@ -420,23 +419,6 @@ function getApprovalBadge(toolUse: ToolUse): ApprovalBadgeInfo | null {
 function isFileEditCategory(category: ToolCategory): boolean {
   return category === "write" || category === "edit" || category === "delete";
 }
-
-// ---------------------------------------------------------------------------
-// File-review badge — a stamped edit row's live review state
-// ---------------------------------------------------------------------------
-
-/**
- * The badge pill for each {@link FileReviewRowState}, in the approval badge's
- * visual vocabulary. "Kept"/"Discarded" match the decision surface's verdict
- * copy (see FileReviewCard's VerdictBadge) so the row and the bar always speak
- * the same language.
- */
-const REVIEW_BADGE: Record<FileReviewRowState, ApprovalBadgeInfo> = {
-  pending: { label: "Pending review", phase: "degraded" },
-  kept: { label: "Kept", phase: "ready" },
-  discarded: { label: "Discarded", phase: "failed" },
-  failed: { label: "Review failed", phase: "failed" },
-};
 
 // ---------------------------------------------------------------------------
 // Status mapping

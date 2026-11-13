@@ -16,8 +16,7 @@ export interface InCardDecisionErrorProps {
 /**
  * The shared in-card failure notice for a decision that did not take — used by
  * every decision surface that surfaces errors beside the control that failed:
- * the agent tool gate ({@link ApprovalCard}/{@link ApprovalCardBody}) and the
- * file-review card ({@link FileReviewCard}, whole-set and per-file).
+ * the agent tool gate ({@link ApprovalCard}/{@link ApprovalCardBody}).
  *
  * One source of truth so those surfaces can never drift in tone, copy shape, or
  * accessibility. `role="alert"` (matching the thread's other inline failures)
