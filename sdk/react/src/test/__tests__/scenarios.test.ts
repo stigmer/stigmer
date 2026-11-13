@@ -74,6 +74,17 @@ describe("the scenario catalogue", () => {
     expect(conversation).toMatchObject({ activeTurn: null, activePhase: null, canSendFollowUp: true, isStoppable: false });
   });
 
+  it("thinks on a running turn: one thought settled with its words, a read, then a thought the stream opened", () => {
+    const thoughts = onlyTurn("thinking").items.filter((item) => item.kind === "thinking");
+    expect(thoughts.map((thought) => [thought.live, thought.text.length > 80])).toEqual([
+      [false, true],
+      [true, false],
+    ]);
+    expect(scenarios.thinking.drafts).toEqual([{ id: thoughts[1]!.id, kind: "thinking" }]);
+    expect(conversationOf(scenarios.thinking)).toMatchObject({ activePhase: "running", isStoppable: true });
+    for (const name of SCENARIO_NAMES.filter((n) => n !== "thinking")) expect(scenarios[name].drafts, name).toBeUndefined();
+  });
+
   it("streams a reply on a running turn", () => {
     const turn = onlyTurn("streaming");
     expect(turn.status?.phase).toBe("running");

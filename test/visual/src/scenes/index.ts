@@ -44,7 +44,7 @@ import { conversationsScene } from "./conversations.tsx";
 import { agentEnvironmentScene, environmentNewScene, runSettingsScene } from "./environment.tsx";
 import { routineDetailScene, routineNewScene } from "./routine.tsx";
 import { modelSelectorScene } from "./settings.tsx";
-import { endingStoryScene, sessionScene, sessionStartingScene, stepStoryScene } from "./session.tsx";
+import { endingStoryScene, sessionFileProgressScene, sessionPlanBuildScene, sessionScene, sessionStartingScene, stepStoryScene } from "./session.tsx";
 import { asksFirstScene, hoursScene, inProductScene, keysScene, ownComputerScene, wallsScene } from "./story.tsx";
 import { threadScene } from "./thread.tsx";
 import {
@@ -121,7 +121,13 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "marketplace-admin": () => marketplaceScene("admin"),
   "marketplace-member": () => marketplaceScene("member"),
   "marketplace-no-match": () => marketplaceScene("admin"),
+  "session-thinking": () => sessionScene("thinking", { inspector: true }),
   "session-busy": () => sessionScene("busy", { inspector: true }),
+  "session-helper": () => sessionScene("subagent-running", { inspector: true }),
+  "session-file-progress": () => sessionFileProgressScene(),
+  "session-file-review": () => sessionScene("file-review", { inspector: true }),
+  "session-plan-build": () => sessionPlanBuildScene(),
+  "session-participant": () => sessionScene("approval", { inspector: true, role: "participant" }),
   "session-approval": () => sessionScene("approval", { inspector: true }),
   "session-finished": () => sessionScene("finished", { inspector: true }),
   "session-inspector": () => sessionScene("finished", { inspector: true }),

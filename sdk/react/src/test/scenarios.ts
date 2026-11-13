@@ -16,11 +16,12 @@
 // its test's fake clock. The builders here cover what `samples` does not yet
 // (a subagent's thread, a review set) with `create(SessionEventSchema)`.
 //
-// Two states carry what lives beside the events: `busy` the liveness
+// Three states carry what lives beside the events: `busy` the liveness
 // preview the stream sends while a turn works (streamed, never stored, so it
 // is folded after the events and a page that replays the scenario sends it
-// as a frame), and `finished` the Files its turn returned and the routine
-// that started the session.
+// as a frame), `thinking` the thought the stream opened and has not stored
+// (streamed the same way), and `finished` the Files its turn returned and
+// the routine that started the session.
 //
 // Beside the states, whole stories: the scripted turn and the ledger turn
 // the docs play, and the step turns, one per family of step the session
@@ -56,6 +57,7 @@ export const SCENARIO_NAMES = [
   "loading",
   "load-failed",
   "empty",
+  "thinking",
   "streaming",
   "tools",
   "approval",
@@ -120,6 +122,19 @@ export interface Scenario {
    * printed.
    */
   readonly outputs?: readonly ToolOutput[];
+  /**
+   * The messages or thoughts the working turn has begun and not yet stored,
+   * as the stream opened them (streamed, never stored), already in `fold`;
+   * a page that replays the scenario sends each as a frame after the
+   * events. Absent when none is open.
+   */
+  readonly drafts?: readonly Draft[];
+}
+
+/** A message or thought the stream opened before its stored event, under the id that event will carry. */
+export interface Draft {
+  readonly id: string;
+  readonly kind: "message" | "thinking";
 }
 
 /** A fragment of a running tool's output, as the stream sends it. */
@@ -210,6 +225,9 @@ const RUN_PHASES: Readonly<Record<TurnPhase, RunPhase>> = {
 };
 
 const ASK_MESSAGE = "Rename the rounding helper and update its callers.";
+/** The thinking turn's settled thought: long enough that the thread shows only its start until opened. */
+const THOUGHT =
+  "A cent off on many invoices sounds like rounding each line before the total. If lineTotal rounds and invoiceTotal adds the rounded lines, three lines of 0.335 give 1.02 where the exact total rounds to 1.01. Read invoice.ts before changing anything.";
 const MARKDOWN_REPLY = [
   "## What changed",
   "",
@@ -241,13 +259,21 @@ interface Beside {
   readonly estimatedCostUsd?: number;
   /** What running commands printed so far, streamed after the events. */
   readonly outputs?: readonly ToolOutput[];
+  /** The messages or thoughts the stream opened and has not stored, streamed after the events. */
+  readonly drafts?: readonly Draft[];
 }
 
-/** The events folded, then the liveness preview and the running commands' output the stream sent after them. */
-function foldWithLiveness(events: readonly SessionEvent[], liveness: RunLiveness | undefined, outputs: readonly ToolOutput[] = []): SessionFold {
-  if (liveness === undefined && outputs.length === 0) return samples.fold(events);
+/** The events folded, then the drafts, the liveness preview and the running commands' output the stream sent after them. */
+function foldWithLiveness(
+  events: readonly SessionEvent[],
+  liveness: RunLiveness | undefined,
+  outputs: readonly ToolOutput[] = [],
+  drafts: readonly Draft[] = [],
+): SessionFold {
+  if (liveness === undefined && outputs.length === 0 && drafts.length === 0) return samples.fold(events);
   const log = new SessionLog();
   log.apply(numbered(events));
+  for (const draft of drafts) log.applyFrame(samples.draftFrame(draft.id, draft.kind));
   if (liveness !== undefined) {
     log.applyFrame(create(StreamSessionEventsResponseSchema, { frame: { case: "stigmerRunLiveness", value: liveness } }));
   }
@@ -337,7 +363,7 @@ function routineSession(): Session {
 /** Builds a loaded scenario from its events, its one turn's run phase and what it holds beside them. */
 function loaded(name: ScenarioName | StoryName, title: string, events: readonly SessionEvent[], beside: Beside = {}): Scenario {
   const ordered = numbered(events);
-  const fold = foldWithLiveness(events, beside.liveness, beside.outputs);
+  const fold = foldWithLiveness(events, beside.liveness, beside.outputs, beside.drafts);
   const runs = fold.turns.map((turn) =>
     samples.run({
       id: turn.runId,
@@ -364,6 +390,7 @@ function loaded(name: ScenarioName | StoryName, title: string, events: readonly 
     liveness: beside.liveness,
     files: beside.files ?? [],
     ...(beside.outputs === undefined ? {} : { outputs: beside.outputs }),
+    ...(beside.drafts === undefined ? {} : { drafts: beside.drafts }),
   };
 }
 
@@ -400,6 +427,17 @@ function build(name: ScenarioName): Scenario {
       };
     case "empty":
       return loaded(name, "a new session with no turns", []);
+    case "thinking":
+      return loaded(
+        name,
+        "the agent thought, read a file, and is thinking again",
+        [
+          ...samples.turnEvents({ message, phase: "running", reply: "" }),
+          ...samples.thinkingEvents(THOUGHT, { id: `${RUN_ID}.root.t0`, processedAt: sampleInstant(2_000) }),
+          ...call("read_file", { path: "src/billing/invoice.ts" }, 6_000, "export function lineTotal(line: Line): Cents {"),
+        ],
+        { drafts: [{ id: `${RUN_ID}.root.t1`, kind: "thinking" }] },
+      );
     case "streaming":
       return loaded(name, "the agent's reply is streaming", samples.turnEvents({ message, phase: "running", reply: "Looking at how invoices are totalled. The rounding happens" }));
     case "tools":
@@ -490,6 +528,7 @@ export const scenarios: Readonly<Record<ScenarioName, Scenario>> = {
   loading: build("loading"),
   "load-failed": build("load-failed"),
   empty: build("empty"),
+  thinking: build("thinking"),
   streaming: build("streaming"),
   tools: build("tools"),
   approval: build("approval"),
@@ -726,7 +765,7 @@ export function upTo(scenario: Scenario, n: number): Scenario {
   const whole = n === scenario.events.length;
   return loaded(scenario.name, scenario.title, scenario.events.slice(0, n), {
     ...(scenario.session === null ? {} : { session: scenario.session }),
-    ...(whole ? { usage: scenario.usage, liveness: scenario.liveness, files: scenario.files, outputs: scenario.outputs } : {}),
+    ...(whole ? { usage: scenario.usage, liveness: scenario.liveness, files: scenario.files, outputs: scenario.outputs, drafts: scenario.drafts } : {}),
   });
 }
 

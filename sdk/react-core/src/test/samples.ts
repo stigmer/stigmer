@@ -822,6 +822,18 @@ export const samples = {
     return create(StreamSessionEventsResponseSchema, { frame: { case: "stigmerToolOutputDelta", value: { toolUseId, delta } } });
   },
 
+  /**
+   * A stream frame opening a message or thought the agent has begun and
+   * not yet stored (`event_start`): streamed, never stored, so a page that
+   * replays a session sends it after the stored events. `id` is the one the
+   * stored event will carry (`<run>.root.m<index>` or `<run>.root.t<index>`).
+   */
+  draftFrame(id: string, kind: "message" | "thinking"): StreamSessionEventsResponse {
+    return create(StreamSessionEventsResponseSchema, {
+      frame: { case: "eventStart", value: { event: { id, type: kind === "thinking" ? "agent.thinking" : "agent.message" } } },
+    });
+  },
+
   /** A stream frame carrying one stored event (`streamEvents`). */
   eventFrame(event: SessionEvent): StreamSessionEventsResponse {
     return create(StreamSessionEventsResponseSchema, { frame: { case: "event", value: event } });

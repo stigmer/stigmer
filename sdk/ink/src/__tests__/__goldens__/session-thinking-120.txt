@@ -1,0 +1,16 @@
+ Fix invoice rounding
+
+ You
+ Invoices are off by a cent. Can you fix the rounding?
+
+ ✻ Thought A cent off on many invoices sounds like rounding each line before the total. If…
+
+  ✓ ▶ read_file
+
+ ✻ Thinking
+
+ ⠋ Thinking · 1m 30s · Esc to stop
+ Agent mode — full tool access
+
+ ❯ Reply...
+   Enter send · \⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys
