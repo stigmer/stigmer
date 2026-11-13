@@ -20,8 +20,12 @@ import {
   settingsModelCatalogScene,
   settingsTeamsOssScene,
   settingsUsageScene,
+  settingsServiceAccountsDeniedScene,
+  settingsVaultsFailedScene,
+  settingsVaultsOpenScene,
   settingsVaultsScene,
 } from "./settings-pages.tsx";
+import { partsScene } from "./parts.tsx";
 import type { Drawing } from "./drawing.ts";
 import {
   ANTHROPIC_ONLY,
@@ -95,6 +99,9 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "settings-members": settingsMembersScene,
   "settings-api-keys": settingsApiKeysScene,
   "settings-vaults": settingsVaultsScene,
+  "settings-vaults-open": settingsVaultsOpenScene,
+  "settings-vaults-failed": settingsVaultsFailedScene,
+  "settings-service-accounts-denied": settingsServiceAccountsDeniedScene,
   "settings-billing": settingsBillingScene,
   "settings-usage": settingsUsageScene,
   "settings-teams-oss": settingsTeamsOssScene,
@@ -108,6 +115,7 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "skill-detail": skillDetailScene,
   "marketplace-admin": () => marketplaceScene("admin"),
   "marketplace-member": () => marketplaceScene("member"),
+  "marketplace-no-match": () => marketplaceScene("admin"),
   "session-busy": () => sessionScene("busy", { inspector: true }),
   "session-approval": () => sessionScene("approval", { inspector: true }),
   "session-finished": () => sessionScene("finished", { inspector: true }),
@@ -181,5 +189,6 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "agent-chat-popup-closed": () => agentChatScene("busy", "popup", false),
   "agent-chat-popup": () => agentChatScene("finished", "popup", true),
   "from-hooks": fromHooksScene,
+  parts: partsScene,
   ...presets,
 };
