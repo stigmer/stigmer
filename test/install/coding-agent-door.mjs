@@ -50,10 +50,11 @@
  * Needs `claude` signed in, and `make build-server build-runner build-libs`.
  */
 
-import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
@@ -223,7 +224,15 @@ function scriptFirstRun(fake) {
   fake.enqueue({ kind: "anthropic", body: anthropicText(`Saved ${DOOR_FILE}.`), matches: turn });
 }
 
-function runClaude(appDir, env, sessionId, message, first, streamPath) {
+/**
+ * One `claude -p` turn, asynchronous: the issuer and the fake model live in
+ * this process, so its event loop must keep answering while the coding agent
+ * works. The stream is appended to `streamPath`; `signal` stops the turn.
+ * The turn ends at its `result` event: a coding agent that started the app's
+ * dev server in the background keeps its process alive after it, so that
+ * process (and what it started) is ended then.
+ */
+function runClaude(appDir, env, sessionId, message, first, streamPath, signal) {
   const args = [
     "-p",
     message,
@@ -251,11 +260,49 @@ function runClaude(appDir, env, sessionId, message, first, streamPath) {
     "Grep",
     ...(first ? ["--session-id", sessionId] : ["--resume", sessionId]),
   ];
-  const result = spawnSync("claude", args, { cwd: appDir, env, encoding: "utf8", timeout: 30 * 60_000, maxBuffer: 256 * 1024 * 1024 });
-  writeFileSync(streamPath, result.stdout ?? "", { flag: "a" });
-  const lines = (result.stdout ?? "").split("\n").filter((line) => line.trim() !== "");
-  const last = lines.length > 0 ? JSON.parse(lines[lines.length - 1]) : {};
-  return { status: result.status, result: typeof last.result === "string" ? last.result : "", stderr: result.stderr ?? "" };
+  return new Promise((resolve, reject) => {
+    const child = spawn("claude", args, { cwd: appDir, env, stdio: ["ignore", "pipe", "pipe"], signal, detached: true });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8").on("data", (chunk) => {
+      stdout += chunk;
+      writeFileSync(streamPath, chunk, { flag: "a" });
+      if (/"type":"result"/.test(chunk)) {
+        try {
+          process.kill(-child.pid, "SIGTERM");
+        } catch {
+          // Already gone.
+        }
+      }
+    });
+    child.stderr.setEncoding("utf8").on("data", (chunk) => (stderr += chunk));
+    child.once("error", reject);
+    child.once("close", (status) => {
+      const lines = stdout.split("\n").filter((line) => line.trim() !== "");
+      let result = "";
+      for (const line of lines) {
+        try {
+          const event = JSON.parse(line);
+          if (event.type === "result" && typeof event.result === "string") result = event.result;
+        } catch {
+          // A partial line; the stream file keeps it.
+        }
+      }
+      resolve({ status, result, stderr });
+    });
+  });
+}
+
+/** A free loopback port: bound once on port 0 to learn the number, then closed. */
+function freePort() {
+  return new Promise((resolve, reject) => {
+    const probe = createServer();
+    probe.once("error", reject);
+    probe.listen(0, "127.0.0.1", () => {
+      const { port } = probe.address();
+      probe.close(() => resolve(port));
+    });
+  });
 }
 
 function check(condition, message) {
@@ -287,6 +334,9 @@ async function main() {
   for (const dir of [appDir, cliHome, binDir, npmPrefix]) mkdirSync(dir, { recursive: true });
   log(`scratch=${scratch}`);
 
+  // Stopped by hand (Ctrl-C, a kill), the run still tears its stack down.
+  const stop = new AbortController();
+  for (const signal of ["SIGINT", "SIGTERM"]) process.once(signal, () => stop.abort(new Error(`stopped by ${signal}`)));
   const fake = await startFakeModel();
   const issuer = await startLocalOidcIssuer({ audience: AUDIENCE });
   const temporal = await spawnTemporal();
@@ -328,10 +378,10 @@ async function main() {
     const sessionId = randomUUID();
     const prompt = `${PROMPT} Use the Stigmer at ${server.baseUrl}.`;
     log(`claude -p in ${appDir}: ${prompt}`);
-    let turn = runClaude(appDir, env, sessionId, prompt, true, streamPath);
+    let turn = await runClaude(appDir, env, sessionId, prompt, true, streamPath, stop.signal);
     for (let i = 0; i < args.maxTurns && !existsSync(join(appDir, "app", "api", "stigmer-token", "route.ts")); i++) {
       log(`the coding agent stopped (${turn.result.slice(0, 160).replace(/\n/g, " ")}); answering`);
-      turn = runClaude(appDir, env, sessionId, ANSWER, false, streamPath);
+      turn = await runClaude(appDir, env, sessionId, ANSWER, false, streamPath, stop.signal);
     }
     log(`the coding agent's last word: ${turn.result.slice(0, 300).replace(/\n/g, " ")}`);
 
@@ -358,7 +408,7 @@ async function main() {
     execFileSync(process.execPath, [join(repoRoot, "scripts", "publish-libs.mjs"), "--version", "0.0.0-door", "--pack-dir", packDir, "--only", "@stigmer/react-sdk", "--skip-build"], { cwd: repoRoot, stdio: "inherit" });
     const tarballs = readdirSync(packDir).filter((f) => f.endsWith(".tgz")).map((f) => join(packDir, f));
     execFileSync("npm", ["install", "--no-audit", "--no-fund", ...tarballs], { cwd: appDir, stdio: "inherit", env: { ...env, npm_config_prefix: undefined } });
-    const appPort = 3000 + Math.floor(Math.random() * 500);
+    const appPort = await freePort();
     app = spawn("npx", ["next", "dev", "-p", String(appPort)], { cwd: appDir, env: { ...process.env, PORT: String(appPort) }, stdio: "ignore", detached: true });
     const appUrl = `http://localhost:${appPort}`;
     for (let i = 0; i < 120; i++) {
