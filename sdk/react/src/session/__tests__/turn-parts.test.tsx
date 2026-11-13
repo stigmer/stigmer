@@ -47,6 +47,7 @@ describe("TurnOutcome sizes", () => {
             samples.outputFile("notes.md", { sizeBytes: 2_048n }),
           ],
           changes: [],
+          plans: [],
           reviewSets: [],
           estimatedCostUsd: undefined,
         }}

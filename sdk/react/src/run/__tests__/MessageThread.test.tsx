@@ -279,7 +279,7 @@ describe("MessageThread", () => {
     expect(screen.queryByRole("group", { name: /Subagent: Research renewables/ })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /^How it got there/ }));
     expect(screen.getByRole("group", { name: /Subagent: Research renewables/ })).toBeTruthy();
-    expect(screen.getByRole("status", { name: "Context compacted" })).toBeTruthy();
+    expect(screen.getByRole("status", { name: "Earlier messages summarized" })).toBeTruthy();
   });
 
   it("renders the pending message dimmed", () => {
@@ -377,20 +377,20 @@ describe("MessageThread", () => {
     });
   });
 
-  // Issue #179: the synthetic "Thinking…" placeholder yields the moment real
+  // Issue #179: the synthetic "Thinking" placeholder yields the moment real
   // output (a thinking or a tool call) arrives.
   describe("the first output replaces the set-up placeholder (issue #179)", () => {
     it("hides the placeholder once a thinking arrives", () => {
       renderThread(conversation({ id: "s", phase: "running", reply: "", extra: thought("s", 0, "Let me reason") }));
 
       expect(screen.getByRole("article", { name: "Model thinking" })).toBeTruthy();
-      expect(screen.queryByText("Thinking…")).toBeNull();
+      expect(screen.queryByText("Thinking")).toBeNull();
     });
 
     it("hides the placeholder once a tool call runs", () => {
       renderThread(conversation({ id: "s", phase: "running", reply: "", extra: [use("s", "c1", "read_file", { path: "a" })] }));
 
-      expect(screen.queryByText("Thinking…")).toBeNull();
+      expect(screen.queryByText("Thinking")).toBeNull();
     });
   });
 
@@ -403,7 +403,7 @@ describe("MessageThread", () => {
 
       expect(screen.getByRole("region", { name: "Plan being written" }).textContent).toContain("Rollout Plan");
       expect(screen.queryByText(/First step/)).toBeNull();
-      fireEvent.click(screen.getByText("Open plan"));
+      fireEvent.click(screen.getByRole("button", { name: "Open plan" }));
       expect(onOpenPlan).toHaveBeenCalledWith("live");
     });
 
@@ -485,7 +485,7 @@ describe("MessageThread liveness status line", () => {
     const { container } = renderThread(conversation({ id: "f", phase: "running", reply: "" }));
 
     expect(container.querySelector(LINE)).toBeNull();
-    expect(screen.getByText("Thinking…")).toBeTruthy();
+    expect(screen.getByText("Thinking")).toBeTruthy();
   });
 });
 

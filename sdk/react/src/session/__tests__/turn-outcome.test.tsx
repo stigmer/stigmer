@@ -1,7 +1,8 @@
 /**
  * Proves what closes a turn: the outcome (../turn-outcome.ts) gathers the
  * Files the turn itself returned (by run, never an earlier turn's file at the
- * same path), the changes the run captured, else the paths its review sets
+ * same path), less a completed Plan-mode turn's plan File, which it keeps
+ * apart as the turn's plan because the thread's plan card draws it; the changes the run captured, else the paths its review sets
  * name, else the paths its edit and write calls named (`path` or the Claude
  * engine's `file_path`) less the Files it saved in its `.stigmer/outputs/`;
  * its time; and its estimated cost, a zero or absent estimate reading as
@@ -18,9 +19,9 @@
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
-import { create } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
-import { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { clone, create } from "@bufbuild/protobuf";
+import { RunSchema, RunStatusSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { FileChangeKind, InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { CapturedFileChangeSchema, FileChangeSetSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import { StreamingUsageSummarySchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 import { samples, scenarios } from "../../test";
@@ -115,7 +116,34 @@ describe("turnOutcome", () => {
   it("has no ending while the turn works", () => {
     expect(turnOutcome(scenarios.busy.fold.turns[0]!, [], undefined).phase).toBeUndefined();
   });
+
+  it("takes a completed Plan-mode turn's plan File out of Made, into its plans: the thread's plan card draws it", () => {
+    const plan = samples.outputFile("fix-rounding_a1b2c3d4.plan.md", { runId: finishedTurn.runId, mimeType: "text/markdown", sizeBytes: 312n });
+    const outcome = turnOutcome(finishedTurn, [plan, ...finished.files], planModeRun(finished.runs[0]!));
+    expect(outcome.plans).toEqual([plan]);
+    expect(outcome.files.map((file) => file.spec?.filename)).toEqual(["invoice-audit.md", "rounding-cases.csv"]);
+  });
+
+  it("keeps a plan-named File under Made when no plan card draws it: the run was not in Plan mode, or the turn did not complete", () => {
+    const plan = samples.outputFile("fix-rounding_a1b2c3d4.plan.md", { runId: finishedTurn.runId });
+    const agentMode = turnOutcome(finishedTurn, [plan], finished.runs[0]);
+    expect(agentMode.plans).toEqual([]);
+    expect(agentMode.files).toEqual([plan]);
+
+    const failedTurn = scenarios.failed.fold.turns[0]!;
+    const failedPlan = samples.outputFile("fix-rounding_a1b2c3d4.plan.md", { runId: failedTurn.runId });
+    const failed = turnOutcome(failedTurn, [failedPlan], planModeRun(samples.run({ id: failedTurn.runId })));
+    expect(failed.plans).toEqual([]);
+    expect(failed.files).toEqual([failedPlan]);
+  });
 });
+
+/** `run`, as if it ran in Plan mode. */
+function planModeRun(run: Run): Run {
+  const copy = clone(RunSchema, run);
+  copy.spec!.interactionMode = InteractionMode.PLAN;
+  return copy;
+}
 
 /** A completed turn's outcome holding `files` and `changes`. */
 function completedWith(files: TurnOutcomeView["files"], changes: readonly string[] = []): TurnOutcomeView {
@@ -125,6 +153,7 @@ function completedWith(files: TurnOutcomeView["files"], changes: readonly string
     elapsedMs: 3_000,
     files,
     changes: changes.map((path) => ({ path, captured: undefined })),
+    plans: [],
     reviewSets: [],
     estimatedCostUsd: undefined,
   };

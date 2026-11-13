@@ -15,6 +15,7 @@
 
 import { useState } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { tagClasses } from "../internal/surface/Tag.js";
 import type { ContentBlock } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
 import { ImageLightbox } from "../upload/ImageLightbox.js";
 import { useFile, useFileDownload, useFileDownloadUrl } from "../file/useFile.js";
@@ -278,7 +279,9 @@ function DocumentChip({
     <span
       role="listitem"
       aria-label={name}
-      className="stg:inline-flex stg:max-w-[200px] stg:items-center stg:rounded-md stg:bg-muted-subtle stg:px-2 stg:py-0.5 stg:text-xs stg:text-foreground"
+      // The kit's tag, with the file glyph: one chip shape beside the image
+      // tiles, on the card fill so it reads on the message's muted bubble.
+      className={cn(tagClasses(), "stg:max-w-[200px] stg:bg-card")}
     >
       {fileId ? (
         <button

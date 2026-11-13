@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "../button/Button.js";
+import { ComposerStrip } from "./ComposerStrip.js";
 
 /**
  * Armed-only indicator for the session-scoped auto-approve state, docked
@@ -15,30 +16,29 @@ import { Button } from "../button/Button.js";
  * the way OFF plus the disclosure. Shared by `SessionViewer` and
  * `NewSessionViewer` — a persisted account preference can arm the
  * launcher before the first message, so both surfaces need the disclosure.
- * It says what still holds: a hook's refusal and the agent's tool lists bind
- * under auto-approve too.
+ * One line, in the family of every strip above the composer (a hook's
+ * refusal and the agent's tool lists still bind under auto-approve; the run
+ * settings switch says so where the choice is made).
  */
 export function AutoApproveIndicator({ onTurnOff }: { readonly onTurnOff: () => void }) {
   return (
-    <div
+    <ComposerStrip
       role="status"
-      className="stg:flex stg:items-center stg:gap-2 stg:border-t stg:border-border-muted stg:px-4 stg:py-1.5 stg:text-xs stg:text-muted-foreground"
+      icon={<ShieldCheckIcon />}
+      act={
+        <Button variant="ghost" size="xs" onClick={onTurnOff}>
+          Turn off
+        </Button>
+      }
     >
-      <ShieldCheckIcon />
-      <span className="stg:min-w-0 stg:flex-1 stg:truncate">
-        <span>Auto-approving tool calls for this session</span>
-        <span>; hooks and tool lists still apply</span>
-      </span>
-      <Button variant="ghost" size="xs" onClick={onTurnOff}>
-        Turn off
-      </Button>
-    </div>
+      Approving tool calls automatically
+    </ComposerStrip>
   );
 }
 
 function ShieldCheckIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="stg:shrink-0 stg:text-status-ready" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="stg:shrink-0 stg:text-status-ready" aria-hidden="true">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
       <path d="m9 12 2 2 4-4" />
     </svg>

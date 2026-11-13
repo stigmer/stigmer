@@ -4,7 +4,11 @@
 //
 // The Files are the conversation's Files whose run is this turn's, never
 // the newest-wins view of the outputs folder, which would credit an
-// earlier turn's file to the latest. The changes are the run's captured
+// earlier turn's file to the latest. A completed Plan-mode turn's plan File
+// (`findPlanFile`, the rule `planFilesByRun` hands the thread) is kept apart
+// as the turn's plan: the thread draws it as the turn's plan card, so Made
+// would only repeat it. A plan-named File no card draws (the run was not in
+// Plan mode, or the turn did not complete) stays a File. The changes are the run's captured
 // changes (its file record, each with a before and after a dialog can
 // diff), else the paths its review sets name, else the paths its edit and
 // write calls named (`path` on the Stigmer harness, `file_path` on the
@@ -31,6 +35,7 @@ import {
 } from "@stigmer/client";
 import { fileForRowPath } from "@stigmer/react-core";
 import { deriveRunFileChanges } from "../run/deriveRunFileChanges.js";
+import { findPlanFile } from "../library/detect-plan-file.js";
 
 /** A changed file's place in its turn's review: the set that names it and the file, with its state. */
 export interface TurnChangeReview {
@@ -52,8 +57,13 @@ export interface TurnOutcomeView {
   /** How the turn ended; undefined while it works. */
   readonly phase: TurnPhase | undefined;
   readonly elapsedMs: number;
-  /** The Files the turn returned, oldest first. */
+  /** The Files the turn returned, oldest first, less its {@link plans}. */
   readonly files: readonly StigmerFile[];
+  /**
+   * The turn's plan Files: a completed Plan-mode turn's plan, which the
+   * thread draws as its plan card rather than under Made. Empty otherwise.
+   */
+  readonly plans: readonly StigmerFile[];
   /** The workspace paths the turn changed, in the order it changed them. */
   readonly changes: readonly TurnChange[];
   /** The turn's review sets, for an Undo of all its files. */
@@ -67,6 +77,9 @@ const CHANGING_KINDS = new Set(["file_write", "file_edit", "file_delete"]);
 /** The outcome of `turn` (module header). */
 export function turnOutcome(turn: Turn, files: readonly StigmerFile[], run: Run | undefined): TurnOutcomeView {
   const returned = files.filter((file) => file.status?.runId === turn.runId);
+  // The thread draws a plan card only for a turn that completed (its
+  // `isCompletedPlanTurn`), so only then is the plan taken out of Made.
+  const plan = turn.status?.phase === "completed" ? findPlanFile(files, run) : undefined;
   const returnedNames = new Set(returned.map((file) => file.status?.outputPath ?? ""));
   const reviewed = turn.fileReview.flatMap((set) => set.files.map((file) => file.path));
   const called = turn.items
@@ -81,7 +94,8 @@ export function turnOutcome(turn: Turn, files: readonly StigmerFile[], run: Run 
     runId: turn.runId,
     phase: turn.ended ? turn.status?.phase : undefined,
     elapsedMs: describeTurnActivity(turn, Date.now()).elapsedMs,
-    files: returned,
+    files: plan === undefined ? returned : returned.filter((file) => file !== plan),
+    plans: plan === undefined ? [] : [plan],
     changes: [...new Set(paths)].map((path) => ({ path, captured: capturedByPath.get(path), review: reviewOf(turn.fileReview, path) })),
     reviewSets: turn.fileReview,
     estimatedCostUsd: cost !== undefined && cost > 0 ? cost : undefined,

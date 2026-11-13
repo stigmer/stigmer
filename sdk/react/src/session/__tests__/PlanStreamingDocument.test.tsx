@@ -5,14 +5,15 @@ import { PlanStreamingDocument } from "../PlanStreamingDocument";
 afterEach(cleanup);
 
 describe("PlanStreamingDocument — live plan tab view", () => {
-  it("is a busy article with a Writing status pill", () => {
+  it("is a busy article whose header says the plan is being written, as a live status", () => {
     render(
       <PlanStreamingDocument displayText={"# Live Plan\n\nFirst section"} />,
     );
 
     const doc = screen.getByRole("article", { name: "Plan document" });
     expect(doc.getAttribute("aria-busy")).toBe("true");
-    expect(screen.getByRole("status").textContent).toContain("Writing…");
+    expect(screen.getByRole("status").textContent).toBe("Writing the plan…");
+    expect(doc.querySelector("header")!.textContent).toBe("Live PlanWriting the plan…");
   });
 
   it("lifts the leading H1 into the header and renders the body as markdown", () => {

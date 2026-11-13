@@ -1,11 +1,14 @@
 "use client";
 
+// A command the agent runs in the background, in its row's header: one line
+// saying how it stands ("Running in the background · 12s", or how it ended)
+// and a quiet Stop while it runs; a failed stop shows under the header.
+
 import type { BackgroundCommandView, ToolUse } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
-import { DecisionButton } from "../internal/DecisionButton.js";
+import { Button } from "../button/Button.js";
 import { InCardDecisionError } from "../internal/InCardDecisionError.js";
-import { Tag } from "../internal/surface/Tag.js";
-import { ThreadCardHeaderControl } from "../internal/thread-card/index.js";
+import { SpinnerIcon, ThreadCardHeaderControl } from "../internal/thread-card/index.js";
 import { formatElapsed, useElapsedSince } from "../internal/useElapsedSince.js";
 import { useBackgroundStop } from "./BackgroundCommandContext.js";
 
@@ -41,11 +44,13 @@ export function backgroundStatusLabel(background: BackgroundCommandView): string
 
 /**
  * The header's trail for a tool use that started a command in the
- * background: a "Background" chip, its state (with a clock from its start
- * while it runs), and Stop while it runs and a stop handler is wired
- * ({@link BackgroundCommandContext}). Renders nothing for any other call.
- * Stop is a control of the header's own, lifted above the row's toggle, so
- * it is reached as itself and its click never opens or closes the row.
+ * background: one line saying how it stands ("Running in the background ·
+ * 12s" while it runs, else how it ended), and a quiet Stop while it runs and
+ * a stop handler is wired ({@link BackgroundCommandContext}); "Stopping…",
+ * disabled with a spinner, while the stop is in flight. Renders nothing for
+ * any other call. Stop is a control of the header's own, lifted above the
+ * row's toggle, so it is reached as itself and its click never opens or
+ * closes the row.
  */
 export function BackgroundCommandTrail({ toolUse }: { readonly toolUse: ToolUse }) {
   const background = toolUse.background;
@@ -57,10 +62,9 @@ export function BackgroundCommandTrail({ toolUse }: { readonly toolUse: ToolUse 
   const failed = background.state === "failed_to_start" || background.state === "timed_out" || (background.state === "exited" && background.exitCode !== 0);
   return (
     <>
-      <Tag data-cursor-target="background-command-chip">Background</Tag>
       <span
         className={cn(
-          "stg:shrink-0 stg:tabular-nums",
+          "stg:shrink-0 stg:text-xs stg:tabular-nums",
           ended && failed ? "stg:text-destructive" : "stg:text-muted-foreground",
         )}
         data-cursor-target="background-command-status"
@@ -71,15 +75,16 @@ export function BackgroundCommandTrail({ toolUse }: { readonly toolUse: ToolUse 
       </span>
       {stop && (
         <ThreadCardHeaderControl className="stg:shrink-0">
-          <DecisionButton
-            label={stop.isStopping ? "Stopping…" : "Stop"}
-            variant="danger"
+          <Button
+            variant="ghost"
+            size="xs"
             onClick={stop.onStop}
-            isSubmitting={stop.isStopping}
-            isActive={stop.isStopping}
-            className="stg:px-2 stg:py-0.5"
-            cursorTarget="background-command-stop"
-          />
+            disabled={stop.isStopping}
+            icon={stop.isStopping ? <SpinnerIcon /> : undefined}
+            data-cursor-target="background-command-stop"
+          >
+            {stop.isStopping ? "Stopping…" : "Stop"}
+          </Button>
         </ThreadCardHeaderControl>
       )}
     </>

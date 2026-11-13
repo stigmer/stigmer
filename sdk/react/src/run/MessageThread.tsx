@@ -274,6 +274,13 @@ export interface MessageThreadProps {
    */
   readonly onAnswerToolUse?: (toolUseId: string, answer: ToolUseAnswer, denyMessage?: string) => void;
   /**
+   * Who answers a waiting step when this viewer cannot (no
+   * `onAnswerToolUse`): the conversation's owner by name. A waiting step then
+   * says "Waiting for {name} to approve" (or "Waiting for the owner" without
+   * a name); for whoever answers it says "Waiting for you".
+   */
+  readonly approverName?: string;
+  /**
    * The tool uses whose answer is in flight, by id. Drives per-gate
    * loading state. Only meaningful when `onAnswerToolUse` is provided.
    */
@@ -513,7 +520,7 @@ export type ThreadItem =
       readonly key: string;
     }
   | { readonly kind: "approval-request"; readonly toolUse: ToolUse; readonly key: string }
-  | { readonly kind: "setup-progress"; readonly resources: readonly SessionResource[]; readonly serverPhase?: string; readonly isAwaitingResponse?: boolean; readonly key: string }
+  | { readonly kind: "setup-progress"; readonly serverPhase?: string; readonly isAwaitingResponse?: boolean; readonly key: string }
   | { readonly kind: "recalled-memories"; readonly recall: MemoryRecall; readonly facts: readonly RecalledMemoryFact[]; readonly key: string }
   | { readonly kind: "context-compacted"; readonly compacted: CompactedItem; readonly key: string }
   | { readonly kind: "agent-version"; readonly versionHash: string; readonly label: string; readonly key: string }
@@ -1031,14 +1038,12 @@ export function buildThreadItems(
     if (phase === undefined || phase === "pending") {
       items.push({
         kind: "setup-progress",
-        resources: resources ?? [],
         serverPhase: lastRun?.status?.setupProgress?.currentPhase || undefined,
         key: "setup-progress",
       });
     } else if (phase === "running") {
       items.push({
         kind: "setup-progress",
-        resources: resources ?? [],
         isAwaitingResponse: true,
         key: "setup-progress",
       });
@@ -1209,6 +1214,7 @@ export function MessageThread({
   className,
   formatToolCallSummary,
   onAnswerToolUse,
+  approverName,
   answeringToolUseIds,
   answerErrors,
   onStopBackgroundCommand,
@@ -1304,8 +1310,9 @@ export function MessageThread({
       onAnswer: onAnswerToolUse,
       submittingIds: answeringToolUseIds ?? EMPTY_SUBMITTING_IDS,
       errorsByToolUseId: answerErrors ?? EMPTY_ANSWER_ERRORS,
+      ...(approverName === undefined ? {} : { approverName }),
     }),
-    [onAnswerToolUse, answeringToolUseIds, answerErrors],
+    [onAnswerToolUse, answeringToolUseIds, answerErrors, approverName],
   );
 
   // The stop of a command the agent runs in the background, for its row and
@@ -1684,7 +1691,6 @@ export function ThreadItemRenderer({
       const Setup = slots?.SetupProgress ?? SetupProgress;
       return (
         <Setup
-          resources={item.resources}
           serverPhase={item.serverPhase}
           isAwaitingResponse={item.isAwaitingResponse}
         />

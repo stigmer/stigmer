@@ -1,7 +1,8 @@
 // Pins the console's view of a command the agent runs in the background,
 // read from the fold's `ToolUse.background`: the start's row is the
-// command's row (a "Background" chip, the command's state and clock, the
-// running look and forced-open body while it runs though the call returned,
+// command's row (one line with the command's state and clock, no
+// "Background" tag, a quiet ghost Stop, the running look and forced-open
+// body while it runs though the call returned,
 // its own output rather than the start's answer, how it ended in words, and
 // once it ended a closed line with its exit beside it);
 // Stop on the row while it runs and a handler is wired
@@ -21,6 +22,8 @@ import { LivenessStatusLine, backgroundWaitLabel } from "../LivenessStatusLine";
 import { ApprovalCardBody } from "../ApprovalCard";
 import { buildThreadItems } from "../MessageThread";
 import { toolUse, TOOL_STARTED_AT } from "./__fixtures__/fold-values";
+import { cn } from "@stigmer/design-tokens";
+import { buttonClasses } from "../../button/buttonClasses";
 
 afterEach(cleanup);
 
@@ -46,16 +49,35 @@ function rowOf(container: HTMLElement): HTMLElement {
 }
 
 describe("a background command's row", () => {
-  it("runs live though its call returned: chip, state with a clock, open body with its own output, never the start's answer", () => {
+  it("runs live though its call returned: state with a clock, open body with its own output, never the start's answer", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(Date.parse(TOOL_STARTED_AT) + 125_000));
     try {
       const { container } = render(<ToolCallItem toolUse={backgroundStart({ liveOutput: "ready on :3000\n" })} />);
-      expect(screen.getByText("Background")).toBeTruthy();
       expect(container.querySelector('[data-cursor-target="background-command-status"]')?.textContent).toBe("Running in the background · 2m 5s");
       expect(rowOf(container).querySelector(".stgm-shimmer-label"), "the running sweep").not.toBeNull();
       expect(container.textContent).toContain("ready on :3000");
       expect(container.textContent).not.toContain("Started in the background");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("says it in one line beside a quiet Stop, with no Background tag", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(Date.parse(TOOL_STARTED_AT) + 12_000));
+    try {
+      const { container } = render(
+        <BackgroundCommandContext.Provider value={stopping()}>
+          <ToolCallItem toolUse={backgroundStart()} />
+        </BackgroundCommandContext.Provider>,
+      );
+      expect(screen.queryByText("Background")).toBeNull();
+      expect(container.querySelector('[data-cursor-target="background-command-chip"]')).toBeNull();
+      const status = container.querySelector('[data-cursor-target="background-command-status"]');
+      expect(status?.textContent).toBe("Running in the background · 12s");
+      expect(status?.className).toContain("stg:text-xs");
+      expect(screen.getByRole("button", { name: "Stop" }).className).toBe(cn(buttonClasses("ghost", "xs")));
     } finally {
       vi.useRealTimers();
     }

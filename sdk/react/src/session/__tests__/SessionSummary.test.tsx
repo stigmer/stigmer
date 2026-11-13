@@ -4,7 +4,8 @@
  * (Done, Didn't finish), then who or what started it (a routine by name,
  * linked through the host; "Started by a routine" for a reader the server
  * refuses the routine to, and for a guest, who is never sent the read; a
- * channel conversation by where it came from), its time, what came out, and
+ * channel conversation by where it came from), its time, what came out (the
+ * Files made, then a Plan-mode turn's plans, never counted as files), and
  * the estimated cost only where cost is shown. While a turn works, the pill
  * says Working with the turn's time, ticking each second, and beside it how
  * far the turn has got: its to-do list, else the steps it settled, else
@@ -13,7 +14,9 @@
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { act, render, screen, cleanup } from "@testing-library/react";
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { RoutineSchema, type Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import type { Stigmer } from "@stigmer/client";
 import { StigmerContext } from "@stigmer/react-core";
@@ -138,6 +141,15 @@ describe("SessionSummary", () => {
     const finished = scenarios.finished;
     renderSummary(client(async () => NIGHTLY), { readsRoutine: false, files: finished.files.slice(0, 1) });
     expect(metaLine().textContent).toBe("DoneStarted by a routine · 1 min 14 s · 1 file made · 2 changes · about $0.42, estimated");
+  });
+
+  it("says a Plan-mode turn's plan as a plan, after the files made, never as a file made", () => {
+    const finished = scenarios.finished;
+    const run = clone(RunSchema, finished.runs[0]!);
+    run.spec!.interactionMode = InteractionMode.PLAN;
+    const plan = samples.outputFile("fix-rounding_a1b2c3d4.plan.md", { runId: run.metadata!.id, sizeBytes: 312n });
+    renderSummary(client(async () => NIGHTLY), { readsRoutine: false, runs: [run], files: [plan, ...finished.files] });
+    expect(metaLine().textContent).toBe("DoneStarted by a routine · 1 min 14 s · 2 files made · 1 plan · 1 change · about $0.42, estimated");
   });
 
   it("KIT-05 says while a turn works that it is Working, for how long, and how far its to-do list has got, ticking each second", () => {

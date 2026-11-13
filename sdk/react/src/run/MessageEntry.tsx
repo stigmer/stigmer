@@ -17,6 +17,8 @@ import {
 import { PlanDocumentMessage } from "./PlanDocumentMessage.js";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { IconButton } from "../button/IconButton.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { ThreadCardBody, ThreadCardHeader, ThreadCardShell } from "../internal/thread-card/ThreadCardShell.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
 export type { ThreadMessage, UserMessageItem } from "@stigmer/react-core";
@@ -384,8 +386,12 @@ function CheckIcon() {
   );
 }
 
-const THINKING_PREVIEW_LENGTH = 80;
-
+/**
+ * A thought, as a quiet step line: "Thinking" (a 12px spinner, the live
+ * sweep) while the stream holds it open, "Thought" once it is stored, and
+ * the whole thought on the line's rail when opened. No duration: a thought
+ * records one time only, so its length would be a guess.
+ */
 function ThinkingMessage({
   content,
   isStreaming,
@@ -400,51 +406,33 @@ function ThinkingMessage({
 
   if (!hasContent && !isStreaming) return null;
 
-  const preview = content.length > THINKING_PREVIEW_LENGTH
-    ? content.slice(0, THINKING_PREVIEW_LENGTH).trimEnd() + "..."
-    : content;
+  const label = isStreaming ? "Thinking" : "Thought";
 
   return (
-    <div
-      role="article"
-      aria-label="Model thinking"
-      className={cn("stg:px-4 stg:py-1.5", className)}
-    >
-      <button
-        type="button"
-        aria-expanded={expanded}
-        onClick={() => setExpanded((v) => !v)}
-        className={cn(
-          "stg:flex stg:items-center stg:gap-1.5 stg:text-xs stg:text-muted-foreground stg:transition-colors",
-          "stg:hover:text-foreground stg:cursor-pointer",
+    <div role="article" aria-label="Model thinking" className={cn("stg:px-4", className)}>
+      <ThreadCardShell variant="quiet">
+        <ThreadCardHeader
+          gesture={hasContent ? { kind: "expand", expanded, onToggle: () => setExpanded((v) => !v), label } : { kind: "none" }}
+        >
+          {isStreaming && <SpinnerIcon size={12} className="stg:shrink-0 stg:text-muted-foreground stg:motion-reduce:animate-none" />}
+          {/* Live reasoning carries the ambient-liveness sweep (stigmer#277):
+              the words themselves signal activity, not just the spinner. */}
+          <span className={cn("stg:min-w-0 stg:flex-1 stg:truncate stg:text-muted-foreground", isStreaming && "stgm-shimmer-label")}>{label}</span>
+        </ThreadCardHeader>
+        {expanded && hasContent && (
+          <ThreadCardBody rail>
+            <p className="stg:m-0 stg:whitespace-pre-wrap stg:text-sm stg:text-muted-foreground">
+              {content}
+              {isStreaming && (
+                <span
+                  className="stg:ml-0.5 stg:inline-block stg:h-[0.8em] stg:w-[2px] stg:animate-pulse stg:bg-muted-foreground stg:align-text-bottom"
+                  aria-hidden="true"
+                />
+              )}
+            </p>
+          </ThreadCardBody>
         )}
-      >
-        <ThinkingIcon isStreaming={isStreaming} />
-        {/* Live reasoning carries the ambient-liveness sweep (stigmer#277) —
-            the words themselves signal activity, not just the icon. */}
-        <span className={cn("stg:min-w-0 stg:truncate", isStreaming && "stgm-shimmer-label")}>
-          {isStreaming && !hasContent
-            ? "Thinking..."
-            : expanded
-              ? "Thinking"
-              : preview}
-        </span>
-        {hasContent && <ChevronIcon expanded={expanded} />}
-      </button>
-
-      {expanded && hasContent && (
-        <div className="stg:mt-1.5 stg:border-l-2 stg:border-muted-foreground/20 stg:pl-3">
-          <p className="stg:text-xs stg:text-muted-foreground stg:whitespace-pre-wrap stg:leading-relaxed">
-            {content}
-            {isStreaming && (
-              <span
-                className="stg:inline-block stg:w-[2px] stg:h-[0.8em] stg:bg-muted-foreground stg:align-text-bottom stg:animate-pulse stg:ml-0.5"
-                aria-hidden="true"
-              />
-            )}
-          </p>
-        </div>
-      )}
+      </ThreadCardShell>
     </div>
   );
 }
@@ -467,62 +455,3 @@ function SystemMessage({
   );
 }
 
-function ThinkingIcon({ isStreaming }: { isStreaming: boolean }) {
-  if (isStreaming) {
-    return (
-      <svg
-        width="12"
-        height="12"
-        viewBox="0 0 12 12"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        className="stg:shrink-0 stg:animate-spin"
-        aria-hidden="true"
-      >
-        <path d="M6 1.5A4.5 4.5 0 1 1 1.5 6" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="stg:shrink-0"
-      aria-hidden="true"
-    >
-      <circle cx="6" cy="5" r="3.5" />
-      <path d="M4.5 9.5C4.5 8.5 5 8 6 8s1.5.5 1.5 1.5" />
-      <circle cx="5" cy="4.5" r="0.5" fill="currentColor" />
-      <circle cx="7" cy="4.5" r="0.5" fill="currentColor" />
-    </svg>
-  );
-}
-
-function ChevronIcon({ expanded }: { expanded: boolean }) {
-  return (
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 10 10"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={cn(
-        "stg:shrink-0 stg:transition-transform stg:duration-150",
-        expanded && "stg:rotate-90",
-      )}
-      aria-hidden="true"
-    >
-      <path d="M3.5 2L6.5 5L3.5 8" />
-    </svg>
-  );
-}

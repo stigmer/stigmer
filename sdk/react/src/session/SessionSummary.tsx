@@ -5,8 +5,9 @@
 // finish, Stopped) from `sessionStatus`. While a turn works, the pill's time
 // ticks and beside it reads how far the turn has got (the agent's to-do
 // list, else the steps it took). Once it ended: who or what started it, how
-// long it took, what came out, and (for the audiences that review runs) its
-// estimated cost.
+// long it took, what came out (the Files made, then the plans a Plan-mode
+// turn wrote, which are not counted as files), and (for the audiences that
+// review runs) its estimated cost.
 //
 // The routine that started a session is read by the session's routine id;
 // a reader the server refuses it to sees "Started by a routine" and no link,
@@ -84,6 +85,7 @@ export function SessionSummary({ session, turns, runs, files, showCost, routineH
   const outcomes = turns.map((turn) => turnOutcome(turn, files, runs.find((run) => run.metadata?.id === turn.runId)));
   const elapsedMs = outcomes.reduce((sum, outcome) => sum + outcome.elapsedMs, 0);
   const made = outcomes.reduce((sum, outcome) => sum + outcome.files.length, 0);
+  const plans = outcomes.reduce((sum, outcome) => sum + outcome.plans.length, 0);
   // An undone file was put back, so the count is what still stands.
   const changed = new Set(outcomes.flatMap((outcome) => standingChanges(outcome).map((change) => change.path))).size;
   const cost = outcomes.reduce((sum, outcome) => sum + (outcome.estimatedCostUsd ?? 0), 0);
@@ -118,6 +120,7 @@ export function SessionSummary({ session, turns, runs, files, showCost, routineH
   const facts = [
     durationWords(elapsedMs),
     made > 0 ? `${made} ${made === 1 ? "file" : "files"} made` : undefined,
+    plans > 0 ? `${plans} ${plans === 1 ? "plan" : "plans"}` : undefined,
     changed > 0 ? `${changed} ${changed === 1 ? "change" : "changes"}` : undefined,
     showCost && cost > 0 ? (cost < 0.005 ? "under $0.01, estimated" : `about $${cost.toFixed(2)}, estimated`) : undefined,
   ].filter((fact): fact is string => fact !== undefined);

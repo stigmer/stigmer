@@ -16,10 +16,11 @@ export interface SummarizationCardProps {
 }
 
 /**
- * Inline timeline card shown where the agent's context was compacted
- * mid-conversation: a compact system-event divider in the
- * {@link MessageThread}, at the compaction's place among the turn's items,
- * with the time it happened.
+ * Where the agent's earlier messages were summarized to make room
+ * (`agent.thread_context_compacted`): a hairline marker at that place among
+ * the turn's items, as the agent-version marker draws a quiet event, with
+ * the time it happened. The quietest event in the thread reads as the
+ * quietest line.
  *
  * All visual properties flow through `--stgm-*` tokens.
  */
@@ -30,22 +31,20 @@ export const SummarizationCard = memo(function SummarizationCard({
   return (
     <div
       role="status"
-      aria-label="Context compacted"
-      className={cn(
-        "stg:mx-4 stg:flex stg:items-center stg:gap-3 stg:rounded-md stg:border stg:border-border-muted",
-        "stg:bg-muted-faint stg:px-3 stg:py-2",
-        className,
-      )}
+      aria-label="Earlier messages summarized"
+      className={cn("stg:flex stg:items-center stg:gap-3 stg:px-4 stg:py-2 stg:text-xs stg:text-muted-foreground", className)}
     >
-      <CompactionIcon />
-      <div className="stg:flex stg:min-w-0 stg:flex-1 stg:items-baseline stg:gap-1.5 stg:text-xs stg:font-medium stg:text-muted-foreground">
-        <span>Context compacted</span>
+      <span aria-hidden="true" className="stg:h-px stg:flex-1 stg:bg-border" />
+      <span className="stg:tabular-nums">
+        Earlier messages summarized
         {compacted.processedAt && (
-          <time dateTime={compacted.processedAt} className="stg:ml-auto stg:tabular-nums stg:text-muted-foreground">
-            {formatTime(compacted.processedAt)}
-          </time>
+          <>
+            {" · "}
+            <time dateTime={compacted.processedAt}>{formatTime(compacted.processedAt)}</time>
+          </>
         )}
-      </div>
+      </span>
+      <span aria-hidden="true" className="stg:h-px stg:flex-1 stg:bg-border" />
     </div>
   );
 });
@@ -55,24 +54,4 @@ function formatTime(iso: string): string {
   return Number.isNaN(date.getTime())
     ? iso
     : date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-}
-
-function CompactionIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="stg:shrink-0 stg:text-muted-foreground-subtle"
-      aria-hidden="true"
-    >
-      <path d="M4 2v4l4-2-4-2zM12 14v-4l-4 2 4 2z" />
-      <path d="M4 8h8" />
-    </svg>
-  );
 }

@@ -327,7 +327,7 @@ export function AccountPreferencesPanel({
         {/* Auto-approve default (stigmer/stigmer#816): a client-read seed
             like the harness/model defaults above — the session panel's
             Config switch beats it per conversation, and armed sessions
-            always show the "Auto-approving tool calls" strip by the
+            always show the "Approving tool calls automatically" strip by the
             composer. Never applied to guest or observer surfaces. */}
         <div
           className={cn(

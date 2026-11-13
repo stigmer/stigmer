@@ -10,7 +10,7 @@ import { createContext, useContext } from "react";
  * sessions operate on the user's own local folder, where the apply-then-
  * review file ledger is the safety net — can pre-arm what a user would
  * otherwise opt into at the first approval gate. The user always keeps the
- * last word: the session UI shows its "Auto-approving tool calls" notice
+ * last word: the session UI shows its "Approving tool calls automatically" notice
  * from the first render, with the same "Turn off" affordance as a
  * gate-armed preference.
  */

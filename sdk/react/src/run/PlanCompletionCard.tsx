@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { Button } from "../button/Button.js";
+import { PlanCard } from "./PlanCard.js";
 import { useBuildFromPlanHotkey } from "./use-build-from-plan-hotkey.js";
 
 /** Props for {@link PlanCompletionCard}. */
@@ -16,15 +16,18 @@ export interface PlanCompletionCardProps {
 }
 
 /**
- * Fallback CTA shown in the {@link MessageThread} after a completed Plan-mode
- * run that did **not** return a `plan.md` File (older runs, or
- * a plan whose upload failed). When the plan File exists, the richer
- * `PlanFileCard` is shown instead.
+ * The Build card shown in the {@link MessageThread} after a completed
+ * Plan-mode run that did **not** return a `plan.md` File (older runs, or a
+ * plan whose upload failed): the plan is held only as message text. When
+ * the plan File exists, `PlanFileCard` is shown instead.
  *
- * Mirrors `PlanFileCard`'s hierarchy — one prominent, themeable "Build"
- * primary action with the same card-scoped `Cmd/Ctrl+Enter` accelerator — so
- * the two cards feel like the same affordance. The consumer wires the action
- * to switch the interaction mode to Agent and submit the implement turn.
+ * Drawn as the thread's one plan card in its no-File state: the list glyph,
+ * "Plan", and **Build**, the one primary, with the same card-scoped
+ * `Cmd/Ctrl+Enter` accelerator as `PlanFileCard`. The ready card's Build
+ * says what the old "ready to build?" line asked. The consumer wires the
+ * action to switch the interaction mode to Agent and submit the implement
+ * turn. A host that can put Build on the plan's own text passes
+ * `onImplement` to `PlanDocumentMessage` instead, so the plan shows once.
  *
  * Renders nothing when `onImplement` is not provided, so the card is fully
  * opt-in from the consumer's perspective. All visual properties flow through
@@ -40,61 +43,14 @@ export const PlanCompletionCard = memo(function PlanCompletionCard({
   if (!onImplement) return null;
 
   return (
-    <div
+    <PlanCard
       role="status"
       aria-label="Plan complete"
       onKeyDown={handleKeyDown}
-      className={cn(
-        "stg:mx-4 stg:flex stg:items-center stg:gap-3 stg:rounded-md stg:border stg:border-border-muted",
-        "stg:bg-muted-faint stg:px-3 stg:py-2.5",
-        className,
-      )}
-    >
-      <PlanCompleteIcon />
-      <span className="stg:min-w-0 stg:flex-1 stg:text-xs stg:font-medium stg:text-muted-foreground">
-        Plan complete — ready to build?
-      </span>
-      <Button size="xs" disabled={disabled} onClick={onImplement} icon={<ImplementIcon />}>
-        Build
-      </Button>
-    </div>
+      state="text"
+      title="Plan"
+      build={{ onClick: onImplement, disabled }}
+      className={cn("stg:mx-4", className)}
+    />
   );
 });
-
-function PlanCompleteIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="stg:shrink-0 stg:text-muted-foreground/70"
-      aria-hidden="true"
-    >
-      <path d="M3 4h10M3 8h7M3 12h8" />
-      <path d="M12.5 10.5l1.5 1.5-1.5 1.5" />
-    </svg>
-  );
-}
-
-function ImplementIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M2 6h8M7 3l3 3-3 3" />
-    </svg>
-  );
-}

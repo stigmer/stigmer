@@ -94,7 +94,7 @@ export interface StigmerProviderProps {
    * it has already judged trusted — e.g. a desktop app operating on the
    * user's own local folder — can arm `autoApproveAll` so users are not
    * re-asked at every fresh conversation's first mutating tool call. The
-   * user keeps the last word: the "Auto-approving tool calls" notice shows
+   * user keeps the last word: the "Approving tool calls automatically" notice shows
    * from the first render with its "Turn off" affordance.
    *
    * Consumed by the interactive-session surface only (`useNewSessionFlow`,

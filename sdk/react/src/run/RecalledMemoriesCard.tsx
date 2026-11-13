@@ -1,9 +1,10 @@
 "use client";
 
-import { memo, useId, useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import type { RecalledMemoryFact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import type { MemoryRecall } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
+import { ThreadCardBody, ThreadCardHeader, ThreadCardShell } from "../internal/thread-card/ThreadCardShell.js";
 
 /**
  * Resolve the recall's injected memory ids against the run's
@@ -35,13 +36,14 @@ export interface RecalledMemoriesCardProps {
 }
 
 /**
- * Inline timeline card disclosing the semantic retriever's selection for
- * one run: "Recalled N of M memories", expandable to the injected
- * facts (stigmer/stigmer#293 Phase 3's transparency promise).
+ * The semantic retriever's selection for one run, as a quiet line:
+ * "Recalled 3 memories", opening on its rail to the facts the turn was given
+ * (stigmer/stigmer#293 Phase 3's transparency promise) and the model that
+ * chose them.
  *
  * Renders at the top of the run's {@link MessageThread} segment,
  * right after the user's turn — `spec.message` is the query the
- * retriever embedded, so the card reads as "for this message, these
+ * retriever embedded, so the line reads as "for this message, these
  * memories were most relevant".
  *
  * Renders NOTHING unless the recall says selection was active: an
@@ -53,8 +55,8 @@ export interface RecalledMemoriesCardProps {
  *
  * All visual properties flow through `--stgm-*` tokens.
  *
- * @see resolveInjectedFacts - the recall→snapshot join this card renders
- * @see SummarizationCard - the sibling system-event card this follows
+ * @see resolveInjectedFacts - the recall→snapshot join this line renders
+ * @see SummarizationCard - the sibling quiet event
  */
 export const RecalledMemoriesCard = memo(function RecalledMemoriesCard({
   recall,
@@ -62,8 +64,6 @@ export const RecalledMemoriesCard = memo(function RecalledMemoriesCard({
   className,
 }: RecalledMemoriesCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const listId = useId();
-
   const injectedFacts = useMemo(
     () => resolveInjectedFacts(recall, facts),
     [recall, facts],
@@ -72,54 +72,28 @@ export const RecalledMemoriesCard = memo(function RecalledMemoriesCard({
   if (!recall.selectionActive) return null;
 
   const injectedCount = recall.injectedMemoryIds.length;
-  const summary = `Recalled ${injectedCount} of ${facts.length} memories`;
+  const summary = `Recalled ${injectedCount} ${injectedCount === 1 ? "memory" : "memories"}`;
 
   return (
-    <div
-      role="status"
-      aria-label={summary}
-      className={cn(
-        "stg:mx-4 stg:rounded-md stg:border stg:border-border/50 stg:bg-muted/30",
-        className,
-      )}
-    >
-      <button
-        type="button"
-        aria-expanded={expanded}
-        aria-controls={listId}
-        onClick={() => setExpanded((prev) => !prev)}
-        className={cn(
-          "stg:flex stg:w-full stg:items-center stg:gap-3 stg:px-3 stg:py-2 stg:text-left",
-          "stg:text-xs stg:text-muted-foreground stg:hover:text-foreground",
+    <div role="status" aria-label={summary} className={cn("stg:px-4", className)}>
+      <ThreadCardShell variant="quiet">
+        <ThreadCardHeader gesture={{ kind: "expand", expanded, onToggle: () => setExpanded((prev) => !prev), label: summary }}>
+          <MemoryIcon />
+          <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-muted-foreground">{summary}</span>
+        </ThreadCardHeader>
+        {expanded && (
+          <ThreadCardBody rail>
+            <ul className="stg:m-0 stg:flex stg:list-none stg:flex-col stg:gap-2 stg:p-0">
+              {injectedFacts.map((fact) => (
+                <li key={fact.memoryId} className="stg:text-sm stg:text-muted-foreground">
+                  {fact.content}
+                </li>
+              ))}
+            </ul>
+            {recall.embeddingModel && <p className="stg:mb-0 stg:mt-2 stg:text-xs stg:text-muted-foreground">Chosen by {recall.embeddingModel}</p>}
+          </ThreadCardBody>
         )}
-      >
-        <MemoryIcon />
-        <span className="stg:flex stg:min-w-0 stg:flex-1 stg:flex-wrap stg:items-baseline stg:gap-x-2">
-          <span className="stg:font-medium">{summary}</span>
-          {recall.embeddingModel && (
-            <>
-              <span aria-hidden="true" className="stg:text-muted-foreground/50">&middot;</span>
-              <span className="stg:text-muted-foreground">{recall.embeddingModel}</span>
-            </>
-          )}
-        </span>
-        <ChevronIcon expanded={expanded} />
-      </button>
-      {expanded && (
-        <ul
-          id={listId}
-          className="stg:m-0 stg:flex stg:list-none stg:flex-col stg:gap-1.5 stg:border-t stg:border-border/50 stg:px-3 stg:py-2"
-        >
-          {injectedFacts.map((fact) => (
-            <li
-              key={fact.memoryId}
-              className="stg:text-xs stg:leading-relaxed stg:text-muted-foreground"
-            >
-              {fact.content}
-            </li>
-          ))}
-        </ul>
-      )}
+      </ThreadCardShell>
     </div>
   );
 });
@@ -135,30 +109,11 @@ function MemoryIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="stg:shrink-0 stg:text-muted-foreground/70"
+      className="stg:shrink-0 stg:text-muted-foreground"
       aria-hidden="true"
     >
       <path d="M8 2a3 3 0 0 0-3 3c-1.2.4-2 1.5-2 2.8 0 1 .5 1.9 1.3 2.4A2.8 2.8 0 0 0 7 13.8c.4.1.7.2 1 .2s.6-.1 1-.2a2.8 2.8 0 0 0 2.7-3.6c.8-.5 1.3-1.4 1.3-2.4 0-1.3-.8-2.4-2-2.8a3 3 0 0 0-3-3z" />
       <path d="M8 2v12" />
-    </svg>
-  );
-}
-
-function ChevronIcon({ expanded }: { expanded: boolean }) {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="stg:shrink-0 stg:text-muted-foreground/70"
-      aria-hidden="true"
-    >
-      {expanded ? <path d="M4 10l4-4 4 4" /> : <path d="M4 6l4 4 4-4" />}
     </svg>
   );
 }

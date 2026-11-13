@@ -758,9 +758,7 @@ describe("SessionViewer — the agent version notice and the personal-key disclo
 
     mockUseSessionPageFlow.mockImplementation(() => ({ ...stubSessionPageFlow, agentVersion: outdated }));
     render(<SessionViewer sessionId="ses_1" org="acme" />);
-    expect(
-      screen.getByText("This conversation runs an older version of Support Bot."),
-    ).toBeTruthy();
+    expect(screen.getByText("A newer version of Support Bot is out")).toBeTruthy();
     expect(outdated.update).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Update" }));
     expect(outdated.update).toHaveBeenCalledTimes(1);

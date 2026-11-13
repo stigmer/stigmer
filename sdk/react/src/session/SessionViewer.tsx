@@ -22,6 +22,8 @@ import { AgentHoursNotice, agentHoursUsedUp } from "../billing/AgentHoursNotice.
 import { ChatActivityReporterContext } from "../agent-chat/chat-activity.js";
 import { chatActivityOf } from "../agent-chat/chat-activity-of.js";
 import { TurnOutcome, type TurnOutcomeUndo } from "./TurnOutcome.js";
+import { ComposerStrip } from "./ComposerStrip.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { turnOutcome, type TurnChange } from "./turn-outcome.js";
 import { TurnChangeDialog } from "./TurnChangeDialog.js";
 import { FilePreviewModal } from "../run/FilePreviewModal.js";
@@ -942,6 +944,9 @@ const ConversationColumn = memo(function ConversationColumn({
   // guest's (the share policy owns its run), and the auto-approve switch
   // only for the conversation's owners.
   const runSettingsRow = useRunSettings(flow, !isParticipant, isCurated);
+  // The owner by name for a waiting step; unnamed, the step says "the owner".
+  const creator = conv.session?.status?.audit?.specAudit?.createdBy;
+  const approverName = creator?.displayName || creator?.email || undefined;
   const extraSettings = useMemo(() => (isGuest ? undefined : [runSettingsRow]), [isGuest, runSettingsRow]);
 
   // Each ended turn closes with what it produced, from the conversation's
@@ -1143,6 +1148,8 @@ const ConversationColumn = memo(function ConversationColumn({
         // A participant's decisions are the owners' too (run#can_edit):
         // the pending line above the composer names who it waits on.
         onAnswerToolUse={isObserver || isGuest || isParticipant ? undefined : flow.answerToolUse}
+        // Whoever cannot answer reads who does on the waiting step itself.
+        approverName={approverName}
         answeringToolUseIds={conv.answeringToolUseIds}
         answerErrors={conv.answerErrors}
         // Stopping one background command follows the session Stop's rule:
@@ -1224,11 +1231,6 @@ const ConversationColumn = memo(function ConversationColumn({
         {/* While the turn works, the files it is changing so far; once it
             ends, the same files show under its Changed group. */}
         <FileChangeProgressBar progress={conv.fileChangeProgress} />
-        {/* Only an approval holds a turn for the owner; file review never
-            does, and the next message keeps what is still undecided. */}
-        {isParticipant && conv.asks.length > 0 && (
-          <WaitingOnOwnerNotice name={creatorName} />
-        )}
         {/* Observers and viewers never get a composer: the server denies
             them can_create_run_in, so the send surface simply is not
             offered — read-only by construction, not by a disabled state. */}
@@ -1304,18 +1306,35 @@ function creatorDisplayName(session: Session | null): string {
 /** A reader's footer, where the composer would be: what its absence means. */
 function ReadOnlyNotice() {
   return (
-    <p className="stg:border-t stg:border-border-muted stg:px-4 stg:py-3 stg:text-center stg:text-xs stg:text-muted-foreground" role="status">
+    <ComposerStrip role="status" icon={<StripGlyph kind="eye" />}>
       You&rsquo;re reading this conversation. Only its members can reply.
-    </p>
+    </ComposerStrip>
   );
 }
 
-/** A participant's line while a run waits on a decision only the owners make. */
-function WaitingOnOwnerNotice({ name }: { readonly name: string }) {
+/** A strip's 16px glyph: an info mark, a clock, an eye. */
+function StripGlyph({ kind }: { readonly kind: "info" | "clock" | "eye" }) {
   return (
-    <p className="stg:px-4 stg:pt-2 stg:text-xs stg:text-muted-foreground" role="status">
-      Waiting for {name} to approve
-    </p>
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="stg:text-muted-foreground">
+      {kind === "info" && (
+        <>
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 16v-4M12 8h.01" />
+        </>
+      )}
+      {kind === "clock" && (
+        <>
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 6v6l4 2" />
+        </>
+      )}
+      {kind === "eye" && (
+        <>
+          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+          <circle cx="12" cy="12" r="3" />
+        </>
+      )}
+    </svg>
   );
 }
 
@@ -1370,18 +1389,17 @@ function SessionStarting() {
  */
 function PlanAttachFailedNotice({ onDismiss }: { onDismiss: () => void }) {
   return (
-    <div
+    <ComposerStrip
       role="status"
-      className="stg:flex stg:items-center stg:gap-2 stg:border-t stg:border-border-muted stg:px-4 stg:py-1.5 stg:text-xs stg:text-muted-foreground"
+      icon={<StripGlyph kind="info" />}
+      act={
+        <Button variant="ghost" size="xs" onClick={onDismiss}>
+          Dismiss
+        </Button>
+      }
     >
-      <span className="stg:min-w-0 stg:flex-1 stg:truncate">
-        Couldn&rsquo;t attach plan.md — the agent will follow the plan from the
-        conversation instead.
-      </span>
-      <Button variant="ghost" size="xs" onClick={onDismiss}>
-        Dismiss
-      </Button>
-    </div>
+      Couldn&rsquo;t attach plan.md. The agent follows the plan from the conversation instead.
+    </ComposerStrip>
   );
 }
 
@@ -1400,29 +1418,9 @@ function SendErrorBanner({ error, modelsHubHref }: { readonly error: Error; read
 
 function ReconnectingIndicator() {
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="stg:flex stg:items-center stg:gap-2 stg:border-t stg:border-border stg:bg-muted stg:px-4 stg:py-2 stg:text-sm stg:text-muted-foreground"
-    >
-      <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="stg:shrink-0 stg:animate-spin stg:motion-reduce:animate-none"
-        aria-hidden="true"
-      >
-        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-      </svg>
-      <span className="stg:min-w-0 stg:flex-1">
-        Reconnecting… The agent keeps working; what it did meanwhile appears when the connection is back.
-      </span>
-    </div>
+    <ComposerStrip role="status" aria-live="polite" tone="working" icon={<SpinnerIcon size={12} className="stg:text-muted-foreground stg:motion-reduce:animate-none" />}>
+      Reconnecting… The agent keeps working; what it did meanwhile appears when the connection is back.
+    </ComposerStrip>
   );
 }
 
@@ -1434,14 +1432,17 @@ function ReconnectingIndicator() {
  */
 function ConnectTimedOutBanner({ onRetry }: { onRetry: () => void }) {
   return (
-    <div role="alert" className="stg:flex stg:items-center stg:gap-3 stg:border-t stg:border-border stg:bg-muted stg:px-4 stg:py-2.5">
-      <p className="stg:min-w-0 stg:flex-1 stg:text-sm stg:text-muted-foreground">
-        The agent hasn&rsquo;t started yet. Your message is kept; try again to look once more.
-      </p>
-      <Button variant="outline" size="xs" onClick={onRetry}>
-        Try again
-      </Button>
-    </div>
+    <ComposerStrip
+      role="alert"
+      icon={<StripGlyph kind="info" />}
+      act={
+        <Button variant="ghost" size="xs" onClick={onRetry}>
+          Try again
+        </Button>
+      }
+    >
+      The agent hasn&rsquo;t started yet. Your message is kept; try again to look once more.
+    </ComposerStrip>
   );
 }
 
@@ -1454,19 +1455,9 @@ function ConnectTimedOutBanner({ onRetry }: { onRetry: () => void }) {
  */
 function SlowIndicator() {
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="stg:flex stg:items-center stg:gap-2 stg:border-t stg:border-border-muted stg:px-4 stg:py-1.5 stg:text-xs stg:text-muted-foreground"
-    >
-      <span className="stg:relative stg:flex stg:h-2 stg:w-2 stg:shrink-0" aria-hidden="true">
-        <span className="stg:absolute stg:inline-flex stg:h-full stg:w-full stg:animate-ping stg:rounded-full stg:bg-muted-foreground stg:opacity-75 stg:motion-reduce:animate-none" />
-        <span className="stg:relative stg:inline-flex stg:h-2 stg:w-2 stg:rounded-full stg:bg-muted-foreground" />
-      </span>
-      <span className="stg:min-w-0 stg:flex-1">
-        This is taking longer than usual. It keeps going if you leave; the session will be here when it&rsquo;s done.
-      </span>
-    </div>
+    <ComposerStrip role="status" aria-live="polite" icon={<StripGlyph kind="clock" />}>
+      This is taking longer than usual. It keeps going if you leave; the session will be here when it&rsquo;s done.
+    </ComposerStrip>
   );
 }
 
@@ -1505,7 +1496,7 @@ function ErrorTriangleIcon() {
 
 function LoaderIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" className="stg:mx-auto stg:animate-spin stg:text-muted-foreground">
+    <svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" className="stg:shrink-0 stg:animate-spin stg:text-muted-foreground stg:motion-reduce:animate-none" aria-hidden="true">
       <path d="M10 2a8 8 0 0 1 0 16" strokeLinecap="round" />
     </svg>
   );

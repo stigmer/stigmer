@@ -33,6 +33,23 @@ describe("TerminalSession", () => {
     expect(session!.textContent).toContain("hello world");
   });
 
+  it("draws no frame of its own inside a card, and its own when framed", () => {
+    const frame = ["stg:rounded-md", "stg:border", "stg:bg-muted-subtle"];
+    const inCard = render(<TerminalSession command="ls" stdout="a.ts" />);
+    const bare = inCard.container.querySelector('[data-cursor-target="terminal-session"]')!.className.split(" ");
+    for (const cls of frame) expect(bare, `no ${cls} inside a card`).not.toContain(cls);
+    cleanup();
+
+    const alone = render(<TerminalSession command="ls" stdout="a.ts" framed />);
+    const own = alone.container.querySelector('[data-cursor-target="terminal-session"]')!.className.split(" ");
+    for (const cls of frame) expect(own).toContain(cls);
+    cleanup();
+
+    const tail = render(<TerminalTail command="ls" stdout="a.ts" />);
+    const tailClasses = tail.container.querySelector('[data-cursor-target="terminal-tail"]')!.className.split(" ");
+    for (const cls of frame) expect(tailClasses).not.toContain(cls);
+  });
+
   it("shows no exit badge on success", () => {
     const { container } = render(
       <TerminalSession command="true" stdout="" exitCode={0} />,

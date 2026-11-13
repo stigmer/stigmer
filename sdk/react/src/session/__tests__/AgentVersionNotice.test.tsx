@@ -16,9 +16,7 @@ describe("AgentVersionNotice", () => {
     const onUpdate = vi.fn();
     render(<AgentVersionNotice agentName="PR Reviewer" onUpdate={onUpdate} />);
 
-    expect(
-      screen.getByText("This conversation runs an older version of PR Reviewer."),
-    ).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toContain("A newer version of PR Reviewer is out");
     expect(onUpdate).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Update" }));
     expect(onUpdate).toHaveBeenCalledTimes(1);
@@ -33,7 +31,7 @@ describe("AgentVersionNotice", () => {
       />,
     );
     expect(screen.getByRole("status").textContent).toContain(
-      "The current version can read these keys from your My vault: GITHUB_TOKEN, LINEAR_API_KEY",
+      "It can read these keys from your My vault: GITHUB_TOKEN, LINEAR_API_KEY",
     );
     cleanup();
 

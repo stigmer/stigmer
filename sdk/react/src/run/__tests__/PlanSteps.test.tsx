@@ -4,7 +4,9 @@
  * progress, not finished, dropped or to do; the item in progress is open
  * to its steps while the turn works, a finished item opens on a click, and
  * an item with no steps is a plain line; an item whose step waits for a
- * person says "Waiting for you" and leaves that step to the bottom card;
+ * person says who it waits on, in the viewer's words ("Waiting for you"
+ * for whoever answers, else "Waiting for {owner} to approve", or "Waiting
+ * for the owner" unnamed) and leaves that step to the bottom card;
  * an item left in progress by an ended turn says where it stopped, in its
  * ending's words ("Stopped here" unless told otherwise); and the
  * steps outside any item draw at the foot, the settled ones folded under
@@ -16,6 +18,7 @@ import type { JsonObject } from "@bufbuild/protobuf";
 import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import { turnSteps, type TurnSteps } from "@stigmer/client";
 import { PlanSteps } from "../PlanSteps";
+import { ApprovalContext } from "../ApprovalContext";
 import { asked, result, status, turnsOf, use, user } from "./__fixtures__/thread-events";
 
 afterEach(cleanup);
@@ -45,6 +48,17 @@ function itemLine(words: string): HTMLElement {
 /** The control that opens an item to its steps. */
 function itemToggle(words: string): HTMLButtonElement {
   return itemLine(words).querySelector<HTMLButtonElement>(":scope > button")!;
+}
+
+/** A plan whose item in progress has a step waiting on a person's answer. */
+function waitingSteps(): TurnSteps {
+  return stepsOf(
+    todos("t", [{ content: "Push the fix", status: "in_progress" }]),
+    call("c1", "execute", { command: "git status" }),
+    use(R, "c2", "execute", { command: "git push" }, { ask: true }),
+    asked(R, "c2"),
+    status(R, "waiting"),
+  );
 }
 
 describe("PlanSteps", () => {
@@ -116,22 +130,29 @@ describe("PlanSteps", () => {
 
   it("says an item waits for you, and leaves its waiting step to the bottom card", () => {
     render(
-      <PlanSteps
-        working
-        steps={stepsOf(
-          todos("t", [{ content: "Push the fix", status: "in_progress" }]),
-          call("c1", "execute", { command: "git status" }),
-          use(R, "c2", "execute", { command: "git push" }, { ask: true }),
-          asked(R, "c2"),
-          status(R, "waiting"),
-        )}
-      />,
+      <ApprovalContext.Provider value={{ onAnswer: () => undefined, submittingIds: new Set(), errorsByToolUseId: new Map() }}>
+        <PlanSteps working steps={waitingSteps()} />
+      </ApprovalContext.Provider>,
     );
     const line = itemLine("Push the fix");
 
     expect(within(line).getByText("Waiting for you")).toBeTruthy();
     expect(itemToggle("Push the fix").textContent).toContain("1 step");
     expect(within(line).getByRole("group", { name: "1 tool call" })).toBeTruthy();
+  });
+
+  it("tells a viewer who cannot answer whom the item waits on, by name or as the owner", () => {
+    const { unmount } = render(
+      <ApprovalContext.Provider value={{ submittingIds: new Set(), errorsByToolUseId: new Map(), approverName: "Maya Okafor" }}>
+        <PlanSteps working steps={waitingSteps()} />
+      </ApprovalContext.Provider>,
+    );
+    expect(within(itemLine("Push the fix")).getByText("Waiting for Maya Okafor to approve")).toBeTruthy();
+    expect(screen.queryByText("Waiting for you")).toBeNull();
+    unmount();
+
+    render(<PlanSteps working steps={waitingSteps()} />);
+    expect(within(itemLine("Push the fix")).getByText("Waiting for the owner")).toBeTruthy();
   });
 
   it("says where its ended turn stopped on an item left in progress, closed", () => {

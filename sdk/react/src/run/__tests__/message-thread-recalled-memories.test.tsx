@@ -137,7 +137,7 @@ describe("MessageThread recalled-memories item", () => {
       />,
     );
 
-    const card = screen.getByRole("status", { name: "Recalled 2 of 3 memories" });
+    const card = screen.getByRole("status", { name: "Recalled 2 memories" });
     const userBubble = screen.getByRole("article", { name: "User message" });
     // Segment order: user turn first, then the card the turn's prompt selected.
     expect(
@@ -174,7 +174,7 @@ describe("MessageThread recalled-memories item", () => {
     );
 
     expect(
-      screen.getByRole("status", { name: "Recalled 1 of 3 memories" }),
+      screen.getByRole("status", { name: "Recalled 1 memory" }),
     ).toBeTruthy();
   });
 
@@ -189,8 +189,8 @@ describe("MessageThread recalled-memories item", () => {
       />,
     );
 
-    expect(screen.getByRole("status", { name: "Recalled 1 of 3 memories" })).toBeTruthy();
-    expect(screen.getByRole("status", { name: "Recalled 2 of 3 memories" })).toBeTruthy();
+    expect(screen.getByRole("status", { name: "Recalled 1 memory" })).toBeTruthy();
+    expect(screen.getByRole("status", { name: "Recalled 2 memories" })).toBeTruthy();
     expect(screen.getAllByRole("status", { name: /Recalled/ })).toHaveLength(2);
   });
 
@@ -208,7 +208,7 @@ describe("MessageThread recalled-memories item", () => {
 
     expect(screen.queryByRole("article", { name: "User message" })).toBeNull();
     expect(
-      screen.getByRole("status", { name: "Recalled 1 of 3 memories" }),
+      screen.getByRole("status", { name: "Recalled 1 memory" }),
     ).toBeTruthy();
   });
 });

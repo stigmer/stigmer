@@ -20,6 +20,7 @@ import { cn } from "@stigmer/design-tokens";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
 import { SpinnerIcon } from "../internal/thread-card/index.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
+import { useWaitingWords } from "./ApprovalContext.js";
 import { SettledStepsRow } from "./SettledStepsRow.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 
@@ -90,6 +91,7 @@ function PlanItemRow({ item, working, stoppedNote }: { readonly item: PlanItem; 
   const regionId = useId();
   const calls = item.calls.filter((tool) => !waits(tool));
   const waiting = item.calls.some(waits);
+  const waitingWords = useWaitingWords();
   const status = item.todo.status;
   const live = status === "in_progress" && working;
   const [open, toggle] = useAutoDisclosure(live && calls.length > 0, { initialOpen: live && calls.length > 0 });
@@ -108,7 +110,7 @@ function PlanItemRow({ item, working, stoppedNote }: { readonly item: PlanItem; 
       >
         {item.todo.content}
       </span>
-      {waiting && <span className="stg:block stg:text-xs stg:text-status-degraded">Waiting for you</span>}
+      {waiting && <span className="stg:block stg:text-xs stg:text-status-degraded">{waitingWords}</span>}
       {status === "in_progress" && !working && <span className="stg:block stg:text-xs stg:text-muted-foreground">{stoppedNote}</span>}
     </span>
   );

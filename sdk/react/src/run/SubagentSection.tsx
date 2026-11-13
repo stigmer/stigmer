@@ -1,5 +1,9 @@
 "use client";
 
+// A helper's work inside the parent conversation, drawn as one more step: the
+// step row's shell, the helper's subject as its line, its agent's name as a
+// tag, its time on the right, and its own messages and steps in the body.
+
 import { memo, useMemo } from "react";
 import type { Thread, ToolUse, TurnItem } from "@stigmer/client";
 import { useRenderTracer } from "../internal/dev/index.js";
@@ -10,9 +14,14 @@ import { formatHeaderDuration } from "./ToolCallDetail.js";
 import { MessageEntry, type ThreadMessage } from "./MessageEntry.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
 import { isInternalTool } from "@stigmer/react-core/internal";
-import { SpinnerIcon } from "../internal/thread-card/glyphs.js";
-import { StatusBadge } from "../status/StatusBadge.js";
-import type { StatusPhase } from "../resource-workbench/types.js";
+import {
+  ThreadCardShell,
+  ThreadCardHeader,
+  ThreadCardBody,
+  SpinnerIcon,
+} from "../internal/thread-card/index.js";
+import { Tag } from "../internal/surface/Tag.js";
+import { HELPER_WORD, HelperEndingBadge, HelperGlyph, helperTagWord } from "./helper-step.js";
 
 /** Props for {@link SubagentSection}. */
 export interface SubagentSectionProps {
@@ -20,8 +29,8 @@ export interface SubagentSectionProps {
   readonly thread: Thread;
   /**
    * What the subagent was asked to do, in a few words (the `task` call's
-   * description, {@link subagentSubjectOf}); the card's title beside the
-   * agent's name. Omitted, the agent's name titles it.
+   * description, {@link subagentSubjectOf}); the step's line, with the
+   * agent's name as a tag beside it. Omitted, the agent's name is the line.
    */
   readonly subject?: string;
   /** When the subagent started (its `task` call's time), for the duration. */
@@ -29,11 +38,13 @@ export interface SubagentSectionProps {
   /** When it finished (its `task` call's result time), for the duration. */
   readonly completedAt?: string;
   /**
-   * Whether to render as a collapsible card with expand/collapse
-   * toggle. Defaults to `true`.
+   * Whether to render as a step of its own, with a header and an
+   * expand/collapse toggle. Defaults to `true`.
    *
-   * Set to `false` when rendered inside a parent that already
-   * provides its own expand/collapse (e.g. {@link ToolCallItem}).
+   * Set to `false` when rendered inside a parent row that already draws
+   * the helper's header and toggle (e.g. {@link ToolCallItem}): the flat
+   * form is the helper's work alone (its brief, its steps, its error), with
+   * no header of its own.
    */
   readonly collapsible?: boolean;
   /** Additional CSS class names for the root container. */
@@ -44,18 +55,19 @@ export interface SubagentSectionProps {
  * Renders a subagent's thread as a nested mini-thread inside the parent
  * conversation: its messages and tool uses, in the order it produced them.
  *
- * When `collapsible` is `true` (default), the component renders as a
- * bordered card with a clickable summary row. The card is open while the
- * subagent works or one of its calls waits for a person, and settles closed
- * when it finishes — the summary row shows status, subject, and duration at
- * a glance.
+ * When `collapsible` is `true` (default), the helper reads as a step, drawn
+ * on the same shell as every other step row: a helper glyph, its subject as
+ * the line, its agent's name as a tag beside it ("Helper" when it has
+ * none), and its time on the right (ticking while it works). It is open
+ * while the helper works or one of its calls waits for a person, and
+ * settles closed when it finishes; a click opens it again. Like the step
+ * rows, it carries a pill only when it failed or stopped: a working or
+ * finished helper says nothing beyond its line. Its own steps render at the
+ * body's padding.
  *
- * Visually distinguished from {@link ToolCallGroup} via a left
- * accent border and bot icon, signaling delegated subagent work.
- *
- * When `collapsible` is `false`, the component renders flat content
- * without a toggle — suitable for embedding inside a parent that
- * already provides expand/collapse (e.g. {@link ToolCallItem}).
+ * When `collapsible` is `false`, the component renders the helper's work
+ * alone, without a header or toggle, for a parent row that already draws
+ * both (e.g. {@link ToolCallItem}).
  *
  * Composes {@link MessageEntry} and {@link ToolCallGroup} — the same
  * building blocks the top-level {@link MessageThread} uses.
@@ -87,33 +99,23 @@ export const SubagentSection = memo(function SubagentSection({
   // subagent is noise by the same rule, and the two row kinds must speak
   // one duration vocabulary.
   const duration = formatHeaderDuration(startedAt, completedAt);
-  const statusInfo = SUB_AGENT_STATUS_MAP[thread.state];
-  const StatusIcon = statusInfo.icon;
   const threadItems = useMemo(() => buildSubagentThreadItems(thread.items), [thread.items]);
   // A failed subagent's reply is its error.
   const error = thread.state === "failed" ? thread.reply : "";
 
-  const displayLabel = subject || thread.agentName;
+  const displayLabel = subject || thread.agentName || HELPER_WORD;
 
   if (!collapsible) {
     return (
-      <FlatContent
-        thread={thread}
-        subject={subject}
-        statusInfo={statusInfo}
-        StatusIcon={StatusIcon}
-        duration={duration}
-        threadItems={threadItems}
-        error={error}
-        className={className}
-      />
+      <div className={className}>
+        <SubagentThreadContent threadItems={threadItems} input={thread.input} error={error} />
+      </div>
     );
   }
 
   return (
     <CollapsibleCard
       thread={thread}
-      statusInfo={statusInfo}
       displayLabel={displayLabel}
       startedAt={startedAt}
       duration={duration}
@@ -125,12 +127,11 @@ export const SubagentSection = memo(function SubagentSection({
 });
 
 // ---------------------------------------------------------------------------
-// Collapsible card — progressive disclosure (default mode)
+// The helper's step (default mode)
 // ---------------------------------------------------------------------------
 
 interface CollapsibleCardProps {
   readonly thread: Thread;
-  readonly statusInfo: SubagentStatusInfo;
   readonly displayLabel: string;
   readonly startedAt: string;
   readonly duration: string | null;
@@ -141,7 +142,6 @@ interface CollapsibleCardProps {
 
 function CollapsibleCard({
   thread,
-  statusInfo,
   displayLabel,
   startedAt,
   duration,
@@ -153,7 +153,7 @@ function CollapsibleCard({
 
   // A call inside this subagent that waits for a person must be reachable:
   // a delegated tool can hold the turn just like a top-level one, so the
-  // card opens while one waits and its inline decision (rendered by the
+  // step opens while one waits and its inline decision (rendered by the
   // nested ToolCallItem) is visible without a click.
   const waitsInside = useMemo(() => threadWaits(thread), [thread]);
 
@@ -161,72 +161,55 @@ function CollapsibleCard({
   // — unless the user takes manual control.
   const [expanded, handleToggle] = useAutoDisclosure(isRunning || waitsInside);
 
-  const ariaLabel = `Subagent: ${displayLabel}, ${statusInfo.label}`;
+  const tag = helperTagWord(thread.agentName, displayLabel);
+  const gesture = {
+    kind: "expand",
+    expanded,
+    onToggle: handleToggle,
+    label: tag === null ? displayLabel : `${displayLabel}, ${tag}`,
+  } as const;
 
+  // The group's name keeps the state a sighted person reads from the spinner
+  // or the pill, so a screen reader hears it too.
   return (
-    <div
-      role="group"
-      aria-label={ariaLabel}
-      className={cn(
-        "stg:rounded-md stg:border stg:border-border stg:border-l-2 stg:border-l-primary/30 stg:bg-muted-faint",
-        className,
-      )}
-    >
-      {/* Summary trigger */}
-      <button
-        type="button"
-        aria-expanded={expanded}
-        onClick={handleToggle}
-        className={cn(
-          "stg:flex stg:w-full stg:items-center stg:gap-2 stg:px-2.5 stg:py-1.5 stg:text-left stg:text-xs stg:text-muted-foreground stg:transition-colors",
-          "stg:hover:bg-muted-subtle",
-          "stg:cursor-pointer",
-        )}
-      >
-        <span className="stg:shrink-0 stg:text-primary-muted" aria-hidden="true">
-          <BotIcon />
-        </span>
-        <span className="stg:min-w-0 stg:flex-1 stg:truncate">{displayLabel}</span>
-        {isRunning && (
+    <div role="group" aria-label={`Subagent: ${displayLabel}, ${STATE_WORDS[thread.state]}`} className={className}>
+      <ThreadCardShell cursorTarget="subagent-row">
+        <ThreadCardHeader gesture={gesture}>
           <span className="stg:shrink-0 stg:text-muted-foreground" aria-hidden="true">
-            <SpinnerIcon size={12} />
+            <HelperGlyph />
           </span>
-        )}
-        <StatusBadge phase={statusInfo.phase} label={statusInfo.label} />
-        {isRunning ? (
-          <RunningDuration startedAt={startedAt} />
-        ) : (
-          duration && (
-            <span className="stg:shrink-0 stg:tabular-nums stg:text-muted-foreground">
-              {duration}
+          <span className="stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:gap-2 stg:overflow-hidden">
+            {/* While it works the line carries the step rows' liveness sweep;
+                the shimmer class owns `color`, so it replaces the static one. */}
+            <span className={cn("stg:min-w-0 stg:truncate", isRunning ? "stgm-shimmer-label" : "stg:text-foreground")}>
+              {displayLabel}
             </span>
-          )
-        )}
-        <ChevronIcon expanded={expanded} />
-      </button>
-
-      {/* Expanded content — CSS grid-rows animation */}
-      <div
-        className={cn(
-          "stg:grid stg:transition-[grid-template-rows] stg:duration-150 stg:ease-out",
-          expanded ? "stg:grid-rows-[1fr]" : "stg:grid-rows-[0fr]",
-        )}
-      >
-        <div className="stg:overflow-hidden">
-          {expanded && (
-            <div className="stg:border-t stg:border-border-muted stg:px-2.5 stg:pb-2 stg:pt-1.5">
-              <SubagentThreadContent
-                threadItems={threadItems}
-                input={thread.input}
-                error={error}
-              />
-            </div>
+            {tag !== null && <Tag>{tag}</Tag>}
+          </span>
+          <HelperEndingBadge state={thread.state} />
+          {isRunning && (
+            <span className="stg:shrink-0 stg:text-foreground" aria-hidden="true">
+              <SpinnerIcon />
+            </span>
           )}
-        </div>
-      </div>
+          {isRunning ? (
+            <RunningDuration startedAt={startedAt} />
+          ) : (
+            duration && <span className={TIME_CLASSES}>{duration}</span>
+          )}
+        </ThreadCardHeader>
+        {expanded && (
+          <ThreadCardBody cursorTarget="subagent-body">
+            <SubagentThreadContent threadItems={threadItems} input={thread.input} error={error} />
+          </ThreadCardBody>
+        )}
+      </ThreadCardShell>
     </div>
   );
 }
+
+/** A step's time on the right: 12/16 meta, its digits aligned. */
+const TIME_CLASSES = "stg:shrink-0 stg:text-xs stg:tabular-nums stg:text-muted-foreground";
 
 /**
  * Ticking elapsed time for a running subagent's header, where the static
@@ -242,75 +225,7 @@ function RunningDuration({ startedAt }: { readonly startedAt: string }) {
   const elapsed = useElapsedSince(startedAt);
   if (elapsed === null) return null;
 
-  return (
-    <span className="stg:shrink-0 stg:tabular-nums stg:text-muted-foreground">
-      {formatElapsed(elapsed)}
-    </span>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Flat content — no toggle (used inside ToolCallItem detail panel)
-// ---------------------------------------------------------------------------
-
-interface FlatContentProps {
-  readonly thread: Thread;
-  readonly subject: string;
-  readonly statusInfo: SubagentStatusInfo;
-  readonly StatusIcon: () => React.JSX.Element;
-  readonly duration: string | null;
-  readonly threadItems: readonly SubagentThreadItem[];
-  readonly error: string;
-  readonly className?: string;
-}
-
-function FlatContent({
-  thread,
-  subject,
-  statusInfo,
-  StatusIcon,
-  duration,
-  threadItems,
-  error,
-  className,
-}: FlatContentProps) {
-  return (
-    <div
-      className={cn(
-        "stg:border-l-2 stg:border-primary/20 stg:pl-3",
-        className,
-      )}
-    >
-      {/* Header */}
-      <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-x-2 stg:gap-y-1 stg:py-1.5 stg:text-xs">
-        <span
-          className={cn("stg:shrink-0", statusInfo.colorClass)}
-          aria-hidden="true"
-        >
-          <StatusIcon />
-        </span>
-        <span className="stg:font-medium stg:text-foreground">
-          {thread.agentName}
-        </span>
-        {subject && (
-          <span className="stg:text-muted-foreground">
-            {subject}
-          </span>
-        )}
-        {duration && (
-          <span className="stg:tabular-nums stg:text-muted-foreground">
-            {duration}
-          </span>
-        )}
-      </div>
-
-      <SubagentThreadContent
-        threadItems={threadItems}
-        input={thread.input}
-        error={error}
-      />
-    </div>
-  );
+  return <span className={TIME_CLASSES}>{formatElapsed(elapsed)}</span>;
 }
 
 // ---------------------------------------------------------------------------
@@ -324,47 +239,41 @@ interface SubagentThreadContentProps {
   readonly error: string;
 }
 
+/**
+ * Its messages sit at the body's padding, not the thread's: the thread's
+ * `px-4` gutter is for a top-level message, and inside a step the body is
+ * the inset.
+ */
+const MESSAGE_AT_BODY_PADDING = "stg:px-0";
+
 function SubagentThreadContent({
   threadItems,
   input,
   error,
 }: SubagentThreadContentProps) {
   return (
-    <>
+    <div className="stg:flex stg:flex-col stg:gap-2">
       {input && (
-        <div
-          className="stg:border-l-2 stg:border-muted-foreground/25 stg:pl-2.5 stg:text-xs stg:text-muted-foreground stg:whitespace-pre-wrap stg:mb-1"
-        >
+        <div className="stg:border-l-2 stg:border-border-muted stg:pl-3 stg:text-xs stg:text-muted-foreground stg:whitespace-pre-wrap">
           {input}
         </div>
       )}
 
-      {threadItems.length > 0 && (
-        <div className="stg:flex stg:flex-col stg:gap-1 stg:pb-1">
-          {threadItems.map((item) => {
-            switch (item.kind) {
-              case "message":
-                return (
-                  <MessageEntry key={item.key} message={item.message} />
-                );
-              case "tool-group":
-                return (
-                  <ToolCallGroup
-                    key={item.key}
-                    toolUses={item.toolUses}
-                  />
-                );
-            }
-          })}
-        </div>
-      )}
+      {threadItems.map((item) => {
+        switch (item.kind) {
+          case "message":
+            return <MessageEntry key={item.key} message={item.message} className={MESSAGE_AT_BODY_PADDING} />;
+          case "tool-group":
+            return <ToolCallGroup key={item.key} toolUses={item.toolUses} />;
+        }
+      })}
 
       {error && (
-        <div className="stg:rounded-md stg:border stg:border-destructive/20 stg:bg-destructive-subtle stg:px-2 stg:py-1.5 stg:text-xs stg:text-destructive">
+        <div className="stg:rounded-md stg:bg-destructive-subtle stg:px-3 stg:py-2 stg:text-xs stg:text-destructive">
           {error}
         </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -418,125 +327,14 @@ function threadWaits(thread: Thread): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Subagent status mapping
+// Subagent state words
 // ---------------------------------------------------------------------------
 
-interface SubagentStatusInfo {
-  label: string;
-  colorClass: string;
-  phase: StatusPhase;
-  icon: () => React.JSX.Element;
-}
-
-const SUB_AGENT_STATUS_MAP: Record<Thread["state"], SubagentStatusInfo> = {
-  running: {
-    label: "Running",
-    colorClass: "stg:text-foreground",
-    phase: "running",
-    // Sized up to match this map's 12px siblings (the glyph defaults to 10).
-    icon: () => <SpinnerIcon size={12} />,
-  },
-  completed: {
-    label: "Completed",
-    colorClass: "stg:text-status-ready",
-    phase: "ready",
-    icon: CheckCircleIcon,
-  },
-  failed: {
-    label: "Failed",
-    colorClass: "stg:text-destructive",
-    phase: "failed",
-    icon: XCircleIcon,
-  },
+/** A subagent's state in words, for the group's accessible name. */
+const STATE_WORDS: Record<Thread["state"], string> = {
+  running: "Running",
+  completed: "Completed",
+  failed: "Failed",
   // Its turn ended before the subagent finished.
-  stopped: {
-    label: "Stopped",
-    colorClass: "stg:text-muted-foreground",
-    phase: "disabled",
-    icon: XCircleIcon,
-  },
+  stopped: "Stopped",
 };
-
-// ---------------------------------------------------------------------------
-// Inline SVG icons
-// ---------------------------------------------------------------------------
-
-function CheckCircleIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="6" cy="6" r="4.5" />
-      <path d="M4 6L5.5 7.5L8 4.5" />
-    </svg>
-  );
-}
-
-function XCircleIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="6" cy="6" r="4.5" />
-      <path d="M4.5 4.5L7.5 7.5M7.5 4.5L4.5 7.5" />
-    </svg>
-  );
-}
-
-function BotIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect x="2" y="6" width="12" height="8" rx="2" />
-      <path d="M5.5 10H5.51M10.5 10H10.51" strokeWidth="2" />
-      <path d="M8 2V6" />
-      <circle cx="8" cy="1.5" r="1" />
-      <path d="M0.5 9.5H2M14 9.5H15.5" />
-    </svg>
-  );
-}
-
-
-function ChevronIcon({ expanded }: { expanded: boolean }) {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={cn(
-        "stg:shrink-0 stg:text-muted-foreground stg:transition-transform stg:duration-150",
-        expanded && "stg:rotate-90",
-      )}
-      aria-hidden="true"
-    >
-      <path d="M4.5 2.5L7.5 6L4.5 9.5" />
-    </svg>
-  );
-}

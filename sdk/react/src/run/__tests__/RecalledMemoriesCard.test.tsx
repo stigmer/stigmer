@@ -1,5 +1,5 @@
-// The retriever transparency card (stigmer/stigmer#293): an honest
-// "Recalled N of M memories" join of the turn's memory recall (the
+// The retriever transparency line (stigmer/stigmer#293): an honest
+// "Recalled N memories" join of the turn's memory recall (the
 // `stigmer.memory.recalled` event, folded as `Turn.memory`) against the
 // run's snapshot — and NOTHING for wholesale, the majority case that must
 // stay noise-free.
@@ -75,12 +75,12 @@ describe("RecalledMemoriesCard", () => {
     expect(container.innerHTML).toBe("");
   });
 
-  it("summarizes the selection with the wire count and the embedding model", () => {
+  it("summarizes the selection with the wire count, the embedding model behind the disclosure", () => {
     const report = makeReport({ injectedMemoryIds: ["mem_a", "mem_c"] });
     render(<RecalledMemoriesCard recall={report} facts={SNAPSHOT} />);
 
-    expect(screen.getByRole("status", { name: "Recalled 2 of 4 memories" })).toBeTruthy();
-    expect(screen.getByText("text-embedding-3-small")).toBeTruthy();
+    expect(screen.getByRole("status", { name: "Recalled 2 memories" })).toBeTruthy();
+    expect(screen.queryByText(/text-embedding-3-small/)).toBeNull();
     // Collapsed by default: the facts are behind the disclosure.
     expect(screen.queryByText("Prefers concise answers.")).toBeNull();
   });
@@ -91,13 +91,13 @@ describe("RecalledMemoriesCard", () => {
     const user = userEvent.setup();
 
     const toggle = screen.getByRole("button", { expanded: false });
-    expect(toggle.getAttribute("aria-controls")).toBeTruthy();
 
     await user.click(toggle);
 
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
     const items = screen.getAllByRole("listitem").map((li) => li.textContent);
     expect(items).toEqual(["Prefers concise answers.", "Deploys with Bazel."]);
+    expect(screen.getByText("Chosen by text-embedding-3-small")).toBeTruthy();
     // Non-injected snapshot facts never render.
     expect(screen.queryByText("Works in the Europe/Berlin timezone.")).toBeNull();
 
@@ -113,7 +113,7 @@ describe("RecalledMemoriesCard", () => {
     const report = makeReport({ injectedMemoryIds: ["mem_b", "mem_ghost"] });
     render(<RecalledMemoriesCard recall={report} facts={SNAPSHOT} />);
 
-    expect(screen.getByRole("status", { name: "Recalled 2 of 4 memories" })).toBeTruthy();
+    expect(screen.getByRole("status", { name: "Recalled 2 memories" })).toBeTruthy();
     await userEvent.setup().click(screen.getByRole("button"));
     expect(screen.getAllByRole("listitem")).toHaveLength(1);
   });

@@ -223,12 +223,14 @@ describe("SessionViewer — a shared conversation", () => {
     expect(offersUndo()).toBe(false);
   });
 
-  it("tells a participant whom a pending decision waits on", () => {
+  it("hands the thread the owner's name, so a participant's waiting step says whom it waits on", () => {
     access.canDecide = false;
     stubConv.asks = [{ id: "call_1" }];
     render(<SessionViewer sessionId="ses_1" org="acme" />);
 
-    expect(screen.getByText("Waiting for Bob Owner to approve")).toBeTruthy();
+    expect(threadProps.at(-1)!.approverName).toBe("Bob Owner");
+    // The line that floated above the composer is gone: the waiting step says it.
+    expect(screen.queryByText("Waiting for Bob Owner to approve")).toBeNull();
   });
 
   it("tells a participant the turn waits for an answer, with no Stop and no auto-approve switch", () => {

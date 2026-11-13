@@ -17,7 +17,7 @@ import { useFileContent } from "../file/useFileContent.js";
 import { useBuildFromPlanHotkey } from "../run/use-build-from-plan-hotkey.js";
 import type { SessionPlan } from "../library/detect-plan-file.js";
 import type { PlanDraftController } from "./usePlanDraft.js";
-import { formatFileSize } from "../file/file-size.js";
+import { PlanCardHeader, planSubline } from "../run/PlanCard.js";
 
 /** Props for {@link PlanEditor}. */
 export interface PlanEditorProps {
@@ -35,8 +35,8 @@ export interface PlanEditorProps {
   readonly buildDisabled?: boolean;
   /**
    * Renders the plan as a historical, read-only document: no Edit view, no
-   * Build action, and a "superseded" notice. Used when the user opens a plan
-   * that a newer plan has since replaced.
+   * Build action, and a header that says "Replaced by a newer plan". Used
+   * when the user opens a plan that a newer plan has since replaced.
    */
   readonly readOnly?: boolean;
 }
@@ -48,9 +48,14 @@ type PlanEditorView = "rendered" | "source" | "edit";
  * successor of the retired Plan sidebar facet, mounted as a virtual document
  * (`SurfaceVirtualDocument`) under the {@link PLAN_DOCUMENT_ENTRY_ID} tab.
  *
+ * The header is the thread's plan card header: the list glyph, the plan's
+ * title (lifted from the leading H1, else "Plan") over "Plan · 4.1 KB", or
+ * "Replaced by a newer plan" for a read-only plan, with Edited, Revert and
+ * Build at the right.
+ *
  * Three views over one text:
  * - **Rendered** — the plan as a document (same typography as the thread's
- *   plan rendering, title lifted from the leading H1).
+ *   plan rendering, its title in the header).
  * - **Source** — the raw markdown.
  * - **Edit** — a plain-textarea editor over a LOCAL draft
  *   ({@link PlanDraftController}); the plan File is never mutated.
@@ -96,6 +101,10 @@ export function PlanEditor({
   // a truncated plan only keeps it while an existing draft needs rescuing.
   const canEdit = activeDraft !== undefined && (!isTruncated || activeDraft.isEdited);
   const activeView: PlanEditorView = view === "edit" && !canEdit ? "rendered" : view;
+  const parsed = useMemo(
+    () => (effectiveText === null ? null : extractLeadingH1(unwrapEnclosingMarkdownFence(effectiveText, true))),
+    [effectiveText],
+  );
 
   if (isLoading) {
     return (
@@ -105,7 +114,7 @@ export function PlanEditor({
     );
   }
 
-  if (error || effectiveText === null) {
+  if (error || effectiveText === null || parsed === null) {
     return (
       <PlanEditorFrame>
         <div className="stg:px-4 stg:py-4">
@@ -121,10 +130,43 @@ export function PlanEditor({
 
   return (
     <PlanEditorFrame onKeyDown={handleKeyDown}>
-      {/* Toolbar: view tabs lead; state + the one primary action trail.
-          Narrow panes are first-class: rows wrap (flex-wrap) and every item
-          can shrink (min-w-0 + truncating labels), so the toolbar reflows
-          instead of forcing the document pane to scroll sideways. */}
+      <PlanCardHeader
+        as="header"
+        title={parsed.title ?? "Plan"}
+        subline={planSubline(readOnly ? "replaced" : "ready", plan.file.status?.sizeBytes)}
+        acts={
+          activeDraft?.isEdited || canBuild ? (
+            <span className="stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-3">
+              {activeDraft?.isEdited && (
+                <span className="stg:inline-flex stg:items-center stg:gap-2">
+                  <StatusBadge phase="draft" label="Edited" />
+                  <Button variant="ghost" size="xs" onClick={() => activeDraft.setDraft(null)}>
+                    Revert
+                  </Button>
+                </span>
+              )}
+              {canBuild && (
+                <Button
+                  size="sm"
+                  disabled={buildDisabled}
+                  onClick={onBuildFromPlan}
+                  icon={<ImplementIcon />}
+                  className="stg:min-w-0 stg:shrink"
+                >
+                  <span className="stg:truncate">
+                    {buildDisabled ? "Starting build…" : "Build"}
+                  </span>
+                </Button>
+              )}
+            </span>
+          ) : undefined
+        }
+      />
+
+      {/* Toolbar: the view tabs. Narrow panes are first-class: rows wrap
+          (flex-wrap) and every item can shrink (min-w-0 + truncating
+          labels), so the toolbar reflows instead of forcing the document
+          pane to scroll sideways. */}
       <div className="stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-2">
         <div
           className="stg:inline-flex stg:shrink-0 stg:rounded-md stg:bg-muted stg:p-0.5"
@@ -150,9 +192,6 @@ export function PlanEditor({
             />
           )}
         </div>
-        <span className="stg:text-2xs stg:tabular-nums stg:text-muted-foreground">
-          {formatFileSize(plan.file.status?.sizeBytes ?? BigInt(0))}
-        </span>
         {/* The reason the Edit tab is disabled must be visible text: a
             disabled tab leaves the tab order and drops pointer events, so
             no hover- or focus-dependent hint can ever reach the user who
@@ -162,39 +201,9 @@ export function PlanEditor({
             This plan is too large to edit in place — download it instead.
           </span>
         )}
-
-        <div className="stg:ml-auto stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-3">
-          {activeDraft?.isEdited && (
-            <span className="stg:inline-flex stg:items-center stg:gap-2">
-              <StatusBadge phase="draft" label="Edited" />
-              <Button variant="ghost" size="xs" onClick={() => activeDraft.setDraft(null)}>
-                Revert
-              </Button>
-            </span>
-          )}
-          {readOnly ? (
-            <span role="status" className="stg:inline-flex">
-              <StatusBadge phase="disabled" label="Superseded by a newer plan" />
-            </span>
-          ) : (
-            onBuildFromPlan && (
-              <Button
-                size="xs"
-                disabled={buildDisabled}
-                onClick={onBuildFromPlan}
-                icon={<ImplementIcon />}
-                className="stg:min-w-0 stg:shrink"
-              >
-                <span className="stg:truncate">
-                  {buildDisabled ? "Starting build…" : "Build"}
-                </span>
-              </Button>
-            )
-          )}
-        </div>
       </div>
 
-      {activeView === "rendered" && <RenderedPlan text={effectiveText} />}
+      {activeView === "rendered" && <RenderedPlan body={parsed.body} />}
       {activeView === "source" && (
         <pre className="stg:overflow-x-auto stg:rounded-md stg:bg-muted stg:p-3 stg:font-mono stg:text-xs stg:whitespace-pre-wrap stg:text-foreground">
           {effectiveText}
@@ -248,25 +257,13 @@ function PlanEditorFrame({
 }
 
 /**
- * The plan document: title lifted from the leading H1, body in the shared
- * plan-document typography — identical treatment to the thread's plan
+ * The plan document: its body (the title is the editor's header) in the
+ * shared plan-document typography — identical treatment to the thread's plan
  * rendering, so the plan reads the same on every surface.
  */
-function RenderedPlan({ text }: { readonly text: string }) {
-  const { title, body } = useMemo(
-    () => extractLeadingH1(unwrapEnclosingMarkdownFence(text, true)),
-    [text],
-  );
-
+function RenderedPlan({ body }: { readonly body: string }) {
   return (
     <div className="stg:overflow-hidden stg:rounded-lg stg:border stg:border-border-muted stg:bg-card">
-      {title && (
-        <header className="stg:border-b stg:border-border-muted stg:bg-muted-faint stg:px-4 stg:py-2.5">
-          <span className="stg:block stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">
-            {title}
-          </span>
-        </header>
-      )}
       <div className="stgm-prose stg:px-4 stg:py-4">
         <Markdown
           remarkPlugins={REMARK_PLUGINS}

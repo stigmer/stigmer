@@ -169,7 +169,6 @@ describe("ThreadItemRenderer", () => {
   it("renders a setup progress item", () => {
     const item: ThreadItem = {
       kind: "setup-progress",
-      resources: [],
       key: "setup",
     };
 
