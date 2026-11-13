@@ -31,10 +31,6 @@ vi.mock("../../run/MessageThread", () => ({
   MessageThread: () => <div data-testid="thread-probe" />,
 }));
 
-vi.mock("../../run/FileReviewDock", () => ({
-  FileReviewDock: () => <div data-testid="file-review-dock-probe" />,
-}));
-
 // SetupTab renders for real: the facet switch is asserted through its
 // actual DOM (a switch labeled "Auto-approve" in the Run Config section),
 // reached by opening the panel and selecting the Config rail view.

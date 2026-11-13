@@ -255,12 +255,6 @@ export type {
   ApprovalCardBodyProps,
 } from "./ApprovalCard.js";
 
-export { FileReviewCard } from "./FileReviewCard.js";
-export type { FileReviewCardProps } from "./FileReviewCard.js";
-
-export { FileReviewDock } from "./FileReviewDock.js";
-export type { FileReviewDockProps } from "./FileReviewDock.js";
-
 export { FileChangeProgressBar } from "./FileChangeProgressBar.js";
 export type { FileChangeProgressBarProps } from "./FileChangeProgressBar.js";
 

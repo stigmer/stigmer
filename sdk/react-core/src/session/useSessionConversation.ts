@@ -428,8 +428,8 @@ export interface UseSessionConversationReturn {
   /** Decision keys ({@link fileDecisionKey}) currently being submitted. */
   readonly submittingFileDecisionKeys: ReadonlySet<string>;
   /**
-   * Per-decision failures, keyed by {@link fileDecisionKey} — surfaced in-card
-   * by {@link FileReviewCard} beside the failed control.
+   * Per-decision failures, keyed by {@link fileDecisionKey}: the React kit's
+   * session viewer says Couldn't undo on the file, with Try again.
    */
   readonly fileDecisionErrors: ReadonlyMap<string, Error>;
   /** Clear the error for one decision key (e.g. before a retry of that target). */

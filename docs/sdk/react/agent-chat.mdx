@@ -24,6 +24,7 @@ conversation, as a page, a docked panel or a corner popup.
     defaultOpen: { type: "boolean", description: "Whether the panel or popup starts open, when open is not controlled. Defaults to `false` for the popup, `true` for the panel." },
     defaultSessionId: { type: "string | null", description: "The conversation to show first, when sessionId is not controlled." },
     enableGitHub: { type: "boolean", description: "Whether a conversation can work on GitHub repositories." },
+    fileReview: { type: "boolean", description: "Whether each turn's file edits are recorded so your user can undo them after the turn. Off by default for an app's users (`audience=\"endUser\"`) and chat-link guests, on for `\"integrator\"`: the edits apply as they are made either way. Pass `fileReview` to offer Undo to your users." },
     heading: { type: "string", description: "The heading above the first message's box." },
     includeMyVault: { type: "boolean", description: "Whether the conversation reads the sender's own My vault (see `NewSessionViewer`)." },
     inspector: { type: "ReactElement<SessionInspectorProps, string | JSXElementConstructor<any>>", description: "The inspector, for the page frame only (see `SessionInspector`)." },

@@ -84,7 +84,8 @@ const NO_DECISION_ERRORS: ReadonlyMap<string, Error> = new Map();
  * session's events (`FileReviewSet`).
  *
  * Platform builders who render their own review UI use this hook directly;
- * {@link FileReviewCard} takes the decision callback it produces.
+ * the React kit's session viewer sends its Undo through the same call
+ * (`useSessionConversation().reviewFileChanges`).
  *
  * @example
  * ```tsx

@@ -458,7 +458,7 @@ export function normalizeToolResult(tool: ToolViewInput): ToolResultView {
 function normalizeEdit(args: Args): ToolResultView {
   // The inline transcript diff for a file edit is reconstructed from the tool
   // args (there is no captured `file_changes` mirror — apply-then-review renders
-  // captured diffs via FileReviewCard/FileChangeDiff, not here). The Stigmer
+  // captured diffs via FileChangeDiff, not here). The Stigmer
   // and Claude engines return prose with no diff, so the presentation layer
   // computes the visual diff from the args fragments.
   const path = firstString(args, PATH_FIELDS) ?? "";
@@ -469,7 +469,7 @@ function normalizeEdit(args: Args): ToolResultView {
 
 function normalizeWrite(args: Args): ToolResultView {
   // The inline transcript view for a file write is the proposed content from the
-  // tool args (captured diffs render via FileReviewCard, not here).
+  // tool args (captured diffs render via FileChangeDiff, not here).
   const path = firstString(args, PATH_FIELDS) ?? "";
   const content = firstString(args, WRITE_CONTENT_FIELDS) ?? "";
   return { type: "file", path, content, language: languageFromPath(path), truncated: false };

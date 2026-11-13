@@ -47,13 +47,14 @@ describe("TurnOutcome sizes", () => {
             samples.outputFile("notes.md", { sizeBytes: 2_048n }),
           ],
           changes: [],
+          reviewSets: [],
           estimatedCostUsd: undefined,
         }}
         onOpenFile={() => {}}
       />,
     );
-    const cards = screen.getAllByRole("button").map((card) => card.textContent);
-    expect(cards).toEqual(["empty.txtText", "note.txtText · 512 B", "deck.pdfPDF · 3.0 MB", "notes.mdMarkdown · 2.0 KB"]);
+    const cards = screen.getAllByRole("button").map((card) => card.getAttribute("aria-label"));
+    expect(cards).toEqual(["empty.txt Text", "note.txt Text · 512 B", "deck.pdf PDF · 3.0 MB", "notes.md Markdown · 2.0 KB"]);
   });
 });
 

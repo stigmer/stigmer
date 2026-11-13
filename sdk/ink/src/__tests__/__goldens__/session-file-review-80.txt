@@ -4,7 +4,8 @@
  Invoices are off by a cent. Can you fix the rounding?
 
  Agent
- I changed two files; review them before keeping.
+ Invoices now round once, at the total. I added a rounding helper and used it in
+  invoice.ts.
 
 ╭──────────────────────────────────────────────────────────────────────────────╮
 │                                                                              │

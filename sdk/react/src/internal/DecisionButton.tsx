@@ -73,9 +73,8 @@ const VARIANT: Record<DecisionVariant, string> = {
 };
 
 /**
- * The shared decision-action button for every approval surface — the agent
- * tool gate ({@link ApprovalCard}) and the file-review card
- * ({@link FileReviewCard}).
+ * The shared decision-action button for every approval surface, starting
+ * with the agent tool gate ({@link ApprovalCard}).
  *
  * One source of truth for the quiet, Cursor-grade button system so the
  * surfaces can never visually drift, and so the spinner and base chrome live in

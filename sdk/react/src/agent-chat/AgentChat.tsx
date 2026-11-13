@@ -125,6 +125,13 @@ export interface AgentChatProps {
   /** Whether the conversation reads the sender's own My vault (see `NewSessionViewer`). */
   readonly includeMyVault?: boolean;
   /**
+   * Whether each turn's file edits are recorded so your user can undo them
+   * after the turn. Off by default for an app's users (`audience="endUser"`)
+   * and chat-link guests, on for `"integrator"`: the edits apply as they are
+   * made either way. Pass `fileReview` to offer Undo to your users.
+   */
+  readonly fileReview?: boolean;
+  /**
    * Called when the first message could not be sent, after the chat shows
    * the message under its box.
    */
@@ -165,6 +172,7 @@ export function AgentChat({
   placeholder,
   enableGitHub,
   includeMyVault,
+  fileReview,
   onError,
   className,
 }: AgentChatProps) {
@@ -255,6 +263,7 @@ export function AgentChat({
         placeholder={placeholder}
         enableGitHub={enableGitHub}
         includeMyVault={includeMyVault}
+        fileReview={fileReview}
         // A panel or popup never takes focus from the host's page by itself.
         autoFocus={variant === "page"}
         onSessionCreated={handleCreated}

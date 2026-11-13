@@ -10,8 +10,7 @@ import { useRoles } from "../theme.js";
  *
  * The change-kind marker is deliberately NOT here: the terminal renders kind via
  * the pure `kindLetter` helper (in `file-review.ts`), already shared across every
- * surface. The web needs a `FileKindBadge` component because its marker carries
- * per-kind color tokens and a11y labels; a plain letter needs neither.
+ * surface. (The web kit says a file's kind in words, "New" or "Deleted".)
  */
 
 /**

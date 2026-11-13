@@ -10,6 +10,8 @@ import { act, render, screen, cleanup, fireEvent } from "@testing-library/react"
 // maps to: a locked agent, unwired MCP/skill/vault pickers, and a
 // read-only Config facet. The Config facet lives in the session panel's rail,
 // so the probe is reached by opening the panel (chip) and picking Config.
+// NewSessionViewer forwards the host's `fileReview` to the flow, and a
+// guest's SessionViewer offers no Undo on a turn's changed files.
 // The molecules' own behavior is covered by their co-located tests.
 // ---------------------------------------------------------------------------
 
@@ -37,10 +39,6 @@ vi.mock("../facets/SetupTab", () => ({
     setupTabProps.push(props);
     return <div data-testid="run-config-probe" />;
   },
-}));
-
-vi.mock("../../run/FileReviewDock", () => ({
-  FileReviewDock: () => <div data-testid="file-review-dock-probe" />,
 }));
 
 const threadProps: CapturedProps[] = [];
@@ -222,6 +220,7 @@ vi.mock("@stigmer/react-core", async (importOriginal) => ({
 
 import { samples } from "../../test";
 import type { Turn } from "@stigmer/client";
+import { renderOutcomeOf, undecidedTurn } from "./__fixtures__/undecided-turn";
 import { NewSessionViewer } from "../NewSessionViewer";
 import { SessionViewer } from "../SessionViewer";
 
@@ -380,6 +379,15 @@ describe("NewSessionViewer — audience wiring", () => {
 
     expect(mockUseNewSessionFlow).toHaveBeenCalledWith(expect.objectContaining({ includeMyVault: includes }));
     expect(lastComposerProps().initialIncludeMyVault).toBe(includes);
+  });
+
+  it("forwards the host's fileReview to the flow, and leaves it to the audience's default when unset", () => {
+    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} audience="endUser" initialAgentRef={AGENT_REF} fileReview />);
+    expect(mockUseNewSessionFlow).toHaveBeenLastCalledWith(expect.objectContaining({ fileReview: true, audience: "endUser" }));
+    cleanup();
+
+    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} audience="endUser" initialAgentRef={AGENT_REF} />);
+    expect(mockUseNewSessionFlow).toHaveBeenLastCalledWith(expect.objectContaining({ fileReview: undefined }));
   });
 
   it("guest: pure chat — every picker hidden, file uploads and workspace off", () => {
@@ -620,14 +628,22 @@ describe("SessionViewer — audience wiring", () => {
   });
 
   it("withholds the calls a guest credential is refused: no build from a plan, no file decisions (stigmer#1481)", () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" audience="guest" />);
-    expect(threadProps.at(-1)!.onBuildFromPlan).toBeUndefined();
-    expect(screen.queryByTestId("file-review-dock-probe")).toBeNull();
+    const turn = undecidedTurn("run_1");
+    stubConv.turns = [turn];
+    try {
+      render(<SessionViewer sessionId="ses_1" org="acme" audience="guest" />);
+      expect(threadProps.at(-1)!.onBuildFromPlan).toBeUndefined();
+      renderOutcomeOf(threadProps.at(-1)!, turn);
+      expect(screen.queryByRole("button", { name: "Undo a.ts" })).toBeNull();
 
-    cleanup();
-    render(<SessionViewer sessionId="ses_1" org="acme" />);
-    expect(threadProps.at(-1)!.onBuildFromPlan).toBeDefined();
-    expect(screen.getByTestId("file-review-dock-probe")).toBeTruthy();
+      cleanup();
+      render(<SessionViewer sessionId="ses_1" org="acme" />);
+      expect(threadProps.at(-1)!.onBuildFromPlan).toBeDefined();
+      renderOutcomeOf(threadProps.at(-1)!, turn);
+      expect(screen.getByRole("button", { name: "Undo a.ts" })).toBeTruthy();
+    } finally {
+      stubConv.turns = [];
+    }
   });
 
   it("renders a used-up agent hours refusal with the link to the plans", async () => {

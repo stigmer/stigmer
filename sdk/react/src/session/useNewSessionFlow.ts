@@ -16,7 +16,7 @@ import { useCreateRun } from "@stigmer/react-core";
 import { useExecutionTarget } from "@stigmer/react-core/internal";
 import { useApprovalDefaults } from "../approval-defaults-context.js";
 import { useRunnerAdapter } from "@stigmer/react-core";
-import { includesMyVaultByDefault, type SessionAudience } from "./audience.js";
+import { fileReviewByDefault, includesMyVaultByDefault, type SessionAudience } from "./audience.js";
 import { assertValidRunConfig, type SessionRunConfig } from "./run-config.js";
 import {
   agentHarnessOf,
@@ -80,6 +80,14 @@ export interface UseNewSessionFlowOptions {
    * link's vaults are what its runs use.
    */
   readonly includeMyVault?: boolean;
+  /**
+   * Whether the created conversation records each turn's file edits so the
+   * person can undo them after the turn (the session's `file_review`). The
+   * edits apply as they are made either way. Defaults to on for the
+   * `"integrator"` audience (the Console, the desktop app) and off for
+   * `"endUser"` and `"guest"`; a conversation keeps what it started with.
+   */
+  readonly fileReview?: boolean;
   /**
    * Shared vaults the created conversation uses, in order, after the
    * sender's My vault when it is included. A pick the person makes in the
@@ -364,6 +372,7 @@ export function useNewSessionFlow(
     onSessionCreated,
     onError,
     includeMyVault: includeMyVaultOption,
+    fileReview: fileReviewOption,
     vaults: vaultsOption,
     defaultHarness,
     metadata,
@@ -657,9 +666,10 @@ export function useNewSessionFlow(
           // The person's pick only; left empty, the server resolves the
           // agent's default, else the organization's.
           environmentRef: offersEnvironment ? pick?.environmentRef : undefined,
-          // The console offers each turn's edits for Keep and Undo after
-          // the turn; every other client leaves review off.
-          fileReview: true,
+          // Each turn's edits are recorded for Undo where the audience
+          // edits its own work (the Console, the desktop app) unless the
+          // host says otherwise; off is the wire default.
+          fileReview: (fileReviewOption ?? fileReviewByDefault(options.audience ?? "integrator")) || undefined,
           // The typed-wins merge happens downstream in useCreateRun;
           // both fields are forwarded verbatim here.
           metadata,
@@ -764,6 +774,7 @@ export function useNewSessionFlow(
       autoApproveAll,
       adapter,
       includeMyVaultOption,
+      fileReviewOption,
       vaultsOption,
       options.audience,
       effectiveModelId,

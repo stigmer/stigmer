@@ -1,27 +1,24 @@
+/**
+ * Wiring-contract tests for where SessionViewer lets a turn's edits be seen
+ * and undone. A finished turn's changed files show once, in its outcome's
+ * "Changed" group: the owner gets Undo there on the newest turn only, routed
+ * through conv's `reviewFileChanges` as an undo; an older turn, a
+ * participant, an observer and a guest (whose credential is refused file
+ * decisions, stigmer#1481) get none. While a turn works, the files-changing
+ * strip sits above the composer, and the thread carries no file-review
+ * records or decision props. The thread and composer are prop-capturing
+ * probes; the outcome is drawn from the render prop the thread receives.
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  CapturedFileChangeSchema,
   FileChangeProgressSchema,
   FileChangeProgressEntrySchema,
-  FileChangeSetSchema,
-  type FileChangeSet,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
-import {
-  FileCaptureClass,
-  FileChangeKind,
-} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import type { FileReviewSet } from "@stigmer/client";
-
-// ---------------------------------------------------------------------------
-// Wiring-contract tests for the file-review surfaces on SessionViewer:
-// the pending decision bar renders in the composer-docked FileReviewDock
-// (fed from conv's file reviews, with the runs' captures, and deciding
-// through conv's reviewFileChanges), and the thread is records-only
-// (`showFileReviewRecords`, no decision callbacks). The dock renders REAL —
-// it is the subject; the thread/composer/inspector are prop-capturing probes.
-// ---------------------------------------------------------------------------
+import { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Turn } from "@stigmer/client";
+import { renderOutcomeOf, undecidedTurn } from "./__fixtures__/undecided-turn";
 
 type CapturedProps = Record<string, unknown>;
 
@@ -50,48 +47,6 @@ const stubWorkspace = {
   removeEntry: vi.fn(),
   clear: vi.fn(),
 };
-
-/** A turn's undecided file review, one added file, as the session's fold holds it. */
-function pendingChangeSet(id: string): FileReviewSet {
-  return {
-    changeSetId: id,
-    runId: "run_1",
-    aggregateDigest: `agg-${id}`,
-    files: [
-      {
-        fileChangeId: `${id}:notes.md`,
-        path: "notes.md",
-        previousPath: "",
-        change: "added",
-        digest: "d-notes",
-        linesAdded: 1,
-        linesRemoved: 0,
-        reviewable: "complete",
-        state: "undecided",
-        decidedBy: "",
-      },
-    ],
-    decisions: [],
-    reconciles: [],
-    undecided: true,
-    processedAt: "",
-  };
-}
-
-/** The run's capture of that review's file: it was captured outside git tracking. */
-function capturedSet(id: string): FileChangeSet {
-  return create(FileChangeSetSchema, {
-    id,
-    changes: [
-      create(CapturedFileChangeSchema, {
-        id: `${id}:notes.md`,
-        pathAfter: "notes.md",
-        kind: FileChangeKind.ADD,
-        captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED,
-      }),
-    ],
-  });
-}
 
 function progressSnapshot() {
   return create(FileChangeProgressSchema, {
@@ -123,7 +78,7 @@ const stubConv = {
   session: { spec: {} },
   isLoading: false,
   loadError: null,
-  turns: [],
+  turns: [] as Turn[],
   runs: [],
   activeTurn: null,
   activeRun: null,
@@ -142,8 +97,8 @@ const stubConv = {
   asks: [],
   answerToolUse: vi.fn(),
   answeringToolUseIds: new Set<string>(),
-  fileReviewSets: [] as FileReviewSet[],
-  fileChangeCaptures: new Map<string, FileChangeSet>(),
+  fileReviewSets: [],
+  fileChangeCaptures: new Map(),
   fileChangeProgress: undefined as ReturnType<typeof progressSnapshot> | undefined,
   reviewFileChanges: vi.fn(),
   submittingFileDecisionKeys: new Set<string>(),
@@ -203,8 +158,9 @@ vi.mock("../useTurnEndingWiring", () => ({
   }),
 }));
 
+const access = { canSend: true, canDecide: true };
 vi.mock("../useSessionAccess", () => ({
-  useSessionAccess: () => ({ canSend: true, canDecide: true }),
+  useSessionAccess: () => access,
 }));
 
 vi.mock("@stigmer/react-core", async (importOriginal) => ({
@@ -220,10 +176,11 @@ import { SessionViewer } from "../SessionViewer";
 
 beforeEach(() => {
   threadProps.length = 0;
-  stubConv.fileReviewSets = [];
-  stubConv.fileChangeCaptures = new Map();
+  access.canSend = true;
+  access.canDecide = true;
+  stubConv.turns = [];
   stubConv.fileChangeProgress = undefined;
-  stubConv.reviewFileChanges = vi.fn();
+  stubConv.reviewFileChanges = vi.fn().mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -231,50 +188,58 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe("SessionViewer — file-review dock wiring", () => {
-  it("renders no dock when nothing is pending", () => {
+function lastThreadProps(): Record<string, unknown> {
+  expect(threadProps.length).toBeGreaterThan(0);
+  return threadProps.at(-1)!;
+}
+
+describe("SessionViewer — Undo on a turn's changed files", () => {
+  const older = undecidedTurn("run_1");
+  const newest = undecidedTurn("run_2");
+
+  it("offers the owner Undo on the newest turn, routed to conv's reviewFileChanges as an undo", () => {
+    stubConv.turns = [older, newest];
     render(<SessionViewer sessionId="ses_1" org="acme" />);
-    expect(
-      document.querySelector('[data-cursor-target="file-review-dock"]'),
-    ).toBeNull();
+    renderOutcomeOf(lastThreadProps(), newest);
+
+    fireEvent.click(screen.getByRole("button", { name: "Undo a.ts" }));
+    expect(stubConv.reviewFileChanges).toHaveBeenCalledWith("cs-run_2", "undo", {
+      scope: "file",
+      fileChangeId: "run_2:a.ts",
+      expectedDigest: "d-run_2",
+    });
   });
 
-  it("docks a pending set above the composer, wired to conv's decision seam", () => {
-    stubConv.fileReviewSets = [pendingChangeSet("cs-1")];
-    stubConv.fileChangeCaptures = new Map([["cs-1", capturedSet("cs-1")]]);
+  it("offers no Undo on an older turn", () => {
+    stubConv.turns = [older, newest];
     render(<SessionViewer sessionId="ses_1" org="acme" />);
+    renderOutcomeOf(lastThreadProps(), older);
 
-    const dock = document.querySelector('[data-cursor-target="file-review-dock"]');
-    expect(dock).toBeTruthy();
-    expect(screen.getByText("Review file changes")).toBeTruthy();
-
-    // The dock sits in the fixed strip: a sibling of the composer probe,
-    // ordered before it (pinned directly above the input).
-    const composer = screen.getByTestId("composer-probe");
-    expect(dock!.parentElement).toBe(composer.parentElement);
-    expect(
-      dock!.compareDocumentPosition(composer) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-
-    // The run's capture reaches the dock: its file carries its provenance.
-    fireEvent.click(
-      document.querySelector<HTMLButtonElement>('[data-cursor-target="file-review-expander"]')!,
-    );
-    expect(screen.getByText("gitignored")).toBeTruthy();
-
-    // A decision routes through conv.reviewFileChanges with the set's id.
-    fireEvent.click(
-      document.querySelector<HTMLButtonElement>(
-        '[data-cursor-target="file-review-approve"]',
-      )!,
-    );
-    expect(stubConv.reviewFileChanges).toHaveBeenCalledWith(
-      "cs-1",
-      "keep",
-      expect.objectContaining({ scope: "change_set", expectedDigest: "agg-cs-1" }),
-    );
+    expect(screen.getAllByText("a.ts").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: /^Undo/ })).toBeNull();
   });
 
+  it("offers no Undo to a participant, an observer or a guest", () => {
+    stubConv.turns = [newest];
+    access.canDecide = false;
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    renderOutcomeOf(lastThreadProps(), newest);
+    expect(screen.getAllByText("a.ts").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: /^Undo/ })).toBeNull();
+    cleanup();
+
+    access.canDecide = true;
+    for (const audience of ["observer", "guest"] as const) {
+      render(<SessionViewer sessionId="ses_1" org="acme" audience={audience} />);
+      renderOutcomeOf(lastThreadProps(), newest);
+      expect(screen.getAllByText("a.ts").length, audience).toBeGreaterThan(0);
+      expect(screen.queryByRole("button", { name: /^Undo/ }), audience).toBeNull();
+      cleanup();
+    }
+  });
+});
+
+describe("SessionViewer — the files-changing strip and the thread", () => {
   it("renders no progress bar when no turn is capturing", () => {
     render(<SessionViewer sessionId="ses_1" org="acme" />);
     expect(
@@ -283,17 +248,12 @@ describe("SessionViewer — file-review dock wiring", () => {
   });
 
   it("shows the mid-run progress strip above the composer while a turn is capturing", () => {
-    // Progress is present (CAPTURING) and the dock is empty — the two are
-    // mutually exclusive per turn, so the strip stands in for the dock.
     stubConv.fileChangeProgress = progressSnapshot();
     render(<SessionViewer sessionId="ses_1" org="acme" />);
 
     const bar = document.querySelector('[data-cursor-target="file-change-progress-bar"]');
     expect(bar).toBeTruthy();
-    expect(screen.getByText(/2 files changing/)).toBeTruthy();
-    expect(
-      document.querySelector('[data-cursor-target="file-review-dock"]'),
-    ).toBeNull();
+    expect(screen.getByText("Changing 2 files")).toBeTruthy();
 
     // Pinned in the fixed strip, ordered before the composer input.
     const composer = screen.getByTestId("composer-probe");
@@ -303,16 +263,14 @@ describe("SessionViewer — file-review dock wiring", () => {
     ).toBeTruthy();
   });
 
-  it("gives the thread records-only file-review props (no decision callbacks)", () => {
+  it("gives the thread no file-review records or decision props", () => {
     render(<SessionViewer sessionId="ses_1" org="acme" />);
 
-    expect(threadProps.length).toBeGreaterThan(0);
-    const props = threadProps.at(-1)!;
-    expect(props.showFileReviewRecords).toBe(true);
+    const props = lastThreadProps();
+    expect(props.showFileReviewRecords).toBeUndefined();
     // The thread renders the conversation's turns, with their runs.
     expect(props.turns).toBe(stubConv.turns);
     expect(props.runs).toBe(stubConv.runs);
-    // The decision plumbing must not leak back into the thread.
     expect(props.onFileDecisionSubmit).toBeUndefined();
     expect(props.submittingFileDecisionKeys).toBeUndefined();
     expect(props.fileDecisionErrors).toBeUndefined();

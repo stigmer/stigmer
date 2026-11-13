@@ -1,8 +1,8 @@
 /**
  * MessageThread rendering from a session's folded turns and their runs:
- * file-review records (never a live turn's undecided set, read-only and in
- * list mode, the capture provenance read from the run's bytes, none
- * without the opt-in); the decision on a waiting tool use, inline on its row
+ * no file-change record or decision surface for a turn's change set, live
+ * or settled (a finished turn's files show in its "Changed" group); the
+ * decision on a waiting tool use, inline on its row
  * or on the bottom backstop card, routed through `onAnswerToolUse` with the
  * tool use's id (allow, deny with a reason), its failure shown in-card, and
  * absent without the handler; the conversation's messages, version and
@@ -18,17 +18,7 @@ import { render, screen, cleanup, fireEvent, within } from "@testing-library/rea
 import { create } from "@bufbuild/protobuf";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { LoadedVersionsSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
-import { FileContentSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  CapturedFileChangeSchema,
-  FileChangeSetSchema,
-} from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
-import {
-  DiffCompleteness,
-  FileCaptureClass,
-  FileChangeKind,
-  InteractionMode,
-} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Stigmer, Turn } from "@stigmer/client";
 import { StigmerContext } from "@stigmer/react-core";
@@ -89,7 +79,7 @@ afterEach(() => {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** A client no test reaches: the review card reads the run only when it shows diffs, which records never do. */
+/** A client no test reaches. */
 const CLIENT = {} as Stigmer;
 
 function renderThread(conv: { turns: readonly Turn[]; runs: Run[] }, props: Partial<MessageThreadProps> = {}) {
@@ -100,72 +90,22 @@ function renderThread(conv: { turns: readonly Turn[]; runs: Run[] }, props: Part
   );
 }
 
-/** A run's captured change set for `src/a.ts`, captured outside git tracking. */
-function capturedSet(id: string): ReturnType<typeof create<typeof FileChangeSetSchema>> {
-  return create(FileChangeSetSchema, {
-    id,
-    aggregateDigest: "agg-1",
-    diffCompleteness: DiffCompleteness.COMPLETE,
-    changes: [
-      create(CapturedFileChangeSchema, {
-        id: "fc-a",
-        pathBefore: "src/a.ts",
-        pathAfter: "src/a.ts",
-        kind: FileChangeKind.MODIFY,
-        captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED,
-        before: create(FileContentSchema, { body: { case: "inline", value: "old\n" } }),
-        after: create(FileContentSchema, { body: { case: "inline", value: "new\n" } }),
-        fileDigest: "d-a",
-        diffComplete: true,
-      }),
-    ],
-  });
-}
-
 const FILES = [{ id: "fc-a", path: "src/a.ts" }];
 
 // ---------------------------------------------------------------------------
-// File-review records
+// File changes stay off the thread
 // ---------------------------------------------------------------------------
 
-describe("MessageThread file-review records", () => {
-  it("never renders a live turn's undecided set — the composer-docked dock owns it", () => {
-    renderThread(conversation({ id: "live", phase: "running", reply: "Done.", extra: [changes("live", "cs1", FILES)] }), {
-      showFileReviewRecords: true,
-    });
-
+describe("MessageThread file changes", () => {
+  it("draws no file-change record or decision surface for a change set, live or settled", () => {
+    renderThread(conversation({ id: "live", phase: "running", reply: "Working.", extra: [changes("live", "cs1", FILES)] }));
+    expect(screen.queryByText("File changes")).toBeNull();
     expect(screen.queryByText("Review file changes")).toBeNull();
+    cleanup();
+
+    renderThread(conversation({ id: "done", reply: "Done.", extra: [changes("done", "cs1", FILES), decided("done", "cs1", "keep")] }));
     expect(screen.queryByText("File changes")).toBeNull();
-    expect(document.querySelector('[data-cursor-target="file-review-approve"]')).toBeNull();
-  });
-
-  it("renders a settled set as a read-only record in list mode, its provenance from the run's capture", () => {
-    const conv = conversation({ id: "done", reply: "Done.", extra: [changes("done", "cs1", FILES), decided("done", "cs1", "keep")] });
-    conv.runs[0]!.status!.fileChanges = [capturedSet("cs1")];
-
-    renderThread(conv, { showFileReviewRecords: true });
-
-    expect(screen.getByText("File changes")).toBeTruthy();
-    expect(document.querySelector('[data-cursor-target="file-review-approve"]')).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Show" }));
-    expect(document.querySelector('[data-cursor-target="file-diff"]')).toBeNull();
-    expect(document.querySelector('[data-cursor-target="file-review-list-row"]')).toBeTruthy();
-    expect(screen.getByText("gitignored")).toBeTruthy();
-    expect(screen.getByText("Kept")).toBeTruthy();
-  });
-
-  it("renders the record without provenance when no run holds the capture", () => {
-    renderThread({ turns: conversation({ id: "done", extra: [changes("done", "cs1", FILES)] }).turns, runs: [] }, { showFileReviewRecords: true });
-
-    fireEvent.click(screen.getByRole("button", { name: "Show" }));
-    expect(screen.getByRole("button", { name: /Copy path: src\/a\.ts/ })).toBeTruthy();
-    expect(screen.queryByText("gitignored")).toBeNull();
-  });
-
-  it("renders no records without showFileReviewRecords (default)", () => {
-    renderThread(conversation({ id: "done", extra: [changes("done", "cs1", FILES), decided("done", "cs1", "keep")] }));
-
-    expect(screen.queryByText("File changes")).toBeNull();
+    expect(document.querySelector('[data-cursor-target="file-review-list-row"]')).toBeNull();
   });
 });
 

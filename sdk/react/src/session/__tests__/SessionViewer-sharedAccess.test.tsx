@@ -3,15 +3,17 @@
  * it, as the server answers (`useSessionAccess`, stubbed per case):
  *
  *   - a viewer (no can_create_run_in) gets the observer presentation: no
- *     composer, no approval, edit or retry callbacks, no file-review dock,
+ *     composer, no approval, edit or retry callbacks, no Undo on a turn's
+ *     changed files,
  *     and a footer saying they are reading it and only its members reply;
  *   - a participant (can_create_run_in, not can_edit) keeps the composer
- *     and plan building, but stop, approvals, edits, file decisions and
- *     auto-approve are withheld, the agent and vaults are locked, and a
+ *     and plan building, but stop, approvals, edits, file decisions (Undo)
+ *     and auto-approve are withheld, the agent and vaults are locked, and a
  *     pending approval names the creator it waits on (file review holds no
  *     turn, so it names no one), and the header's pill says the turn waits
  *     for an answer, with no Stop on the composer;
- *   - an owner keeps every control: the amber pill says the turn waits for
+ *   - an owner keeps every control, Undo on the newest turn's changed files
+ *     included: the amber pill says the turn waits for
  *     them, and the composer's Stop stays in reach.
  *
  * The thread and composer are prop-capturing probes.
@@ -20,6 +22,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { conversationOf, scenarios } from "../../test";
+import { renderOutcomeOf, undecidedTurn } from "./__fixtures__/undecided-turn";
 
 type CapturedProps = Record<string, unknown>;
 
@@ -166,7 +169,19 @@ beforeEach(() => {
   access.canDecide = true;
   stubConv.asks = [];
   stubConv.fileReviewSets = [];
+  stubConv.turns = [];
 });
+
+/** The conversation's newest turn: it edited a file its review holds undecided. */
+const EDITED = undecidedTurn("run_1");
+
+/** Whether the outcome the thread draws for {@link EDITED} offers Undo. */
+function offersUndo(): boolean {
+  const { unmount } = renderOutcomeOf(threadProps.at(-1)!, EDITED);
+  const offered = screen.queryByRole("button", { name: "Undo a.ts" }) !== null;
+  unmount();
+  return offered;
+}
 
 afterEach(() => {
   cleanup();
@@ -177,6 +192,7 @@ describe("SessionViewer — a shared conversation", () => {
   it("gives a viewer a read-only transcript and says so", () => {
     access.canSend = false;
     access.canDecide = false;
+    stubConv.turns = [EDITED] as never;
     render(<SessionViewer sessionId="ses_1" org="acme" />);
 
     expect(screen.queryByTestId("composer-probe")).toBeNull();
@@ -186,10 +202,12 @@ describe("SessionViewer — a shared conversation", () => {
     expect(props.onEditMessage).toBeUndefined();
     expect(props.onRetrySend).toBeUndefined();
     expect(props.onBuildFromPlan).toBeUndefined();
+    expect(offersUndo()).toBe(false);
   });
 
   it("lets a participant send and build plans, but withholds the owners' controls", () => {
     access.canDecide = false;
+    stubConv.turns = [EDITED] as never;
     render(<SessionViewer sessionId="ses_1" org="acme" />);
 
     expect(screen.getByTestId("composer-probe")).toBeTruthy();
@@ -202,9 +220,7 @@ describe("SessionViewer — a shared conversation", () => {
     expect(thread.onAnswerToolUse).toBeUndefined();
     expect(thread.onEditMessage).toBeUndefined();
     expect(thread.onBuildFromPlan).toBeDefined();
-    expect(
-      document.querySelector('[data-cursor-target="file-review-dock"]'),
-    ).toBeNull();
+    expect(offersUndo()).toBe(false);
   });
 
   it("tells a participant whom a pending decision waits on", () => {
@@ -267,11 +283,13 @@ describe("SessionViewer — a shared conversation", () => {
 
   it("keeps every control for an owner", () => {
     stubConv.asks = [{ id: "call_1" }];
+    stubConv.turns = [EDITED] as never;
     render(<SessionViewer sessionId="ses_1" org="acme" />);
 
     expect(screen.queryByText(/Waiting for/)).toBeNull();
     const composer = composerProps.at(-1)!;
     expect(composer.onStop).toBeDefined();
     expect(threadProps.at(-1)!.onAnswerToolUse).toBeDefined();
+    expect(offersUndo()).toBe(true);
   });
 });
