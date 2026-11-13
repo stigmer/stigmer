@@ -43,8 +43,8 @@ function message(id: string, text: string, visionImages: readonly VisionImage[] 
   return { id, text, message: [], visionImages: [...visionImages], visionNotViewable: [] };
 }
 
-const PNG: VisionImage = { filename: "shot.png", mimeType: "image/png", base64: "iVBORw0KGgo=", byteSize: 8 };
-const JPEG: VisionImage = { filename: "photo.jpg", mimeType: "image/jpeg", base64: "/9j/4AAQ", byteSize: 6 };
+const PNG: VisionImage = { fileId: "file_shot", filename: "shot.png", mimeType: "image/png", base64: "iVBORw0KGgo=", byteSize: 8 };
+const JPEG: VisionImage = { fileId: "file_photo", filename: "photo.jpg", mimeType: "image/jpeg", base64: "/9j/4AAQ", byteSize: 6 };
 
 /** A runtime's side of one turn, recording what the input asks of it in order. */
 class FakeRuntime {

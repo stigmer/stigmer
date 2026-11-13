@@ -224,7 +224,7 @@ function everythingInput(shape: EverythingShape): TurnInput {
       message: [...(shape.messageFiles ?? MESSAGE_FILES)],
       conversation: CONVERSATION_FILES,
       references: [],
-      visionImages: [{ filename: "diagram.png", mimeType: "image/png", base64: "", byteSize: 4096 }],
+      visionImages: [{ fileId: "file_diagram", filename: "diagram.png", mimeType: "image/png", base64: "", byteSize: 4096 }],
       visionNotViewable: [{ path: ".stigmer/uploads/huge.png", reason: "too_large" }],
     },
     artifactStorage: makeInMemoryArtifactStorage().storage,

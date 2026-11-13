@@ -82,7 +82,7 @@ import type { ToolApprovalCategory } from "../../shared/tool-kind.js";
 import { visionPromptInfoOf } from "../../shared/prompt-sections.js";
 import { findApprovedPlanPath } from "../../shared/implement-plan-prompt.js";
 import type { RecalledMemoriesContent } from "../../shared/recalled-memories.js";
-import { toLangChainImageBlocks } from "../../shared/attachment-vision.js";
+import { toLangChainImageRefs } from "../../shared/attachment-vision.js";
 import { workspaceResourcesOf } from "../../shared/workspace/provisioner.js";
 import { backstopRecursionLimit, resolveToolRoundLimit } from "../../shared/tool-rounds.js";
 import { jsonSchemaToZod } from "../../shared/json-schema-to-zod.js";
@@ -96,6 +96,7 @@ import { admitsRoutedRead, backgroundOutputPathsIn, mountPlatformRoute } from ".
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
 import { RUN_STAMP_KEY, createRunStampMiddleware, stampedRunOf } from "./run-stamp.js";
 import { createTurnInputMiddleware } from "./turn-input-middleware.js";
+import { createImageRefMiddleware } from "./image-ref-middleware.js";
 import { InputBarriers } from "./input-barrier.js";
 import { resumedMessages, threadIsEmpty } from "./resumed-history.js";
 import { buildEnhancedSystemPrompt, composeUserMessage, renderSkillsSection } from "./prompt-builder.js";
@@ -797,6 +798,10 @@ export async function buildEngine(
     // the turn works are the parent's alone too (`turn-input-middleware.ts`).
     // The summarizer replaces deepagents' own by name, here and in the
     // general-purpose sub-agent it builds (`middleware/compaction.ts`).
+    // The image pointers resolve last, innermost of Stigmer's, so every
+    // other wrapper sees the thread's own shape and deepagents' prompt
+    // caching marks the request that carries the bytes
+    // (`image-ref-middleware.ts`).
     middleware: [
       createCompactionMiddleware({ backend: fileBackend }),
       createTodoListMiddleware(),
@@ -807,6 +812,7 @@ export async function buildEngine(
         barriers: inputBarriers,
       }),
       ...middleware,
+      createImageRefMiddleware({ sessionId }),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ] as any,
     subagents: compiledSubagents ?? undefined,
@@ -965,11 +971,17 @@ export function checkTurnToolLists(
  * MESSAGE so it enters the checkpointer with the turn and the system prompt
  * stays the session's), the structured-output contract appended, and
  * the inline images FIRST as content blocks when the turn carries any (per
- * Anthropic's images-before-text guidance; a plain string otherwise). A
+ * Anthropic's images-before-text guidance; a plain string otherwise), each
+ * a pointer to its File, which the model call resolves
+ * (`image-ref-middleware.ts`): the thread is saved every step, and keeps
+ * no image's bytes. A
  * eval-run try's recorded conversation goes ahead of that message when
  * the thread holds none yet (`resumed-history.ts`).
  */
-export async function composeGraphInput(input: TurnInput, engine: DeepAgentEngine): Promise<DeepAgentGraphInput> {
+export async function composeGraphInput(
+  input: TurnInput,
+  engine: Pick<DeepAgentEngine, "graph" | "langgraphConfig" | "hasStructuredOutput">,
+): Promise<DeepAgentGraphInput> {
   const graphState: GraphStateSnapshot = await engine.graph.getState(engine.langgraphConfig);
   const resume = resolveResumeInput(input.approvalDecisions, graphState, input.approvalDenyMessages);
   if (resume.isResumeFromApproval) {
@@ -994,7 +1006,7 @@ export async function composeGraphInput(input: TurnInput, engine: DeepAgentEngin
         {
           role: "user",
           content: visionImages.length > 0
-            ? [...toLangChainImageBlocks(visionImages), { type: "text", text: userMessage }]
+            ? [...toLangChainImageRefs(visionImages), { type: "text", text: userMessage }]
             : userMessage,
         },
       ],

@@ -39,7 +39,9 @@
  * after the answer or tool results the agent wrote before reading it.
  *
  * The message's text is composed as the turn's own (`prompt-builder.ts`
- * `composeUserMessage`): its files listed first, its images inline.
+ * `composeUserMessage`): its files listed first, its images inline, each
+ * held in the thread as a pointer to its File that the model call resolves
+ * (`image-ref-middleware.ts`).
  *
  * Proven by __tests__/turn-input-middleware.test.ts and the harness
  * contract kit's message arms.
@@ -50,7 +52,7 @@ import { createMiddleware } from "langchain";
 import { z } from "zod";
 
 import type { TurnInputChannel, TurnMessage } from "../../harness/turn-input.js";
-import { toLangChainImageBlocks } from "../../shared/attachment-vision.js";
+import { toLangChainImageRefs } from "../../shared/attachment-vision.js";
 import { visionPromptInfoOf } from "../../shared/prompt-sections.js";
 import { customStreamWriterOf } from "../../middleware/tool-scope.js";
 import type { InputBarriers } from "./input-barrier.js";
@@ -74,7 +76,7 @@ export function deliveredInputsOf(values: Readonly<Record<string, unknown>>): Re
   return new Set(Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string") : []);
 }
 
-/** A message as the model reads it: its files listed, its images inline, its text. */
+/** A message as the thread holds it: its files listed, its images as pointers the model call resolves, its text. */
 export function humanMessageOf(message: TurnMessage): HumanMessage {
   const text = composeUserMessage({
     message: message.text,
@@ -85,7 +87,7 @@ export function humanMessageOf(message: TurnMessage): HumanMessage {
   return new HumanMessage({
     id: message.id,
     content:
-      message.visionImages.length > 0 ? [...toLangChainImageBlocks(message.visionImages), { type: "text", text }] : text,
+      message.visionImages.length > 0 ? [...toLangChainImageRefs(message.visionImages), { type: "text", text }] : text,
   });
 }
 

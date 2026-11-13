@@ -3,17 +3,18 @@
  * (../turn-input-middleware.ts): the thread's delivered ids are read off its
  * state; a delivery appends each message the thread does not hold, once, as
  * a human message carrying the message's id, with its files listed and its
- * images inline, and records its id; before a model call the middleware
- * takes what waits, and on an invocation's first call what the run took and
- * the thread lacks; at a round's end, an answer with no tool call, it asks
- * once more and goes back to the model with what it took; a stopped or
- * yielded turn takes nothing. The engine-level proof is the harness
- * contract kit's message arms.
+ * images as pointers to their Files, and records its id; before a model
+ * call the middleware takes what waits, and on an invocation's first call
+ * what the run took and the thread lacks; at a round's end, an answer with
+ * no tool call, it asks once more and goes back to the model with what it
+ * took; a stopped or yielded turn takes nothing. The engine-level proof is
+ * the harness contract kit's message arms.
  */
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import { describe, expect, it, vi } from "vitest";
 
 import type { TurnInputChannel, TurnMessage } from "../../../harness/turn-input.js";
+import { imageRefOf } from "../../../shared/attachment-vision.js";
 import {
   DELIVERED_INPUTS_KEY,
   createTurnInputMiddleware,
@@ -62,17 +63,18 @@ describe("humanMessageOf", () => {
     expect([human.id, human.text]).toEqual(["m1", "also the README"]);
   });
 
-  it("lists the message's files and shows its images inline before its text", () => {
+  it("lists the message's files and holds each image as a pointer to its File, before its text", () => {
     const human = humanMessageOf(
       message("m1", "what is this?", {
         message: [{ fileId: "file_1", kind: "image", mountPath: "a.png", filename: "a.png", mimeType: "image/png", sizeBytes: 3, relativePath: ".stigmer/uploads/a.png" }],
-        visionImages: [{ filename: "a.png", mimeType: "image/png", base64: "AAAA", byteSize: 3 }],
+        visionImages: [{ fileId: "file_1", filename: "a.png", mimeType: "image/png", base64: "AAAA", byteSize: 3 }],
       }),
     );
     const blocks = human.content as Array<{ type: string; text?: string }>;
-    const image = blocks.findIndex((block) => block.type === "image_url");
-    expect(image, "the image is inline").toBeGreaterThanOrEqual(0);
+    const image = blocks.findIndex((block) => imageRefOf(block) === "file_1");
+    expect(image, "the image is a pointer").toBeGreaterThanOrEqual(0);
     expect(image, "before the text").toBeLessThan(blocks.length - 1);
+    expect(JSON.stringify(blocks), "no bytes in the thread").not.toContain("AAAA");
     expect(blocks.at(-1)?.text).toMatch(/\.stigmer\/uploads\/a\.png[\s\S]*what is this\?$/);
   });
 });

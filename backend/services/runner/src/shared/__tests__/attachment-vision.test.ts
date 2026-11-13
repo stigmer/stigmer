@@ -1,3 +1,11 @@
+/**
+ * Pins the vision delivery policy (../attachment-vision.ts): the magic-byte
+ * sniff, every eligibility and budget rule of {@link VisionBudget} and the
+ * File each accepted image names, the budget constants the model registry
+ * advertises, the deep agent's thread blocks (a label, then a pointer to the
+ * File, strictly matched back to its id) and the one inline block a pointer
+ * resolves to, the Claude engine's blocks, and the disclosure wording.
+ */
 import { describe, expect, it } from "vitest";
 import {
   DEEP_AGENT_VISION_PROFILE,
@@ -5,8 +13,11 @@ import {
   MAX_VISION_IMAGE_BYTES,
   MAX_VISION_TOTAL_BYTES,
   VisionBudget,
+  imageRefOf,
+  imageRefText,
   sniffImageMime,
-  toLangChainImageBlocks,
+  toLangChainImageBlock,
+  toLangChainImageRefs,
   visionDisclosureLines,
   type VisionImage,
   type VisionMimeType,
@@ -34,7 +45,7 @@ function imageBytes(type: "png" | "jpeg" | "gif87" | "gif89" | "webp", size = 64
 }
 
 function acceptedImage(budget: VisionBudget, filename: string, bytes: Buffer): VisionImage {
-  const outcome = budget.offer(filename, "image/png", bytes);
+  const outcome = budget.offer("file_test", filename, "image/png", bytes);
   if (outcome.kind !== "accepted") {
     throw new Error(`expected accepted, got ${JSON.stringify(outcome)}`);
   }
@@ -79,52 +90,52 @@ describe("sniffImageMime", () => {
 describe("VisionBudget.offer — eligibility", () => {
   it("accepts a recognized image and reports the SNIFFED type, not the declared one", () => {
     const budget = new VisionBudget(DEEP_AGENT_VISION_PROFILE);
-    const outcome = budget.offer("photo.png", "image/jpeg", imageBytes("png"));
+    const outcome = budget.offer("file_test", "photo.png", "image/jpeg", imageBytes("png"));
     expect(outcome).toMatchObject({
       kind: "accepted",
-      image: { filename: "photo.png", mimeType: "image/png", byteSize: 64 },
+      image: { fileId: "file_test", filename: "photo.png", mimeType: "image/png", byteSize: 64 },
     });
   });
 
   it("accepts a real image even when declared as a non-image (sniff is authoritative)", () => {
     const budget = new VisionBudget(DEEP_AGENT_VISION_PROFILE);
-    const outcome = budget.offer("blob.bin", "application/octet-stream", imageBytes("jpeg"));
+    const outcome = budget.offer("file_test", "blob.bin", "application/octet-stream", imageBytes("jpeg"));
     expect(outcome.kind).toBe("accepted");
   });
 
   it("degrades with type_mismatch when declared an image but bytes are not one", () => {
     const budget = new VisionBudget(DEEP_AGENT_VISION_PROFILE);
-    const outcome = budget.offer("photo.jpg", "image/jpeg", Buffer.from("not an image"));
+    const outcome = budget.offer("file_test", "photo.jpg", "image/jpeg", Buffer.from("not an image"));
     expect(outcome).toEqual({ kind: "degraded", reason: "type_mismatch" });
   });
 
   it("skips silently when neither declared nor sniffed as an image", () => {
     const budget = new VisionBudget(DEEP_AGENT_VISION_PROFILE);
-    const outcome = budget.offer("doc.pdf", "application/pdf", Buffer.from("%PDF-1.7"));
+    const outcome = budget.offer("file_test", "doc.pdf", "application/pdf", Buffer.from("%PDF-1.7"));
     expect(outcome).toEqual({ kind: "skipped" });
   });
 
   it("skips empty bytes with no image declaration", () => {
     const budget = new VisionBudget(DEEP_AGENT_VISION_PROFILE);
-    expect(budget.offer("empty.txt", "", Buffer.alloc(0))).toEqual({ kind: "skipped" });
+    expect(budget.offer("file_test", "empty.txt", "", Buffer.alloc(0))).toEqual({ kind: "skipped" });
   });
 
   it("degrades WebP as unsupported_format on a PNG/JPEG profile but accepts it on deep-agent", () => {
     const narrow = new VisionBudget(PNG_JPEG_PROFILE);
-    expect(narrow.offer("sticker.webp", "image/webp", imageBytes("webp"))).toEqual({
+    expect(narrow.offer("file_test", "sticker.webp", "image/webp", imageBytes("webp"))).toEqual({
       kind: "degraded",
       reason: "unsupported_format",
     });
 
     const deepAgent = new VisionBudget(DEEP_AGENT_VISION_PROFILE);
-    expect(deepAgent.offer("sticker.webp", "image/webp", imageBytes("webp")).kind).toBe(
+    expect(deepAgent.offer("file_test", "sticker.webp", "image/webp", imageBytes("webp")).kind).toBe(
       "accepted",
     );
   });
 
   it("degrades GIF as unsupported_format on a PNG/JPEG profile", () => {
     const narrow = new VisionBudget(PNG_JPEG_PROFILE);
-    expect(narrow.offer("anim.gif", "image/gif", imageBytes("gif89"))).toEqual({
+    expect(narrow.offer("file_test", "anim.gif", "image/gif", imageBytes("gif89"))).toEqual({
       kind: "degraded",
       reason: "unsupported_format",
     });
@@ -135,13 +146,13 @@ describe("VisionBudget — model vision capability gate", () => {
   const blind = () => new VisionBudget(DEEP_AGENT_VISION_PROFILE, { modelVision: false });
 
   it("degrades every recognizable image with model_no_vision when the model is flagged blind", () => {
-    expect(blind().offer("photo.png", "image/png", imageBytes("png"))).toEqual({
+    expect(blind().offer("file_test", "photo.png", "image/png", imageBytes("png"))).toEqual({
       kind: "degraded",
       reason: "model_no_vision",
     });
     // Sniff-authoritative acceptance is gated too: real image bytes with a
     // non-image declared type are still image-shaped.
-    expect(blind().offer("blob.bin", "application/octet-stream", imageBytes("jpeg"))).toEqual({
+    expect(blind().offer("file_test", "blob.bin", "application/octet-stream", imageBytes("jpeg"))).toEqual({
       kind: "degraded",
       reason: "model_no_vision",
     });
@@ -150,7 +161,7 @@ describe("VisionBudget — model vision capability gate", () => {
   it("reports model_no_vision (not type_mismatch) for declared-but-unsniffable images", () => {
     // A HEIC renamed .jpg on a blind model: "unreadable format" would invite
     // a re-encode that cannot help — blindness is the whole story.
-    expect(blind().offer("photo.jpg", "image/jpeg", Buffer.from("not an image"))).toEqual({
+    expect(blind().offer("file_test", "photo.jpg", "image/jpeg", Buffer.from("not an image"))).toEqual({
       kind: "degraded",
       reason: "model_no_vision",
     });
@@ -163,18 +174,18 @@ describe("VisionBudget — model vision capability gate", () => {
     });
     // WebP on a PNG/JPEG profile would be unsupported_format; oversized would
     // be too_large. Blindness pre-empts both.
-    expect(narrowBlind.offer("sticker.webp", "image/webp", imageBytes("webp"))).toEqual({
+    expect(narrowBlind.offer("file_test", "sticker.webp", "image/webp", imageBytes("webp"))).toEqual({
       kind: "degraded",
       reason: "model_no_vision",
     });
-    expect(narrowBlind.offer("big.png", "image/png", imageBytes("png", 101))).toEqual({
+    expect(narrowBlind.offer("file_test", "big.png", "image/png", imageBytes("png", 101))).toEqual({
       kind: "degraded",
       reason: "model_no_vision",
     });
   });
 
   it("still skips non-image input silently on a blind model", () => {
-    expect(blind().offer("doc.pdf", "application/pdf", Buffer.from("%PDF-1.7"))).toEqual({
+    expect(blind().offer("file_test", "doc.pdf", "application/pdf", Buffer.from("%PDF-1.7"))).toEqual({
       kind: "skipped",
     });
   });
@@ -182,8 +193,8 @@ describe("VisionBudget — model vision capability gate", () => {
   it("treats explicit true and unknown identically: fail-open", () => {
     const sighted = new VisionBudget(DEEP_AGENT_VISION_PROFILE, { modelVision: true });
     const unknown = new VisionBudget(DEEP_AGENT_VISION_PROFILE, { modelVision: undefined });
-    expect(sighted.offer("a.png", "image/png", imageBytes("png")).kind).toBe("accepted");
-    expect(unknown.offer("a.png", "image/png", imageBytes("png")).kind).toBe("accepted");
+    expect(sighted.offer("file_test", "a.png", "image/png", imageBytes("png")).kind).toBe("accepted");
+    expect(unknown.offer("file_test", "a.png", "image/png", imageBytes("png")).kind).toBe("accepted");
   });
 
   it("modelCannotSee + offerBlind settle a candidate without reading bytes", () => {
@@ -202,10 +213,10 @@ describe("VisionBudget — size and count budgets", () => {
       maxImageBytes: 128,
       maxTotalBytes: 1024,
     });
-    expect(budget.offer("at-cap.png", "image/png", imageBytes("png", 128)).kind).toBe(
+    expect(budget.offer("file_test", "at-cap.png", "image/png", imageBytes("png", 128)).kind).toBe(
       "accepted",
     );
-    expect(budget.offer("over-cap.png", "image/png", imageBytes("png", 129))).toEqual({
+    expect(budget.offer("file_test", "over-cap.png", "image/png", imageBytes("png", 129))).toEqual({
       kind: "degraded",
       reason: "too_large",
     });
@@ -216,15 +227,15 @@ describe("VisionBudget — size and count budgets", () => {
       maxImageBytes: 100,
       maxTotalBytes: 150,
     });
-    expect(budget.offer("a.png", "image/png", imageBytes("png", 100)).kind).toBe("accepted");
+    expect(budget.offer("file_test", "a.png", "image/png", imageBytes("png", 100)).kind).toBe("accepted");
     // 100 + 60 > 150 — degrades even though it fits the per-image cap.
-    expect(budget.offer("b.png", "image/png", imageBytes("png", 60))).toEqual({
+    expect(budget.offer("file_test", "b.png", "image/png", imageBytes("png", 60))).toEqual({
       kind: "degraded",
       reason: "budget_exhausted",
     });
     // A smaller image later still fits the remaining 50 bytes: greedy, not
     // first-failure-closes-the-gate.
-    expect(budget.offer("c.png", "image/png", imageBytes("png", 40)).kind).toBe("accepted");
+    expect(budget.offer("file_test", "c.png", "image/png", imageBytes("png", 40)).kind).toBe("accepted");
   });
 
   it("enforces the count cap", () => {
@@ -233,9 +244,9 @@ describe("VisionBudget — size and count budgets", () => {
       maxTotalBytes: 1024 * 1024,
       maxImages: 2,
     });
-    expect(budget.offer("1.png", "image/png", imageBytes("png")).kind).toBe("accepted");
-    expect(budget.offer("2.png", "image/png", imageBytes("png")).kind).toBe("accepted");
-    expect(budget.offer("3.png", "image/png", imageBytes("png"))).toEqual({
+    expect(budget.offer("file_test", "1.png", "image/png", imageBytes("png")).kind).toBe("accepted");
+    expect(budget.offer("file_test", "2.png", "image/png", imageBytes("png")).kind).toBe("accepted");
+    expect(budget.offer("file_test", "3.png", "image/png", imageBytes("png"))).toEqual({
       kind: "degraded",
       reason: "budget_exhausted",
     });
@@ -246,13 +257,13 @@ describe("VisionBudget — size and count budgets", () => {
       maxImageBytes: 100,
       maxTotalBytes: 100,
     });
-    expect(budget.offer("big.png", "image/png", imageBytes("png", 101)).kind).toBe("degraded");
-    expect(budget.offer("doc.pdf", "application/pdf", Buffer.from("%PDF")).kind).toBe(
+    expect(budget.offer("file_test", "big.png", "image/png", imageBytes("png", 101)).kind).toBe("degraded");
+    expect(budget.offer("file_test", "doc.pdf", "application/pdf", Buffer.from("%PDF")).kind).toBe(
       "skipped",
     );
-    expect(budget.offer("webp.webp", "image/webp", imageBytes("webp")).kind).toBe("degraded");
+    expect(budget.offer("file_test", "webp.webp", "image/webp", imageBytes("webp")).kind).toBe("degraded");
     // The full budget is still available.
-    expect(budget.offer("ok.png", "image/png", imageBytes("png", 100)).kind).toBe("accepted");
+    expect(budget.offer("file_test", "ok.png", "image/png", imageBytes("png", 100)).kind).toBe("accepted");
   });
 
   it("is deterministic: the same offers produce the same outcomes", () => {
@@ -262,9 +273,9 @@ describe("VisionBudget — size and count budgets", () => {
         maxTotalBytes: 150,
       });
       return [
-        budget.offer("a.png", "image/png", imageBytes("png", 90)).kind,
-        budget.offer("b.png", "image/png", imageBytes("png", 90)).kind,
-        budget.offer("c.png", "image/png", imageBytes("png", 50)).kind,
+        budget.offer("file_test", "a.png", "image/png", imageBytes("png", 90)).kind,
+        budget.offer("file_test", "b.png", "image/png", imageBytes("png", 90)).kind,
+        budget.offer("file_test", "c.png", "image/png", imageBytes("png", 50)).kind,
       ];
     };
     expect(run()).toEqual(run());
@@ -289,44 +300,86 @@ describe("VisionBudget — size and count budgets", () => {
   });
 });
 
-describe("toLangChainImageBlocks", () => {
-  it("emits image_url data-URL blocks, each preceded by an ordinal filename label", () => {
+describe("toLangChainImageRefs", () => {
+  it("emits each image's ordinal filename label, then a pointer naming its File", () => {
     const budget = new VisionBudget(DEEP_AGENT_VISION_PROFILE);
-    const a = acceptedImage(budget, "a.png", imageBytes("png"));
-    const b = acceptedImage(budget, "b.jpg", imageBytes("jpeg"));
+    const a = budget.offer("file_a", "a.png", "image/png", imageBytes("png"));
+    const b = budget.offer("file-B_2", "b.jpg", "image/jpeg", imageBytes("jpeg"));
+    if (a.kind !== "accepted" || b.kind !== "accepted") throw new Error("both images are accepted");
 
-    const blocks = toLangChainImageBlocks([a, b]);
-    expect(blocks).toEqual([
+    expect(toLangChainImageRefs([a.image, b.image])).toEqual([
       { type: "text", text: "Image 1: a.png" },
-      { type: "image_url", image_url: { url: `data:image/png;base64,${a.base64}` } },
+      { type: "text", text: '[stigmer-image file="file_a"]' },
       { type: "text", text: "Image 2: b.jpg" },
-      { type: "image_url", image_url: { url: `data:image/jpeg;base64,${b.base64}` } },
+      { type: "text", text: '[stigmer-image file="file-B_2"]' },
     ]);
+  });
+
+  it("keeps an image inline when its File id is one a pointer cannot carry", () => {
+    const outcome = new VisionBudget(DEEP_AGENT_VISION_PROFILE).offer('file"x', "a.png", "image/png", imageBytes("png"));
+    if (outcome.kind !== "accepted") throw new Error("the image is accepted");
+    expect(toLangChainImageRefs([outcome.image])).toEqual([
+      { type: "text", text: "Image 1: a.png" },
+      toLangChainImageBlock(outcome.image),
+    ]);
+  });
+
+  it("emits a pointer as a text block with no other key, which every converter passes as text", () => {
+    const image = acceptedImage(new VisionBudget(DEEP_AGENT_VISION_PROFILE), "a.png", imageBytes("png"));
+    const [, pointer] = toLangChainImageRefs([image]);
+    expect(Object.keys(pointer!).sort()).toEqual(["text", "type"]);
+  });
+});
+
+describe("imageRefOf", () => {
+  it("answers the File id of a pointer, and of the pointer the refs emit", () => {
+    expect(imageRefOf({ type: "text", text: imageRefText("file_01HZ") })).toBe("file_01HZ");
+    const image = acceptedImage(new VisionBudget(DEEP_AGENT_VISION_PROFILE), "a.png", imageBytes("png"));
+    expect(imageRefOf(toLangChainImageRefs([image])[1])).toBe("file_test");
+  });
+
+  it("matches only a text block whose whole text is a pointer", () => {
+    const pointer = imageRefText("file_a");
+    for (const block of [
+      { type: "text", text: `see ${pointer}` },
+      { type: "text", text: `${pointer}\n` },
+      { type: "text", text: '[stigmer-image file="../etc/passwd"]' },
+      { type: "text", text: '[stigmer-image file=""]' },
+      { type: "image_url", text: pointer },
+      { type: "text" },
+      pointer,
+      null,
+      undefined,
+    ]) {
+      expect(imageRefOf(block), JSON.stringify(block)).toBeUndefined();
+    }
+  });
+});
+
+describe("toLangChainImageBlock", () => {
+  it("emits the image_url data-URL block", () => {
+    const image = acceptedImage(new VisionBudget(DEEP_AGENT_VISION_PROFILE), "a.png", imageBytes("png"));
+    expect(toLangChainImageBlock(image)).toEqual({ type: "image_url", image_url: { url: `data:image/png;base64,${image.base64}` } });
   });
 
   it("REGRESSION: never emits the shapes the installed providers mishandle", () => {
     // The v0.3 standard block (source_type) is emitted twice by the installed
     // @langchain/anthropic; the v1 block (mimeType at top level) leaks through
     // the OpenAI converter unconverted. If this test fails, someone has
-    // "modernized" the block shape — read the toLangChainImageBlocks doc
+    // "modernized" the block shape — read the toLangChainImageBlock doc
     // comment before proceeding.
-    const budget = new VisionBudget(DEEP_AGENT_VISION_PROFILE);
-    const image = acceptedImage(budget, "a.png", imageBytes("png"));
-    for (const block of toLangChainImageBlocks([image])) {
-      expect(block).not.toHaveProperty("source_type");
-      expect(block).not.toHaveProperty("mimeType");
-      expect(block).not.toHaveProperty("data");
-      expect(["text", "image_url"]).toContain(block.type);
-    }
+    const image = acceptedImage(new VisionBudget(DEEP_AGENT_VISION_PROFILE), "a.png", imageBytes("png"));
+    const block = toLangChainImageBlock(image);
+    expect(block).not.toHaveProperty("source_type");
+    expect(block).not.toHaveProperty("mimeType");
+    expect(block).not.toHaveProperty("data");
+    expect(block.type).toBe("image_url");
   });
 
   it("produces data URLs the strict core parser accepts (no whitespace, mime/base64 only)", () => {
-    const budget = new VisionBudget(DEEP_AGENT_VISION_PROFILE);
-    const image = acceptedImage(budget, "a.png", imageBytes("png", 3000));
-    const [, imgBlock] = toLangChainImageBlocks([image]);
-    if (imgBlock.type !== "image_url") throw new Error("expected image_url block");
+    const image = acceptedImage(new VisionBudget(DEEP_AGENT_VISION_PROFILE), "a.png", imageBytes("png", 3000));
     // @langchain/core's parseBase64DataUrl regex: data:<mime>;base64,<b64>
-    expect(imgBlock.image_url.url).toMatch(/^data:\w+\/\w+;base64,[A-Za-z0-9+/]+=*$/);
+    expect(toLangChainImageBlock(image).image_url.url).toMatch(/^data:\w+\/\w+;base64,[A-Za-z0-9+/]+=*$/);
   });
 });
 

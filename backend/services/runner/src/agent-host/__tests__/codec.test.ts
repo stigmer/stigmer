@@ -333,7 +333,7 @@ describe("the turn input across the pipe", () => {
   });
 
   it("carries the turn's files whole, each image's bytes once", () => {
-    const image = { filename: "a.png", mimeType: "image/png" as const, base64: "iVBORw0KGgo=", byteSize: 8 };
+    const image = { fileId: "file_2", filename: "a.png", mimeType: "image/png" as const, base64: "iVBORw0KGgo=", byteSize: 8 };
     const photo = { ...NOTES, fileId: "file_2", mountPath: "a.png", filename: "a.png", mimeType: "image/png", relativePath: ".stigmer/uploads/a.png", kind: "image" as const };
     const files = {
       message: [photo],
