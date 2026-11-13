@@ -1,8 +1,10 @@
 // Pins what the terminal says while a turn works and when it ends (INK-10):
 // the working line's words from the shared derivation (what it does now, for
 // how long, and the states that take the phrase over), its clock moving on a
-// fake clock, the line a completed turn leaves, and thinking drawn as one
-// quiet line while it streams and once it settled.
+// fake clock, a turn waiting for a sandbox saying the server's wait counted
+// on from its liveness's arrival (never the turn's own time), the line a
+// completed turn leaves, and thinking drawn as one quiet line while it
+// streams and once it settled.
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, cleanup } from "ink-testing-library";
@@ -56,6 +58,26 @@ describe("INK-10 thinking shows, and a working indicator counts the time", () =>
     expect(workingWords(runningCommand(), now, { isSlow: true }).phrase).toBe(SLOW_PHRASE);
     expect(workingWords(null, now)).toEqual({ phrase: "Starting", elapsed: "", waiting: false });
     expect(workingWords(null, now, { isStopping: true }).phrase).toBe(STOPPING_PHRASE);
+  });
+
+  it("says how long a turn has waited for a sandbox, the server's wait counted on from its liveness's arrival", async () => {
+    const pending = turnOf([
+      samples.userMessageEvent("Fix the flaky test", { processedAt: sampleInstant(0) }),
+      samples.runStatusEvent("pending", { processedAt: sampleInstant(0) }),
+    ]);
+    const waiting = { ...pending, liveness: { operations: [], awaitingModelMs: undefined, awaitingSandboxMs: 80_000 } };
+    const now = Date.parse(sampleInstant(300_000));
+    expect(workingWords(waiting, now), "the server's wait, not five minutes since the message").toEqual({ phrase: "Waiting for a sandbox", elapsed: "1m 20s", waiting: false });
+    expect(workingWords(waiting, now, { livenessAgeMs: 4_000 }).elapsed).toBe("1m 24s");
+    expect(workingWords(waiting, now, { isStopping: true }).phrase, "a stop takes the phrase over").toBe(STOPPING_PHRASE);
+
+    vi.useFakeTimers({ now });
+    const { lastFrame, rerender } = render(<WorkingLine turn={waiting} />);
+    expect(lastFrame()).toMatch(/^ [⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏] Waiting for a sandbox · 1m 20s$/);
+    await vi.advanceTimersByTimeAsync(3_000);
+    expect(lastFrame()).toContain("Waiting for a sandbox · 1m 23s");
+    rerender(<WorkingLine turn={{ ...waiting, liveness: { operations: [], awaitingModelMs: undefined, awaitingSandboxMs: 95_000 } }} />);
+    expect(lastFrame(), "a newer liveness counts from itself").toContain("Waiting for a sandbox · 1m 35s");
   });
 
   it("counts no time for a turn the log stamps no start for", () => {

@@ -138,7 +138,8 @@ async function runHeadless(deps: StreamDeps, renderer: HeadlessRenderer): Promis
 
   try {
     return await runHeadlessStream({
-      follow: (signal) => followSession(deps.client, deps.sessionId, { signal }),
+      // Liveness for the one line a wait for a sandbox writes (render-plaintext.ts).
+      follow: (signal) => followSession(deps.client, deps.sessionId, { signal, previews: ["stigmer.run.liveness"] }),
       answer: (toolUseId, answer) => submitAnswer(deps.client, deps.sessionId, toolUseId, answer),
       approveDefault: deps.approveDefault,
       renderer,

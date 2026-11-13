@@ -135,6 +135,7 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "marketplace-admin": () => marketplaceScene("admin"),
   "marketplace-member": () => marketplaceScene("member"),
   "marketplace-no-match": () => marketplaceScene("admin"),
+  "session-waiting-for-sandbox": () => sessionScene("waiting-for-sandbox", { inspector: true }),
   "session-thinking": () => sessionScene("thinking", { inspector: true }),
   "session-busy": () => sessionScene("busy", { inspector: true }),
   "session-helper": () => sessionScene("subagent-running", { inspector: true }),

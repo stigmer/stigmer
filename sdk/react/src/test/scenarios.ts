@@ -16,12 +16,14 @@
 // its test's fake clock. The builders here cover what `samples` does not yet
 // (a subagent's thread, a review set) with `create(SessionEventSchema)`.
 //
-// Three states carry what lives beside the events: `busy` the liveness
+// Four states carry what lives beside the events: `busy` the liveness
 // preview the stream sends while a turn works (streamed, never stored, so it
 // is folded after the events and a page that replays the scenario sends it
-// as a frame), `thinking` the thought the stream opened and has not stored
-// (streamed the same way), and `finished` the Files its turn returned and
-// the routine that started the session.
+// as a frame), `waiting-for-sandbox` the liveness the server sends while
+// every sandbox is busy (its wait for one, streamed the same way, beside the
+// run's stored phase text), `thinking` the thought the stream opened and has
+// not stored (streamed the same way), and `finished` the Files its turn
+// returned and the routine that started the session.
 //
 // Beside the states, whole stories: the scripted turn and the ledger turn
 // the docs play, and the step turns, one per family of step the session
@@ -33,7 +35,7 @@
 // liveness preview.
 import { create, type JsonObject, type MessageInitShape } from "@bufbuild/protobuf";
 import { durationFromMs } from "@bufbuild/protobuf/wkt";
-import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { SetupProgressSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { StreamingUsageSummarySchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
@@ -57,6 +59,7 @@ export const SCENARIO_NAMES = [
   "loading",
   "load-failed",
   "empty",
+  "waiting-for-sandbox",
   "thinking",
   "streaming",
   "tools",
@@ -261,6 +264,8 @@ interface Beside {
   readonly outputs?: readonly ToolOutput[];
   /** The messages or thoughts the stream opened and has not stored, streamed after the events. */
   readonly drafts?: readonly Draft[];
+  /** The run's stored setup phase (`RunStatus.setup_progress.current_phase`) while it is pending. */
+  readonly setupPhase?: string;
 }
 
 /** The events folded, then the drafts, the liveness preview and the running commands' output the stream sent after them. */
@@ -321,6 +326,12 @@ function busyEvents(): SessionEvent[] {
   ];
 }
 
+/** What the server last said of the turn waiting for a sandbox: every sandbox busy for 1m 20s. */
+const SANDBOX_WAIT_LIVENESS: RunLiveness = create(RunLivenessSchema, {
+  runId: RUN_ID,
+  awaitingSandboxFor: durationFromMs(80_000),
+});
+
 /** What the busy turn had open when the stream last said: the subagent for 38s, the suite for 30s. */
 const BUSY_LIVENESS: RunLiveness = create(RunLivenessSchema, {
   runId: RUN_ID,
@@ -372,6 +383,11 @@ function loaded(name: ScenarioName | StoryName, title: string, events: readonly 
       message: turn.userMessage?.text ?? "",
     }),
   );
+  if (beside.setupPhase !== undefined) {
+    for (const run of runs) {
+      if (run.status !== undefined) run.status.setupProgress = create(SetupProgressSchema, { currentPhase: beside.setupPhase });
+    }
+  }
   if (beside.estimatedCostUsd !== undefined) {
     for (const run of runs) {
       if (run.status !== undefined) run.status.streamingUsage = create(StreamingUsageSummarySchema, { estimatedCostUsd: beside.estimatedCostUsd });
@@ -427,6 +443,13 @@ function build(name: ScenarioName): Scenario {
       };
     case "empty":
       return loaded(name, "a new session with no turns", []);
+    case "waiting-for-sandbox":
+      return loaded(
+        name,
+        "every sandbox is busy, and the turn has waited 1m 20s for one",
+        [samples.userMessageEvent(message), samples.runStatusEvent("pending")],
+        { liveness: SANDBOX_WAIT_LIVENESS, setupPhase: "Waiting for a sandbox" },
+      );
     case "thinking":
       return loaded(
         name,
@@ -528,6 +551,7 @@ export const scenarios: Readonly<Record<ScenarioName, Scenario>> = {
   loading: build("loading"),
   "load-failed": build("load-failed"),
   empty: build("empty"),
+  "waiting-for-sandbox": build("waiting-for-sandbox"),
   thinking: build("thinking"),
   streaming: build("streaming"),
   tools: build("tools"),

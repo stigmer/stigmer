@@ -3,11 +3,13 @@
 // The words come from working.ts, the derivation the browser reads too. While
 // the turn waits on the person the spinner stops: nothing is working.
 //
-// The clock ticks on Ink's shared animation timer, with the spinner.
+// The clock ticks on Ink's shared animation timer, with the spinner. A wait
+// the server measured (a turn waiting for a sandbox) counts on from when the
+// turn's liveness arrived, which this line remembers per liveness.
 //
 // Proven by __tests__/working-line.test.tsx.
 
-import React from "react";
+import React, { useRef } from "react";
 import { Box, Text, useAnimation } from "ink";
 import type { Turn } from "@stigmer/client";
 import { useRoles } from "../theme.js";
@@ -27,7 +29,10 @@ export function WorkingLine({ turn, isSlow, isStopping, hint }: WorkingLineProps
   const role = useRoles();
   // Re-renders each second so the time moves while nothing else does.
   useAnimation({ interval: 1000 });
-  const words = workingWords(turn, Date.now(), { isSlow, isStopping });
+  const now = Date.now();
+  const arrival = useRef<{ readonly liveness: Turn["liveness"]; readonly at: number }>({ liveness: turn?.liveness, at: now });
+  if (arrival.current.liveness !== turn?.liveness) arrival.current = { liveness: turn?.liveness, at: now };
+  const words = workingWords(turn, now, { isSlow, isStopping, livenessAgeMs: now - arrival.current.at });
   const parts = [words.elapsed, hint].filter((part) => part !== undefined && part !== "");
   return (
     <Box gap={1} paddingLeft={1}>

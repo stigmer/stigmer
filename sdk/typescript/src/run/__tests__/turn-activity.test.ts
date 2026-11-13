@@ -1,6 +1,8 @@
 // Proves the working turn's derivation (../turn-activity.ts): the Stigmer and
 // Claude harnesses' names for one kind of call read alike; a person waiting
-// beats anything open; streaming beats nothing open; the newest open call is
+// beats anything open; a turn whose liveness carries the server's wait for
+// a sandbox is waiting for one until it ends or the wait is gone; streaming
+// beats nothing open; the newest open call is
 // "now"; to-do writes are bookkeeping, not steps; "how far" is a fraction
 // only with a to-do list (cancelled items count neither way); time runs from
 // the person's message (else the first item) to now, or to the end once the
@@ -132,6 +134,17 @@ describe("describeTurnActivity", () => {
     expect(describeTurnActivity(turn({ items: [message(false)] }), T0).activity).toEqual({ kind: "waiting_on_model" });
   });
 
+  it("says a turn that has not started is waiting for a sandbox while its liveness carries the server's wait", () => {
+    const waiting: Turn = { ...turn(), status: { phase: "pending", stopCause: "", error: "", processedAt: at(0) }, liveness: { operations: [], awaitingModelMs: undefined, awaitingSandboxMs: 80_000 } };
+    const progress = describeTurnActivity(waiting, T0);
+    expect(progress.activity).toEqual({ kind: "waiting_for_sandbox", waitedMs: 80_000 });
+    expect(activityPhrase(progress.activity)).toBe("Waiting for a sandbox");
+    const placed: Turn = { ...waiting, liveness: { operations: [], awaitingModelMs: undefined } };
+    expect(describeTurnActivity(placed, T0).activity, "a liveness without the wait").toEqual({ kind: "waiting_on_model" });
+    const ended: Turn = { ...waiting, ended: true, status: { phase: "failed", stopCause: "infrastructure", error: "", processedAt: at(1_000) } };
+    expect(describeTurnActivity(ended, T0).activity.kind, "an ended turn waits for nothing").not.toBe("waiting_for_sandbox");
+  });
+
   it("counts settled calls as steps, leaving the to-do writes out", () => {
     const progress = describeTurnActivity(
       turn({
@@ -250,6 +263,7 @@ describe("activityPhrase", () => {
     [{ kind: "thinking" }, "Thinking"],
     [{ kind: "waiting_on_model" }, "Working"],
     [{ kind: "waiting_for_you", count: 1 }, "Waiting for you"],
+    [{ kind: "waiting_for_sandbox", waitedMs: 80_000 }, "Waiting for a sandbox"],
   ])("says %o as %s", (activity, words) => {
     expect(activityPhrase(activity)).toBe(words);
   });

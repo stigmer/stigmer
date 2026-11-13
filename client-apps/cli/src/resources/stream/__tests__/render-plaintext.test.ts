@@ -6,11 +6,12 @@
 // its tool uses indented beneath, and its end, its messages left out, and its
 // span on its task call's line once the call returns; notes,
 // compactions and the turn's errors once each; a background command's line
-// each time its state changes; how an ask was answered; a
+// each time its state changes; how an ask was answered; one line when a
+// turn starts waiting for a sandbox, again only for a later wait; a
 // turn the fold did not touch is not written again; thinking is silent.
 
 import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
-import { foldSession, type ToolUse } from "@stigmer/client";
+import { foldSession, type SessionFold, type ToolUse } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 import {
   asked,
@@ -163,6 +164,26 @@ describe("PlaintextRenderer", () => {
     expect(status()).toContain("    Background command `npm run dev` was stopped by the person\n");
     expect(status()).not.toContain("[system]");
     expect(status().match(/Background command `npm test` exited/g)).toHaveLength(1);
+  });
+
+  it("says once when a turn starts waiting for a sandbox, and again for a later wait", () => {
+    const ctx = renderer();
+    const base = foldSession([user(R, "go"), phase(R, "pending")]);
+    const withWait = (fold: SessionFold, sandboxMs: number | undefined): SessionFold => ({
+      ...fold,
+      turns: fold.turns.map((turn) => ({
+        ...turn,
+        liveness: { operations: [], awaitingModelMs: undefined, ...(sandboxMs === undefined ? {} : { awaitingSandboxMs: sandboxMs }) },
+      })),
+    });
+    ctx.r.fold(withWait(base, 0));
+    ctx.r.fold(withWait(base, 15_000));
+    ctx.r.fold(withWait(base, 30_000));
+    expect(ctx.status().match(/… Waiting for a sandbox\n/g)).toHaveLength(1);
+    ctx.r.fold(withWait(base, undefined));
+    ctx.r.fold(withWait(base, 0));
+    expect(ctx.status().match(/… Waiting for a sandbox\n/g), "a second wait").toHaveLength(2);
+    expect(ctx.data()).toBe("");
   });
 
   it("does not walk a turn the fold left untouched", () => {

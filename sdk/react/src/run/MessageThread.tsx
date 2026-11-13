@@ -520,7 +520,14 @@ export type ThreadItem =
       readonly key: string;
     }
   | { readonly kind: "approval-request"; readonly toolUse: ToolUse; readonly key: string }
-  | { readonly kind: "setup-progress"; readonly serverPhase?: string; readonly isAwaitingResponse?: boolean; readonly key: string }
+  | {
+      readonly kind: "setup-progress";
+      readonly serverPhase?: string;
+      readonly isAwaitingResponse?: boolean;
+      /** The server's wait for a sandbox, from the turn's newest liveness. */
+      readonly awaitingSandboxMs?: number;
+      readonly key: string;
+    }
   | { readonly kind: "recalled-memories"; readonly recall: MemoryRecall; readonly facts: readonly RecalledMemoryFact[]; readonly key: string }
   | { readonly kind: "context-compacted"; readonly compacted: CompactedItem; readonly key: string }
   | { readonly kind: "agent-version"; readonly versionHash: string; readonly label: string; readonly key: string }
@@ -1036,9 +1043,13 @@ export function buildThreadItems(
   if (activeTurn && !hasStartedResponding(activeTurn)) {
     const phase = activeTurn.status?.phase;
     if (phase === undefined || phase === "pending") {
+      // The wait for a sandbox comes on the live stream (the listed Run is
+      // read once), so it leads the stored phase text.
+      const awaitingSandboxMs = activeTurn.liveness?.awaitingSandboxMs;
       items.push({
         kind: "setup-progress",
         serverPhase: lastRun?.status?.setupProgress?.currentPhase || undefined,
+        ...(awaitingSandboxMs !== undefined ? { awaitingSandboxMs } : {}),
         key: "setup-progress",
       });
     } else if (phase === "running") {
@@ -1693,6 +1704,7 @@ export function ThreadItemRenderer({
         <Setup
           serverPhase={item.serverPhase}
           isAwaitingResponse={item.isAwaitingResponse}
+          awaitingSandboxMs={item.awaitingSandboxMs}
         />
       );
     }

@@ -177,6 +177,7 @@ export const THREAD_STATES = [
 /** The conversation states no thread scene draws, each with what draws it instead. */
 export const THREAD_DRAWN_ELSEWHERE: Readonly<Partial<Record<ScenarioName, string>>> = {
   "load-failed": "a session that cannot load never reaches the thread: session-load-failed draws the session view's own error",
+  "waiting-for-sandbox": "a turn waiting for a sandbox is about the whole session view (the line under the message, the status pill): session-waiting-for-sandbox draws it",
   busy: "a long turn is about the whole session view (its liveness line, its composer's Stop): session-busy and session-end-user draw it",
   finished: "a finished session is about the whole session view (its Files, its origin, its panel): session-finished and its siblings draw it",
 };
@@ -190,6 +191,11 @@ export const THREAD_DRAWN_ELSEWHERE: Readonly<Partial<Record<ScenarioName, strin
 export type SessionSceneName = (typeof SESSION_SCENES)[number]["id"] extends `session-${infer Name}` ? Name : never;
 
 const SESSION_SCENES = [
+  {
+    id: "session-waiting-for-sandbox",
+    title: "Session: every sandbox is busy, and the turn has waited 1m 20s for one, in the console",
+    widths: ["desktop", "narrow"],
+  },
   { id: "session-thinking", title: "Session: the agent thought, read a file, and is thinking again, in the console", widths: ["desktop", "narrow"] },
   { id: "session-busy", title: "Session: a long turn at work, in the console", widths: ["desktop", "narrow"] },
   { id: "session-helper", title: "Session: a helper agent at work on part of the job, in the console", widths: ["desktop", "narrow"] },
