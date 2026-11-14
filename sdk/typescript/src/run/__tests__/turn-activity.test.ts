@@ -325,7 +325,7 @@ describe("settledStepsPhrase and stepsSpanMs", () => {
 });
 
 describe("formatElapsed", () => {
-  it("writes a span in at most two units, the larger first, flooring the seconds", () => {
+  it("writes a span in at most two units, the larger first, the smaller always two digits, flooring the seconds", () => {
     const minute = 60_000;
     const hour = 60 * minute;
     const day = 24 * hour;
@@ -333,6 +333,6 @@ describe("formatElapsed", () => {
       [0, 999, 42_000, 59_999, minute, 72_000, hour - 1_000, hour, 3_780_000, 2 * hour + 4 * minute, day - 1_000, day, 2 * day + 5 * hour + 59 * minute, -5].map(
         formatElapsed,
       ),
-    ).toEqual(["0s", "0s", "42s", "59s", "1m 0s", "1m 12s", "59m 59s", "1h 0m", "1h 3m", "2h 4m", "23h 59m", "1d 0h", "2d 5h", "0s"]);
+    ).toEqual(["0s", "0s", "42s", "59s", "1m 00s", "1m 12s", "59m 59s", "1h 00m", "1h 03m", "2h 04m", "23h 59m", "1d 00h", "2d 05h", "0s"]);
   });
 });

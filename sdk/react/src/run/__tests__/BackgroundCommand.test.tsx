@@ -54,7 +54,7 @@ describe("a background command's row", () => {
     vi.setSystemTime(new Date(Date.parse(TOOL_STARTED_AT) + 125_000));
     try {
       const { container } = render(<ToolCallItem toolUse={backgroundStart({ liveOutput: "ready on :3000\n" })} />);
-      expect(container.querySelector('[data-cursor-target="background-command-status"]')?.textContent).toBe("Running in the background · 2m 5s");
+      expect(container.querySelector('[data-cursor-target="background-command-status"]')?.textContent).toBe("Running in the background · 2m 05s");
       expect(rowOf(container).querySelector(".stgm-shimmer-label"), "the running sweep").not.toBeNull();
       expect(container.textContent).toContain("ready on :3000");
       expect(container.textContent).not.toContain("Started in the background");
@@ -195,7 +195,7 @@ describe("the thread's tail line while the turn waits on background commands", (
   it("names the oldest command, how many more, and its time", () => {
     const one = backgroundStart();
     const two = backgroundStart({}, { id: "run_1.bg-2", input: { command: "npm test", background: true } });
-    expect(backgroundWaitLabel([one], 125_000)).toBe("Waiting for `npm run dev` · 2m 5s");
+    expect(backgroundWaitLabel([one], 125_000)).toBe("Waiting for `npm run dev` · 2m 05s");
     expect(backgroundWaitLabel([one, two], null)).toBe("Waiting for `npm run dev` and 1 more");
   });
 

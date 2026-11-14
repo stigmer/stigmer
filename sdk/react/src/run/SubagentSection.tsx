@@ -8,7 +8,8 @@ import { memo, useMemo } from "react";
 import type { Thread, ToolUse, TurnItem } from "@stigmer/client";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
-import { useElapsedSince, formatElapsed } from "../internal/useElapsedSince.js";
+import { formatElapsed } from "@stigmer/client";
+import { useElapsedSince } from "../internal/useElapsedSince.js";
 import { cn } from "@stigmer/design-tokens";
 import { formatHeaderDuration } from "./ToolCallDetail.js";
 import { MessageEntry, type ThreadMessage } from "./MessageEntry.js";
@@ -223,7 +224,8 @@ const TIME_CLASSES = "stg:shrink-0 stg:text-xs stg:tabular-nums stg:text-muted-f
  */
 function RunningDuration({ startedAt }: { readonly startedAt: string }) {
   const elapsed = useElapsedSince(startedAt);
-  if (elapsed === null) return null;
+  // Under a second says nothing yet.
+  if (elapsed === null || elapsed < 1000) return null;
 
   return <span className={TIME_CLASSES}>{formatElapsed(elapsed)}</span>;
 }

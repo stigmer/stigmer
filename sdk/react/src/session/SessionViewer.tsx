@@ -14,7 +14,8 @@ import { SessionInspectorContext } from "./inspector/SessionInspectorContext.js"
 import type { SessionInspectorProps } from "./inspector/SessionInspector.js";
 import type { SessionStreamingPlan } from "./inspector/SessionInspectorRegion.js";
 import { isTerminalPhase } from "@stigmer/react-core/internal";
-import { MessageThread, THREAD_GUTTER_CLASS, type MessageThreadSlots } from "../run/MessageThread.js";
+import { MessageThread, type MessageThreadSlots } from "../run/MessageThread.js";
+import { THREAD_GUTTER_CLASS } from "../internal/thread-gutter.js";
 import { FileChangeProgressBar } from "../run/FileChangeProgressBar.js";
 import { ThreadSkeleton } from "../run/ThreadSkeleton.js";
 import { SessionComposer } from "../composer/index.js";

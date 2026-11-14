@@ -183,7 +183,7 @@ function HumanMessage({
       role="article"
       aria-label="User message"
       className={cn(
-        "stg:group stg:relative stg:ms-[20%] stg:rounded-lg stg:bg-muted-subtle stg:px-4 stg:py-3",
+        "stg:group stg:relative stg:ms-auto stg:w-fit stg:max-w-[80%] stg:rounded-lg stg:bg-muted-subtle stg:px-4 stg:py-3",
         className,
       )}
     >

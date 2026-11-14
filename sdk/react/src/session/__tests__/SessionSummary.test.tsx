@@ -80,7 +80,7 @@ describe("SessionSummary", () => {
     expect(link.getAttribute("href")).toBe("/library/routines/demo/nightly-billing-check");
     expect(screen.getByText("Done").className).toContain("--stgm-status-ready");
     const facts = link.parentElement!.textContent!;
-    expect(facts).toBe("Started by routine Nightly billing check · 1 min 14 s · 2 files made · 1 change · about $0.42, estimated");
+    expect(facts).toBe("Started by routine Nightly billing check · 1m 14s · 2 files made · 1 change · about $0.42, estimated");
     expect(stigmer.routine.get).toHaveBeenCalledWith(scenarios.finished.session!.status!.routineId);
   });
 
@@ -140,7 +140,7 @@ describe("SessionSummary", () => {
   it("says one file made in the singular, and a File it did not return as a change", () => {
     const finished = scenarios.finished;
     renderSummary(client(async () => NIGHTLY), { readsRoutine: false, files: finished.files.slice(0, 1) });
-    expect(metaLine().textContent).toBe("DoneStarted by a routine · 1 min 14 s · 1 file made · 2 changes · about $0.42, estimated");
+    expect(metaLine().textContent).toBe("DoneStarted by a routine · 1m 14s · 1 file made · 2 changes · about $0.42, estimated");
   });
 
   it("says a Plan-mode turn's plan as a plan, after the files made, never as a file made", () => {
@@ -149,7 +149,7 @@ describe("SessionSummary", () => {
     run.spec!.interactionMode = InteractionMode.PLAN;
     const plan = samples.outputFile("fix-rounding_a1b2c3d4.plan.md", { runId: run.metadata!.id, sizeBytes: 312n });
     renderSummary(client(async () => NIGHTLY), { readsRoutine: false, runs: [run], files: [plan, ...finished.files] });
-    expect(metaLine().textContent).toBe("DoneStarted by a routine · 1 min 14 s · 2 files made · 1 plan · 1 change · about $0.42, estimated");
+    expect(metaLine().textContent).toBe("DoneStarted by a routine · 1m 14s · 2 files made · 1 plan · 1 change · about $0.42, estimated");
   });
 
   it("KIT-05 says while a turn works that it is Working, for how long, and how far its to-do list has got, ticking each second", () => {
@@ -168,7 +168,7 @@ describe("SessionSummary", () => {
     act(() => {
       vi.advanceTimersByTime(29_000);
     });
-    expect(screen.getByText("Working · 2m 0s")).toBeTruthy();
+    expect(screen.getByText("Working · 2m 00s")).toBeTruthy();
   });
 
   it("KIT-05 counts the steps settled when the agent keeps no list, and names none before one settles", () => {

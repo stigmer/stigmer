@@ -4,7 +4,8 @@ import { memo } from "react";
 import { backgroundCommandText, type ToolUse } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import { DecisionButton } from "../internal/DecisionButton.js";
-import { formatElapsed, useElapsedSince } from "../internal/useElapsedSince.js";
+import { formatElapsed } from "@stigmer/client";
+import { useElapsedSince } from "../internal/useElapsedSince.js";
 import { useBackgroundStop } from "./BackgroundCommandContext.js";
 
 /** Props for {@link LivenessStatusLine}. */

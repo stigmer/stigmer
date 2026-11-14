@@ -26,7 +26,6 @@ import { describeTurnActivity, formatElapsed, type Turn } from "@stigmer/client"
 import { cn } from "@stigmer/design-tokens";
 import { useStigmer } from "@stigmer/react-core";
 import { useFetch } from "@stigmer/react-core/internal";
-import { durationWords } from "./duration-words.js";
 import { standingChanges, turnOutcome } from "./turn-outcome.js";
 import { isChannelOriginSession } from "./channelOrigin.js";
 import { sessionStatus } from "./session-status.js";
@@ -118,7 +117,7 @@ export function SessionSummary({ session, turns, runs, files, showCost, routineH
           ? `${progress.stepsSettled} ${progress.stepsSettled === 1 ? "step" : "steps"}`
           : undefined;
   const facts = [
-    durationWords(elapsedMs),
+    formatElapsed(elapsedMs),
     made > 0 ? `${made} ${made === 1 ? "file" : "files"} made` : undefined,
     plans > 0 ? `${plans} ${plans === 1 ? "plan" : "plans"}` : undefined,
     changed > 0 ? `${changed} ${changed === 1 ? "change" : "changes"}` : undefined,

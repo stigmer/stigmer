@@ -115,8 +115,8 @@ describe("launcherView", () => {
     expect(launcherView(withActivity(busy()), "Billing agent", NOW)).toEqual({
       icon: "working",
       label: "Running a command",
-      detail: "1 min 30 s",
-      ariaLabel: "Open the chat. Billing agent: Running a command, 1 min 30 s",
+      detail: "1m 30s",
+      ariaLabel: "Open the chat. Billing agent: Running a command, 1m 30s",
       announcement: "",
     });
   });

@@ -1,5 +1,6 @@
 "use client";
 
+import { THREAD_GUTTER_CLASS } from "../internal/thread-gutter.js";
 import { lazy, memo, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { RecalledMemoryFact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
@@ -448,15 +449,6 @@ export interface MessageThreadProps {
 
 /** Reading-column alignment for {@link MessageThread} content. */
 export type ThreadContentColumn = "center" | "start";
-
-/**
- * The column's one edge: 16px, and 24px once the session it sits in is
- * 640px wide or more. It reads the session's own width (the named container
- * `session`, which the session view draws), not the viewport's, so a session
- * docked in a narrow panel on a wide screen keeps a phone's edge. Every item
- * in the column draws flush to it: none adds an edge of its own.
- */
-export const THREAD_GUTTER_CLASS = "stg:px-4 stg:@min-[40rem]/session:px-6";
 
 /**
  * Class set for the optional reading column — one definition shared by both

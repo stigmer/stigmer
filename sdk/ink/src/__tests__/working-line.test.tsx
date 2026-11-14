@@ -37,11 +37,11 @@ describe("INK-10 thinking shows, and a working indicator counts the time", () =>
       "0s",
       "42s",
       "59s",
-      "1m 0s",
+      "1m 00s",
       "1m 12s",
       "59m 59s",
-      "1h 0m",
-      "1h 3m",
+      "1h 00m",
+      "1h 03m",
       "0s",
     ]);
   });

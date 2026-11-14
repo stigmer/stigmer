@@ -233,7 +233,7 @@ describe("SubagentSection running duration", () => {
     act(() => {
       vi.advanceTimersByTime(20_000);
     });
-    expect(screen.getByText("1m 2s")).toBeTruthy();
+    expect(screen.getByText("1m 02s")).toBeTruthy();
   });
 
   it("shows no counter while running when the start is unknown", () => {
@@ -249,7 +249,7 @@ describe("SubagentSection running duration", () => {
         completedAt="2026-07-02T12:01:14.500Z"
       />,
     );
-    // formatDuration's m/s rendering for a completed 74.5s run.
-    expect(screen.getByText("1m 15s")).toBeTruthy();
+    // A completed 74.5s run, in whole seconds in the one duration format.
+    expect(screen.getByText("1m 14s")).toBeTruthy();
   });
 });
