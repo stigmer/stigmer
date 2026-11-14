@@ -408,7 +408,7 @@ function Unlocks({
         prominent ? "stg:px-5 stg:py-3" : "stg:px-4 stg:py-3",
       )}
     >
-      <p className="stg:mb-2 stg:text-2xs stg:font-medium stg:text-muted-foreground">
+      <p className="stg:mb-2 stg:text-xs stg:font-medium stg:text-muted-foreground">
         {served ? "Ready to run" : "Unlocks"}
       </p>
       <dl className="stg:space-y-1.5">
@@ -428,7 +428,7 @@ function Unlocks({
                   </li>
                 ))}
                 {engineModels.length > named && (
-                  <li className="stg:whitespace-nowrap stg:px-1 stg:py-0.5 stg:text-2xs stg:text-muted-foreground">
+                  <li className="stg:whitespace-nowrap stg:px-1 stg:py-0.5 stg:text-xs stg:text-muted-foreground">
                     and {engineModels.length - named} more
                   </li>
                 )}

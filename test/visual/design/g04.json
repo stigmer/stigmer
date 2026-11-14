@@ -347,15 +347,12 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "type Anthropic's Claude Agent SDK: Claude models on your Anthropic key": "The console's parts: the part at its drawn size and weight",
         "type Claude Agent": "The console's parts: the part at its drawn size and weight",
         "type Get a key at console.anthropic.com": "The console's parts: the part at its drawn size and weight",
         "type Get a key at platform.openai.com": "The console's parts: the part at its drawn size and weight",
         "type Needs an Anthropic key": "The console's parts: the part at its drawn size and weight",
         "type Platform default (Claude Sonnet 4.6)": "The console's parts: the part at its drawn size and weight",
         "type Stigmer": "The console's parts: the part at its drawn size and weight",
-        "type Stigmer's own harness: runs any catalog model, open source end to end": "The console's parts: the part at its drawn size and weight",
-        "type Unlocks": "The console's parts: the part at its drawn size and weight",
         "word Paste an Anthropic API key, and every member of Acme Corp can run these models. Anthropic bills Acme Corp directly.": "The console's parts: the page says and offers what its drawing does",
         "word Paste an OpenAI API key, and every member of Acme Corp can run these models. OpenAI bills Acme Corp directly.": "The console's parts: the page says and offers what its drawing does"
       }

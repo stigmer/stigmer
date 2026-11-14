@@ -65,11 +65,14 @@ function Trigger({
   children,
   className,
   "aria-label": ariaLabel = "Actions",
+  size = "xs",
 }: ActionMenuTriggerProps) {
   return (
     <MenuTrigger
       className={cn(
-        "stg:inline-flex stg:items-center stg:justify-center stg:rounded-md stg:p-1",
+        // A square on the icon-button scale, its glyph centred.
+        "stg:inline-flex stg:shrink-0 stg:items-center stg:justify-center stg:rounded-md",
+        size === "sm" ? "stg:size-8" : "stg:size-7",
         "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent",
         "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
         "stg:data-popup-open:bg-accent stg:data-popup-open:text-foreground",

@@ -198,7 +198,7 @@ describe("OrgMembersPanel and who is a member", () => {
 
     fireEvent.click(screen.getByRole("button", { name: PRODUCT_GROUP }));
     expect(screen.queryByRole("button", { name: "Remove Promoted" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Change role for Promoted" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Change Promoted's role" })).toBeNull();
   });
 
   it("renders no group when no account came from the product, and says so when only such accounts hold a role", () => {
@@ -250,7 +250,7 @@ describe("OrgMembersPanel and service accounts", () => {
 
     fireEvent.click(screen.getByRole("button", { name: SERVICE_ACCOUNT_GROUP }));
     expect(screen.queryByRole("button", { name: "Remove ci-deploy" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Change role for ci-deploy" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Change ci-deploy's role" })).toBeNull();
     expect(
       screen.getByRole("link", { name: "Manage service accounts" }).getAttribute("href"),
     ).toBe("/settings/service-accounts");
@@ -277,11 +277,11 @@ describe("OrgMembersPanel and the owner role", () => {
     state.members = [member("ida_root", "Root", "owner"), member("ida_dave", "Dave", "member")];
     render(<OrgMembersPanel org="acme" />);
 
-    expect(screen.queryByRole("button", { name: "Change role for Root" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Change Root's role" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Remove Root" })).toBeNull();
     expect(screen.getByRole("button", { name: "Remove Dave" })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Change role for Dave" }));
+    fireEvent.click(screen.getByRole("button", { name: "Change Dave's role" }));
     expect(screen.queryByRole("radio", { name: /^Owner/ })).toBeNull();
     expect(screen.getByRole("radio", { name: /^Admin/ })).toBeTruthy();
   });
@@ -292,7 +292,7 @@ describe("OrgMembersPanel and the owner role", () => {
     render(<OrgMembersPanel org="acme" />);
 
     expect(screen.getByRole("button", { name: "Remove Root" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Change role for Dave" }));
+    fireEvent.click(screen.getByRole("button", { name: "Change Dave's role" }));
     expect(screen.getByRole("radio", { name: /^Owner/ })).toBeTruthy();
   });
 
@@ -301,7 +301,7 @@ describe("OrgMembersPanel and the owner role", () => {
     state.members = [member("ida_dave", "Dave", "member")];
     render(<OrgMembersPanel org="acme" />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Change role for Dave" }));
+    fireEvent.click(screen.getByRole("button", { name: "Change Dave's role" }));
     fireEvent.click(screen.getByRole("radio", { name: /^Admin/ }));
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
     await waitFor(() => expect(state.calls).toEqual(["create admin", "delete member"]));
@@ -313,7 +313,7 @@ describe("OrgMembersPanel and the owner role", () => {
     state.members = [member("ida_dave", "Dave", "member")];
     render(<OrgMembersPanel org="acme" />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Change role for Dave" }));
+    fireEvent.click(screen.getByRole("button", { name: "Change Dave's role" }));
     fireEvent.click(screen.getByRole("radio", { name: /^Owner/ }));
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
     await waitFor(() => expect(screen.getByRole("alert")).toBeTruthy());

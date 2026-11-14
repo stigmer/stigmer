@@ -14,6 +14,13 @@ export interface ActionMenuTriggerProps {
   readonly className?: string;
   /** Accessible label for the trigger. @default "Actions" */
   readonly "aria-label"?: string;
+  /**
+   * The trigger's size, on the kit's icon-button scale: `xs` (28px) in a
+   * row or a card, `sm` (32px) in a page's header.
+   *
+   * @default "xs"
+   */
+  readonly size?: "xs" | "sm";
 }
 
 /** Props for the `ActionMenu.Content` panel. */

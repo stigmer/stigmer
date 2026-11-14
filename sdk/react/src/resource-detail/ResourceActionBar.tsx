@@ -144,7 +144,7 @@ function OverflowMenu({
 
   return (
     <ActionMenu>
-      <ActionMenu.Trigger aria-label={label}>
+      <ActionMenu.Trigger aria-label={label} size="sm">
         <KebabIcon className="stg:size-4" />
       </ActionMenu.Trigger>
       <ActionMenu.Content>
