@@ -58,6 +58,9 @@ describe("a step's layout", () => {
     expect(body.parentElement).toBe(container.querySelector("[data-step-title]")!.parentElement!.parentElement);
     // The toggle covers the first row only, so the body's text stays selectable.
     expect(toggle(container)!.className).toContain("stg:row-start-1");
+    // Its end line named too: an absolutely placed item's `auto` end is the
+    // grid's edge, which would lay the toggle over the body.
+    expect(toggle(container)!.className).toContain("stg:row-end-2");
     expect(body.contains(toggle(container))).toBe(false);
   });
 
@@ -88,6 +91,8 @@ describe("each kind's lines", () => {
     const body = open(container);
     expect(within(body).getByText("invoice.ts:41")).toBeTruthy();
     expect(within(body).getByText("credit-note.ts:18")).toBeTruthy();
+    // The box scrolls sideways, so a keyboard reaches it as a named region.
+    expect(within(body).getByRole("region", { name: "Matches" }).tabIndex).toBe(0);
   });
 
   it("reads a read's folder and length, and the lines it read under the box", () => {
@@ -178,7 +183,7 @@ describe("each kind's lines", () => {
     // The command on the line under the words, at the foreground.
     expect(screen.getByText("npm test -- billing").className).toContain("stg:text-foreground");
     const body = container.querySelector<HTMLElement>("[data-step-body]")!;
-    expect(body.querySelector("pre")!.textContent).toBe("line 8\nline 9\nline 10\nline 11\nline 12");
+    expect(within(body).getByRole("region", { name: "Command output" }).textContent).toBe("line 8\nline 9\nline 10\nline 11\nline 12");
     expect(within(body).getByText("Last 5 of 12 lines")).toBeTruthy();
     fireEvent.click(within(body).getByRole("button", { name: "Show all" }));
     expect(body.querySelector("pre")!.textContent).toBe(output);

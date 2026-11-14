@@ -415,8 +415,10 @@ export function ThreadCardStep({
         data-cursor-target="thread-card-toggle"
         className={cn(
           // The first row's area, stretched over the row's padding: the
-          // whole line is the toggle, the body never.
-          "stg:absolute stg:col-span-full stg:row-start-1 stg:cursor-pointer stg:transition-colors stg:hover:bg-muted-subtle",
+          // whole line is the toggle, the body never. Both row lines are
+          // named: an absolutely placed grid item's `auto` end is the grid's
+          // own edge, which would lay the toggle over the body.
+          "stg:absolute stg:col-span-full stg:row-start-1 stg:row-end-2 stg:cursor-pointer stg:transition-colors stg:hover:bg-muted-subtle",
           place === "card" ? "stg:-inset-x-3 stg:-top-2" : "stg:inset-x-0 stg:-top-1",
           place === "card" ? (hasBody ? "stg:-bottom-1" : "stg:-bottom-2") : hasBody ? "stg:-bottom-0.5" : "stg:-bottom-1",
           "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",

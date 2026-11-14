@@ -24,7 +24,6 @@ import {
   changedGroup,
   turnFileUndo,
   toolCallRow,
-  fileDiff,
   openHowItGotThere,
   type SeededGatedRun,
 } from "../../helpers/approval";
@@ -109,12 +108,13 @@ test.describe("a turn's changed files and Undo (deterministic mock LLM)", () => 
     await expect(toolCallRow(page).first().getByText("Undone", { exact: true })).toBeVisible({ timeout: 30_000 });
   });
 
-  // --- The settled (kept) write's inline additive diff ---------------------
-  // Moved here from tool-card-ux.spec.ts: the settled row's diff is
-  // capture-fed, so it exists only on this stack shape. The finished turn's
-  // edit stays in place, and its row must present the additive diff with
-  // de-duplicated stats and the neutral card border.
-  test("completed write shows an inline additive diff", async ({
+  // --- The settled (kept) write of a new file ------------------------------
+  // Moved here from tool-card-ux.spec.ts: the settled row reads the turn's
+  // file review, so it exists only on this stack shape. The finished turn's
+  // write made the file, so its row reads "Created", counts its lines once
+  // ("+3", no "−0" for a file that had none), opens to the file's lines (the
+  // session page, S37), and sits in the neutral card border.
+  test("completed write of a new file shows its lines inline, its count once", async ({
     page,
     stigmerClient,
   }) => {
@@ -130,13 +130,14 @@ test.describe("a turn's changed files and Undo (deterministic mock LLM)", () => 
     // file-changes summary section, whose diff legitimately carries its own
     // stats — the dedup contract under test is the row's inline preview.
     const settledRow = toolCallRow(page).first();
+    await expect(settledRow).toContainText("Created", { timeout: 30_000 });
     await settledRow.locator('[data-cursor-target="thread-card-toggle"]').click();
-    const diff = fileDiff(settledRow).first();
-    await expect(diff).toBeVisible({ timeout: 30_000 });
+    const lines = settledRow.getByRole("region", { name: "File content" });
+    await expect(lines).toContainText("three", { timeout: 30_000 });
 
-    // De-duplicated: the row states its "+3 −0" exactly ONCE, on its line;
-    // the capture-fed diff below it carries no second copy.
-    await expect(settledRow).toContainText("+3 \u22120");
+    // De-duplicated: the row states its "+3" exactly ONCE, on its line, with
+    // no "−0"; the lines below it carry no second copy.
+    await expect(settledRow).not.toContainText("\u22120");
     expect((await settledRow.innerText()).split("+3").length - 1, "the row states its counts once").toBe(1);
 
     // The card the finished turn's steps sit in carries the same neutral

@@ -369,7 +369,8 @@ function CommandOutput({ stdout, stderr, live }: { readonly stdout: string; read
   const shown = clipped ? lines.slice(-EXCERPT_LINES) : lines;
   return (
     <div data-cursor-target="terminal-session">
-      <pre {...(live ? { "data-cursor-target": "terminal-live-output" } : {})} className={STEP_INSET}>
+      {/* It scrolls sideways, so it is a named region a keyboard reaches (stigmer#2899). */}
+      <pre {...(live ? { "data-cursor-target": "terminal-live-output" } : {})} {...scrollRegion("Command output")} className={cn(STEP_INSET, SCROLL_REGION_FOCUS)}>
         {shown.join("\n")}
       </pre>
       {!live && clipped && (
@@ -401,7 +402,11 @@ function relativeTo(file: string, folder: string): string {
 function MatchesBox({ view, folder }: { readonly view: ToolResultView; readonly folder: string }) {
   if (view.type === "list") {
     if (view.count === 0) return <p className="stg:text-xs stg:text-muted-foreground">Empty</p>;
-    return <pre className={STEP_INSET}>{view.entries.join("\n")}</pre>;
+    return (
+      <pre {...scrollRegion("Files")} className={cn(STEP_INSET, SCROLL_REGION_FOCUS)}>
+        {view.entries.join("\n")}
+      </pre>
+    );
   }
   if (view.type !== "search") return <ErrorBox view={view} />;
   if (view.count === 0 && view.matches.length === 0) {
@@ -411,14 +416,16 @@ function MatchesBox({ view, folder }: { readonly view: ToolResultView; readonly 
   if (view.kind === "files") {
     return (
       <div>
-        <pre className={STEP_INSET}>{view.matches.map((match) => relativeTo(match.file ?? match.text, folder)).join("\n")}</pre>
+        <pre {...scrollRegion("Files")} className={cn(STEP_INSET, SCROLL_REGION_FOCUS)}>
+          {view.matches.map((match) => relativeTo(match.file ?? match.text, folder)).join("\n")}
+        </pre>
         {more}
       </div>
     );
   }
   return (
     <div>
-      <div className={cn(STEP_INSET, "stg:grid stg:grid-cols-[auto_minmax(0,1fr)] stg:gap-x-4")}>
+      <div {...scrollRegion("Matches")} className={cn(STEP_INSET, SCROLL_REGION_FOCUS, "stg:grid stg:grid-cols-[auto_minmax(0,1fr)] stg:gap-x-4")}>
         {view.matches.map((match, at) => (
           <MatchLine key={at} match={match} folder={folder} />
         ))}

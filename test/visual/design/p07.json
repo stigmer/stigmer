@@ -110,7 +110,7 @@
         "word No fires yet. The routine's first fire shows here.": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
         "word Nothing matches “ledgr”": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
         "word Your organization's admins manage its service accounts.": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Only an admin can open Service accounts": "T07 3o: the kit says the page in sentence case (\"service accounts\"); the reader now matches case (T07 G3); the drawing is redrawn to the kit's words at the next export"
+        "word Only an admin can open Service accounts": "The drawing is redrawn: the kit says the page in sentence case (\"service accounts\"); the reader now matches case (whole words, in their case); the drawing is redrawn to the kit's words at the next export"
       }
     }
   ]
