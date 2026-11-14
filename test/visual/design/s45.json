@@ -207,11 +207,11 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "type Done": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
-        "word 40s": "The session's frame: one duration format, \"1m 30s\"",
-        "word 42s": "The session's frame: one duration format, \"1m 30s\"",
-        "word How it got there: read invoice.ts, edited invoice.ts, wrote rounding.ts": "Steps, approvals and the finished turn: \"How it got there\" as the card's header with its count and span",
-        "word Invoices now round once, at the total. I added a rounding helper with tests for the half-cent cases.": "Steps, approvals and the finished turn: the helper's body as step rows"
+        "type Done": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
+        "word 40s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "word 42s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "word How it got there: read invoice.ts, edited invoice.ts, wrote rounding.ts": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "word Invoices now round once, at the total. I added a rounding helper with tests for the half-cent cases.": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows"
       }
     },
     {
@@ -467,14 +467,14 @@
       "ruled": {},
       "pending": {
         "button Try again": "Endings: a notice's acts at xs, with their icons",
-        "button Undo all": "Steps, approvals and the finished turn: the screen's parts as drawn",
-        "type Done": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
-        "word 40s": "The session's frame: one duration format, \"1m 30s\"",
-        "word 42s": "The session's frame: one duration format, \"1m 30s\"",
-        "word How it got there: read invoice.ts, edited invoice.ts, wrote rounding.ts": "Steps, approvals and the finished turn: \"How it got there\" as the card's header with its count and span",
-        "word Invoices now round once, at the total. I added a rounding helper with tests for the half-cent cases.": "Steps, approvals and the finished turn: the helper's body as step rows",
+        "button Undo all": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "type Done": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
+        "word 40s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "word 42s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "word How it got there: read invoice.ts, edited invoice.ts, wrote rounding.ts": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "word Invoices now round once, at the total. I added a rounding helper with tests for the half-cent cases.": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
         "word Try again": "Endings: a notice's acts at xs, with their icons",
-        "word Undo all": "Steps, approvals and the finished turn: the screen's parts as drawn"
+        "word Undo all": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows"
       }
     },
     {
@@ -880,11 +880,11 @@
         "type Reply…": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included"
       },
       "pending": {
-        "type Done": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
-        "word 40s": "The session's frame: one duration format, \"1m 30s\"",
-        "word 42s": "The session's frame: one duration format, \"1m 30s\"",
-        "word How it got there: read invoice.ts, edited invoice.ts, wrote rounding.ts": "Steps, approvals and the finished turn: \"How it got there\" as the card's header with its count and span",
-        "word Invoices now round once, at the total. I added a rounding helper with tests for the half-cent cases.": "Steps, approvals and the finished turn: the helper's body as step rows"
+        "type Done": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
+        "word 40s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "word 42s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "word How it got there: read invoice.ts, edited invoice.ts, wrote rounding.ts": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "word Invoices now round once, at the total. I added a rounding helper with tests for the half-cent cases.": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows"
       }
     }
   ]
