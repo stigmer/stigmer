@@ -11,8 +11,9 @@
 //
 // The page reports when the scene has settled: no call in flight, and none
 // started for QUIET_MS, so a call one answer leads to (an organization list,
-// then its provider keys) is waited for too. The spec reads `idle` before it
-// takes the picture.
+// then its provider keys) is waited for too. A follow a scene holds open on
+// purpose is left out (its drawing's `uncounted`). The spec reads `idle`
+// before it takes the picture.
 import { Code, ConnectError, createRouterTransport, type ConnectRouter, type Interceptor } from "@connectrpc/connect";
 import { Stigmer } from "@stigmer/client";
 import { MODEL_REGISTRY } from "./fixtures.ts";
@@ -61,8 +62,14 @@ export function countedFetch(fetchImpl: typeof globalThis.fetch): typeof globalT
   };
 }
 
-/** A client that answers `routes` and the model registry, and counts its calls into `window.gallery`. */
-export function fakeStigmer(routes: Routes = () => {}): Stigmer {
+/**
+ * A client that answers `routes` and the model registry, and counts its
+ * calls into `window.gallery`, all but the methods `uncounted` names (by
+ * local name): a follow a scene holds open with no first frame (a turn not
+ * started, a reconnect that never comes back) would otherwise hold the
+ * scene unsettled forever.
+ */
+export function fakeStigmer(routes: Routes = () => {}, uncounted: readonly string[] = []): Stigmer {
   const state: GalleryState = { inFlight: 0, idle: false };
   window.gallery = state;
   let quiet: ReturnType<typeof setTimeout> | undefined;
@@ -81,6 +88,7 @@ export function fakeStigmer(routes: Routes = () => {}): Stigmer {
   quiet = setTimeout(() => (state.idle = state.inFlight === 0), QUIET_MS);
 
   const counted: Interceptor = (next) => async (request) => {
+    if (uncounted.includes(request.method.localName)) return next(request);
     begin();
     try {
       return await next(request);
