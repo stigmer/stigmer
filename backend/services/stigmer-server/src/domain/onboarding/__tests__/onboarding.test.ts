@@ -311,6 +311,23 @@ describe("the edges", () => {
     expect([done(answer.steps), answer.everRan]).toEqual([["key", "watch"], true]);
   });
 
+  it("counts runs that all failed as no job done: the key and watch steps stay open, though something ran", async () => {
+    await organization("org_failing", IN_WINDOW, "f0");
+    await agent("org_failing", "variance-reporter", "Variance Reporter");
+    await run("org_failing", 1, RunPhase.RUN_FAILED);
+    await run("org_failing", 2, RunPhase.RUN_CANCELLED);
+    await run("org_failing", 3, RunPhase.RUN_TERMINATED);
+    const answer = await service().progress("org_failing", "f0");
+    expect([done(answer.steps), answer.everRan]).toEqual([["describe"], true]);
+  });
+
+  it("counts no entry the server cannot resolve to an account as a teammate", async () => {
+    // A role row whose account has no row: the access list names it by id alone, with no provisioning mode.
+    await role("ida_gone", "member", "org_5");
+    const answer = await service().progress("org_5", "f5");
+    expect([answer.joinedCount, done(answer.steps).includes("others")]).toEqual([0, false]);
+  });
+
   it("counts no team as a teammate", async () => {
     const spec = triple({ kind: "team", id: "tm_ops", relation: "member" }, "member", { kind: "organization", id: "org_5" });
     await newResourceGrantStore(temp.store, { keepsHistory: false }).save(create(GrantSchema, { metadata: { id: grantIdFor(spec) }, spec }));

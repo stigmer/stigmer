@@ -18,7 +18,8 @@
 //   - getOnboardingFunnel answers six counts in the same order, an
 //     organization count and an excluded count, none negative, and no step
 //     reached by more organizations than were counted; it refuses a window
-//     with no bounds (InvalidArgument), and an organization's owner, who is
+//     with no bounds (InvalidArgument) whoever asks, since the boundary checks
+//     the message before authorization, and an organization's owner, who is
 //     no platform operator, PermissionDenied with the annotation's copy.
 //     The answer itself needs an operator caller: the privileged scope,
 //     absent on a deployed endpoint by design, so that case skips there.
@@ -149,16 +150,13 @@ describe("Onboarding conformance — the platform operator's count", () => {
     expect(denied.rawMessage).toBe("only platform operators can read onboarding counts");
   });
 
-  it.skipIf(!hasPrivilegedScope)("[rpc:PlatformQueryController.getOnboardingFunnel] refuses a window with no bounds (InvalidArgument)", async () => {
-    const scope = await target.provisionPrivilegedScope!();
-    try {
-      await expectGrpcCode(
-        () => scope.clients.platformQuery.getOnboardingFunnel({ fromDate: "", toDate: "" }),
-        Code.InvalidArgument,
-        "getOnboardingFunnel with no window",
-      );
-    } finally {
-      await scope.cleanup();
-    }
+  it("[rpc:PlatformQueryController.getOnboardingFunnel] refuses a window with no bounds (InvalidArgument), whoever asks", async () => {
+    // The message's own rules require both bounds, and the boundary checks
+    // them before authorization, so any caller hears it.
+    await expectGrpcCode(
+      () => clients.platformQuery.getOnboardingFunnel({ fromDate: "", toDate: "" }),
+      Code.InvalidArgument,
+      "getOnboardingFunnel with no window",
+    );
   });
 });
