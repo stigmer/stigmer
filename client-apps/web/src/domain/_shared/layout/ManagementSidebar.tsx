@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { SettingsSidebar, useSettingsNavGroups } from "@stigmer/react-sdk/console";
+import { HelpLink, SettingsSidebar, useSettingsNavGroups } from "@stigmer/react-sdk/console";
 import type { SidebarLinkRenderProps } from "@stigmer/react-sdk/console";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
 import { UserMenu } from "./UserMenu";
@@ -50,7 +50,12 @@ export function ManagementSidebar() {
       activePath={pathname}
       backHref={lastSessionZonePath ?? "/"}
       renderLink={renderLink}
-      footer={<UserMenu />}
+      footer={
+        <>
+          <HelpLink variant="row" />
+          <UserMenu />
+        </>
+      }
       isOpen={sidebar.isOpen}
       onCollapse={sidebar.close}
       onOrgChanged={handleOrgChanged}

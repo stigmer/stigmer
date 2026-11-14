@@ -8,6 +8,7 @@ import {
 import type {
   GetLicenseStatusOutput,
   GetServerInfoOutput,
+  HelpLink as HelpLinkProto,
   ServerEdition,
 } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import {
@@ -75,6 +76,26 @@ export interface ServerInfo {
    * offers no sign-in to an installed app.
    */
   readonly nativeSignIn: NativeSignIn | undefined;
+  /**
+   * Where a person stuck on this server asks for help, as its operator set
+   * it: an address and the words to show for it. Show it on your own
+   * screens (sign-in, the page's chrome, every failure); never inside an
+   * app a builder made for their own users, whose help is the builder's.
+   *
+   * `undefined` when the operator set none, on a server released before
+   * the field, and when the server announced an address that is not an
+   * absolute `https:`, `http:` or `mailto:` one, which is never handed on:
+   * show no help link then, rather than a guess.
+   */
+  readonly help: HelpLink | undefined;
+}
+
+/** Where to ask for help, as {@link ServerInfo.help} reports it. */
+export interface HelpLink {
+  /** An absolute `https:`, `http:` or `mailto:` address. */
+  readonly url: string;
+  /** The words to show for it, at most 40 characters; plain text, never markup. */
+  readonly label: string;
 }
 
 /** How an installed app signs in, as {@link ServerInfo.nativeSignIn} reports it. */
@@ -101,6 +122,35 @@ export interface EnvironmentAvailability {
   readonly packages: boolean;
 }
 
+/** The schemes a help address may carry: a web page or a mail address. */
+const HELP_LINK_SCHEMES: ReadonlySet<string> = new Set(["https:", "http:", "mailto:"]);
+
+/** The longest label a server announces (the server's own limit). */
+const HELP_LABEL_MAX = 40;
+
+/**
+ * The announced help link, or undefined when there is none or it is not one
+ * a client may render: a server checks its operator's address at boot, and
+ * a client checks again because it meets servers it did not build. A label
+ * that is empty or too long is replaced by "Get help", the server's own
+ * default, rather than dropping a good address.
+ */
+function helpLinkOf(help: HelpLinkProto | undefined): HelpLink | undefined {
+  if (help === undefined) return undefined;
+  let parsed: URL;
+  try {
+    parsed = new URL(help.url);
+  } catch {
+    return undefined;
+  }
+  if (!HELP_LINK_SCHEMES.has(parsed.protocol)) return undefined;
+  const label = help.label.trim();
+  return {
+    url: help.url,
+    label: label === "" || [...label].length > HELP_LABEL_MAX ? "Get help" : label,
+  };
+}
+
 /**
  * Client for platform-level queries (server info, capabilities, license).
  *
@@ -118,8 +168,8 @@ export class PlatformClient {
 
   /**
    * Retrieve the connected server's edition, version, authentication
-   * posture, how an installed app signs in, whether it holds one
-   * organization, and what an Environment does there. Answered before
+   * posture, how an installed app signs in, where to ask for help,
+   * whether it holds one organization, and what an Environment does there. Answered before
    * sign-in: no credential is needed.
    *
    * Maps the proto {@link ServerEdition} to a {@link DeploymentMode}
@@ -147,6 +197,7 @@ export class PlatformClient {
                 audience: resp.nativeSignIn.audience,
                 clientId: resp.nativeSignIn.clientId,
               },
+        help: helpLinkOf(resp.help),
         singleOrg: resp.singleOrg,
         environments:
           resp.environments === undefined

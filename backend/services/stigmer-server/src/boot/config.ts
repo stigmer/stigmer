@@ -314,6 +314,20 @@ export interface ServerConfig {
    */
   readonly oidcNativeClientId: string;
   /**
+   * Where a person stuck on this server asks for help (STIGMER_HELP_URL):
+   * the operator's support desk, team chat or community, as an absolute
+   * https:, http: or mailto: address. `getServerInfo` announces it, with
+   * {@link helpLabel}, as `help`, and every console and the command line
+   * show it. Lenient (boot/help-link.ts): empty announces nothing; a value
+   * that is not such an address is dropped with a WARN, never served.
+   */
+  readonly helpUrl: string;
+  /**
+   * The help link's words (STIGMER_HELP_LABEL), at most 40 characters;
+   * empty says "Get help". Unused, with a WARN, without STIGMER_HELP_URL.
+   */
+  readonly helpLabel: string;
+  /**
    * Sandbox provisioner driver (SANDBOX_PROVISIONER_TYPE). ""
    * — the default — is the external-runner posture: no provisioner is
    * constructed and an operator-managed runner polls the queues (today's
@@ -622,6 +636,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     ...loadOidcConfig(env),
     oidcConsoleClientId: envString(env, "STIGMER_OIDC_CONSOLE_CLIENT_ID", ""),
     oidcNativeClientId: envString(env, "STIGMER_OIDC_NATIVE_CLIENT_ID", "").trim(),
+    helpUrl: envString(env, "STIGMER_HELP_URL", "").trim(),
+    helpLabel: envString(env, "STIGMER_HELP_LABEL", "").trim(),
     sandboxProvisionerType: envString(env, "SANDBOX_PROVISIONER_TYPE", ""),
     sharedRunnerAcrossOrganizations: loadSharedRunnerAcknowledgement(env),
     sandboxBackendEndpoint: envString(

@@ -198,6 +198,22 @@ with the redirects `stigmer://auth/callback` and
 `http://127.0.0.1:17234/auth/callback` (and ports 17235 and 17236), refresh
 tokens on, and the API audience above.
 
+## Help
+
+`server.help.url` names where your people ask when they are stuck (your support
+desk, team chat or a mail address), and `server.help.label` its words, at most
+40 characters ("Get help" when empty). The server announces it, and every
+console screen, every failure note and every command the server refuses show
+it. Empty, nothing does. The
+[operations guide](https://stigmer.ai/docs/guides/self-hosting/operations#where-your-people-ask-for-help)
+says who sees it.
+
+```bash
+helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer -n stigmer --reset-then-reuse-values \
+  --set server.help.url=https://support.example.com/stigmer \
+  --set-string server.help.label="Ask IT on Slack"
+```
+
 ## Stigmer Enterprise
 
 Stigmer Enterprise is the same server with a license key: many organizations,
@@ -487,7 +503,7 @@ the map.
 | `fullnameOverride`                                | The name every Service takes; defaults to the release name.                                                                                                                                     |
 | `image`                                           | Registry, repositories (`stigmer-server`, `stigmer-runner`; `server.enterpriseRepository`, run under a license), tags (empty means this chart's version), pull policy, pull Secrets.            |
 | `secrets`                                         | `existingSecret`, required: `STIGMER_ENCRYPTION_KEY`, `STIGMER_RUNNER_TOKEN_KEY`, and `POSTGRES_PASSWORD` when Postgres is bundled; optional: `STIGMER_PLATFORM_TOKEN_KEY`.                     |
-| `server`                                          | `publicUrl`, `artifactPublicUrl`, `allowUnauthenticatedExposure`, `operator.{email,name}`, `oidc.{issuer,audience,consoleClientId,nativeClientId}`, `resources`, `persistence`, `securityContext`, `extraEnv`. |
+| `server`                                          | `publicUrl`, `artifactPublicUrl`, `allowUnauthenticatedExposure`, `operator.{email,name}`, `oidc.{issuer,audience,consoleClientId,nativeClientId}`, `help.{url,label}`, `resources`, `persistence`, `securityContext`, `extraEnv`. |
 | `runner`                                          | `llm.existingSecret`, `stigmerToken.{existingSecret,key}`, `sharedAcrossOrganizations` (a licensed server's acceptance that every organization shares this runner), `resources`, `persistence`, `securityContext`, `extraEnv`. |
 | `artifacts`                                       | `persistence` for the shared artifact disk.                                                                                                                                                     |
 | `terminationGracePeriodSeconds`                   | How long a stopping pod may drain (60 s; the runner finishes in-flight activities).                                                                                                             |

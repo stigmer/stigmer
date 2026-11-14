@@ -109,6 +109,11 @@ export type { UserMenuProps } from "./user/index.js";
 // Sidebar — the console's navigation chrome (workspace + settings zones).
 // The web console, desktop app, and documentation tours all render these;
 // hosts inject routing via `renderLink` and identity via the footer slot.
+// Help — the server operator's help link, for the console's own screens
+// (the sidebar's footer, sign-in, a gate's failure); never a builder's app
+export { HelpLink } from "./help/index.js";
+export type { HelpLinkProps } from "./help/index.js";
+
 export { WorkspaceSidebar, SettingsSidebar } from "./sidebar/index.js";
 export type {
   WorkspaceSidebarProps,

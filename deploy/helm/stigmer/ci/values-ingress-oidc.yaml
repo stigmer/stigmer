@@ -10,6 +10,9 @@ server:
     audience: https://stigmer.example.com
     consoleClientId: stigmer-console
     nativeClientId: stigmer-desktop
+  help:
+    url: https://support.example.com/stigmer
+    label: Ask IT on Slack
 runner:
   stigmerToken:
     existingSecret: stigmer-runner-token

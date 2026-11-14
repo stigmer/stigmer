@@ -35,7 +35,7 @@ export type { ColorMode, ResolvedColorMode } from "./color-mode.js";
 export { useStigmerPortalContainer } from "./portal-container.js";
 
 // Server identity: edition, version and authentication posture
-export { useEnvironmentAvailability, useServerInfo, useSingleOrg } from "./server-info.js";
+export { useEnvironmentAvailability, useHelpLink, useServerInfo, useSingleOrg } from "./server-info.js";
 export type { UseServerInfoReturn } from "./server-info.js";
 
 // Deployment mode and resource availability

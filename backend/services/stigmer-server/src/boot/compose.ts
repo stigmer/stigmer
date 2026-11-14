@@ -267,6 +267,7 @@ import {
 } from "./artifact-lane.js";
 import { resolveOAuthRedirectUri } from "./oauth-redirect-uri.js";
 import { resolveNativeSignIn } from "./native-sign-in.js";
+import { resolveHelpLink } from "./help-link.js";
 import {
   assessSkillTransferOrigin,
   resolveSkillTransferBaseUrl,
@@ -568,6 +569,10 @@ export async function composeServer(
     requireAuthentication,
   });
   for (const warning of nativeSignIn.warnings) logger.warn(warning);
+  // Where a person asks for help (help-link.ts): the operator's two
+  // settings, a bad value dropped with a warning; getServerInfo announces it.
+  const helpLink = resolveHelpLink({ url: config.helpUrl, label: config.helpLabel });
+  for (const warning of helpLink.warnings) logger.warn(warning);
   const authorizationPosture = authorizationPostureOf({
     unitAuthorizer: extensions.authorizer !== undefined,
     requireAuthentication,
@@ -2292,6 +2297,7 @@ export async function composeServer(
       version,
       authenticationRequired: requireAuthentication,
       nativeSignIn: nativeSignIn.answer,
+      help: helpLink.answer,
       singleOrganization,
       // The built-in `absent` answer installs here, at the consumer, when
       // no unit registered a license-status provider: open source and the

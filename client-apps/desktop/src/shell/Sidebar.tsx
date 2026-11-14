@@ -6,7 +6,7 @@ import {
   useRecentActivity,
   useActiveOrgId,
 } from "@stigmer/react-sdk";
-import { WorkspaceSidebar } from "@stigmer/react-sdk/console";
+import { HelpLink, WorkspaceSidebar } from "@stigmer/react-sdk/console";
 import type { RecentActivityEntry } from "@stigmer/react-sdk";
 import type {
   SidebarLinkRenderProps,
@@ -149,6 +149,7 @@ export function Sidebar() {
       footer={
         <>
           <RunnerStatus />
+          <HelpLink variant="row" />
           <UserMenu />
         </>
       }

@@ -185,6 +185,7 @@ export {
 export {
   PlatformClient,
   type EnvironmentAvailability,
+  type HelpLink,
   type NativeSignIn,
   type ServerInfo,
 } from "./platform.js";

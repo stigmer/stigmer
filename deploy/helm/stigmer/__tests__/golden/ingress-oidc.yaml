@@ -384,6 +384,10 @@ spec:
               value: "stigmer-console"
             - name: STIGMER_OIDC_NATIVE_CLIENT_ID
               value: "stigmer-desktop"
+            - name: STIGMER_HELP_URL
+              value: "https://support.example.com/stigmer"
+            - name: STIGMER_HELP_LABEL
+              value: "Ask IT on Slack"
           ports:
             - name: grpc-api
               containerPort: 7234

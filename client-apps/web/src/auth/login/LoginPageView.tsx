@@ -5,6 +5,7 @@ import { useTheme } from "next-themes";
 import { Stigmer } from "@stigmer/client";
 import { Button, StigmerProvider } from "@stigmer/react-sdk";
 import type { ResolvedColorMode } from "@stigmer/react-sdk";
+import { HelpLink } from "@stigmer/react-sdk/console";
 import { getApiBaseUrl } from "@/config/env";
 import { resolveAuthConfig } from "@/auth/config";
 import { createUserManager } from "@/auth/oidc/oidc-manager";
@@ -55,9 +56,13 @@ export function LoginPageView() {
             </p>
           </div>
 
-          <Button variant="outline" onClick={handleIssuerLogin} className="w-full">
-            Sign in
-          </Button>
+          <div className="space-y-4 text-center">
+            <Button variant="outline" onClick={handleIssuerLogin} className="w-full">
+              Sign in
+            </Button>
+            {/* Where to ask when sign-in goes wrong: the server's own link, or nothing. */}
+            <HelpLink />
+          </div>
         </div>
       </div>
     </StigmerProvider>

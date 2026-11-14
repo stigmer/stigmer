@@ -84,6 +84,7 @@ import { bundledModelRegistryDocument } from "../../../modelcatalog/bundled.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import type { EnvironmentPolicy } from "../../run/environment-admission.js";
 import type { NativeSignInDeclaration } from "../../../extensions/registry.js";
+import type { HelpLinkAnswer } from "../../../boot/help-link.js";
 import { NO_ENVIRONMENT_SUPPORT } from "../../environment/facts.js";
 
 /** The default posture's policy: no sandbox lane, so nothing is governed. */
@@ -167,6 +168,7 @@ describe("platform domain (composed server)", () => {
     expect(first.authenticationRequired).toBe(false);
     // Nothing to sign in to, so nothing tells an installed app how.
     expect(first.nativeSignIn).toBeUndefined();
+    expect(first.help).toBeUndefined();
     // The default posture starts no sandbox (SANDBOX_PROVISIONER_TYPE
     // unset): no Environment governs a conversation here, and the field is
     // still present, so a console never reads it as unanswered.
@@ -513,12 +515,16 @@ describe("platform domain (model readiness, composed availability)", () => {
 });
 
 /**
- * getServerInfo's `native_sign_in` on an in-process router: the answer the
- * composition root resolved (boot/native-sign-in.ts) is announced exactly,
- * and none is announced when it resolved none.
+ * getServerInfo's `native_sign_in` and `help` on an in-process router: the
+ * answer the composition root resolved (boot/native-sign-in.ts,
+ * boot/help-link.ts) is announced exactly, and none is announced when it
+ * resolved none.
  */
-describe("platform domain (native sign-in)", () => {
-  function serverInfoWith(nativeSignIn: NativeSignInDeclaration | undefined) {
+describe("platform domain (native sign-in and help)", () => {
+  function serverInfoWith(
+    nativeSignIn: NativeSignInDeclaration | undefined,
+    help: HelpLinkAnswer | undefined = undefined,
+  ) {
     const transport = createRouterTransport((router) => {
       registerPlatformServices(router, {
         runnerBootstrapTemporalAddress: "localhost:7233",
@@ -532,6 +538,7 @@ describe("platform domain (native sign-in)", () => {
         version: "dev",
         authenticationRequired: true,
         nativeSignIn,
+        help,
         singleOrganization: undefined,
         licenseStatus: ABSENT_LICENSE_STATUS,
         providerAvailability: runnerProviderAvailability(undefined),
@@ -565,6 +572,16 @@ describe("platform domain (native sign-in)", () => {
     expect(info.authenticationRequired).toBe(true);
     expect(info.nativeSignIn).toBeUndefined();
   });
+
+  it("announces the help link it was given, exactly", async () => {
+    const info = await serverInfoWith(undefined, { url: "https://help.acme.example", label: "Ask IT" });
+    expect(info.help).toEqual(expect.objectContaining({ url: "https://help.acme.example", label: "Ask IT" }));
+  });
+
+  it("announces no help link when the composition resolved none", async () => {
+    const info = await serverInfoWith(undefined);
+    expect(info.help).toBeUndefined();
+  });
 });
 
 describe("platform domain (keyless runner-token service)", () => {
@@ -582,6 +599,7 @@ describe("platform domain (keyless runner-token service)", () => {
         version: "dev",
         authenticationRequired: false,
         nativeSignIn: undefined,
+        help: undefined,
         singleOrganization: undefined,
         licenseStatus: ABSENT_LICENSE_STATUS,
         providerAvailability: runnerProviderAvailability(undefined),
@@ -623,6 +641,7 @@ describe("platform domain (environment availability)", () => {
         version: "dev",
         authenticationRequired: false,
         nativeSignIn: undefined,
+        help: undefined,
         singleOrganization: undefined,
         licenseStatus: ABSENT_LICENSE_STATUS,
         providerAvailability: runnerProviderAvailability(undefined),
@@ -692,6 +711,7 @@ describe("platform domain (license status)", () => {
         version: "dev",
         authenticationRequired: false,
         nativeSignIn: undefined,
+        help: undefined,
         singleOrganization: undefined,
         licenseStatus: provider,
         providerAvailability: runnerProviderAvailability(undefined),
@@ -963,6 +983,7 @@ describe("platform domain (a sandbox's own credential)", () => {
         version: "dev",
         authenticationRequired: false,
         nativeSignIn: undefined,
+        help: undefined,
         singleOrganization: undefined,
         licenseStatus: ABSENT_LICENSE_STATUS,
         providerAvailability: runnerProviderAvailability(undefined),

@@ -8,7 +8,7 @@ import {
   useConversationsWantsHumanCount,
   useRecentActivity,
 } from "@stigmer/react-sdk";
-import { WorkspaceSidebar } from "@stigmer/react-sdk/console";
+import { HelpLink, WorkspaceSidebar } from "@stigmer/react-sdk/console";
 import type { SidebarLinkRenderProps, WorkspaceNavId } from "@stigmer/react-sdk/console";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
 import { useRunNavigation } from "@/domain/runs/run-navigation";
@@ -151,7 +151,12 @@ export function Sidebar() {
       recentActivity={recentActivity}
       activeSessionId={activeSessionId}
       conversationsBadgeCount={wantsHumanCount}
-      footer={<UserMenu />}
+      footer={
+        <>
+          <HelpLink variant="row" />
+          <UserMenu />
+        </>
+      }
       isOpen={sidebar.isOpen}
       onCollapse={sidebar.close}
       onOrgChanged={handleOrgChanged}

@@ -84,6 +84,7 @@ import {
   GetRunnerBootstrapConfigOutputSchema,
   GetRunnerScopedTokenOutputSchema,
   GetServerInfoOutputSchema,
+  HelpLinkSchema,
   NativeSignInSchema,
   PlatformQueryController,
   ServerEdition,
@@ -98,6 +99,7 @@ import type {
 
 import type { SingleOrganization } from "../../pipeline/interceptors/single-organization.js";
 import type { NativeSignInDeclaration } from "../../extensions/registry.js";
+import type { HelpLinkAnswer } from "../../boot/help-link.js";
 import type { Logger } from "../../boot/logger.js";
 import type { LicenseStatusProvider } from "../../extensions/license-status.js";
 import type {
@@ -193,6 +195,13 @@ export interface PlatformControllerDeps {
    */
   readonly nativeSignIn: NativeSignInDeclaration | undefined;
   /**
+   * Where a person stuck on this server asks for help (boot/help-link.ts:
+   * the operator's STIGMER_HELP_URL and STIGMER_HELP_LABEL, already
+   * checked), announced as `help`; undefined announces nothing, and a
+   * client then shows no help link.
+   */
+  readonly help: HelpLinkAnswer | undefined;
+  /**
    * The organization a one-organization server fills
    * (pipeline/interceptors/single-organization.ts), read at answer time:
    * `single_org` is true exactly when the fill is on, so a client hides
@@ -248,7 +257,7 @@ export function registerPlatformServices(
   });
 }
 
-/** GetServerInfo: the server edition, release version, authentication posture, how an installed app signs in, whether it fills one organization, and what an Environment does here. */
+/** GetServerInfo: the server edition, release version, authentication posture, how an installed app signs in, where to ask for help, whether it fills one organization, and what an Environment does here. */
 function getServerInfo(deps: PlatformControllerDeps): GetServerInfoOutput {
   return create(GetServerInfoOutputSchema, {
     edition: deps.edition,
@@ -257,6 +266,7 @@ function getServerInfo(deps: PlatformControllerDeps): GetServerInfoOutput {
     ...(deps.nativeSignIn !== undefined
       ? { nativeSignIn: create(NativeSignInSchema, deps.nativeSignIn) }
       : {}),
+    ...(deps.help !== undefined ? { help: create(HelpLinkSchema, deps.help) } : {}),
     singleOrg: deps.singleOrganization?.current() !== undefined,
     environments: create(EnvironmentAvailabilitySchema, {
       applies: deps.environmentPolicy.governs(ExecutionTarget.UNSPECIFIED),

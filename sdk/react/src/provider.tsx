@@ -17,6 +17,7 @@ import { DeploymentModeContext } from "@stigmer/react-core";
 import { ExecutionTargetContext } from "@stigmer/react-core/internal";
 import { ApprovalDefaultsContext } from "./approval-defaults-context.js";
 import { PublicBaseUrlContext } from "./public-base-url-context.js";
+import { ShowHelpLinkContext } from "./help/help-link-context.js";
 import type { ApprovalDefaults } from "./approval-defaults-context.js";
 import type { ExecutionTargetOption } from "@stigmer/react-core";
 import type { RunnerAdapter } from "@stigmer/react-core";
@@ -143,6 +144,17 @@ export interface StigmerProviderProps {
    * ```
    */
   readonly publicBaseUrl?: string;
+  /**
+   * Ends every failure note the kit draws (a page that couldn't load, a
+   * turn that didn't finish, a step that failed) with the server's help
+   * link, "Stuck? <words>", when its operator set one (`getServerInfo`'s
+   * `help`). Off by default: inside an app you make for your own users,
+   * help is yours to give, and the server operator's link would send them
+   * to the wrong place. A Stigmer console turns it on.
+   *
+   * @default false
+   */
+  readonly showHelpLink?: boolean;
   /**
    * Loads `mermaid`, so a ```mermaid fence in an agent's reply, a file or a
    * skill draws as a diagram. The kit does not install `mermaid` (it is a
@@ -304,6 +316,7 @@ export function StigmerProvider({
   runnerAdapter,
   approvalDefaults,
   publicBaseUrl,
+  showHelpLink = false,
   loadMermaid,
   preset,
   className,
@@ -327,6 +340,7 @@ export function StigmerProvider({
           <ApprovalDefaultsContext.Provider value={approvalDefaults}>
             <RunnerAdapterContext.Provider value={runnerAdapter ?? null}>
               <PublicBaseUrlContext.Provider value={publicBaseUrl}>
+              <ShowHelpLinkContext.Provider value={showHelpLink}>
                 <ColorModeContext.Provider value={resolvedMode}>
                   <ModelRegistryContext.Provider value={registryState}>
                     <PortalContainerContext.Provider value={portalContainer}>
@@ -351,6 +365,7 @@ export function StigmerProvider({
                     </PortalContainerContext.Provider>
                   </ModelRegistryContext.Provider>
                 </ColorModeContext.Provider>
+              </ShowHelpLinkContext.Provider>
               </PublicBaseUrlContext.Provider>
             </RunnerAdapterContext.Provider>
           </ApprovalDefaultsContext.Provider>

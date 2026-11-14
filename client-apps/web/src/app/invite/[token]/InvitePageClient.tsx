@@ -10,6 +10,7 @@ import {
   rememberActiveOrg,
 } from "@stigmer/react-sdk";
 import type { ResolvedColorMode } from "@stigmer/react-sdk";
+import { HelpLink } from "@stigmer/react-sdk/console";
 import type { Invitation } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
 import { getApiBaseUrl } from "@/config/env";
 import { resolveAuthConfig } from "@/auth/config";
@@ -116,6 +117,8 @@ export default function InvitePageClient() {
             onAccepted={handleAccepted}
             onAuthRequired={handleAuthRequired}
           />
+          {/* Where to ask when the invitation doesn't work: the server's own link, or nothing. */}
+          <HelpLink className="text-center" />
         </div>
       </div>
     </StigmerProvider>

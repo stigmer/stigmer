@@ -13,7 +13,10 @@
  * single-organization answer crosses the same way: `true` (fill-on, hide
  * organizations), `false`, and `undefined` from a server that does not send
  * it. So does what an Environment does there: each of its three answers as
- * sent, and `undefined` from a server that does not send the field.
+ * sent, and `undefined` from a server that does not send the field. The
+ * help link crosses as sent, an empty or too-long label becomes "Get help",
+ * and an address a client must not render (another scheme, a relative one)
+ * is never handed on.
  *
  * getModelReadiness sends the organization and the model to judge as asked,
  * returns the server's answer as it came, and wraps a refusal in the
@@ -121,6 +124,49 @@ describe("PlatformClient.getServerInfo", () => {
   it("reports environments as undefined from a server that predates the field", async () => {
     const info = await clientAnswering(ServerEdition.cloud, false, false).getServerInfo();
     expect(info.environments).toBeUndefined();
+  });
+});
+
+describe("PlatformClient.getServerInfo (help link)", () => {
+  function answeringHelp(help: { url: string; label: string } | undefined): PlatformClient {
+    return new PlatformClient(
+      createRouterTransport(({ service }) => {
+        service(PlatformQueryController, {
+          getServerInfo: () =>
+            create(GetServerInfoOutputSchema, {
+              edition: ServerEdition.cloud,
+              version: "1.2.3",
+              ...(help !== undefined ? { help } : {}),
+            }),
+        });
+      }),
+    );
+  }
+
+  it("reports none from a server that sends none", async () => {
+    expect((await answeringHelp(undefined).getServerInfo()).help).toBeUndefined();
+  });
+
+  it.each([
+    ["https://help.acme.example/stigmer", "Ask IT"],
+    ["http://help.acme.internal", "Ask IT"],
+    ["mailto:it@acme.example", "Email IT"],
+  ])("reports %s with its words as sent", async (url, label) => {
+    expect((await answeringHelp({ url, label }).getServerInfo()).help).toEqual({ url, label });
+  });
+
+  it.each([["javascript:alert(1)"], ["/help"], ["help.acme.example"], ["data:text/html,hi"], [""]])(
+    "never hands on an address a client must not render: %s",
+    async (url) => {
+      expect((await answeringHelp({ url, label: "Help" }).getServerInfo()).help).toBeUndefined();
+    },
+  );
+
+  it.each([[""], ["   "], ["x".repeat(41)]])("says 'Get help' for a label of %j", async (label) => {
+    expect((await answeringHelp({ url: "https://help.acme.example", label }).getServerInfo()).help).toEqual({
+      url: "https://help.acme.example",
+      label: "Get help",
+    });
   });
 });
 
