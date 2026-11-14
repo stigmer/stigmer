@@ -178,7 +178,7 @@
       },
       "ruled": {},
       "pending": {
-        "word > billing-app@1.4.0 dev > vite VITE v5.4.2 ready in 412 ms ➜ Local: http://localhost:5173/": "T07 3o: a command running in the background is closed until clicked (T07 G6, his finding 22); S55 is redrawn closed at the next export"
+        "word > billing-app@1.4.0 dev > vite VITE v5.4.2 ready in 412 ms ➜ Local: http://localhost:5173/": "The drawing is redrawn: a command running in the background is closed until clicked (the owner's look); S55 is redrawn closed at the next export"
       }
     }
   ]

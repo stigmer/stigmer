@@ -220,8 +220,8 @@
       "ruled": {},
       "pending": {
         "type Working · 1m 30s": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
-        "word A helper is working on map where credit notes round": "T07 3o: S01's helper is redrawn to S43's (its subject capitalised, its agent's tag, its own steps on a rail)",
-        "word Searching for round( · nothing found yet": "T07 3o: S01's helper is redrawn to S43's (its subject capitalised, its agent's tag, its own steps on a rail)"
+        "word A helper is working on map where credit notes round": "The drawing is redrawn: S01's helper is redrawn to S43's (its subject capitalised, its agent's tag, its own steps on a rail)",
+        "word Searching for round( · nothing found yet": "The drawing is redrawn: S01's helper is redrawn to S43's (its subject capitalised, its agent's tag, its own steps on a rail)"
       }
     }
   ]

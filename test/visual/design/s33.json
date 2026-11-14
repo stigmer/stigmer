@@ -358,13 +358,13 @@
       "ruled": {},
       "pending": {
         "type Working · 1m 30s": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
-        "word + return roundHalfEven(lines.reduce((sum, line) => sum + lineTotal(line), 0));": "T07 3o: the step's diff sets its +/− marker in a cell of its own (DiffViewer), which reads apart from the line; the drawing's diff is redrawn so at the next export",
-        "word - return lines.reduce((sum, line) => sum + roundCents(lineTotal(line)), 0);": "T07 3o: the step's diff sets its +/− marker in a cell of its own (DiffViewer), which reads apart from the line; the drawing's diff is redrawn so at the next export",
-        "word 1 change": "T07 3o: S45's counts (+1 −1 · src/billing) replace S33's and S34's \"1 change\"; redrawn",
-        "word A helper is working on map where credit notes round": "T07 3o: S01's helper is redrawn to S43's (its subject capitalised, its agent's tag, its own steps on a rail)",
-        "word Searching for round( · nothing found yet": "T07 3o: S01's helper is redrawn to S43's (its subject capitalised, its agent's tag, its own steps on a rail)",
-        "word src/billing/invoice.ts · line 41": "T07 3o (G4): no line in the file is recorded, so the diff's header names the file only; redrawn",
-        "word src/billing/invoice.ts:41 src/billing/credit-note.ts:18": "T07 3o: S33's search lines are redrawn to S37's (the file named from the folder, then the matched text)"
+        "word + return roundHalfEven(lines.reduce((sum, line) => sum + lineTotal(line), 0));": "The drawing is redrawn: the step's diff sets its +/− marker in a cell of its own (DiffViewer), which reads apart from the line; the drawing's diff is redrawn so at the next export",
+        "word - return lines.reduce((sum, line) => sum + roundCents(lineTotal(line)), 0);": "The drawing is redrawn: the step's diff sets its +/− marker in a cell of its own (DiffViewer), which reads apart from the line; the drawing's diff is redrawn so at the next export",
+        "word 1 change": "The drawing is redrawn: S45's counts (+1 −1 · src/billing) replace S33's and S34's \"1 change\"; redrawn",
+        "word A helper is working on map where credit notes round": "The drawing is redrawn: S01's helper is redrawn to S43's (its subject capitalised, its agent's tag, its own steps on a rail)",
+        "word Searching for round( · nothing found yet": "The drawing is redrawn: S01's helper is redrawn to S43's (its subject capitalised, its agent's tag, its own steps on a rail)",
+        "word src/billing/invoice.ts · line 41": "The drawing is redrawn: no line in the file is recorded, so the diff's header names the file only; redrawn",
+        "word src/billing/invoice.ts:41 src/billing/credit-note.ts:18": "The drawing is redrawn: S33's search lines are redrawn to S37's (the file named from the folder, then the matched text)"
       }
     }
   ]
