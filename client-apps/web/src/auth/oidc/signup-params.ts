@@ -9,9 +9,9 @@
 // (`NEXT_PUBLIC_OIDC_SIGNUP_PARAMS`, a query-string fragment), so no
 // provider is ever named in the console's code.
 //
-// The fragment is parsed once, here: the runtime-config loader calls it to
+// The fragment is read here only: the runtime-config loader checks it to
 // refuse a bad value on the Configuration Error screen, and the auth config
-// calls it to hand the redirect a ready map. A fragment that names a
+// parses it once to hand the redirect a ready map. A fragment that names a
 // parameter the sign-in flow sets itself is refused, because oidc-client-ts
 // spreads extra parameters after its own and would silently rewrite the
 // flow (a different client, redirect, state or PKCE challenge, or the
@@ -44,19 +44,30 @@ export class ReservedSignupParamError extends Error {
 }
 
 /**
+ * The first parameter of a sign-up fragment the flow owns, if it names one.
+ * The runtime-config loader refuses on it, with the variable's name.
+ */
+export function reservedSignupParam(raw: string): string | undefined {
+  for (const key of new URLSearchParams(raw.trim()).keys()) {
+    if (RESERVED_SIGNUP_PARAMS.includes(key)) return key;
+  }
+  return undefined;
+}
+
+/**
  * Parse a sign-up fragment (`a=1&b=2`, a leading `?` allowed) into a frozen
- * map. An empty or blank fragment yields an empty map.
+ * map. An empty or blank fragment yields an empty map; a pair with no name
+ * is dropped.
  *
  * @throws {ReservedSignupParamError} when a key is one the flow owns.
  */
 export function parseSignupParams(raw: string): Readonly<Record<string, string>> {
+  const reserved = reservedSignupParam(raw);
+  if (reserved !== undefined) throw new ReservedSignupParamError(reserved);
+
   const params: Record<string, string> = {};
   for (const [key, value] of new URLSearchParams(raw.trim())) {
-    if (key === "") continue;
-    if (RESERVED_SIGNUP_PARAMS.includes(key)) {
-      throw new ReservedSignupParamError(key);
-    }
-    params[key] = value;
+    if (key !== "") params[key] = value;
   }
   return Object.freeze(params);
 }

@@ -25,10 +25,7 @@
 // ---------------------------------------------------------------------------
 
 import type { AuthMode } from "@/auth/types";
-import {
-  parseSignupParams,
-  ReservedSignupParamError,
-} from "@/auth/oidc/signup-params";
+import { reservedSignupParam } from "@/auth/oidc/signup-params";
 
 /**
  * Deployment-agnostic application configuration.
@@ -227,12 +224,10 @@ function validateOidcFields(config: RuntimeConfig): void {
     );
   }
 
-  try {
-    parseSignupParams(config.oidcSignupParams);
-  } catch (err) {
-    if (!(err instanceof ReservedSignupParamError)) throw err;
+  const reserved = reservedSignupParam(config.oidcSignupParams);
+  if (reserved !== undefined) {
     throw new Error(
-      `NEXT_PUBLIC_OIDC_SIGNUP_PARAMS names "${err.key}", a parameter the console's sign-in flow sets itself. ` +
+      `NEXT_PUBLIC_OIDC_SIGNUP_PARAMS names "${reserved}", a parameter the console's sign-in flow sets itself. ` +
         "Remove it: the setting carries only the extra parameters your identity provider reads to open its create-account screen.",
     );
   }

@@ -12,6 +12,7 @@ import {
   parseSignupParams,
   RESERVED_SIGNUP_PARAMS,
   ReservedSignupParamError,
+  reservedSignupParam,
 } from "../signup-params";
 
 describe("parseSignupParams", () => {
@@ -30,14 +31,25 @@ describe("parseSignupParams", () => {
     expect(parseSignupParams("?hint=signup")).toEqual({ hint: "signup" });
   });
 
+  it("drops a pair with no name", () => {
+    expect(parseSignupParams("=stray&hint=signup")).toEqual({ hint: "signup" });
+  });
+
   it.each(RESERVED_SIGNUP_PARAMS)("refuses %s, a parameter the flow owns", (key) => {
-    expect(() => parseSignupParams(`hint=signup&${key}=x`)).toThrow(ReservedSignupParamError);
+    let caught: unknown;
     try {
-      parseSignupParams(`${key}=x`);
+      parseSignupParams(`hint=signup&${key}=x`);
     } catch (err) {
-      expect(err).toBeInstanceOf(ReservedSignupParamError);
-      expect((err as ReservedSignupParamError).key).toBe(key);
+      caught = err;
     }
+    expect(caught).toBeInstanceOf(ReservedSignupParamError);
+    expect((caught as ReservedSignupParamError).key).toBe(key);
+  });
+
+  it("names the first parameter the flow owns, or nothing", () => {
+    expect(reservedSignupParam("hint=signup&state=x&scope=y")).toBe("state");
+    expect(reservedSignupParam("hint=signup")).toBeUndefined();
+    expect(reservedSignupParam("")).toBeUndefined();
   });
 
   it("covers every parameter of the code flow and the audience", () => {
