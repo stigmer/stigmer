@@ -55,6 +55,9 @@ describe("the self-hosted Enterprise server's wiring", () => {
     expect(enterprise.match(/\bnewCompositionPool\(/g) ?? [], "newCompositionPool calls").toHaveLength(1);
     const names = [...enterprise.matchAll(/newCompositionPool\(\{[^}]*?\bname:\s*"([^"]+)"/g)].map((match) => match[1]);
     expect(names).toEqual(["enterprise"]);
+    // The operator's two pool settings bound this pool as they bound the store's.
+    expect(enterprise).toMatch(/max: config\.databasePoolMax,/);
+    expect(enterprise).toMatch(/checkoutTimeoutMs: config\.databasePoolCheckoutTimeoutMs,/);
     expect(enterprise).not.toMatch(/\bnew\s+(?:pg\.)?Pool\s*\(/);
   });
 });
