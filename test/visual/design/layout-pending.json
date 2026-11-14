@@ -15,16 +15,6 @@
   "access-service-account-new": {
     "type-off-scale h1 \"Settings\": 32px is no step's size": "On the scale where its screen is designed and rebuilt"
   },
-  "agent-chat-page": {
-    "type-off-scale p \"Fourteen invoices were a cent off, all from rounding each li\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines"
-  },
-  "agent-chat-panel": {
-    "type-off-scale p \"Invoice totals now round once. A researcher is mapping where\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
-    "type-off-scale p \"Searching the billing module.\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines"
-  },
-  "agent-chat-popup": {
-    "type-off-scale p \"Fourteen invoices were a cent off, all from rounding each li\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines"
-  },
   "agent-in-app": {
     "type-off-scale pre \"\"use client\"; // The agent's chat, for the person signed in \": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale pre \"// Your app's Stigmer token route. GET /api/stigmer-token an\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
@@ -115,7 +105,6 @@
     "spacing-off-scale fieldset \"Packages Installed before the first turn of every conversati\": paddingTop 5.6px": "On the scale where its screen is designed and rebuilt"
   },
   "environment-run-settings": {
-    "type-off-scale p \"Fourteen invoices were a cent off, all from rounding each li\": 14px on 22.75px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
   "from-hooks": {
@@ -217,56 +206,29 @@
   "parts": {
     "type-off-scale h1 \"The console's shared parts\": 32px is no step's size": "The console's parts: the shared parts and their pages on the scale"
   },
-  "preset-corporate": {
-    "type-off-scale p \"Fixed: invoices now round once, at the total.\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines"
-  },
-  "preset-fintech": {
-    "type-off-scale p \"Fixed: invoices now round once, at the total.\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines"
-  },
-  "preset-friendly": {
-    "type-off-scale p \"Fixed: invoices now round once, at the total.\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines"
-  },
   "preset-monochrome": {
-    "type-off-scale p \"Fixed: invoices now round once, at the total.\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines"
-  },
-  "preset-startup": {
     "type-off-scale p \"Fixed: invoices now round once, at the total.\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines"
   },
   "routine-history": {
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The console's parts: the shared parts and their pages on the scale"
   },
   "session-agent-version": {
-    "type-off-scale p \"Fourteen invoices were a cent off, all from rounding each li\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-approval": {
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-attachments": {
-    "type-off-scale p \"INV-1042 rounds each line before the total, so it lands a ce\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-auto-approve": {
-    "type-off-scale p \"Invoice totals now round once. A researcher is mapping where\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
-    "type-off-scale p \"Searching the billing module.\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
     "type-off-scale span \"2\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-busy": {
-    "type-off-scale p \"Invoice totals now round once. A researcher is mapping where\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
-    "type-off-scale p \"Searching the billing module.\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-compacted": {
-    "type-off-scale p \"Credit notes now round once, at the total, as invoices do.\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-end-user": {
-    "type-off-scale p \"Invoice totals now round once. A researcher is mapping where\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
-    "type-off-scale p \"Searching the billing module.\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines"
-  },
-  "session-end-user-framed": {
-    "type-off-scale p \"Invoice totals now round once. A researcher is mapping where\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
-    "type-off-scale p \"Searching the billing module.\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines"
   },
   "session-fail-agent-setup": {
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
@@ -343,21 +305,13 @@
   "session-failed": {
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
-  "session-file-preview": {
-    "type-off-scale p \"Fourteen invoices were a cent off, all from rounding each li\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
-    "type-off-scale p \"Fourteen invoices were a cent off. Each rounded every line b\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines"
-  },
   "session-file-progress": {
-    "type-off-scale p \"Invoice totals now round once. A researcher is mapping where\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
-    "type-off-scale p \"Searching the billing module.\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-file-review": {
-    "type-off-scale p \"Invoices now round once, at the total. I added a rounding he\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-file-steps": {
-    "type-off-scale p \"Credit notes now round once, like invoices. The old helper i\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
     "type-off-scale td \"(sum, line) => sum + line.amount, 0));\": 12px on 19.2px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
     "type-off-scale td \"(sum, line) => sum + roundCents(line.amount), 0);\": 12px on 19.2px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
@@ -370,55 +324,37 @@
     "type-off-scale th \"Line\": 12px on 19.2px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-file-undone": {
-    "type-off-scale p \"Invoices now round once, at the total. I added a rounding he\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-finished": {
-    "type-off-scale p \"Fourteen invoices were a cent off, all from rounding each li\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-first-job-next": {
-    "type-off-scale p \"Three of six accounts moved more than 10% from budget: marke\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
-  "session-guest": {
-    "type-off-scale p \"Fourteen invoices were a cent off, all from rounding each li\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines"
-  },
   "session-helper": {
-    "type-off-scale p \"Searching the billing module.\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-how-opened": {
-    "type-off-scale p \"Fourteen invoices were a cent off, all from rounding each li\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-inspector": {
-    "type-off-scale p \"Fourteen invoices were a cent off, all from rounding each li\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
-    "type-off-scale p \"Fourteen invoices were a cent off. Each rounded every line b\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
     "type-off-scale span \"2\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-many-files": {
-    "type-off-scale p \"Every October invoice is checked. Fourteen were a cent off; \": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-mcp": {
-    "type-off-scale p \"Filed as BILL-219 in the billing team's tracker, with the tw\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-observer": {
-    "type-off-scale p \"Fourteen invoices were a cent off, all from rounding each li\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines"
   },
   "session-plan-build": {
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-plan-writing": {
-    "type-off-scale li \"Keep full precision in lineTotal; stop rounding each line.\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
-    "type-off-scale li \"Round invoiceTotal half-even to the cent.\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-pull-requests": {
-    "type-off-scale p \"Fourteen invoices were a cent off, all from rounding each li\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
     "type-off-scale span \"2\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
@@ -426,20 +362,15 @@
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-slow": {
-    "type-off-scale p \"Invoice totals now round once. A researcher is mapping where\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
-    "type-off-scale p \"Searching the billing module.\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-steps-opened": {
-    "type-off-scale p \"Invoice totals now round once. A researcher is mapping where\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
-    "type-off-scale p \"Searching the billing module.\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-thinking": {
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-usage": {
-    "type-off-scale p \"Fourteen invoices were a cent off, all from rounding each li\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
     "type-off-scale span \"2\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
@@ -481,20 +412,6 @@
   },
   "settings-vaults-open": {
     "type-off-scale h1 \"Settings\": 32px is no step's size": "The console's parts: the shared parts and their pages on the scale"
-  },
-  "skill-detail": {
-    "type-off-scale li \"An account with no budget is listed but not flagged; say so \": 14px on 22.75px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale li \"Flag any account more than 5,000 over or under, whatever its\": 14px on 22.75px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale li \"Flag every account more than 10% over or under its budget.\": 14px on 22.75px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale li \"If the totals don't match the ledger's own total row, stop a\": 14px on 22.75px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale li \"Revenue under budget is always flagged, even by 1%.\": 14px on 22.75px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale li \"a two-sentence summary of the quarter;\": 14px on 22.75px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale li \"one line under the table for each flagged account, saying wh\": 14px on 22.75px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale li \"one table of every account (budget, actual, variance in mone\": 14px on 22.75px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale p \"Save the report as variance-report.md, laid out like referen\": 14px on 22.75px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt"
-  },
-  "story-asks-first": {
-    "type-off-scale p \"The ledger balances, but the Figma annual plan on 3 July is \": 14px on 22.75px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt"
   },
   "story-embed": {
     "type-off-scale div \"Help with your books\": 24px on 36px lines, its step pairs 32px": "On the scale where its screen is designed and rebuilt",
@@ -624,7 +541,6 @@
     "type-off-scale button \"N Northwind Books\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale h1 \"Ledger entries\": 20px on 30px lines, its step pairs 28px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale p \"January to September 2026 · 164 entries\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale p \"May reconciles once two card terminal fees are counted: the \": 14px on 22.75px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale span \"2026\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale td \"(11,840.25)\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale td \"(7,915.80)\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
@@ -817,7 +733,6 @@
     "type-off-scale button \"N Northwind Books\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale h1 \"Ledger entries\": 20px on 30px lines, its step pairs 28px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale p \"July to September 2026 · 18 entries\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale p \"The ledger balances, but the Figma annual plan on 3 July is \": 14px on 22.75px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale span \"Q3 2026\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale td \"(10,106.30)\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale td \"(8,920.40)\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
@@ -1018,7 +933,6 @@
     "type-off-scale button \"N Northwind Books\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale h1 \"Ledger entries\": 20px on 30px lines, its step pairs 28px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale p \"July to September 2026 · 18 entries\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale p \"Posted: the Figma annual plan is now in 6410 Software subscr\": 14px on 22.75px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale span \"Q3 2026\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale td \"(10,106.30)\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale td \"(8,920.40)\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
@@ -1173,12 +1087,6 @@
     "type-off-scale button \"F Fernhill Bakery\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale button \"N Northwind Books\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale h2 \"Ledger entries\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale li \"Figma annual plan, 3 July, 1,240.00: coded to 6100 Office su\": 14px on 22.75px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale li \"Flour is up 20% since July: Bakers Mill billed 1,180.00 then\": 14px on 22.75px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale li \"Oven service on 14 August, 485.00, is in 6800 Repairs, which\": 14px on 22.75px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale p \"Every other entry matches its account.\": 14px on 22.75px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale p \"The ledger balances and nothing is miscoded. Two things stan\": 14px on 22.75px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale p \"The ledger balances. One entry is miscoded:\": 14px on 22.75px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale span \"Q3 2026\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale td \"(10,106.30)\": 12px on 18px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale td \"(14,260.90)\": 12px on 18px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
@@ -1223,26 +1131,5 @@
     "type-off-scale td \"Printer paper and toner\": 12px on 18px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale td \"September rent\": 12px on 18px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale td \"Shopify Basic\": 12px on 18px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
-  },
-  "thread-completed": {
-    "type-off-scale p \"Fixed: invoices now round once, at the total.\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines"
-  },
-  "thread-file-review": {
-    "type-off-scale p \"Invoices now round once, at the total. I added a rounding he\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines"
-  },
-  "thread-markdown": {
-    "type-off-scale li \"A credit note uses the same rule.\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
-    "type-off-scale li \"invoiceTotal rounds half-even to the cent. A credit note use\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
-    "type-off-scale li \"lineTotal keeps full precision.\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines",
-    "type-off-scale p \"Invoices now round once, at the total, instead of per line:\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines"
-  },
-  "thread-streaming": {
-    "type-off-scale p \"Looking at how invoices are totalled. The rounding happens\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines"
-  },
-  "thread-subagent-finished": {
-    "type-off-scale p \"The researcher found it; fixing lineTotal next.\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines"
-  },
-  "thread-subagent-running": {
-    "type-off-scale p \"Searching the billing module.\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines"
   }
 }
