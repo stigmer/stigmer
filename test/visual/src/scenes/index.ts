@@ -57,6 +57,7 @@ import {
   sessionPlanWritingScene,
   sessionPullRequestsScene,
   sessionScene,
+  sessionSendFailedScene,
   sessionStartingScene,
   stepStoryScene,
 } from "./session.tsx";
@@ -166,6 +167,7 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "session-guest": () => sessionScene("finished", { audience: "guest" }),
   "session-observer": () => sessionScene("finished", { audience: "observer", inspector: true }),
   "session-load-failed": () => sessionScene("load-failed", { inspector: true }),
+  "session-send-failed": () => sessionSendFailedScene(),
   "session-steps-opened": () => sessionScene("busy", { inspector: true, height: 1800 }),
   "session-how-opened": () => sessionScene("finished", { inspector: true, height: 1400 }),
   "session-mcp": () => stepStoryScene("mcp-turn", { inspector: true, height: 1200 }),

@@ -6,7 +6,12 @@
     {
       "caption": "The message didn't send",
       "narrow": false,
-      "built": [],
+      "built": [
+        {
+          "scene": "session-send-failed",
+          "width": "desktop"
+        }
+      ],
       "unbuilt": "no gallery scene draws a message that didn't send; the rebuilt screen's change adds one",
       "words": [
         {

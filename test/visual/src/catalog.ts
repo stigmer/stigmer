@@ -310,6 +310,12 @@ const SESSION_SCENES = [
   },
   { id: "session-load-failed", title: "Session: the conversation cannot load", widths: ["desktop"] },
   {
+    id: "session-send-failed",
+    title: "Session: a follow-up that didn't send because the server was never reached, kept on its bubble with Try again",
+    widths: ["desktop"],
+    opens: [{ fill: "Message", with: "Invoices are off by a cent. Can you fix the rounding?" }, { press: "Send message", role: "button" }],
+  },
+  {
     id: "session-steps-opened",
     title: "Session: the long turn at work with its steps opened: a search's matches and a command's output",
     widths: ["desktop"],

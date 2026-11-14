@@ -31,6 +31,7 @@ import { FileQueryController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/qu
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { FileChangeKind, InteractionMode, RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { FileChangeProgressSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/command_pb";
 import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
 import { RecalledMemoriesSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import { WorkspaceWriteBackPhase, WorkspaceWriteBackSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
@@ -159,10 +160,12 @@ export interface Answering {
   readonly refused?: readonly string[];
   /** Files a turn's message carried, read by id (`get`), whose download address is `url` (an image's preview). */
   readonly attachments?: readonly { readonly file: StigmerFile; readonly url: string }[];
+  /** How the server refuses a message the person sends: a send that never reached it, or a refusal it gave. */
+  readonly sendRefusal?: ConnectError;
 }
 
 /** The calls the viewer makes for `scenario`, answered as for the session's owner. */
-export function sessionRoutes(scenario: SessionReplay, { agent = samples.agent(), others = [], live, refused = [], attachments = [] }: Answering = {}) {
+export function sessionRoutes(scenario: SessionReplay, { agent = samples.agent(), others = [], live, refused = [], attachments = [], sendRefusal }: Answering = {}) {
   const replays = [scenario, ...others];
   // With one conversation every call is answered from it, whatever id it
   // names, as the scenes always have; with more, from the one it names.
@@ -217,6 +220,13 @@ export function sessionRoutes(scenario: SessionReplay, { agent = samples.agent()
       },
       getDownloadUrl: (request) => ({ url: attachments.find((candidate) => candidate.file.metadata?.id === request.value)?.url ?? "" }),
     });
+    if (sendRefusal !== undefined) {
+      router.service(RunCommandController, {
+        sendMessage: () => {
+          throw sendRefusal;
+        },
+      });
+    }
     router.service(ScoreQueryController, { listBySession: () => ({ entries: [] }) });
     router.service(AgentQueryController, { getByReference: () => agent, get: () => agent });
     router.service(OrganizationQueryController, { listMine: () => samples.organizationList(organizations) });
@@ -237,6 +247,11 @@ export function sessionRoutes(scenario: SessionReplay, { agent = samples.agent()
 /** The session view over the `name` state, framed as given (an embed's by default: the conversation alone). */
 export function sessionScene(name: ScenarioName, framing: Framing = {}): Drawing {
   return sessionDrawing(scenarios[name], framing);
+}
+
+/** A finished session whose next message never reached the server: the scene types it and sends it. */
+export function sessionSendFailedScene(): Drawing {
+  return sessionDrawing(scenarios.completed, { inspector: true }, { sendRefusal: new ConnectError("fetch failed", Code.Unavailable) });
 }
 
 /** The session view over the ending turn `name`, framed as given, its server answering as `answering` names. */
