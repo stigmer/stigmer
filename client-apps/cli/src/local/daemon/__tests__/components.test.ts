@@ -6,13 +6,16 @@
 // hears which providers that runner reaches, and where its person asks for
 // help (the project's community, unless they set their own). Both children, and the server's
 // readiness gate, follow the server port the daemon is given, 7234 by default.
+// Both children gate the start: the runner's gate waits for its readiness
+// marker by reading the handle, never by taking its callbacks (stigmer#1629).
 
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
 import { RUNNER_READY_MARKER, RUNNER_TASK_QUEUE } from "../../constants.js";
 import type { DaemonConfig } from "../env.js";
-import { COMMUNITY_HELP, buildComponents, buildRunnerEnv, buildServerEnv, localRunnerReach } from "../components.js";
+import { COMMUNITY_HELP, buildComponents, buildRunnerEnv, buildServerEnv, localRunnerReach, RUNNER_GATE_TIMEOUT_MS, runnerGate } from "../components.js";
 import { GRACEFUL_STOP_TIMEOUT_MS } from "../supervisor.js";
+import type { ChildHandle, ExitInfo } from "../types.js";
 
 const config: DaemonConfig = {
   dataDir: "/home/u/.stigmer/data",
@@ -194,7 +197,8 @@ describe("the server's STIGMER_RUNNER_PROVIDERS", () => {
 });
 
 describe("buildComponents", () => {
-  it("orders server (critical, gated) before runner (marker, not critical)", () => {
+  // stigmer#1629: a runner that does not start fails the start, as the server does.
+  it("orders server (critical, gated) before runner (critical, gated on its marker)", () => {
     const components = buildComponents(config, {});
     expect(components.map((c) => c.name)).toEqual(["stigmer-server", "runner"]);
 
@@ -203,8 +207,8 @@ describe("buildComponents", () => {
     expect(server.gate).toBeDefined();
     expect(server.resolve().readinessMarker).toBeUndefined();
 
-    expect(runner.critical).toBe(false);
-    expect(runner.gate).toBeUndefined();
+    expect(runner.critical).toBe(true);
+    expect(runner.gate?.description).toBe("runner polling for tasks");
     expect(runner.resolve().readinessMarker).toBe(RUNNER_READY_MARKER);
     expect(runner.resolve().args).toEqual(["/repo/runner/dist/main.js"]);
   });
@@ -230,5 +234,60 @@ describe("buildComponents", () => {
     expect(server.gate?.description).toBe("stigmer-server gRPC on port 7300");
     expect(runner.resolve().env.STIGMER_BACKEND_ENDPOINT).toBe("http://localhost:7300");
     expect(runner.resolve().env.STIGMER_MCP_PUBLIC_ENDPOINT).toBe("http://localhost:7300");
+  });
+});
+
+// A runner handle the test drives. Registering a callback throws: the
+// supervisor holds the handle's one exit slot and one ready slot, and a gate
+// that took either would silently take it from the supervisor.
+function gatedRunner(): { handle: ChildHandle; ready(): void; exit(info: ExitInfo): void } {
+  let isReady = false;
+  let exited: ExitInfo | null = null;
+  return {
+    handle: {
+      pid: 1,
+      hasExited: () => exited !== null,
+      exitInfo: () => exited,
+      isReady: () => isReady,
+      stderrTail: () => [],
+      onExit: () => {
+        throw new Error("a gate registered an exit callback");
+      },
+      onReady: () => {
+        throw new Error("a gate registered a ready callback");
+      },
+      kill: () => {},
+    },
+    ready: () => {
+      isReady = true;
+    },
+    exit: (info) => {
+      exited = info;
+    },
+  };
+}
+
+describe("runnerGate (stigmer#1629)", () => {
+  it("resolves once the runner announces it is polling", async () => {
+    const runner = gatedRunner();
+    const waited = runnerGate(5_000).wait(runner.handle);
+    setTimeout(() => runner.ready(), 200);
+    await expect(waited).resolves.toBeUndefined();
+  });
+
+  it("rejects, saying how it ended, when the runner exits before it is ready", async () => {
+    const runner = gatedRunner();
+    const waited = runnerGate(5_000).wait(runner.handle);
+    setTimeout(() => runner.exit({ code: 1, signal: null }), 200);
+    await expect(waited).rejects.toThrow("the runner exited with code 1 before it was ready");
+  });
+
+  it("rejects at its deadline when the runner never announces", async () => {
+    const runner = gatedRunner();
+    await expect(runnerGate(300).wait(runner.handle)).rejects.toThrow("the runner did not report ready within 0.3 s");
+  });
+
+  it("waits two minutes by default", () => {
+    expect(RUNNER_GATE_TIMEOUT_MS).toBe(120_000);
   });
 });

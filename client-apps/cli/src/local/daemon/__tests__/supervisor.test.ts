@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Logger } from "../../../logger.js";
 import type { HealthState } from "../../state/health-state.js";
 import { readPidFile } from "../../state/pidfile.js";
+import { runnerGate } from "../components.js";
 import { MAX_RESTARTS, ProcessSupervisor } from "../supervisor.js";
 import type { ChildHandle, Clock, ComponentSpec, ExitInfo, ProcessHost, ReadinessGate, SpawnRequest } from "../types.js";
 
@@ -32,6 +33,7 @@ class FakeHost implements ProcessHost {
     let exited: ExitInfo | null = null;
     let exitCb: ((info: ExitInfo) => void) | null = null;
     let readyCb: (() => void) | null = null;
+    let ready = false;
     const signals: NodeJS.Signals[] = [];
     const pid = this.nextPid++;
     const order = this.killOrder;
@@ -47,11 +49,15 @@ class FakeHost implements ProcessHost {
           exitCb?.(info);
         }
       },
-      triggerReady: () => readyCb?.(),
+      triggerReady: () => {
+        ready = true;
+        readyCb?.();
+      },
       handle: {
         pid,
         hasExited: () => exited !== null,
         exitInfo: () => exited,
+        isReady: () => ready,
         stderrTail: () => child.stderr,
         onExit: (cb) => {
           exitCb = cb;
@@ -201,6 +207,47 @@ describe("startAll", () => {
 
     expect(hs.components["stigmer-server"].last_error).toBe("server entry not found");
     expect(hs.components["stigmer-server"].last_output).toBeUndefined();
+  });
+});
+
+// stigmer#1629: the runner gates the start on its readiness marker, through
+// the real gate, which reads the handle and leaves its callbacks to the
+// supervisor.
+describe("startAll, a gated runner", () => {
+  it("fails the start, naming the runner, when it exits before its marker", async () => {
+    const { sup, host, hs } = makeSupervisor([
+      spec("stigmer-server", { critical: true, gate: okGate }),
+      spec("runner", { critical: true, marker: "ready", gate: runnerGate(5_000) }),
+    ]);
+    const started = sup.startAll();
+    await vi.waitFor(() => expect(host.countOf("runner")).toBe(1)); // spawned once the server's gate passes
+    host.latest("runner").stderr = ["!!! STALE RUNNER BUILD — REFUSING TO START !!!"];
+    host.latest("runner").triggerExit({ code: 1, signal: null });
+    const result = await started;
+
+    expect(result).toEqual({ ok: false, failedCritical: "runner" });
+    expect(hs.components.runner).toMatchObject({
+      state: "failed",
+      last_error: "the runner exited with code 1 before it was ready",
+      last_output: ["!!! STALE RUNNER BUILD — REFUSING TO START !!!"],
+    });
+  });
+
+  it("records it ready and still hears its exit at shutdown", async () => {
+    const { sup, host, hs } = makeSupervisor([
+      spec("stigmer-server", { critical: true, gate: okGate }),
+      spec("runner", { critical: true, marker: "ready", gate: runnerGate(5_000) }),
+    ]);
+    const started = sup.startAll();
+    await vi.waitFor(() => expect(host.countOf("runner")).toBe(1));
+    host.latest("runner").triggerReady();
+    expect(await started).toEqual({ ok: true });
+    expect(hs.components.runner.ready).toBe(true);
+
+    // A gate that took the exit slot would leave this stop waiting forever.
+    await sup.shutdown();
+    expect(host.latest("runner").signals).toEqual(["SIGTERM"]);
+    expect(hs.components.runner.state).toBe("stopped");
   });
 });
 
