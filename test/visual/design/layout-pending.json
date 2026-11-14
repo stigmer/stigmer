@@ -210,6 +210,18 @@
     "browser-margin p \"https://ledger.acme.example/mcp\": top margin 12px is the browser's own": "The session's frame: every paragraph and heading the kit draws sets its own margin (a lint rule holds it)",
     "type-off-scale span \"3\": 11px on 11px lines, its step pairs 16px": "The console's parts: the shared parts and their pages on the scale"
   },
+  "bring-others-in": {
+    "type-off-scale h1 \"Settings\": 32px is no step's size": "On the scale where its screen is designed and rebuilt"
+  },
+  "bring-others-in-joined": {
+    "type-off-scale h1 \"Settings\": 32px is no step's size": "On the scale where its screen is designed and rebuilt"
+  },
+  "bring-others-in-link": {
+    "type-off-scale h1 \"Settings\": 32px is no step's size": "On the scale where its screen is designed and rebuilt"
+  },
+  "bring-others-in-local": {
+    "type-off-scale h1 \"Settings\": 32px is no step's size": "On the scale where its screen is designed and rebuilt"
+  },
   "channel-add": {
     "browser-margin h3 \"1 channel\": bottom margin 14px is the browser's own": "The session's frame: every paragraph and heading the kit draws sets its own margin (a lint rule holds it)",
     "browser-margin h3 \"1 channel\": top margin 14px is the browser's own": "The session's frame: every paragraph and heading the kit draws sets its own margin (a lint rule holds it)",
