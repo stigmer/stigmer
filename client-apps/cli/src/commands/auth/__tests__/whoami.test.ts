@@ -165,8 +165,8 @@ vi.mock("../../../backend.js", async () => {
   return {
     connectBackend: () => ({
       config: loadConfig(),
+      serverInfo: async () => ({ singleOrg: false, help: helpAnswer }),
       stigmer: {
-        platform: { getServerInfo: async () => ({ singleOrg: false, help: helpAnswer }) },
         organization: {
           get: async (value: string) => {
             if (organizationAnswer === "hidden" || (value !== ACME_ID && value !== "acme-old")) {

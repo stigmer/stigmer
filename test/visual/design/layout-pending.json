@@ -130,23 +130,23 @@
   "help": {
     "browser-margin p \"No recent activity\": bottom margin 12px is the browser's own": "The empty Recents line sets no margin of its own: stigmer#3119",
     "browser-margin p \"No recent activity\": top margin 12px is the browser's own": "The empty Recents line sets no margin of its own: stigmer#3119",
-    "type-off-scale a \"Conversations\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 13px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
-    "type-off-scale a \"Dashboard\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 13px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
-    "type-off-scale a \"Library\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 13px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
-    "type-off-scale a \"Marketplace\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 13px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
-    "type-off-scale a \"Models & providers\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 13px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
-    "type-off-scale a \"New Session\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 13px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
+    "type-off-scale a \"Conversations\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
+    "type-off-scale a \"Dashboard\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
+    "type-off-scale a \"Library\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
+    "type-off-scale a \"Marketplace\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
+    "type-off-scale a \"Models & providers\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
+    "type-off-scale a \"New Session\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
     "type-off-scale span \"Ask IT on Slack\": 14px on 16px lines, its step pairs 20px": "The help row takes the sidebar rows' recipe, so it moves with them: stigmer#3037"
   },
   "help-none": {
     "browser-margin p \"No recent activity\": bottom margin 12px is the browser's own": "The empty Recents line sets no margin of its own: stigmer#3119",
     "browser-margin p \"No recent activity\": top margin 12px is the browser's own": "The empty Recents line sets no margin of its own: stigmer#3119",
-    "type-off-scale a \"Conversations\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 13px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
-    "type-off-scale a \"Dashboard\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 13px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
-    "type-off-scale a \"Library\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 13px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
-    "type-off-scale a \"Marketplace\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 13px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
-    "type-off-scale a \"Models & providers\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 13px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
-    "type-off-scale a \"New Session\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 13px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037"
+    "type-off-scale a \"Conversations\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
+    "type-off-scale a \"Dashboard\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
+    "type-off-scale a \"Library\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
+    "type-off-scale a \"Marketplace\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
+    "type-off-scale a \"Models & providers\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
+    "type-off-scale a \"New Session\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037"
   },
   "launcher-coding-agent": {
     "type-off-scale dd \"A contract\": 12px on 20px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",

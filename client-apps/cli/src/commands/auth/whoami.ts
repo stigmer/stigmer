@@ -109,9 +109,7 @@ export async function runWhoami(): Promise<CommandResult> {
   const singleOrg = await omitsOrganization(client.stigmer);
   const org = singleOrg ? { label: "", id: "" } : await liveContextOrganization(client.stigmer, client.config);
   // Printing never fails the command: a failed ask shows no help line.
-  const help = await Promise.resolve()
-    .then(() => client.stigmer.platform.getServerInfo())
-    .then((info) => info.help, () => undefined);
+  const help = await client.serverInfo().then((info) => info.help, () => undefined);
   return whoamiResult(account, { created, org: org.label, orgId: org.id, singleOrg, ...(help !== undefined ? { help } : {}) });
 }
 
