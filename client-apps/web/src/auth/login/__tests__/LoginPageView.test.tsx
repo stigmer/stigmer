@@ -13,6 +13,7 @@
 // the ordinary page so Sign in still works.
 // ---------------------------------------------------------------------------
 
+import { StrictMode } from "react";
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
@@ -197,11 +198,17 @@ describe("LoginPageView: the sign-up arrival, /login?signup=1", () => {
     expect(screen.queryByText("Taking you to create your account\u2026")).toBeNull();
   });
 
-  it("starts one redirect, not one per effect run", async () => {
-    const { rerender } = render(<LoginPageView />);
-    rerender(<LoginPageView />);
+  it("starts one redirect under StrictMode, which runs mount effects twice", async () => {
+    render(
+      <StrictMode>
+        <LoginPageView />
+      </StrictMode>,
+    );
 
-    await waitFor(() => expect(mocks.signinRedirect).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mocks.signinRedirect).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mocks.createUserManager).toHaveBeenCalledTimes(1);
+    expect(mocks.signinRedirect).toHaveBeenCalledTimes(1);
   });
 
   it("leaves a plain /login alone", () => {
