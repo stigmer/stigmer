@@ -29,6 +29,9 @@ import { fileURLToPath } from "node:url";
 /** Where the facts files are: `design/`, or the folder `DESIGN_FACTS_DIR` names (the import's own test writes into a scratch one). */
 const DESIGN = process.env.DESIGN_FACTS_DIR ?? join(dirname(fileURLToPath(import.meta.url)), "..", "design");
 
+/** A screen's id, as the facts files are named and read: s01, p03, g10, s29b. */
+const SCREEN_ID = /^[spg]\d+[a-z]?$/;
+
 /** The drawing's own facts, as the page exported them, in the file's shape. */
 function factsOf(drawing) {
   return {
@@ -68,7 +71,15 @@ function main([exportFile, source]) {
   }
   const exported = JSON.parse(readFileSync(exportFile, "utf8"));
   const byScreen = new Map();
-  for (const drawing of exported) byScreen.set(drawing.id, [...(byScreen.get(drawing.id) ?? []), drawing]);
+  for (const drawing of exported) {
+    // The readers take only these names (design.spec.ts, whole.spec.ts):
+    // a screen named otherwise would be written and never checked.
+    if (!SCREEN_ID.test(String(drawing.id))) {
+      console.error(`import-design-facts: refusing screen id ${JSON.stringify(drawing.id)}: a screen is s, p or g, its number, and an optional letter (s29b)`);
+      process.exit(1);
+    }
+    byScreen.set(drawing.id, [...(byScreen.get(drawing.id) ?? []), drawing]);
+  }
   for (const [id, drawings] of byScreen) {
     const file = join(DESIGN, `${id}.json`);
     const existing = existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : undefined;

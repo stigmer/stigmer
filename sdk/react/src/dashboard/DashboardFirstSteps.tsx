@@ -4,8 +4,8 @@
 // steps in order, each done only when the server says so (`useJourney`), the
 // current one with its one act, the later ones quiet. Every link is the
 // host's route; a step whose destination the host does not pass has no act.
-// The card is for a person the server lets make agents (`can_create_agent`,
-// asked fail closed): the steps are acts, and a member sees no card. Once
+// The card is for an admin of the organization (`can_edit` on it, asked fail
+// closed): the journey is the organization's, and a member sees no card. Once
 // all six are done it folds to one line. "Hide" is the host's to remember
 // (`onHide`); the operational dashboard keeps it in this browser.
 

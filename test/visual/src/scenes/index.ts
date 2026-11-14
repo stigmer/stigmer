@@ -2,6 +2,7 @@
 // `SceneId`, so a scene the catalogue lists without a drawing here, or a
 // drawing for an id it does not list, fails the typecheck.
 import { agentInAppScene } from "./in-app.tsx";
+import { bringOthersInScene } from "./bring-others-in.tsx";
 import { PRESETS, THREAD_STATES, type Preset, type SceneId, type ThreadState } from "../catalog.ts";
 import { inheritedOpenAiKey, NOTHING_CONNECTED, NOTHING_ON_THE_RUNNER, ownAnthropicKey } from "../fixtures.ts";
 import { agentChatScene } from "./agent-chat.tsx";
@@ -131,6 +132,10 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "agent-in-app-done": () => agentInAppScene("done"),
   "agent-in-app-member": () => agentInAppScene("member"),
   "agent-in-app-local": () => agentInAppScene("local"),
+  "bring-others-in": () => bringOthersInScene("unnamed"),
+  "bring-others-in-link": () => bringOthersInScene("link"),
+  "bring-others-in-joined": () => bringOthersInScene("joined"),
+  "bring-others-in-local": () => bringOthersInScene("local"),
   "skill-detail": skillDetailScene,
   "marketplace-admin": () => marketplaceScene("admin"),
   "marketplace-member": () => marketplaceScene("member"),
@@ -157,6 +162,7 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "session-inspector": () => sessionScene("finished", { inspector: true }),
   "session-failed": () => sessionScene("failed", { inspector: true }),
   "session-end-user": () => sessionScene("busy", { audience: "endUser" }),
+  "session-end-user-framed": () => sessionScene("busy", { audience: "endUser" }),
   "session-guest": () => sessionScene("finished", { audience: "guest" }),
   "session-observer": () => sessionScene("finished", { audience: "observer", inspector: true }),
   "session-load-failed": () => sessionScene("load-failed", { inspector: true }),

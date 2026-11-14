@@ -33,7 +33,7 @@ describe("web journey links", () => {
     expect(result.current.putInApp?.(AGENT)).toBe("/library/agents/acme/variance-reporter?tab=in-app");
     expect(result.current.serviceAccounts).toBe("/settings/service-accounts");
     expect(result.current.embedding).toBe("/settings/org-embedding");
-    expect(result.current.bringOthers).toBe("/settings/members");
+    expect(result.current.bringOthers).toBe("/settings/bring-others-in");
   });
 
   it("opens the launcher on the agent with its example and mode, as the launcher reads them", () => {
@@ -47,10 +47,10 @@ describe("web journey links", () => {
   });
 
   it("draws each link with Next's Link", () => {
-    render(<>{renderJourneyLink({ href: "/settings/members", className: "act", children: "Invite your team" })}</>);
+    render(<>{renderJourneyLink({ href: "/settings/bring-others-in", className: "act", children: "Invite your team" })}</>);
 
     const link = screen.getByRole("link", { name: "Invite your team" });
-    expect(link.getAttribute("href")).toBe("/settings/members");
+    expect(link.getAttribute("href")).toBe("/settings/bring-others-in");
     expect(link.hasAttribute("data-next-link")).toBe(true);
   });
 });

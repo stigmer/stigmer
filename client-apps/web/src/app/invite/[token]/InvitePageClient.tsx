@@ -3,8 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Stigmer } from "@stigmer/client";
-import { StigmerProvider, InvitationRedemption } from "@stigmer/react-sdk";
+import { Stigmer, ensureMyIdentityAccount } from "@stigmer/client";
+import {
+  StigmerProvider,
+  InvitationRedemption,
+  rememberActiveOrg,
+} from "@stigmer/react-sdk";
 import type { ResolvedColorMode } from "@stigmer/react-sdk";
 import type { Invitation } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
 import { getApiBaseUrl } from "@/config/env";
@@ -42,6 +46,17 @@ const AUTO_ACCEPT_KEY = "stigmer:invite:auto_accept";
  *    The auto-accept flag triggers automatic redemption so the user
  *    lands directly on the success state without a second click.
  *
+ * 4. Accepted — the page makes the visitor's account if this was their
+ *    first sign-in (the console's own first-sign-in flow,
+ *    `ensureMyIdentityAccount`), remembers the organization they joined
+ *    as the active one, and goes to the console's home. The order is
+ *    redeem, then the account: a first-time visitor reaches this page
+ *    before the console's gate has made their account, and the server
+ *    grants the role to the account the visitor will have, so an
+ *    edition that greets a new account (Cloud makes a first organization
+ *    for one with no role anywhere) sees the role already in place. A
+ *    failed account step still navigates: the console's gate retries it.
+ *
  * This follows the same self-contained pattern as `LoginPageView`.
  */
 export default function InvitePageClient() {
@@ -64,10 +79,16 @@ export default function InvitePageClient() {
 
   const handleAccepted = useCallback(
     (invitation: Invitation) => {
-      const orgSlug = invitation.metadata?.org;
-      router.push(orgSlug ? `/${orgSlug}` : "/");
+      void ensureMyIdentityAccount(client)
+        // The console's identity gate runs the same flow on arrival and
+        // owns its failure words.
+        .catch(() => undefined)
+        .then(() => {
+          rememberActiveOrg(invitation.metadata?.org ?? "");
+          router.push("/");
+        });
     },
-    [router],
+    [client, router],
   );
 
   const handleAuthRequired = useCallback(() => {

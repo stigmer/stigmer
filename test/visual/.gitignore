@@ -1,3 +1,5 @@
 dist/
 test-results/
 playwright-report/
+# A session's local copy of the suite's config (another port, say) is never committed.
+*.scratch.config.ts

@@ -97,6 +97,20 @@
  * a profile fetched from their own issuer. The trusted-local operator, who
  * carries no issuer and no token, is the posture's own and is admitted.
  * Two primary-key reads; faults propagate as they are.
+ *
+ * The sixth reading is `accountForCaller` read forward, `accountIdForCaller`:
+ * the account id a caller stands for, or will stand for. A caller with an
+ * account answers its id. A caller the platform's own sign-in admitted
+ * idp-shaped (a `user`-class caller whose identity is the subject itself)
+ * answers the id provisionMyAccount will give them, `accountIdFor` of the
+ * subject, since the row id IS that derivation. A write that must name a
+ * person who has not been provisioned yet uses it: an invitation redeemed
+ * from the invite page, where the person's first credential reaches the
+ * redeem before their account exists. Rows are read by the account id
+ * alone (authorization/tuples.ts), so a grant naming the raw subject would
+ * belong to nobody once the account is made. Any other caller with no
+ * account answers its identity unchanged: a subject that is not the
+ * platform's own names no direct account.
  */
 import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 
@@ -104,7 +118,7 @@ import type { CallerIdentity } from "../../extensions/identity.js";
 import { SYSTEM_OPERATOR_IDENTITY_ID } from "../../pipeline/interceptors/auth.js";
 import { principalOf } from "./actor.js";
 import type { DisplayClaims } from "./actor.js";
-import { idpIdOf, isAccountIdShaped, localIdpIdFor } from "./constants.js";
+import { accountIdFor, idpIdOf, isAccountIdShaped, localIdpIdFor } from "./constants.js";
 import type { IdentityAccountStore } from "./store.js";
 
 /** The one read a verifier needs from the domain: the direct account for a subject. */
@@ -176,6 +190,30 @@ export async function accountForCaller(
     return undefined;
   }
   return accounts.findDirectByIdpId(subject);
+}
+
+/**
+ * The account id `caller` stands for, or the id provisionMyAccount will give
+ * an idp-shaped caller of the platform's own sign-in; any other caller with
+ * no account answers its own identity. At most two primary-key reads (no
+ * read past the id hit); faults propagate as they are.
+ */
+export async function accountIdForCaller(
+  accounts: AccountsByCaller,
+  caller: CallerIdentity,
+): Promise<string> {
+  const id = (await accountForCaller(accounts, caller))?.metadata?.id ?? "";
+  if (id !== "") {
+    return id;
+  }
+  const subject = idpIdOf(caller);
+  const idpShaped =
+    caller.callerClass === "user" &&
+    caller.issuer !== "" &&
+    subject !== "" &&
+    caller.identityId === subject &&
+    !isAccountIdShaped(subject);
+  return idpShaped ? accountIdFor(subject) : caller.identityId;
 }
 
 /**

@@ -93,6 +93,7 @@ export type { NotificationsSectionProps } from "./settings/index.js";
 export { MemorySection } from "./settings/index.js";
 export { VaultsSection } from "./settings/index.js";
 export { InvitationsSection } from "./settings/index.js";
+export type { InvitationsSectionProps } from "./settings/index.js";
 export { FederationIssuersSection } from "./settings/index.js";
 export { ServiceAccountsSection } from "./settings/index.js";
 export { TeamsSection } from "./settings/index.js";

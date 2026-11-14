@@ -1,7 +1,7 @@
 /**
  * Pins the app's journey routes, as the web console's: "Make it yours" and
- * "Put it in your app" open the agent page on its tab, the team is invited
- * on the members page, and a launch opens the launcher on the agent with
+ * "Put it in your app" open the agent page on its tab, the team is brought
+ * in on the journey's last page, and a launch opens the launcher on the agent with
  * its example and mode; an organization named by id is written as its
  * slug; each link is drawn with the router's `Link`, so the hash routes
  * hold.
@@ -31,7 +31,7 @@ describe("desktop journey links", () => {
     expect(result.current.putInApp?.(AGENT)).toBe("/library/agents/acme/variance-reporter?tab=in-app");
     expect(result.current.serviceAccounts).toBe("/settings/service-accounts");
     expect(result.current.embedding).toBe("/settings/org-embedding");
-    expect(result.current.bringOthers).toBe("/settings/members");
+    expect(result.current.bringOthers).toBe("/settings/bring-others-in");
     expect(result.current.launch({ agent: AGENT, example: "variance-report", mode: "own" })).toBe(
       agentLaunchUrl("acme", "variance-reporter", { example: "variance-report", mode: "own" }),
     );
@@ -47,12 +47,12 @@ describe("desktop journey links", () => {
   it("draws each link with the router, so the hash routes hold", () => {
     render(
       <MemoryRouter initialEntries={["/dashboard"]}>
-        {renderJourneyLink({ href: "/settings/members", className: "act", children: "Invite your team" })}
+        {renderJourneyLink({ href: "/settings/bring-others-in", className: "act", children: "Invite your team" })}
         <Location />
       </MemoryRouter>,
     );
 
     fireEvent.click(screen.getByRole("link", { name: "Invite your team" }));
-    expect(screen.getByTestId("location").textContent).toBe("/settings/members");
+    expect(screen.getByTestId("location").textContent).toBe("/settings/bring-others-in");
   });
 });

@@ -14,9 +14,9 @@
 // those calls. The agent is the one the first question makes from the
 // variance-report example (`@stigmer/examples`, read from the package's
 // source): its name, slug, description, instructions and the tool it may
-// not use, and nothing else. Six of six cannot be read from a server today
-// (steps 5 and 6 are not read yet), so the folded card is drawn from a
-// journey passed to the card directly.
+// not use, and nothing else. Six of six needs an app user and a teammate on
+// the access list beside every earlier read, so the folded card is drawn
+// from a journey passed to the card directly.
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";

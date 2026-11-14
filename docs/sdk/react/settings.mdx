@@ -115,6 +115,14 @@ is configured.
 
 Settings section for creating and managing organization invitations.
 
+**Props** — `InvitationsSectionProps`
+
+<TypeTable
+  type={{
+    buildInviteUrl: { type: "(token: string) => string", description: "Build the full invite URL from a token, when invitees accept somewhere other than this origin's `/invite/<token>` (a desktop app's links open the web console)." },
+  }}
+/>
+
 
 ### MembersSection
 

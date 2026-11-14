@@ -462,6 +462,7 @@ export type { ManageAccessDialogProps, ManageAccessButtonProps } from "./access/
 // Organization — context provider, hooks, data hooks, behavior hooks, styled form, profile panel, org switcher, and child organizations
 export {
   OrgProvider,
+  rememberActiveOrg,
   OrgSlugText,
   CreateOrganizationForm,
   OrgProfilePanel,
@@ -710,6 +711,10 @@ export {
   JourneyNextLine,
   JourneyLauncherLine,
   MakeItYoursTab,
+  BringOthersIn,
+  BRING_OTHERS_IN_LINK_DAYS,
+  BRING_OTHERS_IN_LINK_LABEL,
+  type BringOthersInProps,
   type UseJourneyReturn,
   type JourneyStep,
   type JourneyStepId,

@@ -376,7 +376,13 @@ export type {
   AccountsBySubject,
   SubjectPrincipal,
 } from "./domain/identityaccount/resolve.js";
+export type { AccountsByCaller } from "./domain/identityaccount/resolve.js";
 export { principalForSubject } from "./domain/identityaccount/resolve.js";
+// The account id a caller stands for, or the one provisionMyAccount will give
+// a person the platform's own sign-in admitted before their account exists:
+// a write that names a person at their first request (an invitation's
+// redemption) names the account they will have.
+export { accountIdForCaller } from "./domain/identityaccount/resolve.js";
 // The derived id of the account under a subject. An edition's own per-org
 // system accounts take the id of their own subject, so the primary key holds
 // one row per subject there as it does for every account the library mints.

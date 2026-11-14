@@ -19,8 +19,11 @@ export const renderJourneyLink: RenderJourneyLink = ({ href, className, children
   </Link>
 );
 
-/** The members page, where the team is invited. */
+/** The members page, where roles are set. */
 export const MEMBERS_HREF = "/settings/members";
+
+/** The journey's last step: name the organization, invite the team, see who joined. */
+export const BRING_OTHERS_IN_HREF = "/settings/bring-others-in";
 
 /** The settings the agent page's "In your app" tab links: service accounts and embedding. */
 export const SERVICE_ACCOUNTS_HREF = "/settings/service-accounts";
@@ -49,7 +52,7 @@ export function useJourneyLinks(): JourneyLinks & MakeItYoursLinks & InAppLinks 
     () => ({
       makeItYours: (agent: ResourceRef) => agentTabHref(slugForOrg(agent.org), agent, "make-it-yours"),
       putInApp: (agent: ResourceRef) => agentTabHref(slugForOrg(agent.org), agent, "in-app"),
-      bringOthers: MEMBERS_HREF,
+      bringOthers: BRING_OTHERS_IN_HREF,
       serviceAccounts: SERVICE_ACCOUNTS_HREF,
       embedding: EMBEDDING_HREF,
       launch: ({ agent, example, mode }) => agentLaunchUrl(slugForOrg(agent.org), agent.slug, { example, mode }),

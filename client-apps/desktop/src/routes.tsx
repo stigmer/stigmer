@@ -12,7 +12,6 @@ import {
   ChannelAppsSection,
   VaultsSection,
   FederationIssuersSection,
-  InvitationsSection,
   MembersSection,
   MemorySection,
   OAuthAppsSection,
@@ -24,11 +23,13 @@ import {
   TeamsSection,
   UsageSection,
 } from "@stigmer/react-sdk/console";
+import { DesktopBringOthersIn, DesktopInvitationsSection } from "./journey/web-console";
 import { AppShell } from "./shell/AppShell";
 import { requestDesktopNotificationPermission } from "./hooks/useDesktopAttentionNotifications";
 import { SessionLauncher } from "./pages/SessionLauncher";
 
 const SessionPage = lazy(() => import("./pages/SessionPage"));
+
 const LibraryLayout = lazy(() => import("./pages/library/LibraryLayout"));
 const LibraryLanding = lazy(() => import("./pages/library/LibraryLanding"));
 const AgentListPage = lazy(() => import("./pages/library/AgentListPage"));
@@ -342,7 +343,8 @@ const routes: RouteObject[] = [
                 element: <NotificationsSection requestPermission={requestDesktopNotificationPermission} />,
               },
               { path: "memory", element: <MemorySection /> },
-              { path: "invitations", element: <InvitationsSection /> },
+              { path: "invitations", element: <DesktopInvitationsSection /> },
+              { path: "bring-others-in", element: <DesktopBringOthersIn /> },
               { path: "federation-issuers", element: <FederationIssuersSection /> },
               { path: "service-accounts", element: <ServiceAccountsSection /> },
               { path: "access-history", element: <AccessHistorySection /> },

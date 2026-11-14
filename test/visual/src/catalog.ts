@@ -85,6 +85,10 @@ export type SceneId =
   | "agent-in-app-done"
   | "agent-in-app-member"
   | "agent-in-app-local"
+  | "bring-others-in"
+  | "bring-others-in-link"
+  | "bring-others-in-joined"
+  | "bring-others-in-local"
   | "skill-detail"
   | "marketplace-admin"
   | "marketplace-member"
@@ -291,6 +295,11 @@ const SESSION_SCENES = [
     title: "Session: a long turn at work, inside a customer's product (no inspector)",
     widths: ["desktop"],
   },
+  {
+    id: "session-end-user-framed",
+    title: "Session: the same long turn inside a customer's product, at the screen's own height, the thread scrolled under its header and composer",
+    widths: ["desktop"],
+  },
   { id: "session-guest", title: "Session: the finished turn, for a chat link's guest", widths: ["desktop", "narrow"] },
   { id: "session-observer", title: "Session: the finished turn, for a reviewer who reads it", widths: ["desktop"] },
   {
@@ -352,8 +361,8 @@ const SESSION_SCENES = [
   {
     id: "session-first-job-next",
     title: "Session: a newcomer's first agent finished its first job, with the line that leads to making it theirs",
-    // Desktop only: at phone width the thread scrolls, and where it comes to
-    // rest differs by machine.
+    // Desktop only: at phone width the thread scrolls in the browser's own
+    // view of it, and where it comes to rest differs by machine.
     widths: ["desktop"],
   },
   // Every way a turn ends badly, one ending turn each (the catalogue's ENDING_STORY_NAMES).
@@ -722,6 +731,14 @@ function whole<S extends Scene>(scene: S): S & { readonly whole: true } {
  */
 const WHOLE_PREFIXES = ["session-", "settings-", "models-hub-", "dashboard-", "marketplace-", "routine-", "agent-profile-"] as const;
 
+/**
+ * The scenes of those groups kept at their viewport's height: the session
+ * view as a person sees it, the thread scrolled under its header and its
+ * composer, so a fault that shows only when the thread overflows is still
+ * pictured. Each is a copy of a scene pictured whole, under its own id.
+ */
+const FRAMED: readonly SceneId[] = ["session-end-user-framed"];
+
 /** Every scene as listed, before the groups pictured whole are marked. */
 const LISTED: readonly Scene[] = [
   ...THREAD_STATES.map((state) => ({
@@ -825,6 +842,26 @@ const LISTED: readonly Scene[] = [
     widths: ["desktop"],
   },
   { id: "dashboard-journey-folded", title: "Dashboard: every step of the journey done, the card folded to one line", widths: ["desktop"] },
+  {
+    id: "bring-others-in",
+    title: "Bring others in: an organization named from the email at sign-up, asked for its company's name before the invite",
+    widths: ["desktop", "narrow"],
+  },
+  {
+    id: "bring-others-in-link",
+    title: "Bring others in: the organization named, its invite link live for a week, nobody else here yet",
+    widths: ["desktop"],
+  },
+  {
+    id: "bring-others-in-joined",
+    title: "Bring others in: two teammates joined, the journey done, and the next line for a company with customers",
+    widths: ["desktop", "narrow"],
+  },
+  {
+    id: "bring-others-in-local",
+    title: "Bring others in: a Stigmer on the person's own computer, which nobody else can reach",
+    widths: ["desktop"],
+  },
   ...SETTINGS_SCENES,
   { id: "agent-profile-owner", title: "Agent page: the ledger agent, as its owner sees it", widths: ["desktop", "narrow"] },
   { id: "agent-profile-viewer", title: "Agent page: the ledger agent, as a person who may only read it sees it", widths: ["desktop"] },
@@ -913,7 +950,7 @@ const LISTED: readonly Scene[] = [
 
 /** Every scene, in the order the index page lists them. */
 export const SCENES: readonly Scene[] = LISTED.map((scene) =>
-  scene.id === "parts" || WHOLE_PREFIXES.some((prefix) => scene.id.startsWith(prefix)) ? whole(scene) : scene,
+  !FRAMED.includes(scene.id) && (scene.id === "parts" || WHOLE_PREFIXES.some((prefix) => scene.id.startsWith(prefix))) ? whole(scene) : scene,
 );
 
 /** One picture: a scene in one mode at one width, and the file it is compared with. */

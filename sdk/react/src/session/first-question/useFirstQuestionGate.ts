@@ -1,11 +1,13 @@
 "use client";
 
-// Whether the launcher opens on its first question. It does for a person the
-// server lets make agents (`can_create_agent`, asked fail closed: making an
-// agent is an act), in an organization where nothing has ever run (the
-// dashboard's own rule, `useEverRan`). A member who may not make agents, an
-// organization that has run anything, and a read that failed all get the
-// usual launcher. Until both answers are in, the answer is "pending", so the
+// Whether the launcher opens on its first question. It does for an admin of
+// the organization (`can_edit` on it, asked fail closed: the journey is the
+// organization's, the dashboard card's rule), in an organization where
+// nothing has ever run (the dashboard's own rule, `useEverRan`). A member,
+// a teammate who joined by invitation among them, an organization that has
+// run anything, and a read that failed all get the usual launcher: a
+// member's run summary holds only the runs they can see, so "nothing ran"
+// is not theirs to read. Until both answers are in, the answer is "pending", so the
 // launcher holds its place rather than draw the composer and swap it.
 //
 // The first settled answer for an organization holds for the life of the
@@ -27,7 +29,7 @@ export type FirstQuestionGate = "pending" | "ask" | "skip";
  */
 export function useFirstQuestionGate(org: string, enabled: boolean): FirstQuestionGate {
   const asking = enabled && org !== "";
-  const permission = useCheckPermission(asking ? { kind: "organization", id: org } : null, "can_create_agent", { fail: "closed" });
+  const permission = useCheckPermission(asking ? { kind: "organization", id: org } : null, "can_edit", { fail: "closed" });
   const ever = useEverRan(asking ? org : null);
   const [settled, setSettled] = useState<{ readonly org: string; readonly answer: FirstQuestionGate } | null>(null);
 

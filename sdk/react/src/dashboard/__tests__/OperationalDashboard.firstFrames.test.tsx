@@ -56,6 +56,8 @@ function renderNewOrganization() {
       checkMyPermission: vi.fn(async () => ({ isAuthorized: true })),
       listResourceAccessByPrincipal: vi.fn(async () => ({ entries: [] })),
     },
+    // Step 6 tells the viewer apart from the people who joined.
+    identityAccount: { whoAmI: vi.fn(async () => ({ metadata: { id: "ida_viewer" } })) },
     agent: {
       list: vi.fn(async () => ({ entries: [], nextPageToken: "" })),
       listVersions: vi.fn(async () => ({ entries: [], nextPageToken: "" })),

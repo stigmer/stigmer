@@ -80,6 +80,27 @@ function persistOrgId(id: string): void {
 }
 
 /**
+ * Remember `orgId` as the active organization for the next load of an
+ * {@link OrgProvider} in this browser, from a page outside its tree.
+ *
+ * The provider restores the organization it remembers when it mounts, so a
+ * page that lives outside the provider (a public invite page that has just
+ * made the visitor a member) calls this before it navigates into the
+ * console, and the person lands in the organization they joined. An empty
+ * id remembers nothing. Storage that is unavailable (private browsing, a
+ * server render) is ignored, and the provider then selects its first
+ * organization as it always does.
+ *
+ * @param orgId - The organization's id (`metadata.id`), never its slug: a
+ *   slug can be renamed and would then restore nothing.
+ */
+export function rememberActiveOrg(orgId: string): void {
+  if (orgId !== "") {
+    persistOrgId(orgId);
+  }
+}
+
+/**
  * Find the org a reference names. A reference is an id or a slug; ids and
  * slugs are each unique, so an id match is tried first and a slug match
  * second.

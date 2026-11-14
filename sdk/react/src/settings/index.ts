@@ -25,6 +25,7 @@ export type { NotificationsSectionProps } from "./NotificationsSection.js";
 export { MemorySection } from "./MemorySection.js";
 export { VaultsSection } from "./VaultsSection.js";
 export { InvitationsSection } from "./InvitationsSection.js";
+export type { InvitationsSectionProps } from "./InvitationsSection.js";
 export { FederationIssuersSection } from "./FederationIssuersSection.js";
 export { ServiceAccountsSection } from "./ServiceAccountsSection.js";
 export { TeamsSection } from "./TeamsSection.js";
