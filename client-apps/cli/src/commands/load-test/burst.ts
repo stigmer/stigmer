@@ -273,8 +273,8 @@ class Tracker {
     this.tell();
   }
 
+  // Once per run: its watch stops at its end.
   ended(runId: string): void {
-    if (this.endedRuns.has(runId)) return;
     this.endedRuns.add(runId);
     this.tell();
   }

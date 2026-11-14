@@ -81,6 +81,8 @@ export class LoadTestServer implements LoadTestClient {
   readonly sessionsDeleted: string[] = [];
   /** The follows' signals, by session. */
   readonly follows = new Map<string, AbortSignal>();
+  /** Run ids whose terminate is refused. */
+  readonly unterminable = new Set<string>();
   /** Session ids whose delete fails. */
   readonly undeletableSessions = new Set<string>();
   agentDeleteFails = false;
@@ -119,6 +121,7 @@ export class LoadTestServer implements LoadTestClient {
       return read;
     },
     terminate: async (input: { id: string; reason: string }): Promise<unknown> => {
+      if (this.unterminable.has(input.id)) throw new Error("terminate refused");
       this.terminated.push(input.id);
       return undefined;
     },

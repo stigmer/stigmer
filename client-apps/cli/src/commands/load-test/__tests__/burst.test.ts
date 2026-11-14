@@ -34,6 +34,8 @@ function options(overrides: Partial<BurstOptions> = {}): BurstOptions {
 function waitsThenCompletes(runId: string) {
   return {
     frames: [
+      liveness(runId, 5),
+      liveness("run_other", 90),
       frameOf(user(runId, "hi")),
       frameOf(phase(runId, "pending")),
       liveness(runId, 0),
@@ -105,7 +107,7 @@ describe("runBurst", () => {
     expect(server.sessionsDeleted).toEqual(["ses_1"]);
   });
 
-  it("keeps the largest wait for a sandbox, after the liveness that clears it", async () => {
+  it("keeps the largest wait for a sandbox, after the liveness that clears it, and only its own run's", async () => {
     const server = new LoadTestServer([waitsThenCompletes("run_1")]);
     const result = await runBurst(server, options({ agents: 1 }));
     expect(result.sightings[0]?.waitedMs).toBe(20_000);
@@ -147,6 +149,15 @@ describe("runBurst", () => {
     expect(result.sightings[0]?.run).toBeUndefined();
     expect(server.terminated).toEqual(["run_1"]);
     expect(result.leftBehind).toEqual(["conversation ses_1", "agent agt_1"]);
+  });
+
+  it("still deletes a conversation whose run would not terminate", async () => {
+    const server = new LoadTestServer([waitsOn("run_1", 5)]);
+    server.unterminable.add("run_1");
+    const result = await runBurst(server, options({ agents: 1, waitMs: 50 }));
+    expect(server.terminated).toEqual([]);
+    expect(server.sessionsDeleted).toEqual(["ses_1"]);
+    expect(result.leftBehind).toEqual([]);
   });
 
   it("reads the run after a follow the server refused", async () => {
