@@ -1,8 +1,7 @@
 // The names an agent described in the person's own words is made under:
-// `your-agent`, then `your-agent-2` and on, up to the tries the launcher's
-// first question makes. Kept apart from `journey-agents.ts`, which also
-// reads the examples package, so the first question (in every launcher's
-// first download) carries these names without the examples' data.
+// `your-agent`, then `your-agent-2` and on, up to the tries the React kit's
+// first question makes. The kit makes agents under these names and the
+// server counts them as the journey's, so both read this one module.
 
 /** The slug an agent described in the person's own words is made under, before any number. */
 export const OWN_AGENT_SLUG = "your-agent";

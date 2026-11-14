@@ -214,6 +214,20 @@ helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer -n stigmer --reset-the
   --set-string server.help.label="Ask IT on Slack"
 ```
 
+## Where newcomers stop
+
+`server.internalAccounts` names your own team's sign-in addresses, comma-separated,
+each exact or a pattern with one `*`. The count of how far new organizations got
+(`stigmer usage onboarding`, a platform operator's read) leaves out the
+organizations they made. Empty counts everyone. The
+[operations guide](https://stigmer.ai/docs/guides/self-hosting/operations#where-newcomers-stop)
+has the count.
+
+```bash
+helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer -n stigmer --reset-then-reuse-values \
+  --set-string server.internalAccounts="*@example.com"
+```
+
 ## Stigmer Enterprise
 
 Stigmer Enterprise is the same server with a license key: many organizations,

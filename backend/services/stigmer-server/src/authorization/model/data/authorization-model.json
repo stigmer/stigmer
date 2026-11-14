@@ -12,6 +12,7 @@
           "can_manage_model_pricing": {},
           "can_manage_plans": {},
           "can_view_access": {},
+          "can_view_platform_usage": {},
           "can_write_reserved_labels": {},
           "operator": {
             "directly_related_user_types": [
@@ -57,6 +58,11 @@
           }
         },
         "can_view_access": {
+          "computedUserset": {
+            "relation": "operator"
+          }
+        },
+        "can_view_platform_usage": {
           "computedUserset": {
             "relation": "operator"
           }

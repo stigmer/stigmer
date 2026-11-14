@@ -10,6 +10,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./journey": {
+      "types": "./dist/journey/index.d.ts",
+      "import": "./dist/journey/index.js",
+      "default": "./dist/journey/index.js"
     }
   },
   "scripts": {
@@ -38,6 +43,11 @@
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js",
         "default": "./dist/index.js"
+      },
+      "./journey": {
+        "types": "./dist/journey/index.d.ts",
+        "import": "./dist/journey/index.js",
+        "default": "./dist/journey/index.js"
       }
     }
   },

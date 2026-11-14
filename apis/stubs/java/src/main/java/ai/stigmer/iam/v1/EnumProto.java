@@ -56,7 +56,7 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "er.iam.v1\032 google/protobuf/descriptor.pr" +
       "oto\"R\n\013IamRoleMeta\022!\n\014display_name\030\001 \001(\t" +
       "R\013displayName\022 \n\013description\030\002 \001(\tR\013desc" +
-      "ription*\302\007\n\rIamPermission\022\017\n\013unspecified" +
+      "ription*\337\007\n\rIamPermission\022\017\n\013unspecified" +
       "\020\000\022\014\n\010can_view\020\001\022\014\n\010can_edit\020\002\022\016\n\ncan_de" +
       "lete\020\003\022\024\n\020can_grant_access\020\004\022\023\n\017can_view" +
       "_access\020\005\022\024\n\020can_assign_roles\020/\022\027\n\023can_m" +
@@ -80,27 +80,27 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "_view_access_history\0208\022\030\n\024can_mint_user_" +
       "tokens\0209\022\023\n\017can_create_eval\020:\022\014\n\010can_fir" +
       "e\020;\022\032\n\026can_create_environment\020<\022\023\n\017can_c" +
-      "reate_file\020=*\267\004\n\007IamRole\022\030\n\024iam_role_uns" +
-      "pecified\020\000\022U\n\005owner\020\001\032J\212\304,F\n\005Owner\022=Ever" +
-      "ything, including deleting it and decidi" +
-      "ng who has access\022P\n\005admin\020\002\032E\212\304,A\n\005Admi" +
-      "n\0228Manage the organization\'s people, set" +
-      "tings and resources\022B\n\006member\020\003\0326\212\304,2\n\006M" +
-      "ember\022(Belongs to it and holds what it i" +
-      "s given\0223\n\006viewer\020\004\032\'\212\304,#\n\006Viewer\022\031Read " +
-      "it; cannot change it\022L\n\013participant\020\005\032;\212" +
-      "\304,7\n\013Participant\022(Read the conversations" +
-      " and send messages\022V\n\006editor\020\006\032J\212\304,F\n\006Ed" +
-      "itor\022<Change and use it; cannot delete i" +
-      "t or decide who has access\022J\n\004user\020\007\032@\212\304" +
-      ",<\n\007Can use\0221Use this vault\'s logins and" +
-      " secrets in their runs:`\n\trole_meta\022!.go" +
-      "ogle.protobuf.EnumValueOptions\030\301\310\005 \001(\0132\036" +
-      ".ai.stigmer.iam.v1.IamRoleMetaR\010roleMeta" +
-      "BrB\tEnumProtoP\001\242\002\003ASI\252\002\021Ai.Stigmer.Iam.V" +
-      "1\312\002\021Ai\\Stigmer\\Iam\\V1\342\002\035Ai\\Stigmer\\Iam\\V" +
-      "1\\GPBMetadata\352\002\024Ai::Stigmer::Iam::V1b\006pr" +
-      "oto3"
+      "reate_file\020=\022\033\n\027can_view_platform_usage\020" +
+      ">*\267\004\n\007IamRole\022\030\n\024iam_role_unspecified\020\000\022" +
+      "U\n\005owner\020\001\032J\212\304,F\n\005Owner\022=Everything, inc" +
+      "luding deleting it and deciding who has " +
+      "access\022P\n\005admin\020\002\032E\212\304,A\n\005Admin\0228Manage t" +
+      "he organization\'s people, settings and r" +
+      "esources\022B\n\006member\020\003\0326\212\304,2\n\006Member\022(Belo" +
+      "ngs to it and holds what it is given\0223\n\006" +
+      "viewer\020\004\032\'\212\304,#\n\006Viewer\022\031Read it; cannot " +
+      "change it\022L\n\013participant\020\005\032;\212\304,7\n\013Partic" +
+      "ipant\022(Read the conversations and send m" +
+      "essages\022V\n\006editor\020\006\032J\212\304,F\n\006Editor\022<Chang" +
+      "e and use it; cannot delete it or decide" +
+      " who has access\022J\n\004user\020\007\032@\212\304,<\n\007Can use" +
+      "\0221Use this vault\'s logins and secrets in" +
+      " their runs:`\n\trole_meta\022!.google.protob" +
+      "uf.EnumValueOptions\030\301\310\005 \001(\0132\036.ai.stigmer" +
+      ".iam.v1.IamRoleMetaR\010roleMetaBrB\tEnumPro" +
+      "toP\001\242\002\003ASI\252\002\021Ai.Stigmer.Iam.V1\312\002\021Ai\\Stig" +
+      "mer\\Iam\\V1\342\002\035Ai\\Stigmer\\Iam\\V1\\GPBMetada" +
+      "ta\352\002\024Ai::Stigmer::Iam::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

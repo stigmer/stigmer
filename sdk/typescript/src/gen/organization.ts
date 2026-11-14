@@ -12,6 +12,7 @@ import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { OrganizationSchema, type Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationCommandController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationIdSchema, UpdateOrganizationInputSchema, UpdateOrganizationPoliciesInputSchema, UpdateOrganizationEmbeddingInputSchema, ListMyOrganizationsInputSchema, OrganizationsSchema, OrganizationExternalLookupSchema, ListChildOrgsInputSchema, ChildOrgListSchema, type UpdateOrganizationPoliciesInput, type UpdateOrganizationEmbeddingInput, type ListMyOrganizationsInput, type Organizations, type OrganizationExternalLookup, type ListChildOrgsInput, type ChildOrgList } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
+import { OnboardingProgressSchema, type OnboardingProgress } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/onboarding_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 import { OrganizationSpecSchema, OrganizationPreferencesSchema, OrganizationPoliciesSchema, OrganizationEmbeddingSchema, type OrganizationPreferences, type OrganizationPolicies, type OrganizationEmbedding } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/spec_pb";
 
@@ -117,6 +118,12 @@ export class OrganizationClient {
       if (page.nextPageToken === "") return;
       pageToken = page.nextPageToken;
     }
+  }
+
+  async getOnboarding(id: string): Promise<OnboardingProgress> {
+    try {
+      return await this.query.getOnboarding(create(OrganizationIdSchema, { value: id }));
+    } catch (e) { throw wrapError(e); }
   }
 }
 

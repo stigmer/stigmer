@@ -112,6 +112,21 @@ stigmer usage hours [flags]
 | ---------------- | -------- | ------- | ----------------------------------- |
 | `--output`, `-o` | `string` |         | output format: table, json, or yaml |
 
+### stigmer usage onboarding
+
+view how far new organizations got, from a first agent to their users (platform
+operators)
+
+```bash
+stigmer usage onboarding [flags]
+```
+
+| Flag             | Type     | Default | Description                                                                                        |
+| ---------------- | -------- | ------- | -------------------------------------------------------------------------------------------------- |
+| `--from`         | `string` |         | start: a UTC day, inclusive (e.g. 2026-03-01), or an RFC 3339 instant; default: 6 days before --to |
+| `--output`, `-o` | `string` |         | output format: table, json, or yaml                                                                |
+| `--to`           | `string` |         | end: a UTC day, inclusive (e.g. 2026-03-13), or an RFC 3339 instant; default: today                |
+
 ### stigmer usage org
 
 view the organization-wide usage report

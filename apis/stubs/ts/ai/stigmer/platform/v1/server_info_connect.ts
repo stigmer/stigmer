@@ -6,6 +6,7 @@
 import { GetLicenseStatusInput, GetLicenseStatusOutput, GetRunnerBootstrapConfigInput, GetRunnerBootstrapConfigOutput, GetRunnerScopedTokenInput, GetRunnerScopedTokenOutput, GetServerInfoInput, GetServerInfoOutput } from "./server_info_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { GetModelReadinessInput, GetModelReadinessOutput } from "./model_readiness_pbjs";
+import { GetOnboardingFunnelInput, GetOnboardingFunnelOutput } from "./onboarding_funnel_pbjs";
 
 /**
  * Query service for server identity, capabilities, and runner bootstrap.
@@ -24,6 +25,9 @@ import { GetModelReadinessInput, GetModelReadinessOutput } from "./model_readine
  *
  * Signed-in members call getModelReadiness to learn which models can run in
  * their organization before they start a run.
+ *
+ * Platform operators call getOnboardingFunnel to learn how far new
+ * organizations got on the journey from a first agent to their users.
  *
  * @generated from service ai.stigmer.platform.v1.PlatformQueryController
  */
@@ -95,6 +99,25 @@ export const PlatformQueryController = {
       name: "getModelReadiness",
       I: GetModelReadinessInput,
       O: GetModelReadinessOutput,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Returns how far the organizations made in a window got on the journey
+     * from a first agent to its users: how many were made, and how many have
+     * each of the six steps done.
+     *
+     * Counts only, with no names, addresses or identifiers. Organizations
+     * made by an address the operator lists as internal
+     * (STIGMER_INTERNAL_ACCOUNTS) are left out and counted apart. A window
+     * holding more organizations than one answer counts is refused with a
+     * narrower window suggested.
+     *
+     * @generated from rpc ai.stigmer.platform.v1.PlatformQueryController.getOnboardingFunnel
+     */
+    getOnboardingFunnel: {
+      name: "getOnboardingFunnel",
+      I: GetOnboardingFunnelInput,
+      O: GetOnboardingFunnelOutput,
       kind: MethodKind.Unary,
     },
     /**

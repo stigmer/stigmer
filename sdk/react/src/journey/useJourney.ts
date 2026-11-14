@@ -5,63 +5,47 @@
 // card, the launcher's next line and the line under a first job all read
 // this one hook, so the three never disagree.
 //
-//   1 Say what it should do  an agent exists (the server's agent list)
-//   2 Add a model key        a provider serves a model (`useModelReadiness`),
-//                            or a run has completed: a model answered it,
-//                            whatever readiness can attribute (a key in the
-//                            runners' own environment reads as unknown, not
-//                            served)
-//   3 Watch it work          a run has completed (the all-time run summary);
-//                            a run that failed or was stopped did no job
+//   1 Say what it should do  an agent exists
+//   2 Add a model key        a provider serves a model, or a run has
+//                            completed: a model answered it, whatever the
+//                            server can attribute (a key in the runners' own
+//                            environment reads as unknown, not served)
+//   3 Watch it work          a run has completed; a run that failed or was
+//                            stopped did no job
 //   4 Make it yours          a journey agent has a second version: its
 //                            instructions changed, or a skill was added
 //   5 Put it in your app     a person signed in from the builder's own app:
 //                            an app-user account on the organization's
-//                            access list (`app-handover/useAppAccess.ts`).
-//                            Read only on a server that signs people in (on
-//                            one that trusts every caller nobody signs in)
-//                            and only for a viewer the server lets read the
-//                            list; that read failing or refused leaves the
-//                            step open and the rest drawn, never "off"
+//                            access list; never on a server that signs
+//                            nobody in
 //   6 Bring others in        someone besides the viewer has joined: a
 //                            person (a direct or federated account) on the
-//                            same access list step 5 reads, other than the
-//                            viewer's own account (`useMyIdentityAccount`).
-//                            The same rules as step 5: a trusting server
-//                            never ticks it, and a refused or failed read
-//                            leaves it open
+//                            same access list; never on a server that signs
+//                            nobody in
 //
-// Nothing is stored: every answer is a read the server already serves. The
-// access list has no page (stigmer#3072), so step 5 reads it whole wherever the journey
-// shows, as the members page does on every visit. The version read is made
-// only for journey agents
-// (`journey-agents.ts`), newest first, stopping at the first agent with a
-// second version, and only once the agent list has one; a plugin upgrade's
-// new version never counts.
+// The steps are the server's: one read, the organization's onboarding
+// (`organization.getOnboarding`), whose rule the server keeps once and also
+// runs for the platform operator's count of where newcomers stop, so the card
+// and the count cannot disagree. Which agents are the journey's is
+// `@stigmer/examples/journey`'s rule, the one the first question makes agents
+// under. The words of each step stay here.
 //
-// Asked only for a host that opts in and an admin of the organization
-// (`can_edit` on it, asked fail closed, the first question's rule): the
-// journey is the organization's, and its steps are an admin's acts. A
-// member, a teammate who joined by invitation among them, gets no journey
-// and the ordinary launcher, though a member may make agents. Until every read is in, the answer is
-// "pending", so no surface draws a step and then takes it back; a read that
-// fails answers "off", so nothing claims a step it could not see.
+// Asked only for a host that opts in and an admin of the organization: the
+// server answers `can_edit` holders and refuses everyone else, a member
+// among them, who gets no journey and the ordinary launcher. A server too
+// old to answer the read draws no journey either. Until the answer is in,
+// it is "pending", so no surface draws a step and then takes it back; a
+// read that fails answers "off", so nothing claims a step it could not see.
 
 import { useMemo } from "react";
-import { create } from "@bufbuild/protobuf";
-import { ListAgentVersionsInputSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
+import type { OnboardingProgress } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/onboarding_pb";
+import { OnboardingStepId } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/onboarding_pb";
 import type { ResourceRef } from "@stigmer/client";
+import { isPermissionDenied } from "@stigmer/client";
 import { useStigmer } from "@stigmer/react-core";
 import { useFetch } from "@stigmer/react-core/internal";
-import { useCheckPermission } from "../grant/useCheckPermission.js";
-import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { RunSummaryTimeWindow, useRunSummary } from "../dashboard/useRunSummary.js";
-import { useModelReadiness } from "../models/useModelReadiness.js";
+import { isUnimplemented } from "../internal/isUnimplemented.js";
 import { presentationOf } from "../models/provider-presentation.js";
-import { isJourneyAgentSlug } from "./journey-agents.js";
-import { useAppAccess } from "../app-handover/useAppAccess.js";
-import { useServerInfo } from "../server-info.js";
-import { useMyIdentityAccount } from "../identity-account/useMyIdentityAccount.js";
 
 /** The six steps, in the journey's order. */
 export type JourneyStepId = "describe" | "key" | "watch" | "make-yours" | "in-app" | "others";
@@ -127,25 +111,22 @@ const STEPS: readonly { readonly id: JourneyStepId; readonly title: string; read
   { id: "others", title: "Bring others in", todo: "Name your organization and invite your team." },
 ];
 
-/** The journey agents the server lists, newest first, and the one changed since it was made. */
-interface JourneyAgents {
-  /** Whether the organization has any agent at all. */
-  readonly hasAgent: boolean;
-  /** The newest journey agent, undefined when there is none. */
-  readonly newest: JourneyAgent | undefined;
-  /** The first journey agent (newest first) with a second version, undefined when none has one. */
-  readonly changed: JourneyAgent | undefined;
-}
-
-/** How many agents the list reads: one page, a new organization's whole list. */
-const AGENT_PAGE = 50;
+/** The server's name for each step. */
+const SERVER_STEP: Record<JourneyStepId, OnboardingStepId> = {
+  describe: OnboardingStepId.describe,
+  key: OnboardingStepId.key,
+  watch: OnboardingStepId.watch,
+  "make-yours": OnboardingStepId.make_yours,
+  "in-app": OnboardingStepId.in_app,
+  others: OnboardingStepId.others,
+};
 
 const OFF: UseJourneyReturn = { status: "off", steps: [], done: 0, current: undefined, agent: undefined, everRan: undefined };
 const PENDING: UseJourneyReturn = { status: "pending", steps: [], done: 0, current: undefined, agent: undefined, everRan: undefined };
 
 /**
  * Where `org` is on the journey from a first agent to its users. Pass
- * `enabled: false` to skip every read (the answer is then `"off"`).
+ * `enabled: false` to skip the read (the answer is then `"off"`).
  *
  * @example
  * ```tsx
@@ -158,117 +139,65 @@ const PENDING: UseJourneyReturn = { status: "pending", steps: [], done: 0, curre
  */
 export function useJourney(org: string | null | undefined, options: { readonly enabled: boolean }): UseJourneyReturn {
   const stigmer = useStigmer();
-  const asking = options.enabled && !!org;
-  const orgId = asking ? (org as string) : null;
-  const permission = useCheckPermission(orgId ? { kind: "organization", id: orgId } : null, "can_edit", { fail: "closed" });
-  const allowed = permission.allowed;
-  // The reads are made only for a person the steps are for.
-  const reading = orgId !== null && allowed ? orgId : null;
-  // One all-time read answers both: whether anything ran, and whether a run completed.
-  const runs = useRunSummary({ org: reading, timeWindow: RunSummaryTimeWindow.ALL_TIME });
-  const summary = reading ? runs.summary : null;
-  const everRan = summary === null ? undefined : summary.activeCount + Object.values(summary.phaseCounts).reduce((sum, n) => sum + n, 0) > 0;
-  const completed = summary === null ? undefined : (summary.phaseCounts[RunPhase.RUN_COMPLETED] ?? 0) > 0;
-  const readiness = useModelReadiness(reading);
-  const agents = useFetch<JourneyAgents | undefined>(
-    reading
+  const orgId = options.enabled && org ? org : null;
+  // null: the server refused (not an admin here) or does not serve the read.
+  const read = useFetch<OnboardingProgress | null | undefined>(
+    orgId
       ? async () => {
-          const list = await stigmer.agent.list({ org: reading, pageSize: AGENT_PAGE });
-          let newest: JourneyAgent | undefined;
-          let changed: JourneyAgent | undefined;
-          for (const agent of list.entries) {
-            const slug = agent.metadata?.slug ?? "";
-            if (!isJourneyAgentSlug(slug)) continue;
-            const found: JourneyAgent = {
-              ref: { org: agent.metadata?.org || reading, slug },
-              name: agent.metadata?.name || slug,
-            };
-            newest ??= found;
-            // A second version means its spec changed since it was made.
-            const versions = await stigmer.agent.listVersions(
-              create(ListAgentVersionsInputSchema, { org: found.ref.org, slug, pageSize: 2 }),
-            );
-            if (versions.entries.length > 1) {
-              changed = found;
-              break;
-            }
+          try {
+            return await stigmer.organization.getOnboarding(orgId);
+          } catch (err) {
+            if (isPermissionDenied(err) || isUnimplemented(err)) return null;
+            throw err;
           }
-          return { hasAgent: list.entries.length > 0, newest, changed };
         }
       : null,
-    [stigmer, reading],
+    [stigmer, orgId],
     undefined,
   );
 
-  // Step 5: only a server that signs people in can have an app user.
-  const server = useServerInfo({ enabled: reading !== null });
-  const signsIn = server.serverInfo !== null && server.serverInfo.authenticationRequired !== false;
-  const appAccess = useAppAccess(reading, { enabled: signsIn });
-  // Undefined while still asking; null when there is no app user to name, or
-  // the read cannot say (a trusting server, a refused or failed read).
-  let appUser: string | null | undefined;
-  if (server.error !== null || (server.serverInfo !== null && !signsIn)) appUser = null;
-  else if (server.serverInfo === null) appUser = undefined;
-  else if (appAccess.error !== null || appAccess.allowed === false) appUser = null;
-  else if (appAccess.appUsers === undefined) appUser = undefined;
-  else appUser = appAccess.appUsers[0]?.name ?? null;
-
-  // Step 6: the people on the same list, the viewer left out. Undefined while
-  // asking; null when nobody else is here or the reads cannot say.
-  const me = useMyIdentityAccount({ enabled: reading !== null && signsIn });
-  const myId = me.account?.metadata?.id;
-  let joined: string | null | undefined;
-  if (appUser === null && appAccess.appUsers === undefined) joined = null;
-  else if (appUser === undefined || appAccess.people === undefined) joined = undefined;
-  else if (me.error !== null) joined = null;
-  else if (myId === undefined) joined = undefined;
-  else joined = joinedLine(appAccess.people.filter((person) => person.id !== myId).map((person) => person.name));
-
-  const served = useMemo(
-    () => (readiness.providers ?? []).find((report) => report.availability.state === "served")?.provider,
-    [readiness.providers],
-  );
-
   return useMemo<UseJourneyReturn>(() => {
-    if (orgId === null) return OFF;
-    if (permission.isLoading) return PENDING;
-    if (!allowed) return OFF;
-    if (runs.error !== null || agents.error !== null || readiness.error !== null) return OFF;
-    if (everRan === undefined || completed === undefined || agents.data === undefined || readiness.providers === null || appUser === undefined || joined === undefined) {
-      return PENDING;
-    }
-    const known = agents.data;
-    const agent = known.changed ?? known.newest;
-    const facts: Record<JourneyStepId, string | undefined> = {
-      describe: known.hasAgent ? (agent ? `${agent.name} is made` : "Your first agent is made") : undefined,
-      key: served !== undefined ? `${presentationOf(served).name} is connected` : completed ? "A model answered its first job" : undefined,
-      watch: completed ? "It ran its first job" : undefined,
-      "make-yours": known.changed ? `${known.changed.name} has your changes` : undefined,
-      "in-app": appUser === null ? undefined : `${appUser} signed in from your app`,
-      others: joined ?? undefined,
-    };
-    let current: JourneyStep | undefined;
-    let done = 0;
-    const steps = STEPS.map((step, index): JourneyStep => {
-      const fact = facts[step.id];
-      if (fact !== undefined) {
-        done += 1;
-        return { id: step.id, number: index + 1, title: step.title, state: "done", line: fact };
-      }
-      const state: JourneyStepState = current === undefined ? "current" : "todo";
-      const drawn: JourneyStep = { id: step.id, number: index + 1, title: step.title, state, line: step.todo };
-      current ??= drawn;
-      return drawn;
-    });
-    return { status: "ready", steps, done, current, agent, everRan };
-  }, [orgId, permission.isLoading, allowed, runs.error, everRan, completed, agents.error, agents.data, readiness.error, readiness.providers, served, appUser, joined]);
+    if (orgId === null || read.error !== null) return OFF;
+    if (read.data === undefined) return PENDING;
+    if (read.data === null) return OFF;
+    return journeyOf(read.data, orgId);
+  }, [orgId, read.error, read.data]);
 }
 
-/** "Sam joined", "Sam and Priya joined", "Sam and 2 others joined"; null for nobody. */
-function joinedLine(names: readonly string[]): string | null {
-  const [first] = names;
-  if (first === undefined) return null;
-  if (names.length === 1) return `${first} joined`;
-  if (names.length === 2) return `${first} and ${names[1]} joined`;
-  return `${first} and ${names.length - 1} others joined`;
+/** The journey as the surfaces draw it, from the server's answer. */
+function journeyOf(progress: OnboardingProgress, org: string): UseJourneyReturn {
+  const done = new Set(progress.steps.filter((step) => step.done).map((step) => step.id));
+  const named = (agent: OnboardingProgress["newestAgent"]): JourneyAgent | undefined =>
+    agent === undefined ? undefined : { ref: { org: agent.org || org, slug: agent.slug }, name: agent.name || agent.slug };
+  const changed = named(progress.changedAgent);
+  const agent = changed ?? named(progress.newestAgent);
+  const facts: Record<JourneyStepId, string> = {
+    describe: agent ? `${agent.name} is made` : "Your first agent is made",
+    key: progress.servedProvider !== "" ? `${presentationOf(progress.servedProvider).name} is connected` : "A model answered its first job",
+    watch: "It ran its first job",
+    "make-yours": `${changed?.name ?? "Your agent"} has your changes`,
+    "in-app": `${progress.appUserName} signed in from your app`,
+    others: joinedLine(progress.joinedNames, progress.joinedCount),
+  };
+  let current: JourneyStep | undefined;
+  let count = 0;
+  const steps = STEPS.map((step, index): JourneyStep => {
+    if (done.has(SERVER_STEP[step.id])) {
+      count += 1;
+      return { id: step.id, number: index + 1, title: step.title, state: "done", line: facts[step.id] };
+    }
+    const state: JourneyStepState = current === undefined ? "current" : "todo";
+    const drawn: JourneyStep = { id: step.id, number: index + 1, title: step.title, state, line: step.todo };
+    current ??= drawn;
+    return drawn;
+  });
+  return { status: "ready", steps, done: count, current, agent, everRan: progress.everRan };
+}
+
+/** "Sam joined", "Sam and Priya joined", "Sam and 2 others joined", from up to two names and how many joined. */
+function joinedLine(names: readonly string[], count: number): string {
+  const [first = "Someone", second] = names;
+  if (count <= 1) return `${first} joined`;
+  if (count === 2 && second !== undefined) return `${first} and ${second} joined`;
+  return `${first} and ${count - 1} others joined`;
 }

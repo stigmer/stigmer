@@ -156,6 +156,11 @@ const (
 	// Whether the caller may upload a File of their own in an organization:
 	// its members and guests, the people who may start a conversation.
 	IamPermission_can_create_file IamPermission = 61
+	// Platform-level permission to read counts across every organization on
+	// the server, such as how far new organizations got on the journey from
+	// a first agent to its users. Counts only: no names, no addresses, no
+	// identifiers. Held by the platform's operators.
+	IamPermission_can_view_platform_usage IamPermission = 62
 )
 
 // Enum value maps for IamPermission.
@@ -202,6 +207,7 @@ var (
 		59: "can_fire",
 		60: "can_create_environment",
 		61: "can_create_file",
+		62: "can_view_platform_usage",
 	}
 	IamPermission_value = map[string]int32{
 		"unspecified":                  0,
@@ -245,6 +251,7 @@ var (
 		"can_fire":                     59,
 		"can_create_environment":       60,
 		"can_create_file":              61,
+		"can_view_platform_usage":      62,
 	}
 )
 
@@ -456,7 +463,7 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1\x1a google/protobuf/descriptor.proto\"R\n" +
 	"\vIamRoleMeta\x12!\n" +
 	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription*\xc2\a\n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription*\xdf\a\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -499,7 +506,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x0fcan_create_eval\x10:\x12\f\n" +
 	"\bcan_fire\x10;\x12\x1a\n" +
 	"\x16can_create_environment\x10<\x12\x13\n" +
-	"\x0fcan_create_file\x10=*\xb7\x04\n" +
+	"\x0fcan_create_file\x10=\x12\x1b\n" +
+	"\x17can_view_platform_usage\x10>*\xb7\x04\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12U\n" +
 	"\x05owner\x10\x01\x1aJ\x8a\xc4,F\n" +

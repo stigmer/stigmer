@@ -16,6 +16,8 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * deployment ever answers anything but absent.
  * Signed-in members call getModelReadiness to learn which models can run in
  * their organization before they start a run.
+ * Platform operators call getOnboardingFunnel to learn how far new
+ * organizations got on the journey from a first agent to their users.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -117,6 +119,37 @@ public final class PlatformQueryControllerGrpc {
       }
     }
     return getGetModelReadinessMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.platform.v1.GetOnboardingFunnelInput,
+      ai.stigmer.platform.v1.GetOnboardingFunnelOutput> getGetOnboardingFunnelMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getOnboardingFunnel",
+      requestType = ai.stigmer.platform.v1.GetOnboardingFunnelInput.class,
+      responseType = ai.stigmer.platform.v1.GetOnboardingFunnelOutput.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.platform.v1.GetOnboardingFunnelInput,
+      ai.stigmer.platform.v1.GetOnboardingFunnelOutput> getGetOnboardingFunnelMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.platform.v1.GetOnboardingFunnelInput, ai.stigmer.platform.v1.GetOnboardingFunnelOutput> getGetOnboardingFunnelMethod;
+    if ((getGetOnboardingFunnelMethod = PlatformQueryControllerGrpc.getGetOnboardingFunnelMethod) == null) {
+      synchronized (PlatformQueryControllerGrpc.class) {
+        if ((getGetOnboardingFunnelMethod = PlatformQueryControllerGrpc.getGetOnboardingFunnelMethod) == null) {
+          PlatformQueryControllerGrpc.getGetOnboardingFunnelMethod = getGetOnboardingFunnelMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.platform.v1.GetOnboardingFunnelInput, ai.stigmer.platform.v1.GetOnboardingFunnelOutput>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getOnboardingFunnel"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.platform.v1.GetOnboardingFunnelInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.platform.v1.GetOnboardingFunnelOutput.getDefaultInstance()))
+              .setSchemaDescriptor(new PlatformQueryControllerMethodDescriptorSupplier("getOnboardingFunnel"))
+              .build();
+        }
+      }
+    }
+    return getGetOnboardingFunnelMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput,
@@ -254,6 +287,8 @@ public final class PlatformQueryControllerGrpc {
    * deployment ever answers anything but absent.
    * Signed-in members call getModelReadiness to learn which models can run in
    * their organization before they start a run.
+   * Platform operators call getOnboardingFunnel to learn how far new
+   * organizations got on the journey from a first agent to their users.
    * </pre>
    */
   public interface AsyncService {
@@ -318,6 +353,23 @@ public final class PlatformQueryControllerGrpc {
 
     /**
      * <pre>
+     * Returns how far the organizations made in a window got on the journey
+     * from a first agent to its users: how many were made, and how many have
+     * each of the six steps done.
+     * Counts only, with no names, addresses or identifiers. Organizations
+     * made by an address the operator lists as internal
+     * (STIGMER_INTERNAL_ACCOUNTS) are left out and counted apart. A window
+     * holding more organizations than one answer counts is refused with a
+     * narrower window suggested.
+     * </pre>
+     */
+    default void getOnboardingFunnel(ai.stigmer.platform.v1.GetOnboardingFunnelInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetOnboardingFunnelOutput> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetOnboardingFunnelMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Returns everything an embedded runner needs to bootstrap itself.
      * An embedded runner (a desktop or web app hosting the runner for local
      * execution) needs two things at boot, both of which are details it should
@@ -378,6 +430,8 @@ public final class PlatformQueryControllerGrpc {
    * deployment ever answers anything but absent.
    * Signed-in members call getModelReadiness to learn which models can run in
    * their organization before they start a run.
+   * Platform operators call getOnboardingFunnel to learn how far new
+   * organizations got on the journey from a first agent to their users.
    * </pre>
    */
   public static abstract class PlatformQueryControllerImplBase
@@ -403,6 +457,8 @@ public final class PlatformQueryControllerGrpc {
    * deployment ever answers anything but absent.
    * Signed-in members call getModelReadiness to learn which models can run in
    * their organization before they start a run.
+   * Platform operators call getOnboardingFunnel to learn how far new
+   * organizations got on the journey from a first agent to their users.
    * </pre>
    */
   public static final class PlatformQueryControllerStub
@@ -481,6 +537,24 @@ public final class PlatformQueryControllerGrpc {
 
     /**
      * <pre>
+     * Returns how far the organizations made in a window got on the journey
+     * from a first agent to its users: how many were made, and how many have
+     * each of the six steps done.
+     * Counts only, with no names, addresses or identifiers. Organizations
+     * made by an address the operator lists as internal
+     * (STIGMER_INTERNAL_ACCOUNTS) are left out and counted apart. A window
+     * holding more organizations than one answer counts is refused with a
+     * narrower window suggested.
+     * </pre>
+     */
+    public void getOnboardingFunnel(ai.stigmer.platform.v1.GetOnboardingFunnelInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetOnboardingFunnelOutput> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetOnboardingFunnelMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Returns everything an embedded runner needs to bootstrap itself.
      * An embedded runner (a desktop or web app hosting the runner for local
      * execution) needs two things at boot, both of which are details it should
@@ -543,6 +617,8 @@ public final class PlatformQueryControllerGrpc {
    * deployment ever answers anything but absent.
    * Signed-in members call getModelReadiness to learn which models can run in
    * their organization before they start a run.
+   * Platform operators call getOnboardingFunnel to learn how far new
+   * organizations got on the journey from a first agent to their users.
    * </pre>
    */
   public static final class PlatformQueryControllerBlockingV2Stub
@@ -618,6 +694,23 @@ public final class PlatformQueryControllerGrpc {
 
     /**
      * <pre>
+     * Returns how far the organizations made in a window got on the journey
+     * from a first agent to its users: how many were made, and how many have
+     * each of the six steps done.
+     * Counts only, with no names, addresses or identifiers. Organizations
+     * made by an address the operator lists as internal
+     * (STIGMER_INTERNAL_ACCOUNTS) are left out and counted apart. A window
+     * holding more organizations than one answer counts is refused with a
+     * narrower window suggested.
+     * </pre>
+     */
+    public ai.stigmer.platform.v1.GetOnboardingFunnelOutput getOnboardingFunnel(ai.stigmer.platform.v1.GetOnboardingFunnelInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetOnboardingFunnelMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Returns everything an embedded runner needs to bootstrap itself.
      * An embedded runner (a desktop or web app hosting the runner for local
      * execution) needs two things at boot, both of which are details it should
@@ -678,6 +771,8 @@ public final class PlatformQueryControllerGrpc {
    * deployment ever answers anything but absent.
    * Signed-in members call getModelReadiness to learn which models can run in
    * their organization before they start a run.
+   * Platform operators call getOnboardingFunnel to learn how far new
+   * organizations got on the journey from a first agent to their users.
    * </pre>
    */
   public static final class PlatformQueryControllerBlockingStub
@@ -753,6 +848,23 @@ public final class PlatformQueryControllerGrpc {
 
     /**
      * <pre>
+     * Returns how far the organizations made in a window got on the journey
+     * from a first agent to its users: how many were made, and how many have
+     * each of the six steps done.
+     * Counts only, with no names, addresses or identifiers. Organizations
+     * made by an address the operator lists as internal
+     * (STIGMER_INTERNAL_ACCOUNTS) are left out and counted apart. A window
+     * holding more organizations than one answer counts is refused with a
+     * narrower window suggested.
+     * </pre>
+     */
+    public ai.stigmer.platform.v1.GetOnboardingFunnelOutput getOnboardingFunnel(ai.stigmer.platform.v1.GetOnboardingFunnelInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetOnboardingFunnelMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Returns everything an embedded runner needs to bootstrap itself.
      * An embedded runner (a desktop or web app hosting the runner for local
      * execution) needs two things at boot, both of which are details it should
@@ -813,6 +925,8 @@ public final class PlatformQueryControllerGrpc {
    * deployment ever answers anything but absent.
    * Signed-in members call getModelReadiness to learn which models can run in
    * their organization before they start a run.
+   * Platform operators call getOnboardingFunnel to learn how far new
+   * organizations got on the journey from a first agent to their users.
    * </pre>
    */
   public static final class PlatformQueryControllerFutureStub
@@ -891,6 +1005,24 @@ public final class PlatformQueryControllerGrpc {
 
     /**
      * <pre>
+     * Returns how far the organizations made in a window got on the journey
+     * from a first agent to its users: how many were made, and how many have
+     * each of the six steps done.
+     * Counts only, with no names, addresses or identifiers. Organizations
+     * made by an address the operator lists as internal
+     * (STIGMER_INTERNAL_ACCOUNTS) are left out and counted apart. A window
+     * holding more organizations than one answer counts is refused with a
+     * narrower window suggested.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.platform.v1.GetOnboardingFunnelOutput> getOnboardingFunnel(
+        ai.stigmer.platform.v1.GetOnboardingFunnelInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetOnboardingFunnelMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Returns everything an embedded runner needs to bootstrap itself.
      * An embedded runner (a desktop or web app hosting the runner for local
      * execution) needs two things at boot, both of which are details it should
@@ -941,8 +1073,9 @@ public final class PlatformQueryControllerGrpc {
   private static final int METHODID_GET_SERVER_INFO = 0;
   private static final int METHODID_GET_LICENSE_STATUS = 1;
   private static final int METHODID_GET_MODEL_READINESS = 2;
-  private static final int METHODID_GET_RUNNER_BOOTSTRAP_CONFIG = 3;
-  private static final int METHODID_GET_RUNNER_SCOPED_TOKEN = 4;
+  private static final int METHODID_GET_ONBOARDING_FUNNEL = 3;
+  private static final int METHODID_GET_RUNNER_BOOTSTRAP_CONFIG = 4;
+  private static final int METHODID_GET_RUNNER_SCOPED_TOKEN = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -972,6 +1105,10 @@ public final class PlatformQueryControllerGrpc {
         case METHODID_GET_MODEL_READINESS:
           serviceImpl.getModelReadiness((ai.stigmer.platform.v1.GetModelReadinessInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetModelReadinessOutput>) responseObserver);
+          break;
+        case METHODID_GET_ONBOARDING_FUNNEL:
+          serviceImpl.getOnboardingFunnel((ai.stigmer.platform.v1.GetOnboardingFunnelInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetOnboardingFunnelOutput>) responseObserver);
           break;
         case METHODID_GET_RUNNER_BOOTSTRAP_CONFIG:
           serviceImpl.getRunnerBootstrapConfig((ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput) request,
@@ -1020,6 +1157,13 @@ public final class PlatformQueryControllerGrpc {
               ai.stigmer.platform.v1.GetModelReadinessInput,
               ai.stigmer.platform.v1.GetModelReadinessOutput>(
                 service, METHODID_GET_MODEL_READINESS)))
+        .addMethod(
+          getGetOnboardingFunnelMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.platform.v1.GetOnboardingFunnelInput,
+              ai.stigmer.platform.v1.GetOnboardingFunnelOutput>(
+                service, METHODID_GET_ONBOARDING_FUNNEL)))
         .addMethod(
           getGetRunnerBootstrapConfigMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1085,6 +1229,7 @@ public final class PlatformQueryControllerGrpc {
               .addMethod(getGetServerInfoMethod())
               .addMethod(getGetLicenseStatusMethod())
               .addMethod(getGetModelReadinessMethod())
+              .addMethod(getGetOnboardingFunnelMethod())
               .addMethod(getGetRunnerBootstrapConfigMethod())
               .addMethod(getGetRunnerScopedTokenMethod())
               .build();

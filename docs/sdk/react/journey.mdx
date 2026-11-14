@@ -11,7 +11,7 @@ Import from `@stigmer/react-sdk`.
 ### useJourney
 
 Where `org` is on the journey from a first agent to its users. Pass
-`enabled: false` to skip every read (the answer is then `"off"`).
+`enabled: false` to skip the read (the answer is then `"off"`).
 
 **Signature**
 
@@ -149,15 +149,6 @@ How long the journey's link lives: a week, since it is a credential sent through
 ### BRING_OTHERS_IN_LINK_LABEL
 
 The label the journey's links carry, so a return visit finds the one still live.
-
-
-### isJourneyAgentSlug
-
-Whether `slug` is an agent the journey made: an example's, or one described in the person's own words.
-
-```tsx
-function isJourneyAgentSlug(slug: string): boolean
-```
 
 
 ### JourneyAgent

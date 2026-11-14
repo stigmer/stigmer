@@ -268,6 +268,9 @@ import {
 import { resolveOAuthRedirectUri } from "./oauth-redirect-uri.js";
 import { resolveNativeSignIn } from "./native-sign-in.js";
 import { resolveHelpLink } from "./help-link.js";
+import { parseInternalAccounts } from "./internal-accounts.js";
+import { newAccountDisplayResolver } from "../domain/grant/display-resolver.js";
+import { newOnboardingService } from "../domain/onboarding/service.js";
 import {
   assessSkillTransferOrigin,
   resolveSkillTransferBaseUrl,
@@ -1112,6 +1115,22 @@ export async function composeServer(
   // create chain's refusal and by getModelReadiness alike.
   const providerAvailability =
     extensions.drivers.providerAvailability ?? runnerProviderAvailability(config.runnerProviders);
+  // The journey from a first agent to its users (domain/onboarding): one
+  // service over the composed ports answers both the organization's own
+  // steps and the operator's count, leaving out the organizations the
+  // operator's internal addresses made (internal-accounts.ts).
+  const internalAccounts = parseInternalAccounts(config.internalAccounts);
+  for (const warning of internalAccounts.warnings) logger.warn(warning);
+  const onboarding = newOnboardingService({
+    store,
+    providerAvailability,
+    grants,
+    displayResolver: newAccountDisplayResolver(identityAccounts),
+    principalDisplay: extensions.drivers.principalDisplay,
+    authenticationRequired: requireAuthentication,
+    internalAccounts,
+    logger,
+  });
   if (sandboxLane.enabled) {
     logger.info("sandbox provisioner composed", {
       type: config.sandboxProvisionerType,
@@ -1856,6 +1875,7 @@ export async function composeServer(
       // The delete hands an accepted organization to the purge.
       purge: organizationPurge,
       accounts: identityAccounts,
+      onboarding,
     });
     // ApiKey registers with the tenancy/IAM family at the top. The chassis's apikey VERIFIER shares this
     // domain's lookup module — not the RPC (domain/apikey/lookup.ts).
@@ -2307,6 +2327,7 @@ export async function composeServer(
       modelCatalog,
       authorizer,
       environmentPolicy,
+      onboarding,
       now: () => new Date(),
       logger,
     });

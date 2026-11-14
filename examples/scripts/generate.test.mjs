@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { GENERATED, ROOT, displayName, frontmatterOf, problems, readTree, render } from "./generate.mjs";
+import { GENERATED, GENERATED_SLUGS, ROOT, displayName, frontmatterOf, problems, readTree, render, renderSlugs } from "./generate.mjs";
 
 const tree = readTree();
 
@@ -19,8 +19,9 @@ test("the tree keeps every rule", () => {
   assert.deepEqual(problems(tree), []);
 });
 
-test("the committed module is what the generator writes now", () => {
+test("the committed modules are what the generator writes now", () => {
   assert.equal(readFileSync(join(ROOT, GENERATED), "utf8"), render(tree));
+  assert.equal(readFileSync(join(ROOT, GENERATED_SLUGS), "utf8"), renderSlugs(tree));
 });
 
 test("an agent's display name is its slug in words", () => {

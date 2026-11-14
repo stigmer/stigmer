@@ -46,6 +46,11 @@ import {
   type AgentHours,
 } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
 import type { Stigmer } from "@stigmer/client";
+import {
+  GetOnboardingFunnelOutputSchema,
+  type GetOnboardingFunnelOutput,
+} from "@stigmer/apis/ai/stigmer/platform/v1/onboarding_funnel_pb";
+import { OnboardingStepId } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/onboarding_pb";
 import type { OutputFormat } from "../output/index.js";
 import { renderProtoJson, renderProtoYaml, renderTable, terminalWidth, type TerminalStream } from "../output/index.js";
 import { formatTokenCount } from "./run-format.js";
@@ -81,6 +86,10 @@ export async function getOrgUsageReport(
   return client.run.getOrgUsageReport(
     create(GetOrgUsageReportInputSchema, { org, fromDate: range.from, toDate: range.to }),
   );
+}
+
+export async function getOnboardingFunnel(client: Stigmer, range: DateRange): Promise<GetOnboardingFunnelOutput> {
+  return client.platform.getOnboardingFunnel(range);
 }
 
 export async function getAgentHours(client: Stigmer, org: string): Promise<AgentHours> {
@@ -444,4 +453,37 @@ function mapPhaseToString(phase: RunPhase): string {
     default:
       return "unknown";
   }
+}
+
+/** Each step's name in the onboarding count, as the console's card words it. */
+const ONBOARDING_STEP_WORDS: Readonly<Record<number, string>> = {
+  [OnboardingStepId.describe]: "Said what it should do",
+  [OnboardingStepId.key]: "Added a model key",
+  [OnboardingStepId.watch]: "Watched it work",
+  [OnboardingStepId.make_yours]: "Made it theirs",
+  [OnboardingStepId.in_app]: "Put it in their app",
+  [OnboardingStepId.others]: "Brought others in",
+};
+
+/**
+ * The onboarding count: how many new organizations were counted, how many
+ * were the operator's own, and how many reached each step, with its share
+ * of those counted. json and yaml are protojson.
+ */
+export function renderOnboardingFunnel(funnel: GetOnboardingFunnelOutput, range: DateRange, format: OutputFormat): string {
+  if (format === "json") return renderProtoJson(GetOnboardingFunnelOutputSchema, funnel);
+  if (format === "yaml") return renderProtoYaml(GetOnboardingFunnelOutputSchema, funnel);
+
+  const lines: string[] = ["", "Onboarding", `Period: ${formatInputDateRange(range.from, range.to)}`, ""];
+  const own = funnel.excluded === 0 ? "" : ` (${funnel.excluded} made by your own team left out)`;
+  lines.push(`  New organizations: ${funnel.organizations}${own}`, "");
+  if (funnel.organizations > 0) {
+    const rows = funnel.steps.map((step, index) => [
+      `${index + 1} ${ONBOARDING_STEP_WORDS[step.id] ?? OnboardingStepId[step.id] ?? String(step.id)}`,
+      String(step.reached),
+      `${Math.round((step.reached / funnel.organizations) * 100)}%`,
+    ]);
+    lines.push(renderTable(["STEP", "REACHED", "SHARE"], rows), "");
+  }
+  return lines.join("\n");
 }

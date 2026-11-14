@@ -139,6 +139,37 @@ public final class OrganizationQueryControllerGrpc {
     return getListChildOrgsMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.OrganizationId,
+      ai.stigmer.tenancy.organization.v1.OnboardingProgress> getGetOnboardingMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getOnboarding",
+      requestType = ai.stigmer.tenancy.organization.v1.OrganizationId.class,
+      responseType = ai.stigmer.tenancy.organization.v1.OnboardingProgress.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.OrganizationId,
+      ai.stigmer.tenancy.organization.v1.OnboardingProgress> getGetOnboardingMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.OrganizationId, ai.stigmer.tenancy.organization.v1.OnboardingProgress> getGetOnboardingMethod;
+    if ((getGetOnboardingMethod = OrganizationQueryControllerGrpc.getGetOnboardingMethod) == null) {
+      synchronized (OrganizationQueryControllerGrpc.class) {
+        if ((getGetOnboardingMethod = OrganizationQueryControllerGrpc.getGetOnboardingMethod) == null) {
+          OrganizationQueryControllerGrpc.getGetOnboardingMethod = getGetOnboardingMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.tenancy.organization.v1.OrganizationId, ai.stigmer.tenancy.organization.v1.OnboardingProgress>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getOnboarding"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.tenancy.organization.v1.OrganizationId.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.tenancy.organization.v1.OnboardingProgress.getDefaultInstance()))
+              .setSchemaDescriptor(new OrganizationQueryControllerMethodDescriptorSupplier("getOnboarding"))
+              .build();
+        }
+      }
+    }
+    return getGetOnboardingMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -247,6 +278,21 @@ public final class OrganizationQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.ChildOrgList> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListChildOrgsMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Get where an organization is on the journey from a first agent to its
+     * users: which of the six steps are done, and the facts a client's lines
+     * about them name.
+     * Every step is read from what the server already records, so a console
+     * asks once instead of reading agents, runs, models and access itself.
+     * The one asking is left out of the people who joined.
+     * </pre>
+     */
+    default void getOnboarding(ai.stigmer.tenancy.organization.v1.OrganizationId request,
+        io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.OnboardingProgress> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetOnboardingMethod(), responseObserver);
+    }
   }
 
   /**
@@ -328,6 +374,22 @@ public final class OrganizationQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getListChildOrgsMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Get where an organization is on the journey from a first agent to its
+     * users: which of the six steps are done, and the facts a client's lines
+     * about them name.
+     * Every step is read from what the server already records, so a console
+     * asks once instead of reading agents, runs, models and access itself.
+     * The one asking is left out of the people who joined.
+     * </pre>
+     */
+    public void getOnboarding(ai.stigmer.tenancy.organization.v1.OrganizationId request,
+        io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.OnboardingProgress> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetOnboardingMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -391,6 +453,21 @@ public final class OrganizationQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getListChildOrgsMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Get where an organization is on the journey from a first agent to its
+     * users: which of the six steps are done, and the facts a client's lines
+     * about them name.
+     * Every step is read from what the server already records, so a console
+     * asks once instead of reading agents, runs, models and access itself.
+     * The one asking is left out of the people who joined.
+     * </pre>
+     */
+    public ai.stigmer.tenancy.organization.v1.OnboardingProgress getOnboarding(ai.stigmer.tenancy.organization.v1.OrganizationId request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetOnboardingMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -453,6 +530,21 @@ public final class OrganizationQueryControllerGrpc {
     public ai.stigmer.tenancy.organization.v1.ChildOrgList listChildOrgs(ai.stigmer.tenancy.organization.v1.ListChildOrgsInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getListChildOrgsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Get where an organization is on the journey from a first agent to its
+     * users: which of the six steps are done, and the facts a client's lines
+     * about them name.
+     * Every step is read from what the server already records, so a console
+     * asks once instead of reading agents, runs, models and access itself.
+     * The one asking is left out of the people who joined.
+     * </pre>
+     */
+    public ai.stigmer.tenancy.organization.v1.OnboardingProgress getOnboarding(ai.stigmer.tenancy.organization.v1.OrganizationId request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetOnboardingMethod(), getCallOptions(), request);
     }
   }
 
@@ -521,12 +613,29 @@ public final class OrganizationQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getListChildOrgsMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Get where an organization is on the journey from a first agent to its
+     * users: which of the six steps are done, and the facts a client's lines
+     * about them name.
+     * Every step is read from what the server already records, so a console
+     * asks once instead of reading agents, runs, models and access itself.
+     * The one asking is left out of the people who joined.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.OnboardingProgress> getOnboarding(
+        ai.stigmer.tenancy.organization.v1.OrganizationId request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetOnboardingMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_LIST_MINE = 1;
   private static final int METHODID_GET_BY_EXTERNAL_ID = 2;
   private static final int METHODID_LIST_CHILD_ORGS = 3;
+  private static final int METHODID_GET_ONBOARDING = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -560,6 +669,10 @@ public final class OrganizationQueryControllerGrpc {
         case METHODID_LIST_CHILD_ORGS:
           serviceImpl.listChildOrgs((ai.stigmer.tenancy.organization.v1.ListChildOrgsInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.ChildOrgList>) responseObserver);
+          break;
+        case METHODID_GET_ONBOARDING:
+          serviceImpl.getOnboarding((ai.stigmer.tenancy.organization.v1.OrganizationId) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.OnboardingProgress>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -607,6 +720,13 @@ public final class OrganizationQueryControllerGrpc {
               ai.stigmer.tenancy.organization.v1.ListChildOrgsInput,
               ai.stigmer.tenancy.organization.v1.ChildOrgList>(
                 service, METHODID_LIST_CHILD_ORGS)))
+        .addMethod(
+          getGetOnboardingMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.tenancy.organization.v1.OrganizationId,
+              ai.stigmer.tenancy.organization.v1.OnboardingProgress>(
+                service, METHODID_GET_ONBOARDING)))
         .build();
   }
 
@@ -659,6 +779,7 @@ public final class OrganizationQueryControllerGrpc {
               .addMethod(getListMineMethod())
               .addMethod(getGetByExternalIdMethod())
               .addMethod(getListChildOrgsMethod())
+              .addMethod(getGetOnboardingMethod())
               .build();
         }
       }

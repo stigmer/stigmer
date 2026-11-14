@@ -361,6 +361,17 @@ public enum IamPermission
    * <code>can_create_file = 61;</code>
    */
   can_create_file(61),
+  /**
+   * <pre>
+   * Platform-level permission to read counts across every organization on
+   * the server, such as how far new organizations got on the journey from
+   * a first agent to its users. Counts only: no names, no addresses, no
+   * identifiers. Held by the platform's operators.
+   * </pre>
+   *
+   * <code>can_view_platform_usage = 62;</code>
+   */
+  can_view_platform_usage(62),
   UNRECOGNIZED(-1),
   ;
 
@@ -710,6 +721,17 @@ public enum IamPermission
    * <code>can_create_file = 61;</code>
    */
   public static final int can_create_file_VALUE = 61;
+  /**
+   * <pre>
+   * Platform-level permission to read counts across every organization on
+   * the server, such as how far new organizations got on the journey from
+   * a first agent to its users. Counts only: no names, no addresses, no
+   * identifiers. Held by the platform's operators.
+   * </pre>
+   *
+   * <code>can_view_platform_usage = 62;</code>
+   */
+  public static final int can_view_platform_usage_VALUE = 62;
 
 
   public final int getNumber() {
@@ -777,6 +799,7 @@ public enum IamPermission
       case 59: return can_fire;
       case 60: return can_create_environment;
       case 61: return can_create_file;
+      case 62: return can_view_platform_usage;
       default: return null;
     }
   }

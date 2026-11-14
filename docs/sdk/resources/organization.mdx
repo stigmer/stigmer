@@ -59,6 +59,7 @@ import ai.stigmer.sdk.gen.OrganizationInput;
 import ai.stigmer.tenancy.organization.v1.ChildOrgList;
 import ai.stigmer.tenancy.organization.v1.ListChildOrgsInput;
 import ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput;
+import ai.stigmer.tenancy.organization.v1.OnboardingProgress;
 import ai.stigmer.tenancy.organization.v1.Organization;
 import ai.stigmer.tenancy.organization.v1.OrganizationEmbedding;
 import ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup;
@@ -81,6 +82,7 @@ Organization organization = client.organization.get("org_01j5q3k7m8r2s4tnz2hfp0q
 |--------|-------------|
 | [`get`](#get) | Get an organization by ID. |
 | [`getByExternalId`](#getbyexternalid) | Find a child organization by the identifier its parent keeps for it (external_id). |
+| [`getOnboarding`](#getonboarding) | Get where an organization is on the journey from a first agent to its users: which of the six steps are done, and the facts a client's lines about them name. |
 | [`listChildOrgs`](#listchildorgs) | List an organization's child organizations, newest first. |
 | [`listMine`](#listmine) | List the organizations the authenticated caller is a member of. |
 | [`apply`](#apply) | Create or update an organization. |
@@ -168,6 +170,43 @@ Organization organization = client.organization.getByExternalId(OrganizationExte
 **Parameters**: [`OrganizationExternalLookup`](#organizationexternallookup)
 
 **Returns**: [`Organization`](#organization)
+
+### getOnboarding
+
+Get where an organization is on the journey from a first agent to its users: which of the six steps are done, and the facts a client's lines about them name.
+
+Every step is read from what the server already records, so a console asks once instead of reading agents, runs, models and access itself. The one asking is left out of the people who joined.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const onboardingProgress = await stigmer.organization.getOnboarding("org_01j5q3k7m8r2s4tnz2hfp0q0c3");
+```
+</Tab>
+<Tab value="Go">
+```go
+onboardingProgress, err := client.Organization.GetOnboarding(ctx, "org_01j5q3k7m8r2s4tnz2hfp0q0c3")
+```
+</Tab>
+<Tab value="Python">
+```python
+onboarding_progress = client.organizations.get_onboarding("org_01j5q3k7m8r2s4tnz2hfp0q0c3")
+```
+</Tab>
+<Tab value="Java">
+```java
+OnboardingProgress onboardingProgress = client.organization.getOnboarding("org_01j5q3k7m8r2s4tnz2hfp0q0c3");
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Organization identifier. |
+
+**Returns**: [`OnboardingProgress`](#onboardingprogress)
 
 ### listChildOrgs
 
@@ -850,6 +889,23 @@ One page of an organization's child organizations.
   }}
 />
 
+### OnboardingProgress
+
+Where an organization is on the journey from a first agent to its users.
+
+<TypeTable
+  type={{
+    steps: { type: "OnboardingStepInput[]", description: "The six steps, in order." },
+    newestAgent: { type: "OnboardingAgentInput", description: "The newest agent the journey made (an example's, or one described in the person's own words)." },
+    changedAgent: { type: "OnboardingAgentInput", description: "The newest agent the journey made that has a second version." },
+    servedProvider: { type: "string", description: "The first provider that serves a model to the organization (\"anthropic\" or \"openai\"), in the server's order." },
+    everRan: { type: "boolean", description: "Whether any run has ever started here, a failed or stopped one included." },
+    appUserName: { type: "string", description: "The display name of the first person who signed in from the builder's own app." },
+    joinedNames: { type: "string[]", description: "The display names of up to two people, besides the one asking, who hold access to the organization." },
+    joinedCount: { type: "number", description: "How many people, besides the one asking, hold access to the organization." },
+  }}
+/>
+
 ### Organization
 
 Organization is the top-level container for all Stigmer resources.
@@ -888,4 +944,17 @@ IamRole defines the roles that can be assigned to principals on resources via Gr
 | `participant` | A person who takes part in a conversation: reads it and sends messages. |
 | `editor` | Editor of a blueprint (an agent): may change its definition and do whatever a viewer can, and may not delete it, change its visibility, give it a chat link or another channel, or decide who else has access. |
 | `user` | May use a shared vault: the runs of a person who holds it use the vault's logins and secrets. |
+
+### OnboardingStepId
+
+One step of the journey from a first agent to its users.
+
+| Value | Description |
+|-------|-------------|
+| `describe` | An agent exists in the organization. |
+| `key` | A provider serves a model to the organization, or a run has completed. |
+| `watch` | A run has completed. |
+| `make_yours` | An agent the journey made has a second version: its instructions changed, or a skill was added. |
+| `in_app` | A person signed in from the builder's own app: an app user holds access to the organization. |
+| `others` | A person besides the one asking (or, in a count, besides the organization's creator) holds access to the organization. |
 

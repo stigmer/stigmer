@@ -6,7 +6,8 @@
 // source are what people download, and catalogue.gen.ts is generated from
 // them (scripts/generate.mjs).
 
-import { EXAMPLE_AGENT_SLUGS, EXAMPLES, SKILLS } from "./catalogue.gen.js";
+import { EXAMPLES, SKILLS } from "./catalogue.gen.js";
+import { EXAMPLE_AGENT_SLUGS } from "./journey/slugs.gen.js";
 import type { Example, ExampleSkill } from "./types.js";
 
 export { EXAMPLE_AGENT_SLUGS, EXAMPLES, SKILLS };

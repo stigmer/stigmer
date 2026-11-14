@@ -1,6 +1,8 @@
 // `stigmer usage {session,agent,org}` — token, model and working-time reports
-// at three granularities — and `stigmer usage hours`, the organization's
-// agent hours against its plan. Thin handlers: validate flags, fetch the
+// at three granularities — `stigmer usage hours`, the organization's agent
+// hours against its plan, and `stigmer usage onboarding`, a platform
+// operator's count of how far new organizations got on the journey from a
+// first agent to their users. Thin handlers: validate flags, fetch the
 // report, render. The dates pass through as typed: the server reads a UTC
 // calendar day (the whole day, both bounds inclusive) or an RFC 3339
 // instant. Heavy modules are lazy-imported inside actions so `--help` stays
@@ -16,6 +18,7 @@ import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import { UsageError } from "../errors/index.js";
 import type { OutputFlags } from "../output/index.js";
 import { globalOrg, readFormat } from "./shared.js";
+import { CliExitError } from "../errors/cli-exit-error.js";
 
 interface UsageFlags extends OutputFlags {
   from?: string;
@@ -28,6 +31,16 @@ const TO_HELP = "end: a UTC day, inclusive (e.g. 2026-03-13), or an RFC 3339 ins
 /** What `usage hours` says on a server that serves no subscriptions. */
 export const AGENT_HOURS_NOT_SERVED =
   "This server does not count agent hours: they are a Stigmer Cloud plan's. `stigmer usage org` shows working time.";
+
+/** What `usage onboarding` says to a caller who is no platform operator. */
+export const ONBOARDING_NOT_PERMITTED = "Only a platform operator can read onboarding counts.";
+
+/** What `usage onboarding` says on a server older than the count. */
+export const ONBOARDING_NOT_SERVED =
+  "This server does not count onboarding yet: it is older than this command. Upgrade the server to read where newcomers stop.";
+
+/** How many days `usage onboarding` counts when no --from is given: the last week, today included. */
+const ONBOARDING_DEFAULT_DAYS = 7;
 
 export function registerUsage(program: Command): void {
   const usage = program.command("usage").description("view token and working-time usage reports");
@@ -53,6 +66,14 @@ export function registerUsage(program: Command): void {
     .option("--to <date>", `${TO_HELP}, required`)
     .option("-o, --output <format>", "output format: table, json, or yaml")
     .action((options: UsageFlags, command: Command) => runOrgUsage(options, command));
+
+  usage
+    .command("onboarding")
+    .description("view how far new organizations got, from a first agent to their users (platform operators)")
+    .option("--from <date>", `${FROM_HELP}; default: ${ONBOARDING_DEFAULT_DAYS - 1} days before --to`)
+    .option("--to <date>", `${TO_HELP}; default: today`)
+    .option("-o, --output <format>", "output format: table, json, or yaml")
+    .action((options: UsageFlags) => runOnboardingFunnel(options));
 
   usage
     .command("hours")
@@ -113,4 +134,36 @@ async function runAgentHours(options: UsageFlags, command: Command): Promise<voi
 
   const hours = await usage.getAgentHours(client.stigmer, org);
   process.stdout.write(usage.renderAgentHours(hours, readFormat(options)));
+}
+
+async function runOnboardingFunnel(options: UsageFlags): Promise<void> {
+  const range = onboardingRange(options, new Date());
+  const [{ connectBackend }, usage, { isPermissionDenied, isUnimplemented }, { ExitCode }] = await Promise.all([
+    import("../backend.js"),
+    import("../resources/usage.js"),
+    import("@stigmer/client"),
+    import("@stigmer/client/exit-codes"),
+  ]);
+  const client = connectBackend();
+  ensureAuthenticated(client.config);
+
+  let funnel: Awaited<ReturnType<typeof usage.getOnboardingFunnel>>;
+  try {
+    funnel = await usage.getOnboardingFunnel(client.stigmer, range);
+  } catch (err) {
+    if (isPermissionDenied(err)) throw new CliExitError(ONBOARDING_NOT_PERMITTED, ExitCode.Auth, undefined, { cause: err });
+    if (isUnimplemented(err)) throw new CliExitError(ONBOARDING_NOT_SERVED, ExitCode.Usage, undefined, { cause: err });
+    throw err;
+  }
+  process.stdout.write(usage.renderOnboardingFunnel(funnel, range, readFormat(options)));
+}
+
+/** The window `usage onboarding` counts: as typed, else the last week to today (UTC days). */
+export function onboardingRange(options: UsageFlags, now: Date): { readonly from: string; readonly to: string } {
+  const to = options.to ?? now.toISOString().slice(0, 10);
+  if (options.from !== undefined) return { from: options.from, to };
+  const end = /^\d{4}-\d{2}-\d{2}$/.test(to) ? Date.parse(`${to}T00:00:00Z`) : Date.parse(to);
+  if (Number.isNaN(end)) return { from: "", to };
+  const from = new Date(end - (ONBOARDING_DEFAULT_DAYS - 1) * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return { from, to };
 }

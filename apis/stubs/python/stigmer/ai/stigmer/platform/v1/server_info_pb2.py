@@ -25,11 +25,12 @@ _sym_db = _symbol_database.Default()
 from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_method__options__pb2
 from ai.stigmer.platform.v1 import license_pb2 as ai_dot_stigmer_dot_platform_dot_v1_dot_license__pb2
 from ai.stigmer.platform.v1 import model_readiness_pb2 as ai_dot_stigmer_dot_platform_dot_v1_dot_model__readiness__pb2
+from ai.stigmer.platform.v1 import onboarding_funnel_pb2 as ai_dot_stigmer_dot_platform_dot_v1_dot_onboarding__funnel__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/platform/v1/server_info.proto\x12\x16\x61i.stigmer.platform.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a$ai/stigmer/platform/v1/license.proto\x1a,ai/stigmer/platform/v1/model_readiness.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x14\n\x12GetServerInfoInput\"\xd4\x03\n\x13GetServerInfoOutput\x12?\n\x07\x65\x64ition\x18\x01 \x01(\x0e\x32%.ai.stigmer.platform.v1.ServerEditionR\x07\x65\x64ition\x12\x18\n\x07version\x18\x02 \x01(\tR\x07version\x12<\n\x17\x61uthentication_required\x18\x03 \x01(\x08H\x00R\x16\x61uthenticationRequired\x88\x01\x01\x12\"\n\nsingle_org\x18\x04 \x01(\x08H\x01R\tsingleOrg\x88\x01\x01\x12S\n\x0c\x65nvironments\x18\x05 \x01(\x0b\x32/.ai.stigmer.platform.v1.EnvironmentAvailabilityR\x0c\x65nvironments\x12J\n\x0enative_sign_in\x18\x06 \x01(\x0b\x32$.ai.stigmer.platform.v1.NativeSignInR\x0cnativeSignIn\x12\x34\n\x04help\x18\x07 \x01(\x0b\x32 .ai.stigmer.platform.v1.HelpLinkR\x04helpB\x1a\n\x18_authentication_requiredB\r\n\x0b_single_org\"2\n\x08HelpLink\x12\x10\n\x03url\x18\x01 \x01(\tR\x03url\x12\x14\n\x05label\x18\x02 \x01(\tR\x05label\"_\n\x0cNativeSignIn\x12\x16\n\x06issuer\x18\x01 \x01(\tR\x06issuer\x12\x1a\n\x08\x61udience\x18\x02 \x01(\tR\x08\x61udience\x12\x1b\n\tclient_id\x18\x03 \x01(\tR\x08\x63lientId\"~\n\x17\x45nvironmentAvailability\x12\x18\n\x07\x61pplies\x18\x01 \x01(\x08R\x07\x61pplies\x12-\n\x12limited_networking\x18\x02 \x01(\x08R\x11limitedNetworking\x12\x1a\n\x08packages\x18\x03 \x01(\x08R\x08packages\"\x17\n\x15GetLicenseStatusInput\"\xe5\x01\n\x16GetLicenseStatusOutput\x12:\n\x05state\x18\x01 \x01(\x0e\x32$.ai.stigmer.platform.v1.LicenseStateR\x05state\x12=\n\x06\x63laims\x18\x02 \x01(\x0b\x32%.ai.stigmer.platform.v1.LicenseClaimsR\x06\x63laims\x12\x15\n\x06key_id\x18\x03 \x01(\tR\x05keyId\x12\x39\n\nchecked_at\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\tcheckedAt\"\x1f\n\x1dGetRunnerBootstrapConfigInput\"\xe6\x04\n\x1eGetRunnerBootstrapConfigOutput\x12\x32\n\x10temporal_address\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0ftemporalAddress\x12\x36\n\x12temporal_namespace\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x11temporalNamespace\x12.\n\x13runner_access_token\x18\x03 \x01(\tR\x11runnerAccessToken\x12\x1d\n\ntoken_type\x18\x04 \x01(\tR\ttokenType\x12Q\n&runner_access_token_expires_in_seconds\x18\x05 \x01(\x05R!runnerAccessTokenExpiresInSeconds\x12\x34\n\x16payload_encryption_key\x18\x06 \x01(\tR\x14payloadEncryptionKey\x12\x39\n\x19payload_encryption_key_id\x18\x07 \x01(\tR\x16payloadEncryptionKeyId\x12G\n payload_encryption_secondary_key\x18\x08 \x01(\tR\x1dpayloadEncryptionSecondaryKey\x12L\n#payload_encryption_secondary_key_id\x18\t \x01(\tR\x1fpayloadEncryptionSecondaryKeyId\x12.\n\x13mcp_bridge_endpoint\x18\n \x01(\tR\x11mcpBridgeEndpoint\"\x86\x01\n\x19GetRunnerScopedTokenInput\x12\x17\n\x06run_id\x18\x01 \x01(\tH\x00R\x05runId\x12@\n\x07renewal\x18\x04 \x01(\x0b\x32$.ai.stigmer.platform.v1.TokenRenewalH\x00R\x07renewalB\x0e\n\x05scope\x12\x05\xbaH\x02\x08\x01\"\x0e\n\x0cTokenRenewal\"\x99\x01\n\x1aGetRunnerScopedTokenOutput\x12.\n\x13runner_scoped_token\x18\x01 \x01(\tR\x11runnerScopedToken\x12\x1d\n\ntoken_type\x18\x02 \x01(\tR\ttokenType\x12,\n\x12\x65xpires_in_seconds\x18\x03 \x01(\x05R\x10\x65xpiresInSeconds*S\n\rServerEdition\x12\x1e\n\x1aserver_edition_unspecified\x10\x00\x12\x07\n\x03oss\x10\x01\x12\t\n\x05\x63loud\x10\x02\x12\x0e\n\nenterprise\x10\x03\x32\xd1\x05\n\x17PlatformQueryController\x12n\n\rgetServerInfo\x12*.ai.stigmer.platform.v1.GetServerInfoInput\x1a+.ai.stigmer.platform.v1.GetServerInfoOutput\"\x04\xc8\xb8\x18\x01\x12w\n\x10getLicenseStatus\x12-.ai.stigmer.platform.v1.GetLicenseStatusInput\x1a..ai.stigmer.platform.v1.GetLicenseStatusOutput\"\x04\xd0\xb8\x18\x01\x12\xb4\x01\n\x11getModelReadiness\x12..ai.stigmer.platform.v1.GetModelReadinessInput\x1a/.ai.stigmer.platform.v1.GetModelReadinessOutput\">\xc2\xb8\x18:\x08\x01\x10\x1e\"\x03org*/unauthorized to view this organization\'s models\x12\x8f\x01\n\x18getRunnerBootstrapConfig\x12\x35.ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput\x1a\x36.ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput\"\x04\xd0\xb8\x18\x01\x12\x83\x01\n\x14getRunnerScopedToken\x12\x31.ai.stigmer.platform.v1.GetRunnerScopedTokenInput\x1a\x32.ai.stigmer.platform.v1.GetRunnerScopedTokenOutput\"\x04\xd0\xb8\x18\x01\x42\xa8\x01\n\x1a\x63om.ai.stigmer.platform.v1B\x0fServerInfoProtoP\x01\xa2\x02\x03\x41SP\xaa\x02\x16\x41i.Stigmer.Platform.V1\xca\x02\x16\x41i\\Stigmer\\Platform\\V1\xe2\x02\"Ai\\Stigmer\\Platform\\V1\\GPBMetadata\xea\x02\x19\x41i::Stigmer::Platform::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/platform/v1/server_info.proto\x12\x16\x61i.stigmer.platform.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a$ai/stigmer/platform/v1/license.proto\x1a,ai/stigmer/platform/v1/model_readiness.proto\x1a.ai/stigmer/platform/v1/onboarding_funnel.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x14\n\x12GetServerInfoInput\"\xd4\x03\n\x13GetServerInfoOutput\x12?\n\x07\x65\x64ition\x18\x01 \x01(\x0e\x32%.ai.stigmer.platform.v1.ServerEditionR\x07\x65\x64ition\x12\x18\n\x07version\x18\x02 \x01(\tR\x07version\x12<\n\x17\x61uthentication_required\x18\x03 \x01(\x08H\x00R\x16\x61uthenticationRequired\x88\x01\x01\x12\"\n\nsingle_org\x18\x04 \x01(\x08H\x01R\tsingleOrg\x88\x01\x01\x12S\n\x0c\x65nvironments\x18\x05 \x01(\x0b\x32/.ai.stigmer.platform.v1.EnvironmentAvailabilityR\x0c\x65nvironments\x12J\n\x0enative_sign_in\x18\x06 \x01(\x0b\x32$.ai.stigmer.platform.v1.NativeSignInR\x0cnativeSignIn\x12\x34\n\x04help\x18\x07 \x01(\x0b\x32 .ai.stigmer.platform.v1.HelpLinkR\x04helpB\x1a\n\x18_authentication_requiredB\r\n\x0b_single_org\"2\n\x08HelpLink\x12\x10\n\x03url\x18\x01 \x01(\tR\x03url\x12\x14\n\x05label\x18\x02 \x01(\tR\x05label\"_\n\x0cNativeSignIn\x12\x16\n\x06issuer\x18\x01 \x01(\tR\x06issuer\x12\x1a\n\x08\x61udience\x18\x02 \x01(\tR\x08\x61udience\x12\x1b\n\tclient_id\x18\x03 \x01(\tR\x08\x63lientId\"~\n\x17\x45nvironmentAvailability\x12\x18\n\x07\x61pplies\x18\x01 \x01(\x08R\x07\x61pplies\x12-\n\x12limited_networking\x18\x02 \x01(\x08R\x11limitedNetworking\x12\x1a\n\x08packages\x18\x03 \x01(\x08R\x08packages\"\x17\n\x15GetLicenseStatusInput\"\xe5\x01\n\x16GetLicenseStatusOutput\x12:\n\x05state\x18\x01 \x01(\x0e\x32$.ai.stigmer.platform.v1.LicenseStateR\x05state\x12=\n\x06\x63laims\x18\x02 \x01(\x0b\x32%.ai.stigmer.platform.v1.LicenseClaimsR\x06\x63laims\x12\x15\n\x06key_id\x18\x03 \x01(\tR\x05keyId\x12\x39\n\nchecked_at\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\tcheckedAt\"\x1f\n\x1dGetRunnerBootstrapConfigInput\"\xe6\x04\n\x1eGetRunnerBootstrapConfigOutput\x12\x32\n\x10temporal_address\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0ftemporalAddress\x12\x36\n\x12temporal_namespace\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x11temporalNamespace\x12.\n\x13runner_access_token\x18\x03 \x01(\tR\x11runnerAccessToken\x12\x1d\n\ntoken_type\x18\x04 \x01(\tR\ttokenType\x12Q\n&runner_access_token_expires_in_seconds\x18\x05 \x01(\x05R!runnerAccessTokenExpiresInSeconds\x12\x34\n\x16payload_encryption_key\x18\x06 \x01(\tR\x14payloadEncryptionKey\x12\x39\n\x19payload_encryption_key_id\x18\x07 \x01(\tR\x16payloadEncryptionKeyId\x12G\n payload_encryption_secondary_key\x18\x08 \x01(\tR\x1dpayloadEncryptionSecondaryKey\x12L\n#payload_encryption_secondary_key_id\x18\t \x01(\tR\x1fpayloadEncryptionSecondaryKeyId\x12.\n\x13mcp_bridge_endpoint\x18\n \x01(\tR\x11mcpBridgeEndpoint\"\x86\x01\n\x19GetRunnerScopedTokenInput\x12\x17\n\x06run_id\x18\x01 \x01(\tH\x00R\x05runId\x12@\n\x07renewal\x18\x04 \x01(\x0b\x32$.ai.stigmer.platform.v1.TokenRenewalH\x00R\x07renewalB\x0e\n\x05scope\x12\x05\xbaH\x02\x08\x01\"\x0e\n\x0cTokenRenewal\"\x99\x01\n\x1aGetRunnerScopedTokenOutput\x12.\n\x13runner_scoped_token\x18\x01 \x01(\tR\x11runnerScopedToken\x12\x1d\n\ntoken_type\x18\x02 \x01(\tR\ttokenType\x12,\n\x12\x65xpires_in_seconds\x18\x03 \x01(\x05R\x10\x65xpiresInSeconds*S\n\rServerEdition\x12\x1e\n\x1aserver_edition_unspecified\x10\x00\x12\x07\n\x03oss\x10\x01\x12\t\n\x05\x63loud\x10\x02\x12\x0e\n\nenterprise\x10\x03\x32\x95\x07\n\x17PlatformQueryController\x12n\n\rgetServerInfo\x12*.ai.stigmer.platform.v1.GetServerInfoInput\x1a+.ai.stigmer.platform.v1.GetServerInfoOutput\"\x04\xc8\xb8\x18\x01\x12w\n\x10getLicenseStatus\x12-.ai.stigmer.platform.v1.GetLicenseStatusInput\x1a..ai.stigmer.platform.v1.GetLicenseStatusOutput\"\x04\xd0\xb8\x18\x01\x12\xb4\x01\n\x11getModelReadiness\x12..ai.stigmer.platform.v1.GetModelReadinessInput\x1a/.ai.stigmer.platform.v1.GetModelReadinessOutput\">\xc2\xb8\x18:\x08\x01\x10\x1e\"\x03org*/unauthorized to view this organization\'s models\x12\xc1\x01\n\x13getOnboardingFunnel\x12\x30.ai.stigmer.platform.v1.GetOnboardingFunnelInput\x1a\x31.ai.stigmer.platform.v1.GetOnboardingFunnelOutput\"E\xc2\xb8\x18\x41\x08>\x10\x1f*2only platform operators can read onboarding counts2\x07stigmer\x12\x8f\x01\n\x18getRunnerBootstrapConfig\x12\x35.ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput\x1a\x36.ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput\"\x04\xd0\xb8\x18\x01\x12\x83\x01\n\x14getRunnerScopedToken\x12\x31.ai.stigmer.platform.v1.GetRunnerScopedTokenInput\x1a\x32.ai.stigmer.platform.v1.GetRunnerScopedTokenOutput\"\x04\xd0\xb8\x18\x01\x42\xa8\x01\n\x1a\x63om.ai.stigmer.platform.v1B\x0fServerInfoProtoP\x01\xa2\x02\x03\x41SP\xaa\x02\x16\x41i.Stigmer.Platform.V1\xca\x02\x16\x41i\\Stigmer\\Platform\\V1\xe2\x02\"Ai\\Stigmer\\Platform\\V1\\GPBMetadata\xea\x02\x19\x41i::Stigmer::Platform::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -49,36 +50,38 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_PLATFORMQUERYCONTROLLER'].methods_by_name['getLicenseStatus']._serialized_options = b'\320\270\030\001'
   _globals['_PLATFORMQUERYCONTROLLER'].methods_by_name['getModelReadiness']._loaded_options = None
   _globals['_PLATFORMQUERYCONTROLLER'].methods_by_name['getModelReadiness']._serialized_options = b'\302\270\030:\010\001\020\036\"\003org*/unauthorized to view this organization\'s models'
+  _globals['_PLATFORMQUERYCONTROLLER'].methods_by_name['getOnboardingFunnel']._loaded_options = None
+  _globals['_PLATFORMQUERYCONTROLLER'].methods_by_name['getOnboardingFunnel']._serialized_options = b'\302\270\030A\010>\020\037*2only platform operators can read onboarding counts2\007stigmer'
   _globals['_PLATFORMQUERYCONTROLLER'].methods_by_name['getRunnerBootstrapConfig']._loaded_options = None
   _globals['_PLATFORMQUERYCONTROLLER'].methods_by_name['getRunnerBootstrapConfig']._serialized_options = b'\320\270\030\001'
   _globals['_PLATFORMQUERYCONTROLLER'].methods_by_name['getRunnerScopedToken']._loaded_options = None
   _globals['_PLATFORMQUERYCONTROLLER'].methods_by_name['getRunnerScopedToken']._serialized_options = b'\320\270\030\001'
-  _globals['_SERVEREDITION']._serialized_start=2245
-  _globals['_SERVEREDITION']._serialized_end=2328
-  _globals['_GETSERVERINFOINPUT']._serialized_start=259
-  _globals['_GETSERVERINFOINPUT']._serialized_end=279
-  _globals['_GETSERVERINFOOUTPUT']._serialized_start=282
-  _globals['_GETSERVERINFOOUTPUT']._serialized_end=750
-  _globals['_HELPLINK']._serialized_start=752
-  _globals['_HELPLINK']._serialized_end=802
-  _globals['_NATIVESIGNIN']._serialized_start=804
-  _globals['_NATIVESIGNIN']._serialized_end=899
-  _globals['_ENVIRONMENTAVAILABILITY']._serialized_start=901
-  _globals['_ENVIRONMENTAVAILABILITY']._serialized_end=1027
-  _globals['_GETLICENSESTATUSINPUT']._serialized_start=1029
-  _globals['_GETLICENSESTATUSINPUT']._serialized_end=1052
-  _globals['_GETLICENSESTATUSOUTPUT']._serialized_start=1055
-  _globals['_GETLICENSESTATUSOUTPUT']._serialized_end=1284
-  _globals['_GETRUNNERBOOTSTRAPCONFIGINPUT']._serialized_start=1286
-  _globals['_GETRUNNERBOOTSTRAPCONFIGINPUT']._serialized_end=1317
-  _globals['_GETRUNNERBOOTSTRAPCONFIGOUTPUT']._serialized_start=1320
-  _globals['_GETRUNNERBOOTSTRAPCONFIGOUTPUT']._serialized_end=1934
-  _globals['_GETRUNNERSCOPEDTOKENINPUT']._serialized_start=1937
-  _globals['_GETRUNNERSCOPEDTOKENINPUT']._serialized_end=2071
-  _globals['_TOKENRENEWAL']._serialized_start=2073
-  _globals['_TOKENRENEWAL']._serialized_end=2087
-  _globals['_GETRUNNERSCOPEDTOKENOUTPUT']._serialized_start=2090
-  _globals['_GETRUNNERSCOPEDTOKENOUTPUT']._serialized_end=2243
-  _globals['_PLATFORMQUERYCONTROLLER']._serialized_start=2331
-  _globals['_PLATFORMQUERYCONTROLLER']._serialized_end=3052
+  _globals['_SERVEREDITION']._serialized_start=2293
+  _globals['_SERVEREDITION']._serialized_end=2376
+  _globals['_GETSERVERINFOINPUT']._serialized_start=307
+  _globals['_GETSERVERINFOINPUT']._serialized_end=327
+  _globals['_GETSERVERINFOOUTPUT']._serialized_start=330
+  _globals['_GETSERVERINFOOUTPUT']._serialized_end=798
+  _globals['_HELPLINK']._serialized_start=800
+  _globals['_HELPLINK']._serialized_end=850
+  _globals['_NATIVESIGNIN']._serialized_start=852
+  _globals['_NATIVESIGNIN']._serialized_end=947
+  _globals['_ENVIRONMENTAVAILABILITY']._serialized_start=949
+  _globals['_ENVIRONMENTAVAILABILITY']._serialized_end=1075
+  _globals['_GETLICENSESTATUSINPUT']._serialized_start=1077
+  _globals['_GETLICENSESTATUSINPUT']._serialized_end=1100
+  _globals['_GETLICENSESTATUSOUTPUT']._serialized_start=1103
+  _globals['_GETLICENSESTATUSOUTPUT']._serialized_end=1332
+  _globals['_GETRUNNERBOOTSTRAPCONFIGINPUT']._serialized_start=1334
+  _globals['_GETRUNNERBOOTSTRAPCONFIGINPUT']._serialized_end=1365
+  _globals['_GETRUNNERBOOTSTRAPCONFIGOUTPUT']._serialized_start=1368
+  _globals['_GETRUNNERBOOTSTRAPCONFIGOUTPUT']._serialized_end=1982
+  _globals['_GETRUNNERSCOPEDTOKENINPUT']._serialized_start=1985
+  _globals['_GETRUNNERSCOPEDTOKENINPUT']._serialized_end=2119
+  _globals['_TOKENRENEWAL']._serialized_start=2121
+  _globals['_TOKENRENEWAL']._serialized_end=2135
+  _globals['_GETRUNNERSCOPEDTOKENOUTPUT']._serialized_start=2138
+  _globals['_GETRUNNERSCOPEDTOKENOUTPUT']._serialized_end=2291
+  _globals['_PLATFORMQUERYCONTROLLER']._serialized_start=2379
+  _globals['_PLATFORMQUERYCONTROLLER']._serialized_end=3296
 # @@protoc_insertion_point(module_scope)

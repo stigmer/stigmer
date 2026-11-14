@@ -298,6 +298,13 @@ export function generateDistPackageJson(pkgDir, version) {
   const srcPkg = JSON.parse(
     readFileSync(resolve(pkgDir, "package.json"), "utf8"),
   );
+  const distPath = resolve(pkgDir, "dist", "package.json");
+  writeFileSync(distPath, JSON.stringify(distPackageJsonOf(srcPkg, version), null, 2) + "\n");
+  return distPath;
+}
+
+/** The manifest a package is published with, from its source manifest: pure, so a test reads it for every package. */
+export function distPackageJsonOf(srcPkg, version) {
   const publishConfig = srcPkg.publishConfig || {};
 
   const distPkg = {
@@ -327,10 +334,14 @@ export function generateDistPackageJson(pkgDir, version) {
     distPkg.bin = rewriteBinPaths(publishConfig.bin);
   }
 
+  // The tarball's root is dist/, so every ./dist/ path is rewritten, the
+  // package's own exports included when its publishConfig names none: a
+  // copy left as written would point every import at a dist/ folder the
+  // tarball does not have.
   if (publishConfig.exports) {
     distPkg.exports = rewriteExports(publishConfig.exports);
   } else if (srcPkg.exports) {
-    distPkg.exports = srcPkg.exports;
+    distPkg.exports = rewriteExports(srcPkg.exports);
   }
 
   if (srcPkg.dependencies) {
@@ -343,9 +354,7 @@ export function generateDistPackageJson(pkgDir, version) {
     );
   }
 
-  const distPath = resolve(pkgDir, "dist", "package.json");
-  writeFileSync(distPath, JSON.stringify(distPkg, null, 2) + "\n");
-  return distPath;
+  return distPkg;
 }
 
 /**

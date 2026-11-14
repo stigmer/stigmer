@@ -56,6 +56,7 @@
             "label": { "type": "string", "maxLength": 40 }
           }
         },
+        "internalAccounts": { "type": "string" },
         "resources": { "$ref": "#/$defs/resources" },
         "persistence": { "$ref": "#/$defs/persistence" },
         "securityContext": { "$ref": "#/$defs/containerSecurityContext" },

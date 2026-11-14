@@ -103,3 +103,14 @@ type platform
     # can_execute_billing_ops pipeline the way can_manage_model_pricing is.
     # FGA check: identity_account:<caller_id> can_manage_plans platform:stigmer
     define can_manage_plans: operator
+
+    # ========================================
+    # PLATFORM USAGE COUNTS
+    # ========================================
+    # Permission to read counts across every organization on the server,
+    # such as how far new organizations got on the journey from a first
+    # agent to their users (getOnboardingFunnel). Counts only: no names,
+    # addresses or identifiers, so it reads nothing inside an organization
+    # the operator holds no role in.
+    # FGA check: identity_account:<caller_id> can_view_platform_usage platform:stigmer
+    define can_view_platform_usage: operator
