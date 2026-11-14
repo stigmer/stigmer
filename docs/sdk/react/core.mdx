@@ -73,6 +73,30 @@ const limitedDisabled = environments?.limitedNetworking === false;
 ```
 
 
+### useHelpLink
+
+Where a person stuck on the connected server asks for help
+(`serverInfo.help`): the address and the words its operator set, already
+checked to be an absolute `https:`, `http:` or `mailto:` address.
+
+`undefined` while the answer is loading, when it failed, when the
+operator set none, and on a server that predates the field: a surface
+then shows no help link, never a guess. `HelpLink` draws it.
+
+**Signature**
+
+```tsx
+import type { HelpLink } from "@stigmer/client";
+// ---cut---
+function useHelpLink(): HelpLink | undefined
+```
+
+```tsx
+const help = useHelpLink();
+return help === undefined ? null : <a href={help.url}>{help.label}</a>;
+```
+
+
 ### useResourceAvailable
 
 Check whether a given `ApiResourceKind` is served by the connected
@@ -421,6 +445,7 @@ for custom styling.
     preset: { type: "\"default\" | \"corporate\" | \"startup\" | \"friendly\" | \"fintech\" | \"monochrome\"", description: "Built-in theme preset to apply.  Maps to a CSS class on the scoping container so the preset's design tokens take effect for all descendant Stigmer components. Omit (or pass `\"default\"`) to use the base Stigmer palette." },
     publicBaseUrl: { type: "string", description: "The address the Stigmer API is reached at from outside this page, for the URLs the SDK shows a user to copy (the Slack and WhatsApp webhook URLs a channel app registers, and the SDK snippet in the chat link dialog). A session's MCP servers get their `STIGMER_SERVER_ADDRESS` from the platform, never from this value.  Omit it when the client's `baseUrl` is absolute: that address is used, exactly as before. Pass it when the client talks to the server through a relative `baseUrl` (a same-origin proxy), because the page's own origin need not be where Slack, Meta, a backend or a remote MCP server can reach the API. Without it, the copy surfaces say they do not know the server's public address and offer nothing to copy. Only an absolute `http(s)` URL is used." },
     runnerAdapter: { type: "RunnerAdapter", description: "Runner adapter for local run lifecycle management.  When `executionTarget` is `\"local\"`, SDK hooks automatically drive the adapter at the right lifecycle points: sessions on open/close (the session view attaches a worker while open and detaches on close). Cloud consumers omit this prop entirely.  Desktop apps provide a Tauri-based adapter; self-hosted customers provide their own implementation of the RunnerAdapter interface.", typeDescriptionLink: "#runneradapter" },
+    showHelpLink: { type: "boolean", description: "Ends every failure note the kit draws (a page that couldn't load, a turn that didn't finish, a step that failed) with the server's help link, \"Stuck? <words>\", when its operator set one (`getServerInfo`'s `help`). Off by default: inside an app you make for your own users, help is yours to give, and the server operator's link would send them to the wrong place. A Stigmer console turns it on." },
   }}
 />
 

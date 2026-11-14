@@ -28,6 +28,7 @@ function answering(authenticationRequired: boolean | undefined): UseServerInfoRe
       singleOrg: undefined,
       environments: undefined,
       nativeSignIn: undefined,
+      help: undefined,
     },
     isLoading: false,
     error: null,
