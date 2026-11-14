@@ -260,6 +260,47 @@ private static final long serialVersionUID = 0L;
     return effectiveAt_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : effectiveAt_;
   }
 
+  public static final int LONG_CONTEXT_FIELD_NUMBER = 9;
+  private ai.stigmer.billing.v1.LongContextPricing longContext_;
+  /**
+   * <pre>
+   * The higher rates a long prompt pays, for models priced by prompt length.
+   * Absent: one set of rates at every prompt length.
+   * </pre>
+   *
+   * <code>.ai.stigmer.billing.v1.LongContextPricing long_context = 9 [json_name = "longContext"];</code>
+   * @return Whether the longContext field is set.
+   */
+  @java.lang.Override
+  public boolean hasLongContext() {
+    return ((bitField0_ & 0x00000002) != 0);
+  }
+  /**
+   * <pre>
+   * The higher rates a long prompt pays, for models priced by prompt length.
+   * Absent: one set of rates at every prompt length.
+   * </pre>
+   *
+   * <code>.ai.stigmer.billing.v1.LongContextPricing long_context = 9 [json_name = "longContext"];</code>
+   * @return The longContext.
+   */
+  @java.lang.Override
+  public ai.stigmer.billing.v1.LongContextPricing getLongContext() {
+    return longContext_ == null ? ai.stigmer.billing.v1.LongContextPricing.getDefaultInstance() : longContext_;
+  }
+  /**
+   * <pre>
+   * The higher rates a long prompt pays, for models priced by prompt length.
+   * Absent: one set of rates at every prompt length.
+   * </pre>
+   *
+   * <code>.ai.stigmer.billing.v1.LongContextPricing long_context = 9 [json_name = "longContext"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.billing.v1.LongContextPricingOrBuilder getLongContextOrBuilder() {
+    return longContext_ == null ? ai.stigmer.billing.v1.LongContextPricing.getDefaultInstance() : longContext_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -294,6 +335,9 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(8, getEffectiveAt());
+    }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      output.writeMessage(9, getLongContext());
     }
     getUnknownFields().writeTo(output);
   }
@@ -330,6 +374,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(8, getEffectiveAt());
     }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(9, getLongContext());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -362,6 +410,11 @@ private static final long serialVersionUID = 0L;
       if (!getEffectiveAt()
           .equals(other.getEffectiveAt())) return false;
     }
+    if (hasLongContext() != other.hasLongContext()) return false;
+    if (hasLongContext()) {
+      if (!getLongContext()
+          .equals(other.getLongContext())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -392,6 +445,10 @@ private static final long serialVersionUID = 0L;
     if (hasEffectiveAt()) {
       hash = (37 * hash) + EFFECTIVE_AT_FIELD_NUMBER;
       hash = (53 * hash) + getEffectiveAt().hashCode();
+    }
+    if (hasLongContext()) {
+      hash = (37 * hash) + LONG_CONTEXT_FIELD_NUMBER;
+      hash = (53 * hash) + getLongContext().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -533,6 +590,7 @@ private static final long serialVersionUID = 0L;
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetEffectiveAtFieldBuilder();
+        internalGetLongContextFieldBuilder();
       }
     }
     @java.lang.Override
@@ -549,6 +607,11 @@ private static final long serialVersionUID = 0L;
       if (effectiveAtBuilder_ != null) {
         effectiveAtBuilder_.dispose();
         effectiveAtBuilder_ = null;
+      }
+      longContext_ = null;
+      if (longContextBuilder_ != null) {
+        longContextBuilder_.dispose();
+        longContextBuilder_ = null;
       }
       return this;
     }
@@ -608,6 +671,12 @@ private static final long serialVersionUID = 0L;
             : effectiveAtBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
+      if (((from_bitField0_ & 0x00000080) != 0)) {
+        result.longContext_ = longContextBuilder_ == null
+            ? longContext_
+            : longContextBuilder_.build();
+        to_bitField0_ |= 0x00000002;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -647,6 +716,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasEffectiveAt()) {
         mergeEffectiveAt(other.getEffectiveAt());
+      }
+      if (other.hasLongContext()) {
+        mergeLongContext(other.getLongContext());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -711,6 +783,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 66
+            case 74: {
+              input.readMessage(
+                  internalGetLongContextFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000080;
+              break;
+            } // case 74
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1263,6 +1342,172 @@ private static final long serialVersionUID = 0L;
         effectiveAt_ = null;
       }
       return effectiveAtBuilder_;
+    }
+
+    private ai.stigmer.billing.v1.LongContextPricing longContext_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.billing.v1.LongContextPricing, ai.stigmer.billing.v1.LongContextPricing.Builder, ai.stigmer.billing.v1.LongContextPricingOrBuilder> longContextBuilder_;
+    /**
+     * <pre>
+     * The higher rates a long prompt pays, for models priced by prompt length.
+     * Absent: one set of rates at every prompt length.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.LongContextPricing long_context = 9 [json_name = "longContext"];</code>
+     * @return Whether the longContext field is set.
+     */
+    public boolean hasLongContext() {
+      return ((bitField0_ & 0x00000080) != 0);
+    }
+    /**
+     * <pre>
+     * The higher rates a long prompt pays, for models priced by prompt length.
+     * Absent: one set of rates at every prompt length.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.LongContextPricing long_context = 9 [json_name = "longContext"];</code>
+     * @return The longContext.
+     */
+    public ai.stigmer.billing.v1.LongContextPricing getLongContext() {
+      if (longContextBuilder_ == null) {
+        return longContext_ == null ? ai.stigmer.billing.v1.LongContextPricing.getDefaultInstance() : longContext_;
+      } else {
+        return longContextBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * The higher rates a long prompt pays, for models priced by prompt length.
+     * Absent: one set of rates at every prompt length.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.LongContextPricing long_context = 9 [json_name = "longContext"];</code>
+     */
+    public Builder setLongContext(ai.stigmer.billing.v1.LongContextPricing value) {
+      if (longContextBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        longContext_ = value;
+      } else {
+        longContextBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The higher rates a long prompt pays, for models priced by prompt length.
+     * Absent: one set of rates at every prompt length.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.LongContextPricing long_context = 9 [json_name = "longContext"];</code>
+     */
+    public Builder setLongContext(
+        ai.stigmer.billing.v1.LongContextPricing.Builder builderForValue) {
+      if (longContextBuilder_ == null) {
+        longContext_ = builderForValue.build();
+      } else {
+        longContextBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The higher rates a long prompt pays, for models priced by prompt length.
+     * Absent: one set of rates at every prompt length.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.LongContextPricing long_context = 9 [json_name = "longContext"];</code>
+     */
+    public Builder mergeLongContext(ai.stigmer.billing.v1.LongContextPricing value) {
+      if (longContextBuilder_ == null) {
+        if (((bitField0_ & 0x00000080) != 0) &&
+          longContext_ != null &&
+          longContext_ != ai.stigmer.billing.v1.LongContextPricing.getDefaultInstance()) {
+          getLongContextBuilder().mergeFrom(value);
+        } else {
+          longContext_ = value;
+        }
+      } else {
+        longContextBuilder_.mergeFrom(value);
+      }
+      if (longContext_ != null) {
+        bitField0_ |= 0x00000080;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The higher rates a long prompt pays, for models priced by prompt length.
+     * Absent: one set of rates at every prompt length.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.LongContextPricing long_context = 9 [json_name = "longContext"];</code>
+     */
+    public Builder clearLongContext() {
+      bitField0_ = (bitField0_ & ~0x00000080);
+      longContext_ = null;
+      if (longContextBuilder_ != null) {
+        longContextBuilder_.dispose();
+        longContextBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The higher rates a long prompt pays, for models priced by prompt length.
+     * Absent: one set of rates at every prompt length.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.LongContextPricing long_context = 9 [json_name = "longContext"];</code>
+     */
+    public ai.stigmer.billing.v1.LongContextPricing.Builder getLongContextBuilder() {
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return internalGetLongContextFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * The higher rates a long prompt pays, for models priced by prompt length.
+     * Absent: one set of rates at every prompt length.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.LongContextPricing long_context = 9 [json_name = "longContext"];</code>
+     */
+    public ai.stigmer.billing.v1.LongContextPricingOrBuilder getLongContextOrBuilder() {
+      if (longContextBuilder_ != null) {
+        return longContextBuilder_.getMessageOrBuilder();
+      } else {
+        return longContext_ == null ?
+            ai.stigmer.billing.v1.LongContextPricing.getDefaultInstance() : longContext_;
+      }
+    }
+    /**
+     * <pre>
+     * The higher rates a long prompt pays, for models priced by prompt length.
+     * Absent: one set of rates at every prompt length.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.LongContextPricing long_context = 9 [json_name = "longContext"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.billing.v1.LongContextPricing, ai.stigmer.billing.v1.LongContextPricing.Builder, ai.stigmer.billing.v1.LongContextPricingOrBuilder> 
+        internalGetLongContextFieldBuilder() {
+      if (longContextBuilder_ == null) {
+        longContextBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.billing.v1.LongContextPricing, ai.stigmer.billing.v1.LongContextPricing.Builder, ai.stigmer.billing.v1.LongContextPricingOrBuilder>(
+                getLongContext(),
+                getParentForChildren(),
+                isClean());
+        longContext_ = null;
+      }
+      return longContextBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.billing.v1.PricingBlock)

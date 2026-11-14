@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/v1/model_pricing_baseline.proto.
  */
 export const file_ai_stigmer_billing_v1_model_pricing_baseline: GenFile = /*@__PURE__*/
-  fileDesc("CjJhaS9zdGlnbWVyL2JpbGxpbmcvdjEvbW9kZWxfcHJpY2luZ19iYXNlbGluZS5wcm90bxIVYWkuc3RpZ21lci5iaWxsaW5nLnYxIskCCgxQcmljaW5nQmxvY2sSLwoeaW5wdXRfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAEgASgDQge6SAQiAigAEjAKH291dHB1dF9wcmljZV9taWNyb3NfcGVyX21pbGxpb24YAiABKANCB7pIBCICKAASNQokY2FjaGVfd3JpdGVfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAMgASgDQge6SAQiAigAEjQKI2NhY2hlX3JlYWRfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAQgASgDQge6SAQiAigAEhgKBnNvdXJjZRgGIAEoCUIIukgFcgMYgAESHQoLc291cmNlX25vdGUYByABKAlCCLpIBXIDGIAQEjAKDGVmZmVjdGl2ZV9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAibwoOUHJpY2luZ1ZhcmlhbnQSPAoHcHJpY2luZxgBIAEoCzIjLmFpLnN0aWdtZXIuYmlsbGluZy52MS5QcmljaW5nQmxvY2tCBrpIA8gBARIfCgh3aXJlX2lkcxgCIAMoCUINukgKkgEHIgVyAxiAASJ+ChNTdW1tYXJpemF0aW9uQ29uZmlnEiIKEXRyaWdnZXJfdGhyZXNob2xkGAEgASgFQge6SAQaAigAEh4KDXRhcmdldF90b2tlbnMYAiABKAVCB7pIBBoCKAASIwoSbWF4X3N1bW1hcnlfdG9rZW5zGAMgASgFQge6SAQaAigAIqsBChFNb2RlbENhcGFiaWxpdGllcxIQCgh0b29sX3VzZRgBIAEoCBIOCgZ2aXNpb24YAiABKAgSEQoJc3RyZWFtaW5nGAMgASgIEhAKCHRoaW5raW5nGAQgASgIEhkKEWFkYXB0aXZlX3RoaW5raW5nGAUgASgIEh4KEXRoaW5raW5nX3JlcXVpcmVkGAYgASgISACIAQFCFAoSX3RoaW5raW5nX3JlcXVpcmVkIvcIChRNb2RlbFByaWNpbmdCYXNlbGluZRITCgtiYXNlbGluZV9pZBgBIAEoCRIdCghtb2RlbF9pZBgCIAEoCUILukgIyAEBcgMYgAESHgoMYXBpX21vZGVsX2lkGAMgASgJQgi6SAVyAxiAARIcCghwcm92aWRlchgEIAEoCUIKukgHyAEBcgIYQBIbCgdoYXJuZXNzGAUgASgJQgq6SAfIAQFyAhhAEiEKDGRpc3BsYXlfbmFtZRgGIAEoCUILukgIyAEBcgMYgAESIwoRc2hvcnRfZGVzY3JpcHRpb24YByABKAlCCLpIBXIDGIACEjgKCnNwZWVkX3RpZXIYCCABKAlCJLpIIXIfUgdmYXN0ZXN0UgRmYXN0UghiYWxhbmNlZFIEc2xvdxI0Cgljb3N0X3RpZXIYCSABKAlCIbpIHnIcUgdlY29ub215UghzdGFuZGFyZFIHcHJlbWl1bRIQCghmZWF0dXJlZBgKIAEoCBI8CgdwcmljaW5nGAsgASgLMiMuYWkuc3RpZ21lci5iaWxsaW5nLnYxLlByaWNpbmdCbG9ja0IGukgDyAEBEloKEHByaWNpbmdfdmFyaWFudHMYDCADKAsyQC5haS5zdGlnbWVyLmJpbGxpbmcudjEuTW9kZWxQcmljaW5nQmFzZWxpbmUuUHJpY2luZ1ZhcmlhbnRzRW50cnkSHwoId2lyZV9pZHMYGCADKAlCDbpICpIBByIFcgMYgAESJgoVY29udGV4dF93aW5kb3dfdG9rZW5zGA0gASgFQge6SAQaAigAEiIKEW1heF9vdXRwdXRfdG9rZW5zGA4gASgFQge6SAQaAigAEiUKFHRva2VuX2NvdW50ZXJfbWV0aG9kGA8gASgJQge6SARyAhhAEkEKDXN1bW1hcml6YXRpb24YECABKAsyKi5haS5zdGlnbWVyLmJpbGxpbmcudjEuU3VtbWFyaXphdGlvbkNvbmZpZxI+CgxjYXBhYmlsaXRpZXMYESABKAsyKC5haS5zdGlnbWVyLmJpbGxpbmcudjEuTW9kZWxDYXBhYmlsaXRpZXMSQQoGc3RhdHVzGBIgASgOMjEuYWkuc3RpZ21lci5iaWxsaW5nLnYxLk1vZGVsUHJpY2luZ0Jhc2VsaW5lU3RhdHVzEh4KFnN1cGVyc2VkZXNfYmFzZWxpbmVfaWQYEyABKAkSEgoKZGVjaWRlZF9ieRgUIAEoCRIuCgpkZWNpZGVkX2F0GBUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIfCg1yZXZpc2lvbl9ub3RlGBYgASgJQgi6SAVyAxiACBIuCgpjcmVhdGVkX2F0GBcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBpdChRQcmljaW5nVmFyaWFudHNFbnRyeRILCgNrZXkYASABKAkSNAoFdmFsdWUYAiABKAsyJS5haS5zdGlnbWVyLmJpbGxpbmcudjEuUHJpY2luZ1ZhcmlhbnQ6AjgBKqcBChpNb2RlbFByaWNpbmdCYXNlbGluZVN0YXR1cxItCiltb2RlbF9wcmljaW5nX2Jhc2VsaW5lX3N0YXR1c191bnNwZWNpZmllZBAAEhsKF3ByaWNpbmdfYmFzZWxpbmVfYWN0aXZlEAESHwobcHJpY2luZ19iYXNlbGluZV9zdXBlcnNlZGVkEAISHAoYcHJpY2luZ19iYXNlbGluZV9yZXRpcmVkEANiBnByb3RvMw", [file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CjJhaS9zdGlnbWVyL2JpbGxpbmcvdjEvbW9kZWxfcHJpY2luZ19iYXNlbGluZS5wcm90bxIVYWkuc3RpZ21lci5iaWxsaW5nLnYxIooDCgxQcmljaW5nQmxvY2sSLwoeaW5wdXRfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAEgASgDQge6SAQiAigAEjAKH291dHB1dF9wcmljZV9taWNyb3NfcGVyX21pbGxpb24YAiABKANCB7pIBCICKAASNQokY2FjaGVfd3JpdGVfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAMgASgDQge6SAQiAigAEjQKI2NhY2hlX3JlYWRfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAQgASgDQge6SAQiAigAEhgKBnNvdXJjZRgGIAEoCUIIukgFcgMYgAESHQoLc291cmNlX25vdGUYByABKAlCCLpIBXIDGIAQEjAKDGVmZmVjdGl2ZV9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASPwoMbG9uZ19jb250ZXh0GAkgASgLMikuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkxvbmdDb250ZXh0UHJpY2luZyKHAgoSTG9uZ0NvbnRleHRQcmljaW5nEiEKEHRocmVzaG9sZF90b2tlbnMYASABKAVCB7pIBBoCIAASLwoeaW5wdXRfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAIgASgDQge6SAQiAigAEjAKH291dHB1dF9wcmljZV9taWNyb3NfcGVyX21pbGxpb24YAyABKANCB7pIBCICKAASNQokY2FjaGVfd3JpdGVfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAQgASgDQge6SAQiAigAEjQKI2NhY2hlX3JlYWRfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAUgASgDQge6SAQiAigAIm8KDlByaWNpbmdWYXJpYW50EjwKB3ByaWNpbmcYASABKAsyIy5haS5zdGlnbWVyLmJpbGxpbmcudjEuUHJpY2luZ0Jsb2NrQga6SAPIAQESHwoId2lyZV9pZHMYAiADKAlCDbpICpIBByIFcgMYgAEifgoTU3VtbWFyaXphdGlvbkNvbmZpZxIiChF0cmlnZ2VyX3RocmVzaG9sZBgBIAEoBUIHukgEGgIoABIeCg10YXJnZXRfdG9rZW5zGAIgASgFQge6SAQaAigAEiMKEm1heF9zdW1tYXJ5X3Rva2VucxgDIAEoBUIHukgEGgIoACKrAQoRTW9kZWxDYXBhYmlsaXRpZXMSEAoIdG9vbF91c2UYASABKAgSDgoGdmlzaW9uGAIgASgIEhEKCXN0cmVhbWluZxgDIAEoCBIQCgh0aGlua2luZxgEIAEoCBIZChFhZGFwdGl2ZV90aGlua2luZxgFIAEoCBIeChF0aGlua2luZ19yZXF1aXJlZBgGIAEoCEgAiAEBQhQKEl90aGlua2luZ19yZXF1aXJlZCL3CAoUTW9kZWxQcmljaW5nQmFzZWxpbmUSEwoLYmFzZWxpbmVfaWQYASABKAkSHQoIbW9kZWxfaWQYAiABKAlCC7pICMgBAXIDGIABEh4KDGFwaV9tb2RlbF9pZBgDIAEoCUIIukgFcgMYgAESHAoIcHJvdmlkZXIYBCABKAlCCrpIB8gBAXICGEASGwoHaGFybmVzcxgFIAEoCUIKukgHyAEBcgIYQBIhCgxkaXNwbGF5X25hbWUYBiABKAlCC7pICMgBAXIDGIABEiMKEXNob3J0X2Rlc2NyaXB0aW9uGAcgASgJQgi6SAVyAxiAAhI4CgpzcGVlZF90aWVyGAggASgJQiS6SCFyH1IHZmFzdGVzdFIEZmFzdFIIYmFsYW5jZWRSBHNsb3cSNAoJY29zdF90aWVyGAkgASgJQiG6SB5yHFIHZWNvbm9teVIIc3RhbmRhcmRSB3ByZW1pdW0SEAoIZmVhdHVyZWQYCiABKAgSPAoHcHJpY2luZxgLIAEoCzIjLmFpLnN0aWdtZXIuYmlsbGluZy52MS5QcmljaW5nQmxvY2tCBrpIA8gBARJaChBwcmljaW5nX3ZhcmlhbnRzGAwgAygLMkAuYWkuc3RpZ21lci5iaWxsaW5nLnYxLk1vZGVsUHJpY2luZ0Jhc2VsaW5lLlByaWNpbmdWYXJpYW50c0VudHJ5Eh8KCHdpcmVfaWRzGBggAygJQg26SAqSAQciBXIDGIABEiYKFWNvbnRleHRfd2luZG93X3Rva2VucxgNIAEoBUIHukgEGgIoABIiChFtYXhfb3V0cHV0X3Rva2VucxgOIAEoBUIHukgEGgIoABIlChR0b2tlbl9jb3VudGVyX21ldGhvZBgPIAEoCUIHukgEcgIYQBJBCg1zdW1tYXJpemF0aW9uGBAgASgLMiouYWkuc3RpZ21lci5iaWxsaW5nLnYxLlN1bW1hcml6YXRpb25Db25maWcSPgoMY2FwYWJpbGl0aWVzGBEgASgLMiguYWkuc3RpZ21lci5iaWxsaW5nLnYxLk1vZGVsQ2FwYWJpbGl0aWVzEkEKBnN0YXR1cxgSIAEoDjIxLmFpLnN0aWdtZXIuYmlsbGluZy52MS5Nb2RlbFByaWNpbmdCYXNlbGluZVN0YXR1cxIeChZzdXBlcnNlZGVzX2Jhc2VsaW5lX2lkGBMgASgJEhIKCmRlY2lkZWRfYnkYFCABKAkSLgoKZGVjaWRlZF9hdBgVIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASHwoNcmV2aXNpb25fbm90ZRgWIAEoCUIIukgFcgMYgAgSLgoKY3JlYXRlZF9hdBgXIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAaXQoUUHJpY2luZ1ZhcmlhbnRzRW50cnkSCwoDa2V5GAEgASgJEjQKBXZhbHVlGAIgASgLMiUuYWkuc3RpZ21lci5iaWxsaW5nLnYxLlByaWNpbmdWYXJpYW50OgI4ASqnAQoaTW9kZWxQcmljaW5nQmFzZWxpbmVTdGF0dXMSLQopbW9kZWxfcHJpY2luZ19iYXNlbGluZV9zdGF0dXNfdW5zcGVjaWZpZWQQABIbChdwcmljaW5nX2Jhc2VsaW5lX2FjdGl2ZRABEh8KG3ByaWNpbmdfYmFzZWxpbmVfc3VwZXJzZWRlZBACEhwKGHByaWNpbmdfYmFzZWxpbmVfcmV0aXJlZBADYgZwcm90bzM", [file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * PricingBlock is one complete set of per-token rates with provenance —
@@ -78,6 +78,14 @@ export type PricingBlock = Message<"ai.stigmer.billing.v1.PricingBlock"> & {
    * @generated from field: google.protobuf.Timestamp effective_at = 8;
    */
   effectiveAt?: Timestamp;
+
+  /**
+   * The higher rates a long prompt pays, for models priced by prompt length.
+   * Absent: one set of rates at every prompt length.
+   *
+   * @generated from field: ai.stigmer.billing.v1.LongContextPricing long_context = 9;
+   */
+  longContext?: LongContextPricing;
 };
 
 /**
@@ -86,6 +94,61 @@ export type PricingBlock = Message<"ai.stigmer.billing.v1.PricingBlock"> & {
  */
 export const PricingBlockSchema: GenMessage<PricingBlock> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_billing_v1_model_pricing_baseline, 0);
+
+/**
+ * LongContextPricing is the step some providers apply to a long prompt.
+ *
+ * A call whose prompt is longer than threshold_tokens pays these rates, for
+ * every token class, instead of its block's own. The prompt counts all of the
+ * call's input: uncached input, cache writes and cache reads. Each call is
+ * priced on its own. Rates are integer micro-USD per million tokens, like the
+ * block's; the block's provenance covers them.
+ *
+ * @generated from message ai.stigmer.billing.v1.LongContextPricing
+ */
+export type LongContextPricing = Message<"ai.stigmer.billing.v1.LongContextPricing"> & {
+  /**
+   * Prompt tokens a call may hold and still pay its block's own rates.
+   *
+   * @generated from field: int32 threshold_tokens = 1;
+   */
+  thresholdTokens: number;
+
+  /**
+   * Micro-USD per million uncached input tokens, above the threshold.
+   *
+   * @generated from field: int64 input_price_micros_per_million = 2;
+   */
+  inputPriceMicrosPerMillion: bigint;
+
+  /**
+   * Micro-USD per million output tokens, above the threshold.
+   *
+   * @generated from field: int64 output_price_micros_per_million = 3;
+   */
+  outputPriceMicrosPerMillion: bigint;
+
+  /**
+   * Micro-USD per million cache-write tokens, above the threshold.
+   *
+   * @generated from field: int64 cache_write_price_micros_per_million = 4;
+   */
+  cacheWritePriceMicrosPerMillion: bigint;
+
+  /**
+   * Micro-USD per million cache-read tokens, above the threshold.
+   *
+   * @generated from field: int64 cache_read_price_micros_per_million = 5;
+   */
+  cacheReadPriceMicrosPerMillion: bigint;
+};
+
+/**
+ * Describes the message ai.stigmer.billing.v1.LongContextPricing.
+ * Use `create(LongContextPricingSchema)` to create a new message.
+ */
+export const LongContextPricingSchema: GenMessage<LongContextPricing> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_billing_v1_model_pricing_baseline, 1);
 
 /**
  * PricingVariant is a speed/mode variant (e.g. "fast") of a base model.
@@ -116,7 +179,7 @@ export type PricingVariant = Message<"ai.stigmer.billing.v1.PricingVariant"> & {
  * Use `create(PricingVariantSchema)` to create a new message.
  */
 export const PricingVariantSchema: GenMessage<PricingVariant> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_model_pricing_baseline, 1);
+  messageDesc(file_ai_stigmer_billing_v1_model_pricing_baseline, 2);
 
 /**
  * SummarizationConfig is the context-summarization tuning for a Stigmer-harness
@@ -153,7 +216,7 @@ export type SummarizationConfig = Message<"ai.stigmer.billing.v1.SummarizationCo
  * Use `create(SummarizationConfigSchema)` to create a new message.
  */
 export const SummarizationConfigSchema: GenMessage<SummarizationConfig> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_model_pricing_baseline, 2);
+  messageDesc(file_ai_stigmer_billing_v1_model_pricing_baseline, 3);
 
 /**
  * ModelCapabilities flags what a model supports. Catalog metadata.
@@ -231,7 +294,7 @@ export type ModelCapabilities = Message<"ai.stigmer.billing.v1.ModelCapabilities
  * Use `create(ModelCapabilitiesSchema)` to create a new message.
  */
 export const ModelCapabilitiesSchema: GenMessage<ModelCapabilities> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_model_pricing_baseline, 3);
+  messageDesc(file_ai_stigmer_billing_v1_model_pricing_baseline, 4);
 
 /**
  * ModelPricingBaseline is one versioned catalog-and-list-price entry of the
@@ -423,7 +486,7 @@ export type ModelPricingBaseline = Message<"ai.stigmer.billing.v1.ModelPricingBa
  * Use `create(ModelPricingBaselineSchema)` to create a new message.
  */
 export const ModelPricingBaselineSchema: GenMessage<ModelPricingBaseline> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_model_pricing_baseline, 4);
+  messageDesc(file_ai_stigmer_billing_v1_model_pricing_baseline, 5);
 
 /**
  * ModelPricingBaselineStatus tracks the lifecycle of one baseline document.

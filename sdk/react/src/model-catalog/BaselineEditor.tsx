@@ -224,6 +224,9 @@ function buildBaseline(
       // never blanked by a UI edit. effective_at is server-stamped.
       source: previousPricing?.source ?? "operator_console",
       sourceNote: previousPricing?.sourceNote ?? "",
+      // The long-prompt step is not editable here yet: carry it, so an
+      // edit never erases the rates a long prompt pays.
+      longContext: previousPricing?.longContext,
     }),
     pricingVariants: variants,
     // Runtime metadata is not editable here — carry the previous
@@ -260,6 +263,7 @@ function buildVariant(
       cacheReadPriceMicrosPerMillion: rate(variant.cacheRead, "cache-read rate"),
       source: previous?.source ?? "operator_console",
       sourceNote: previous?.sourceNote ?? "",
+      longContext: previous?.longContext,
     }),
     wireIds: variant.wireIds
       .split(",")

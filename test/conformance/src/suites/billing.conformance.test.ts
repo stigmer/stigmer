@@ -32,7 +32,7 @@ import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { ProviderKeySource } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 import { BillingAccountStatus } from "@stigmer/apis/ai/stigmer/billing/v1/enum_pb";
-import { ModelPricingBaselineStatus, type ModelPricingBaseline } from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
+import { ModelPricingBaselineStatus, type LongContextPricing, type ModelPricingBaseline } from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { FixtureTracker } from "../harness/fixtures";
 import { FAKE_CARD, paymentMethodAttached, postStripeWebhook, signStripePayload, signedEvent, stripeEvent } from "../harness/fake-stripe";
 import { expectGrpcCode } from "../contract/errors";
@@ -43,6 +43,9 @@ import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 import type { ConformanceClients } from "../harness/clients";
 import type { PrivilegedScope, TenancyContext } from "../targets/target";
+
+// A pricing block's long-prompt step as an upsert's init writes it.
+type LongContextStep = Omit<LongContextPricing, "$typeName" | "$unknown">;
 
 // Collection-time capability read (the billing-denial / routine-firing pattern).
 const engineServed = createTarget().capabilities.billingEngine;
@@ -485,7 +488,8 @@ describe.skipIf(!engineServed)("Billing engine conformance — the usage meter a
 
   // A structurally valid baseline for a run-unique model. The registry
   // picks it up on upsert; retire removes it again.
-  function conformanceBaseline(modelId: string, inputMicros = 1_000_000n, outputMicros = 5_000_000n) {
+  // `longContext`, when given, is the block's long-prompt price step.
+  function conformanceBaseline(modelId: string, inputMicros = 1_000_000n, outputMicros = 5_000_000n, longContext?: LongContextStep) {
     return {
       modelId,
       provider: "anthropic",
@@ -493,12 +497,12 @@ describe.skipIf(!engineServed)("Billing engine conformance — the usage meter a
       displayName: `Conformance ${modelId}`,
       speedTier: "balanced",
       costTier: "standard",
-      pricing: { inputPriceMicrosPerMillion: inputMicros, outputPriceMicrosPerMillion: outputMicros },
+      pricing: { inputPriceMicrosPerMillion: inputMicros, outputPriceMicrosPerMillion: outputMicros, longContext },
     };
   }
 
-  async function upsertBaseline(op: PrivilegedScope, modelId: string, inputMicros?: bigint, outputMicros?: bigint) {
-    const revision = await op.clients.billingCommand.upsertModelPricingBaseline({ baseline: conformanceBaseline(modelId, inputMicros, outputMicros), revisionNote: "conformance" });
+  async function upsertBaseline(op: PrivilegedScope, modelId: string, inputMicros?: bigint, outputMicros?: bigint, longContext?: LongContextStep) {
+    const revision = await op.clients.billingCommand.upsertModelPricingBaseline({ baseline: conformanceBaseline(modelId, inputMicros, outputMicros, longContext), revisionNote: "conformance" });
     fixtures.defer(() => op.clients.billingCommand.retireModelPricingBaseline({ modelId, provider: "anthropic", harness: "stigmer" }).then(() => undefined, () => undefined));
     return revision;
   }
@@ -546,6 +550,36 @@ describe.skipIf(!engineServed)("Billing engine conformance — the usage meter a
       [second.baselineId, ModelPricingBaselineStatus.pricing_baseline_active],
       [first.baselineId, ModelPricingBaselineStatus.pricing_baseline_superseded],
     ]);
+  });
+
+  it("[billing.rpc.upsert-model-pricing-baseline.renders-long-context] [rpc:BillingCommandController.upsertModelPricingBaseline] [rpc:BillingQueryController.listModelPricingBaselines] a baseline whose block carries a long-prompt price step is listed back with it whole and served in the registry document as pricing.longContext, in dollars per million", async () => {
+    const op = await operator();
+    const modelId = uniqueName("conf-stepped");
+    const step: LongContextStep = {
+      thresholdTokens: 100_000,
+      inputPriceMicrosPerMillion: 500_000n,
+      outputPriceMicrosPerMillion: 2_500_000n,
+      cacheWritePriceMicrosPerMillion: 625_000n,
+      cacheReadPriceMicrosPerMillion: 50_000n,
+    };
+
+    await upsertBaseline(op, modelId, 100_000n, 500_000n, step);
+
+    const listed = (await everyBaseline(op)).find((b) => b.modelId === modelId);
+    expect(listed?.pricing?.longContext, "the list returns the step whole").toMatchObject(step);
+
+    if (target.modelRegistryDocument === undefined) {
+      throw new Error(`target ${target.name} declares billingEngine but provides no modelRegistryDocument()`);
+    }
+    const row = (await target.modelRegistryDocument()).models.find((m) => m.id === modelId);
+    expect(row?.priced, "the upsert is rendered into the served registry").toBe(true);
+    expect(row?.longContext, "the step is served beside the block's rates, in dollars per million").toEqual({
+      thresholdTokens: 100_000,
+      inputPricePerMillion: 0.5,
+      outputPricePerMillion: 2.5,
+      cacheWritePricePerMillion: 0.625,
+      cacheReadPricePerMillion: 0.05,
+    });
   });
 
   it("[billing.rpc.retire-model-pricing-baseline.unknown-not-found] [rpc:BillingCommandController.retireModelPricingBaseline] retiring an unknown key is NOT_FOUND with the handler's copy; retiring a known one removes it from the ACTIVE list, and retiring it again is NOT_FOUND", async () => {
