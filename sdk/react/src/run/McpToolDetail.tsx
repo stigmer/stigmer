@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { normalizeToolResult, redactSecretArgs, type ToolFullOutput, type ToolUse } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import { TruncatedText } from "../internal/truncated-text.js";
-import { formatDuration } from "./ToolCallDetail.js";
 import { humanizeToolName } from "@stigmer/react-core";
 import {
   CollapsiblePre,
@@ -12,7 +11,6 @@ import {
   McpServerIcon,
   formatJson,
   isScalar,
-  humanizeArgKey,
 } from "./tool-rendering-primitives.js";
 import { runIdFromStorageKey } from "@stigmer/react-core/internal";
 import { useArtifactDownloadUrl } from "@stigmer/react-core";
@@ -52,20 +50,22 @@ export interface McpToolDetailProps {
  * ```
  */
 export function McpToolDetail({ toolUse, className }: McpToolDetailProps) {
-  const duration = formatDuration(toolUse.processedAt, toolUse.result?.processedAt ?? "");
   const view = useMemo(() => normalizeToolResult(toolUse), [toolUse]);
   const result = toolUse.result?.text ?? "";
+  // A one-line plain answer ("Created BILL-219") reads as a field of the
+  // call; a longer or structured one keeps its own block.
+  const parsedResult = result === "" ? "" : parseMcpResult(result);
+  const shortResult =
+    toolUse.result?.isError !== true && toolUse.fullOutput === undefined && parsedResult !== "" && !parsedResult.includes("\n") && parsedResult.length <= 120
+      ? parsedResult
+      : null;
 
   return (
     <div className={cn("stg:space-y-3 stg:text-xs", className)}>
-      <McpMetadataRow
-        mcpServerSlug={toolUse.mcpServerName}
-        toolName={toolUse.name}
-        duration={duration}
-      />
-
-      {Object.keys(toolUse.input).length > 0 && (
-        <McpArgsView args={toolUse.input} />
+      {/* The app, the tool and the time are on the step's own line; the body
+          is the call's fields, and a short answer as the last of them. */}
+      {(Object.keys(toolUse.input).length > 0 || shortResult !== null) && (
+        <McpArgsView args={toolUse.input} result={shortResult ?? undefined} />
       )}
 
       {toolUse.fullOutput !== undefined && toolUse.fullOutput.storageKey !== "" ? (
@@ -83,7 +83,7 @@ export function McpToolDetail({ toolUse, className }: McpToolDetailProps) {
           </pre>
         </div>
       ) : (
-        result && <McpResultView result={result} />
+        result && shortResult === null && <McpResultView result={result} />
       )}
     </div>
   );
@@ -264,6 +264,8 @@ export function McpMetadataRow({
 export interface McpArgsViewProps {
   /** Tool argument map to render as a key-value list. */
   readonly args: Record<string, unknown>;
+  /** A short plain answer, shown as the list's last field, `result`. */
+  readonly result?: string;
 }
 
 /**
@@ -275,9 +277,9 @@ export interface McpArgsViewProps {
  * row's `args` at creation, but a row persisted before it did (stigmer#1119)
  * still carries the value, and this is where it would become visible.
  */
-export function McpArgsView({ args }: McpArgsViewProps) {
+export function McpArgsView({ args, result }: McpArgsViewProps) {
   const entries = Object.entries(redactSecretArgs(args));
-  if (entries.length === 0) return null;
+  if (entries.length === 0 && result === undefined) return null;
 
   const scalars: [string, string][] = [];
   const complex: [string, unknown][] = [];
@@ -292,20 +294,19 @@ export function McpArgsView({ args }: McpArgsViewProps) {
 
   return (
     <div className="stg:space-y-2">
-      <span className="stg:font-medium stg:text-muted-foreground">Arguments</span>
-
-      {scalars.length > 0 && (
+      {(scalars.length > 0 || result !== undefined) && (
         <dl className="stg:grid stg:grid-cols-[auto_1fr] stg:gap-x-3 stg:gap-y-1 stg:rounded-md stg:border stg:border-border stg:bg-muted-faint stg:px-2.5 stg:py-2">
           {scalars.map(([key, value]) => (
             <ScalarRow key={key} label={key} value={value} />
           ))}
+          {result !== undefined && <ScalarRow label="result" value={result} />}
         </dl>
       )}
 
       {complex.map(([key, value]) => (
         <CollapsibleJsonBlock
           key={key}
-          label={humanizeArgKey(key)}
+          label={key}
           content={formatJson(value)}
         />
       ))}
@@ -318,9 +319,8 @@ function ScalarRow({ label, value }: { label: string; value: string }) {
 
   return (
     <>
-      <dt className="stg:whitespace-nowrap stg:font-mono stg:text-muted-foreground">
-        {humanizeArgKey(label)}
-      </dt>
+      {/* The key as the app names it: these are its fields, not the kit's words. */}
+      <dt className="stg:whitespace-nowrap stg:text-muted-foreground">{label}</dt>
       {isMultiline ? (
         <dd className="stg:min-w-0">
           <pre className="stg:whitespace-pre-wrap stg:break-words stg:rounded stg:border stg:border-border stg:bg-muted-subtle stg:px-2 stg:py-1 stg:font-mono stg:text-foreground">
@@ -329,10 +329,7 @@ function ScalarRow({ label, value }: { label: string; value: string }) {
         </dd>
       ) : (
         <dd className="stg:min-w-0">
-          <TruncatedText
-            text={value}
-            className="stg:block stg:font-mono stg:text-foreground"
-          />
+          <TruncatedText text={value} className="stg:block stg:text-foreground" />
         </dd>
       )}
     </>

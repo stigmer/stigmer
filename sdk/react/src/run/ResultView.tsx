@@ -127,7 +127,8 @@ export function resultCounts(view: ToolResultView, written = false): ResultCount
     case "search":
       return { kind: "count", text: searchCountLabel(view.count, view.kind) };
     case "list":
-      return { kind: "count", text: `${view.count} ${view.count === 1 ? "item" : "items"}` };
+      // A folder's entries are files to the person reading ("6 files").
+      return { kind: "count", text: `${view.count} ${view.count === 1 ? "file" : "files"}` };
     default:
       return null;
   }
@@ -277,13 +278,13 @@ function DiffResultView({
 
 type TerminalView = Extract<ToolResultView, { type: "terminal" }>;
 
-// A shell result IS a terminal session: the command prompt line plus its
-// output, rendered as one block by the shared TerminalSession (no separate
-// "Output" caption or command box).
+// A shell result is its output in the session's grey box. The command is
+// not echoed above it: the step's own line already says it (the approval's
+// preview, where the command is the content, still shows it).
 function TerminalResultView({ view, live, className }: { view: TerminalView; live: boolean; className?: string }) {
   return (
     <TerminalSession
-      command={view.command}
+      framed
       stdout={view.stdout}
       stderr={view.stderr}
       exitCode={view.exitCode}
@@ -459,7 +460,7 @@ function ListResultView({
     <div className={cn("stg:space-y-1", className)}>
       {showCount && (
         <span className="stg:font-medium stg:text-muted-foreground">
-          {count} {count === 1 ? "item" : "items"}
+          {count} {count === 1 ? "file" : "files"}
         </span>
       )}
       <div className="stg:max-h-80 stg:overflow-auto stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:font-mono stg:text-xs">

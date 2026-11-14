@@ -1,7 +1,7 @@
 "use client";
 
 import { THREAD_GUTTER_CLASS } from "../internal/thread-gutter.js";
-import { lazy, memo, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
+import { createContext, lazy, memo, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { RecalledMemoryFact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import type { FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
@@ -44,7 +44,7 @@ import { messageFileViews, type MessageFileView } from "./MessageFiles.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
 import { backgroundCommandsHolding, hasStartedResponding, hasVisiblyRunningActivity } from "./turn-tail.js";
 import { SettledStepsRow } from "./SettledStepsRow.js";
-import { PlanSteps } from "./PlanSteps.js";
+import { PlanSteps, type PlanStoppedTone } from "./PlanSteps.js";
 import { ThreadPresentationContext, useThreadPresentation, type ThreadPresentation, type TurnEndingWiring } from "./ThreadPresentationContext.js";
 import { SubagentSection } from "./SubagentSection.js";
 import { RunPhaseBadge } from "./RunPhaseBadge.js";
@@ -496,6 +496,7 @@ export type ThreadItem =
       readonly working: boolean;
       /** What the to-do the turn stopped on reads ("Paused here"), from its ending. */
       readonly stoppedNote: string;
+      readonly stoppedTone: PlanStoppedTone;
     }
   | {
       /**
@@ -802,7 +803,7 @@ export function buildThreadItems(
       todosEmitted = true;
       items.push(
         steps !== undefined
-          ? { kind: "plan", key: `${runId}-todos`, steps, working: !turn.ended, stoppedNote: stoppedNoteOf(turn) }
+          ? { kind: "plan", key: `${runId}-todos`, steps, working: !turn.ended, stoppedNote: stoppedNoteOf(turn), stoppedTone: stoppedToneOf(turn) }
           : { kind: "todos", executionId: runId, todos: turn.todos, key: `${runId}-todos` },
       );
     }
@@ -1642,11 +1643,12 @@ export function ThreadItemRenderer({
     case "tool-group":
       return <ToolGroupRow toolUses={item.toolUses} fold={item.fold === true} formatSummary={formatToolCallSummary} />;
     case "plan":
-      return <PlanSteps steps={item.steps} working={item.working} stoppedNote={item.stoppedNote} />;
+      return <PlanSteps steps={item.steps} working={item.working} stoppedNote={item.stoppedNote} stoppedTone={item.stoppedTone} />;
     case "how-it-got-there":
       return (
         <SettledStepsRow toolUses={item.toolUses} prefix="How it got there">
-          <div className="stg:flex stg:flex-col stg:gap-4 stg:py-3">
+          <InsideStepsCard.Provider value={true}>
+          <div className="stg:flex stg:flex-col stg:gap-2 stg:px-3 stg:py-2">
             {item.items.map((inner) => (
               <ThreadItemRenderer
                 key={inner.key}
@@ -1667,6 +1669,7 @@ export function ThreadItemRenderer({
               />
             ))}
           </div>
+          </InsideStepsCard.Provider>
         </SettledStepsRow>
       );
     case "outcome":
@@ -1786,6 +1789,9 @@ export function ThreadItemRenderer({
   }
 }
 
+/** True inside a card that already frames its steps, so a run of steps there draws as plain rows. */
+const InsideStepsCard = createContext(false);
+
 /** A run of tool calls: one list of steps, or one line that opens to them once the working turn's stretch has settled. */
 function ToolGroupRow({
   toolUses,
@@ -1796,8 +1802,11 @@ function ToolGroupRow({
   readonly fold: boolean;
   readonly formatSummary?: (toolUses: readonly ToolUse[]) => string;
 }) {
+  // Inside a card of steps ("How it got there") the steps are its rows, no
+  // card inside the card.
+  const inside = useContext(InsideStepsCard);
   if (!fold) {
-    return <ToolCallGroup toolUses={toolUses} formatSummary={formatSummary} />;
+    return <ToolCallGroup toolUses={toolUses} formatSummary={formatSummary} framed={!inside} />;
   }
   return (
     <SettledStepsRow toolUses={toolUses}>
@@ -1811,6 +1820,13 @@ function stoppedNoteOf(turn: Turn): string {
   if (!turn.ended) return "";
   const ending = describeTurnEnding({ turn, viewer: { canManageProviders: false, canOpenAgent: false, canAct: false, stoppedIt: false } });
   return ending?.stepNote ?? "Stopped here";
+}
+
+/** How the to-do an ended turn stopped on is marked, from its ending's tone: a failure, a pause, or a plain stop. */
+function stoppedToneOf(turn: Turn): PlanStoppedTone {
+  if (!turn.ended) return "stopped";
+  const ending = describeTurnEnding({ turn, viewer: { canManageProviders: false, canOpenAgent: false, canAct: false, stoppedIt: false } });
+  return ending?.tone ?? "stopped";
 }
 
 /** The names the ending's model resolves to, when the host resolves any. */

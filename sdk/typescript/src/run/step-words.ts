@@ -143,7 +143,9 @@ export function targetOf(tool: Pick<ToolUse, "name" | "mcpServerName" | "input">
     case "skill":
       return short(textAt(tool, "skill") || textAt(tool, "name"));
     case "list":
-      return short(baseName(textAt(tool, "path")));
+      // The folder as the agent named it ("src/billing"), not its last
+      // segment: "Looked in billing" leaves a reader guessing which.
+      return short(trimSeparators(textAt(tool, "path")));
     case "shell":
     case "think":
     case "todo":

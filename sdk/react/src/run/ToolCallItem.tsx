@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { isBackgroundRunning, type ToolUse } from "@stigmer/client";
+import { formatElapsed, isBackgroundRunning, type ToolUse } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
@@ -18,9 +18,10 @@ import {
   SlashCircleIcon,
 } from "../internal/thread-card/index.js";
 import { ToolCallDetail, formatHeaderDuration } from "./ToolCallDetail.js";
+import { useElapsedSince } from "../internal/useElapsedSince.js";
 import { hasResultBody, resultCounts, type ResultCounts } from "./ResultView.js";
 import { SubagentSection } from "./SubagentSection.js";
-import { ApprovalCardBody } from "./ApprovalCard.js";
+import { ApprovalCardBody, ApprovalCardHeader } from "./ApprovalCard.js";
 import { MemoryProposalCardBody } from "../memory/MemoryProposalCard.js";
 import { useApproval, useWaitingWords } from "./ApprovalContext.js";
 import { BackgroundCommandTrail, BackgroundStopError } from "./BackgroundCommandStatus.js";
@@ -135,14 +136,14 @@ export const ToolCallItem = memo(function ToolCallItem({
   const failed = phrase.tense === "failed" && toolUse.state !== "denied";
   const status: ItemStatus = backgroundRunning ? "running" : failed ? "failed" : ITEM_STATUS[toolUse.state];
   const isRunning = status === "running";
-  // Success is the silent default: a completed row renders NO status icon —
-  // a green check on every settled row teaches the eye to ignore status
-  // entirely, so state is shown only when it says something (running, gated,
-  // failed, interrupted). Failure shouts; success is quiet (stigmer#274).
+  // The leading mark says the step's state when the state says something
+  // (running, waiting, failed, interrupted) and the step's kind once it is
+  // done: success is the silent default, since a green check on every
+  // settled row teaches the eye to ignore status entirely (stigmer#274).
   const StatusIcon = STATUS_ICON[status];
   // Header chips only when the duration carries information (>= 1s); the
   // sub-second chips were noise pinned to the least interesting rows.
-  const duration = formatHeaderDuration(toolUse.processedAt, toolUse.result?.processedAt ?? "");
+  const settledDuration = formatHeaderDuration(toolUse.processedAt, toolUse.result?.processedAt ?? "");
   const thread = toolUse.thread;
   const isSubagent = thread !== undefined;
   const CategoryIcon = CATEGORY_ICON[category];
@@ -169,7 +170,9 @@ export const ToolCallItem = memo(function ToolCallItem({
     result.type === "memoryProposal" ||
     liveOutput ||
     (toolUse.result !== undefined && hasResultBody(result));
-  const autoOpen = (isRunning && hasBody) || approval != null || tailFailed;
+  // A command left running in the background stays closed: its line says
+  // how it stands, and its output is there on a click.
+  const autoOpen = (isRunning && hasBody && !backgroundRunning) || approval != null || tailFailed;
   const [expanded, handleToggle] = useAutoDisclosure(autoOpen, {
     initialOpen: defaultExpanded || autoOpen,
   });
@@ -199,13 +202,18 @@ export const ToolCallItem = memo(function ToolCallItem({
 
   // Beside the words: the command a command ran, a connected app's or an
   // unknown tool's first argument, and a file's folder.
+  // A file step that failed says why, in its tool's own words (the first
+  // line of its answer), where a settled one says its folder.
+  const failureReason = failed && isFileCategory(category) && toolUse.result?.isError === true ? reasonOf(toolUse.result.text) : "";
   const detail = isSubagent
     ? null
     : category === "shell" || category === "mcp" || category === "unknown" || category === "background-stop"
       ? primaryArg
-      : phrase.folder !== ""
-        ? phrase.folder
-        : null;
+      : failureReason !== ""
+        ? failureReason
+        : phrase.folder !== ""
+          ? phrase.folder
+          : null;
   // A host's registered summary (`registerToolPresenter({ summary })`) is
   // its own words for the counts, shown in their place.
   const hostSummary = !isSubagent && getToolPresenter(kind)?.summary !== undefined ? resultSummary : null;
@@ -242,13 +250,11 @@ export const ToolCallItem = memo(function ToolCallItem({
 
       {isSubagent && <HelperEndingBadge state={thread.state} />}
 
-      {StatusIcon && !helperEnded && (
-        <span className={cn("stg:shrink-0", STATUS_COLOR[status])} aria-hidden="true">
-          <StatusIcon />
-        </span>
+      {isRunning && !isSubagent ? (
+        <RunningTime startedAt={toolUse.processedAt} />
+      ) : (
+        settledDuration && <span className="stg:shrink-0 stg:text-xs stg:tabular-nums stg:text-muted-foreground">{settledDuration}</span>
       )}
-
-      {duration && <span className="stg:shrink-0 stg:text-xs stg:tabular-nums stg:text-muted-foreground">{duration}</span>}
     </>
   );
 
@@ -289,11 +295,18 @@ export const ToolCallItem = memo(function ToolCallItem({
 
   const headerInner = (
     <>
-      <span className="stg:shrink-0 stg:text-muted-foreground" aria-hidden="true">
-        <CategoryIcon />
-      </span>
+      {StatusIcon && !helperEnded ? (
+        <span className={cn("stg:shrink-0", STATUS_COLOR[status])} aria-hidden="true">
+          <StatusIcon />
+        </span>
+      ) : (
+        <span className="stg:shrink-0 stg:text-muted-foreground" aria-hidden="true">
+          <CategoryIcon />
+        </span>
+      )}
 
-      <span className="stg:flex stg:min-w-0 stg:flex-1 stg:items-baseline stg:gap-2 stg:overflow-hidden">
+      <span className="stg:flex stg:min-w-0 stg:flex-1 stg:flex-col stg:overflow-hidden">
+      <span className="stg:flex stg:min-w-0 stg:items-baseline stg:gap-2 stg:overflow-hidden">
         {/* While the call runs, the line carries the ambient-liveness sweep
             (stigmer#277) — the shimmer class owns `color`, so it replaces
             (never joins) the static color utility. */}
@@ -308,7 +321,7 @@ export const ToolCallItem = memo(function ToolCallItem({
               {verb}{" "}
               {/* Its own control, beside the row's toggle rather than inside it. */}
               <ThreadCardHeaderControl className="stg:inline-flex stg:min-w-0">
-                <FilePathLink path={primaryArg} className="stg:min-w-0 stg:text-sm" />
+                <FilePathLink path={primaryArg} className="stg:min-w-0 stg:font-sans stg:text-sm" />
               </ThreadCardHeaderControl>
             </>
           ) : (
@@ -316,31 +329,49 @@ export const ToolCallItem = memo(function ToolCallItem({
           )}
         </span>
         {helperTag !== null && <Tag>{helperTag}</Tag>}
-        {counts?.kind === "lines" && (
-          <span className="stg:shrink-0 stg:font-mono stg:text-xs stg:tabular-nums">
-            <span className="stg:text-status-ready">+{counts.added}</span>{" "}
-            <span className="stg:text-status-failed">{"−"}{counts.removed}</span>
-          </span>
-        )}
         {counts?.kind === "exit" && (
           <StatusBadge phase="failed" label={`exit ${counts.code}`} />
         )}
-        {counts?.kind === "count" && <span className="stg:shrink-0 stg:text-xs stg:tabular-nums stg:text-muted-foreground">{counts.text}</span>}
-        {hostSummary !== null && <span className="stg:shrink-0 stg:text-xs stg:tabular-nums stg:text-muted-foreground">{hostSummary}</span>}
-        {detail !== null && (
-          <span
-            ref={detailRef}
-            className={cn("stg:min-w-0 stg:truncate stg:text-xs stg:text-muted-foreground", category === "shell" && "stg:font-mono")}
-          >
-            {detail}
-          </span>
-        )}
-        {waitsOnSomeoneElse && <span className="stg:shrink-0 stg:text-xs stg:text-status-degraded">{waitingWords}</span>}
+      </span>
+      {/* The second line, 12/16: what came of the step and where, as the
+          drawing sets it under the step's words. */}
+      {(counts?.kind === "lines" || counts?.kind === "count" || hostSummary !== null || detail !== null || waitsOnSomeoneElse) && (
+        <span className="stg:flex stg:min-w-0 stg:items-baseline stg:gap-1 stg:text-xs stg:text-muted-foreground">
+          {counts?.kind === "lines" && (
+            <span className="stg:shrink-0 stg:font-mono stg:tabular-nums">
+              <span className="stg:text-status-ready">+{counts.added}</span>{" "}
+              <span className="stg:text-status-failed">{"−"}{counts.removed}</span>
+            </span>
+          )}
+          {counts?.kind === "count" && <span className="stg:shrink-0 stg:tabular-nums">{counts.text}</span>}
+          {hostSummary !== null && <span className="stg:shrink-0 stg:tabular-nums">{hostSummary}</span>}
+          {(counts?.kind === "lines" || counts?.kind === "count" || hostSummary !== null) && detail !== null && <span aria-hidden="true">·</span>}
+          {detail !== null && (
+            <span ref={detailRef} className={cn("stg:min-w-0 stg:truncate", category === "shell" && "stg:font-mono")}>
+              {detail}
+            </span>
+          )}
+          {waitsOnSomeoneElse && <span className="stg:shrink-0 stg:text-status-degraded">{waitingWords}</span>}
+        </span>
+      )}
       </span>
 
       {trailingContent}
     </>
   );
+
+  // A call waiting for this viewer's answer is the approval itself while it
+  // waits: the ask's own head (what the agent wants, and what it would
+  // touch) over its decision, one object in the gate's accent, never a step
+  // line beside a card. Once answered it is a step line again.
+  if (approval != null) {
+    return (
+      <ThreadCardShell variant="card" accent={gateAccent} cursorTarget="tool-call-row" className={className}>
+        <ApprovalCardHeader toolUse={approval.toolUse} bordered />
+        <ThreadCardBody cursorTarget="tool-preview">{body}</ThreadCardBody>
+      </ThreadCardShell>
+    );
+  }
 
   // Preview: a plain line above an always-visible body (a decision surface,
   // or a kind a host asks to preview).
@@ -384,6 +415,19 @@ export const ToolCallItem = memo(function ToolCallItem({
     </ThreadCardShell>
   );
 });
+
+/** A tool's answer as the reason it failed: its first line, without an "Error:" label, as a sentence. */
+function reasonOf(text: string): string {
+  const first = (text.split("\n").find((line) => line.trim() !== "") ?? "").trim().replace(/^error:\s*/i, "");
+  return first === "" ? "" : first.charAt(0).toUpperCase() + first.slice(1);
+}
+
+/** A running step's time, counted live from its start; nothing under a second. */
+function RunningTime({ startedAt }: { readonly startedAt: string }) {
+  const elapsed = useElapsedSince(startedAt);
+  if (elapsed === null || elapsed < 1000) return null;
+  return <span className="stg:shrink-0 stg:text-xs stg:tabular-nums stg:text-muted-foreground">{formatElapsed(elapsed)}</span>;
+}
 
 /** Counts as words, for the toggle's name: "+2 −2", "exit 1", "2 matches". */
 function countsWords(counts: ResultCounts): string {
