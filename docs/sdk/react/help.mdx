@@ -10,7 +10,9 @@ Import from `@stigmer/react-sdk/console`.
 
 ### HelpLink
 
-The connected server's help link, or nothing when its operator set none.
+The connected server's help link, or nothing when its operator set none,
+and nothing outside a `StigmerProvider` (a page that failed before its
+client was made), so it is safe on any error screen.
 
 Place it on your own console's screens: the sidebar's `footer` (`row`),
 under a sign-in button or a gate's "Try again" (`line`). A web address
