@@ -139,7 +139,7 @@ beforeEach(async () => {
   await account("priya", IdentityAccountProvisioningMode.federated, "priya@acme.example", "Priya");
   await account("dana", IdentityAccountProvisioningMode.app_user, "dana@users.example", "Dana");
   await account("svc", IdentityAccountProvisioningMode.service_account, "", "Backend");
-  await account("team", IdentityAccountProvisioningMode.direct, "suresh@stigmer.ai", "Team");
+  await account("team", IdentityAccountProvisioningMode.direct, "ops@stigmer.ai", "Team");
 
   // Nothing yet.
   await organization("org_0", IN_WINDOW, "f0");
