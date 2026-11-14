@@ -15,7 +15,7 @@
 // degraded one; everything else is weight and the muted foreground.
 
 import { useId, type ReactNode } from "react";
-import { isBackgroundRunning, stepTense, type PlanItem, type ToolUse, type TurnSteps } from "@stigmer/client";
+import { isBackgroundRunning, stepTense, type PlanItem, type ToolUse, type TurnEndingTone, type TurnSteps } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
 import { SpinnerIcon } from "../internal/thread-card/index.js";
@@ -37,8 +37,19 @@ export interface PlanStepsProps {
    * @default "Stopped here"
    */
   readonly stoppedNote?: string;
+  /**
+   * How the item an ended turn stopped on is marked, from the ending's tone:
+   * a red alert where the turn failed, an amber ring where it paused, a grey
+   * ring where it was stopped.
+   *
+   * @default "stopped"
+   */
+  readonly stoppedTone?: PlanStoppedTone;
   readonly className?: string;
 }
+
+/** The tone of the ending a turn stopped its plan on: the turn ending's own tones. */
+export type PlanStoppedTone = TurnEndingTone;
 
 /** Whether a step may sit in a folded stretch: it returned, runs nothing on, and did not fail. */
 function folds(tool: ToolUse): boolean {
@@ -51,7 +62,7 @@ function waits(tool: ToolUse): boolean {
 }
 
 /** A turn's plan card (module header). */
-export function PlanSteps({ steps, working, stoppedNote = "Stopped here", className }: PlanStepsProps) {
+export function PlanSteps({ steps, working, stoppedNote = "Stopped here", stoppedTone = "stopped", className }: PlanStepsProps) {
   const counted = steps.plan.filter((item) => item.todo.status !== "cancelled");
   const done = counted.filter((item) => item.todo.status === "completed").length;
   const loose = steps.loose.filter((tool) => !waits(tool));
@@ -73,7 +84,7 @@ export function PlanSteps({ steps, working, stoppedNote = "Stopped here", classN
       </header>
       <ul role="list" className={UNSTYLED_LIST}>
         {steps.plan.map((item) => (
-          <PlanItemRow key={item.todo.id} item={item} working={working} stoppedNote={stoppedNote} />
+          <PlanItemRow key={item.todo.id} item={item} working={working} stoppedNote={stoppedNote} stoppedTone={stoppedTone} />
         ))}
       </ul>
       {settledLoose.length > 0 && (
@@ -87,7 +98,17 @@ export function PlanSteps({ steps, working, stoppedNote = "Stopped here", classN
 }
 
 /** One item of the plan: its mark, its words, and the steps it took when opened. */
-function PlanItemRow({ item, working, stoppedNote }: { readonly item: PlanItem; readonly working: boolean; readonly stoppedNote: string }) {
+function PlanItemRow({
+  item,
+  working,
+  stoppedNote,
+  stoppedTone,
+}: {
+  readonly item: PlanItem;
+  readonly working: boolean;
+  readonly stoppedNote: string;
+  readonly stoppedTone: PlanStoppedTone;
+}) {
   const regionId = useId();
   const calls = item.calls.filter((tool) => !waits(tool));
   const waiting = item.calls.some(waits);
@@ -95,16 +116,26 @@ function PlanItemRow({ item, working, stoppedNote }: { readonly item: PlanItem; 
   const status = item.todo.status;
   const live = status === "in_progress" && working;
   const [open, toggle] = useAutoDisclosure(live && calls.length > 0, { initialOpen: live && calls.length > 0 });
-  const mark = <PlanMark status={status} live={live} />;
+  const mark = <PlanMark status={status} live={live} stoppedTone={stoppedTone} />;
+  // The item in hand sits on a band of the running hue, the drawing's one
+  // tint in the plan: its own line only, so its steps below keep the card's
+  // ground, and not while it waits, whose words take the waiting hue.
+  const band = live && !waiting && "stg:bg-status-running-subtle";
   const words: ReactNode = (
     <span className="stg:min-w-0 stg:flex-1">
       <span
         className={cn(
           "stg:block stg:truncate",
-          status === "completed" && "stg:text-muted-foreground",
+          // Done and in hand read in the foreground; what is still to do
+          // reads quieter, at the muted tone a person can still read (the
+          // fainter token is for marks, never words: theme contract), its
+          // empty ring telling it apart.
+          status === "completed" && "stg:text-foreground",
           status === "pending" && "stg:text-muted-foreground",
           status === "cancelled" && "stg:text-muted-foreground stg:line-through",
           live && "stg:font-medium stg:text-foreground",
+          // Where an ended turn stopped: the words at rest, the mark and the
+          // note under them saying how it ended.
           status === "in_progress" && !working && "stg:text-foreground",
         )}
       >
@@ -117,7 +148,7 @@ function PlanItemRow({ item, working, stoppedNote }: { readonly item: PlanItem; 
   return (
     <li className="stg:border-b stg:border-border-muted stg:last:border-b-0">
       {calls.length === 0 ? (
-        <div className="stg:flex stg:items-start stg:gap-2 stg:px-3 stg:py-2 stg:text-sm">
+        <div className={cn("stg:flex stg:items-start stg:gap-2 stg:px-3 stg:py-2 stg:text-sm", band)}>
           {mark}
           {words}
         </div>
@@ -128,19 +159,21 @@ function PlanItemRow({ item, working, stoppedNote }: { readonly item: PlanItem; 
             aria-expanded={open}
             aria-controls={regionId}
             onClick={toggle}
-            className="stg:flex stg:w-full stg:items-start stg:gap-2 stg:px-3 stg:py-2 stg:text-left stg:text-sm stg:hover:bg-muted-subtle stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring"
+            className={cn(
+              "stg:flex stg:w-full stg:items-start stg:gap-2 stg:px-3 stg:py-2 stg:text-left stg:text-sm stg:hover:bg-muted-subtle stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
+              band,
+            )}
           >
             {mark}
             {words}
-            <span className="stg:shrink-0 stg:pt-0.5 stg:text-xs stg:tabular-nums stg:text-muted-foreground">
-              {calls.length} {calls.length === 1 ? "step" : "steps"}
-            </span>
             <svg aria-hidden="true" viewBox="0 0 16 16" className={cn("stg:mt-1 stg:h-3 stg:w-3 stg:shrink-0 stg:text-muted-foreground stg:transition-transform", open && "stg:rotate-90")}>
               <path d="M6 4l4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
           {open && (
-            <div id={regionId} className="stg:ml-8 stg:mr-3 stg:mb-2 stg:overflow-hidden stg:rounded-md stg:border stg:border-border-muted stg:bg-card">
+            // The item's steps hang off a hairline under its mark, no box of
+            // their own.
+            <div id={regionId} className="stg:mb-2 stg:ml-5 stg:mr-3 stg:border-l stg:border-border">
               <ToolCallGroup toolUses={calls} framed={false} />
             </div>
           )}
@@ -150,8 +183,13 @@ function PlanItemRow({ item, working, stoppedNote }: { readonly item: PlanItem; 
   );
 }
 
-/** An item's mark: a ready tick once done, a spinner while it runs, an empty ring before, a muted ring once its turn left it unfinished. */
-function PlanMark({ status, live }: { readonly status: PlanItem["todo"]["status"]; readonly live: boolean }) {
+/**
+ * An item's mark: a ready tick once done, a spinner while it runs, an empty
+ * ring before, and on the item an ended turn left unfinished the ending's
+ * own mark (a red alert where it failed, an amber ring where it paused, a
+ * grey ring where it was stopped).
+ */
+function PlanMark({ status, live, stoppedTone }: { readonly status: PlanItem["todo"]["status"]; readonly live: boolean; readonly stoppedTone: PlanStoppedTone }) {
   if (status === "completed") {
     return (
       <span aria-label="Done" role="img" className="stg:mt-0.5 stg:flex stg:h-4 stg:w-4 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:bg-status-ready stg:text-background">
@@ -168,14 +206,23 @@ function PlanMark({ status, live }: { readonly status: PlanItem["todo"]["status"
       </span>
     );
   }
+  if (status === "in_progress" && stoppedTone === "failed") {
+    return (
+      <span aria-label="Failed here" role="img" className="stg:mt-0.5 stg:flex stg:h-4 stg:w-4 stg:shrink-0 stg:items-center stg:justify-center stg:text-status-failed">
+        <svg viewBox="0 0 16 16" className="stg:h-4 stg:w-4" aria-hidden="true">
+          <circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M8 4.75v4M8 11.25h.01" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      </span>
+    );
+  }
+  const paused = stoppedTone === "paused";
+  const ring = status !== "in_progress" ? "stg:border-border" : paused ? "stg:border-status-degraded" : "stg:border-muted-foreground";
   return (
     <span
-      aria-label={status === "in_progress" ? "Stopped" : status === "cancelled" ? "Dropped" : "To do"}
+      aria-label={status === "in_progress" ? (paused ? "Paused" : "Stopped") : status === "cancelled" ? "Dropped" : "To do"}
       role="img"
-      className={cn(
-        "stg:mt-0.5 stg:h-4 stg:w-4 stg:shrink-0 stg:rounded-full stg:border",
-        status === "in_progress" ? "stg:border-muted-foreground" : "stg:border-border",
-      )}
+      className={cn("stg:mt-0.5 stg:h-4 stg:w-4 stg:shrink-0 stg:rounded-full stg:border", ring)}
     />
   );
 }

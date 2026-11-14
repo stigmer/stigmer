@@ -201,8 +201,9 @@ export function ThreadCardHeader({
     <div
       className={cn(
         HEADER_LAYOUT,
+        // Opened, the header keeps the row's own ground: the drawing shades
+        // a header only under the pointer.
         "stg:transition-colors stg:hover:bg-muted-subtle",
-        gesture.expanded && "stg:bg-muted-faint",
       )}
     >
       {/* The Tooltip wraps the toggle whether or not a hint is set, so the

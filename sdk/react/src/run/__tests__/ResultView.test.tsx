@@ -75,7 +75,14 @@ describe("ResultView", () => {
     expect(container.textContent).toContain("boom");
   });
 
-  it("renders a terminal as one session: $ command then output, no badge on success", () => {
+  it("leads a listing standing alone with its count of files", () => {
+    const { container, rerender } = render(<ResultView view={{ type: "list", entries: ["a.ts", "b.ts"], count: 2 }} />);
+    expect(container.textContent).toContain("2 files");
+    rerender(<ResultView view={{ type: "list", entries: ["a.ts"], count: 1 }} />);
+    expect(container.textContent).toContain("1 file");
+  });
+
+  it("renders a terminal as its output alone, no command echo and no badge on success", () => {
     const view: ToolResultView = {
       type: "terminal",
       command: "echo hello",
@@ -84,9 +91,8 @@ describe("ResultView", () => {
       exitCode: 0,
     };
     const { container } = render(<ResultView view={view} />);
-    // The command leads the session as a prompt line, with its output below.
-    expect(container.textContent).toContain("$ echo hello");
-    expect(container.textContent).toContain("hello");
+    // The row above already names the command, so the box holds its output only.
+    expect(container.textContent).toBe("hello");
     // Success carries no exit badge — the row's status icon confirms the run.
     expect(container.textContent).not.toContain("exit 0");
     // One block, not a command box + a separate output box.
@@ -339,7 +345,7 @@ describe("summarizeResultView", () => {
 
   it("summarizes search and list counts", () => {
     expect(summarizeResultView({ type: "search", matches: [], count: 3 })).toBe("3 matches");
-    expect(summarizeResultView({ type: "list", entries: [], count: 1 })).toBe("1 item");
+    expect(summarizeResultView({ type: "list", entries: [], count: 1 })).toBe("1 file");
   });
 
   it("uses the file noun for a file-name search summary", () => {
@@ -381,8 +387,8 @@ describe("resultCounts", () => {
   it("counts what a search found and what a listing held, in words", () => {
     expect(resultCounts({ type: "search", matches: [], count: 1 })).toEqual({ kind: "count", text: "1 match" });
     expect(resultCounts({ type: "search", kind: "files", matches: [], count: 2 })).toEqual({ kind: "count", text: "2 files" });
-    expect(resultCounts({ type: "list", entries: [], count: 2 })).toEqual({ kind: "count", text: "2 items" });
-    expect(resultCounts({ type: "list", entries: [], count: 1 })).toEqual({ kind: "count", text: "1 item" });
+    expect(resultCounts({ type: "list", entries: [], count: 2 })).toEqual({ kind: "count", text: "2 files" });
+    expect(resultCounts({ type: "list", entries: [], count: 1 })).toEqual({ kind: "count", text: "1 file" });
   });
 
   it("counts nothing for a view with nothing to count", () => {

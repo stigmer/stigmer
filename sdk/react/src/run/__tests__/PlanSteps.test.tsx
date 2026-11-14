@@ -88,6 +88,40 @@ describe("PlanSteps", () => {
     expect(within(itemLine("Fix it")).getByRole("img", { name: "In progress" })).toBeTruthy();
   });
 
+  it("marks the item an ended turn stopped on by the ending's tone: failed, paused or stopped", () => {
+    const steps = stepsOf(todos("t", [{ content: "Fix it", status: "in_progress" }]));
+    const { rerender } = render(<PlanSteps working={false} steps={steps} stoppedTone="failed" />);
+    const failed = within(itemLine("Fix it")).getByRole("img", { name: "Failed here" });
+    expect(failed.className).toContain("stg:text-status-failed");
+
+    rerender(<PlanSteps working={false} steps={steps} stoppedTone="paused" />);
+    expect(within(itemLine("Fix it")).getByRole("img", { name: "Paused" }).className).toContain("stg:border-status-degraded");
+
+    rerender(<PlanSteps working={false} steps={steps} />);
+    expect(within(itemLine("Fix it")).getByRole("img", { name: "Stopped" }).className).toContain("stg:border-muted-foreground");
+  });
+
+  it("sets the item in hand's own line on the running band, not its steps, and done items in the foreground", () => {
+    render(
+      <PlanSteps
+        working
+        steps={stepsOf(
+          todos("t", [
+            { content: "Read the code", status: "completed" },
+            { content: "Fix it", status: "in_progress" },
+            { content: "Test it", status: "pending" },
+          ]),
+        )}
+      />,
+    );
+    expect(screen.getByText("Fix it").closest("div")!.className).toContain("stg:bg-status-running-subtle");
+    expect(itemLine("Fix it").className).not.toContain("stg:bg-status-running-subtle");
+    expect(itemLine("Read the code").innerHTML).not.toContain("stg:bg-status-running-subtle");
+    expect(screen.getByText("Read the code").className).toContain("stg:text-foreground");
+    // To do stays at the readable muted tone, never the faint one.
+    expect(screen.getByText("Test it").className).toContain("stg:text-muted-foreground");
+  });
+
   it("opens the item in progress while the turn works, to the steps it takes", () => {
     render(
       <PlanSteps
@@ -98,7 +132,8 @@ describe("PlanSteps", () => {
     const toggle = itemToggle("Fix it");
 
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
-    expect(toggle.textContent).toContain("2 steps");
+    // No count on the item: its steps are right below it.
+    expect(toggle.textContent).not.toMatch(/\d+ steps?/);
     expect(within(toggle).getByRole("img", { name: "In progress" })).toBeTruthy();
     expect(document.getElementById(toggle.getAttribute("aria-controls")!)?.querySelector('[role="group"]')?.getAttribute("aria-label")).toBe("2 tool calls");
   });
@@ -117,7 +152,6 @@ describe("PlanSteps", () => {
     const toggle = itemToggle("Read the code");
 
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
-    expect(toggle.textContent).toContain("1 step");
     expect(screen.queryByRole("group", { name: "1 tool call" })).toBeNull();
 
     fireEvent.click(toggle);
@@ -137,7 +171,6 @@ describe("PlanSteps", () => {
     const line = itemLine("Push the fix");
 
     expect(within(line).getByText("Waiting for you")).toBeTruthy();
-    expect(itemToggle("Push the fix").textContent).toContain("1 step");
     expect(within(line).getByRole("group", { name: "1 tool call" })).toBeTruthy();
   });
 

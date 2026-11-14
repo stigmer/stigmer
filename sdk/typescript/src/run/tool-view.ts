@@ -606,8 +606,25 @@ function normalizeShell(result: string, args: Args): ToolResultView {
   return { type: "terminal", command, stdout: result.replace(SHELL_EXIT_LINE, ""), stderr: "", exitCode: exitLine !== null ? Number(exitLine[1]) : 0 };
 }
 
-// A grep-style match line, e.g. "  12: // TODO: fix".
-const GREP_MATCH_LINE = /^\s*\d+[:\t]/;
+// A match line in either form a search tool writes: the Stigmer harness's
+// "  12: // TODO: fix" (the line, then the text), and the "path:12:text" of
+// ripgrep and the search tools of other engines (the file, the line, then
+// the text).
+const GREP_MATCH_LINE = /^\s*(\d+)[:\t]\s?(.*)$/;
+const PATH_MATCH_LINE = /^(\S[^:]*):(\d+):(.*)$/;
+/** Whether `line` is the harness's file header above its matches, e.g. "/workspace/a.go:" (checked without a pattern, in linear time). */
+function isFileHeader(line: string): boolean {
+  return line !== "" && line.trimStart() === line && line.trimEnd().endsWith(":");
+}
+
+/** A match line as its parts, or undefined when the line is neither form. */
+function matchOf(line: string): ToolSearchMatch | undefined {
+  const pathForm = PATH_MATCH_LINE.exec(line);
+  if (pathForm !== null) return { file: pathForm[1]!, line: Number(pathForm[2]), text: pathForm[3]!.trim() };
+  const lineForm = GREP_MATCH_LINE.exec(line);
+  if (lineForm !== null) return { line: Number(lineForm[1]), text: lineForm[2]!.trim() };
+  return undefined;
+}
 
 // A search answers in plain text (see searchFromPlainText). A JSON answer is
 // not a shape any engine is known to give, so it degrades to the json view
@@ -621,15 +638,22 @@ function normalizeSearch(result: string): ToolResultView {
   return searchFromPlainText(result);
 }
 
-// The plain-text path for the Stigmer harness: grep emits "  12: match" lines;
-// glob/semantic search emit one path per line.
+// The plain-text path: a content search emits match lines (either form,
+// see matchOf); glob/semantic search emit one path per line.
 function searchFromPlainText(result: string): ToolResultView {
   const lines = nonEmptyLines(result);
-  const matchLines = lines.filter((l) => GREP_MATCH_LINE.test(l));
+  // The harness's form names each file once, on a "path:" line above its
+  // matches; each match carries the file it sits under.
+  const found: ToolSearchMatch[] = [];
+  let file: string | undefined;
+  for (const line of lines) {
+    const match = matchOf(line);
+    if (match !== undefined) found.push(match.file === undefined && file !== undefined ? { ...match, file } : match);
+    else if (isFileHeader(line)) file = line.trim().slice(0, -1);
+  }
 
-  if (matchLines.length > 0) {
-    const matches = matchLines.map((l) => ({ text: l.trim() }));
-    return { type: "search", matches, count: matches.length, kind: "content" };
+  if (found.length > 0) {
+    return { type: "search", matches: found, count: found.length, kind: "content" };
   }
 
   // Path/name results (glob, semantic search): each meaningful line is a match.

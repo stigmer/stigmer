@@ -272,7 +272,8 @@ const SESSION_SCENES = [
     id: "session-file-preview",
     title: "Session: a File the finished turn made, opened in the preview window by an app's user",
     widths: ["desktop"],
-    opens: ["invoice-audit.md"],
+    // By its kind too: "Download invoice-audit.md" names the file as well.
+    opens: ["invoice-audit.md Markdown"],
   },
   {
     id: "session-auto-approve",
@@ -339,8 +340,7 @@ const SESSION_SCENES = [
     widths: ["desktop"],
     opens: [
       "How it got there",
-      "Looked in billing",
-      "Searched 2 times",
+      "Looked in src/billing",
       "Searched for round(",
       "Read credit-note.ts",
       "Edited credit-note.ts",

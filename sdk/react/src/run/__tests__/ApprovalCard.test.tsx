@@ -75,10 +75,10 @@ describe("ApprovalCard chrome", () => {
     expect(card.className).toContain("stg:border-l-warning");
     expect(card.className).not.toContain("stg:bg-warning");
     expect(card.getAttribute("aria-label")).toBe("Approval required for edit_file");
-    // The header's category and clock icons, in the at-risk colour.
+    // The header's one mark, the hand, in the at-risk colour.
     expect(
       card.querySelectorAll('[aria-hidden="true"].stg\\:text-status-degraded'),
-    ).toHaveLength(2);
+    ).toHaveLength(1);
   });
 
   it("keeps a destructive red accent for a delete approval", () => {
@@ -163,29 +163,29 @@ describe("ApprovalCard header sentence", () => {
     expect(row?.className).toContain("stg:py-2");
   });
 
-  it("keeps a file path beside the sentence, its folder dimmed", () => {
+  it("puts the file's whole path on its own muted line under the sentence", () => {
     render(
       <ApprovalCard
         toolUse={waiting("write_file", { argsPreview: '{"path":"src/billing/rounding.ts","content":"x"}' })}
         onAnswer={noop}
       />,
     );
-    const link = screen.getByRole("button", { name: /src\/billing\/rounding\.ts/ });
-    expect(link.textContent).toContain("rounding.ts");
-    const dir = Array.from(link.querySelectorAll("span")).find((span) => span.textContent?.includes("billing"));
-    expect(dir?.className).toContain("stg:text-muted-foreground");
+    const path = screen.getByText("src/billing/rounding.ts");
+    expect(path.className).toContain("stg:font-mono");
+    expect(path.className).toContain("stg:text-muted-foreground");
+    expect(path.closest("button")).toBeNull();
   });
 });
 
 describe("ApprovalCard wait line", () => {
   it("says what waits for the answer, by the call's kind", () => {
     const cases: ReadonlyArray<{ name: string; mcpServerName?: string; argsPreview?: string; expected: string }> = [
-      { name: "write_file", argsPreview: '{"path":"src/x.ts","content":"x"}', expected: "Nothing is written until you allow it." },
-      { name: "edit_file", argsPreview: '{"path":"src/x.ts","new_string":"x"}', expected: "Nothing is written until you allow it." },
-      { name: "delete_file", argsPreview: '{"path":"/tmp/x"}', expected: "Nothing is deleted until you allow it." },
-      { name: "shell", argsPreview: '{"command":"npm test"}', expected: "Nothing runs until you allow it." },
-      { name: "create_issue", mcpServerName: "github", expected: "Nothing happens until you allow it." },
-      { name: "web_fetch", argsPreview: '{"url":"https://example.com"}', expected: "Nothing happens until you allow it." },
+      { name: "write_file", argsPreview: '{"path":"src/x.ts","content":"x"}', expected: "It waits for your answer. Nothing is written until you allow it." },
+      { name: "edit_file", argsPreview: '{"path":"src/x.ts","new_string":"x"}', expected: "It waits for your answer. Nothing is written until you allow it." },
+      { name: "delete_file", argsPreview: '{"path":"/tmp/x"}', expected: "It waits for your answer. Nothing is deleted until you allow it." },
+      { name: "shell", argsPreview: '{"command":"npm test"}', expected: "It waits for your answer. Nothing runs until you allow it." },
+      { name: "create_issue", mcpServerName: "github", expected: "It waits for your answer. Nothing happens until you allow it." },
+      { name: "web_fetch", argsPreview: '{"url":"https://example.com"}', expected: "It waits for your answer. Nothing happens until you allow it." },
     ];
     for (const { name, mcpServerName, argsPreview, expected } of cases) {
       const init = {
@@ -212,14 +212,14 @@ describe("ApprovalCard wait line", () => {
     const { container } = render(
       <ApprovalCardBody toolUse={waiting("shell", { argsPreview: JSON.stringify({ command: "npm test", description: ". .".repeat(2000) }) })} onAnswer={noop} />,
     );
-    expect(waitLine(container)).toBe("Nothing runs until you allow it.");
+    expect(waitLine(container)).toBe("It waits for your answer. Nothing runs until you allow it.");
   });
 
   it("says no description for a command the agent did not describe", () => {
     const { container } = render(
       <ApprovalCardBody toolUse={waiting("shell", { argsPreview: '{"command":"npm test"}' })} onAnswer={noop} />,
     );
-    expect(waitLine(container)).toBe("Nothing runs until you allow it.");
+    expect(waitLine(container)).toBe("It waits for your answer. Nothing runs until you allow it.");
   });
 });
 
@@ -230,19 +230,19 @@ describe("ApprovalCard quiet decision buttons", () => {
     );
   }
 
-  it("Allow is the neutral chip, never the loud success green", () => {
+  it("Allow is the kit's primary button, never the loud success green", () => {
     renderGate();
     const allow = screen.getByRole("button", { name: "Allow" });
-    expect(allow.className).toContain("stg:bg-accent");
+    expect(allow.className).toContain("stg:bg-primary");
     expect(allow.className).not.toContain("stg:bg-success");
     expect(allow.getAttribute("data-cursor-target")).toBe("approve-button");
   });
 
-  it("Deny is a quiet ghost that reveals its danger on hover", () => {
+  it("Deny is outlined, never filled red", () => {
     renderGate();
     const deny = screen.getByRole("button", { name: "Deny" });
-    expect(deny.className).toContain("stg:hover:text-destructive");
-    expect(deny.className).not.toMatch(/(?:^|\s)bg-/);
+    expect(deny.className).toContain("stg:border-border");
+    expect(deny.className).not.toContain("stg:bg-destructive");
   });
 
   it("demotes Allow all to the far right at the lowest weight, with no opacity modifiers", () => {
@@ -394,7 +394,7 @@ describe("ApprovalCard proposed change", () => {
       />,
     );
     expect(screen.getByText("Content")).toBeTruthy();
-    expect(screen.getAllByText("fallback.ts")).toHaveLength(1);
+    expect(screen.getAllByText("src/fallback.ts")).toHaveLength(1);
   });
 
   it("shows no preview for a path-only edit or a path-only write, the header naming the file", () => {
@@ -405,7 +405,7 @@ describe("ApprovalCard proposed change", () => {
       expect(screen.getAllByText("notes.md")).toHaveLength(1);
       expect(screen.queryByText("Content")).toBeNull();
       expect(screen.queryByText(/preview/i)).toBeNull();
-      expect(waitLine(container)).toBe("Nothing is written until you allow it.");
+      expect(waitLine(container)).toBe("It waits for your answer. Nothing is written until you allow it.");
       unmount();
     }
   });
@@ -454,7 +454,7 @@ describe("ApprovalCard proposed change", () => {
     expect(screen.queryByText("Content")).toBeNull();
     expect(screen.queryByText(/the raw input content/)).toBeNull();
     expect(screen.queryByText(/preview/i)).toBeNull();
-    expect(waitLine(container)).toBe("Nothing is written until you allow it.");
+    expect(waitLine(container)).toBe("It waits for your answer. Nothing is written until you allow it.");
   });
 });
 

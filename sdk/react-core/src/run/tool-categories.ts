@@ -142,12 +142,13 @@ const TAIL_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory>([
  * "Read 5 files" chip in the thread. These are the read-only, repetitive
  * operations whose individual rows are noise in bulk; everything else renders
  * as a persistent row. This is the *run-grouping* axis, orthogonal to
- * {@link ToolDisclosure} — see `isRunGroupableCategory`.
+ * {@link ToolDisclosure} — see `isRunGroupableCategory`. A search is not one
+ * of them: each names its own pattern and what it found, so two searches
+ * folded into "Searched 2 times" would hide both.
  */
 const RUN_GROUPABLE_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory>([
   "read",
   "list",
-  "search",
 ]);
 
 /**

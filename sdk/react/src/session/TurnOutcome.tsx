@@ -17,10 +17,10 @@
 // card's open control is its name, stretched over the card, so Undo sits
 // beside it, never inside another button.
 
-import { useState, type ReactNode } from "react";
+import { useContext, useState, type ReactNode } from "react";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { cn } from "@stigmer/design-tokens";
-import { fileDecisionKey, type ReviewFileChangesOptions } from "@stigmer/react-core";
+import { StigmerContext, fileDecisionKey, type ReviewFileChangesOptions } from "@stigmer/react-core";
 import type { TurnChange, TurnOutcomeView } from "./turn-outcome.js";
 import { CHANGE_WORDS, changeWords } from "./turn-change-words.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
@@ -29,6 +29,7 @@ import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { Tag } from "../internal/surface/Tag.js";
 import { Button } from "../button/Button.js";
 import { IconButton } from "../button/IconButton.js";
+import { useFileDownload } from "../file/useFile.js";
 import { StatusBadge } from "../status/StatusBadge.js";
 import { FileLineStats } from "../run/FileReviewAtoms.js";
 
@@ -171,6 +172,8 @@ export function TurnOutcome({ outcome, onOpenFile, canOpenChange, onOpenChange, 
       kind,
       icon: kind === "Spreadsheet" ? "table" : "file",
       ...(onOpenFile === undefined ? {} : { onOpen: () => onOpenFile(file) }),
+      // Every File the turn made can be saved from its card.
+      ...(file.metadata?.id ? { trailing: <FileDownloadButton fileId={file.metadata.id} filename={name} /> } : {}),
     };
   });
   const states = outcome.changes.map((change) => changeState(change, undo));
@@ -214,7 +217,8 @@ export function TurnOutcome({ outcome, onOpenFile, canOpenChange, onOpenChange, 
           items={changed}
           act={
             undo !== undefined && undecided >= 2 ? (
-              <Button variant="ghost" size="xs" disabled={busy} onClick={() => undoAll(outcome, undo)} data-cursor-target="turn-file-undo-all">
+              // Quiet, as drawn: the muted tone until the pointer comes to it.
+              <Button variant="ghost" size="xs" disabled={busy} onClick={() => undoAll(outcome, undo)} data-cursor-target="turn-file-undo-all" className="stg:text-muted-foreground stg:hover:text-foreground">
                 <UndoGlyph />
                 {CHANGE_WORDS.undoAll}
               </Button>
@@ -289,16 +293,9 @@ function OutcomeGroup({
           )}
         </div>
       ) : (
-        // A group whose cards carry a state or an Undo gives each card more
-        // room, so the name still reads beside them.
-        <div
-          className={cn(
-            "stg:grid stg:gap-2",
-            items.some((item) => item.trailing !== undefined)
-              ? "stg:grid-cols-[repeat(auto-fill,minmax(18rem,1fr))]"
-              : "stg:grid-cols-[repeat(auto-fill,minmax(14rem,1fr))]",
-          )}
-        >
+        // Up to four cards fill the row in halves, as the drawing lays them;
+        // in a narrow session (under 448px of its width) one to a row.
+        <div className="stg:grid stg:grid-cols-1 stg:gap-2 stg:@min-[28rem]/session:grid-cols-2">
           {items.map((item) => (
             <OutcomeEntry key={item.key} item={item} layout="card" />
           ))}
@@ -345,9 +342,11 @@ function OutcomeEntry({ item, layout }: { readonly item: OutcomeItem; readonly l
     );
   const detail =
     item.detail !== "" || item.extra !== undefined ? (
-      <span className="stg:flex stg:min-w-0 stg:items-center stg:gap-1.5 stg:text-xs stg:text-muted-foreground">
+      // One spacing for every dot in the line: the detail's own " · " joins
+      // and the one before the counts read alike.
+      <span className="stg:flex stg:min-w-0 stg:items-center stg:text-xs stg:text-muted-foreground">
         {item.detail !== "" && <span className="stg:min-w-0 stg:truncate">{item.detail}</span>}
-        {item.detail !== "" && item.extra !== undefined && <span aria-hidden="true">·</span>}
+        {item.detail !== "" && item.extra !== undefined && <span aria-hidden="true" className="stg:whitespace-pre">{" · "}</span>}
         {item.extra}
       </span>
     ) : null;
@@ -436,6 +435,36 @@ function EntryIcon({ icon }: { readonly icon: OutcomeItem["icon"] }) {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {paths}
+    </svg>
+  );
+}
+
+/**
+ * A made File's Download: a fresh link minted on the click, since a link
+ * expires. Drawn only where a client is provided to mint the link with.
+ */
+function FileDownloadButton(props: { readonly fileId: string; readonly filename: string }) {
+  const client = useContext(StigmerContext);
+  return client === null ? null : <ProvidedFileDownloadButton {...props} />;
+}
+
+function ProvidedFileDownloadButton({ fileId, filename }: { readonly fileId: string; readonly filename: string }) {
+  const { download, isDownloading } = useFileDownload();
+  return (
+    <IconButton
+      label={`Download ${filename}`}
+      size="xs"
+      icon={<DownloadGlyph />}
+      disabled={isDownloading}
+      onClick={() => void download(fileId, filename)}
+    />
+  );
+}
+
+function DownloadGlyph() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3v12M7 10l5 5 5-5M5 21h14" />
     </svg>
   );
 }

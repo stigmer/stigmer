@@ -7,7 +7,7 @@ import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/re
 import type { ReactNode } from "react";
 import type { Stigmer } from "@stigmer/client";
 import { StigmerContext } from "@stigmer/react-core";
-import { McpToolDetail } from "../McpToolDetail";
+import { McpArgsView, McpToolDetail } from "../McpToolDetail";
 import { toolUse, type ToolUseInit } from "./__fixtures__/fold-values";
 
 afterEach(cleanup);
@@ -124,5 +124,43 @@ describe("McpToolDetail — inline output", () => {
     );
     expect(screen.getByText("general")).toBeTruthy();
     expect(screen.getByText("message sent")).toBeTruthy();
+  });
+
+  it("reads the call as its fields: the app's own keys, plain values, and a short answer as the last field", () => {
+    const { container } = render(
+      <McpToolDetail
+        toolUse={toolUse({
+          name: "search_issues",
+          mcpServerName: "linear",
+          input: { query: "credit note rounding", team_key: "BILL" },
+          result: "no open issue",
+        })}
+      />,
+    );
+    const keys = Array.from(container.querySelectorAll("dt")).map((dt) => dt.textContent);
+    expect(keys).toEqual(["query", "team_key", "result"]);
+    expect(screen.getByText("credit note rounding").className).not.toContain("stg:font-mono");
+    expect(screen.queryByText("Arguments")).toBeNull();
+    expect(screen.queryByText("linear")).toBeNull();
+  });
+
+  it("keeps a long or many-line answer in its own block, not as a field", () => {
+    const long = "x".repeat(121);
+    const { container } = render(
+      <McpToolDetail toolUse={toolUse({ name: "get_doc", mcpServerName: "notion", input: { id: "d1" }, result: long })} />,
+    );
+    expect(Array.from(container.querySelectorAll("dt")).map((dt) => dt.textContent)).toEqual(["id"]);
+    expect(container.textContent).toContain(long);
+  });
+
+  it("keeps a structured argument in its own block, under its key", () => {
+    render(<McpToolDetail toolUse={toolUse({ name: "create_issue", mcpServerName: "linear", input: { title: "Round once", labels: ["bug", "rounding"] }, result: "" })} />);
+    expect(screen.getByText("labels")).toBeTruthy();
+    expect(screen.getByText("title")).toBeTruthy();
+  });
+
+  it("draws nothing for a call with no fields and no short answer", () => {
+    const { container } = render(<McpArgsView args={{}} />);
+    expect(container.firstChild).toBeNull();
   });
 });

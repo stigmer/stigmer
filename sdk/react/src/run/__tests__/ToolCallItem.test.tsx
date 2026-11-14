@@ -17,14 +17,14 @@
 // carrying a cut-off detail's full text, with the file control a sibling
 // that acts without toggling.
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, screen, cleanup, fireEvent, waitFor, within } from "@testing-library/react";
+import { act, render, screen, cleanup, fireEvent, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { FileReviewSet, ToolUse } from "@stigmer/client";
 import { ToolCallItem } from "../ToolCallItem";
 import { ApprovalContext, type ApprovalContextValue } from "../ApprovalContext";
 import { registerToolPresenter } from "../tool-presenter";
 import { FileReviewContext } from "@stigmer/react-core";
-import { reviewFile, reviewSet, thread, toolUse } from "./__fixtures__/fold-values";
+import { reviewFile, reviewSet, thread, toolUse, TOOL_STARTED_AT } from "./__fixtures__/fold-values";
 import { tagClasses } from "../../internal/surface/Tag";
 import { samples } from "../../test";
 
@@ -134,8 +134,8 @@ describe("ToolCallItem disclosure", () => {
     expect(container.querySelector(".stg\\:text-destructive")).toBeNull();
     expect(hasHeaderChevron(container)).toBe(false);
     expect(previewBody(container)).toBeNull();
-    // The kind's icon and the slash beside it.
-    expect(headerGlyphs(container)).toBe(2);
+    // One leading mark: the slash says the state, in the kind's place.
+    expect(headerGlyphs(container)).toBe(1);
   });
 
   it("collapses a force-opened running row the moment it settles to interrupted", () => {
@@ -199,7 +199,8 @@ describe("ToolCallItem disclosure", () => {
 
     fireEvent.click(rowHeaderToggle(container)!);
     const session = container.querySelector('[data-cursor-target="terminal-session"]');
-    expect(session?.textContent).toContain("$ echo hello");
+    // The output alone: the step's own line already says the command.
+    expect(session?.textContent).toBe("hello");
     expect(session?.textContent).toContain("hello");
   });
 
@@ -435,7 +436,7 @@ describe("ToolCallItem disclosure", () => {
 
   // --- Waiting calls (asks) ---------------------------------------------------
 
-  it("foregrounds a waiting summary tool behind its chevron with inline actions", () => {
+  it("draws a waiting call as its approval, open, with its acts and no chevron to close it", () => {
     const tu = toolUse({
       id: "tc-gated",
       name: "delete_file",
@@ -447,8 +448,9 @@ describe("ToolCallItem disclosure", () => {
       </ApprovalContext.Provider>,
     );
 
-    expect(hasHeaderChevron(container)).toBe(true);
-    expect(isExpanded(container)).toBe(true);
+    expect(hasHeaderChevron(container)).toBe(false);
+    expect(screen.getByRole("alert", { name: "Approval required for delete_file" })).toBeTruthy();
+    expect(screen.getByText("The agent wants to delete a file")).toBeTruthy();
     expect(screen.getByLabelText("Allow")).toBeTruthy();
     expect(screen.getByLabelText("Allow all file deletions")).toBeTruthy();
   });
@@ -937,7 +939,8 @@ describe("ToolCallItem header controls", () => {
     const search = render(
       <ToolCallItem toolUse={toolUse({ name: "Grep", input: { pattern: "invoices" }, result: "a.ts:1: x\nb.ts:2: y" })} />,
     );
-    expect(rowHeaderToggle(search.container)?.getAttribute("aria-label")).toBe("Searched for invoices, 2 files");
+    // "a.ts:1: x" is a match in a file, as ripgrep and other engines print it.
+    expect(rowHeaderToggle(search.container)?.getAttribute("aria-label")).toBe("Searched for invoices, 2 matches");
   });
 
   it("keeps the file control out of the toggle: its own target, acting without opening or closing the row", () => {
@@ -1059,7 +1062,7 @@ describe("ToolCallItem step line", () => {
     search.unmount();
 
     const list = render(<ToolCallItem toolUse={toolUse({ name: "ls", input: { path: "/src" }, result: "a.ts\nb.ts\nc.ts" })} />);
-    expect(within(rowHeader(list.container)).getByText("3 items")).toBeTruthy();
+    expect(within(rowHeader(list.container)).getByText("3 files")).toBeTruthy();
   });
 
   it("counts nothing before a step returned", () => {
@@ -1144,5 +1147,54 @@ describe("a waiting step, for a viewer who cannot answer it", () => {
       </ApprovalContext.Provider>,
     );
     expect(screen.queryByText(/Waiting for .* to approve/)).toBeNull();
+  });
+});
+
+describe("ToolCallItem's second line", () => {
+  it("says why a file step failed, in its tool's own first line, where a settled one says its folder", () => {
+    render(
+      <ToolCallItem
+        toolUse={toolUse({ name: "edit_file", input: { path: "src/billing/round.ts", old_string: "a", new_string: "b" }, result: "Error: old_string not found in file\nat line 3", isError: true })}
+      />,
+    );
+    expect(screen.getByText("Old_string not found in file")).toBeTruthy();
+    expect(screen.queryByText("at line 3")).toBeNull();
+  });
+
+  it("says what a File written to the outputs folder is and how big, not the folder", () => {
+    render(
+      <ToolCallItem
+        toolUse={toolUse({ name: "write_file", input: { path: "/workspace/.stigmer/outputs/audit.md", content: "x".repeat(4_210) }, result: "Wrote audit.md" })}
+      />,
+    );
+    expect(screen.getByText("Markdown · 4.1 KB")).toBeTruthy();
+    expect(screen.queryByText(/\.stigmer\/outputs/)).toBeNull();
+  });
+
+  it("reads the outputs folder only as a folder of its own, and never as a name ending in it", () => {
+    const { rerender } = render(
+      <ToolCallItem toolUse={toolUse({ name: "write_file", input: { path: "/workspace/my.stigmer/outputs/audit.md", content: "x" }, result: "ok" })} />,
+    );
+    expect(screen.queryByText(/^Markdown ·/)).toBeNull();
+    rerender(<ToolCallItem toolUse={toolUse({ name: "write_file", input: { path: ".stigmer/outputs/", content: "x" }, result: "ok" })} />);
+    expect(screen.queryByText(/KB$/)).toBeNull();
+    rerender(<ToolCallItem toolUse={toolUse({ name: "write_file", input: { path: "a.stigmer/outputs/x/.stigmer/outputs/b.md", content: "x" }, result: "ok" })} />);
+    expect(screen.getByText("Markdown · 0.1 KB")).toBeTruthy();
+  });
+
+  it("counts a running step's time from its start, and shows nothing under a second", () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date(Date.parse(TOOL_STARTED_AT) + 400));
+      const running = toolUse({ name: "read_file", input: { path: "a.ts" }, state: "running" });
+      const { container } = render(<ToolCallItem toolUse={running} />);
+      expect(container.textContent).not.toMatch(/\d+s/);
+      act(() => {
+        vi.advanceTimersByTime(65_000);
+      });
+      expect(container.textContent).toContain("1m 05s");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

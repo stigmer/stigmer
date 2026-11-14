@@ -255,18 +255,17 @@ function SubagentThreadContent({
 }: SubagentThreadContentProps) {
   return (
     <div className="stg:flex stg:flex-col stg:gap-2">
-      {input && (
-        <div className="stg:border-l-2 stg:border-border-muted stg:pl-3 stg:text-xs stg:text-muted-foreground stg:whitespace-pre-wrap">
-          {input}
-        </div>
-      )}
+      {/* What it was asked, as one quiet line: the step's own line already
+          says what it works on. */}
+      {input && <p className="stg:truncate stg:text-xs stg:text-muted-foreground">{input}</p>}
 
       {threadItems.map((item) => {
         switch (item.kind) {
           case "message":
             return <MessageEntry key={item.key} message={item.message} className={MESSAGE_AT_BODY_PADDING} />;
           case "tool-group":
-            return <ToolCallGroup key={item.key} toolUses={item.toolUses} />;
+            // Its steps are step rows, as the plan's are: no card inside the card.
+            return <ToolCallGroup key={item.key} toolUses={item.toolUses} framed={false} />;
         }
       })}
 

@@ -43,6 +43,7 @@ export function SettledStepsRow({ toolUses, prefix, children, framed = true, cla
   const label = prefix === undefined ? words : words === "" ? prefix : `${prefix}: ${words.charAt(0).toLowerCase()}${words.slice(1)}`;
   if (label === "") return <div className={className}>{children}</div>;
   const span = stepsSpanMs(toolUses);
+  const header = open && prefix !== undefined;
   return (
     <div
       className={cn(
@@ -60,8 +61,13 @@ export function SettledStepsRow({ toolUses, prefix, children, framed = true, cla
         <svg aria-hidden="true" viewBox="0 0 16 16" className={cn("stg:h-3 stg:w-3 stg:shrink-0 stg:transition-transform", open && "stg:rotate-90")}>
           <path d="M6 4l4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        <span className="stg:min-w-0 stg:flex-1 stg:truncate">{label}</span>
-        {span >= 1000 && <span className="stg:shrink-0 stg:text-xs stg:tabular-nums">{formatElapsed(span)}</span>}
+        {/* Closed, the line says what the steps did; opened, it is the card's
+            header: its name, and how many steps over how long, the steps
+            themselves below it. */}
+        <span className={cn("stg:min-w-0 stg:flex-1 stg:truncate", header && "stg:text-xs stg:font-medium")}>{header ? prefix : label}</span>
+        <span className={cn("stg:shrink-0 stg:text-xs stg:tabular-nums", header && "stg:font-medium")}>
+          {[header ? `${toolUses.length} ${toolUses.length === 1 ? "step" : "steps"}` : "", span >= 1000 ? formatElapsed(span) : ""].filter((part) => part !== "").join(" · ")}
+        </span>
       </button>
       {open && (
         <div id={regionId} className="stg:border-t stg:border-border-muted">

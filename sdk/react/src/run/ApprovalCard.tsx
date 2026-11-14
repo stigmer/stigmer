@@ -18,14 +18,10 @@ import {
   withAuthoritativeWriteContent,
 } from "@stigmer/react-core/internal";
 import { type ToolCategory } from "@stigmer/react-core";
-import { CATEGORY_ICON } from "./ToolCallItem.js";
 import { ToolArgsView } from "./ToolArgsView.js";
-import { FilePathLink } from "./FilePathLink.js";
 import { DecisionButton } from "../internal/DecisionButton.js";
 import { InCardDecisionError } from "../internal/InCardDecisionError.js";
 import { INPUT_CLASSES } from "../internal/form-primitives.js";
-import { formatElapsed } from "@stigmer/client";
-import { useElapsedSince } from "../internal/useElapsedSince.js";
 import type { ToolUseAnswer } from "@stigmer/react-core";
 
 /** Props for {@link ApprovalCard}. */
@@ -138,7 +134,8 @@ export interface ApprovalCardHeaderProps {
 }
 
 /**
- * The compact summary row of an approval — `[icon] Label primaryArg [⏳ Xm]`.
+ * The head of an approval: a raised hand, what the agent wants in a sentence
+ * ("The agent wants to create a file"), and beneath it what it would touch.
  * Used as the standalone {@link ApprovalCard}'s header. Not rendered inline
  * on a {@link ToolCallItem}, whose own row already serves as the header.
  *
@@ -150,7 +147,6 @@ export function ApprovalCardHeader({
   bordered = false,
 }: ApprovalCardHeaderProps) {
   const categoryInfo = resolveToolCategoryFromCall(toolUse);
-  const CategoryIcon = CATEGORY_ICON[categoryInfo.category];
   const argsPreview = toolUse.ask?.argsPreview ?? "";
 
   const primaryArg = useMemo(
@@ -161,41 +157,22 @@ export function ApprovalCardHeader({
   return (
     <div
       className={cn(
-        "stg:flex stg:items-center stg:gap-2 stg:px-3 stg:py-2 stg:text-sm",
+        "stg:flex stg:items-start stg:gap-2 stg:px-3 stg:py-2 stg:text-sm",
         bordered && "stg:border-b stg:border-border-muted",
       )}
     >
-      <span className="stg:shrink-0 stg:text-status-degraded" aria-hidden="true">
-        <CategoryIcon />
+      <span className="stg:mt-0.5 stg:shrink-0 stg:text-status-degraded" aria-hidden="true">
+        <HandIcon />
       </span>
 
-      <span className="stg:min-w-0 stg:flex-1 stg:flex stg:items-center stg:gap-1.5 stg:overflow-hidden">
-        <span className="stg:shrink-0 stg:font-medium stg:text-foreground">
-          {askSentence(categoryInfo.category, toolUse)}
-        </span>
-        {primaryArg &&
-          categoryInfo.category !== "shell" &&
-          (isFileCategory(categoryInfo.category) ? (
-            // A file tool's primary arg is a path — render it filename-first
-            // with the full path on hover, matching the ToolCallItem header.
-            <FilePathLink
-              path={primaryArg}
-              className="stg:min-w-0 stg:text-xs stg:text-muted-foreground"
-              dirDisplay="dim"
-            />
-          ) : (
-            // Shell is the exception: its command is shown in the body's
-            // terminal session, so the header stays minimal (icon + title).
-            <span className="stg:min-w-0 stg:truncate stg:font-mono stg:text-muted-foreground">
-              {primaryArg}
-            </span>
-          ))}
-      </span>
-
-      <WaitingDuration requestedAt={toolUse.ask?.processedAt ?? toolUse.processedAt} />
-
-      <span className="stg:shrink-0 stg:text-status-degraded" aria-hidden="true">
-        <ClockIcon />
+      <span className="stg:flex stg:min-w-0 stg:flex-1 stg:flex-col stg:gap-1">
+        <span className="stg:font-semibold stg:text-foreground">{askSentence(categoryInfo.category, toolUse)}</span>
+        {/* What it would touch, on its own line: the file's whole path, or
+            the app's first argument. A command shows in the body's terminal
+            session, so it is not repeated here. */}
+        {primaryArg && categoryInfo.category !== "shell" && (
+          <span className="stg:min-w-0 stg:truncate stg:font-mono stg:text-xs stg:text-muted-foreground">{primaryArg}</span>
+        )}
       </span>
     </div>
   );
@@ -364,7 +341,9 @@ export function ApprovalCardBody({
       )}
 
       <p className="stg:text-sm stg:text-foreground" data-cursor-target="approval-waits">
-        {intent !== null && `${intent}. `}
+        {/* The command's own description leads where the agent gave one;
+            otherwise the line says that the call waits. */}
+        {intent !== null ? `${intent}. ` : "It waits for your answer. "}
         {WAIT_WORDS[categoryInfo.category] ?? "Nothing happens until you allow it."}
       </p>
 
@@ -437,14 +416,15 @@ export function ApprovalCardBody({
           />
         </form>
       ) : (
-        // Decision actions — quiet, Cursor-grade hierarchy: one neutral-chip
-        // primary (Allow) and a ghost-danger Deny. The broad grant (Allow all
-        // of the class this turn) is demoted to the far right via `ml-auto` so
-        // it never competes with — or is mis-clicked for — the per-call Allow.
-        <div className="stg:flex stg:items-center stg:gap-2 stg:pt-1">
+        // Decision actions: the kit's filled Allow and its outlined Deny, at
+        // 32px. The broad grant (Allow all of the class) is demoted to the far
+        // right via `ml-auto` so it never competes with, or is mis-clicked
+        // for, the per-call Allow; on a phone the row wraps.
+        <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2 stg:pt-1">
           <DecisionButton
             label="Allow"
             variant="primary"
+            size="sm"
             onClick={() => handleAnswer("allow")}
             isActive={activeAnswer === "allow"}
             isSubmitting={isSubmitting}
@@ -452,7 +432,8 @@ export function ApprovalCardBody({
           />
           <DecisionButton
             label="Deny"
-            variant="danger"
+            variant="outline"
+            size="sm"
             onClick={() => setDenying(true)}
             isSubmitting={isSubmitting}
             cursorTarget="deny-button"
@@ -464,6 +445,7 @@ export function ApprovalCardBody({
           <DecisionButton
             label={approveAllLabel}
             variant="ghost"
+            size="sm"
             onClick={() => handleAnswer("grant")}
             isActive={activeAnswer === "grant"}
             isSubmitting={isSubmitting}
@@ -629,36 +611,12 @@ const DENY_SUBMIT_CLASSES = cn(
 // Internal sub-components
 // ---------------------------------------------------------------------------
 
-function WaitingDuration({ requestedAt }: { requestedAt: string }) {
-  const elapsed = useElapsedSince(requestedAt);
-  // Under a second says nothing yet.
-  if (elapsed === null || elapsed < 1000) return null;
-
+/** A raised hand: the agent asks before it acts. */
+function HandIcon() {
   return (
-    <span className="stg:shrink-0 stg:text-xs stg:text-muted-foreground">
-      {formatElapsed(elapsed)}
-    </span>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Inline SVG icons
-// ---------------------------------------------------------------------------
-
-function ClockIcon() {
-  return (
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="6" cy="6" r="4.5" />
-      <path d="M6 3.5V6L7.5 7.5" />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8" />
+      <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
     </svg>
   );
 }

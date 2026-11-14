@@ -100,7 +100,8 @@ test.describe("CON-06 a newcomer's first question, end to end on the mock model"
     // The report opens from what the turn made, and its Download is the
     // report itself, read back from the saved bytes.
     const outcome = page.getByRole("region", { name: "What this turn produced" });
-    await outcome.getByRole("button", { name: /variance-report\.md/ }).click();
+    // By its name first: its Download names the file too.
+    await outcome.getByRole("button", { name: /^variance-report\.md/ }).click();
     const opened = page.getByRole("article", { name: "File variance-report.md" });
     await expect(opened).toBeVisible({ timeout: 15_000 });
     const download = page.waitForEvent("download");

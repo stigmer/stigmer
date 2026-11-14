@@ -125,11 +125,14 @@ describe("MessageThread answers", () => {
     });
   }
 
-  it("renders a waiting call's decision INLINE on its row and routes Allow with its id", () => {
+  it("draws a waiting call's row as its approval, one object, and routes Allow with its id", () => {
     const onAnswer = vi.fn();
     renderThread(waiting("w", "c1", "delete_file"), { onAnswerToolUse: onAnswer });
 
-    expect(screen.queryByRole("alert")).toBeNull();
+    // The row is the card: one approval, on the row, no second card below.
+    const asks = screen.getAllByRole("alert");
+    expect(asks).toHaveLength(1);
+    expect(asks[0].closest('[data-cursor-target="tool-call-row"]')).not.toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Allow" }));
     expect(onAnswer).toHaveBeenCalledWith(toolId("w", "c1"), "allow", undefined);
   });

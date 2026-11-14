@@ -33,6 +33,28 @@ describe("normalizeToolResult — search plain text and graceful degradation", (
     expect(view.count).toBe(2);
   });
 
+  it("reads each harness match as its file, line and text, the file from the header above it", () => {
+    const view = normalizeToolResult(
+      searchCall({ pattern: "TODO" }, "/workspace/a.go:\n  12: // TODO: fix\n/workspace/b.go:\n  7: // TODO: later"),
+    );
+    if (view.type !== "search") throw new Error(`expected a search view, got ${view.type}`);
+    expect(view.matches).toEqual([
+      { file: "/workspace/a.go", line: 12, text: "// TODO: fix" },
+      { file: "/workspace/b.go", line: 7, text: "// TODO: later" },
+    ]);
+  });
+
+  it("reads ripgrep's path:line:text lines as content matches, one per line, not as files", () => {
+    const view = normalizeToolResult(searchCall({ pattern: "x" }, "src/a.ts:1: x\nsrc/b.ts:14:const x = 1;"));
+    if (view.type !== "search") throw new Error(`expected a search view, got ${view.type}`);
+    expect(view.kind).toBe("content");
+    expect(view.count).toBe(2);
+    expect(view.matches).toEqual([
+      { file: "src/a.ts", line: 1, text: "x" },
+      { file: "src/b.ts", line: 14, text: "const x = 1;" },
+    ]);
+  });
+
   it("treats Stigmer-harness path/name lines as file matches", () => {
     const view = normalizeToolResult(searchCall({ pattern: "*.go" }, "src/a.go\nsrc/b.go"));
     expect(view.type).toBe("search");

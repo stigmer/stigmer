@@ -62,7 +62,8 @@ describe("stepPhrase", () => {
     expect(stepPhrase(call("glob", { pattern: "**/*.test.ts" })).text).toBe("Found files matching **/*.test.ts");
     expect(stepPhrase(call("Glob", { pattern: "*.md" }, "running")).text).toBe("Finding files matching *.md");
     expect(stepPhrase(call("find_files", {}, "failed", "no")).text).toBe("Couldn't find files");
-    expect(stepPhrase(call("ls", { path: "src/billing" })).text).toBe("Looked in billing");
+    expect(stepPhrase(call("ls", { path: "src/billing" })).text).toBe("Looked in src/billing");
+    expect(stepPhrase(call("ls", { path: "/workspace/app/src/billing/" })).text).toBe("Looked in src/billing");
   });
 
   it("reads a command as the agent's description when it wrote one, and fails it on a non-zero exit", () => {

@@ -143,7 +143,10 @@ export function targetOf(tool: Pick<ToolUse, "name" | "mcpServerName" | "input">
     case "skill":
       return short(textAt(tool, "skill") || textAt(tool, "name"));
     case "list":
-      return short(baseName(textAt(tool, "path")));
+      // The folder's last two segments ("src/billing"): its last alone
+      // ("billing") leaves a reader guessing which, and a whole absolute
+      // path crowds the line.
+      return short(folderWords(textAt(tool, "path")));
     case "shell":
     case "think":
     case "todo":
@@ -263,6 +266,11 @@ function hostOf(url: string): string {
   } catch {
     return "";
   }
+}
+
+/** A folder as a step names it: its last two segments, "/workspace/app/src/billing" read as "src/billing". */
+function folderWords(path: string): string {
+  return trimSeparators(path).split(/[\\/]/).filter((segment) => segment !== "").slice(-2).join("/");
 }
 
 export function short(value: string): string {

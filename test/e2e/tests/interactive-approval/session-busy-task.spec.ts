@@ -98,7 +98,8 @@ test.describe("A busy task in the session view (deterministic mock LLM)", () => 
     await expect(outcome).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText("Done", { exact: true })).toBeVisible();
     await expect(page.getByText(/^Waiting for you · \d/)).toHaveCount(0);
-    await outcome.getByRole("button", { name: new RegExp(REPORT.replace(".", "\\.")) }).click();
+    // By its name first: its Download names the file too.
+    await outcome.getByRole("button", { name: new RegExp(`^${REPORT.replace(".", "\\.")}`) }).click();
     await expect(page.getByRole("button", { name: "Hide panel" })).toBeVisible({ timeout: 15_000 });
     // The opened File renders its markdown; the write's step (closed under
     // "How it got there") would show the same text as raw source in a <pre>,

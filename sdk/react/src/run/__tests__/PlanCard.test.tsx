@@ -49,11 +49,11 @@ describe("PlanCard", () => {
     expect(acts.build!.onClick).toHaveBeenCalledTimes(1);
   });
 
-  it("says a ready plan of unknown size only as a plan, in bytes when small", () => {
+  it("says a ready plan of unknown size only as a plan, in kilobytes when small", () => {
     const { rerender } = render(<PlanCard state="ready" title="T" />);
     expect(screen.getByText("Plan")).toBeTruthy();
     rerender(<PlanCard state="ready" title="T" sizeBytes={312n} />);
-    expect(screen.getByText("Plan · 312 B")).toBeTruthy();
+    expect(screen.getByText("Plan · 0.3 KB")).toBeTruthy();
   });
 
   it("says a replaced plan was replaced, and offers Open and Copy but never Build", () => {
