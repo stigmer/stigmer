@@ -142,7 +142,7 @@ function Header({
       <div className="stg:min-w-0 stg:flex-1">
         <div className="stg:flex stg:items-center stg:gap-2">
           {nameElement ?? (
-            <h2 className="stg:truncate stg:text-lg stg:font-semibold stg:text-foreground">
+            <h2 className="stg:truncate stg:text-xl stg:font-semibold stg:text-foreground">
               {name}
             </h2>
           )}

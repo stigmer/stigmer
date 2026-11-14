@@ -110,7 +110,8 @@ export function RoutineFiresTable({
           role="row"
           className={cn(
             rowGridClasses,
-            "stg:border-b stg:border-border stg:px-3.5 stg:py-2 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground",
+            // The list's column headings at the scale's 12/16 medium, in sentence case, as drawn.
+            "stg:border-b stg:border-border stg:px-3.5 stg:py-2 stg:text-xs stg:font-medium stg:text-muted-foreground",
           )}
         >
           <span role="columnheader">Outcome</span>
@@ -184,16 +185,16 @@ function FireTableRow({
       <span role="cell">
         <StatusBadge phase={badge.phase} label={badge.label} />
       </span>
-      <span role="cell" className="stg:hidden stg:text-xs stg:text-muted-foreground stg:sm:block">
+      <span role="cell" className="stg:hidden stg:text-sm stg:text-muted-foreground stg:sm:block">
         {fireOriginLabel(fire.origin)}
       </span>
       <span
         role="cell"
-        className="stg:hidden stg:truncate stg:text-xs stg:text-muted-foreground stg:sm:block"
+        className="stg:hidden stg:truncate stg:text-sm stg:text-muted-foreground stg:sm:block"
       >
         {startedBy ? <StartedByLabel startedBy={startedBy} /> : "—"}
       </span>
-      <span role="cell" className="stg:text-xs stg:text-muted-foreground">
+      <span role="cell" className="stg:text-sm stg:text-muted-foreground">
         {fireDate ? (
           <Tooltip>
             <TooltipTrigger render={<time dateTime={fireDate.toISOString()} />}>
@@ -207,7 +208,7 @@ function FireTableRow({
       </span>
       <span
         role="cell"
-        className="stg:hidden stg:text-xs stg:tabular-nums stg:text-muted-foreground stg:sm:block"
+        className="stg:hidden stg:text-sm stg:tabular-nums stg:text-muted-foreground stg:sm:block"
       >
         {formatFireDuration(fire) ?? "—"}
       </span>

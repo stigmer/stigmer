@@ -63,7 +63,7 @@ export function PluginCard({ entry, installed, onInstall, className }: PluginCar
         <PluginFace name={name} displayName={displayName} logoUrl={logoUrl} />
         <div className="stg:min-w-0 stg:flex-1">
           <div className="stg:flex stg:items-start stg:justify-between stg:gap-2">
-            <h3 className="stg:m-0 stg:truncate stg:text-sm stg:font-medium stg:text-foreground">{displayName}</h3>
+            <h3 className="stg:m-0 stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">{displayName}</h3>
             {installed && (
               <StatusBadge phase="ready" label="Installed" />
             )}
@@ -78,7 +78,7 @@ export function PluginCard({ entry, installed, onInstall, className }: PluginCar
           <span className="stg:truncate">{entry.source.name}</span>
         </span>
         {onInstall ? (
-          <Button variant="outline" size="sm" onClick={() => onInstall(entry)} aria-label={`Install ${name}`}>
+          <Button variant="outline" size="xs" onClick={() => onInstall(entry)} aria-label={`Install ${name}`}>
             {installed ? "Install again" : "Install"}
           </Button>
         ) : (
@@ -106,7 +106,7 @@ export function UploadTile({ onUpload, className }: UploadTileProps) {
         <span className="stg:flex stg:size-10 stg:items-center stg:justify-center stg:rounded-lg stg:border stg:border-dashed stg:border-border stg:text-muted-foreground">
           <UploadIcon className="stg:size-5" />
         </span>
-        <span className="stg:text-sm stg:font-medium stg:text-foreground">Upload a plugin</span>
+        <span className="stg:text-sm stg:font-semibold stg:text-foreground">Upload a plugin</span>
         <span className="stg:text-xs stg:text-muted-foreground">
           A Cursor, Claude Code, Codex or Agent Plugins folder from your computer, or a .zip of one.
         </span>

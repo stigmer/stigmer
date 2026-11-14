@@ -415,7 +415,7 @@ function MemberRow({
             <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
               <IconButton
                 size="xs"
-                label={`Change role for ${name}`}
+                label={`Change ${name}'s role`}
                 icon={<EditIcon />}
                 onClick={() => startAction("change-role")}
               />

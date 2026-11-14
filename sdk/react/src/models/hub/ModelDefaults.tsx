@@ -158,7 +158,7 @@ function DefaultRow({
         <label htmlFor={selectId} className="stg:block stg:text-xs stg:font-medium stg:text-foreground">
           {HARNESS_META[harness].label}
         </label>
-        <p id={descriptionId} className="stg:text-2xs stg:text-muted-foreground">
+        <p id={descriptionId} className="stg:text-xs stg:text-muted-foreground">
           {HARNESS_META[harness].description}
         </p>
       </div>

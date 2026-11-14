@@ -148,10 +148,11 @@ export function Tabs({
               onClick={() => onTabChange(tab.id)}
               data-cursor-target={`tab-${tab.id}`}
               className={cn(
-                "stg:relative stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:whitespace-nowrap stg:px-3 stg:py-2 stg:text-xs stg:font-medium stg:transition-colors",
+                // A page's tabs at the scale's 14/20, the one in view at medium weight, as drawn.
+                "stg:relative stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:whitespace-nowrap stg:px-3 stg:py-2 stg:text-sm stg:transition-colors",
                 "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:ring-offset-1",
                 isActive
-                  ? "stg:text-foreground"
+                  ? "stg:font-medium stg:text-foreground"
                   : "stg:text-muted-foreground stg:hover:text-foreground",
               )}
             >
