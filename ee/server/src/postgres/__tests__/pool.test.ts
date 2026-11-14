@@ -8,12 +8,22 @@
  * absorbing the same emit into exactly one WARN that names the pool and
  * carries the message. A last case pins that every composition pool
  * carries the checkout deadline, which bounds a starved checkout instead
- * of letting it wait forever; the deadline's behaviour itself is pg's. No
- * database is involved: `emit` is how pg-pool itself reports the idle
+ * of letting it wait forever, and is `@stigmer/server`'s bounded pool: the
+ * same deadline constant, the same size, and a checkout that cannot open a
+ * connection rejects with `DatabaseUnavailableError`, which every RPC
+ * answers as Unavailable (stigmer/stigmer#3086). The starved checkout
+ * itself is proven on a real database in the server's
+ * store/postgres/__tests__/pool.postgres.test.ts. No database is involved: `emit` is how pg-pool itself reports the idle
  * client's error, so driving the emitter is driving the real path. A pool
  * that never connected ends cleanly, so each test closes what it opened.
  */
-import { createLogger } from "@stigmer/server";
+import {
+  BoundedPool,
+  DEFAULT_POOL_CHECKOUT_TIMEOUT_MS,
+  DEFAULT_POOL_MAX,
+  DatabaseUnavailableError,
+  createLogger,
+} from "@stigmer/server";
 import pg from "pg";
 import { describe, expect, it } from "vitest";
 
@@ -111,6 +121,36 @@ describe("a composition pool and a starved checkout", () => {
     });
     try {
       expect(pool.options.connectionTimeoutMillis).toBe(POOL_CHECKOUT_TIMEOUT_MS);
+    } finally {
+      await pool.end();
+    }
+  });
+});
+
+describe("a composition pool is the server's bounded pool", () => {
+  it("shares the store's deadline and size", async () => {
+    const pool = newCompositionPool({
+      name: "enterprise",
+      connectionString: CONNECTION_STRING,
+      logger: logCapture().logger,
+    });
+    try {
+      expect(pool).toBeInstanceOf(BoundedPool);
+      expect(POOL_CHECKOUT_TIMEOUT_MS).toBe(DEFAULT_POOL_CHECKOUT_TIMEOUT_MS);
+      expect(pool.options.max).toBe(DEFAULT_POOL_MAX);
+    } finally {
+      await pool.end();
+    }
+  });
+
+  it("rejects a checkout it cannot open with DatabaseUnavailableError", async () => {
+    const pool = newCompositionPool({
+      name: "enterprise",
+      connectionString: CONNECTION_STRING,
+      logger: logCapture().logger,
+    });
+    try {
+      await expect(pool.query("SELECT 1")).rejects.toBeInstanceOf(DatabaseUnavailableError);
     } finally {
       await pool.end();
     }

@@ -5,11 +5,18 @@
  * `pg` error's `detail` never reaches a log line; an AggregateError's
  * inner messages when its own is empty; the depth bound; a cycle; a
  * non-Error cause; and the deepest Error's stack for the debug line.
+ * And `findInCauseChain`, the same bounded walk for internalError's typed
+ * lookup: the error itself first, then its causes, within the bound.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { MAX_CAUSE_LINKS, causeFields, causeStack } from "../error-cause.js";
+import {
+  MAX_CAUSE_LINKS,
+  causeFields,
+  causeStack,
+  findInCauseChain,
+} from "../error-cause.js";
 import { internalError } from "../errors.js";
 
 /** The shape of a `pg` DatabaseError: SQLSTATE in `code`, row values in `detail`. */
@@ -130,5 +137,37 @@ describe("causeStack", () => {
       "failed to load plugin",
     );
     expect(causeStack(error)).toBe(driver.stack);
+  });
+});
+
+describe("findInCauseChain", () => {
+  class Marked extends Error {}
+  const isMarked = (link: unknown): link is Marked => link instanceof Marked;
+
+  it("matches the error itself before any cause", () => {
+    const top = new Marked("top", { cause: new Marked("under") });
+    expect(findInCauseChain(top, isMarked)).toBe(top);
+  });
+
+  it("finds the nearest match under the wrappers, and nothing when none matches", () => {
+    const marked = new Marked("driver");
+    const error = new Error("outer", { cause: new Error("middle", { cause: marked }) });
+    expect(findInCauseChain(error, isMarked)).toBe(marked);
+    expect(findInCauseChain(new Error("plain"), isMarked)).toBeUndefined();
+    expect(findInCauseChain("a string", isMarked)).toBeUndefined();
+  });
+
+  it("stops at the bound and at a cycle", () => {
+    let deep: Error = new Marked("too deep");
+    // One wrapper more than the bound puts the match past it.
+    for (let i = 0; i <= MAX_CAUSE_LINKS; i++) {
+      deep = new Error(`wrapper ${i}`, { cause: deep });
+    }
+    expect(findInCauseChain(deep, isMarked)).toBeUndefined();
+
+    const a = new Error("a");
+    const b = new Error("b", { cause: a });
+    a.cause = b;
+    expect(findInCauseChain(a, isMarked)).toBeUndefined();
   });
 });

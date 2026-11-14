@@ -325,6 +325,26 @@ describe("loadConfig", () => {
     }
   });
 
+  it("bounds the Postgres pool at 20 connections and a 10 s checkout unless the operator names positive values", () => {
+    const defaults = loadConfig({});
+    expect(defaults.databasePoolMax).toBe(20);
+    expect(defaults.databasePoolCheckoutTimeoutMs).toBe(10_000);
+    const set = loadConfig({
+      DATABASE_POOL_MAX: "40",
+      DATABASE_POOL_CHECKOUT_TIMEOUT_MS: "2500",
+    });
+    expect(set.databasePoolMax).toBe(40);
+    expect(set.databasePoolCheckoutTimeoutMs).toBe(2500);
+    for (const value of ["", "0", "-5", "many", "5x"]) {
+      const malformed = loadConfig({
+        DATABASE_POOL_MAX: value,
+        DATABASE_POOL_CHECKOUT_TIMEOUT_MS: value,
+      });
+      expect(malformed.databasePoolMax).toBe(20);
+      expect(malformed.databasePoolCheckoutTimeoutMs).toBe(10_000);
+    }
+  });
+
   it("caps a File at 500 MB unless the operator names a positive size", () => {
     expect(loadConfig({}).fileMaxBytes).toBe(500 * 1024 * 1024);
     expect(loadConfig({ FILE_MAX_BYTES: "1048576" }).fileMaxBytes).toBe(1048576);
