@@ -142,7 +142,7 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
 
     // The filename appears exactly once — in the header, never restated by the
     // body.
-    await expect(gateRow.getByText("e2e-empty.txt", { exact: true })).toHaveCount(1);
+    await expect(gateRow.getByText(/e2e-empty\.txt$/)).toHaveCount(1);
   });
 
   // --- Rendered border: computed-style guard (not a screenshot) ------------
@@ -194,16 +194,15 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
       .toBeGreaterThanOrEqual(2);
   });
 
-  // --- Quiet decision buttons: computed-style guard (not a screenshot) ------
-  // The buttons share the quiet, Cursor-grade `DecisionButton`: Approve is a
-  // filled NEUTRAL chip (a low-chroma grey, never the success green), and Deny
-  // is a ghost with NO resting fill. A screenshot's 2% threshold can miss a hue
-  // swap on a small button, so assert the real computed colors — the same
-  // "rendered, not class-string" philosophy as the border guard above.
-  // Deny is read first: its transparent resting fill is reachable only on the
-  // live, styled button, while a read on a detached button (opaque black, see
-  // resolvedBackgroundRgba) would pass Approve's checks by accident.
-  test("decision buttons are quiet: Approve is a neutral chip, Deny has no resting fill", async ({
+  // --- Decision buttons: computed-style guard (not a screenshot) ------------
+  // The buttons share `DecisionButton`: Allow is the kit's filled button in
+  // the monochrome primary (low chroma, never the success green), and Deny is
+  // outlined (a border, never the destructive red). A screenshot's 2%
+  // threshold can miss a hue swap on a small button, so assert the real
+  // computed colors — the same "rendered, not class-string" philosophy as the
+  // border guard above. Deny is read first: its border is drawn only on the
+  // live, styled button.
+  test("decision buttons: Allow is filled and neutral, never green; Deny is outlined, never red", async ({
     page,
     stigmerClient,
   }) => {
@@ -215,12 +214,21 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
     const gateRow = toolCallRow(page).filter({ has: approveButton(page) }).first();
     await expect(gateRow).toBeVisible({ timeout: 30_000 });
 
-    // Deny: a quiet ghost — transparent at rest (no fill).
+    // Deny: outlined — a visible border, and no red fill.
     await expect
-      .poll(async () => (await resolvedBackgroundRgba(denyButton(gateRow))).a, {
-        message: "Deny has no resting background fill",
+      .poll(async () => denyButton(gateRow).evaluate((el) => Number.parseFloat(getComputedStyle(el).borderTopWidth)), {
+        message: "Deny has a visible border",
       })
-      .toBe(0);
+      .toBeGreaterThanOrEqual(1);
+    await expect
+      .poll(
+        async () => {
+          const { r, g, b } = await resolvedBackgroundRgba(denyButton(gateRow));
+          return r - Math.max(g, b);
+        },
+        { message: "Deny's fill is not red" },
+      )
+      .toBeLessThanOrEqual(12);
 
     // Approve: opaque fill, but neutral grey (R≈G≈B) — not the success green
     // (whose green channel dominates).
