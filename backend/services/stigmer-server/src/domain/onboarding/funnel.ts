@@ -62,6 +62,8 @@ export interface OnboardingFunnelDeps {
   readonly displayResolver: PrincipalDisplayResolver;
   readonly internalAccounts: InternalAccounts;
   readonly logger: Logger;
+  /** The most organizations one count reads; {@link FUNNEL_CAP} unless a test names fewer. */
+  readonly cap?: number;
 }
 
 /** Counts the window's organizations at each step. */
@@ -121,9 +123,10 @@ async function readCohort(deps: OnboardingFunnelDeps, window: ReportWindow): Pro
       }
       if (!inWindow(organization, window)) continue;
       cohort.push(organization);
-      if (cohort.length > FUNNEL_CAP) {
+      const cap = deps.cap ?? FUNNEL_CAP;
+      if (cohort.length > cap) {
         throw invalidArgumentError(
-          `this window holds more than ${FUNNEL_CAP} new organizations, more than one count reads; ask for a narrower window`,
+          `this window holds more than ${cap} new organizations, more than one count reads; ask for a narrower window`,
         );
       }
     }

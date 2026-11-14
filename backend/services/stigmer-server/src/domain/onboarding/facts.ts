@@ -56,7 +56,7 @@ import type { OnboardingAgentFact, OnboardingFacts } from "./progress.js";
 export const AGENT_PAGE = 50;
 
 /** How many runs each read of the run index takes while looking for a completed one. */
-const RUN_PAGE = 200;
+export const RUN_PAGE = 200;
 
 /** The access list's person kind. */
 const ACCOUNT_KIND = kindEnumName(ApiResourceKind.identity_account);

@@ -103,9 +103,12 @@ describe("CLI-20 stigmer usage onboarding", () => {
     expect(text).toMatch(/6 Brought others in\s+1\s+3%/);
   });
 
-  it("prints protojson for -o json", async () => {
+  it("prints protojson for -o json, and as yaml for -o yaml", async () => {
     await onboarding("--from", "2026-11-01", "--to", "2026-11-07", "-o", "json");
     expect(JSON.parse(written.join(""))).toMatchObject({ organizations: 40, excluded: 2 });
+    written.length = 0;
+    await onboarding("--from", "2026-11-01", "--to", "2026-11-07", "-o", "yaml");
+    expect(written.join("")).toContain("organizations: 40");
   });
 
   it("counts the last week to today when no window is given", () => {
@@ -113,6 +116,9 @@ describe("CLI-20 stigmer usage onboarding", () => {
     expect(onboardingRange({}, now)).toEqual({ from: "2026-11-08", to: "2026-11-14" });
     expect(onboardingRange({ to: "2026-11-07" }, now)).toEqual({ from: "2026-11-01", to: "2026-11-07" });
     expect(onboardingRange({ from: "2026-10-01" }, now)).toEqual({ from: "2026-10-01", to: "2026-11-14" });
+    // An end that is no day or instant is sent as typed with no start, for the server to refuse in its words.
+    expect(onboardingRange({ to: "next week" }, now)).toEqual({ from: "", to: "next week" });
+    expect(onboardingRange({ to: "2026-11-07T12:00:00Z" }, now)).toEqual({ from: "2026-11-01", to: "2026-11-07T12:00:00Z" });
   });
 
   it("says plainly that only a platform operator may read the count, keeping the refusal as its cause", async () => {
@@ -122,6 +128,12 @@ describe("CLI-20 stigmer usage onboarding", () => {
     expect(error).toBeInstanceOf(CliExitError);
     expect((error as CliExitError).message).toBe(ONBOARDING_NOT_PERMITTED);
     expect((error as CliExitError).cause).toBe(refusal);
+  });
+
+  it("passes any other failure on as it came, for the CLI's own error handling", async () => {
+    const outage = new StigmerError("unavailable", "server unreachable", 14);
+    server.answer = () => Promise.reject(outage);
+    await expect(onboarding()).rejects.toBe(outage);
   });
 
   it("says plainly that an older server does not count onboarding, never an Unimplemented error", async () => {

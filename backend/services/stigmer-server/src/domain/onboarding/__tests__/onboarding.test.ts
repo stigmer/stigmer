@@ -17,6 +17,12 @@
  * organizations an internal address made left out and counted apart, each
  * step's count the number of organizations whose own read has it done, and
  * no name or address in the answer.
+ *
+ * And the edges: a run history longer than one page is read on until a
+ * completed run; a team on the access list is no teammate; a row whose
+ * bytes do not decode is skipped, never fatal; a refusal the reader chose
+ * passes through as itself; a window past the cap is refused with a
+ * narrower one asked for.
  */
 import { create, type DescMessage, type MessageShape } from "@bufbuild/protobuf";
 import { timestampFromMs } from "@bufbuild/protobuf/wkt";
@@ -39,9 +45,13 @@ import { tempStore, type TempStore } from "../../../store/sqlite/__tests__/suppo
 import { grantIdFor } from "../../grant/constants.js";
 import { newAccountDisplayResolver } from "../../grant/display-resolver.js";
 import { newResourceGrantStore } from "../../grant/resource-store.js";
-import { orgRole } from "../../grant/__tests__/support.js";
+import { orgRole, triple } from "../../grant/__tests__/support.js";
 import { newResourceIdentityAccountStore } from "../../identityaccount/resource-store.js";
 import { newOnboardingService, type OnboardingService } from "../service.js";
+import { newOnboardingFactsReader, RUN_PAGE, type OnboardingFactsDeps } from "../facts.js";
+import { countOnboardingFunnel } from "../funnel.js";
+import type { Store } from "../../../store/interface.js";
+import { Code, ConnectError } from "@connectrpc/connect";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 
@@ -172,6 +182,8 @@ beforeEach(async () => {
   await agent("org_team", "variance-reporter", "Variance Reporter");
   await organization("org_child", IN_WINDOW, "f6", "org_6");
   await organization("org_before", FROM - DAY, "f1");
+  // An organization row with no creation stamp is in no window.
+  await save(ApiResourceKind.organization, "org_unstamped", OrganizationSchema, create(OrganizationSchema, { metadata: { id: "org_unstamped" } }));
   await organization("org_after", TO + DAY, "f1");
 });
 
@@ -264,5 +276,87 @@ describe("the count", () => {
   it("counts an empty window as nobody", async () => {
     const funnel = await service().funnel({ fromMs: TO + 10 * DAY, toMs: TO + 11 * DAY });
     expect([funnel.organizations, funnel.excluded, funnel.steps.map((step) => step.reached)]).toEqual([0, 0, [0, 0, 0, 0, 0, 0]]);
+  });
+});
+
+/** The facts reader's ports over the world, with one undecodable row added to every indexed read. */
+function withCorruptRows(): OnboardingFactsDeps["store"] & Pick<Store, "queryResources"> {
+  const corrupt = { id: "corrupt", data: new Uint8Array([0xff, 0xff, 0xff]), cursor: { createdAt: "0", id: "corrupt" } };
+  return {
+    queryResources: (async (declaration, query) => [...(await temp.store.queryResources(declaration, query)), corrupt]) as Store["queryResources"],
+    countAuditEntries: (kind, id) => temp.store.countAuditEntries(kind, id),
+    getResource: ((kind, id, schema) => temp.store.getResource(kind, id, schema)) as Store["getResource"],
+  };
+}
+
+function factsDeps(store: OnboardingFactsDeps["store"]): OnboardingFactsDeps {
+  return {
+    store,
+    providerAvailability: { availability: () => Promise.resolve({ state: "missing", scope: "organization" }) },
+    grants: newResourceGrantStore(temp.store, { keepsHistory: false }),
+    displayResolver: newAccountDisplayResolver(newResourceIdentityAccountStore(temp.store)),
+    principalDisplay: undefined,
+    authenticationRequired: true,
+    logger: silentLogger,
+  };
+}
+
+describe("the edges", () => {
+  it("reads a run history past one page until a completed run", async () => {
+    await organization("org_paged", IN_WINDOW, "f0");
+    await run("org_paged", 0, RunPhase.RUN_COMPLETED);
+    for (let n = 1; n <= RUN_PAGE; n++) await run("org_paged", n, RunPhase.RUN_FAILED);
+    const answer = await service().progress("org_paged", "f0");
+    expect([done(answer.steps), answer.everRan]).toEqual([["key", "watch"], true]);
+  });
+
+  it("counts no team as a teammate", async () => {
+    const spec = triple({ kind: "team", id: "tm_ops", relation: "member" }, "member", { kind: "organization", id: "org_5" });
+    await newResourceGrantStore(temp.store, { keepsHistory: false }).save(create(GrantSchema, { metadata: { id: grantIdFor(spec) }, spec }));
+    const answer = await service().progress("org_5", "f5");
+    expect(answer.joinedCount).toBe(0);
+  });
+
+  it("skips a row whose bytes do not decode, and still reads the rest", async () => {
+    const facts = await newOnboardingFactsReader(factsDeps(withCorruptRows())).read("org_4", "f4");
+    expect([facts.changedAgent?.slug, facts.completedRun]).toEqual(["ticket-replier", true]);
+    const funnel = await countOnboardingFunnel(
+      {
+        store: withCorruptRows(),
+        facts: newOnboardingFactsReader(factsDeps(temp.store)),
+        displayResolver: newAccountDisplayResolver(newResourceIdentityAccountStore(temp.store)),
+        internalAccounts: parseInternalAccounts("*@stigmer.ai"),
+        logger: silentLogger,
+      },
+      { fromMs: FROM, toMs: TO },
+    );
+    expect([funnel.organizations, funnel.excluded]).toEqual([7, 1]);
+  });
+
+  it("passes a refusal the reader chose through as itself", async () => {
+    const onboarding = newOnboardingService({
+      ...factsDeps(temp.store),
+      providerAvailability: { availability: () => Promise.reject(new ConnectError("keys are resting", Code.Unavailable)) },
+      internalAccounts: parseInternalAccounts(""),
+    });
+    await expect(onboarding.progress("org_2", "")).rejects.toMatchObject({ code: Code.Unavailable, rawMessage: "keys are resting" });
+  });
+
+  it("refuses a window past the cap, asking for a narrower one", async () => {
+    const counting = countOnboardingFunnel(
+      {
+        store: temp.store,
+        facts: newOnboardingFactsReader(factsDeps(temp.store)),
+        displayResolver: newAccountDisplayResolver(newResourceIdentityAccountStore(temp.store)),
+        internalAccounts: parseInternalAccounts(""),
+        logger: silentLogger,
+        cap: 2,
+      },
+      { fromMs: FROM, toMs: TO },
+    );
+    await expect(counting).rejects.toMatchObject({
+      code: Code.InvalidArgument,
+      rawMessage: "this window holds more than 2 new organizations, more than one count reads; ask for a narrower window",
+    });
   });
 });
