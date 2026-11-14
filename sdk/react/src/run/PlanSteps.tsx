@@ -209,14 +209,13 @@ function PlanMark({ status, live, stoppedTone }: { readonly status: PlanItem["to
       </span>
     );
   }
+  const paused = stoppedTone === "paused";
+  const ring = status !== "in_progress" ? "stg:border-border" : paused ? "stg:border-status-degraded" : "stg:border-muted-foreground";
   return (
     <span
-      aria-label={status === "in_progress" ? (stoppedTone === "paused" ? "Paused" : "Stopped") : status === "cancelled" ? "Dropped" : "To do"}
+      aria-label={status === "in_progress" ? (paused ? "Paused" : "Stopped") : status === "cancelled" ? "Dropped" : "To do"}
       role="img"
-      className={cn(
-        "stg:mt-0.5 stg:h-4 stg:w-4 stg:shrink-0 stg:rounded-full stg:border",
-        status === "in_progress" ? (stoppedTone === "paused" ? "stg:border-status-degraded" : "stg:border-muted-foreground") : "stg:border-border",
-      )}
+      className={cn("stg:mt-0.5 stg:h-4 stg:w-4 stg:shrink-0 stg:rounded-full stg:border", ring)}
     />
   );
 }
