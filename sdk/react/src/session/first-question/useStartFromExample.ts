@@ -16,7 +16,8 @@
 
 import { useCallback, useState } from "react";
 import type { AgentInput, ResourceRef } from "@stigmer/client";
-import { StigmerError, getUserMessage } from "@stigmer/client";
+import { StigmerError } from "@stigmer/client";
+import { serverSentence } from "../../internal/server-words.js";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Example } from "@stigmer/examples";
 import { useStigmer } from "@stigmer/react-core";
@@ -87,8 +88,7 @@ function failureOf(of: string, agentName: string, error: unknown): FirstChoiceFa
   if (error instanceof StigmerError && error.code === "permission-denied") {
     return { of, title, detail: "You can't make agents in this organization. An admin can make it and share it with you." };
   }
-  const said = getUserMessage(error, "Stigmer couldn't reach the server").trim();
-  return { of, title, detail: `${/[.!?]$/.test(said) ? said : `${said}.`} Nothing in your organization changed.` };
+  return { of, title, detail: `${serverSentence(error)} Nothing in your organization changed.` };
 }
 
 /** The files a first run attaches, made from an example's inlined samples. */

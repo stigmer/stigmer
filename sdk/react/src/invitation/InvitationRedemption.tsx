@@ -285,7 +285,11 @@ export function InvitationRedemption({
 // ---------------------------------------------------------------------------
 
 function InvalidNotice({ reason }: { reason: string }) {
-  return <Notice tone="plain" headline={reason || "This invitation is no longer valid."} className="stg:mt-4" />;
+  return (
+    <Notice tone="plain" headline={reason || "This invitation is no longer valid."} className="stg:mt-4">
+      <p className="stg:m-0">Ask whoever sent it for a new link.</p>
+    </Notice>
+  );
 }
 
 // ---------------------------------------------------------------------------

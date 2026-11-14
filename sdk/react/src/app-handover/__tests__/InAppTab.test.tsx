@@ -353,7 +353,7 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
 
   it("says the tab couldn't be read when the organization read fails", async () => {
     renderPage({ defaultTab: "in-app" }, { orgFails: true });
-    expect(await screen.findByText("This tab couldn't be read")).toBeTruthy();
+    expect(await screen.findByText("Stigmer couldn't load the code for your app")).toBeTruthy();
   });
 
   it("asks the server again when its first answer failed", async () => {

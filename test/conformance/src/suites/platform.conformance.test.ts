@@ -107,6 +107,16 @@ describe("Platform conformance — getServerInfo", () => {
     expect(second.edition).toBe(first.edition);
     expect(second.version).toBe(first.version);
   });
+
+  it("[rpc:PlatformQueryController.getServerInfo] announces a help link only as an absolute https, http or mailto address with words of 1 to 40 characters", async () => {
+    const info = await clients.platformQuery.getServerInfo({});
+    // Whether a target sets one is its operator's choice; what it announces
+    // when it does is the contract every console renders as a link.
+    if (info.help === undefined) return;
+    expect(["https:", "http:", "mailto:"], `help.url ${info.help.url}`).toContain(new URL(info.help.url).protocol);
+    expect([...info.help.label].length, `help.label '${info.help.label}'`).toBeGreaterThanOrEqual(1);
+    expect([...info.help.label].length, `help.label '${info.help.label}'`).toBeLessThanOrEqual(40);
+  });
 });
 
 describe("Platform conformance — getLicenseStatus", () => {

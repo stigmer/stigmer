@@ -82,6 +82,10 @@
       "promise": "A coding agent can take a newcomer from one prompt to their agent's chat in their own app: sign-in, an example or their own agent, a live key check with no key in the chat, a first run, and the app's route and chat."
     },
     {
+      "id": "CLI-19",
+      "promise": "A command the server refused ends with the server's help link when the server sets one."
+    },
+    {
       "id": "INK-01",
       "promise": "Every state a run passes through has its own frame: loading, streaming, tools, approvals, file review, subagents, failure, completion."
     },
@@ -278,6 +282,10 @@
     {
       "id": "CON-12",
       "promise": "The journey's last step brings the team in: the organization named, an invite link with its roles in plain words, who has joined; accepting lands the person in the organization."
+    },
+    {
+      "id": "CON-13",
+      "promise": "Every console screen and every failure note offers the deployment's help link, or none when it sets none; a builder's app never shows it."
     },
     {
       "id": "DSK-01",

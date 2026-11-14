@@ -245,7 +245,7 @@ describe("formatError", () => {
   });
 });
 
-describe("the server's help line", () => {
+describe("CLI-19 a command the server refused ends with the server's help line", () => {
   const HELP = { url: "https://help.acme.example", label: "Ask IT" };
   const refusal = classify(new ConnectError("agent missing", Code.NotFound));
   const unreachable = classify(new ConnectError("fetch failed", Code.Unavailable, undefined, undefined, new Error("connect ECONNREFUSED 127.0.0.1:7234")));
