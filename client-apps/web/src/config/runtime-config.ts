@@ -25,6 +25,7 @@
 // ---------------------------------------------------------------------------
 
 import type { AuthMode } from "@/auth/types";
+import { reservedSignupParam } from "@/auth/oidc/signup-params";
 
 /**
  * Deployment-agnostic application configuration.
@@ -71,6 +72,18 @@ export interface RuntimeConfig {
 
   /** API audience for access token scoping. Required when `authMode` is `"oidc"`. */
   readonly oidcAudience: string;
+
+  /**
+   * Extra authorization-request parameters, as a query-string fragment,
+   * that open the identity provider's create-account screen when a person
+   * arrives at `/login?signup=1`. Optional: empty means the console asks
+   * with the standard `prompt=create` when the issuer advertises it, and
+   * with an ordinary sign-in otherwise. Set it from
+   * `NEXT_PUBLIC_OIDC_SIGNUP_PARAMS` for a provider that reads its own
+   * hint instead. A fragment naming a parameter the sign-in flow sets
+   * itself is refused at load (`auth/oidc/signup-params.ts`).
+   */
+  readonly oidcSignupParams: string;
 }
 
 const DEFAULTS: RuntimeConfig = {
@@ -80,6 +93,7 @@ const DEFAULTS: RuntimeConfig = {
   oidcIssuer: "",
   oidcClientId: "",
   oidcAudience: "https://api.stigmer.com/",
+  oidcSignupParams: "",
 };
 
 let _config: RuntimeConfig | null = null;
@@ -145,6 +159,7 @@ async function fetchConfigJson(): Promise<RuntimeConfig | null> {
       oidcIssuer: asString(json.oidcIssuer, DEFAULTS.oidcIssuer),
       oidcClientId: asString(json.oidcClientId, DEFAULTS.oidcClientId),
       oidcAudience: asString(json.oidcAudience, DEFAULTS.oidcAudience),
+      oidcSignupParams: asString(json.oidcSignupParams, DEFAULTS.oidcSignupParams),
     };
   } catch {
     return null;
@@ -161,6 +176,8 @@ function buildFromEnv(): RuntimeConfig {
       process.env.NEXT_PUBLIC_OIDC_CLIENT_ID ?? DEFAULTS.oidcClientId,
     oidcAudience:
       process.env.NEXT_PUBLIC_OIDC_AUDIENCE ?? DEFAULTS.oidcAudience,
+    oidcSignupParams:
+      process.env.NEXT_PUBLIC_OIDC_SIGNUP_PARAMS ?? DEFAULTS.oidcSignupParams,
   };
 }
 
@@ -181,6 +198,10 @@ function asAuthMode(value: unknown): AuthMode {
  * this refusal is where the operator learns what to do. The loader cannot
  * tell a server-synthesized file from a container's, so the copy names
  * both knobs. The Configuration Error screen renders it verbatim.
+ *
+ * The sign-up fragment is optional, so only a value that names a
+ * parameter the sign-in flow owns is refused: left in, it would silently
+ * rewrite the flow on every sign-up.
  */
 function validateOidcFields(config: RuntimeConfig): void {
   if (!config.oidcClientId) {
@@ -200,6 +221,14 @@ function validateOidcFields(config: RuntimeConfig): void {
     throw new Error(
       `Auth mode is "oidc" but required fields are missing: ${missing.join(", ")}. ` +
         "Check /config.json (container) or NEXT_PUBLIC_* env vars (.env).",
+    );
+  }
+
+  const reserved = reservedSignupParam(config.oidcSignupParams);
+  if (reserved !== undefined) {
+    throw new Error(
+      `NEXT_PUBLIC_OIDC_SIGNUP_PARAMS names "${reserved}", a parameter the console's sign-in flow sets itself. ` +
+        "Remove it: the setting carries only the extra parameters your identity provider reads to open its create-account screen.",
     );
   }
 }

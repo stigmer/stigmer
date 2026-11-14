@@ -36,4 +36,13 @@ export interface OidcConfig {
    * specified — the signed-out landing.
    */
   readonly postLogoutRedirectUri?: string;
+
+  /**
+   * Extra authorization-request parameters that open the provider's
+   * create-account screen, from the deployment's sign-up fragment
+   * (`NEXT_PUBLIC_OIDC_SIGNUP_PARAMS`, parsed by `signup-params.ts`).
+   * Empty or absent means the console asks with the standard
+   * `prompt=create` when the issuer advertises it (`oidc-manager.ts`).
+   */
+  readonly signupQueryParams?: Readonly<Record<string, string>>;
 }

@@ -71,7 +71,11 @@ describe("Hero", () => {
   it("heads the page with the headline and its two buttons", () => {
     render(<Hero />);
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(SITE_CONFIG.headline);
-    expect(screen.getByRole("link", { name: /Start free/ }).getAttribute("href")).toBe(SITE_CONFIG.cloudSignupUrl);
+    // The newcomer's first click opens the console's create-account screen,
+    // not its sign-in page: pinned to the address, not to the constant.
+    expect(screen.getByRole("link", { name: /Start free/ }).getAttribute("href")).toBe(
+      "https://app.stigmer.ai/login?signup=1",
+    );
     expect(screen.getByRole("link", { name: "Run the quickstart" }).getAttribute("href")).toBe(
       "/docs/getting-started/quickstart",
     );

@@ -125,6 +125,13 @@ describe("local OIDC issuer: the browser's code flow", () => {
     expect(document.end_session_endpoint).toBeUndefined();
   });
 
+  it("advertises prompt=create, so the console's sign-up arrival asks for it", async () => {
+    const document = (await (
+      await fetch(`${issuer.issuer}/.well-known/openid-configuration`)
+    ).json()) as Record<string, unknown>;
+    expect(document.prompt_values_supported).toContain("create");
+  });
+
   it("/authorize auto-consents and redirects to the client with a code and the state", async () => {
     const { challenge } = pkcePair();
     const { location } = await authorize(issuer, { challenge, state: "st-42" });

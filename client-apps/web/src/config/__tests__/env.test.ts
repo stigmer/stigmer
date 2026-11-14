@@ -25,6 +25,7 @@ const BASE: RuntimeConfig = {
   oidcIssuer: "https://issuer.example.com/",
   oidcClientId: "console",
   oidcAudience: "https://api.example.com/",
+  oidcSignupParams: "",
 };
 
 describe("env accessors", () => {
