@@ -163,7 +163,7 @@ export function onboardingRange(options: UsageFlags, now: Date): { readonly from
   const to = options.to ?? now.toISOString().slice(0, 10);
   if (options.from !== undefined) return { from: options.from, to };
   const end = /^\d{4}-\d{2}-\d{2}$/.test(to) ? Date.parse(`${to}T00:00:00Z`) : Date.parse(to);
-  if (Number.isNaN(end)) return { from: "", to };
+  if (Number.isNaN(end)) throw new UsageError(`--to "${to}" is not a UTC day (2026-11-07) or an RFC 3339 instant`);
   const from = new Date(end - (ONBOARDING_DEFAULT_DAYS - 1) * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   return { from, to };
 }

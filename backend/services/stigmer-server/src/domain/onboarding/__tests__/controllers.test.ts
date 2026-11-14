@@ -8,8 +8,9 @@
  *     caller left out of the people who joined; a denial is
  *     PERMISSION_DENIED with the annotation's copy and reads nothing.
  *   - getOnboardingFunnel (PlatformQueryController) asks
- *     `can_view_platform_usage` on platform:stigmer, refuses a missing bound
- *     or one that is no day or instant, and hands the service the window the
+ *     `can_view_platform_usage` on platform:stigmer, refuses a bound that is
+ *     no day or instant (an empty one never reaches it: the boundary's
+ *     validation refuses it first), and hands the service the window the
  *     usage reports read (a UTC day from its first instant through its
  *     last); a denial reads nothing.
  *
@@ -186,11 +187,10 @@ describe("getOnboardingFunnel", () => {
     expect(asked.funnel).toEqual([]);
   });
 
-  it("refuses a missing bound and one that is no day or instant", async () => {
+  it("refuses a bound that is no day or instant, reading nothing", async () => {
     for (const [fromDate, toDate, words] of [
-      ["", "2026-11-07", "from_date is required"],
-      ["2026-11-01", "", "to_date is required"],
       ["last week", "2026-11-07", "from_date must be a UTC date (YYYY-MM-DD) or an RFC 3339 timestamp"],
+      ["2026-11-01", "Friday", "to_date must be a UTC date (YYYY-MM-DD) or an RFC 3339 timestamp"],
     ] as const) {
       const error = await refusal(() => platform().getOnboardingFunnel({ fromDate, toDate }));
       expect([error.code, error.rawMessage]).toEqual([Code.InvalidArgument, words]);

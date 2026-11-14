@@ -21,6 +21,7 @@ import { OnboardingStepId } from "@stigmer/apis/ai/stigmer/tenancy/organization/
 import type { Config } from "../../config/index.js";
 import type { BackendClient } from "../../client/index.js";
 import { CliExitError } from "../../errors/cli-exit-error.js";
+import { UsageError } from "../../errors/index.js";
 import { buildProgram } from "../../program.js";
 import { ONBOARDING_NOT_PERMITTED, ONBOARDING_NOT_SERVED, onboardingRange } from "../usage.js";
 
@@ -116,8 +117,10 @@ describe("CLI-20 stigmer usage onboarding", () => {
     expect(onboardingRange({}, now)).toEqual({ from: "2026-11-08", to: "2026-11-14" });
     expect(onboardingRange({ to: "2026-11-07" }, now)).toEqual({ from: "2026-11-01", to: "2026-11-07" });
     expect(onboardingRange({ from: "2026-10-01" }, now)).toEqual({ from: "2026-10-01", to: "2026-11-14" });
-    // An end that is no day or instant is sent as typed with no start, for the server to refuse in its words.
-    expect(onboardingRange({ to: "next week" }, now)).toEqual({ from: "", to: "next week" });
+    // An end that is no day or instant is refused here, naming the flag the person typed.
+    expect(() => onboardingRange({ to: "next week" }, now)).toThrow(
+      new UsageError('--to "next week" is not a UTC day (2026-11-07) or an RFC 3339 instant'),
+    );
     expect(onboardingRange({ to: "2026-11-07T12:00:00Z" }, now)).toEqual({ from: "2026-11-01", to: "2026-11-07T12:00:00Z" });
   });
 

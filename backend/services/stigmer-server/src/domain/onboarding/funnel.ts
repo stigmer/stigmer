@@ -8,9 +8,8 @@
  * The cohort is the top-level organizations made in the window: the
  * organization list index's rows holding no `parent_org` (a child
  * organization is a customer's, made by its parent, not a newcomer), read
- * newest first from the window's start, with the rows made after its end
- * passed over after decoding. A row with no creation stamp is never in a
- * window. Each counted organization's steps are progress.ts's rule over
+ * newest first between the window's end and its start, so one count reads
+ * only its own window. A row with no creation stamp is never in a window. Each counted organization's steps are progress.ts's rule over
  * facts.ts's read, the same the console's card shows, with the
  * organization's creator (its `created_by` stamp) left out of the people
  * who joined, as the card leaves out the person looking at it.
@@ -97,13 +96,17 @@ export async function countOnboardingFunnel(
 }
 
 /**
- * The top-level organizations made in the window, read newest first from
- * the window's start a page at a time; rows made after its end are passed
- * over and not counted against the cap.
+ * The top-level organizations made in the window, read a page at a time
+ * newest first, from the window's end down to its start, so the read is the
+ * window's rows and no others. The decoded stamp is checked against both
+ * bounds as well, the authority over whatever the index answers.
  */
 async function readCohort(deps: OnboardingFunnelDeps, window: ReportWindow): Promise<Organization[]> {
   const cohort: Organization[] = [];
-  let after: ListIndexCursor | undefined;
+  // The index reads newest first, so the read starts just past the window's
+  // last instant: an organization made after the window is never read.
+  let after: ListIndexCursor | undefined =
+    window.toMs === undefined ? undefined : { createdAt: listIndexInstantOfMillis(window.toMs + 1), id: "" };
   for (;;) {
     const rows = await deps.store.queryResources(organizationListIndex, {
       withoutKeys: ["parent_org"],

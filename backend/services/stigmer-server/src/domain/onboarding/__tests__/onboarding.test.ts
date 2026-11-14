@@ -51,6 +51,7 @@ import { newOnboardingService, type OnboardingService } from "../service.js";
 import { newOnboardingFactsReader, RUN_PAGE, type OnboardingFactsDeps } from "../facts.js";
 import { countOnboardingFunnel, ORGANIZATION_PAGE } from "../funnel.js";
 import type { Store } from "../../../store/interface.js";
+import { listIndexInstantOfMillis } from "../../../store/list-index.js";
 import { Code, ConnectError } from "@connectrpc/connect";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
@@ -378,16 +379,27 @@ describe("the count's window", () => {
     );
   }
 
-  it("reads on past a page of organizations made after the window, and counts none of them", async () => {
-    for (let n = 0; n < ORGANIZATION_PAGE; n++) await organization(`org_later_${n}`, TO + DAY + n, "f1");
-    const funnel = await funnelOver(temp.store);
-    expect([funnel.organizations, funnel.excluded]).toEqual([7, 1]);
+  it("reads on past a page of the window's organizations, and none made after it", async () => {
+    // A page of the team's own, inside the window: read and left out, never asked about.
+    for (let n = 0; n < ORGANIZATION_PAGE; n++) await organization(`org_ours_${n}`, IN_WINDOW + 1000 + n, "team");
+    const read: { readonly after?: { readonly createdAt: string } }[] = [];
+    const recording: Pick<Store, "queryResources"> = {
+      queryResources: ((declaration, query) => {
+        read.push(query);
+        return temp.store.queryResources(declaration, query);
+      }) as Store["queryResources"],
+    };
+    const funnel = await funnelOver(recording);
+    expect([funnel.organizations, funnel.excluded]).toEqual([7, 1 + ORGANIZATION_PAGE]);
+    expect(read.length).toBe(2);
+    // The first read starts just past the window's last instant: org_after is never handed out.
+    expect(read[0]?.after?.createdAt).toBe(listIndexInstantOfMillis(TO + 1));
   });
 
-  it("holds its own bounds over rows a store hands out from before the window", async () => {
+  it("holds its own bounds over rows a store hands out from outside the window", async () => {
     const wide: Pick<Store, "queryResources"> = {
       queryResources: ((declaration, query) => {
-        const { createdAtOrAfter: _ignored, ...rest } = query;
+        const { createdAtOrAfter: _from, after: _to, ...rest } = query;
         return temp.store.queryResources(declaration, rest);
       }) as Store["queryResources"],
     };

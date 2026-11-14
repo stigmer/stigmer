@@ -125,7 +125,6 @@ import {
   type ModelProvider,
 } from "../../modelcatalog/provider-need.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
-import { invalidArgumentError } from "../../pipeline/errors.js";
 import type { OnboardingService } from "../onboarding/service.js";
 import { resolveReportWindow } from "../run/usage.js";
 import { PROVIDER_AVAILABILITY_UNAVAILABLE_COPY } from "../run/require-model-provider.js";
@@ -298,8 +297,9 @@ function getServerInfo(deps: PlatformControllerDeps): GetServerInfoOutput {
 /**
  * GetOnboardingFunnel: how far the organizations made in a window got on
  * the journey, for a platform operator (can_view_platform_usage on
- * platform:stigmer, the RPC's annotation). Both bounds are required and
- * read as the usage reports read them (domain/run/usage.ts).
+ * platform:stigmer, the RPC's annotation). Both bounds are required by the
+ * message's own rules, which the boundary checks before any handler runs,
+ * and are read as the usage reports read them (domain/run/usage.ts).
  */
 async function getOnboardingFunnel(
   deps: PlatformControllerDeps,
@@ -312,12 +312,6 @@ async function getOnboardingFunnel(
     callerIdentityOf(ctx),
     input,
   );
-  if (input.fromDate === "") {
-    throw invalidArgumentError("from_date is required");
-  }
-  if (input.toDate === "") {
-    throw invalidArgumentError("to_date is required");
-  }
   return deps.onboarding.funnel(resolveReportWindow(input.fromDate, input.toDate));
 }
 
