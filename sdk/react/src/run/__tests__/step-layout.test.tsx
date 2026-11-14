@@ -145,7 +145,7 @@ describe("each kind's lines", () => {
   });
 
   it("opens a File the turn wrote, saying where it opens, with no chevron", () => {
-    const openOutputPath = vi.fn(() => true);
+    const openOutputPath = vi.fn();
     const opener: OutputFileOpener = { opensIn: "panel", hasOutputPath: () => true, openOutputPath };
     const write = toolUse({ name: "write_file", input: { path: "/workspace/.stigmer/outputs/audit.md", content: "# Audit\n" }, result: "ok" });
     const { container } = render(

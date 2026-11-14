@@ -692,9 +692,7 @@ export function SessionViewer({
       hasOutputPath: (path) => outputAt(path) !== undefined,
       openOutputPath: (path) => {
         const file = outputAt(path);
-        if (file === undefined) return false;
-        handleOpenOutputFile(file);
-        return true;
+        if (file !== undefined) handleOpenOutputFile(file);
       },
     }),
     [panelEnabled, outputAt, handleOpenOutputFile],
