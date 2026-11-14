@@ -9,15 +9,18 @@
  * equals max), the waiting gauge must read the queued request meanwhile,
  * and once the connection is released the same pool must serve again. The
  * store is pinned to the same posture through `PostgresStore.open`'s pool
- * options.
+ * options, and its idle-connection error is a WARN, driven for real by
+ * terminating the store's idle backend.
  *
  * Gated on TEST_DATABASE_URL (support.ts): visible skips without a
  * database, always exercised in CI via the ci.stigmer-server service
  * container.
  */
+import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { DatabaseUnavailableError } from "../../interface.js";
+import type { StoreLogger } from "../../logger.js";
 import { newBoundedPool } from "../pool.js";
 import { PostgresStore } from "../store.js";
 import { createTestDatabase, testDatabaseAdminUrl, type TestDatabase } from "./support.js";
@@ -80,5 +83,39 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)("a bounded pool with every
       await store.close();
     }
     expect(store.poolStats()).toEqual({ max: 0, total: 0, idle: 0, waiting: 0, checkoutFailures: 0 });
+  });
+
+  it("logs each terminated idle connection as a WARN and keeps serving", async () => {
+    const warns: Array<{ message: string; fields?: Record<string, unknown> }> = [];
+    const logger: StoreLogger = {
+      debug() {},
+      info() {},
+      warn(message, fields) {
+        warns.push({ message, fields });
+      },
+    };
+    const store = await PostgresStore.open(db.databaseUrl, logger);
+    const admin = new pg.Client({ connectionString: db.databaseUrl });
+    await admin.connect();
+    try {
+      // The migration client went back to the pool idle at open.
+      expect(store.poolStats().idle).toBeGreaterThan(0);
+      await admin.query(
+        "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid()",
+      );
+      const deadline = Date.now() + 5_000;
+      while (warns.length === 0 && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+      expect(warns.length).toBeGreaterThan(0);
+      for (const warn of warns) {
+        expect(warn.message).toBe("postgres pool idle-connection error");
+        expect(typeof warn.fields?.["error"]).toBe("string");
+      }
+      expect(await store.bootstrapState.get("absent-key")).toBe("");
+    } finally {
+      await admin.end();
+      await store.close();
+    }
   });
 });
