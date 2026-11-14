@@ -7,6 +7,7 @@ import { useRenderTracer } from "../internal/dev/index.js";
 import { ToolCallItem } from "./ToolCallItem.js";
 import { ToolRunGroup } from "./ToolRunGroup.js";
 import { segmentToolCalls } from "./segment-tool-calls.js";
+import { StepPlaceContext, useStepPlace } from "./step-place.js";
 
 /** Props for {@link ToolCallGroup}. */
 export interface ToolCallGroupProps {
@@ -30,6 +31,12 @@ export interface ToolCallGroupProps {
    * stretch, a plan's to-do), so a card is never drawn inside a card.
    */
   readonly framed?: boolean;
+  /**
+   * Whether a hairline divides the steps. Defaults to `true`, the rows of a
+   * card of steps; `false` for steps that hang on a rail under a plan's
+   * to-do or a helper, where the rail is the inset and nothing divides them.
+   */
+  readonly divided?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -54,6 +61,7 @@ export function toolCallGroupPropsEqual(
   return (
     prev.formatSummary === next.formatSummary &&
     prev.framed === next.framed &&
+    prev.divided === next.divided &&
     prev.className === next.className
   );
 }
@@ -84,39 +92,45 @@ export const ToolCallGroup = memo(function ToolCallGroup({
   toolUses,
   formatSummary,
   framed = true,
+  divided = true,
   className,
 }: ToolCallGroupProps) {
   useRenderTracer("ToolCallGroup", { toolCallCount: toolUses.length });
 
   const segments = useMemo(() => segmentToolCalls(toolUses), [toolUses]);
+  const outer = useStepPlace();
+  const rows = divided ? "card" : "rail";
+  const place = useMemo(() => ({ rows, inHelper: outer.inHelper }) as const, [rows, outer.inHelper]);
 
   if (toolUses.length === 0) return null;
 
   const ariaLabel = `${toolUses.length} tool ${toolUses.length === 1 ? "call" : "calls"}`;
 
   return (
-    <div
-      role="group"
-      aria-label={ariaLabel}
-      data-cursor-target="tool-call-group"
-      className={cn(
-        framed && "stg:overflow-hidden stg:rounded-lg stg:border stg:border-border stg:bg-card",
-        className,
-      )}
-    >
-      {segments.map((segment) =>
-        segment.kind === "run" ? (
-          <ToolRunGroup
-            key={segment.key}
-            category={segment.category}
-            toolUses={segment.toolUses}
-            formatLabel={formatSummary}
-            className="stg:border-b stg:border-border-muted stg:last:border-b-0"
-          />
-        ) : (
-          <ToolCallItem key={segment.key} toolUse={segment.toolUse} bordered={false} />
-        ),
-      )}
-    </div>
+    <StepPlaceContext.Provider value={place}>
+      <div
+        role="group"
+        aria-label={ariaLabel}
+        data-cursor-target="tool-call-group"
+        className={cn(
+          framed && "stg:overflow-hidden stg:rounded-lg stg:border stg:border-border stg:bg-card",
+          className,
+        )}
+      >
+        {segments.map((segment) =>
+          segment.kind === "run" ? (
+            <ToolRunGroup
+              key={segment.key}
+              category={segment.category}
+              toolUses={segment.toolUses}
+              formatLabel={formatSummary}
+              className={divided ? "stg:border-b stg:border-border-muted stg:last:border-b-0" : undefined}
+            />
+          ) : (
+            <ToolCallItem key={segment.key} toolUse={segment.toolUse} bordered={false} />
+          ),
+        )}
+      </div>
+    </StepPlaceContext.Provider>
   );
 }, toolCallGroupPropsEqual);

@@ -1,13 +1,14 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import type { ToolUse } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
-import { ToolCallItem, CATEGORY_ICON } from "./ToolCallItem.js";
+import { ToolCallItem } from "./ToolCallItem.js";
 import type { ToolCategory } from "@stigmer/react-core";
-import { SpinnerIcon } from "../internal/thread-card/glyphs.js";
+import { DoneTick, FailedGlyph, SpinnerIcon, ThreadCardStep } from "../internal/thread-card/index.js";
+import { StepPlaceContext, useStepPlace } from "./step-place.js";
 
 /** Props for {@link ToolRunGroup}. */
 export interface ToolRunGroupProps {
@@ -27,9 +28,10 @@ export interface ToolRunGroupProps {
 
 /**
  * The thread's *only* collapse: a run of consecutive low-signal same-category
- * calls (read / list / search) folded into one chip — the noise-reduction half
- * of the persistent-row timeline. Collapsed, it reads as one line ("Read 5
- * files"); expanded, it reveals the individual {@link ToolCallItem} rows.
+ * calls (read / list / search) folded into one step — the noise-reduction
+ * half of the persistent-row timeline. Collapsed, it reads as one step ("Read
+ * 5 files") with a step's mark (the tick once every call is done); opened, it
+ * shows the individual {@link ToolCallItem} rows on a rail under its words.
  *
  * Unlike the old per-turn group, this folds *only* genuine repetition, and it
  * auto-opens (and stays open) while a folded call runs or waits for a person —
@@ -57,71 +59,43 @@ export const ToolRunGroup = memo(function ToolRunGroup({
   const status = deriveAggregateStatus(toolUses);
   const isShimmering = status === "running";
   // Reads are not asked about by default, but a hook can ask about any
-  // call: a waiting one inside the fold keeps the chip open, mirroring
+  // call: a waiting one inside the fold keeps it open, mirroring
   // SubagentSection.
-  const [expanded, handleToggle] = useAutoDisclosure(
-    isShimmering || status === "waiting",
-  );
+  const [expanded, handleToggle] = useAutoDisclosure(isShimmering || status === "waiting");
+  const outer = useStepPlace();
+  const rail = useMemo(() => ({ rows: "rail", inHelper: outer.inHelper }) as const, [outer.inHelper]);
 
-  const label = formatLabel
-    ? formatLabel(toolUses)
-    : defaultRunLabel(category, toolUses.length);
-  const Icon = CATEGORY_ICON[category];
-  const StatusIcon = STATUS_ICON[status];
+  const label = formatLabel ? formatLabel(toolUses) : defaultRunLabel(category, toolUses.length);
 
   return (
-    <div
-      role="group"
-      aria-label={label}
-      data-cursor-target="tool-run-group"
-      className={className}
-    >
-      {/* Quiet chrome (stigmer#274): the folded run is metadata-only by
-          construction (its categories are the quiet set), so the chip renders
-          as an unboxed line — same tier as the lone read/list/search rows it
-          folds — never a bordered card shouting over the conversation. */}
-      <button
-        type="button"
-        aria-expanded={expanded}
-        onClick={handleToggle}
-        className={cn(
-          "stg:flex stg:w-full stg:cursor-pointer stg:items-center stg:gap-2 stg:px-3 stg:py-2 stg:text-left stg:text-sm stg:text-muted-foreground stg:transition-colors",
-          "stg:hover:bg-muted-subtle",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
-        )}
-      >
-        <span className="stg:shrink-0 stg:text-muted-foreground" aria-hidden="true">
-          <Icon />
-        </span>
-        {/* A running fold carries the ambient-liveness sweep on its label
-            (stigmer#277); the shimmer class owns `color`, so it replaces the
-            static color utility rather than fighting it. */}
-        <span
-          className={cn(
-            "stg:min-w-0 stg:flex-1 stg:truncate",
-            isShimmering ? "stgm-shimmer-label" : "stg:text-foreground",
-          )}
-        >
-          {label}
-        </span>
-        {StatusIcon && (
-          <span className={cn("stg:shrink-0", STATUS_COLOR[status])} aria-hidden="true">
-            <StatusIcon />
+    <div role="group" aria-label={label} data-cursor-target="tool-run-group" className={className}>
+      <ThreadCardStep
+        gesture={{ kind: "expand", expanded, onToggle: handleToggle, label }}
+        place={outer.rows === "rail" ? "rail" : "card"}
+        mark={<RunMark status={status} />}
+        title={
+          // A running fold carries the ambient-liveness sweep on its label
+          // (stigmer#277); the shimmer class owns `color`, so it replaces the
+          // static color utility rather than fighting it. Done, it goes quiet.
+          <span className={cn("stg:min-w-0 stg:truncate", isShimmering ? "stgm-shimmer-label stg:font-medium" : status === "failed" ? "stg:font-medium stg:text-foreground" : "stg:text-muted-foreground")}>
+            {label}
           </span>
-        )}
-        <ChevronIcon expanded={expanded} />
-      </button>
-
-      {expanded && (
-        // With no card frame, the disclosed rows sit under a light left rail
-        // (the quiet-tier body containment, mirroring ThreadCardBody's rail)
-        // as divider-separated rows — their container owns the frame.
-        <div className="stg:ml-4 stg:border-l-2 stg:border-border-muted stg:pl-2">
-          {toolUses.map((tu) => (
-            <ToolCallItem key={tu.id} toolUse={tu} bordered={false} />
-          ))}
-        </div>
-      )}
+        }
+        bodySpan="rail"
+        body={
+          expanded ? (
+            // Its calls hang on a rail under its words, undivided, as a
+            // to-do's steps do.
+            <StepPlaceContext.Provider value={rail}>
+              <div className="stg:border-l-2 stg:border-border stg:pl-3">
+                {toolUses.map((tu) => (
+                  <ToolCallItem key={tu.id} toolUse={tu} bordered={false} />
+                ))}
+              </div>
+            </StepPlaceContext.Provider>
+          ) : undefined
+        }
+      />
     </div>
   );
 }, toolRunGroupPropsEqual);
@@ -182,62 +156,19 @@ function deriveAggregateStatus(toolUses: readonly ToolUse[]): AggregateStatus {
   return "completed";
 }
 
-const STATUS_COLOR: Record<AggregateStatus, string> = {
-  running: "stg:text-foreground",
-  waiting: "stg:text-status-degraded",
-  failed: "stg:text-destructive",
-  completed: "stg:text-status-ready",
-};
-
-// `completed` is deliberately iconless — success is the silent default,
-// matching the tool rows' own status vocabulary (stigmer#274).
-const STATUS_ICON: Record<AggregateStatus, (() => React.JSX.Element) | null> = {
-  running: SpinnerIcon,
-  waiting: ClockIcon,
-  failed: XCircleIcon,
-  completed: null,
-};
-
-// ---------------------------------------------------------------------------
-// Inline SVG icons — kept inline for SDK independence (codebase pattern)
-// ---------------------------------------------------------------------------
-
-function ClockIcon() {
+/** The fold's mark, as a step's: the tick once all are done, the spinner while one works or waits, a red (!) when one failed. */
+function RunMark({ status }: { readonly status: AggregateStatus }) {
+  if (status === "completed") return <DoneTick />;
+  if (status === "failed") {
+    return (
+      <span className="stg:flex stg:text-status-failed" aria-hidden="true">
+        <FailedGlyph />
+      </span>
+    );
+  }
   return (
-    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="6" cy="6" r="4.5" />
-      <path d="M6 3.5V6L7.5 7.5" />
-    </svg>
-  );
-}
-
-function XCircleIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="6" cy="6" r="4.5" />
-      <path d="M4.5 4.5L7.5 7.5M7.5 4.5L4.5 7.5" />
-    </svg>
-  );
-}
-
-function ChevronIcon({ expanded }: { expanded: boolean }) {
-  return (
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 10 10"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={cn(
-        "stg:shrink-0 stg:text-muted-foreground stg:transition-transform stg:duration-150",
-        expanded && "stg:rotate-90",
-      )}
-      aria-hidden="true"
-    >
-      <path d="M3.5 2L6.5 5L3.5 8" />
-    </svg>
+    <span className="stg:flex stg:text-status-running" aria-hidden="true">
+      <SpinnerIcon size={12} />
+    </span>
   );
 }

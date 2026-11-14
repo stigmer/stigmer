@@ -80,6 +80,7 @@
   --color-status-running: var(--stgm-status-running);
   --color-status-running-foreground: var(--stgm-status-running-foreground);
   --color-status-running-subtle: var(--stgm-status-running-subtle);
+  --color-status-running-band: var(--stgm-status-running-band);
   --color-status-pending: var(--stgm-status-pending);
   --color-status-pending-foreground: var(--stgm-status-pending-foreground);
   --color-status-pending-subtle: var(--stgm-status-pending-subtle);

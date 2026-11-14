@@ -47,7 +47,7 @@ function itemLine(words: string): HTMLElement {
 
 /** The control that opens an item to its steps. */
 function itemToggle(words: string): HTMLButtonElement {
-  return itemLine(words).querySelector<HTMLButtonElement>(":scope > button")!;
+  return itemLine(words).querySelector<HTMLButtonElement>(":scope > div > button")!;
 }
 
 /** A plan whose item in progress has a step waiting on a person's answer. */
@@ -101,7 +101,7 @@ describe("PlanSteps", () => {
     expect(within(itemLine("Fix it")).getByRole("img", { name: "Stopped" }).className).toContain("stg:border-muted-foreground");
   });
 
-  it("sets the item in hand's own line on the running band, not its steps, and done items in the foreground", () => {
+  it("sets the item in hand and its steps on the running band, and quiets done and to-do items", () => {
     render(
       <PlanSteps
         working
@@ -114,10 +114,13 @@ describe("PlanSteps", () => {
         )}
       />,
     );
-    expect(screen.getByText("Fix it").closest("div")!.className).toContain("stg:bg-status-running-subtle");
-    expect(itemLine("Fix it").className).not.toContain("stg:bg-status-running-subtle");
-    expect(itemLine("Read the code").innerHTML).not.toContain("stg:bg-status-running-subtle");
-    expect(screen.getByText("Read the code").className).toContain("stg:text-foreground");
+    // The band is the item's whole step, its steps included (the session
+    // page, S33), on the band token whose muted words the theme contract holds.
+    expect(screen.getByText("Fix it").closest("div")!.className).toContain("stg:bg-status-running-band");
+    expect(itemLine("Read the code").innerHTML).not.toContain("stg:bg-status-running-band");
+    expect(screen.getByText("Fix it").className).toContain("stg:font-medium");
+    // Done reads quiet beside its green tick.
+    expect(screen.getByText("Read the code").className).toContain("stg:text-muted-foreground");
     // To do stays at the readable muted tone, never the faint one.
     expect(screen.getByText("Test it").className).toContain("stg:text-muted-foreground");
   });
@@ -134,7 +137,7 @@ describe("PlanSteps", () => {
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
     // No count on the item: its steps are right below it.
     expect(toggle.textContent).not.toMatch(/\d+ steps?/);
-    expect(within(toggle).getByRole("img", { name: "In progress" })).toBeTruthy();
+    expect(within(itemLine("Fix it")).getByRole("img", { name: "In progress" })).toBeTruthy();
     expect(document.getElementById(toggle.getAttribute("aria-controls")!)?.querySelector('[role="group"]')?.getAttribute("aria-label")).toBe("2 tool calls");
   });
 
@@ -210,6 +213,7 @@ describe("PlanSteps", () => {
         working
         steps={stepsOf(
           call("c0", "edit_file", { path: "a.ts" }),
+          call("c3", "read_file", { path: "c.ts" }),
           use(R, "c1", "execute", { command: "npm run build" }),
           use(R, "c2", "delete_file", { path: "b.ts" }, { ask: true }),
           asked(R, "c2"),
@@ -226,7 +230,13 @@ describe("PlanSteps", () => {
 
     fireEvent.click(fold);
     expect(fold.getAttribute("aria-expanded")).toBe("true");
-    expect(screen.getAllByRole("group", { name: "1 tool call" })).toHaveLength(2);
+    expect(screen.getAllByRole("group", { name: "2 tool calls" })).toHaveLength(1);
+  });
+
+  it("keeps a single settled step outside any item as its own row, not a fold", () => {
+    render(<PlanSteps working steps={stepsOf(call("c0", "edit_file", { path: "a.ts" }), todos("t", [{ content: "Test it", status: "pending" }]))} />);
+    expect(screen.queryByRole("button", { name: /^Steps so far/ })).toBeNull();
+    expect(screen.getByText("Edited")).toBeTruthy();
   });
 
   it("draws no foot when every step sits under an item", () => {
@@ -258,11 +268,12 @@ describe("PlanSteps", () => {
           use(R, "c1", "execute", { command: "npm test" }),
           result(R, "c1", "1 failed\n[Command failed with exit code 1]"),
           call("c2", "read_file", { path: "a.ts" }),
+          call("c3", "read_file", { path: "b.ts" }),
           todos("t", [{ content: "Test it", status: "pending" }]),
         )}
       />,
     );
-    const fold = screen.getByRole("button", { name: /^Steps so far: read 1 file/ });
+    const fold = screen.getByRole("button", { name: /^Steps so far: read 2 files/ });
     expect(fold.getAttribute("aria-expanded")).toBe("false");
     expect(screen.getByText("Command failed")).toBeTruthy();
   });

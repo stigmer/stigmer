@@ -3,7 +3,7 @@ import type {
   CapturedFileChange,
   FileChangeSet,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { FileReviewSet } from "@stigmer/client";
+import type { FileReviewFile, FileReviewSet } from "@stigmer/client";
 import {
   fileForRowPath,
   fileReviewRowChange,
@@ -91,6 +91,30 @@ export function useFileReviewRowChange(
     if (fileForRowPath(set, rowPath)) {
       return fileReviewRowChange(changeSetsById.get(set.changeSetId), rowPath);
     }
+  }
+  return null;
+}
+
+/**
+ * The file of its turn's review a transcript row's path refers to, or `null`
+ * when the turn has no review (review off, an embed's end user) or the path
+ * is not among its files. Its `change` says what the turn did to the file
+ * (`added` for a file the turn made), which nothing in the call itself
+ * records, so a write row reads "Created" from it.
+ *
+ * The file sibling of {@link useFileReviewRowChange}: the same newest-first
+ * walk over the turn's reviews, through the same path match.
+ *
+ * @param runId The row's turn (`ToolUse.runId`).
+ * @param rowPath The row's file path; `null` for a row that names no file.
+ */
+export function useFileReviewRowFile(runId: string, rowPath: string | null): FileReviewFile | null {
+  const { fileReviewByRunId } = useContext(FileReviewContext);
+  if (!rowPath) return null;
+  const sets = fileReviewByRunId.get(runId) ?? NO_SETS;
+  for (let i = sets.length - 1; i >= 0; i--) {
+    const file = fileForRowPath(sets[i]!, rowPath);
+    if (file) return file;
   }
   return null;
 }

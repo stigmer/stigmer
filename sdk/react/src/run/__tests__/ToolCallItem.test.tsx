@@ -218,8 +218,8 @@ describe("ToolCallItem disclosure", () => {
     const header = rowHeader(container);
     expect(header.textContent).toContain("Send message");
     expect(within(header).getByText("acme/slack")).toBeTruthy();
-    // The first argument sits beside the line.
-    expect(within(header).getByText("general")).toBeTruthy();
+    // The first argument, in quotes, on the line under it (the session page, S35).
+    expect(within(header).getByText("“general”")).toBeTruthy();
     expect(hasHeaderChevron(container)).toBe(true);
     expect(isExpanded(container)).toBe(false);
     expect(previewBody(container)).toBeNull();
@@ -243,7 +243,7 @@ describe("ToolCallItem disclosure", () => {
     expect(within(header).getByText("exit 2")).toBeTruthy();
     const command = within(header).getByText("ls /secret/abs/path");
     expect(command.className).toContain("stg:font-mono");
-    expect(header.querySelector(".stg\\:text-destructive")).not.toBeNull();
+    expect(header.querySelector(".stg\\:text-status-failed")).not.toBeNull();
     expect(within(header).getByText("Command failed").className).toContain("stg:font-medium");
     expect(isExpanded(container)).toBe(true);
     expect(rowHeaderToggle(container)?.getAttribute("aria-label")).toBe("Command failed ls /secret/abs/path, exit 2");
@@ -420,9 +420,9 @@ describe("ToolCallItem disclosure", () => {
       );
       expect(hasHeaderChevron(container)).toBe(false);
       expect(previewBody(container)?.textContent).toContain("# Notes");
-      // A quiet line holds its body under a left rail, not a frame.
+      // A quiet line holds its body under its words, in the step's grid.
       expect(isQuietLine(container)).toBe(true);
-      expect(previewBody(container)?.className).toContain("stg:border-l-2");
+      expect(previewBody(container)?.hasAttribute("data-step-body")).toBe(true);
       cleanup();
 
       // With nothing to show, a preview kind is a static line as well.
@@ -459,9 +459,9 @@ describe("ToolCallItem disclosure", () => {
     const tu = toolUse({ id: "tc-gated", name: "delete_file", ask: {} });
     const { container } = render(<ToolCallItem toolUse={tu} />);
     expect(screen.queryByLabelText("Allow")).toBeNull();
-    // The waiting call still reads as waiting: the clock, in the at-risk
-    // colour the theme contract measures as text on the page.
-    expect(container.querySelector(".stg\\:text-status-degraded")).not.toBeNull();
+    // A call waiting on someone else is drawn running (the session page,
+    // S48): the running spinner, its words saying whom it waits on.
+    expect(container.querySelector(".stg\\:text-status-running")).not.toBeNull();
   });
 
   it("renders a waiting preview tool's actions inline with no chevron", () => {
@@ -603,13 +603,20 @@ describe("ToolCallItem disclosure", () => {
     const tu = toolUse({
       name: "task",
       input: { description: "Survey the docs" },
-      thread: thread({ agentName: "researcher", input: "Find every page", state: "completed" }),
+      thread: thread({
+        agentName: "researcher",
+        input: "Find every page",
+        state: "completed",
+        items: [toolUse({ id: "tc-inner", name: "Read", input: { path: "/docs/index.md" }, result: "# Docs\n" })],
+      }),
       result: "done",
     });
     const { container } = render(<ToolCallItem toolUse={tu} />);
     expect(container.textContent).toContain("Survey the docs");
     fireEvent.click(rowHeaderToggle(container)!);
-    expect(container.textContent).toContain("Find every page");
+    // Its body is its own steps; its brief is not drawn (the session page, S43).
+    expect(container.textContent).toContain("Read index.md");
+    expect(container.textContent).not.toContain("Find every page");
   });
 
   it("falls back to the subagent's name when the task call carries no description", () => {
@@ -635,9 +642,9 @@ describe("ToolCallItem disclosure", () => {
     const header = rowRoot(container).firstElementChild as HTMLElement;
     expect(within(header).getByText("researcher").className).toBe(tagClasses());
     expect(within(header).queryByText("Running")).toBeNull();
-    // The row's header is the helper's header: its body opens to the work.
+    // The row's header is the helper's header, and its brief is not drawn.
     expect(container.textContent?.match(/researcher/g)).toHaveLength(1);
-    expect(container.textContent).toContain("Look in billing");
+    expect(container.textContent).not.toContain("Look in billing");
     cleanup();
 
     render(<ToolCallItem toolUse={toolUse({ name: "task", input: { description: "Find it" }, thread: thread({ agentName: "" }), state: "running" })} />);
@@ -786,10 +793,10 @@ describe("ToolCallItem density tier", () => {
     expect(container.querySelector(".stgm-shimmer-label")).toBeNull();
   });
 
-  it("contains a quiet row's disclosed body under a left rail instead of a border", () => {
+  it("holds a quiet row's disclosed body under its words, in the step's one box", () => {
     // Grep is a summary category with a real result body: expanding the quiet
-    // line must bound the body with the rail (the ThinkingMessage precedent),
-    // never leave it bleeding into the thread.
+    // line puts the body under the step's words (the step grid's second row),
+    // in the inset box, never bleeding into the thread.
     const tc = toolUse({
       name: "Grep",
       input: { pattern: "foo" },
@@ -797,22 +804,27 @@ describe("ToolCallItem density tier", () => {
     });
     const { container } = render(<ToolCallItem toolUse={tc} />);
     fireEvent.click(rowHeaderToggle(container)!);
-    expect(container.querySelector(".stg\\:border-l-2")).not.toBeNull();
+    const body = container.querySelector("[data-step-body]");
+    expect(body).not.toBeNull();
+    expect(body!.querySelector(".stg\\:bg-muted-faint")).not.toBeNull();
   });
 });
 
 // ---------------------------------------------------------------------------
-// Status vocabulary — success is silent, everything visible carries signal
+// Status vocabulary — the owner's ruling of 2026-11-14: a finished step shows
+// the green tick (stigmer#274's silent default reversed); running, failed and
+// waiting stand out by hue
 // ---------------------------------------------------------------------------
 
 describe("ToolCallItem status vocabulary", () => {
-  it("renders no status icon on a completed row — success is the silent default", () => {
+  it("marks a completed row with the green tick and quiets its words", () => {
     const { container } = render(
       <ToolCallItem
         toolUse={toolUse({ name: "Bash", input: { command: "echo hi" }, result: "hi" })}
       />,
     );
-    expect(container.querySelector(".stg\\:text-status-ready")).toBeNull();
+    expect(container.querySelector(".stg\\:bg-status-ready")).not.toBeNull();
+    expect(screen.getByText("Ran a command").className).toContain("stg:text-muted-foreground");
   });
 
   it("keeps the failed icon — failure shouts", () => {
@@ -825,7 +837,7 @@ describe("ToolCallItem status vocabulary", () => {
         })}
       />,
     );
-    expect(container.querySelector(".stg\\:text-destructive")).not.toBeNull();
+    expect(container.querySelector(".stg\\:text-status-failed")).not.toBeNull();
   });
 });
 
@@ -940,7 +952,7 @@ describe("ToolCallItem header controls", () => {
       <ToolCallItem toolUse={toolUse({ name: "Grep", input: { pattern: "invoices" }, result: "a.ts:1: x\nb.ts:2: y" })} />,
     );
     // "a.ts:1: x" is a match in a file, as ripgrep and other engines print it.
-    expect(rowHeaderToggle(search.container)?.getAttribute("aria-label")).toBe("Searched for invoices, 2 matches");
+    expect(rowHeaderToggle(search.container)?.getAttribute("aria-label")).toBe("Searched for invoices, 2 matches in 2 files");
   });
 
   it("keeps the file control out of the toggle: its own target, acting without opening or closing the row", () => {
@@ -1048,7 +1060,8 @@ describe("ToolCallItem step line", () => {
       const header = rowHeader(container);
       expect(header.textContent).toContain("Wrote notes.md");
       expect(within(header).getByText(added)).toBeTruthy();
-      expect(within(header).getByText("−0")).toBeTruthy();
+      // A whole-file write counts what it wrote: no "−0" (the session page, S45).
+      expect(within(header).queryByText("−0")).toBeNull();
       unmount();
     }
   });

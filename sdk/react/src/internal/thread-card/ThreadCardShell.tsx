@@ -25,6 +25,12 @@ import { ChevronIcon } from "./glyphs.js";
  *   the header's own (a file link, a Stop button) reachable above the toggle.
  * - {@link ThreadCardBody} — the disclosed content area's padding
  *   contract.
+ * - {@link ThreadCardStep} — a step's own layout (a tool call, a helper, a
+ *   plan's to-do): one grid of the mark, the words (its line and the line
+ *   under it), the trail (badges, the time, the chevron) and the opened
+ *   body, so the body starts under the step's words and ends before its
+ *   trail, for every kind. The header and body above stay the quiet rows'
+ *   layout (a thought, recalled memories) and the approval's.
  *
  * The shell owns layout + chrome + a11y, nothing more: no data fetching,
  * no presenters, no disclosure policy (those stay per-thread). It renders
@@ -238,7 +244,9 @@ export interface ThreadCardHeaderControlProps {
  * header, so a control shared by both layouts can always use it.
  */
 export function ThreadCardHeaderControl({ className, children }: ThreadCardHeaderControlProps) {
-  return <span className={cn("stg:relative stg:z-10", className)}>{children}</span>;
+  // pointer-events-auto: a step's words take no pointer (its toggle below
+  // them does), and a control among them takes it back.
+  return <span className={cn("stg:pointer-events-auto stg:relative stg:z-10", className)}>{children}</span>;
 }
 
 // ---------------------------------------------------------------------------
@@ -274,6 +282,162 @@ export function ThreadCardBody({ id, cursorTarget, rail = false, children }: Thr
       }
     >
       {children}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Step — one grid for every step
+// ---------------------------------------------------------------------------
+
+/**
+ * A step's primary gesture: the header's (`none`, `expand`), or `open`, a
+ * line whose act is to open what it names elsewhere (a File a turn wrote
+ * opens in the panel), with no body and no chevron.
+ */
+export type ThreadCardStepGesture =
+  | ThreadCardHeaderGesture
+  | { readonly kind: "open"; readonly onOpen: () => void; readonly label: string };
+
+/** Props for {@link ThreadCardStep}. */
+export interface ThreadCardStepProps {
+  /** The primary gesture. Defaults to `{ kind: "none" }`. */
+  readonly gesture?: ThreadCardStepGesture;
+  /** The leading mark: the tick, the spinner, the red (!), a ring. */
+  readonly mark: ReactNode;
+  /** The step's line: its words and what sits right after them (a tag, an exit code). */
+  readonly title: ReactNode;
+  /** The line under it, 12/16 muted: what came of the step and where. */
+  readonly detail?: ReactNode;
+  /** The trailing column, aligned to the line: badges, the time, a Stop. The chevron follows it. */
+  readonly trail?: ReactNode;
+  /** The opened body; drawn when given. */
+  readonly body?: ReactNode;
+  /**
+   * Where the body sits: under the words and ending before the trail
+   * (`"words"`, a tool's contents in their box), or under the words through
+   * the trail's column (`"rail"`, the steps a to-do or a helper took, on
+   * their rail). Defaults to `"words"`.
+   */
+  readonly bodySpan?: "words" | "rail";
+  /** The body's element id, which the toggle names as what it controls. */
+  readonly bodyId?: string;
+  /** Rendered as `data-cursor-target` on the body for e2e targeting. */
+  readonly bodyCursorTarget?: string;
+  /**
+   * Where the step sits: on its own or as a row of a card of steps
+   * (`"card"`, 8px 12px inside), or on a rail under a to-do or a helper
+   * (`"rail"`, 4px above and below, no side padding: the rail is the inset).
+   * Defaults to `"card"`.
+   */
+  readonly place?: "card" | "rail";
+  /** Draw the step on the running band (a plan's to-do worked on now). */
+  readonly band?: boolean;
+  /** Additional CSS class names for the grid. */
+  readonly className?: string;
+}
+
+/**
+ * A step's layout: the drawing's `.step` (the session page, S33 to S38), a
+ * grid of a 20px mark column, the words, and the trail. The opened body is
+ * the grid's second row, so it starts under the step's words and ends before
+ * its trail whatever the trail holds (a tag, a badge, a time, Stop), which no
+ * padding by the mark's width could do.
+ *
+ * The toggle keeps the module's contract (an empty button named by the
+ * caller, a lifted control reached as itself) and is placed in the first
+ * row's grid area, stretched over the row's padding, so it covers the line
+ * and never the body, whose text stays selectable. The line's parts take no
+ * pointer, so a click anywhere on the line reaches the toggle, and they
+ * paint over it, so its hover shade sits under the words.
+ *
+ * `data-step-title` and `data-step-body` mark the words and the body for the
+ * design facts test, which checks that the one starts where the other does.
+ */
+export function ThreadCardStep({
+  gesture = { kind: "none" },
+  mark,
+  title,
+  detail,
+  trail,
+  body,
+  bodySpan = "words",
+  bodyId,
+  bodyCursorTarget,
+  place = "card",
+  band = false,
+  className,
+}: ThreadCardStepProps) {
+  const hasBody = body !== undefined && body !== null && body !== false;
+  const toggle =
+    gesture.kind !== "none" ? (
+      <button
+        type="button"
+        aria-label={gesture.label}
+        {...(gesture.kind === "expand" ? { "aria-expanded": gesture.expanded } : {})}
+        {...(gesture.kind === "expand" && bodyId !== undefined && hasBody ? { "aria-controls": bodyId } : {})}
+        onClick={gesture.kind === "expand" ? gesture.onToggle : gesture.onOpen}
+        data-cursor-target="thread-card-toggle"
+        className={cn(
+          // The first row's area, stretched over the row's padding: the
+          // whole line is the toggle, the body never.
+          "stg:absolute stg:col-span-full stg:row-start-1 stg:cursor-pointer stg:transition-colors stg:hover:bg-muted-subtle",
+          place === "card" ? "stg:-inset-x-3 stg:-top-2" : "stg:inset-x-0 stg:-top-1",
+          place === "card" ? (hasBody ? "stg:-bottom-1" : "stg:-bottom-2") : hasBody ? "stg:-bottom-0.5" : "stg:-bottom-1",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
+        )}
+      />
+    ) : null;
+  const lineParts = "stg:pointer-events-none stg:relative stg:row-start-1";
+  return (
+    <div
+      className={cn(
+        "stg:relative stg:isolate stg:grid stg:grid-cols-[1.25rem_minmax(0,1fr)_auto] stg:gap-x-2 stg:text-sm",
+        place === "card" ? "stg:px-3 stg:py-2" : "stg:py-1",
+        band && "stg:bg-status-running-band",
+        className,
+      )}
+    >
+      {toggle !== null && gesture.kind === "open" && toggle}
+      {toggle !== null && gesture.kind === "expand" && (
+        // The Tooltip wraps the toggle whether or not a hint is set, so the
+        // button is never remounted (and never loses focus) when a resize
+        // cuts the line off or lets it fit.
+        <Tooltip disabled={gesture.hint === undefined}>
+          <TooltipTrigger render={toggle} />
+          {gesture.hint !== undefined && (
+            <TooltipContent side="top" className="stg:break-all">
+              {gesture.hint}
+            </TooltipContent>
+          )}
+        </Tooltip>
+      )}
+      <span className={cn(lineParts, "stg:col-start-1 stg:flex stg:h-5 stg:items-center stg:justify-center")}>{mark}</span>
+      <span className={cn(lineParts, "stg:col-start-2 stg:flex stg:min-w-0 stg:flex-col")}>
+        <span data-step-title="" className="stg:flex stg:min-w-0 stg:items-baseline stg:gap-2">
+          {title}
+        </span>
+        {detail !== undefined && detail !== null && detail !== false && (
+          <span className="stg:flex stg:min-w-0 stg:items-baseline stg:gap-1 stg:text-xs stg:text-muted-foreground">{detail}</span>
+        )}
+      </span>
+      <span className={cn(lineParts, "stg:col-start-3 stg:flex stg:min-h-5 stg:items-center stg:gap-2 stg:self-start")}>
+        {trail}
+        {gesture.kind === "expand" && <ChevronIcon expanded={gesture.expanded} />}
+      </span>
+      {hasBody && (
+        <div
+          id={bodyId}
+          data-step-body=""
+          data-cursor-target={bodyCursorTarget}
+          className={cn(
+            "stg:row-start-2 stg:min-w-0 stg:mt-1",
+            bodySpan === "rail" ? "stg:col-start-2 stg:col-end-4" : "stg:col-start-2",
+          )}
+        >
+          {body}
+        </div>
+      )}
     </div>
   );
 }

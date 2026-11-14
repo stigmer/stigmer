@@ -165,16 +165,20 @@ function askEvents(name: string, input: Record<string, string>, argsPreview: str
   ];
 }
 
-/** A subagent's thread, opened by its `task` tool use, with what it did and, unless it runs, its reply. */
-function threadEvents(taskId: string, state: "running" | "completed", reply: string): SessionEvent[] {
+/**
+ * A subagent's thread, opened by its `task` tool use, with what it did and,
+ * unless it runs, its reply; its steps stamped after the helper's start
+ * (`startMs`, the task call's time from the sample's zero).
+ */
+function threadEvents(taskId: string, state: "running" | "completed", reply: string, startMs = 0): SessionEvent[] {
   const events = [
     event({ case: "sessionThreadCreated", value: { id: `${taskId}.created`, sessionThreadId: taskId, agentName: "researcher" } }),
     event({
       case: "agentThreadMessageSent",
       value: { id: `${taskId}.sent`, toSessionThreadId: taskId, content: [{ type: "text", text: "Find where invoices are rounded" }] },
     }),
-    samples.agentMessageEvent("Searching the billing module.", { threadId: taskId, id: `${taskId}.m0` }),
-    samples.toolUseEvent("grep", { pattern: "round(" }, { threadId: taskId, id: `${taskId}.grep` }),
+    samples.agentMessageEvent("Searching the billing module.", { threadId: taskId, id: `${taskId}.m0`, processedAt: sampleInstant(startMs + 1_000) }),
+    samples.toolUseEvent("grep", { pattern: "round(" }, { threadId: taskId, id: `${taskId}.grep`, processedAt: sampleInstant(startMs + 2_000) }),
   ];
   if (state === "completed") {
     events.push(
@@ -355,7 +359,7 @@ function busyEvents(): SessionEvent[] {
       processedAt: sampleInstant(48_000),
     }),
     samples.toolUseEvent("task", { description: "map where credit notes round" }, { id: BUSY_TASK_ID, processedAt: sampleInstant(52_000) }),
-    ...threadEvents(BUSY_TASK_ID, "running", ""),
+    ...threadEvents(BUSY_TASK_ID, "running", "", 52_000),
     ...call("execute", { command: "npm test -- billing" }, 60_000, undefined, 0, BUSY_TEST_RUN_ID),
   ];
 }

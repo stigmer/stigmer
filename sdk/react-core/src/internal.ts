@@ -58,6 +58,7 @@ export {
 export type { ToolChrome } from "./run/tool-categories.js";
 export { runIdFromStorageKey } from "./run/useFileChangeContent.js";
 export { RunnerAdapterContext } from "./runner-adapter.js";
+export { useFileReviewRowFile } from "./run/FileReviewContext.js";
 export { useResourceCount, useResourceList, useResourceSearch } from "./search/index.js";
 export { fromProtoExecutionTarget, toProtoExecutionTarget } from "./session/execution-target.js";
 export { mapPatchHunks } from "./version-history/diff-hunks.js";

@@ -56,6 +56,7 @@ import { agentRefOfSession, isSameAgent } from "./agentRefOfSession.js";
 import { useTurnEndingWiring, type SessionAgentRef } from "./useTurnEndingWiring.js";
 import { useSessionWriteBacks } from "./useSessionWriteBacks.js";
 import { useSessionOutputs, outputKey } from "./useSessionOutputs.js";
+import { OutputFileContext, underOutputs, type OutputFileOpener } from "../run/OutputFileContext.js";
 import { useSessionGivenFiles } from "./useSessionGivenFiles.js";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { SessionAudience } from "./audience.js";
@@ -624,8 +625,10 @@ export function SessionViewer({
   // otherwise returns `false` so the path keeps its default copy / GitHub-link
   // behavior. Writing the editor store re-renders only the panel subtree
   // (which subscribes), never this streaming column.
-  const handleTranscriptFilePathClick = useCallback(
-    (path: string): boolean => {
+  // Where a transcript path opens, or null: one resolver for the click and
+  // for the question a step asks before offering "Open the whole file".
+  const resolveTranscriptPath = useCallback(
+    (path: string): (() => void) | null => {
       // With no inspector there is no file viewer: a path a turn changed
       // opens that change's diff; any other keeps its default copy behavior.
       // The path is matched by its place in the workspace, never by its
@@ -633,21 +636,29 @@ export function SessionViewer({
       if (!panelEnabled) {
         const place = workspacePlace(path, flow.sandboxWorkspaceRoot);
         const change = deriveRunFileChanges(flow.allRuns).find((candidate) => candidate.path === place);
-        if (change === undefined) return false;
-        setOpenChange(change);
-        return true;
+        if (change === undefined) return null;
+        return () => setOpenChange(change);
       }
       const selection = resolveWorkspaceFileSelection(
         path,
         flow.workspace.entries,
         flow.sandboxWorkspaceRoot,
       );
-      if (!selection) return false;
-      panel.openFile(selection.entryId, selection.path);
-      return true;
+      if (!selection) return null;
+      return () => panel.openFile(selection.entryId, selection.path);
     },
     [panelEnabled, flow.allRuns, flow.workspace.entries, flow.sandboxWorkspaceRoot, panel.openFile],
   );
+  const handleTranscriptFilePathClick = useCallback(
+    (path: string): boolean => {
+      const open = resolveTranscriptPath(path);
+      if (open === null) return false;
+      open();
+      return true;
+    },
+    [resolveTranscriptPath],
+  );
+  const canOpenTranscriptPath = useCallback((path: string): boolean => resolveTranscriptPath(path) !== null, [resolveTranscriptPath]);
 
   // What a turn's outcome opens: a File the turn returned as the inspector's
   // document tab when this is its newest version there, else in the File
@@ -664,6 +675,29 @@ export function SessionViewer({
       setPreviewFile(file);
     },
     [panelEnabled, sessionOutputs, handleOpenFileDocument],
+  );
+  // A step that wrote a File to the outputs folder opens that File, as the
+  // outcome's Made card does: found among the session's outputs by its
+  // place under the folder.
+  const outputAt = useCallback(
+    (path: string): StigmerFile | undefined => {
+      const saved = underOutputs(path);
+      return saved === undefined ? undefined : sessionOutputs.find((entry) => outputKey(entry.file) === saved)?.file;
+    },
+    [sessionOutputs],
+  );
+  const outputFileOpener = useMemo<OutputFileOpener>(
+    () => ({
+      opensIn: panelEnabled ? "panel" : "window",
+      hasOutputPath: (path) => outputAt(path) !== undefined,
+      openOutputPath: (path) => {
+        const file = outputAt(path);
+        if (file === undefined) return false;
+        handleOpenOutputFile(file);
+        return true;
+      },
+    }),
+    [panelEnabled, outputAt, handleOpenOutputFile],
   );
   const canOpenTurnChange = useCallback(
     (change: TurnChange) => panelEnabled || change.captured !== undefined,
@@ -747,7 +781,7 @@ export function SessionViewer({
   const summaryShows = conv.session !== null && conv.turns.length > 0;
 
   return (
-    <>
+    <OutputFileContext.Provider value={outputFileOpener}>
     <div ref={viewerRef} className="stg:flex stg:h-full stg:w-full stg:flex-col">
     <SessionViewerLayout
       className={className}
@@ -774,6 +808,7 @@ export function SessionViewer({
           planAttachFailed={planAttachFailed}
           onDismissPlanAttachFailed={() => setPlanAttachFailed(false)}
           onFilePathClick={handleTranscriptFilePathClick}
+          canOpenFilePath={canOpenTranscriptPath}
           isCurated={isCurated}
           isGuest={isGuest}
           isObserver={isReader}
@@ -844,7 +879,7 @@ export function SessionViewer({
       onApplied={isGuest ? undefined : onApplied}
     />
     <TurnChangeDialog change={openChange} onClose={() => setOpenChange(null)} />
-    </>
+    </OutputFileContext.Provider>
   );
 }
 
@@ -881,6 +916,8 @@ interface ConversationColumnProps {
    * let the path keep its copy / GitHub-link behavior.
    */
   readonly onFilePathClick: (path: string) => boolean;
+  /** Whether {@link onFilePathClick} would open `path`, from the same resolver. */
+  readonly canOpenFilePath: (path: string) => boolean;
   /** Curated audience (endUser, guest, or observer): locked agent, no integrator pickers. */
   readonly isCurated: boolean;
   /** Guest audience: pure chat — additionally no model picker, mode picker, file uploads, or workspace. */
@@ -959,6 +996,7 @@ const ConversationColumn = memo(function ConversationColumn({
   planAttachFailed,
   onDismissPlanAttachFailed,
   onFilePathClick,
+  canOpenFilePath,
   isCurated,
   isGuest,
   isObserver,
@@ -1206,6 +1244,7 @@ const ConversationColumn = memo(function ConversationColumn({
         }
         resources={conv.resources}
         onFilePathClick={onFilePathClick}
+        canOpenFilePath={canOpenFilePath}
         sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
         // The agent version each turn ran, marked where it starts and
         // wherever it changes, only when a turn ran another version than
