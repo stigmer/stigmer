@@ -7,8 +7,10 @@
 // STIGMER_TEMPORAL_BIN), so nothing is downloaded or installed.
 //
 // And when the stack does not start, the launcher says why (stigmer#1845): the
-// failure is read from this daemon's record of it, never an earlier run's;
-// the detached wait ends the moment the daemon gives up; and a server port
+// failure is read from this daemon's record of it, never an earlier run's,
+// and names the runner when it is the runner that did not start (stigmer#1629);
+// the detached wait lasts until that record shows the runner ready, and ends
+// the moment the daemon gives up; and a server port
 // another program holds is refused before anything starts, naming the holder.
 
 import { spawn } from "node:child_process";
@@ -195,6 +197,30 @@ function failedSnapshot(daemonPid: number, overrides: Partial<HealthState["compo
   };
 }
 
+// A snapshot as the daemon leaves it after its runner ended before it was ready.
+function runnerFailedSnapshot(daemonPid: number): HealthState {
+  return failedSnapshot(daemonPid, {
+    "stigmer-server": { pid: 4343, state: "stopped", started_at: "", restart_count: 0 },
+    runner: {
+      pid: 4444,
+      state: "failed",
+      started_at: "",
+      restart_count: 0,
+      ready: false,
+      last_error: "the runner exited with code 1 before it was ready",
+      last_output: ["!!! STALE RUNNER BUILD — REFUSING TO START !!!"],
+    },
+  });
+}
+
+// A snapshot of a stack whose server is serving and whose runner is `ready` or not yet.
+function runningSnapshot(daemonPid: number, ready: boolean): HealthState {
+  return failedSnapshot(daemonPid, {
+    "stigmer-server": { pid: 4343, state: "running", started_at: "", restart_count: 0 },
+    runner: { pid: 4444, state: "running", started_at: "", restart_count: 0, ready },
+  });
+}
+
 function dataWith(snapshot: HealthState): string {
   const data = tempDir("stigmer-fail-data-");
   writeHealthState(join(data, HEALTH_STATE_FILE), snapshot);
@@ -226,20 +252,21 @@ describe("startupFailure", () => {
     expect(failure?.hints).toEqual(["View temporal logs: stigmer logs --component temporal"]);
   });
 
+  // stigmer#1629: a runner that does not start stops the stack, so it is the reason.
+  it("names the runner when it is the runner that did not start", () => {
+    const failure = startupFailure(dataWith(runnerFailedSnapshot(777)), 777);
+
+    expect(failure?.message).toBe("runner did not start: the runner exited with code 1 before it was ready");
+    expect(failure?.hints).toEqual([
+      "  !!! STALE RUNNER BUILD — REFUSING TO START !!!",
+      "View runner logs: stigmer logs --component runner",
+    ]);
+  });
+
   it("never speaks for another daemon's run, and is silent with no failure or no record", () => {
     expect(startupFailure(dataWith(failedSnapshot(777)), 778)).toBeNull();
     expect(
       startupFailure(dataWith(failedSnapshot(777, { "stigmer-server": { pid: 1, state: "running", started_at: "", restart_count: 0 } })), 777),
-    ).toBeNull();
-    // A runner failure does not stop the stack, so it is not the reason.
-    expect(
-      startupFailure(
-        dataWith(failedSnapshot(777, {
-          "stigmer-server": { pid: 1, state: "running", started_at: "", restart_count: 0 },
-          runner: { pid: 0, state: "failed", started_at: "", restart_count: 0, last_error: "x" },
-        })),
-        777,
-      ),
     ).toBeNull();
     expect(startupFailure(tempDir("stigmer-fail-empty-"), 777)).toBeNull();
   });
@@ -266,7 +293,7 @@ describe("waitForStack", () => {
     const data = dataWith(failedSnapshot(daemon.pid));
     const started = Date.now();
 
-    const waited = waitForStack({ data, logs: data, daemonPid: daemon.pid, port: await freePort(), timeoutMs: 30_000 });
+    const waited = waitForStack({ data, logs: data, daemonPid: daemon.pid, runner: false, port: await freePort(), timeoutMs: 30_000 });
 
     await expect(waited).rejects.toThrow("stigmer-server did not start: the server exited with code 1 before it was ready");
     expect(Date.now() - started).toBeLessThan(5_000);
@@ -277,7 +304,7 @@ describe("waitForStack", () => {
     await daemon.gone;
     const data = tempDir("stigmer-fail-data-");
 
-    const waited = waitForStack({ data, logs: data, daemonPid: daemon.pid, port: await freePort(), timeoutMs: 30_000 });
+    const waited = waitForStack({ data, logs: data, daemonPid: daemon.pid, runner: false, port: await freePort(), timeoutMs: 30_000 });
 
     await expect(waited).rejects.toMatchObject({
       message: "daemon process crashed during startup",
@@ -288,16 +315,65 @@ describe("waitForStack", () => {
   it("says the wait ran out when the daemon lives on with nothing failed", async () => {
     const data = tempDir("stigmer-fail-data-");
 
-    const waited = waitForStack({ data, logs: data, daemonPid: process.pid, port: await freePort(), timeoutMs: 300 });
+    const waited = waitForStack({ data, logs: data, daemonPid: process.pid, runner: false, port: await freePort(), timeoutMs: 300 });
 
     await expect(waited).rejects.toThrow("stigmer-server did not become ready within 300ms");
   });
 
-  it("returns once the server answers", async () => {
+  it("returns once the server answers when the stack starts no runner", async () => {
     const server = await listen(0);
     const { port } = server.address() as AddressInfo;
     try {
-      await waitForStack({ data: tempDir("stigmer-ok-"), logs: "", daemonPid: process.pid, port, timeoutMs: 5_000 });
+      await waitForStack({ data: tempDir("stigmer-ok-"), logs: "", daemonPid: process.pid, runner: false, port, timeoutMs: 5_000 });
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
+  // stigmer#1629: a stack with a runner is up only once the daemon records the runner ready.
+  it("with a runner, returns only once this daemon records the runner ready", async () => {
+    const server = await listen(0);
+    const { port } = server.address() as AddressInfo;
+    // Another daemon's ready runner never speaks for this one.
+    const data = dataWith(runningSnapshot(process.pid + 1, true));
+    let recordedReady = false;
+    setTimeout(() => writeHealthState(join(data, HEALTH_STATE_FILE), runningSnapshot(process.pid, false)), 100);
+    setTimeout(() => {
+      writeHealthState(join(data, HEALTH_STATE_FILE), runningSnapshot(process.pid, true));
+      recordedReady = true;
+    }, 600);
+    try {
+      await waitForStack({ data, logs: data, daemonPid: process.pid, runner: true, port, timeoutMs: 5_000, runnerTimeoutMs: 5_000 });
+      expect(recordedReady).toBe(true);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
+  it("with a runner, ends the wait as soon as the daemon exits, naming the runner", async () => {
+    const server = await listen(0);
+    const { port } = server.address() as AddressInfo;
+    const daemon = daemonExitingAfter(300);
+    const data = dataWith(runnerFailedSnapshot(daemon.pid));
+    const started = Date.now();
+    try {
+      const waited = waitForStack({ data, logs: data, daemonPid: daemon.pid, runner: true, port, timeoutMs: 30_000, runnerTimeoutMs: 30_000 });
+
+      await expect(waited).rejects.toThrow("runner did not start: the runner exited with code 1 before it was ready");
+      expect(Date.now() - started).toBeLessThan(5_000);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
+  it("with a runner, says the wait ran out when the daemon lives on and never records it ready", async () => {
+    const server = await listen(0);
+    const { port } = server.address() as AddressInfo;
+    const data = dataWith(runningSnapshot(process.pid, false));
+    try {
+      const waited = waitForStack({ data, logs: data, daemonPid: process.pid, runner: true, port, timeoutMs: 5_000, runnerTimeoutMs: 300 });
+
+      await expect(waited).rejects.toThrow("runner did not report ready within 0.3 s");
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }

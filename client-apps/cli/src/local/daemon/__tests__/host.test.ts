@@ -2,7 +2,8 @@
 // counts as exited only once its output is in, so its last stderr lines are in
 // the handle's tail and the log file, with its real exit code, and no chunk is
 // written after the log stream ends. A grandchild that keeps the pipe open
-// cannot hold the exit back past the grace. Real `node` children throughout;
+// cannot hold the exit back past the grace. A child reads ready once its
+// marker is written (stigmer#1629). Real `node` children throughout;
 // the supervisor's policy over the handle is tested with fakes elsewhere.
 
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
@@ -124,5 +125,28 @@ describe("NodeProcessHost — a child's end", () => {
     expect(calls).toBe(1);
     expect(handle.exitInfo()).toEqual({ code: null, signal: null });
     expect(handle.stderrTail()[0]).toMatch(/^failed to spawn .*no-such-binary: Error: spawn .* ENOENT/);
+  });
+});
+
+// stigmer#1629: the runner's readiness gate reads readiness from the handle,
+// leaving its one ready callback to the supervisor.
+describe("NodeProcessHost — a child's readiness", () => {
+  it("reads ready once the marker is written, and never for a child with no marker", async () => {
+    const dir = tempDir();
+    const script = join(dir, "child.cjs");
+    writeFileSync(script, `setTimeout(() => process.stdout.write("Worker ready, polling for tasks...\\n"), 200);\nsetInterval(() => {}, 1000);\n`);
+    const host = new NodeProcessHost();
+    const request = { name: "runner", command: process.execPath, args: [script], env: process.env, logFile: join(dir, "child.log") };
+    const marked = host.spawn({ ...request, readinessMarker: "Worker ready, polling for tasks" });
+    const unmarked = host.spawn(request);
+
+    expect(marked.isReady()).toBe(false);
+    await expect.poll(() => marked.isReady(), { timeout: 5_000 }).toBe(true);
+    expect(unmarked.isReady()).toBe(false);
+
+    const gone = [marked, unmarked].map((handle) => new Promise<void>((resolve) => handle.onExit(() => resolve())));
+    marked.kill("SIGTERM");
+    unmarked.kill("SIGTERM");
+    await Promise.all(gone);
   });
 });
