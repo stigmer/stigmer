@@ -196,7 +196,8 @@ export interface StepBreak {
  * `data-step-title`, its body `data-step-body` with how far it spans, and its
  * trail `data-step-trail`) and reports each that sits out of its column: its
  * left edge more than a pixel from its words' left edge, or, for a body
- * under the words alone (`words`), its right edge past the trail's left edge.
+ * under the words alone (`words`), its right edge past the trail's left edge,
+ * or its line's toggle laid over it.
  * A body on a rail (`rail`) runs through the trail's column, as the drawing's
  * rails do. Reported once per step's words and finding.
  */
@@ -216,6 +217,12 @@ export function auditSteps(selector: string): StepBreak[] {
       if (!breaks.has(key)) breaks.set(key, { rule: "step-body", where, detail });
     };
     if (Math.abs(box.left - words.left) > 1) note(`starts ${Math.round(box.left - words.left)}px from its words`);
+    // The line's toggle covers the line, never the body under it: a body
+    // under the toggle can be neither read by the pointer nor pressed.
+    const toggle = grid.querySelector<HTMLElement>(":scope > button, :scope > * > button[aria-expanded]");
+    if (toggle !== null && toggle.getBoundingClientRect().bottom > box.top + 1) {
+      note(`its toggle covers ${Math.round(toggle.getBoundingClientRect().bottom - box.top)}px of its body`);
+    }
     const trail = grid.querySelector<HTMLElement>(":scope > [data-step-trail]");
     if (body.dataset["stepBody"] === "words" && trail !== null) {
       const edge = trail.getBoundingClientRect().left;
