@@ -12,6 +12,9 @@
 //     self-hosted server whose operator set the issuer but not the console's
 //     client; the refusal names both knobs, because the loader
 //     cannot tell a server-synthesized file from a container's.
+//   - `oidcSignupParams` is optional (empty by default), and a fragment
+//     naming a parameter the sign-in flow owns is refused at load, naming
+//     the key and the variable, rather than silently rewriting the flow.
 //
 // The loader memoizes in module state, so every test re-imports it.
 // ---------------------------------------------------------------------------
@@ -87,6 +90,41 @@ describe("runtime-config: /config.json from the server that serves the console",
     const { loadRuntimeConfig } = await load();
     await expect(loadRuntimeConfig()).rejects.toThrow(
       /STIGMER_OIDC_CONSOLE_CLIENT_ID[\s\S]*NEXT_PUBLIC_OIDC_CLIENT_ID/,
+    );
+  });
+
+  it("reads the sign-up parameters, and defaults them to empty", async () => {
+    const posture = {
+      apiUrl: "",
+      authMode: "oidc",
+      oidcIssuer: "https://auth.example.com/realms/main",
+      oidcClientId: "stigmer-console",
+      oidcAudience: "https://stigmer.example.com/",
+    };
+    configJson({ ...posture, oidcSignupParams: "hint=signup" });
+    let mod = await load();
+    await mod.loadRuntimeConfig();
+    expect(mod.getRuntimeConfig().oidcSignupParams).toBe("hint=signup");
+
+    vi.resetModules();
+    configJson(posture);
+    mod = await load();
+    await mod.loadRuntimeConfig();
+    expect(mod.getRuntimeConfig().oidcSignupParams).toBe("");
+  });
+
+  it("refuses sign-up parameters that name one the flow owns, naming the key and the variable", async () => {
+    configJson({
+      apiUrl: "",
+      authMode: "oidc",
+      oidcIssuer: "https://auth.example.com/realms/main",
+      oidcClientId: "stigmer-console",
+      oidcAudience: "https://stigmer.example.com/",
+      oidcSignupParams: "hint=signup&redirect_uri=https://evil.example.com/",
+    });
+    const { loadRuntimeConfig } = await load();
+    await expect(loadRuntimeConfig()).rejects.toThrow(
+      /NEXT_PUBLIC_OIDC_SIGNUP_PARAMS names "redirect_uri"/,
     );
   });
 

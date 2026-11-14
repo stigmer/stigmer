@@ -5,9 +5,10 @@
 // single-user laptop) must mount the inline provider that reports a signed-in
 // visitor with no token; `oidc` (Stigmer Cloud, a self-host with an issuer)
 // must mount the OIDC provider with exactly the issuer, client and audience
-// the runtime config carries. A wrong pick here either locks a laptop user
-// out or lets an OIDC deployment run without a session, so both directions
-// are pinned, through the real resolveAuthConfig.
+// the runtime config carries, plus the sign-up parameters parsed from it.
+// A wrong pick here either locks a laptop user out or lets an OIDC
+// deployment run without a session, so both directions are pinned, through
+// the real resolveAuthConfig.
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -55,6 +56,7 @@ const BASE: RuntimeConfig = {
   oidcIssuer: "",
   oidcClientId: "",
   oidcAudience: "https://api.stigmer.com/",
+  oidcSignupParams: "",
 };
 
 const OIDC: RuntimeConfig = {
@@ -94,7 +96,17 @@ describe("resolveAuthConfig", () => {
         issuer: "https://issuer.example.com/",
         clientId: "console-client",
         audience: "https://api.example.com/",
+        signupQueryParams: {},
       },
+    });
+  });
+
+  it("hands the sign-up parameters on parsed, so the redirect never re-reads a string", () => {
+    runtime.config = { ...OIDC, oidcSignupParams: "hint=signup&ui_locales=fr" };
+    const config = resolveAuthConfig();
+    expect(config.mode === "oidc" && config.oidc.signupQueryParams).toEqual({
+      hint: "signup",
+      ui_locales: "fr",
     });
   });
 
@@ -140,6 +152,7 @@ describe("AuthProvider", () => {
       issuer: "https://issuer.example.com/",
       clientId: "console-client",
       audience: "https://api.example.com/",
+      signupQueryParams: {},
     });
   });
 

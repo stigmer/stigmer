@@ -19,6 +19,8 @@ spec:
           value: https://id.preprod.stigmer.ai/ # the preprod tenant's sign-in domain, shared by dev and demo; tokens name the host they were requested from as issuer, so this matches stigmer-server's STIGMER_IDP_URL. Auth0's issuer carries the trailing slash
         - name: NEXT_PUBLIC_OIDC_AUDIENCE
           value: https://api.stigmer.com/ # the tenant's API identifier
+        - name: NEXT_PUBLIC_OIDC_SIGNUP_PARAMS
+          value: screen_hint=signup # opens the tenant's create-account screen for /login?signup=1; Auth0 reads this hint and ignores the standard prompt=create
         # The console's application in the tenant, created by dev's environment: read from it, never copied.
         - name: NEXT_PUBLIC_OIDC_CLIENT_ID
           valueFrom:

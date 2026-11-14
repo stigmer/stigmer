@@ -35,7 +35,9 @@ export const SITE_CONFIG = {
     license: "Apache 2.0",
   },
 
-  cloudSignupUrl: "https://app.stigmer.ai",
+  // The console's sign-up arrival: it goes straight on to the create-account
+  // screen (client-apps/web/src/auth/login/LoginPageView.tsx).
+  cloudSignupUrl: "https://app.stigmer.ai/login?signup=1",
   cloudSigninUrl: "https://app.stigmer.ai",
   cloudApiUrl: "https://api.stigmer.ai",
 
