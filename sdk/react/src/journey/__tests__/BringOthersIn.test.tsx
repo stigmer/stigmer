@@ -322,6 +322,26 @@ describe("CON-12 BringOthersIn — inviting the team", () => {
     expect(client.invitation.revoke).toHaveBeenCalledWith("inv_live");
   });
 
+  it("says a link that wasn't made, and keeps Make an invite link to try again", async () => {
+    world.name = "Ledgerly";
+    const client = renderPage();
+    client.invitation.create.mockRejectedValueOnce(new Error("the invitation store is down"));
+    fireEvent.click(await screen.findByRole("button", { name: "Make an invite link" }));
+    expect((await screen.findByRole("alert")).textContent).toBe("Couldn’t make the link. Try again.");
+    expect(screen.getByRole("button", { name: "Make an invite link" })).toBeTruthy();
+  });
+
+  it("says a link that wasn't revoked, and keeps it shown", async () => {
+    world.name = "Ledgerly";
+    world.invitations = [invitation({ id: "inv_live", token: "tok-live" })];
+    const client = renderPage();
+    client.invitation.revoke.mockRejectedValueOnce(new Error("the invitation store is down"));
+    await screen.findByText("https://console.test/invite/tok-live");
+    fireEvent.click(screen.getByRole("button", { name: "Revoke this link" }));
+    expect((await screen.findByRole("alert")).textContent).toBe("Couldn’t revoke the link. Try again.");
+    expect(screen.getByText("https://console.test/invite/tok-live")).toBeTruthy();
+  });
+
   it("never shows a revoked or expired journey link as live", async () => {
     world.name = "Ledgerly";
     world.invitations = [

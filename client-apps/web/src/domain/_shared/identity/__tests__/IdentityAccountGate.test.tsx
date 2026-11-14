@@ -22,6 +22,12 @@ const gate = vi.hoisted(() => ({
   retry: vi.fn(),
 }));
 
+// The help line reads the server's answer; here it stands in, so the test
+// holds where the gate places it.
+vi.mock("@stigmer/react-sdk/console", () => ({
+  HelpLink: () => <p>Stuck? Talk to us</p>,
+}));
+
 vi.mock("@stigmer/react-sdk", async () => {
   const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
   return {
@@ -125,6 +131,8 @@ describe("IdentityAccountGate", () => {
     expect(screen.queryByText("the app")).toBeNull();
     expect(screen.getByText("Failed to set up your account")).toBeTruthy();
     expect(screen.getByText("whoAmI failed")).toBeTruthy();
+    // CON-13: under Try again, the server's help line.
+    expect(screen.getByText("Stuck? Talk to us")).toBeTruthy();
 
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(gate.retry).toHaveBeenCalledTimes(1);

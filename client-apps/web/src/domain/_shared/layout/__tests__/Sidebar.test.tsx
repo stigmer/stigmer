@@ -9,6 +9,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import type { RecentActivityEntry } from "@stigmer/react-sdk";
 import type { RenderSidebarLink } from "@stigmer/react-sdk/console";
 
@@ -33,8 +34,9 @@ vi.mock("@stigmer/react-sdk", () => ({
 vi.mock("@stigmer/react-sdk/console", () => ({
   WorkspaceSidebar: (props: Record<string, unknown>) => {
     page.sidebar.push(props);
-    return null;
+    return <>{props.footer as ReactNode}</>;
   },
+  HelpLink: ({ variant }: { variant?: string }) => <p>help link ({variant})</p>,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -99,6 +101,11 @@ describe("web Sidebar", () => {
       conversationsBadgeCount: 3,
       activeNav: "dashboard",
     });
+  });
+
+  it("CON-13 puts the server's help row at the foot, above the user menu", () => {
+    render(<Sidebar />);
+    expect(screen.getByText("help link (row)")).toBeTruthy();
   });
 
   it("lands on the dashboard after an org switch", () => {

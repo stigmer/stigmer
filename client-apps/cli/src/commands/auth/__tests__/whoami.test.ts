@@ -158,6 +158,7 @@ const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
 // What the stubbed backend's organization get does for ACME_ID: answer a
 // slug, refuse it as hidden, or fail as an unreachable server.
 let organizationAnswer: { slug: string } | "hidden" | "unreachable" = { slug: "acme" };
+let helpAnswer: { url: string; label: string } | undefined;
 
 vi.mock("../../../backend.js", async () => {
   const { load: loadConfig } = await import("../../../config/index.js");
@@ -165,6 +166,7 @@ vi.mock("../../../backend.js", async () => {
     connectBackend: () => ({
       config: loadConfig(),
       stigmer: {
+        platform: { getServerInfo: async () => ({ singleOrg: false, help: helpAnswer }) },
         organization: {
           get: async (value: string) => {
             if (organizationAnswer === "hidden" || (value !== ACME_ID && value !== "acme-old")) {
@@ -211,6 +213,7 @@ describe("runWhoami's organization", () => {
 
   beforeEach(() => {
     organizationAnswer = { slug: "acme" };
+    helpAnswer = undefined;
     originalHome = process.env.HOME;
     home = mkdtempSync(join(tmpdir(), "stigmer-whoami-"));
     process.env.HOME = home;
@@ -229,6 +232,13 @@ describe("runWhoami's organization", () => {
     const result = await runWhoami();
     expect(fields(result)).toMatchObject({ Organization: "acme-corp", "Organization ID": ACME_ID });
     expect(load().context).toEqual({ org: ACME_ID, org_slug: "acme-corp" });
+  });
+
+  it("ends with the help line the server announces, and with none when it announces none", async () => {
+    writeConfig(["context:", `  org: ${ACME_ID}`, "  org_slug: acme"]);
+    expect((await runWhoami()).hints).toEqual([]);
+    helpAnswer = { url: "https://help.acme.example", label: "Ask IT" };
+    expect((await runWhoami()).hints).toEqual(["Stuck? Ask IT: https://help.acme.example"]);
   });
 
   it("leaves the config alone when the stored slug is current", async () => {

@@ -50,6 +50,7 @@ vi.mock("@stigmer/react-sdk/console", () => ({
     shell.footer = footer;
     return null;
   },
+  HelpLink: ({ variant }: { variant?: string }) => <p>help link ({variant})</p>,
 }));
 
 vi.mock("../UserMenu", () => ({ UserMenu: () => <p>user menu</p> }));
@@ -129,5 +130,13 @@ describe("DSK-05 desktop Sidebar — the footer", () => {
     render(<>{shell.footer}</>);
     const lines = screen.getAllByText(/runner status|user menu/).map((node) => node.textContent);
     expect(lines).toEqual(["runner status", "user menu"]);
+  });
+
+  it("CON-13 puts the server's help row between the runner's status and the user menu", () => {
+    renderSidebar();
+
+    render(<>{shell.footer}</>);
+    const lines = screen.getAllByText(/runner status|help link|user menu/).map((node) => node.textContent);
+    expect(lines).toEqual(["runner status", "help link (row)", "user menu"]);
   });
 });
