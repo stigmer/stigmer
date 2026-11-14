@@ -116,7 +116,7 @@ describe("PlaintextRenderer", () => {
         value: { id: `${toolUseId}.r`, toolUseId, content: [{ type: "text", text: "found it" }], processedAt: "2026-07-20T13:04:00.000Z" },
       }),
     ]);
-    expect(status()).toContain("  ↳ Subagent: researcher\n  ✓ Subagent completed: researcher\n  ✓ task (2h 4m)\n");
+    expect(status()).toContain("  ↳ Subagent: researcher\n  ✓ Subagent completed: researcher\n  ✓ task (2h 04m)\n");
   });
 
   it("names a subagent by its call when it has no name, and writes how it failed or stopped", () => {

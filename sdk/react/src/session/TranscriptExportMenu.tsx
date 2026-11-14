@@ -42,12 +42,12 @@ export function TranscriptExportMenu({
     <ActionMenu>
       <ActionMenu.Trigger
         aria-label="Export transcript"
-        className={cn("stg:size-7", className)}
+        className={cn("stg:size-8", className)}
       >
         {exporter.isExporting ? (
-          <SpinnerIcon size={14} />
+          <SpinnerIcon size={16} />
         ) : (
-          <Download className="stg:size-3.5" aria-hidden="true" />
+          <Download className="stg:size-4" aria-hidden="true" />
         )}
       </ActionMenu.Trigger>
       <ActionMenu.Content>

@@ -90,7 +90,7 @@ export function ChangePlanDialog({
           <h2 id={headingId} className="stg:text-sm stg:font-semibold stg:text-foreground">
             {title(move)}
           </h2>
-          <div className="stg:space-y-2 stg:text-xs stg:text-muted-foreground">{body(move, planName, losing)}</div>
+          {body(move, planName, losing)}
 
           {needsCard && (
             <p className="stg:rounded-md stg:bg-muted-subtle stg:px-3 stg:py-2 stg:text-xs stg:text-foreground" role="status">
@@ -151,17 +151,17 @@ function body(move: PlanMove, planName: (planId: string) => string, losing: read
   switch (move.kind) {
     case "subscribe":
       return (
-        <>
+        <div className="stg:space-y-2 stg:text-xs stg:text-muted-foreground">
           <p>
             {move.to.metadata?.name} starts now. Each monthly period is billed when it ends:{" "}
             {periodCharge(move.to)}
           </p>
           <p>Nothing is charged today.</p>
-        </>
+        </div>
       );
     case "switch":
       return (
-        <>
+        <div className="stg:space-y-2 stg:text-xs stg:text-muted-foreground">
           <p>
             The switch takes effect now. This period closes early and is billed for the time it ran on{" "}
             {planName(move.fromPlanId)}; a new monthly period opens on {move.to.metadata?.name} at{" "}
@@ -172,19 +172,23 @@ function body(move: PlanMove, planName: (planId: string) => string, losing: read
               {move.to.metadata?.name} does not include {listFeatures(losing)}. {keepsWorking()}
             </p>
           )}
-        </>
+        </div>
       );
     case "resume":
-      return <p>The cancellation is withdrawn, and {move.to.metadata?.name} runs on into its next period.</p>;
+      return (
+        <p className="stg:text-xs stg:text-muted-foreground">
+          The cancellation is withdrawn, and {move.to.metadata?.name} runs on into its next period.
+        </p>
+      );
     case "cancel":
       return (
-        <>
+        <div className="stg:space-y-2 stg:text-xs stg:text-muted-foreground">
           <p>
             {planName(move.fromPlanId)} stays in force until {formatDay(move.endsAt)}, then this organization is on
             Free. The period is billed as usual when it closes.
           </p>
           <p>Nothing you built is deleted. Creating what Free does not include is refused until you subscribe again.</p>
-        </>
+        </div>
       );
     default: {
       const exhaustive: never = move;

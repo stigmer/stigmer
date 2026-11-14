@@ -445,7 +445,6 @@ export { isTerminalPhase, turnPhaseOf } from "./run/run-phases.js";
 export {
   activityPhrase,
   describeTurnActivity,
-  formatElapsed,
   SANDBOX_WAIT_PHRASE,
   settledStepsPhrase,
   stepsSpanMs,
@@ -453,6 +452,7 @@ export {
   type TurnActivity,
   type TurnProgress,
 } from "./run/turn-activity.js";
+export { formatElapsed } from "./run/format-elapsed.js";
 export { humanizeToolName, stepPhrase, stepTense, type StepPhrase, type StepTense } from "./run/step-words.js";
 export { turnSteps, type PlanItem, type TurnSteps } from "./run/turn-steps.js";
 export {

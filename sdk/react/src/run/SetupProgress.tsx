@@ -68,7 +68,7 @@ export const SetupProgress = memo(function SetupProgress({
   const label = isAwaitingResponse ? "Thinking" : waitedMs !== undefined ? SANDBOX_WAIT_PHRASE : serverPhase || "Starting";
   const words = waitedMs !== undefined ? `${SANDBOX_WAIT_PHRASE} · ${formatElapsed(waitedMs)}` : label;
   return (
-    <div role="status" aria-label={label} className={cn("stg:mx-4 stg:flex stg:items-center stg:gap-2 stg:px-3 stg:py-2 stg:text-sm", className)}>
+    <div role="status" aria-label={label} className={cn("stg:flex stg:items-center stg:gap-2 stg:px-3 stg:py-2 stg:text-sm", className)}>
       <SpinnerIcon size={12} className="stg:shrink-0 stg:text-muted-foreground stg:motion-reduce:animate-none" />
       {/* The line exists only while the run is live, so it always carries
           the ambient-liveness sweep (stigmer#277); the shimmer owns the colour. */}

@@ -45,6 +45,11 @@ export default defineConfig([
       // refuses a name on, and none with role="status", renders outside
       // LoadingRegion (#1653), so this fence holds that shape at zero.
       "stigmer/require-loading-region": "error",
+      // Error (not warn): every paragraph and heading the kit draws names its
+      // own block margin, so a host without a CSS reset (a customer's site,
+      // the gallery) adds the browser's to none of them; the sweep that
+      // switched it on left zero.
+      "stigmer/require-text-margin": "error",
     },
   },
   {
@@ -57,6 +62,7 @@ export default defineConfig([
     rules: {
       "stigmer/no-literal-dom-ids": "off",
       "stigmer/require-list-reset": "off",
+      "stigmer/require-text-margin": "off",
     },
   },
 ]);

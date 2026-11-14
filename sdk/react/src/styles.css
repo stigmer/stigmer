@@ -122,6 +122,23 @@
     background-color: transparent;
     opacity: 1;
   }
+  /* The kit's own paragraphs and headings start at no margin. A browser
+     gives a paragraph a line's height above and below, and a heading most
+     of one, and a host without Tailwind's preflight (a customer's site, the
+     gallery) never takes it away, so every kit screen there grew by those
+     margins. The rule reaches only elements that carry a kit class (`stg:`)
+     or sit directly in an element that does, never a host's own paragraphs
+     inside `StigmerProvider`, which keep their styling (the worry the note
+     above names). It sits in `base`, so every utility still wins: a
+     `stg:mt-2`, and a parent's `stg:space-y-*`, whose zero-specificity child
+     margins a per-element `stg:m-0` would cancel. `stigmer/require-text-margin`
+     holds every kit `<p>` and `<h1>`-`<h6>` to one of the two, so this rule
+     reaches each of them. */
+  .stgm :is(p, h1, h2, h3, h4, h5, h6)[class*="stg:"],
+  .stgm [class*="stg:"] > :is(p, h1, h2, h3, h4, h5, h6) {
+    margin: 0;
+  }
+
 
   /* Correct the inability to style the border radius in iOS Safari. */
   .stgm button,

@@ -216,12 +216,8 @@
       "ruled": {},
       "pending": {
         "button Continue": "Endings: a notice's acts at xs, with their icons",
-        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
-        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
         "type Continue": "Endings: a notice's acts at xs, with their icons",
         "type Paused at its step limit": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
-        "word 2 of 5 to-dos done": "The session's frame: an ended turn keeps its to-do count first among its facts",
-        "word 4m 02s": "The session's frame: one duration format, \"1m 30s\"",
         "word Agents pause after so many tool calls in one turn, so a loop can't run forever. What it finished is kept: 2 of 5 to-dos are done. Continue sends “Continue” and it carries on.": "Endings: the ending turn as drawn"
       }
     }

@@ -1,7 +1,7 @@
 // Pins the terminal conversation components on folded session events: a
 // message's speaker and text, the phase badge, a tool row's glyph per state
 // and its label or intent, a subagent block (its time counted to now only
-// while it runs, in the shared "2h 4m" format) and a to-do list, the approval
+// while it runs, in the shared "2h 04m" format) and a to-do list, the approval
 // prompt's three answers (approve, approve all of the class, deny with an
 // optional reason) and why-gated line, and the thread's keyboard arbitration
 // between waiting tool uses, its ordering of a turn's items, and how a turn
@@ -259,7 +259,7 @@ describe("SubagentBlock", () => {
     ).lastFrame() ?? "";
     expect(output).toContain("✓");
     expect(output).toContain("find docs");
-    expect(output).toContain("(1m 5s)");
+    expect(output).toContain("(1m 05s)");
     expect(output).toContain("Task: Find the docs for the parser");
     expect(output).toContain("Looking now.");
     expect(output).toContain("read_file");
@@ -294,14 +294,14 @@ describe("CLI-13 a run's subagent rows show the right status and duration", () =
   });
 
   it("counts a running subagent to now, in hours past the hour", () => {
-    expect(subagentDuration("running", start, "", at(twoHours))).toBe("2h 4m");
+    expect(subagentDuration("running", start, "", at(twoHours))).toBe("2h 04m");
     expect(subagentDuration("running", start, "", at(42_000))).toBe("42s");
   });
 
   it("shows a finished subagent's own span, and nothing when its end is unknown", () => {
     const end = new Date(at(twoHours)).toISOString();
     for (const state of ["completed", "failed", "stopped"] as const) {
-      expect(subagentDuration(state, start, end, at(10 * twoHours))).toBe("2h 4m");
+      expect(subagentDuration(state, start, end, at(10 * twoHours))).toBe("2h 04m");
       expect(subagentDuration(state, start, "", at(twoHours))).toBeNull();
     }
     expect(subagentDuration("completed", "", end, at(twoHours))).toBeNull();

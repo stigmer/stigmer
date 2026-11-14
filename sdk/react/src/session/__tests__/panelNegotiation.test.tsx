@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { act, render, screen, cleanup, fireEvent } from "@testing-library/react";
 
 // ---------------------------------------------------------------------------
 // Wiring-contract tests for the session panel's host-negotiation surface
@@ -263,6 +263,34 @@ describe("SessionViewer — no inspector", () => {
     );
     expect(chipButton()).toBeNull();
     expect(onOpenChange).not.toHaveBeenCalled();
+  });
+});
+
+describe("SessionViewer — under 640px of its own width", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("offers no panel, as without an inspector, and offers it again once it is wide", () => {
+    const observers: ResizeObserverCallback[] = [];
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(callback: ResizeObserverCallback) {
+          observers.push(callback);
+        }
+        observe() {}
+        disconnect() {}
+        unobserve() {}
+      },
+    );
+    const resize = (px: number) =>
+      act(() => {
+        for (const callback of observers) callback([{ contentRect: { width: px } } as ResizeObserverEntry], {} as ResizeObserver);
+      });
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+    resize(390);
+    expect(screen.queryByRole("button", { name: "Show panel" })).toBeNull();
+    resize(1024);
+    expect(screen.getByRole("button", { name: "Show panel" })).toBeTruthy();
   });
 });
 

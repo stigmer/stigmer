@@ -296,9 +296,9 @@ describe("AgentChat, the popup", () => {
     });
     expect(screen.getByTestId("session-probe")).toBeTruthy();
     report(busy());
-    expect(screen.getByRole("button", { name: /^Open the chat/ }).textContent).toBe("Running a command1 min 30 s");
+    expect(screen.getByRole("button", { name: /^Open the chat/ }).textContent).toBe("Running a command1m 30s");
     act(() => vi.advanceTimersByTime(2_000));
-    expect(screen.getByRole("button", { name: /^Open the chat/ }).textContent).toBe("Running a command1 min 32 s");
+    expect(screen.getByRole("button", { name: /^Open the chat/ }).textContent).toBe("Running a command1m 32s");
   });
 
   it("says a turn that failed while closed failed, without the done mark", async () => {
@@ -335,8 +335,8 @@ describe("AgentChat, the popup", () => {
     render(<AgentChat agent="acme/billing-agent" variant="popup" defaultSessionId="ses_1" />);
     await screen.findByTestId("session-probe");
     report(busy());
-    const button = screen.getByRole("button", { name: "Open the chat. Billing agent: Running a command, 1 min 30 s" });
-    expect(button.textContent).toBe("Running a command1 min 30 s");
+    const button = screen.getByRole("button", { name: "Open the chat. Billing agent: Running a command, 1m 30s" });
+    expect(button.textContent).toBe("Running a command1m 30s");
     expect(document.querySelector("[aria-live='polite']")!.textContent).toBe("");
   });
 

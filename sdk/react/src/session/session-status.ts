@@ -33,7 +33,7 @@ export function sessionStatus(last: Turn | undefined, decides: boolean): Session
       return { phase: "degraded", label: decides ? "Waiting for you" : "Waiting for an answer", timed: true };
     }
     if (phase === "paused") return { phase: "degraded", label: "Paused", timed: true };
-    if (phase === undefined || phase === "pending") return { phase: "pending", label: "Starting", timed: false };
+    if (phase === undefined || phase === "pending") return { phase: "pending", label: "Starting", timed: true };
     return { phase: "running", label: "Working", timed: true };
   }
   const ending = describeTurnEnding({

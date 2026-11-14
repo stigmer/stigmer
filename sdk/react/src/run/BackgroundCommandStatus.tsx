@@ -9,7 +9,8 @@ import { cn } from "@stigmer/design-tokens";
 import { Button } from "../button/Button.js";
 import { InCardDecisionError } from "../internal/InCardDecisionError.js";
 import { SpinnerIcon, ThreadCardHeaderControl } from "../internal/thread-card/index.js";
-import { formatElapsed, useElapsedSince } from "../internal/useElapsedSince.js";
+import { formatElapsed } from "@stigmer/client";
+import { useElapsedSince } from "../internal/useElapsedSince.js";
 import { useBackgroundStop } from "./BackgroundCommandContext.js";
 import { backgroundStatusLabel } from "./background-status-label.js";
 

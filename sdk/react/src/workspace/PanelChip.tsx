@@ -6,6 +6,7 @@
 import { useEffect, useRef } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
+import { iconButtonClasses } from "../button/buttonClasses.js";
 
 /** Props for {@link PanelChip}. */
 export interface PanelChipProps {
@@ -23,9 +24,9 @@ export interface PanelChipProps {
 }
 
 /**
- * The always-mounted toggle for a collapsible workspace panel — the Cursor
- * "Show panel" chip. Collapsed, it carries the pending-item count; open, it
- * is the hide affordance. Being a small leaf, it is also the one place that
+ * The always-mounted toggle for a collapsible workspace panel: the kit's
+ * square icon button, outlined. Collapsed, it carries the pending-item count
+ * on its corner; open, it is the hide affordance. Being a small leaf, it is also the one place that
  * may safely carry per-arrival re-renders while the panel subtree is
  * unmounted. Run status deliberately does not surface here (or
  * anywhere else in viewer chrome) — the thread/graph itself communicates run
@@ -50,6 +51,8 @@ export function PanelChip({ isOpen, onToggle, badgeCount }: PanelChipProps) {
     prevOpenRef.current = isOpen;
   }, [isOpen]);
 
+  // The kit's square icon button, 32px, outlined so it reads as a toggle
+  // beside the ghost acts around it; the count sits on its corner.
   return (
     <Tooltip>
       <TooltipTrigger
@@ -60,23 +63,19 @@ export function PanelChip({ isOpen, onToggle, badgeCount }: PanelChipProps) {
             onClick={onToggle}
             aria-expanded={isOpen}
             aria-label={isOpen ? "Hide panel" : "Show panel"}
-            className={cn(
-              "stg:flex stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:border-border stg:bg-card stg:px-1.5 stg:py-1",
-              "stg:text-muted-foreground stg:transition-colors stg:hover:bg-muted stg:hover:text-foreground",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            )}
+            className={cn(iconButtonClasses("outline", "sm"), "stg:relative")}
           />
         }
       >
+        <PanelIcon open={isOpen} />
         {showCount && (
           <span
             aria-label={`${badgeCount} new items`}
-            className="stg:inline-flex stg:min-w-[1rem] stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-1 stg:py-px stg:text-2xs stg:font-medium stg:leading-none stg:text-primary-foreground"
+            className="stg:absolute stg:-top-1 stg:-right-1 stg:inline-flex stg:h-4 stg:min-w-4 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-1 stg:text-2xs stg:font-medium stg:text-primary-foreground"
           >
             {badgeCount}
           </span>
         )}
-        <PanelIcon open={isOpen} />
       </TooltipTrigger>
       <TooltipContent side="top">
         {isOpen ? "Hide panel" : "Show panel"}
@@ -84,6 +83,7 @@ export function PanelChip({ isOpen, onToggle, badgeCount }: PanelChipProps) {
     </Tooltip>
   );
 }
+
 
 /**
  * Panel-layout glyph: a frame with its right region filled while the panel is

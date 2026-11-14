@@ -5,7 +5,7 @@
 // It reads words the session view reports (`chat-activity-of.ts`), never a
 // turn, so the chat's first download carries no turn derivation.
 
-import { durationWords } from "../session/duration-words.js";
+import { formatElapsed } from "@stigmer/client";
 import { endingWord } from "../session/turn-endings.js";
 import type { ChatActivity } from "./chat-activity.js";
 
@@ -108,7 +108,7 @@ export function launcherView(state: AgentChatState, agentName: string, nowMs: nu
       };
     }
     const label = activity.phrase;
-    const detail = durationWords(nowMs - activity.startedAtMs);
+    const detail = formatElapsed(nowMs - activity.startedAtMs);
     return {
       icon: "working",
       label,

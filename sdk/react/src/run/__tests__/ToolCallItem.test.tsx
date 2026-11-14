@@ -851,7 +851,7 @@ describe("ToolCallItem duration chip", () => {
       durationMs: 2_500,
     });
     render(<ToolCallItem toolUse={tc} />);
-    expect(screen.getByText("2.5s")).toBeTruthy();
+    expect(screen.getByText("2s")).toBeTruthy();
   });
 });
 

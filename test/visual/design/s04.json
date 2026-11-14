@@ -292,7 +292,6 @@
       "pending": {
         "button Copy": "The screens still in their old look: this screen is still its pre-redesign self",
         "button Download": "The screens still in their old look: this screen is still its pre-redesign self",
-        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
         "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
         "type Billed": "The screens still in their old look: this screen is still its pre-redesign self",
         "type Correct": "The screens still in their old look: this screen is still its pre-redesign self",
@@ -303,9 +302,7 @@
         "type INV-1057": "The screens still in their old look: this screen is still its pre-redesign self",
         "type Invoice": "The screens still in their old look: this screen is still its pre-redesign self",
         "type Source": "The screens still in their old look: this screen is still its pre-redesign self",
-        "type invoice-audit.md": "The screens still in their old look: this screen is still its pre-redesign self",
-        "word 1m 14s": "The screens still in their old look: this screen is still its pre-redesign self",
-        "word 56s": "The screens still in their old look: this screen is still its pre-redesign self"
+        "type invoice-audit.md": "The screens still in their old look: this screen is still its pre-redesign self"
       }
     }
   ]

@@ -299,8 +299,6 @@
       "pending": {
         "button Choose another model": "Endings: a notice's acts at xs, with their icons",
         "button Copy details": "Endings: a notice's acts at xs, with their icons",
-        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
-        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
         "button Stigmer": "Endings: the ending turn as drawn",
         "type Best for most tasks": "Endings: the ending turn as drawn",
         "type Choose another model": "Endings: a notice's acts at xs, with their icons",
@@ -312,7 +310,6 @@
         "type OpenAI's general model": "Endings: the ending turn as drawn",
         "type Powerful $$$": "Endings: the ending turn as drawn",
         "type Quick responses, lower cost": "Endings: the ending turn as drawn",
-        "word 0s": "The session's frame: one duration format, \"1m 30s\"",
         "word Fast $$ ✓": "Endings: the ending turn as drawn"
       }
     }
