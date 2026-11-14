@@ -86,8 +86,33 @@ export interface GrpcAnswer {
   readonly details?: Uint8Array;
 }
 
+/** The caller left: a signal aborted when its stream closes, and the listener's removal. */
+export interface CallerGone {
+  readonly signal: AbortSignal;
+  dispose(): void;
+}
+
+/**
+ * Whether the caller is still there, from the moment it is asked. Node emits
+ * a stream's `close` once, so a listener added after the caller reset its
+ * stream never fires; the stream's state says so instead, and the signal is
+ * aborted at once.
+ */
+export function callerGone(response: Http2ServerResponse): CallerGone {
+  const controller = new AbortController();
+  const stream = response.stream;
+  if (stream.destroyed || stream.closed) {
+    controller.abort();
+    return { signal: controller.signal, dispose: () => {} };
+  }
+  const onClose = (): void => controller.abort();
+  stream.once("close", onClose);
+  return { signal: controller.signal, dispose: () => stream.off("close", onClose) };
+}
+
 export function writeGrpcAnswer(response: Http2ServerResponse, answer: GrpcAnswer): void {
-  if (response.headersSent || response.destroyed) {
+  // The stream's own state: the response object has no `destroyed` of its own.
+  if (response.headersSent || response.stream.destroyed) {
     return;
   }
   response.writeHead(200, { "content-type": "application/grpc" });

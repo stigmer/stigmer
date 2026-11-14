@@ -14,9 +14,20 @@
  *     budget ending first answers Temporal's own empty poll;
  *   - no engine, or no receipt key, is UNAVAILABLE; the held-poll limits
  *     answer RESOURCE_EXHAUSTED; every served call is counted once;
+ *   - a caller that leaves, at any point of its call, is let go: nothing
+ *     reaches Temporal after it left, its slot is free once it is answered,
+ *     and it is counted `abandoned`;
  *   - the poll budget and its margin end inside the shutdown drain.
  */
-import { connect, createServer, type ClientHttp2Session, type Http2Server } from "node:http2";
+import {
+  connect,
+  constants as http2,
+  createServer,
+  type ClientHttp2Session,
+  type Http2Server,
+  type Http2ServerResponse,
+  type ServerHttp2Stream,
+} from "node:http2";
 import { request as http1Request, createServer as createHttp1Server } from "node:http";
 
 import proto from "@temporalio/proto";
@@ -26,7 +37,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 import { createLogger } from "../../../boot/logger.js";
 import { recordWorkQueueCall } from "../../../observability/runner-work-queue-metrics.js";
 import { SHUTDOWN_DRAIN_TIMEOUT_MS } from "../../constants.js";
-import { newHeldPolls } from "../capacity.js";
+import { newHeldPolls, type HeldPolls } from "../capacity.js";
 import { frame } from "../frame.js";
 import {
   POLL_BUDGET_MS,
@@ -160,6 +171,67 @@ function call(
     stream.on("error", reject);
     stream.end(Buffer.from(body));
   });
+}
+
+/**
+ * A call whose caller leaves: the request is sent whole, and once `left` is
+ * awaited the client resets its stream (RST_STREAM CANCEL) and the server
+ * has seen the stream close. The lane is then let go on.
+ */
+function leavingCall(method: string, body: Uint8Array | Buffer) {
+  let serverStream: ServerHttp2Stream | undefined;
+  const inner = handler;
+  handler = (request, response) => {
+    serverStream = (response as Http2ServerResponse).stream;
+    inner(request, response);
+  };
+  const stream = session.request({
+    ":method": "POST",
+    ":path": `${TEMPORAL_WORKFLOW_SERVICE_PATH_PREFIX}${method}`,
+    "content-type": "application/grpc",
+    authorization: `Bearer ${TOKEN}`,
+  });
+  stream.on("error", () => {});
+  stream.end(Buffer.from(body));
+  return {
+    async leave(): Promise<void> {
+      await vi.waitFor(() => expect(serverStream).toBeDefined());
+      const closed = new Promise<void>((resolve) =>
+        serverStream!.closed ? resolve() : serverStream!.once("close", () => resolve()),
+      );
+      stream.close(http2.NGHTTP2_CANCEL);
+      await closed;
+    },
+  };
+}
+
+/** A gate a dependency waits on: `entered` resolves when it is reached, `open` lets it on. */
+function gate() {
+  let open: () => void = () => {};
+  let reached: () => void = () => {};
+  const entered = new Promise<void>((resolve) => (reached = resolve));
+  const opened = new Promise<void>((resolve) => (open = resolve));
+  return { entered, open: () => open(), pass: async () => (reached(), await opened) };
+}
+
+/** Held polls that also say how many are held now. */
+function countingHeldPolls(): HeldPolls & { held(): number } {
+  const inner = newHeldPolls();
+  let held = 0;
+  return {
+    held: () => held,
+    hold(queue) {
+      const slot = inner.hold(queue);
+      if ("refused" in slot) return slot;
+      held += 1;
+      return {
+        release: () => {
+          held -= 1;
+          slot.release();
+        },
+      };
+    },
+  };
 }
 
 const encode = <T>(type: { encode(m: T): { finish(): Uint8Array } }, message: T) => frame(type.encode(message).finish());
@@ -396,6 +468,79 @@ describe("failures and limits", () => {
       { method: "GetSystemInfo", decision: "refused", status: "PERMISSION_DENIED", check: "credential" },
       { method: "GetSystemInfo", decision: "allowed", status: "OK", check: "none" },
     ]);
+  });
+
+  it("lets a caller that left while its credential was read go, reaching Temporal for nothing", async () => {
+    const reading = gate();
+    const heldPolls = countingHeldPolls();
+    handler = lane({
+      heldPolls,
+      queueOf: async (token) => (await reading.pass(), token === TOKEN ? QUEUE : undefined),
+    });
+    counted.mockClear();
+    const leaving = leavingCall("PollActivityTaskQueue", pollRequest());
+    await reading.entered;
+    await leaving.leave();
+    reading.open();
+    await vi.waitFor(() => expect(counted).toHaveBeenCalledTimes(1));
+    expect(counted.mock.calls[0]![0]).toEqual({
+      method: "PollActivityTaskQueue",
+      decision: "abandoned",
+      status: "CANCELLED",
+      check: "none",
+    });
+    expect(current.service.pollActivityTaskQueue).not.toHaveBeenCalled();
+    expect(heldPolls.held()).toBe(0);
+  });
+
+  it("lets a poll or a reply whose caller left while the receipt key was read go, its slot free", async () => {
+    const cases = [
+      { method: "PollActivityTaskQueue", body: pollRequest(), forwarded: () => current.service.pollActivityTaskQueue },
+      {
+        method: "RespondActivityTaskCompleted",
+        body: encode(ws.RespondActivityTaskCompletedRequest, {
+          namespace: "default",
+          taskToken: issueReceipt(KEY, QUEUE, Buffer.from("temporal-token")),
+        }),
+        forwarded: () => current.service.respondActivityTaskCompleted,
+      },
+    ];
+    for (const { method, body, forwarded } of cases) {
+      const reading = gate();
+      const heldPolls = countingHeldPolls();
+      handler = lane({ heldPolls, receiptKey: async () => (await reading.pass(), KEY) });
+      counted.mockClear();
+      const leaving = leavingCall(method, body);
+      await reading.entered;
+      expect(heldPolls.held(), method).toBe(method === "PollActivityTaskQueue" ? 1 : 0);
+      await leaving.leave();
+      reading.open();
+      await vi.waitFor(() => expect(counted).toHaveBeenCalledTimes(1));
+      expect(counted.mock.calls[0]![0], method).toEqual({ method, decision: "abandoned", status: "CANCELLED", check: "none" });
+      expect(forwarded(), method).not.toHaveBeenCalled();
+      expect(heldPolls.held(), method).toBe(0);
+    }
+  });
+
+  it("counts a caller that left while Temporal answered as abandoned, not by Temporal's answer", async () => {
+    const answering = gate();
+    handler = lane();
+    current.service.pollActivityTaskQueue.mockImplementationOnce(async () => {
+      await answering.pass();
+      return ws.PollActivityTaskQueueResponse.create({});
+    });
+    counted.mockClear();
+    const leaving = leavingCall("PollActivityTaskQueue", pollRequest());
+    await answering.entered;
+    await leaving.leave();
+    answering.open();
+    await vi.waitFor(() => expect(counted).toHaveBeenCalledTimes(1));
+    expect(counted.mock.calls[0]![0]).toEqual({
+      method: "PollActivityTaskQueue",
+      decision: "abandoned",
+      status: "CANCELLED",
+      check: "none",
+    });
   });
 
   it("ends every held poll, with its margin, inside the shutdown drain", () => {
