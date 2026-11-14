@@ -36,6 +36,14 @@
 //     next request after the list changes; a request without an Origin header
 //     never is.
 //
+// Who removes an app user (stigmer#3104): an admin of the token's
+// organization, signed in as themselves, finds the person by the subject
+// `stgm_pc|<organization id>|<user_id>` and deletes the account; the next
+// mint creates it again under the same id, holding only the current sign-in
+// role. An admin of another organization and the minting service account's
+// key are refused, and the same admin still reaches no account of a person
+// who signed in on their own.
+//
 // What a minted token never does, whatever its sign-in role: create an API
 // key, a service account or a child organization, or delete its own account
 // (stigmer#2955). It is meant to end in 15 minutes and with its minter, so it
@@ -87,6 +95,19 @@ const DELETED_MINTER_MESSAGE =
   "The service account that minted this token has been deleted, so the " +
   "token is no longer accepted. Mint a new user token with an active " +
   "service account's key.";
+
+const ACCOUNT_DELETE_DENIED_MESSAGE = "unauthorized to delete identity account";
+const ACCOUNT_GET_DENIED_MESSAGE = "unauthorized to get identity account";
+
+function serviceAccountRefusedMessage(act: string): string {
+  return `a service account cannot ${act}; an organization admin must do it`;
+}
+
+// The subject a mint keys a person by, a documented contract
+// (docs/guides/authentication/product-users.mdx, "Removing a user").
+function appUserSubject(orgId: string, userId: string): string {
+  return `stgm_pc|${orgId}|${userId}`;
+}
 
 function mintedTokenRefusedMessage(act: string): string {
   return `a user token minted for an app user cannot ${act}; an organization admin must do it`;
@@ -355,6 +376,104 @@ describe.skipIf(!enforcementServed)(
         .clientsPresenting(token, { origin: "https://ALLOWED.example" })
         .organizationQuery.listMine({});
       await lane.clientsPresenting(token).organizationQuery.listMine({});
+    });
+  },
+);
+
+describe.skipIf(!enforcementServed)(
+  "user-token enforcement — who removes an app user (userTokens targets)",
+  () => {
+    it("[rpc:IdentityAccountQueryController.getByIdpId] [rpc:IdentityAccountCommandController.delete] an admin of the token's organization finds and deletes an app user, and the next mint creates it again with only the sign-in role", async () => {
+      const context = await tenancy({ signInRole: IamRole.member });
+      const minting = await minter(context.org);
+      const orgAdmin = await lane.provisionWithRole(context, "admin");
+      const userId = uniqueName("user");
+      const accountId = await lane.accountIdOf(
+        lane.clientsPresenting(await mintUserToken(minting.as, context.org, userId)),
+      );
+      const subject = appUserSubject(context.org, userId);
+
+      const found = await orgAdmin.identityAccountQuery.getByIdpId({ value: subject });
+      expect(found.metadata?.id, "the admin finds the app user by its subject").toBe(accountId);
+      expect(found.spec?.provisioningMode).toBe(IdentityAccountProvisioningMode.app_user);
+
+      // The next mint grants whatever the settings say then, so the old
+      // role must not survive the delete.
+      await setEmbedding(lane.clients, context.org, { signInRole: IamRole.viewer });
+      await orgAdmin.identityAccountCommand.delete({ value: accountId });
+      await expectGrpcCode(
+        () => orgAdmin.identityAccountQuery.getByIdpId({ value: subject }),
+        Code.NotFound,
+        "the deleted app user, looked up by its subject",
+      );
+
+      const again = await lane.accountIdOf(
+        lane.clientsPresenting(await mintUserToken(minting.as, context.org, userId)),
+      );
+      expect(again, "the next mint creates the account under the same id").toBe(accountId);
+      const access = await lane.clients.grantQuery.listResourceAccessByPrincipal({
+        resource: { kind: "organization", id: context.org },
+      });
+      const entry = access.entries.find((candidate) => candidate.principal?.id === accountId);
+      expect(entry?.roles.map((role) => role.role?.code), "only the current sign-in role").toEqual([
+        "viewer",
+      ]);
+    });
+
+    it("[rpc:IdentityAccountCommandController.delete] an admin of another organization and the minting service account's key are refused", async () => {
+      const context = await tenancy();
+      const minting = await minter(context.org);
+      const userId = uniqueName("user");
+      const accountId = await lane.accountIdOf(
+        lane.clientsPresenting(await mintUserToken(minting.as, context.org, userId)),
+      );
+      const otherAdmin = await lane.provisionWithRole(await tenancy(), "admin");
+
+      const lookup = await expectGrpcCode(
+        () => otherAdmin.identityAccountQuery.getByIdpId({ value: appUserSubject(context.org, userId) }),
+        Code.PermissionDenied,
+        "another organization's admin looking up the app user",
+      );
+      expect(lookup.rawMessage).toBe(ACCOUNT_GET_DENIED_MESSAGE);
+      const deleted = await expectGrpcCode(
+        () => otherAdmin.identityAccountCommand.delete({ value: accountId }),
+        Code.PermissionDenied,
+        "another organization's admin deleting the app user",
+      );
+      expect(deleted.rawMessage).toBe(ACCOUNT_DELETE_DENIED_MESSAGE);
+
+      // The product's backend creates its people but never removes them: a
+      // service account never decides who belongs to the organization.
+      const byKey = await expectGrpcCode(
+        () => minting.as.identityAccountCommand.delete({ value: accountId }),
+        Code.PermissionDenied,
+        "the minting service account's key deleting the app user",
+      );
+      expect(byKey.rawMessage).toBe(serviceAccountRefusedMessage("change or delete identity accounts"));
+
+      expect(
+        (await lane.clients.identityAccountQuery.get({ value: accountId })).metadata?.id,
+        "the app user's account still exists",
+      ).toBe(accountId);
+    });
+
+    it("[rpc:IdentityAccountCommandController.delete] an admin reaches no account of a person who signed in on their own", async () => {
+      const context = await tenancy();
+      const colleague = await lane.provisionMember(context);
+      const colleagueId = await lane.accountIdOf(colleague);
+
+      const read = await expectGrpcCode(
+        () => lane.clients.identityAccountQuery.get({ value: colleagueId }),
+        Code.PermissionDenied,
+        "an organization's owner reading a member's own account",
+      );
+      expect(read.rawMessage).toBe(ACCOUNT_GET_DENIED_MESSAGE);
+      const deleted = await expectGrpcCode(
+        () => lane.clients.identityAccountCommand.delete({ value: colleagueId }),
+        Code.PermissionDenied,
+        "an organization's owner deleting a member's own account",
+      );
+      expect(deleted.rawMessage).toBe(ACCOUNT_DELETE_DENIED_MESSAGE);
     });
   },
 );

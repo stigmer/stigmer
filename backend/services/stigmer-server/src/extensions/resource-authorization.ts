@@ -228,12 +228,37 @@ export interface ChildOrganizationLinkedEvent {
  * other row naming it. A throw fails the create INTERNAL with the row in
  * place: the account is listed, and an edition that stores the link
  * repairs a missing one (open source derives it from the row,
- * authorization/model/service-accounts.ts).
+ * authorization/model/organization-accounts.ts).
  */
 export interface ServiceAccountLinkedEvent {
   readonly accountId: string;
   readonly orgId: string;
   /** The admin who created the service account. */
+  readonly caller: CallerIdentity;
+}
+
+/**
+ * Fired synchronously by `mintUserToken` once for each app user it
+ * creates, BEFORE the account row is stored and beside the sign-in role's
+ * grant: the driver writes
+ * `identity_account:<accountId>#organization@organization:<orgId>`, the
+ * link through which the organization's admins view, rename and delete
+ * the person its product signs in (#3104). `accountId` is the id the
+ * account is about to take, derived from its subject
+ * (identityaccount/constants.ts `accountIdFor`), and that subject names
+ * `orgId`, so the link can only ever name its own organization's person.
+ * A throw fails the mint INTERNAL with nothing stored, and the product's
+ * retry writes the link again before the row, so no app user is ever
+ * stored without it. Should the row's write then fail, the link names an
+ * id no row holds yet and grants nothing. A mint that finds the account
+ * fires nothing; the account's delete removes the link with every other
+ * row naming it, and the next mint links the new row. Open source derives
+ * the edge from the row (authorization/model/organization-accounts.ts).
+ */
+export interface AppUserLinkedEvent {
+  readonly accountId: string;
+  readonly orgId: string;
+  /** The server acting for the minting service account (`serverActingFor`). */
   readonly caller: CallerIdentity;
 }
 
@@ -316,6 +341,14 @@ export interface ResourceAuthorizationLifecycle {
    * check time (the OSS posture).
    */
   onServiceAccountLinked?(event: ServiceAccountLinkedEvent): Promise<void>;
+  /**
+   * OPTIONAL: synchronous, pre-persist: fired by the user-token mint for
+   * an app user it is about to create, before its row is stored (the
+   * event's doc); a throw fails the mint with nothing stored. The write is
+   * idempotent. Absent method = the edge is derived from the row at check
+   * time (the OSS posture).
+   */
+  onAppUserLinked?(event: AppUserLinkedEvent): Promise<void>;
   /**
    * OPTIONAL: synchronous; fired by an organization's create and its
    * updatePolicies: AFTER the row persists for a change that opens an act,

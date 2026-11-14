@@ -157,7 +157,9 @@ and with which role), and your backend calls `mintUserToken` for each user.
 App users are **org-scoped**: every mint for your Organization resolves the same
 user ID to a single Identity Account. A user who reaches Stigmer through your
 dashboard, mobile app, and admin tool shares one identity and one set of
-permissions.
+permissions. Your Organization's admins can view, rename and delete those
+accounts; the next mint for a deleted user creates the account again with the
+current sign-in role.
 
 For the full setup guide, see
 [Sign your product's users in](/docs/guides/authentication/product-users).

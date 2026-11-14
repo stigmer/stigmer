@@ -1965,8 +1965,10 @@ export async function composeServer(
     // register it (route-shadowing.ts): mintGuestToken dispatches to the
     // composed capability. The mint writes app users through the
     // identity-account create path and the one grant path, as the minting
-    // service account (domain/token/mint.ts), and signs with the ring the
-    // keys stage resolved (none without a posture: the mint then refuses).
+    // service account (domain/token/mint.ts), announces each new one's
+    // organization link to the composed tuple lifecycle, and signs with
+    // the ring the keys stage resolved (none without a posture: the mint
+    // then refuses).
     registerTokenService(router, {
       mint: {
         store,
@@ -1974,6 +1976,7 @@ export async function composeServer(
         accounts: identityAccounts,
         createAccount: createIdentityAccount,
         grantPath,
+        authorizationLifecycle,
         keys: platformTokenKeys,
         logger,
         now: () => new Date(),
