@@ -450,6 +450,15 @@ export interface MessageThreadProps {
 export type ThreadContentColumn = "center" | "start";
 
 /**
+ * The column's one edge: 16px, and 24px once the session it sits in is
+ * 640px wide or more. It reads the session's own width (the named container
+ * `session`, which the session view draws), not the viewport's, so a session
+ * docked in a narrow panel on a wide screen keeps a phone's edge. Every item
+ * in the column draws flush to it: none adds an edge of its own.
+ */
+export const THREAD_GUTTER_CLASS = "stg:px-4 stg:@min-[40rem]/session:px-6";
+
+/**
  * Class set for the optional reading column — one definition shared by both
  * render paths (non-virtualized and virtualized) so their geometry can never
  * drift.
@@ -459,7 +468,7 @@ export type ThreadContentColumn = "center" | "start";
 export function threadContentColumnClass(
   column: ThreadContentColumn | undefined,
 ): string | false {
-  return column != null && cn("stg:w-full stg:max-w-3xl stg:px-4", column === "center" && "stg:mx-auto");
+  return column != null && cn("stg:w-full stg:max-w-3xl", THREAD_GUTTER_CLASS, column === "center" && "stg:mx-auto");
 }
 
 /**
@@ -1677,7 +1686,6 @@ export function ThreadItemRenderer({
           subject={subagentSubjectOf(item.toolUse)}
           startedAt={item.toolUse.processedAt}
           completedAt={item.toolUse.result?.processedAt}
-          className="stg:mx-4"
         />
       );
     case "phase-badge":
@@ -1727,7 +1735,7 @@ export function ThreadItemRenderer({
       return (
         <div className="stg:opacity-60">
           <Entry message={{ kind: "user", id: item.message.id, text: item.message.text }} />
-          <p className="stg:px-4 stg:text-right stg:text-xs stg:text-muted-foreground">
+          <p className="stg:text-right stg:text-xs stg:text-muted-foreground">
             {item.message.state === "waiting" ? QUEUED_MESSAGE_LABEL : DROPPED_MESSAGE_LABEL}
           </p>
         </div>
@@ -1735,7 +1743,7 @@ export function ThreadItemRenderer({
     }
     case "todos": {
       const Todos = slots?.TodoCard ?? TodoCard;
-      return <Todos todos={item.todos} className="stg:mx-4" TodoRow={slots?.TodoRow} />;
+      return <Todos todos={item.todos} TodoRow={slots?.TodoRow} />;
     }
     case "plan-completion": {
       // When the turn returned its plan as a File, show the richer reviewable
@@ -1797,7 +1805,7 @@ function ToolGroupRow({
   readonly formatSummary?: (toolUses: readonly ToolUse[]) => string;
 }) {
   if (!fold) {
-    return <ToolCallGroup toolUses={toolUses} formatSummary={formatSummary} className="stg:mx-4" />;
+    return <ToolCallGroup toolUses={toolUses} formatSummary={formatSummary} />;
   }
   return (
     <SettledStepsRow toolUses={toolUses}>
@@ -1892,7 +1900,7 @@ function OutcomeRow({ turn }: { readonly turn: Turn }) {
 function AgentVersionMarker({ label }: { readonly label: string }) {
   return (
     <div
-      className="stg:flex stg:items-center stg:gap-3 stg:px-4 stg:py-2 stg:text-xs stg:text-muted-foreground"
+      className="stg:flex stg:items-center stg:gap-3 stg:py-2 stg:text-xs stg:text-muted-foreground"
       data-testid="agent-version-marker"
     >
       <span aria-hidden="true" className="stg:h-px stg:flex-1 stg:bg-border" />
@@ -1958,7 +1966,7 @@ function loadedVersionChangeText(change: LoadedVersionChange): string {
 function LoadedVersionsMarker({ changes }: { readonly changes: readonly LoadedVersionChange[] }) {
   return (
     <div
-      className="stg:flex stg:items-center stg:gap-3 stg:px-4 stg:py-2 stg:text-xs stg:text-muted-foreground"
+      className="stg:flex stg:items-center stg:gap-3 stg:py-2 stg:text-xs stg:text-muted-foreground"
       data-testid="loaded-versions-marker"
     >
       <span aria-hidden="true" className="stg:h-px stg:flex-1 stg:bg-border" />
@@ -2000,7 +2008,7 @@ function FailedUserMessage({
       <MessageEntryComponent message={message} files={files} />
       <div
         role="alert"
-        className="stg:mx-4 stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-destructive"
+        className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-destructive"
       >
         <span className="stg:min-w-0 stg:flex-1 stg:truncate">Didn&rsquo;t send. Your message is kept here.</span>
         {onRetry && (
@@ -2049,7 +2057,6 @@ const ApprovalCardRow = memo(function ApprovalCardRow({
       onAnswer={handleAnswer}
       isSubmitting={isSubmitting}
       error={error}
-      className="stg:mx-4"
     />
   );
 });

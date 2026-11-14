@@ -274,7 +274,7 @@ function AiMessage({
       role="article"
       aria-label="AI response"
       aria-busy={isStreaming}
-      className={cn("stg:group stg:px-4 stg:py-3", className)}
+      className={cn("stg:group stg:py-3", className)}
     >
       <div className="stgm-prose">
         <Streamdown
@@ -409,7 +409,7 @@ function ThinkingMessage({
   const label = isStreaming ? "Thinking" : "Thought";
 
   return (
-    <div role="article" aria-label="Model thinking" className={cn("stg:px-4", className)}>
+    <div role="article" aria-label="Model thinking" className={className}>
       <ThreadCardShell variant="quiet">
         <ThreadCardHeader
           gesture={hasContent ? { kind: "expand", expanded, onToggle: () => setExpanded((v) => !v), label } : { kind: "none" }}
@@ -448,7 +448,7 @@ function SystemMessage({
     <div
       role="article"
       aria-label="System message"
-      className={cn("stg:px-4 stg:py-2", className)}
+      className={cn("stg:py-2", className)}
     >
       <p className="stg:text-xs stg:text-muted-foreground stg:italic">{content}</p>
     </div>

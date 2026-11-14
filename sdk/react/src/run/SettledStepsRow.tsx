@@ -41,12 +41,12 @@ export function SettledStepsRow({ toolUses, prefix, children, framed = true, cla
   const regionId = useId();
   const words = settledStepsPhrase(toolUses);
   const label = prefix === undefined ? words : words === "" ? prefix : `${prefix}: ${words.charAt(0).toLowerCase()}${words.slice(1)}`;
-  if (label === "") return <div className={cn(framed && "stg:mx-4", className)}>{children}</div>;
+  if (label === "") return <div className={className}>{children}</div>;
   const span = stepsSpanMs(toolUses);
   return (
     <div
       className={cn(
-        framed ? "stg:mx-4 stg:overflow-hidden stg:rounded-lg stg:border stg:border-border stg:bg-card" : "stg:border-t stg:border-border-muted",
+        framed ? "stg:overflow-hidden stg:rounded-lg stg:border stg:border-border stg:bg-card" : "stg:border-t stg:border-border-muted",
         className,
       )}
     >

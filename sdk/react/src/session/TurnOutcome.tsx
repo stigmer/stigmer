@@ -206,7 +206,7 @@ export function TurnOutcome({ outcome, onOpenFile, canOpenChange, onOpenChange, 
   // and the session's pill; this block says only what the turn produced.
   if (made.length === 0 && changed.length === 0) return null;
   return (
-    <section aria-label="What this turn produced" className={cn("stg:mx-4 stg:space-y-4", className)}>
+    <section aria-label="What this turn produced" className={cn("stg:space-y-4", className)}>
       {made.length > 0 && <OutcomeGroup title="Made" items={made} />}
       {changed.length > 0 && (
         <OutcomeGroup

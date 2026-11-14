@@ -126,7 +126,7 @@ export function SessionSummary({ session, turns, runs, files, showCost, routineH
   ].filter((fact): fact is string => fact !== undefined);
 
   return (
-    <header className={cn("stg:space-y-1 stg:border-b stg:border-border stg:px-4 stg:pb-3 stg:pt-4", className)}>
+    <header className={cn("stg:space-y-1 stg:border-b stg:border-border stg:pb-3 stg:pt-4", className)}>
       <div className="stg:flex stg:items-center stg:gap-2">
         <h1 className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-lg stg:font-semibold">{asked}</h1>
         {actions != null && <div className="stg:-my-1 stg:flex stg:shrink-0 stg:items-center stg:gap-2">{actions}</div>}
