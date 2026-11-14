@@ -174,11 +174,11 @@ export const ToolCallItem = memo(function ToolCallItem({
     result.type === "memoryProposal" ||
     liveOutput ||
     (toolUse.result !== undefined && hasResultBody(result));
-  // A command left running in the background stays closed: its line says
-  // how it stands, and its output is there on a click. A Stop that failed
-  // opens it, since the reason sits in its body.
+  // A command left running in the background keeps its output in view, as
+  // a running one does; a Stop that failed opens it again if it was closed,
+  // since the reason sits in its body.
   const stopFailed = useBackgroundStop(toolUse)?.error != null;
-  const autoOpen = (isRunning && hasBody && !backgroundRunning) || approval != null || tailFailed || stopFailed;
+  const autoOpen = (isRunning && hasBody) || approval != null || tailFailed || stopFailed;
   const [expanded, handleToggle] = useAutoDisclosure(autoOpen, {
     initialOpen: defaultExpanded || autoOpen,
   });
@@ -325,7 +325,8 @@ export const ToolCallItem = memo(function ToolCallItem({
         <span
           className={cn(
             "stg:min-w-0 stg:shrink-0 stg:max-w-full stg:truncate",
-            isRunning ? "stgm-shimmer-label" : failed ? "stg:font-medium stg:text-foreground" : "stg:text-foreground",
+            // A step that failed or waits on someone is news: its words at medium weight.
+            isRunning ? "stgm-shimmer-label" : failed || status === "waiting" ? "stg:font-medium stg:text-foreground" : "stg:text-foreground",
           )}
         >
           {linkedFile && primaryArg ? (

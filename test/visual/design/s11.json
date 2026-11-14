@@ -149,16 +149,10 @@
         "type Reply…": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included"
       },
       "pending": {
-        "button Allow": "Steps, approvals and the finished turn: while a call waits its row is the sentence card",
-        "button Allow all file edits": "Steps, approvals and the finished turn: while a call waits its row is the sentence card",
-        "button Deny": "Steps, approvals and the finished turn: while a call waits its row is the sentence card",
-        "type Allow": "Steps, approvals and the finished turn: while a call waits its row is the sentence card",
-        "type Allow all file edits": "Steps, approvals and the finished turn: while a call waits its row is the sentence card",
-        "type Deny": "Steps, approvals and the finished turn: while a call waits its row is the sentence card",
-        "type Waiting for you · 1m 30s": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
-        "word It waits for your answer. Nothing is written until you allow it.": "Steps, approvals and the finished turn: while a call waits its row is the sentence card",
-        "word The agent wants to create a file": "Steps, approvals and the finished turn: while a call waits its row is the sentence card",
-        "word src/billing/rounding.ts": "Steps, approvals and the finished turn: while a call waits its row is the sentence card"
+        "button Allow": "The drawing: its buttons at 34px and 26px are off the kit's 32px and 28px; redrawn at the next export",
+        "button Allow all file edits": "The drawing: its buttons at 34px and 26px are off the kit's 32px and 28px; redrawn at the next export",
+        "button Deny": "The drawing: its buttons at 34px and 26px are off the kit's 32px and 28px; redrawn at the next export",
+        "type Waiting for you · 1m 30s": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export"
       }
     }
   ]

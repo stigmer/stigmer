@@ -341,8 +341,10 @@ export function ApprovalCardBody({
       )}
 
       <p className="stg:text-sm stg:text-foreground" data-cursor-target="approval-waits">
-        {intent !== null && `${intent}. `}
-        It waits for your answer. {WAIT_WORDS[categoryInfo.category] ?? "Nothing happens until you allow it."}
+        {/* The command's own description leads where the agent gave one;
+            otherwise the line says that the call waits. */}
+        {intent !== null ? `${intent}. ` : "It waits for your answer. "}
+        {WAIT_WORDS[categoryInfo.category] ?? "Nothing happens until you allow it."}
       </p>
 
       {preview}

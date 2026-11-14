@@ -175,11 +175,11 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "type Running a command": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans",
-        "type Stop": "Steps, approvals and the finished turn: the screen's parts as drawn",
-        "word Ran a command npm run dev": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans",
-        "word Running in the background · 2m 04s": "The session's frame: one duration format, \"1m 30s\"",
-        "word Working · 4m 20s": "The session's frame: one duration format, \"1m 30s\""
+        "type Running a command": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "type Stop": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "word Ran a command npm run dev": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "word Running in the background · 2m 04s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "word Working · 4m 20s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows"
       }
     }
   ]

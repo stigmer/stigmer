@@ -47,9 +47,21 @@ export function readPage(selector: string): Reading {
     }
     return true;
   };
+  // An inline element flows in its parent's line, and so does an item of a
+  // flex or grid box that itself sits in a line, however deep (a file's
+  // name inside its button inside an inline-flex control).
+  const inLine = (element: Element): boolean => {
+    for (let at: Element = element; at !== root; ) {
+      if (getComputedStyle(at).display.startsWith("inline")) return true;
+      const parent = at.parentElement;
+      if (parent === null || !/flex|grid/.test(getComputedStyle(parent).display)) return false;
+      at = parent;
+    }
+    return false;
+  };
   const blockOf = (element: Element): Element => {
     let at = element;
-    while (at !== root && at.parentElement !== null && getComputedStyle(at).display.startsWith("inline")) at = at.parentElement;
+    while (at !== root && at.parentElement !== null && inLine(at)) at = at.parentElement;
     return at;
   };
   // The flex or grid item a text sits in, inside its block: two texts in

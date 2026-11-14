@@ -78,7 +78,7 @@
           ]
         },
         {
-          "text": "Plan · 312 B",
+          "text": "Plan · 0.3 KB",
           "type": [
             12,
             16,
@@ -174,13 +174,13 @@
         "word Agent": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included"
       },
       "pending": {
-        "button Build": "Steps, approvals and the finished turn: the screen's parts as drawn",
-        "type Build": "Steps, approvals and the finished turn: the screen's parts as drawn",
-        "type Done": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
-        "word 18s": "The session's frame: one duration format, \"1m 30s\"",
-        "word 24s": "The session's frame: one duration format, \"1m 30s\"",
-        "word How it got there: searched 1 pattern, read invoice.ts": "Steps, approvals and the finished turn: \"How it got there\" as the card's header with its count and span",
-        "word Plan Plan how invoices should round. Don't change anything yet.": "Steps, approvals and the finished turn: the screen's parts as drawn"
+        "button Build": "The drawing: its buttons at 34px and 26px are off the kit's 32px and 28px; redrawn at the next export",
+        "type Build": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "type Done": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
+        "word 18s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "word 24s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "word How it got there: searched 1 pattern, read invoice.ts": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "word Plan Plan how invoices should round. Don't change anything yet.": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows"
       }
     },
     {
@@ -198,7 +198,7 @@
           ]
         },
         {
-          "text": "Markdown · 312 B",
+          "text": "Markdown · 0.3 KB",
           "type": [
             12,
             16,
