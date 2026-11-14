@@ -75,6 +75,13 @@ describe("ResultView", () => {
     expect(container.textContent).toContain("boom");
   });
 
+  it("leads a listing standing alone with its count of files", () => {
+    const { container, rerender } = render(<ResultView view={{ type: "list", entries: ["a.ts", "b.ts"], count: 2 }} />);
+    expect(container.textContent).toContain("2 files");
+    rerender(<ResultView view={{ type: "list", entries: ["a.ts"], count: 1 }} />);
+    expect(container.textContent).toContain("1 file");
+  });
+
   it("renders a terminal as its output alone, no command echo and no badge on success", () => {
     const view: ToolResultView = {
       type: "terminal",

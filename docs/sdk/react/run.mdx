@@ -918,7 +918,8 @@ header. One body, one preview rule in both.
 
 ### ApprovalCardHeader
 
-The compact summary row of an approval — `[icon] Label primaryArg [⏳ Xm]`.
+The head of an approval: a raised hand, what the agent wants in a sentence
+("The agent wants to create a file"), and beneath it what it would touch.
 Used as the standalone [`ApprovalCard`](#approvalcard)'s header. Not rendered inline
 on a [`ToolCallItem`](#toolcallitem), whose own row already serves as the header.
 
@@ -1340,6 +1341,7 @@ still carries the value, and this is where it would become visible.
 <TypeTable
   type={{
     args: { type: "Record<string, unknown>", description: "Tool argument map to render as a key-value list.", required: true },
+    result: { type: "string", description: "A short plain answer, shown as the list's last field, `result`." },
   }}
 />
 
