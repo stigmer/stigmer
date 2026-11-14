@@ -72,6 +72,13 @@ export interface ToolContentBlock {
  * any unrecognized or truncated payload lands there, so this is never worse than
  * showing the raw result.
  */
+/** The lines a read returned: 1-based, inclusive, and the file's length when the engine says it. */
+export interface FileLineRange {
+  readonly start: number;
+  readonly end: number;
+  readonly total?: number;
+}
+
 export type ToolResultView =
   // File edit. oldText/newText are the two sides of the change: the
   // old_string/new_string fragments from the tool's input. The
@@ -91,6 +98,12 @@ export type ToolResultView =
       readonly content: string;
       readonly language?: string;
       readonly truncated: boolean;
+      /**
+       * The lines a read returned, when its answer says (the Stigmer
+       * harness's `@@ lines A-B of T @@` frame; the Claude engine's
+       * numbered lines, which give no total): 1-based and inclusive.
+       */
+      readonly range?: FileLineRange;
     }
   // A rendered terminal session. `command` is the command that produced this
   // output (the prompt line) — it belongs here, not as a stray arg, because a
@@ -393,6 +406,18 @@ export function withoutOffloadTail(text: string): string {
  * names one). Otherwise the kind drives interpretation, and anything
  * unrecognized degrades to `json`/`text`.
  */
+/**
+ * What an edit tried to change, as the diff of its own input (the text it
+ * meant to replace and its replacement), whatever its answer: a failed edit
+ * opens to what it tried rather than to its error. `undefined` for a call
+ * that is not a file edit.
+ */
+export function editAttemptOf(tool: ToolViewInput): Extract<ToolResultView, { type: "diff" }> | undefined {
+  if (resolveToolKind(tool) !== "file_edit") return undefined;
+  const view = normalizeEdit(tool.input as Args);
+  return view.type === "diff" ? view : undefined;
+}
+
 export function normalizeToolResult(tool: ToolViewInput): ToolResultView {
   const result = tool.result?.text ?? "";
   const args = tool.input as Args;
@@ -484,6 +509,7 @@ function normalizeRead(args: Args, result: string): ToolResultView {
     content: framed?.body ?? result,
     language: languageFromPath(path),
     truncated: framed?.truncated || isTruncated(result),
+    ...(framed?.range !== undefined ? { range: framed.range } : {}),
   };
 }
 
@@ -503,13 +529,30 @@ function stigmerReadHeaderFields(line: string): string | undefined {
   return STIGMER_READ_FIELDS.test(fields) ? fields : undefined;
 }
 
-function splitStigmerReadFrame(result: string): { body: string; truncated: boolean } | undefined {
+/** A read's answer without its frame, whether the engine cut it, and the lines it returned when the frame says. */
+interface ReadFrame {
+  readonly body: string;
+  readonly truncated: boolean;
+  readonly range?: FileLineRange;
+}
+
+// The header's range, read by position ("lines 14-17 of 88", "lines 1-40").
+const STIGMER_READ_RANGE = /^lines (\d+)-(\d+)(?: of (\d+))?/;
+
+function splitStigmerReadFrame(result: string): ReadFrame | undefined {
   const lines = result.split("\n");
   let at = 0;
   while (STIGMER_READ_NOTICE.test(lines[at] ?? "")) at += 1;
   const fields = stigmerReadHeaderFields(lines[at] ?? "");
   if (fields === undefined) return undefined;
-  return { body: lines.slice(at + 1).join("\n"), truncated: fields.includes("truncated") };
+  const range = STIGMER_READ_RANGE.exec(fields);
+  return {
+    body: lines.slice(at + 1).join("\n"),
+    truncated: fields.includes("truncated"),
+    ...(range !== null
+      ? { range: { start: Number(range[1]), end: Number(range[2]), ...(range[3] !== undefined ? { total: Number(range[3]) } : {}) } }
+      : {}),
+  };
 }
 
 // The Claude engine answers a text read as the file's lines, each after its
@@ -519,7 +562,7 @@ function splitStigmerReadFrame(result: string): { body: string; truncated: boole
 // number and a tab, read by another engine, is never stripped.
 const NUMBERED_READ_LINE = /^ *(\d+)\t/;
 
-function splitNumberedReadFrame(result: string): { body: string; truncated: boolean } | undefined {
+function splitNumberedReadFrame(result: string): ReadFrame | undefined {
   const lines = result.split("\n");
   const first = NUMBERED_READ_LINE.exec(lines[0] ?? "");
   if (first === null) return undefined;
@@ -530,7 +573,7 @@ function splitNumberedReadFrame(result: string): { body: string; truncated: bool
     if (numbered === null || Number(numbered[1]) !== start + index) return undefined;
     body.push(line.slice(numbered[0].length));
   }
-  return { body: body.join("\n"), truncated: false };
+  return { body: body.join("\n"), truncated: false, range: { start, end: start + body.length - 1 } };
 }
 
 // Matches the deepagents shell marker, e.g. "[Command failed with exit code 2]"

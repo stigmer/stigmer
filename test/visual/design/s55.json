@@ -172,13 +172,13 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Working · 4m 20s": "the scene waits for an answer (\"Waiting for you · 1m 30s\")",
+        "word Running in the background · 2m 04s": "the scene's command starts after the scene's clock, so its line reads \"Running in the background\" with no time"
+      },
       "ruled": {},
       "pending": {
-        "type Stop": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Ran a command npm run dev": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Running in the background · 2m 04s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Working · 4m 20s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows"
+        "word > billing-app@1.4.0 dev > vite VITE v5.4.2 ready in 412 ms ➜ Local: http://localhost:5173/": "T07 3o: a command running in the background is closed until clicked (T07 G6, his finding 22); S55 is redrawn closed at the next export"
       }
     }
   ]

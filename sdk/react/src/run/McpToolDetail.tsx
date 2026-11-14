@@ -17,6 +17,7 @@ import { useArtifactDownloadUrl } from "@stigmer/react-core";
 import { useArtifactDownload } from "./useArtifactDownload.js";
 import { useToolOutputContent } from "./useToolOutputContent.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { STEP_INSET } from "../internal/thread-card/index.js";
 
 /** Props for {@link McpToolDetail}. */
 export interface McpToolDetailProps {
@@ -76,12 +77,10 @@ export function McpToolDetail({ toolUse, className }: McpToolDetailProps) {
       ) : toolUse.result?.isError === true && result !== "" ? (
         // A failed call's answer is an error, said as one, never laid out as
         // the tool's fields.
-        <div className="stg:space-y-1" role="alert">
-          <span className="stg:font-medium stg:text-destructive">Error</span>
-          <pre className="stg:whitespace-pre-wrap stg:break-words stg:rounded-md stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:p-2 stg:font-mono stg:text-destructive">
-            {result}
-          </pre>
-        </div>
+        // The step's line already says it couldn't; the box says why.
+        <pre role="alert" className={cn(STEP_INSET, "stg:whitespace-pre-wrap stg:break-words")}>
+          {result}
+        </pre>
       ) : (
         result && shortResult === null && <McpResultView result={result} />
       )}
@@ -287,6 +286,9 @@ export function McpArgsView({ args, result }: McpArgsViewProps) {
   for (const [key, value] of entries) {
     if (isScalar(value)) {
       scalars.push([key, String(value)]);
+    } else if (Array.isArray(value) && value.every(isScalar)) {
+      // A list of words reads as one line ("bug, rounding").
+      scalars.push([key, value.map(String).join(", ")]);
     } else {
       complex.push([key, value]);
     }
@@ -295,7 +297,9 @@ export function McpArgsView({ args, result }: McpArgsViewProps) {
   return (
     <div className="stg:space-y-2">
       {(scalars.length > 0 || result !== undefined) && (
-        <dl className="stg:grid stg:grid-cols-[auto_1fr] stg:gap-x-3 stg:gap-y-1 stg:rounded-md stg:border stg:border-border stg:bg-muted-faint stg:px-2.5 stg:py-2">
+        // The step's one box, in the sans: the app's keys muted, their
+        // values at the foreground (the drawing's `.kv`).
+        <dl className="stg:grid stg:grid-cols-[auto_minmax(0,1fr)] stg:gap-x-3 stg:gap-y-1 stg:rounded-lg stg:border stg:border-border-muted stg:bg-muted-faint stg:px-3 stg:py-2 stg:text-xs">
           {scalars.map(([key, value]) => (
             <ScalarRow key={key} label={key} value={value} />
           ))}
@@ -345,11 +349,8 @@ function McpResultView({ result }: { result: string }) {
 
   return (
     <div className="stg:space-y-1">
-      <span className="stg:font-medium stg:text-muted-foreground">Result</span>
-      <CollapsiblePre
-        content={parsed}
-        className="stg:max-h-80 stg:overflow-auto stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:p-2 stg:text-foreground"
-      />
+      <span className="stg:text-muted-foreground">result</span>
+      <CollapsiblePre content={parsed} className={cn(STEP_INSET, "stg:max-h-80 stg:overflow-auto stg:whitespace-pre-wrap stg:break-words")} />
     </div>
   );
 }

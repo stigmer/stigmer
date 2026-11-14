@@ -21,6 +21,10 @@
  * Until then only the graph that crossed was told, so a sub-agent whose last
  * call crossed told nobody, and a parent never heard of a sub-agent's
  * crossing. The end-to-end arm is `hermetic/cost-advisory.test.ts`.
+ *
+ * How a call is priced (stigmer#3131): through `computeTurnCost`, the cap's
+ * own pricer, over disjoint buckets, so cache writes pay their own rate and a
+ * long prompt pays its step.
  */
 
 import { describe, it, expect } from "vitest";
@@ -29,18 +33,21 @@ import { Command } from "@langchain/langgraph";
 import { createCostAdvisoryMiddleware } from "../cost-advisory.js";
 import { ADVISORY_LEAD_IN } from "../advisory-message.js";
 import type { ModelCallRequest, StigmerMiddleware } from "../types.js";
+import { computeTurnCost } from "../../shared/model-pricing.js";
+import type { ModelPricing } from "../../shared/model-pricing-data.js";
 
 const HISTORY = [new HumanMessage("go")];
 const REQUEST: ModelCallRequest = { model: {}, messages: HISTORY, state: { messages: HISTORY }, runtime: {} };
 
-function responseWithUsage(inputTokens: number, outputTokens: number, cacheRead = 0): AIMessage {
+/** A response whose `input_tokens` includes the cache buckets, as LangChain reports it. */
+function responseWithUsage(inputTokens: number, outputTokens: number, cacheRead = 0, cacheWrite = 0): AIMessage {
   return new AIMessage({
     content: "response",
     usage_metadata: {
       input_tokens: inputTokens,
       output_tokens: outputTokens,
       total_tokens: inputTokens + outputTokens,
-      input_token_details: { cache_read: cacheRead },
+      input_token_details: { cache_read: cacheRead, cache_creation: cacheWrite },
     },
   });
 }
@@ -70,11 +77,19 @@ function spentIn(advisory: string | undefined): string | undefined {
   return advisory?.match(/\$(\d+\.\d{4})/)?.[1];
 }
 
-const BASE_CONFIG = {
-  maxCostUsd: 1.0,
+const RATES: ModelPricing = {
+  model: "test-model",
+  displayName: "Test Model",
+  costTier: "standard",
   inputPricePerMillion: 3.0,
   outputPricePerMillion: 15.0,
+  cacheWritePricePerMillion: 3.75,
   cacheReadPricePerMillion: 0.3,
+};
+
+const BASE_CONFIG = {
+  maxCostUsd: 1.0,
+  pricing: RATES,
   warningPct: 80,
 };
 
@@ -91,6 +106,38 @@ describe("CostAdvisoryMiddleware", () => {
     await callModel(mw, responseWithUsage(1000, 500, 600));
     // regular input 400 * 3 + cache 600 * 0.3 + output 500 * 15 = 8,880 / 1M
     expect(mw.runningCost).toBeCloseTo(0.00888, 4);
+  });
+
+  it("prices cache writes at their own rate, as the cap's estimate does (#3131)", async () => {
+    const mw = createCostAdvisoryMiddleware(BASE_CONFIG);
+    await callModel(mw, responseWithUsage(1000, 500, 0, 600));
+    // regular input 400 * 3 + cache write 600 * 3.75 + output 500 * 15 = 10,950 / 1M
+    expect(mw.runningCost).toBeCloseTo(0.01095, 6);
+    expect(mw.runningCost).toBeCloseTo(computeTurnCost(RATES, 400, 500, 600, 0), 12);
+  });
+
+  it("prices a long prompt at its step, so the warning fires at the stepped spend (#3131)", async () => {
+    const stepped: ModelPricing = {
+      ...RATES,
+      inputPricePerMillion: 0.1,
+      outputPricePerMillion: 0.5,
+      cacheWritePricePerMillion: 0.125,
+      cacheReadPricePerMillion: 0.01,
+      longContext: {
+        thresholdTokens: 100_000,
+        inputPricePerMillion: 0.5,
+        outputPricePerMillion: 2.5,
+        cacheWritePricePerMillion: 0.625,
+        cacheReadPricePerMillion: 0.05,
+      },
+    };
+    // $0.10 cap, warning at $0.08. One 150k-token prompt: $0.075 stepped
+    // ($0.015 at the base rates); the second takes the total to $0.15.
+    const mw = createCostAdvisoryMiddleware({ maxCostUsd: 0.1, pricing: stepped, warningPct: 80 });
+    expect(advisoryOf(await callModel(mw, responseWithUsage(150_000, 0)))).toBeUndefined();
+    expect(mw.runningCost).toBeCloseTo(0.075, 9);
+    await callModel(mw, responseWithUsage(150_000, 0));
+    expect(advisoryOf(await callModel(mw, NO_USAGE))).toContain("Budget warning");
   });
 
   it("accumulates across model calls", async () => {

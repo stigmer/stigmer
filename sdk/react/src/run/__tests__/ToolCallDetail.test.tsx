@@ -11,7 +11,7 @@
 // A shell call that is still running shows what it has printed so far, and
 // its finished session once the result lands.
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
-import { render, cleanup, screen } from "@testing-library/react";
+import { render, cleanup, screen, fireEvent } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import type { ToolUse } from "@stigmer/client";
 import {
@@ -277,31 +277,25 @@ describe("ToolCallDetail — write body", () => {
     expect(container.textContent).not.toContain("proposed body");
   });
 
-  it("renders exactly one reveal control for the content fallback (double-expander regression)", () => {
+  it("shows a written file's first lines with one reveal in place (double-expander regression)", () => {
     const longBody = Array.from({ length: 55 }, (_, i) => `line ${i + 1}`).join("\n");
-    // happy-dom lays nothing out, so "taller than the clamp" is the
-    // measurement's word.
-    const scroll = vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(2_000);
-    const client = vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(192);
-    try {
-      const { container, getAllByRole } = render(
-        <ToolCallDetail
-          toolUse={writeCall({ input: { file_path: "notes.md", content: longBody } })}
-        />,
-      );
-      // The proposed content reads as the file's own lines, bounded once by
-      // the pixel clamp, with its one in-place reveal: never a collapsed
-      // "Content" toggle and a second reveal inside it.
-      expect(container.querySelector(CLAMP)).not.toBeNull();
-      expect(container.querySelector(`${CLAMP} pre`)?.textContent).toBe(longBody);
-      const reveals = getAllByRole("button").filter((b) => /^Show /.test(b.textContent ?? ""));
-      expect(reveals).toHaveLength(1);
-      expect(reveals[0].textContent).toBe("Show more");
-      expect(container.textContent).not.toContain("Part of the file");
-    } finally {
-      scroll.mockRestore();
-      client.mockRestore();
-    }
+    const { getAllByRole } = render(
+      <ToolCallDetail
+        toolUse={writeCall({ input: { file_path: "notes.md", content: longBody } })}
+      />,
+    );
+    // The proposed content reads as the file's own first lines (the session
+    // page, S37), with how many of how many under the box and its one
+    // in-place reveal: never a collapsed "Content" toggle and a second
+    // reveal inside it.
+    const region = screen.getByRole("region", { name: "File content" });
+    expect(region.textContent).toBe("line 1\nline 2\nline 3\nline 4\nline 5");
+    expect(screen.getByText("Lines 1–5 of 55")).toBeTruthy();
+    const reveals = getAllByRole("button").filter((b) => /^Show /.test(b.textContent ?? ""));
+    expect(reveals).toHaveLength(1);
+    expect(reveals[0].textContent).toBe("Show all");
+    fireEvent.click(reveals[0]);
+    expect(screen.getByRole("region", { name: "File content" }).textContent).toBe(longBody);
   });
 
   it("falls back to the proposed content for every unresolvable capture", () => {
@@ -320,7 +314,7 @@ describe("ToolCallDetail — write body", () => {
     ];
     for (const [label, reviewed, capture] of cases) {
       const { container } = renderWith(writeCall(), reviewed, capture);
-      expect(container.querySelector(`${CLAMP} pre`)?.textContent, label).toBe("proposed body\n");
+      expect(container.querySelector('[aria-label="File content"]')?.textContent, label).toBe("proposed body");
       expect(
         container.querySelector('[data-cursor-target="file-diff"]'),
         label,
@@ -366,7 +360,7 @@ describe("ToolCallDetail — read body", () => {
     const { container } = render(
       <ToolCallDetail toolUse={toolUse({ name: "Read", input: { path: "notes.md" }, result: "# Notes\nfirst line\n" })} />,
     );
-    expect(container.querySelector(`${CLAMP} pre`)?.textContent).toBe("# Notes\nfirst line\n");
+    expect(container.querySelector('[aria-label="File content"]')?.textContent).toBe("# Notes\nfirst line");
     expect(container.textContent).not.toContain("Part of the file");
   });
 
@@ -376,7 +370,7 @@ describe("ToolCallDetail — read body", () => {
         toolUse={toolUse({ name: "Read", input: { path: "big.log" }, result: "head\n[truncated: 90000 chars total]" })}
       />,
     );
-    expect(container.querySelector(`${CLAMP} pre`)?.textContent).toContain("head");
+    expect(container.querySelector('[aria-label="File content"]')?.textContent).toContain("head");
     expect(screen.getByText("Part of the file")).toBeTruthy();
   });
 
@@ -387,7 +381,7 @@ describe("ToolCallDetail — read body", () => {
     const region = screen.getByRole("region", { name: "File content" });
     expect(region.tabIndex).toBe(0);
     expect(region.className).toContain("stg:focus-visible:ring-2");
-    expect(region.textContent).toBe("# Notes\n");
+    expect(region.textContent).toBe("# Notes");
   });
 
   it("opens a failed read to its error", () => {
@@ -395,7 +389,8 @@ describe("ToolCallDetail — read body", () => {
       <ToolCallDetail toolUse={toolUse({ name: "Read", input: { path: "secret.md" }, isError: true, result: "permission denied" })} />,
     );
     expect(container.textContent).toContain("permission denied");
-    expect(container.querySelector("pre.stg\\:bg-muted-faint")).toBeNull();
+    // The error sits in the step's one box, not as the file's lines.
+    expect(screen.queryByRole("region", { name: "File content" })).toBeNull();
   });
 
   it("shows the input when the read returned nothing", () => {
@@ -423,10 +418,10 @@ describe("ToolCallDetail — a connected app's call", () => {
         toolUse={toolUse({ name: "create_issue", mcpServerName: "acme-github", input: { title: "x" }, isError: true, result: "rate limited" })}
       />,
     );
+    // The step's line already says it couldn't; the box says why.
     const alert = screen.getByRole("alert");
-    expect(alert.textContent).toContain("Error");
     expect(alert.textContent).toContain("rate limited");
-    expect(screen.queryByText("Result")).toBeNull();
+    expect(screen.queryByText("result")).toBeNull();
   });
 
   it("lays a returned call's answer out as its result", () => {
@@ -436,7 +431,8 @@ describe("ToolCallDetail — a connected app's call", () => {
       />,
     );
     expect(screen.queryByRole("alert")).toBeNull();
-    expect(screen.getByText("Result")).toBeTruthy();
+    // The answer is the box's last field, named as the app's fields are.
+    expect(screen.getByText("result")).toBeTruthy();
   });
 });
 

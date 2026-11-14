@@ -9,8 +9,10 @@
 // runner shared/model-registry.ts getRequestProfile), and whether the
 // row carries pricing at all (the runner's pricing table is the rows that do,
 // runner shared/model-pricing-data.ts; a model with none is costed at its
-// default rate) — so other registry schema growth (the prices themselves,
-// the remaining capabilities) never touches this module. A
+// default rate), and the row's long-prompt price step as served (the billing
+// suite's catalog arm reads back what an upsert rendered) — so other registry
+// schema growth (the base prices, the remaining capabilities) never touches
+// this module. A
 // document with no `models` array is refused by name: the arms would otherwise
 // "pass" against an empty registry exactly the way the runner silently
 // degrades against one.
@@ -28,6 +30,9 @@ export interface ModelRegistryRow {
   thinkingRequired: boolean | undefined;
   // The row carries a `pricing` object, so the runner prices its id from it.
   priced: boolean;
+  // `pricing.longContext` as served: its numeric fields, or undefined when
+  // the row has no step (or no pricing).
+  longContext: Readonly<Record<string, number>> | undefined;
 }
 
 export interface ModelRegistryDocument {
@@ -46,6 +51,12 @@ export async function fetchModelRegistryDocument(
     throw new Error(`model registry at ${url} answered HTTP ${response.status}`);
   }
   return parseModelRegistryDocument(await response.json(), url);
+}
+
+// An object's numeric fields, or undefined when `value` is not an object.
+function numericFields(value: unknown): Readonly<Record<string, number>> | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, number] => typeof entry[1] === "number"));
 }
 
 // Pure; the unit arm pins the shape guard.
@@ -75,6 +86,7 @@ export function parseModelRegistryDocument(json: unknown, source = "(inline)"): 
         thinkingForm: flags.adaptiveThinking === true ? "adaptive" : flags.thinking === true ? "budget" : "none",
         thinkingRequired: typeof flags.thinkingRequired === "boolean" ? flags.thinkingRequired : undefined,
         priced: typeof record.pricing === "object" && record.pricing !== null,
+        longContext: numericFields((record.pricing as Record<string, unknown> | null | undefined)?.longContext),
       }];
     }),
   };

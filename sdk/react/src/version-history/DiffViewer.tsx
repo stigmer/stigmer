@@ -9,6 +9,18 @@ export interface DiffViewerProps {
   readonly hunks: readonly DiffHunk[];
   /** File path displayed in the header. */
   readonly filePath?: string;
+  /**
+   * Whether each line shows its number in the file. Defaults to `true`. A
+   * step's diff turns it off: its hunks are numbered from the fragment the
+   * agent replaced, not the file, so a number there would mislead.
+   */
+  readonly lineNumbers?: boolean;
+  /**
+   * Whether each removed line sits beside the line that replaced it (`-a`,
+   * `+a'`, `-b`, `+b'`) rather than every removal before every addition.
+   * Defaults to `false`, the unified order version history reads in.
+   */
+  readonly paired?: boolean;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -34,7 +46,7 @@ export interface DiffViewerProps {
  * }
  * ```
  */
-export function DiffViewer({ hunks, filePath, className }: DiffViewerProps) {
+export function DiffViewer({ hunks, filePath, lineNumbers = true, paired = false, className }: DiffViewerProps) {
   if (hunks.length === 0) {
     return (
       <div
@@ -65,14 +77,14 @@ export function DiffViewer({ hunks, filePath, className }: DiffViewerProps) {
       <table className="stg:w-full stg:border-collapse" role="table">
         <thead className="stg:sr-only">
           <tr>
-            <th scope="col">Line</th>
+            {lineNumbers && <th scope="col">Line</th>}
             <th scope="col">Change</th>
             <th scope="col">Content</th>
           </tr>
         </thead>
         <tbody>
           {hunks.map((hunk, hunkIdx) => (
-            <HunkRows key={hunkIdx} hunk={hunk} isFirst={hunkIdx === 0} />
+            <HunkRows key={hunkIdx} hunk={hunk} isFirst={hunkIdx === 0} lineNumbers={lineNumbers} paired={paired} />
           ))}
         </tbody>
       </table>
@@ -87,9 +99,13 @@ export function DiffViewer({ hunks, filePath, className }: DiffViewerProps) {
 function HunkRows({
   hunk,
   isFirst,
+  lineNumbers,
+  paired,
 }: {
   readonly hunk: DiffHunk;
   readonly isFirst: boolean;
+  readonly lineNumbers: boolean;
+  readonly paired: boolean;
 }) {
   const header = `@@ -${hunk.oldStart},${hunk.oldLines} +${hunk.newStart},${hunk.newLines} @@`;
 
@@ -98,7 +114,7 @@ function HunkRows({
       {!isFirst && (
         <tr>
           <td
-            colSpan={3}
+            colSpan={lineNumbers ? 3 : 2}
             className="stg:select-none stg:bg-diff-hunk-header-bg stg:px-3 stg:py-1 stg:text-2xs stg:text-diff-hunk-header-fg"
             aria-label={`Hunk: ${header}`}
           >
@@ -106,8 +122,8 @@ function HunkRows({
           </td>
         </tr>
       )}
-      {hunk.lines.map((line, lineIdx) => (
-        <DiffLineRow key={lineIdx} line={line} />
+      {(paired ? pairChanges(hunk.lines) : hunk.lines).map((line, lineIdx) => (
+        <DiffLineRow key={lineIdx} line={line} lineNumbers={lineNumbers} />
       ))}
     </>
   );
@@ -121,7 +137,33 @@ const LINE_NUM_CLASSES =
   "stg:w-[1px] stg:min-w-10 stg:select-none stg:whitespace-nowrap stg:px-2 stg:text-right stg:text-2xs stg:text-muted-foreground";
 const MARKER_CLASSES = "stg:w-[1px] stg:select-none stg:px-1 stg:text-center";
 
-function DiffLineRow({ line }: { readonly line: DiffLine }) {
+/**
+ * A hunk's lines with each removed line beside its replacement: in every
+ * stretch of removals followed by additions, the n-th removal is followed by
+ * the n-th addition, and the stretch's longer side keeps its rest in order.
+ */
+export function pairChanges(lines: readonly DiffLine[]): readonly DiffLine[] {
+  const out: DiffLine[] = [];
+  let at = 0;
+  while (at < lines.length) {
+    if (lines[at]!.type !== "removed") {
+      out.push(lines[at]!);
+      at += 1;
+      continue;
+    }
+    const removed: DiffLine[] = [];
+    while (at < lines.length && lines[at]!.type === "removed") removed.push(lines[at++]!);
+    const added: DiffLine[] = [];
+    while (at < lines.length && lines[at]!.type === "added") added.push(lines[at++]!);
+    for (let i = 0; i < Math.max(removed.length, added.length); i++) {
+      if (i < removed.length) out.push(removed[i]!);
+      if (i < added.length) out.push(added[i]!);
+    }
+  }
+  return out;
+}
+
+function DiffLineRow({ line, lineNumbers }: { readonly line: DiffLine; readonly lineNumbers: boolean }) {
   const marker = line.type === "added" ? "+" : line.type === "removed" ? "-" : " ";
 
   const rowClass =
@@ -154,9 +196,7 @@ function DiffLineRow({ line }: { readonly line: DiffLine }) {
 
   return (
     <tr className={rowClass} aria-label={ariaLabel}>
-      <td className={LINE_NUM_CLASSES}>
-        {lineNumber ?? ""}
-      </td>
+      {lineNumbers && <td className={LINE_NUM_CLASSES}>{lineNumber ?? ""}</td>}
       <td className={cn(MARKER_CLASSES, markerColor)} aria-hidden="true">
         {marker}
       </td>

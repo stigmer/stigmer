@@ -183,3 +183,44 @@ export function auditLayout(selector: string): LayoutBreak[] {
   }
   return [...breaks.values()];
 }
+
+/** One opened step body that sits out of its step's column: its step's words, and how far off it is. */
+export interface StepBreak {
+  readonly rule: "step-body";
+  readonly where: string;
+  readonly detail: string;
+}
+
+/**
+ * Reads every opened step body under `selector` (the kit marks a step's words
+ * `data-step-title`, its body `data-step-body` with how far it spans, and its
+ * trail `data-step-trail`) and reports each that sits out of its column: its
+ * left edge more than a pixel from its words' left edge, or, for a body
+ * under the words alone (`words`), its right edge past the trail's left edge.
+ * A body on a rail (`rail`) runs through the trail's column, as the drawing's
+ * rails do. Reported once per step's words and finding.
+ */
+export function auditSteps(selector: string): StepBreak[] {
+  const root = document.querySelector(selector) ?? document.body;
+  const breaks = new Map<string, StepBreak>();
+  for (const body of root.querySelectorAll<HTMLElement>("[data-step-body]")) {
+    const grid = body.parentElement;
+    const title = grid?.querySelector<HTMLElement>(":scope > * > [data-step-title]");
+    if (grid === null || title === null || title === undefined) continue;
+    const box = body.getBoundingClientRect();
+    if (box.width === 0 && box.height === 0) continue;
+    const words = title.getBoundingClientRect();
+    const where = `"${(title.innerText ?? "").replace(/\s+/g, " ").trim().slice(0, 60)}"`;
+    const note = (detail: string): void => {
+      const key = `${where} ${detail}`;
+      if (!breaks.has(key)) breaks.set(key, { rule: "step-body", where, detail });
+    };
+    if (Math.abs(box.left - words.left) > 1) note(`starts ${Math.round(box.left - words.left)}px from its words`);
+    const trail = grid.querySelector<HTMLElement>(":scope > [data-step-trail]");
+    if (body.dataset["stepBody"] === "words" && trail !== null) {
+      const edge = trail.getBoundingClientRect().left;
+      if (box.right > edge + 1) note(`runs ${Math.round(box.right - edge)}px into the trail`);
+    }
+  }
+  return [...breaks.values()];
+}

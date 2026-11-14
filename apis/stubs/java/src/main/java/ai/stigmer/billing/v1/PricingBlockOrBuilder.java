@@ -124,4 +124,34 @@ public interface PricingBlockOrBuilder extends
    * <code>.google.protobuf.Timestamp effective_at = 8 [json_name = "effectiveAt"];</code>
    */
   com.google.protobuf.TimestampOrBuilder getEffectiveAtOrBuilder();
+
+  /**
+   * <pre>
+   * The higher rates a long prompt pays, for models priced by prompt length.
+   * Absent: one set of rates at every prompt length.
+   * </pre>
+   *
+   * <code>.ai.stigmer.billing.v1.LongContextPricing long_context = 9 [json_name = "longContext"];</code>
+   * @return Whether the longContext field is set.
+   */
+  boolean hasLongContext();
+  /**
+   * <pre>
+   * The higher rates a long prompt pays, for models priced by prompt length.
+   * Absent: one set of rates at every prompt length.
+   * </pre>
+   *
+   * <code>.ai.stigmer.billing.v1.LongContextPricing long_context = 9 [json_name = "longContext"];</code>
+   * @return The longContext.
+   */
+  ai.stigmer.billing.v1.LongContextPricing getLongContext();
+  /**
+   * <pre>
+   * The higher rates a long prompt pays, for models priced by prompt length.
+   * Absent: one set of rates at every prompt length.
+   * </pre>
+   *
+   * <code>.ai.stigmer.billing.v1.LongContextPricing long_context = 9 [json_name = "longContext"];</code>
+   */
+  ai.stigmer.billing.v1.LongContextPricingOrBuilder getLongContextOrBuilder();
 }

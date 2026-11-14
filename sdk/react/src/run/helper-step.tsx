@@ -6,6 +6,7 @@
 // reads the same wherever it shows. Internal: not exported from the barrel.
 
 import type { Thread } from "@stigmer/client";
+import { isInternalTool } from "@stigmer/react-core/internal";
 import { StatusBadge } from "../status/StatusBadge.js";
 
 /** The tag a helper with no agent name of its own carries. */
@@ -44,3 +45,20 @@ export function HelperGlyph() {
     </svg>
   );
 }
+
+/** Whether a helper has anything to open to: a step of its own, or its error. */
+export function helperShowsWork(thread: Thread): boolean {
+  return (
+    thread.items.some((item) => item.kind === "tool_use" && !isInternalTool(item.name)) ||
+    (thread.state === "failed" && thread.reply !== "")
+  );
+}
+
+/** A helper's state in words, for its row's accessible name. */
+export const HELPER_STATE_WORDS: Readonly<Record<Thread["state"], string>> = {
+  running: "Running",
+  completed: "Completed",
+  failed: "Failed",
+  // Its turn ended before the subagent finished.
+  stopped: "Stopped",
+};

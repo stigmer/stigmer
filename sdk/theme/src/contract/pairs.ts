@@ -221,6 +221,12 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
   ),
   pair("--stgm-foreground", "--stgm-muted-subtle", "text", "user message bubble text (MessageEntry HumanMessage), markdown table headers"),
   pair("--stgm-muted-foreground", "--stgm-muted-subtle", "text", "secondary affordances inside the user bubble"),
+  pair("--stgm-muted-foreground", "--stgm-muted-faint", "text", "an opened step's inset box: a read's lines, a search's matches, a command's output (STEP_INSET, ToolCallDetail)"),
+  over(
+    pair("--stgm-muted-foreground", "--stgm-status-running-band", "text", "a plan's live to-do and its steps' second lines on the band (PlanSteps)"),
+    "--stgm-card",
+  ),
+  over(pair("--stgm-foreground", "--stgm-status-running-band", "text", "a plan's live to-do's words on the band (PlanSteps)"), "--stgm-card"),
 
   // ── Semantic text ───────────────────────────────────────────────────
   pair("--stgm-destructive-foreground", "--stgm-destructive", "text", "destructive buttons (approval Deny)"),

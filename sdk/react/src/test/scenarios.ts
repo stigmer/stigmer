@@ -165,16 +165,20 @@ function askEvents(name: string, input: Record<string, string>, argsPreview: str
   ];
 }
 
-/** A subagent's thread, opened by its `task` tool use, with what it did and, unless it runs, its reply. */
-function threadEvents(taskId: string, state: "running" | "completed", reply: string): SessionEvent[] {
+/**
+ * A subagent's thread, opened by its `task` tool use, with what it did and,
+ * unless it runs, its reply; its steps stamped after the helper's start
+ * (`startMs`, the task call's time from the sample's zero).
+ */
+function threadEvents(taskId: string, state: "running" | "completed", reply: string, startMs = 0): SessionEvent[] {
   const events = [
     event({ case: "sessionThreadCreated", value: { id: `${taskId}.created`, sessionThreadId: taskId, agentName: "researcher" } }),
     event({
       case: "agentThreadMessageSent",
       value: { id: `${taskId}.sent`, toSessionThreadId: taskId, content: [{ type: "text", text: "Find where invoices are rounded" }] },
     }),
-    samples.agentMessageEvent("Searching the billing module.", { threadId: taskId, id: `${taskId}.m0` }),
-    samples.toolUseEvent("grep", { pattern: "round(" }, { threadId: taskId, id: `${taskId}.grep` }),
+    samples.agentMessageEvent("Searching the billing module.", { threadId: taskId, id: `${taskId}.m0`, processedAt: sampleInstant(startMs + 1_000) }),
+    samples.toolUseEvent("grep", { pattern: "round(" }, { threadId: taskId, id: `${taskId}.grep`, processedAt: sampleInstant(startMs + 2_000) }),
   ];
   if (state === "completed") {
     events.push(
@@ -338,7 +342,7 @@ function busyEvents(): SessionEvent[] {
     samples.userMessageEvent("Invoices are off by a cent across the billing module. Find every place that rounds, fix it, and prove it with tests."),
     samples.runStatusEvent("running"),
     ...call("write_todos", { todos: busyTodos(0) }, 3_000, "Updated the to-do list", 200, `${RUN_ID}.tc-write_todos-1`),
-    ...call("grep", { pattern: "round(", path: "src/billing" }, 6_000, "src/billing/invoice.ts:41\nsrc/billing/credit-note.ts:18"),
+    ...call("grep", { pattern: "round(", path: "src/billing" }, 6_000, "src/billing/invoice.ts:41:      sum + roundCents(lineTotal(line))\nsrc/billing/credit-note.ts:18:  amount: roundCents(line.amount)"),
     ...call("read_file", { path: "src/billing/invoice.ts" }, 9_000, "export function invoiceTotal(lines: readonly Line[]) {"),
     ...call("write_todos", { todos: busyTodos(1) }, 12_000, "Updated the to-do list", 200, `${RUN_ID}.tc-write_todos-2`),
     ...call(
@@ -355,7 +359,7 @@ function busyEvents(): SessionEvent[] {
       processedAt: sampleInstant(48_000),
     }),
     samples.toolUseEvent("task", { description: "map where credit notes round" }, { id: BUSY_TASK_ID, processedAt: sampleInstant(52_000) }),
-    ...threadEvents(BUSY_TASK_ID, "running", ""),
+    ...threadEvents(BUSY_TASK_ID, "running", "", 52_000),
     ...call("execute", { command: "npm test -- billing" }, 60_000, undefined, 0, BUSY_TEST_RUN_ID),
   ];
 }
@@ -1106,7 +1110,7 @@ function fileStepsTurn(): SessionEvent[] {
       input: { path: "src/billing/invoice.ts", old_string: "sum + roundCents(line.total)", new_string: "sum + line.total" },
       atMs: 64_000,
       tookMs: 200,
-      result: "Error: the text to replace was not found in src/billing/invoice.ts",
+      result: "Error: String not found in file: 'sum + roundCents(line.total)'",
       isError: true,
       id: `${RUN_ID}.tc-edit-invoice-failed`,
     }),
@@ -1505,7 +1509,7 @@ function partWayEvents(): SessionEvent[] {
     samples.userMessageEvent("Invoices are off by a cent across the billing module. Find every place that rounds, fix it, and prove it with tests."),
     samples.runStatusEvent("running"),
     ...call("write_todos", { todos: busyTodos(0) }, 3_000, "Updated the to-do list", 200, `${RUN_ID}.tc-write_todos-1`),
-    ...call("grep", { pattern: "round(", path: "src/billing" }, 6_000, "src/billing/invoice.ts:41\nsrc/billing/credit-note.ts:18"),
+    ...call("grep", { pattern: "round(", path: "src/billing" }, 6_000, "src/billing/invoice.ts:41:      sum + roundCents(lineTotal(line))\nsrc/billing/credit-note.ts:18:  amount: roundCents(line.amount)"),
     ...call("read_file", { path: "src/billing/invoice.ts" }, 9_000, "export function invoiceTotal(lines: readonly Line[]) {"),
     ...call("write_todos", { todos: busyTodos(1) }, 12_000, "Updated the to-do list", 200, `${RUN_ID}.tc-write_todos-2`),
     ...call("edit_file", { path: "src/billing/invoice.ts", ...INVOICE_EDIT }, 21_000, "1 edit applied", 800),

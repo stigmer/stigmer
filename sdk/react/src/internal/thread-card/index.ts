@@ -3,6 +3,7 @@ export {
   ThreadCardHeader,
   ThreadCardHeaderControl,
   ThreadCardBody,
+  ThreadCardStep,
   type ThreadCardVariant,
   type ThreadCardShellProps,
   type ThreadCardHeaderProps,
@@ -10,11 +11,16 @@ export {
   type ThreadCardHeaderGesture,
   type ThreadCardHeaderControlProps,
   type ThreadCardBodyProps,
+  type ThreadCardStepProps,
+  type ThreadCardStepGesture,
 } from "./ThreadCardShell.js";
+export { STEP_INSET, STEP_INSET_FOOT } from "./step-inset.js";
 export {
   SpinnerIcon,
   ClockIcon,
   CheckCircleIcon,
+  DoneTick,
+  FailedGlyph,
   XCircleIcon,
   DotIcon,
   SlashCircleIcon,

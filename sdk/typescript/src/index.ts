@@ -419,11 +419,13 @@ export {
   resolveToolKind,
   resolveToolKindByName,
   normalizeToolResult,
+  editAttemptOf,
   SHELL_INTENT_ARG_FIELD,
   extractShellIntent,
   shellIntentFromArgs,
   isSecretArgKey,
   redactSecretArgs,
+  type FileLineRange,
   type ToolResultView,
   type ToolSearchMatch,
   type ToolContentBlock,
@@ -453,7 +455,17 @@ export {
   type TurnProgress,
 } from "./run/turn-activity.js";
 export { formatElapsed } from "./run/format-elapsed.js";
-export { humanizeToolName, stepPhrase, stepTense, type StepPhrase, type StepTense } from "./run/step-words.js";
+export {
+  failureWords,
+  humanizeToolName,
+  lineRangeWords,
+  searchCountWords,
+  stepPhrase,
+  stepTense,
+  type StepPhrase,
+  type StepPhraseOptions,
+  type StepTense,
+} from "./run/step-words.js";
 export { turnSteps, type PlanItem, type TurnSteps } from "./run/turn-steps.js";
 export {
   describeTurnEnding,

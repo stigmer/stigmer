@@ -1,8 +1,11 @@
 "use client";
 
 // A helper's work inside the parent conversation, drawn as one more step: the
-// step row's shell, the helper's subject as its line, its agent's name as a
-// tag, its time on the right, and its own messages and steps in the body.
+// step's layout, the helper's subject as its line, its agent's name as a tag
+// with the helper glyph, its time on the right, and its own steps in the
+// body, on a rail, as the session page draws it (S43). Its brief and its
+// messages are not drawn: its line says what it works on, and its steps
+// what it did.
 
 import { memo, useMemo } from "react";
 import type { Thread, ToolUse, TurnItem } from "@stigmer/client";
@@ -12,17 +15,20 @@ import { formatElapsed } from "@stigmer/client";
 import { useElapsedSince } from "../internal/useElapsedSince.js";
 import { cn } from "@stigmer/design-tokens";
 import { formatHeaderDuration } from "./ToolCallDetail.js";
-import { MessageEntry, type ThreadMessage } from "./MessageEntry.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
 import { isInternalTool } from "@stigmer/react-core/internal";
 import {
   ThreadCardShell,
-  ThreadCardHeader,
-  ThreadCardBody,
+  ThreadCardStep,
+  DoneTick,
+  FailedGlyph,
+  SlashCircleIcon,
   SpinnerIcon,
+  STEP_INSET,
 } from "../internal/thread-card/index.js";
+import { StepPlaceContext } from "./step-place.js";
 import { Tag } from "../internal/surface/Tag.js";
-import { HELPER_WORD, HelperEndingBadge, HelperGlyph, helperTagWord } from "./helper-step.js";
+import { HELPER_STATE_WORDS, HELPER_WORD, HelperEndingBadge, HelperGlyph, helperTagWord } from "./helper-step.js";
 
 /** Props for {@link SubagentSection}. */
 export interface SubagentSectionProps {
@@ -43,9 +49,9 @@ export interface SubagentSectionProps {
    * expand/collapse toggle. Defaults to `true`.
    *
    * Set to `false` when rendered inside a parent row that already draws
-   * the helper's header and toggle (e.g. {@link ToolCallItem}): the flat
-   * form is the helper's work alone (its brief, its steps, its error), with
-   * no header of its own.
+   * the helper's line and toggle (e.g. {@link ToolCallItem}): the flat
+   * form is the helper's work alone (its steps on a rail, its error), with
+   * no line of its own.
    */
   readonly collapsible?: boolean;
   /** Additional CSS class names for the root container. */
@@ -53,25 +59,25 @@ export interface SubagentSectionProps {
 }
 
 /**
- * Renders a subagent's thread as a nested mini-thread inside the parent
- * conversation: its messages and tool uses, in the order it produced them.
+ * Renders a subagent's work inside the parent conversation as one step, the
+ * session page's helper (S43).
  *
- * When `collapsible` is `true` (default), the helper reads as a step, drawn
- * on the same shell as every other step row: a helper glyph, its subject as
- * the line, its agent's name as a tag beside it ("Helper" when it has
+ * When `collapsible` is `true` (default), the helper reads as a step on the
+ * step's own layout: the running spinner while it works and the tick once
+ * done, its subject as the line (its first letter capitalised for display),
+ * its agent's name as a tag with the helper glyph ("Helper" when it has
  * none), and its time on the right (ticking while it works). It is open
  * while the helper works or one of its calls waits for a person, and
  * settles closed when it finishes; a click opens it again. Like the step
- * rows, it carries a pill only when it failed or stopped: a working or
- * finished helper says nothing beyond its line. Its own steps render at the
- * body's padding.
+ * rows, it carries a pill only when it failed or stopped.
+ *
+ * Opened, it shows the helper's own steps on a rail under its words, each
+ * with its folder line and no time of its own; its brief and its messages
+ * are not drawn. A failed helper's error sits under its steps.
  *
  * When `collapsible` is `false`, the component renders the helper's work
- * alone, without a header or toggle, for a parent row that already draws
+ * alone, without a line or toggle, for a parent row that already draws
  * both (e.g. {@link ToolCallItem}).
- *
- * Composes {@link MessageEntry} and {@link ToolCallGroup} — the same
- * building blocks the top-level {@link MessageThread} uses.
  *
  * Wrapped in `React.memo` — the session fold keeps an unchanged thread's
  * reference, so a finished subagent skips re-renders entirely.
@@ -96,60 +102,53 @@ export const SubagentSection = memo(function SubagentSection({
 }: SubagentSectionProps) {
   useRenderTracer("SubagentSection", { status: thread.state, name: thread.agentName });
 
-  // Header chip threshold (>= 1s) shared with ToolCallItem — a sub-second
-  // subagent is noise by the same rule, and the two row kinds must speak
-  // one duration vocabulary.
-  const duration = formatHeaderDuration(startedAt, completedAt);
-  const threadItems = useMemo(() => buildSubagentThreadItems(thread.items), [thread.items]);
+  const toolUses = useMemo(() => helperSteps(thread.items), [thread.items]);
   // A failed subagent's reply is its error.
   const error = thread.state === "failed" ? thread.reply : "";
-
-  const displayLabel = subject || thread.agentName || HELPER_WORD;
 
   if (!collapsible) {
     return (
       <div className={className}>
-        <SubagentThreadContent threadItems={threadItems} input={thread.input} error={error} />
+        <HelperBody toolUses={toolUses} error={error} />
       </div>
     );
   }
 
   return (
-    <CollapsibleCard
+    <HelperStep
       thread={thread}
-      displayLabel={displayLabel}
+      displayLabel={capitalised(subject) || thread.agentName || HELPER_WORD}
       startedAt={startedAt}
-      duration={duration}
-      threadItems={threadItems}
+      // Header chip threshold (>= 1s) shared with ToolCallItem — a sub-second
+      // subagent is noise by the same rule.
+      duration={formatHeaderDuration(startedAt, completedAt)}
+      toolUses={toolUses}
       error={error}
       className={className}
     />
   );
 });
 
+/** A string with its first letter capitalised, for display; the subject itself stays as written. */
+function capitalised(text: string): string {
+  return text === "" ? "" : text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 // ---------------------------------------------------------------------------
 // The helper's step (default mode)
 // ---------------------------------------------------------------------------
 
-interface CollapsibleCardProps {
+interface HelperStepProps {
   readonly thread: Thread;
   readonly displayLabel: string;
   readonly startedAt: string;
   readonly duration: string | null;
-  readonly threadItems: readonly SubagentThreadItem[];
+  readonly toolUses: readonly ToolUse[];
   readonly error: string;
   readonly className?: string;
 }
 
-function CollapsibleCard({
-  thread,
-  displayLabel,
-  startedAt,
-  duration,
-  threadItems,
-  error,
-  className,
-}: CollapsibleCardProps) {
+function HelperStep({ thread, displayLabel, startedAt, duration, toolUses, error, className }: HelperStepProps) {
   const isRunning = thread.state === "running";
 
   // A call inside this subagent that waits for a person must be reachable:
@@ -163,57 +162,86 @@ function CollapsibleCard({
   const [expanded, handleToggle] = useAutoDisclosure(isRunning || waitsInside);
 
   const tag = helperTagWord(thread.agentName, displayLabel);
-  const gesture = {
-    kind: "expand",
-    expanded,
-    onToggle: handleToggle,
-    label: tag === null ? displayLabel : `${displayLabel}, ${tag}`,
-  } as const;
+  const shows = toolUses.length > 0 || error !== "";
+  const gesture = shows
+    ? ({ kind: "expand", expanded, onToggle: handleToggle, label: tag === null ? displayLabel : `${displayLabel}, ${tag}` } as const)
+    : ({ kind: "none" } as const);
 
-  // The group's name keeps the state a sighted person reads from the spinner
+  // The group's name keeps the state a sighted person reads from the mark
   // or the pill, so a screen reader hears it too.
   return (
-    <div role="group" aria-label={`Subagent: ${displayLabel}, ${STATE_WORDS[thread.state]}`} className={className}>
+    <div role="group" aria-label={`Subagent: ${displayLabel}, ${HELPER_STATE_WORDS[thread.state]}`} className={className}>
       <ThreadCardShell cursorTarget="subagent-row">
-        <ThreadCardHeader gesture={gesture}>
-          <span className="stg:shrink-0 stg:text-muted-foreground" aria-hidden="true">
-            <HelperGlyph />
-          </span>
-          <span className="stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:gap-2 stg:overflow-hidden">
-            {/* While it works the line carries the step rows' liveness sweep;
-                the shimmer class owns `color`, so it replaces the static one. */}
-            <span className={cn("stg:min-w-0 stg:truncate", isRunning ? "stgm-shimmer-label" : "stg:text-foreground")}>
-              {displayLabel}
-            </span>
-            {tag !== null && <Tag>{tag}</Tag>}
-          </span>
-          <HelperEndingBadge state={thread.state} />
-          {isRunning && (
-            <span className="stg:shrink-0 stg:text-foreground" aria-hidden="true">
-              <SpinnerIcon />
-            </span>
-          )}
-          {isRunning ? (
-            <RunningDuration startedAt={startedAt} />
-          ) : (
-            duration && <span className={TIME_CLASSES}>{duration}</span>
-          )}
-        </ThreadCardHeader>
-        {expanded && (
-          <ThreadCardBody cursorTarget="subagent-body">
-            <SubagentThreadContent threadItems={threadItems} input={thread.input} error={error} />
-          </ThreadCardBody>
-        )}
+        <ThreadCardStep
+          gesture={gesture}
+          mark={<HelperMark state={thread.state} />}
+          titleClassName={isRunning || thread.state === "failed" ? "stg:font-medium" : undefined}
+          title={
+            <>
+              {/* While it works the line carries the step rows' liveness
+                  sweep; the shimmer class owns `color`, so it replaces the
+                  static one. Done, its words go quiet. */}
+              <span className={cn(isRunning ? "stgm-shimmer-label" : thread.state === "failed" ? "stg:text-foreground" : "stg:text-muted-foreground")}>
+                {tag !== null ? `${displayLabel} ` : displayLabel}
+              </span>
+              {tag !== null && (
+                <Tag>
+                  <HelperGlyph />
+                  {tag}
+                </Tag>
+              )}
+            </>
+          }
+          trail={
+            <>
+              <HelperEndingBadge state={thread.state} />
+              {isRunning ? <RunningDuration startedAt={startedAt} /> : duration && <span className={TIME_CLASSES}>{duration}</span>}
+            </>
+          }
+          bodySpan="rail"
+          bodyCursorTarget="subagent-body"
+          body={expanded && shows ? <HelperBody toolUses={toolUses} error={error} /> : undefined}
+        />
       </ThreadCardShell>
     </div>
   );
+}
+
+/**
+ * A helper's mark, as a step's: the running spinner while it works, the tick
+ * once it finished, a red (!) when it failed and a slash when its turn
+ * stopped it (the pill beside its time says which).
+ */
+export function HelperMark({ state }: { readonly state: Thread["state"] }) {
+  switch (state) {
+    case "completed":
+      return <DoneTick />;
+    case "running":
+      return (
+        <span className="stg:flex stg:text-status-running" aria-hidden="true">
+          <SpinnerIcon size={12} />
+        </span>
+      );
+    case "failed":
+      return (
+        <span className="stg:flex stg:text-status-failed" aria-hidden="true">
+          <FailedGlyph />
+        </span>
+      );
+    case "stopped":
+      return (
+        <span className="stg:flex stg:text-muted-foreground" aria-hidden="true">
+          <SlashCircleIcon />
+        </span>
+      );
+  }
 }
 
 /** A step's time on the right: 12/16 meta, its digits aligned. */
 const TIME_CLASSES = "stg:shrink-0 stg:text-xs stg:tabular-nums stg:text-muted-foreground";
 
 /**
- * Ticking elapsed time for a running subagent's header, where the static
+ * Ticking elapsed time for a running subagent's line, where the static
  * duration (which needs the finish time) is still null.
  *
  * The honest live affordance for a running subagent: an engine that
@@ -231,91 +259,43 @@ function RunningDuration({ startedAt }: { readonly startedAt: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Shared thread content renderer
+// The helper's body
 // ---------------------------------------------------------------------------
 
-interface SubagentThreadContentProps {
-  readonly threadItems: readonly SubagentThreadItem[];
-  readonly input: string;
-  /** The failed subagent's error; "" otherwise. */
-  readonly error: string;
-}
+/** Inside a helper: its steps hang on a rail and leave their time to the helper's line. */
+const IN_A_HELPER = { rows: "rail", inHelper: true } as const;
 
 /**
- * Its messages sit at the body's padding, not the thread's: the thread's
- * `px-4` gutter is for a top-level message, and inside a step the body is
- * the inset.
+ * A helper's own steps, on a rail under its words, undivided, each with its
+ * folder line and no time of its own; a failed helper's error under them in
+ * the step's one box.
  */
-const MESSAGE_AT_BODY_PADDING = "stg:px-0";
-
-function SubagentThreadContent({
-  threadItems,
-  input,
-  error,
-}: SubagentThreadContentProps) {
+function HelperBody({ toolUses, error }: { readonly toolUses: readonly ToolUse[]; readonly error: string }) {
   return (
     <div className="stg:flex stg:flex-col stg:gap-2">
-      {/* What it was asked, as one quiet line: the step's own line already
-          says what it works on. */}
-      {input && <p className="stg:truncate stg:text-xs stg:text-muted-foreground">{input}</p>}
-
-      {threadItems.map((item) => {
-        switch (item.kind) {
-          case "message":
-            return <MessageEntry key={item.key} message={item.message} className={MESSAGE_AT_BODY_PADDING} />;
-          case "tool-group":
-            // Its steps are step rows, as the plan's are: no card inside the card.
-            return <ToolCallGroup key={item.key} toolUses={item.toolUses} framed={false} />;
-        }
-      })}
-
-      {error && (
-        <div className="stg:rounded-md stg:bg-destructive-subtle stg:px-3 stg:py-2 stg:text-xs stg:text-destructive">
-          {error}
-        </div>
+      {toolUses.length > 0 && (
+        <StepPlaceContext.Provider value={IN_A_HELPER}>
+          <div className="stg:border-l-2 stg:border-border stg:pl-3">
+            <ToolCallGroup toolUses={toolUses} framed={false} divided={false} />
+          </div>
+        </StepPlaceContext.Provider>
       )}
+      {error && <pre className={cn(STEP_INSET, "stg:whitespace-pre-wrap stg:break-words")}>{error}</pre>}
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Thread item builder for a subagent's items
+// The helper's steps
 // ---------------------------------------------------------------------------
 
-type SubagentThreadItem =
-  | { readonly kind: "message"; readonly message: ThreadMessage; readonly key: string }
-  | { readonly kind: "tool-group"; readonly toolUses: readonly ToolUse[]; readonly key: string };
-
 /**
- * A subagent's items as rows: each message, thinking or note on its own,
- * each run of consecutive tool uses (internal to-do calls left out) as one
- * group. A compaction marker is not shown inside a subagent.
+ * A helper's own steps, in the order it took them: its tool uses, internal
+ * to-do calls left out. Its messages, thinking and notes are not drawn (its
+ * line says what it works on; its steps what it did).
  */
-function buildSubagentThreadItems(items: ReadonlyArray<TurnItem>): SubagentThreadItem[] {
-  const rows: SubagentThreadItem[] = [];
-  let group: ToolUse[] = [];
-  const flush = (): void => {
-    if (group.length === 0) return;
-    rows.push({ kind: "tool-group", toolUses: group, key: `${group[0]!.id}-tc` });
-    group = [];
-  };
-  for (const item of items) {
-    switch (item.kind) {
-      case "tool_use":
-        if (!isInternalTool(item.name)) group.push(item);
-        break;
-      case "message":
-      case "thinking":
-      case "note":
-        flush();
-        rows.push({ kind: "message", message: item, key: item.id });
-        break;
-      case "compacted":
-        break;
-    }
-  }
-  flush();
-  return rows;
+function helperSteps(items: ReadonlyArray<TurnItem>): ToolUse[] {
+  return items.filter((item): item is ToolUse => item.kind === "tool_use" && !isInternalTool(item.name));
 }
 
 /** Whether any call of a thread (or of a subagent it started) waits for a person. */
@@ -326,16 +306,3 @@ function threadWaits(thread: Thread): boolean {
       (item.state === "waiting" || (item.thread !== undefined && threadWaits(item.thread))),
   );
 }
-
-// ---------------------------------------------------------------------------
-// Subagent state words
-// ---------------------------------------------------------------------------
-
-/** A subagent's state in words, for the group's accessible name. */
-const STATE_WORDS: Record<Thread["state"], string> = {
-  running: "Running",
-  completed: "Completed",
-  failed: "Failed",
-  // Its turn ended before the subagent finished.
-  stopped: "Stopped",
-};

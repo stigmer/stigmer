@@ -56,7 +56,7 @@ function renderScenario(scenario: Scenario, props: Partial<MessageThreadProps> =
 
 /** The control that opens a plan item, by its words. */
 function itemToggle(words: string): HTMLButtonElement | null {
-  return screen.getByText(words).closest("li")!.querySelector<HTMLButtonElement>(":scope > button");
+  return screen.getByText(words).closest("li")!.querySelector<HTMLButtonElement>(":scope > div > button");
 }
 
 describe("MessageThread steps", () => {

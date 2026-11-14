@@ -416,33 +416,29 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word +24 · src/billing · new file": "the scene's turn has no file review, so its write reads \"Wrote\" with no \"new file\" (T07 section 9: review off reads Wrote)",
+        "word Created rounding.test.ts": "the scene's turn has no file review, so its write reads \"Wrote\" with no \"new file\" (T07 section 9: review off reads Wrote)",
+        "word Lines 14–17 of 88 · Open the whole file": "the scene's workspace holds no entry for the path, so the step offers Show all, not Open the whole file (T07 G5)",
+        "word Lines 1–5 of 24 · Open the whole file": "the scene's workspace holds no entry for the path, so the step offers Show all, not Open the whole file (T07 G5)",
+        "word Markdown · 2.3 KB · opens in the panel": "the scene's File is 0.1 KB (\"Markdown · 0.1 KB · opens in the panel\")",
+        "word import { roundHalfEven } from \"./rounding\"; test(\"0.335 rounds to 0.34\", () => { expect(roundHalfEven(33.5)).toBe(34); });": "the scene's file's first lines differ from the drawing's"
+      },
       "ruled": {},
       "pending": {
         "type Done": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
-        "type Made": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word + (sum, line) => sum + line.amount, 0);": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word + return roundHalfEven(note.lines.reduce(": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word +1−1 · src/billing": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word +24 · src/billing · new file": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word +2−2 · src/billing": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word - (sum, line) => sum + roundCents(line.amount), 0);": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word - return note.lines.reduce(": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word 2 matches in 2 files": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word 9 steps · 1m 52s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Changing": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Created rounding.test.ts": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word How it got there, opened": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Lines 14–17 of 88 · Open the whole file": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Lines 1–5 of 24 · Open the whole file": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Looking": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Markdown · 2.3 KB · opens in the panel": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word The text to replace wasn't in the file, so nothing changed. The agent read the file again and retried.": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word credit-note.ts invoice.ts line.ts legacy-rounding.ts rounding.ts types.ts": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word import { roundHalfEven } from \"./rounding\"; test(\"0.335 rounds to 0.34\", () => { expect(roundHalfEven(33.5)).toBe(34); });": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word invoice.ts:41 sum + roundCents(lineTotal(line)) credit-note.ts:18 amount: roundCents(line.amount)": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word src/billing · 88 lines": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word src/billing/credit-note.ts · line 16": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows"
+        "type Made": "T07 3o: the drawing gathers every kind under its own headings to show them together; the kit's turn draws them as How it got there, redrawn so",
+        "word + (sum, line) => sum + line.amount, 0);": "T07 3o: the step's diff sets its +/− marker in a cell of its own (DiffViewer), which reads apart from the line; the drawing's diff is redrawn so at the next export",
+        "word + return roundHalfEven(note.lines.reduce(": "T07 3o: the step's diff sets its +/− marker in a cell of its own (DiffViewer), which reads apart from the line; the drawing's diff is redrawn so at the next export",
+        "word - (sum, line) => sum + roundCents(line.amount), 0);": "T07 3o: the step's diff sets its +/− marker in a cell of its own (DiffViewer), which reads apart from the line; the drawing's diff is redrawn so at the next export",
+        "word - return note.lines.reduce(": "T07 3o: the step's diff sets its +/− marker in a cell of its own (DiffViewer), which reads apart from the line; the drawing's diff is redrawn so at the next export",
+        "word 9 steps · 1m 52s": "T07 3o: the drawing gathers every kind under its own headings to show them together; the kit's turn draws them as How it got there, redrawn so",
+        "word Changing": "T07 3o: the drawing gathers every kind under its own headings to show them together; the kit's turn draws them as How it got there, redrawn so",
+        "word How it got there, opened": "T07 3o: the drawing gathers every kind under its own headings to show them together; the kit's turn draws them as How it got there, redrawn so",
+        "word Looking": "T07 3o: the drawing gathers every kind under its own headings to show them together; the kit's turn draws them as How it got there, redrawn so",
+        "word The text to replace wasn't in the file, so nothing changed. The agent read the file again and retried.": "T07 3o: why the agent retried is recorded nowhere; the drawing's second sentence is redrawn away",
+        "word invoice.ts:41 sum + roundCents(lineTotal(line)) credit-note.ts:18 amount: roundCents(line.amount)": "T07 3o: the matches read file then text in two columns, each an item of its own; the drawing's lines are redrawn so",
+        "word src/billing/credit-note.ts · line 16": "T07 3o (G4): no line in the file is recorded, so the diff's header names the file only; redrawn"
       }
     }
   ]

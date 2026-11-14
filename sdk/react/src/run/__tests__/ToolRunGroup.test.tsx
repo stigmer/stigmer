@@ -1,9 +1,10 @@
-// Pins ToolRunGroup, the folded chip of consecutive same-category tool
+// Pins ToolRunGroup, the folded step of consecutive same-category tool
 // uses: its category-aware label, disclosure (closed when settled, open
-// while a folded call runs or waits for a person), its aggregate status read
-// from each `ToolUse.state` (a stopped call settles the chip), quiet chrome
-// with a body-size line and divider rows, the host's label formatter, and
-// the memo comparator that compares the folded tool uses one by one.
+// while a folded call runs or waits for a person), its aggregate mark read
+// from each `ToolUse.state` (the tick once settled, a stopped call settling
+// it), the step's layout with its calls on a rail and no hairline between
+// them, the host's label formatter, and the memo comparator that compares
+// the folded tool uses one by one.
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import type { ToolUse, ToolUseState } from "@stigmer/client";
@@ -15,6 +16,10 @@ afterEach(cleanup);
 
 function makeRead(id: string, path: string, state: ToolUseState = "completed"): ToolUse {
   return toolUse({ id, name: "Read", input: { path }, state });
+}
+
+function toggle(container: HTMLElement): HTMLElement {
+  return container.querySelector<HTMLElement>("[aria-expanded]")!;
 }
 
 function chipExpanded(container: HTMLElement): boolean {
@@ -44,14 +49,14 @@ describe("ToolRunGroup", () => {
   });
 
   it("reveals the folded rows on expand", () => {
-    render(
+    const { container } = render(
       <ToolRunGroup
         category="read"
         toolUses={[makeRead("r1", "/a.ts"), makeRead("r2", "/b.ts")]}
       />,
     );
 
-    fireEvent.click(screen.getByText("Read 2 files"));
+    fireEvent.click(toggle(container));
     // Read rows render filename-first (the leading "/" is a dimmed-or-hidden dir).
     expect(screen.getByText("a.ts")).toBeTruthy();
     expect(screen.getByText("b.ts")).toBeTruthy();
@@ -81,11 +86,9 @@ describe("ToolRunGroup", () => {
     );
     expect(container.querySelector(".stg\\:animate-spin")).toBeNull();
     expect(chipExpanded(container)).toBe(false);
-    // The aggregate resolves to the settled branch — which is silent
-    // (completed renders NO status icon, stigmer#274): only the category icon
-    // and the chevron.
-    const headerSvgs = container.querySelectorAll("button svg");
-    expect(headerSvgs.length).toBe(2);
+    // The aggregate resolves to the settled branch: the green tick (the
+    // owner's ruling of 2026-11-14).
+    expect(container.querySelector(".stg\\:bg-status-ready")).not.toBeNull();
     expect(screen.getByText("Read 2 files")).toBeTruthy();
   });
 
@@ -104,10 +107,10 @@ describe("ToolRunGroup", () => {
     );
 
     expect(chipExpanded(container)).toBe(true);
-    // The gate renders inline on its row inside the opened chip, with the
-    // waiting clock on the chip.
+    // The gate renders inline on its row inside the opened fold, whose own
+    // mark is the running spinner (a waiting call is drawn running).
     expect(screen.getByLabelText("Allow")).toBeTruthy();
-    expect(container.querySelector("button .stg\\:text-status-degraded")).not.toBeNull();
+    expect(container.querySelector(".stg\\:text-status-running")).not.toBeNull();
   });
 
   it("stays open with a spinner while a folded call runs", () => {
@@ -121,7 +124,7 @@ describe("ToolRunGroup", () => {
     expect(container.querySelector(".stgm-shimmer-label")?.textContent).toBe("Read 2 files");
   });
 
-  it("is a quiet unboxed line whose expanded children sit under a left rail as divider rows", () => {
+  it("is a quiet unboxed step whose opened calls sit on a rail under its words, undivided", () => {
     const { container } = render(
       <ToolRunGroup
         category="read"
@@ -138,30 +141,31 @@ describe("ToolRunGroup", () => {
     expect(chip.className).not.toContain("stg:rounded-lg");
     expect(chip.className).not.toContain("stg:border-border-prominent");
     // The line reads at body size, like every step's line.
-    expect(container.querySelector("[aria-expanded]")!.className).toContain("stg:text-sm");
+    expect(toggle(container).parentElement!.className).toContain("stg:text-sm");
 
-    fireEvent.click(screen.getByText("Read 2 files"));
+    fireEvent.click(toggle(container));
 
-    // With no card frame, the rail container owns the boundary; child rows
-    // are dividers, never nested cards.
-    expect(container.querySelector(".stg\\:border-l-2")).not.toBeNull();
+    // The calls hang on a rail under the fold's words (the step's body),
+    // never nested cards, with no hairline between them.
+    const body = container.querySelector("[data-step-body]")!;
+    expect(body.querySelector(".stg\\:border-l-2")).not.toBeNull();
     const rows = container.querySelectorAll('[data-cursor-target="tool-call-row"]');
     expect(rows.length).toBe(2);
     for (const row of rows) {
       expect(row.className).not.toContain("stg:rounded-lg");
-      expect(row.className).toContain("stg:border-b");
+      expect(row.className).not.toContain("stg:border-b");
     }
   });
 
-  it("renders no status icon once the run settles successfully — success is silent", () => {
+  it("shows the green tick once the run settles successfully, its words quiet", () => {
     const { container } = render(
       <ToolRunGroup
         category="read"
         toolUses={[makeRead("r1", "/a.ts"), makeRead("r2", "/b.ts")]}
       />,
     );
-    // Header svgs: the category icon and the chevron — no green check.
-    expect(container.querySelectorAll("button svg").length).toBe(2);
+    expect(container.querySelector(".stg\\:bg-status-ready")).not.toBeNull();
+    expect(screen.getByText("Read 2 files").className).toContain("stg:text-muted-foreground");
   });
 
   it("keeps the failed icon when a folded call failed — failure shouts", () => {
@@ -174,7 +178,7 @@ describe("ToolRunGroup", () => {
         ]}
       />,
     );
-    expect(container.querySelector(".stg\\:text-destructive")).not.toBeNull();
+    expect(container.querySelector(".stg\\:text-status-failed")).not.toBeNull();
   });
 
   it("honours a custom label formatter", () => {

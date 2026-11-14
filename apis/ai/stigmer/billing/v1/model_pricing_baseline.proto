@@ -57,6 +57,34 @@ message PricingBlock {
 
   // When these rates took effect. Baseline edits always stamp it fresh.
   google.protobuf.Timestamp effective_at = 8;
+
+  // The higher rates a long prompt pays, for models priced by prompt length.
+  // Absent: one set of rates at every prompt length.
+  LongContextPricing long_context = 9;
+}
+
+// LongContextPricing is the step some providers apply to a long prompt.
+//
+// A call whose prompt is longer than threshold_tokens pays these rates, for
+// every token class, instead of its block's own. The prompt counts all of the
+// call's input: uncached input, cache writes and cache reads. Each call is
+// priced on its own. Rates are integer micro-USD per million tokens, like the
+// block's; the block's provenance covers them.
+message LongContextPricing {
+  // Prompt tokens a call may hold and still pay its block's own rates.
+  int32 threshold_tokens = 1 [(buf.validate.field).int32.gt = 0];
+
+  // Micro-USD per million uncached input tokens, above the threshold.
+  int64 input_price_micros_per_million = 2 [(buf.validate.field).int64.gte = 0];
+
+  // Micro-USD per million output tokens, above the threshold.
+  int64 output_price_micros_per_million = 3 [(buf.validate.field).int64.gte = 0];
+
+  // Micro-USD per million cache-write tokens, above the threshold.
+  int64 cache_write_price_micros_per_million = 4 [(buf.validate.field).int64.gte = 0];
+
+  // Micro-USD per million cache-read tokens, above the threshold.
+  int64 cache_read_price_micros_per_million = 5 [(buf.validate.field).int64.gte = 0];
 }
 
 // PricingVariant is a speed/mode variant (e.g. "fast") of a base model.

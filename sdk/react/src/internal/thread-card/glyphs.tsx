@@ -72,6 +72,40 @@ export function XCircleIcon() {
   );
 }
 
+/**
+ * The finished mark: a filled circle of the ready hue with a check cut out
+ * of it, 16px, the drawing's `.tick.ok`. Every finished step and every done
+ * to-do carries it (the owner's ruling of 2026-11-14 reversed stigmer#274's
+ * silent default: a finished step shows the green tick), its words going
+ * quiet beside it. Named for assistive technology by the caller.
+ */
+export function DoneTick({ label }: { readonly label?: string } = {}) {
+  return (
+    <span
+      {...(label !== undefined ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
+      className="stg:flex stg:h-4 stg:w-4 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:bg-status-ready stg:text-background"
+    >
+      <svg viewBox="0 0 12 12" className="stg:h-2.5 stg:w-2.5" aria-hidden="true">
+        <path d="M2.5 6.5 5 9l4.5-5.5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </span>
+  );
+}
+
+/**
+ * The failed mark: an outlined circle with an exclamation, 16px, colored
+ * by the caller (`stg:text-status-failed`): the drawing's red (!) on a step
+ * that failed and on the to-do a failed turn stopped on.
+ */
+export function FailedGlyph() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+      <circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M8 4.75v4M8 11.25h.01" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 /** Neutral dot for an item that has not started. */
 export function DotIcon() {
   return (
