@@ -108,7 +108,8 @@ describe("a tool-call row's header in the browser", () => {
     const toggle = toggleOf(container);
     const header = toggle.parentElement!;
     // The step's words ("Read"), left of the file control the line names.
-    const line = within(header).getByText((_, element) => element?.textContent === "Read july-statement.csv" && element.tagName === "SPAN");
+    // The innermost span with the words: the second line's wrapper holds them too.
+    const line = within(header).getAllByText((_, element) => element?.textContent === "Read july-statement.csv" && element.tagName === "SPAN").at(-1)!;
     const box = line.getBoundingClientRect();
     expect(document.elementFromPoint(box.left + 6, box.top + box.height / 2)).toBe(toggle);
     const file = within(header).getByRole("button", { name: new RegExp(`: ${FILE}$`) });
@@ -120,12 +121,12 @@ describe("a tool-call row's header in the browser", () => {
     // animation), which gives each its own stacking context: a toggle left at
     // z-index auto would paint under them and their clicks would reach nothing.
     const container = renderAudited(
-      <ToolCallItem toolUse={toolUse({ name: "execute", input: { command: "npm test" }, state: "running" })} />,
+      <ToolCallItem toolUse={toolUse({ name: "execute", input: { command: "npm test" }, state: "running", liveOutput: "PASS parser\n" })} />,
       "light",
       HIT_BOX,
     );
     const toggle = toggleOf(container);
-    expect(toggle.getAttribute("aria-expanded"), "a running command opens on its own").toBe("true");
+    expect(toggle.getAttribute("aria-expanded"), "a running command opens on its own once it prints").toBe("true");
     const header = toggle.parentElement!;
     const chevron = header.querySelector('[class~="stg:rotate-90"]');
     const spinner = header.querySelector('[class~="stg:animate-spin"]');
