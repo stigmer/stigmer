@@ -175,7 +175,7 @@ function extractMermaidSource(children: ReactNode): string | null {
 export const MARKDOWN_COMPONENTS: Components = {
   p({ children, ...props }: MdProps<"p">) {
     return (
-      <p className="stg:text-sm stg:text-foreground stg:mt-0 stg:mb-3 stg:last:mb-0 stg:leading-relaxed stg:break-words" {...props}>
+      <p className="stg:text-sm stg:text-foreground stg:mt-0 stg:mb-3 stg:last:mb-0 stg:break-words" {...props}>
         {children}
       </p>
     );
@@ -245,7 +245,7 @@ export const MARKDOWN_COMPONENTS: Components = {
 
   li({ children, ...props }: MdProps<"li">) {
     return (
-      <li className="stg:leading-relaxed stg:break-words" {...props}>
+      <li className="stg:break-words" {...props}>
         {children}
       </li>
     );
@@ -327,7 +327,8 @@ export const MARKDOWN_COMPONENTS: Components = {
   table({ children, ...props }: MdProps<"table">) {
     return (
       <div className="stg:mb-3 stg:last:mb-0 stg:overflow-x-auto">
-        <table className="stg:w-full stg:border-collapse stg:text-sm" {...props}>
+        {/* A table reads at the scale's 12/16, denser than the prose around it, as drawn. */}
+        <table className="stg:w-full stg:border-collapse stg:text-xs" {...props}>
           {children}
         </table>
       </div>
