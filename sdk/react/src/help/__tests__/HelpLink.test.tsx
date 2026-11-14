@@ -114,6 +114,11 @@ describe("CON-13 HelpLink", () => {
     expect(link.getAttribute("target")).toBeNull();
   });
 
+  it("draws nothing outside a provider: an error page drawn before the client exists stays whole", () => {
+    render(<HelpLink variant="row" />);
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+
   it("draws nothing when the server set no link", async () => {
     const { reads } = inConsole(undefined, <HelpLink variant="row" />);
     await waitFor(() => expect(reads).toHaveBeenCalled());

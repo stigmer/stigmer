@@ -8,6 +8,7 @@ import {
   type ErrorCategory,
 } from "@stigmer/client";
 import { Button, LinkButton } from "@stigmer/react-sdk";
+import { HelpLink } from "@stigmer/react-sdk/console";
 import { renderJourneyLink } from "@/domain/journey/journey-links";
 
 interface ErrorPageProps {
@@ -54,6 +55,9 @@ export default function RootError({ error, reset }: ErrorPageProps) {
             Go to Dashboard
           </LinkButton>
         </div>
+
+        {/* Where to ask: the server's help link, or nothing (and nothing before the client exists). */}
+        <HelpLink />
 
         {error.digest && (
           <p className="text-muted-foreground-subtle font-mono text-xs">

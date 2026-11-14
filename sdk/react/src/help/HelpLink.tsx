@@ -7,7 +7,9 @@
 // `help`, read through `useHelpLink`); nothing about any deployment's help
 // is written here, and without one both forms draw nothing.
 
+import { useContext } from "react";
 import { LifeBuoy } from "lucide-react";
+import { StigmerContext } from "@stigmer/react-core";
 import { cn } from "@stigmer/design-tokens";
 import type { HelpLink as HelpLinkValue } from "@stigmer/client";
 import { useHelpLink } from "../server-info.js";
@@ -26,7 +28,9 @@ export interface HelpLinkProps {
 }
 
 /**
- * The connected server's help link, or nothing when its operator set none.
+ * The connected server's help link, or nothing when its operator set none,
+ * and nothing outside a `StigmerProvider` (a page that failed before its
+ * client was made), so it is safe on any error screen.
  *
  * Place it on your own console's screens: the sidebar's `footer` (`row`),
  * under a sign-in button or a gate's "Try again" (`line`). A web address
@@ -48,7 +52,12 @@ export interface HelpLinkProps {
  * }
  * ```
  */
-export function HelpLink({ variant = "line", className }: HelpLinkProps) {
+export function HelpLink(props: HelpLinkProps) {
+  return useContext(StigmerContext) === null ? null : <ServerHelpLink {...props} />;
+}
+
+/** {@link HelpLink} inside a provider: reads the server's answer. */
+function ServerHelpLink({ variant = "line", className }: HelpLinkProps) {
   const help = useHelpLink();
   if (help === undefined) return null;
   return variant === "row" ? (
