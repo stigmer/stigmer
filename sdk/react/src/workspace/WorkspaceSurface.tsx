@@ -855,7 +855,7 @@ function SidebarHeader({ title }: { readonly title: string }) {
     <div
       className={cn(
         HEADER_ROW_HEIGHT,
-        "stg:flex stg:shrink-0 stg:items-center stg:border-b stg:border-border stg:px-3 stg:text-2xs stg:font-semibold stg:uppercase stg:tracking-wide stg:text-muted-foreground",
+        "stg:flex stg:shrink-0 stg:items-center stg:border-b stg:border-border stg:px-3 stg:text-xs stg:font-medium stg:text-muted-foreground",
       )}
     >
       {title}

@@ -219,13 +219,13 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "type Running a command": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans",
-        "word 5m 54s": "The session's frame: one duration format, \"1m 30s\"",
-        "word 6m 12s": "The session's frame: one duration format, \"1m 30s\"",
-        "word A helper is working on map where credit notes round": "Steps, approvals and the finished turn: the helper's body as step rows",
-        "word Searching for round( · nothing found yet": "Steps, approvals and the finished turn: the helper's body as step rows",
-        "word This is taking longer than usual. It keeps going if you leave; the session will be here when it's done.": "Steps, approvals and the finished turn: the screen's parts as drawn",
-        "word Working · 12m 40s": "The session's frame: one duration format, \"1m 30s\""
+        "type Running a command": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "word 5m 54s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "word 6m 12s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "word A helper is working on map where credit notes round": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "word Searching for round( · nothing found yet": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "word This is taking longer than usual. It keeps going if you leave; the session will be here when it's done.": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
+        "word Working · 12m 40s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows"
       }
     }
   ]
