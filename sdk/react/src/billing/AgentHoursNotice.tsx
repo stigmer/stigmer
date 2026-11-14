@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@stigmer/design-tokens";
 import { getErrorReason, getUserMessage } from "@stigmer/client";
+import { Notice } from "../internal/surface/Notice.js";
 import { DEFAULT_BILLING_HREF } from "./UpgradeNotice.js";
 
 /**
@@ -76,19 +76,17 @@ export interface AgentHoursNoticeProps {
 export function AgentHoursNotice({ error, billingHref = DEFAULT_BILLING_HREF, className }: AgentHoursNoticeProps) {
   const plan = agentHoursUsedUp(error)?.plan ?? "";
   return (
-    <div
-      className={cn(
-        "stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:px-3 stg:py-2 stg:text-xs",
-        className,
-      )}
+    <Notice
+      tone="paused"
       role="alert"
+      // A child organization's hours are its parent's: the server's words say so, and it has no plans to offer.
+      headline={plan !== "" ? "Your organization has used this month’s agent hours." : getUserMessage(error)}
+      link={plan !== "" ? { label: "View plans", href: billingHref } : undefined}
+      className={className}
     >
-      <p className="stg:text-foreground">{getUserMessage(error)}</p>
-      {plan !== "" && (
-        <a href={billingHref} className="stg:mt-1 stg:inline-block stg:font-medium stg:text-primary stg:hover:underline">
-          View plans
-        </a>
-      )}
-    </div>
+      <p className="stg:m-0">
+        {plan !== "" ? "Agents run again when the hours renew, or sooner on a bigger plan. Your message stays in the box." : "Your message stays in the box."}
+      </p>
+    </Notice>
   );
 }

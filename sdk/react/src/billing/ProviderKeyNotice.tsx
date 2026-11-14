@@ -1,7 +1,8 @@
 "use client";
 
-import { cn } from "@stigmer/design-tokens";
 import { getErrorReason, getUserMessage } from "@stigmer/client";
+import { ALERT_ICON, Notice } from "../internal/surface/Notice.js";
+import { presentationOf } from "../models/provider-presentation.js";
 
 /**
  * The reason a server refuses a run that needs a provider nothing serves:
@@ -50,10 +51,11 @@ export interface ProviderKeyNoticeProps {
 }
 
 /**
- * Says a run was not started because nothing serves the provider it needs
- * (the server's own words: where an admin adds a key, or how a laptop's
- * runner gets one), and links Models & providers, in place of a bare
- * refusal.
+ * Says a run was not started because nothing serves the provider it needs,
+ * as the console's notice: the organization has no key for the provider
+ * (or, where the refusal names no organization, the server's own words,
+ * such as how a laptop's runner gets one), that the message stays in the
+ * box, and Open Models & providers, in place of a bare refusal.
  *
  * @example
  * ```tsx
@@ -68,21 +70,19 @@ export function ProviderKeyNotice({
   modelsHubHref = DEFAULT_MODELS_HUB_HREF,
   className,
 }: ProviderKeyNoticeProps) {
+  const required = providerKeyRequired(error);
+  const provider = required !== null && required.provider !== "" ? presentationOf(required.provider).name : "";
+  const ofOrganization = required !== null && required.org !== "";
   return (
-    <div
-      className={cn(
-        "stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:px-3 stg:py-2 stg:text-xs",
-        className,
-      )}
+    <Notice
+      tone="paused"
       role="alert"
+      icon={ALERT_ICON}
+      headline={ofOrganization ? `This organization has no ${provider === "" ? "model" : provider} key yet.` : getUserMessage(error)}
+      act={{ label: "Open Models & providers", href: modelsHubHref }}
+      className={className}
     >
-      <p className="stg:text-foreground">{getUserMessage(error)}</p>
-      <a
-        href={modelsHubHref}
-        className="stg:mt-1 stg:inline-block stg:font-medium stg:text-primary stg:hover:underline"
-      >
-        Open Models &amp; providers
-      </a>
-    </div>
+      <p className="stg:m-0">{ofOrganization ? "Add one on Models & providers, then send. Your message stays in the box." : "Your message stays in the box."}</p>
+    </Notice>
   );
 }
