@@ -1171,6 +1171,17 @@ describe("ToolCallItem's second line", () => {
     expect(screen.queryByText(/\.stigmer\/outputs/)).toBeNull();
   });
 
+  it("reads the outputs folder only as a folder of its own, and never as a name ending in it", () => {
+    const { rerender } = render(
+      <ToolCallItem toolUse={toolUse({ name: "write_file", input: { path: "/workspace/my.stigmer/outputs/audit.md", content: "x" }, result: "ok" })} />,
+    );
+    expect(screen.queryByText(/^Markdown ·/)).toBeNull();
+    rerender(<ToolCallItem toolUse={toolUse({ name: "write_file", input: { path: ".stigmer/outputs/", content: "x" }, result: "ok" })} />);
+    expect(screen.queryByText(/KB$/)).toBeNull();
+    rerender(<ToolCallItem toolUse={toolUse({ name: "write_file", input: { path: "a.stigmer/outputs/x/.stigmer/outputs/b.md", content: "x" }, result: "ok" })} />);
+    expect(screen.getByText("Markdown · 0.1 KB")).toBeTruthy();
+  });
+
   it("counts a running step's time from its start, and shows nothing under a second", () => {
     vi.useFakeTimers();
     try {
