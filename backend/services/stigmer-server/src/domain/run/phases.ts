@@ -22,6 +22,11 @@
  * can be days, and the run workflow asks for the sandbox again before it
  * carries the turn on, waking it (temporal/agentexecution/sandbox-wait.ts,
  * stigmer-cloud#1558). Its sandbox keeps its files while it sleeps.
+ * Accepted gap: a Pause writes PAUSED before the runner has heard the
+ * cancel, so a sweep pass in those seconds can suspend the sandbox while
+ * the runner winds the turn down. That is the crash a draining worker
+ * already deals the runner: the harness resumes from its last saved step
+ * when the turn carries on.
  */
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 

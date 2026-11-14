@@ -22,10 +22,12 @@
  * sandbox awake at most that minute longer. A working execution (pending
  * or in progress) makes the session busy, so its progress never needs a
  * clock. One parked on a person's answer or a pause has not ended but is
- * not busy (domain/run/phases.ts, `keepsSandboxAwake`): its session's
- * clock is its creation, so a turn parked longer than the idle window
- * sleeps, and the run workflow asks for the sandbox again before it
- * carries the turn on (stigmer-cloud#1558).
+ * not busy (domain/run/phases.ts, `keepsSandboxAwake`). Its session's
+ * clock is still the run's creation (no stamp marks when it parked), so a
+ * turn that has already run past the idle window sleeps on the first pass
+ * after it parks, even when the person is about to answer; the run
+ * workflow asks for the sandbox again before it carries the turn on, so
+ * that costs the answer a wake, never the turn (stigmer-cloud#1558).
  *
  * An idle sweep asks every awake session on every pass, and a session's
  * full history is the store's fattest rows

@@ -35,9 +35,10 @@
  * execution is saved before its ensure runs (the create chain persists,
  * starts the workflow, then ensures), and a parked turn that carries on
  * reads IN_PROGRESS before its workflow asks for the sandbox again, so a
- * turn that has begun or carried on reads as busy there. A turn whose ensure lands on another server replica between
- * this replica's second decision and its patch loses its pod and times
- * out; the user's next message wakes the sandbox again.
+ * turn that has begun or carried on reads as busy there. A turn whose
+ * ensure lands on another server replica between this replica's second
+ * decision and its patch loses its pod and times out; the user's next
+ * message wakes the sandbox again.
  */
 import type { Logger } from "../../boot/logger.js";
 import {
