@@ -6,7 +6,7 @@
 // calls its hooks make. The journey's other states are journey.tsx's.
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import type { ConnectRouter } from "@connectrpc/connect";
+import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { RunSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
@@ -18,6 +18,7 @@ import { sampleDate, samples } from "@stigmer/react-sdk/test";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 import { BUSY_WEEK_RUNS, BUSY_WEEK_USAGE, DASHBOARD_SUMMARY, EMPTY_USAGE, NO_RUNS, NOTHING_CONNECTED, ORGANIZATION } from "../fixtures.ts";
 import type { Drawing } from "./drawing.ts";
+import { journeyAnswer } from "./journey.tsx";
 
 const ORG_ID = ORGANIZATION.metadata?.id ?? "";
 
@@ -54,7 +55,17 @@ function failedRuns(week: DashboardWeek): Run[] {
 
 function dashboardRoutes(week: DashboardWeek) {
   return (router: ConnectRouter) => {
-    router.service(OrganizationQueryController, { listMine: () => samples.organizationList([ORGANIZATION]), get: () => ORGANIZATION });
+    // The journey is the organization's onboarding: the new organization's
+    // admin is answered with nothing done yet; the busy week's member is
+    // refused, as the server refuses anyone who is no admin there.
+    router.service(OrganizationQueryController, {
+      listMine: () => samples.organizationList([ORGANIZATION]),
+      get: () => ORGANIZATION,
+      getOnboarding: () => {
+        if (week === "busy") throw new ConnectError("unauthorized to read this organization's onboarding", Code.PermissionDenied);
+        return journeyAnswer({ agents: [], readiness: NOTHING_CONNECTED, ran: false, changed: false });
+      },
+    });
     router.service(RunQueryController, {
       getRunSummary: () => (week === "busy" ? BUSY_WEEK_RUNS : NO_RUNS),
       getOrgUsageReport: () => (week === "busy" ? BUSY_WEEK_USAGE : EMPTY_USAGE),
