@@ -170,11 +170,7 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {
-        "button Change Alan Turing's role": "The console's parts: the page says and offers what its drawing does",
-        "button Change Grace Hopper's role": "The console's parts: the page says and offers what its drawing does",
-        "button Change Katherine Johnson's role": "The console's parts: the page says and offers what its drawing does"
-      }
+      "pending": {}
     },
     {
       "caption": "Members, at 390 wide",
@@ -343,11 +339,7 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {
-        "button Change Alan Turing's role": "The console's parts: the page says and offers what its drawing does",
-        "button Change Grace Hopper's role": "The console's parts: the page says and offers what its drawing does",
-        "button Change Katherine Johnson's role": "The console's parts: the page says and offers what its drawing does"
-      }
+      "pending": {}
     }
   ]
 }

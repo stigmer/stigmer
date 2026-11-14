@@ -317,13 +317,7 @@
       "pending": {
         "button More actions": "The console's parts: the part at its drawn size and weight",
         "type Ada Lovelace": "The console's parts: the part at its drawn size and weight",
-        "type Duration": "The console's parts: the part at its drawn size and weight",
-        "type Fired": "The console's parts: the part at its drawn size and weight",
-        "type Manual": "The console's parts: the part at its drawn size and weight",
-        "type Origin": "The console's parts: the part at its drawn size and weight",
-        "type Outcome": "The console's parts: the part at its drawn size and weight",
         "type Started": "The console's parts: the part at its drawn size and weight",
-        "type Started by": "The console's parts: the part at its drawn size and weight",
         "type daily-variance-report": "The console's parts: the part at its drawn size and weight",
         "word 1d ago": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
         "word 1m 14s": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
@@ -342,7 +336,8 @@
         "word Used by": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
         "word the routine": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
         "word variance-reporter, payroll-reconciler": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word vlt_00000000000000000000000003 · 4 secrets": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene"
+        "word vlt_00000000000000000000000003 · 4 secrets": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "button Change role": "The drawing: the parts page draws a member row's control without the member's name; the members page's drawing names the member and holds, redrawn at the next export"
       }
     }
   ]
