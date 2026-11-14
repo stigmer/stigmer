@@ -74,7 +74,7 @@ function linkTarget(url: string): { target?: "_blank"; rel?: string } {
 
 function HelpRow({ help, className }: { readonly help: HelpLinkValue; readonly className: string | undefined }) {
   return (
-    <a href={help.url} {...linkTarget(help.url)} className={cn(navRowClassName(false), "stg:mb-1", className)}>
+    <a href={help.url} {...linkTarget(help.url)} className={cn(navRowClassName(false), "stg:mb-1 stg:no-underline", className)}>
       <LifeBuoy className="stg:size-4 stg:shrink-0" aria-hidden="true" />
       <span className="stg:min-w-0 stg:truncate">{help.label}</span>
     </a>

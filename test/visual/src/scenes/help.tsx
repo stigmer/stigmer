@@ -44,7 +44,8 @@ function HelpScene() {
         <WorkspaceSidebar
           activeNav="new-session"
           renderLink={({ href, children, id: _id, active: _active, ...rest }) => (
-            <a href={href} {...rest}>
+            // The console's router link draws no underline; nor does this one.
+            <a href={href} {...rest} style={{ textDecoration: "none" }}>
               {children}
             </a>
           )}
