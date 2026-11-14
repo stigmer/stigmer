@@ -114,7 +114,7 @@ describe("AgentChat popup", () => {
     renderHost(mode, "ses_1");
     await vi.waitFor(() => expect(reporter.current).not.toBeNull());
     act(() => reporter.current!(chatActivityOf(conversationOf(scenarios.busy).activeTurn!, undefined, [], Date.parse(SCENARIO_CLOCK))));
-    await screen.findByRole("button", { name: "Open the chat. Billing agent: Running a command, 1 min 30 s" });
+    await screen.findByRole("button", { name: "Open the chat. Billing agent: Running a command, 1m 30s" });
     await auditA11y(portal(), `popup closed · ${mode}`);
     await userEvent.click(screen.getByRole("button", { name: /^Open the chat/ }));
     await auditA11y(portal(), `popup open · ${mode}`);
