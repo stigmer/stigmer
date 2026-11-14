@@ -264,7 +264,7 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
     const account = await row("A service account for your backend");
     fireEvent.click(await within(account).findByRole("button", { name: "Make it" }));
 
-    expect(await within(account).findByText(/The service account wasn't made\. .*may not make service accounts/)).toBeTruthy();
+    expect(await within(account).findByText(/^The service account wasn't made\. .*may not make service accounts.*[.!?] Try again\.$/)).toBeTruthy();
     expect(createServiceAccount).toHaveBeenCalledTimes(1);
   });
 
@@ -284,7 +284,7 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
     const account = await row("A service account for your backend");
     fireEvent.click(await within(account).findByRole("button", { name: "Make it" }));
 
-    expect(await within(account).findByText(/app-backend was made, but its key wasn't\. .*key store is down/)).toBeTruthy();
+    expect(await within(account).findByText(/^app-backend was made, but its key wasn't\. .*key store is down.*[.!?] Try again\.$/)).toBeTruthy();
     fireEvent.click(within(account).getByRole("button", { name: "Make its key" }));
     expect(await within(account).findByText(/stk_live_secret/)).toBeTruthy();
     expect(createServiceAccount).toHaveBeenCalledTimes(1);
@@ -401,7 +401,7 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
   it("says in its row when who signed in cannot be read, and the code still shows", async () => {
     renderPage({ defaultTab: "in-app" }, { accessFails: true });
     const first = await row("Your first user from your app");
-    expect(await within(first).findByText(/couldn't say who has signed in/)).toBeTruthy();
+    expect((await within(first).findByRole("alert")).textContent).toMatch(/^Stigmer couldn't say who has signed in\. .*[.!?] Try again$/);
     expect(within(first).getByRole("button", { name: "Try again" })).toBeTruthy();
     expect(within(await row("Add a token route to your backend")).getByRole("region", { name: "app/api/stigmer-token/route.ts" })).toBeTruthy();
   });

@@ -12,6 +12,7 @@ import { Code } from "@connectrpc/connect";
 import { isDebug, serverHelpProbe } from "../runtime.js";
 import { type CliError, classify, codeName, isTransportFailure } from "./classify.js";
 import { ExitCode } from "@stigmer/client/exit-codes";
+import { printableCell } from "../output/printable.js";
 
 /** How long a failure waits for the server's help link before printing without it. */
 export const HELP_PROBE_TIMEOUT_MS = 1_000;
@@ -42,7 +43,7 @@ export function formatError(error: CliError, debugMode: boolean, help?: ServerHe
 
   if (help !== undefined && error.message !== "") {
     lines.push("");
-    lines.push(`Stuck? ${help.label}: ${help.url}`);
+    lines.push(helpLine(help));
   }
 
   if (debugMode && error.cause !== undefined) {
@@ -55,6 +56,15 @@ export function formatError(error: CliError, debugMode: boolean, help?: ServerHe
   }
 
   return lines.length > 0 ? lines.join("\n") + "\n" : "";
+}
+
+/**
+ * The help line as a terminal prints it: the server's words and address on
+ * one line, with no control or escape sequence (the server's text reaches
+ * the terminal only through output/printable.ts).
+ */
+export function helpLine(help: ServerHelp): string {
+  return `Stuck? ${printableCell(help.label)}: ${printableCell(help.url)}`;
 }
 
 /**

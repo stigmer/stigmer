@@ -27,7 +27,7 @@ import { create } from "@bufbuild/protobuf";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { PushSkillRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
 import { isNotFound, type AgentInput, type ResourceRef } from "@stigmer/client";
-import { serverSentence } from "../internal/server-words.js";
+import { asSentence, serverSentence } from "../internal/server-words.js";
 import { EXAMPLES, skillById, type Example } from "@stigmer/examples";
 import { cn } from "@stigmer/design-tokens";
 import { useStigmer } from "@stigmer/react-core";
@@ -251,7 +251,7 @@ function SkillCard({
   if (skill === undefined) return null;
   const refused = exists === false && !createSkill.isLoading && !createSkill.allowed;
   const ready = has || exists === true || (exists === false && createSkill.allowed);
-  const saveFailed = saveError?.field === "skillRefs" ? saveError.message : null;
+  const saveFailed = saveError?.field === "skillRefs" ? `${skill.name} wasn't added. ${asSentence(saveError.message)} Try again.` : null;
 
   return (
     <Card title="Give it a skill" className="stg:md:col-span-3 stg:lg:col-span-2">

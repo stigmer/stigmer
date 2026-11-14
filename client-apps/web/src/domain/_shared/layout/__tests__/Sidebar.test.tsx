@@ -59,7 +59,7 @@ vi.mock("@/domain/runs/run-navigation", () => ({
   }),
 }));
 
-vi.mock("../UserMenu", () => ({ UserMenu: () => null }));
+vi.mock("../UserMenu", () => ({ UserMenu: () => <p>user menu</p> }));
 
 vi.mock("../use-layout-state", () => ({
   useSidebarOpen: () => ({ isOpen: true, close: () => undefined }),
@@ -105,7 +105,8 @@ describe("web Sidebar", () => {
 
   it("CON-13 puts the server's help row at the foot, above the user menu", () => {
     render(<Sidebar />);
-    expect(screen.getByText("help link (row)")).toBeTruthy();
+    const lines = screen.getAllByText(/help link|user menu/).map((node) => node.textContent);
+    expect(lines).toEqual(["help link (row)", "user menu"]);
   });
 
   it("lands on the dashboard after an org switch", () => {

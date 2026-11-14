@@ -151,6 +151,13 @@ test("a help address that is not https, http or mailto is refused, and so is a l
     /help.*label|label/,
     "help label length",
   );
+  expectRefusal(
+    helmTemplate("bundled", { sets: ["server.help.url=https://"] }),
+    /server\.help\.url|help.*url/,
+    "help url with no host",
+  );
+  // The scheme's case is the server's to read, as URL parsing reads it.
+  assert.equal(helmTemplate("bundled", { sets: ["server.help.url=HTTPS://help.example.com"] }).ok, true);
 });
 
 test("an external Temporal address that is not host:port is refused at render", () => {

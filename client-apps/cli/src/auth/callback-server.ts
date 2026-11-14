@@ -67,7 +67,7 @@ export class CallbackServer {
     return new Promise<CallbackResult>((resolve, reject) => {
       const timer = setTimeout(() => {
         reject(
-          new CliExitError("the sign-in wasn't finished in the browser in time, so nothing was saved", ExitCode.Auth, [
+          new CliExitError("the sign-in wasn't finished in the browser in time, so nothing was saved", ExitCode.General, [
             "Run 'stigmer auth login' again and finish signing in on the page it opens.",
             "Where no browser can open here, run 'stigmer auth login --device' instead.",
           ]),

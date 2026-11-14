@@ -76,8 +76,17 @@ export function classify(err: unknown): CliError | null {
 
   // Local errors that carry their own exit code (UsageError, auth-required,
   // etc.) are passed through verbatim, including any remediation hints.
+  // One that says a server's refusal in the command's own words keeps the
+  // refusal's status, so it still reads as the server's answer.
   if (err instanceof CliExitError) {
-    return { exitCode: err.exitCode, message: err.message, hints: err.hints, cause: err };
+    const answered = err.cause === undefined ? undefined : extractCoded(err.cause);
+    return {
+      exitCode: err.exitCode,
+      message: err.message,
+      hints: err.hints,
+      cause: err,
+      ...(answered === undefined ? {} : { code: answered.code }),
+    };
   }
 
   const coded = extractCoded(err);

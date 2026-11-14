@@ -8,6 +8,7 @@ import { classify } from "../classify.js";
 import { ExitCode } from "@stigmer/client/exit-codes";
 import { formatError, handle, isServerAnswer, serverHelpFor } from "../handle.js";
 import { UsageError } from "../usage-error.js";
+import { CliExitError } from "../cli-exit-error.js";
 
 afterEach(() => {
   setDebug(false);
@@ -291,6 +292,30 @@ describe("CLI-19 a command the server refused ends with the server's help line",
     const started = Date.now();
     expect(await serverHelpFor(refusal!, 50)).toBeUndefined();
     expect(Date.now() - started).toBeLessThan(1_000);
+  });
+
+  it("counts a refusal a command says in its own words, when it passes the refusal as its cause", async () => {
+    const reworded = classify(
+      new CliExitError('no agent "nope" in acme', ExitCode.NotFound, ["See them: stigmer list agents"], {
+        cause: new ConnectError("agent not found", Code.NotFound),
+      }),
+    );
+    expect(reworded?.code).toBe(Code.NotFound);
+    expect(reworded !== null && isServerAnswer(reworded)).toBe(true);
+    setServerHelpProbe(() => Promise.resolve(HELP));
+    expect(await serverHelpFor(reworded!)).toEqual(HELP);
+    // A local refusal carries no cause and stays the CLI's own.
+    expect(isServerAnswer(classify(new CliExitError("organization not set", ExitCode.Usage))!)).toBe(false);
+  });
+
+  it("prints the server's words and address with no control or escape sequence", () => {
+    const out = formatError({ exitCode: ExitCode.NotFound, message: "x" }, false, {
+      url: "https://help.acme.example/\u001b]52;c;cHduZWQ=\u0007",
+      label: "Ask\u001b[2K IT",
+    });
+    expect(out).not.toContain("\u001b");
+    expect(out).not.toContain("\u0007");
+    expect(out).toContain("Stuck? Ask [2K IT: https://help.acme.example/ ]52;c;cHduZWQ=");
   });
 
   it("handle prints the line as the failure's last line", async () => {

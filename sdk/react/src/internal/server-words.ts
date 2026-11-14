@@ -11,6 +11,11 @@ const UNREACHABLE = "Stigmer couldn't reach the server";
 
 /** The server's words for `error` as a sentence ending in `.`, `!` or `?`. */
 export function serverSentence(error: unknown): string {
-  const said = getUserMessage(error, UNREACHABLE).trim();
+  return asSentence(getUserMessage(error, UNREACHABLE));
+}
+
+/** Words the server already gave as text (a field's refusal), as a sentence. */
+export function asSentence(words: string): string {
+  const said = words.trim() === "" ? UNREACHABLE : words.trim();
   return /[.!?]$/.test(said) ? said : `${said}.`;
 }

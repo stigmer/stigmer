@@ -52,7 +52,7 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "url": { "type": "string", "pattern": "^$|^(https?://|mailto:)" },
+            "url": { "type": "string", "pattern": "^$|^([hH][tT][tT][pP][sS]?://[^\\s/]+[^\\s]*|[mM][aA][iI][lL][tT][oO]:[^\\s]+)$" },
             "label": { "type": "string", "maxLength": 40 }
           }
         },

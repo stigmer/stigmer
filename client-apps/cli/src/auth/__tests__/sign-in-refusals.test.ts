@@ -208,6 +208,8 @@ describe("a sign-in left unfinished in the browser", () => {
     try {
       const err = await refusal(() => callback.waitForCallback(20));
       expect(err.message).toBe("the sign-in wasn't finished in the browser in time, so nothing was saved");
+      // The exit code scripts read is unchanged: 1, as before the words changed.
+      expect(err.exitCode).toBe(ExitCode.General);
       expect(err.hints).toEqual([
         "Run 'stigmer auth login' again and finish signing in on the page it opens.",
         "Where no browser can open here, run 'stigmer auth login --device' instead.",

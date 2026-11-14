@@ -28,6 +28,7 @@ import {
   save,
 } from "../../config/index.js";
 import { CommandResult } from "../../output/index.js";
+import { helpLine } from "../../errors/handle.js";
 import { organizationNamed, type OrganizationNames } from "../../client/organizations.js";
 import { omitsOrganization } from "../../client/single-org.js";
 
@@ -91,7 +92,7 @@ export function whoamiResult(
   }
 
   if (context.help !== undefined) {
-    result.hint(`Stuck? ${context.help.label}: ${context.help.url}`);
+    result.hint(helpLine(context.help));
   }
 
   return result;

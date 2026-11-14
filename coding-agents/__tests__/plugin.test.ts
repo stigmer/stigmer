@@ -117,10 +117,10 @@ describe("the guide", () => {
     const guide = files.get("skills/stigmer/SKILL.md") ?? "";
     expect(guide).toContain("a `Stuck? …` line");
     expect(guide).toContain("`stigmer auth whoami`");
-    for (const source of ["errors/handle.ts", "commands/auth/whoami.ts"]) {
-      const text = readFileSync(join(root, "..", "client-apps", "cli", "src", ...source.split("/")), "utf8");
-      expect(text).toContain("`Stuck? ${");
-    }
+    const handle = readFileSync(join(root, "..", "client-apps", "cli", "src", "errors", "handle.ts"), "utf8");
+    expect(handle).toContain("`Stuck? ${");
+    const whoami = readFileSync(join(root, "..", "client-apps", "cli", "src", "commands", "auth", "whoami.ts"), "utf8");
+    expect(whoami).toContain("helpLine(");
   });
 
   it("sends the last step to a console page that exists", () => {
