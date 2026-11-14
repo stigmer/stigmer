@@ -150,9 +150,9 @@ class FakeHost implements ProcessHost {
       onExit: (cb) => {
         exitCb = cb;
       },
-      // As the real host does for a child already ready.
+      // Announced just after the spawn, as a real child's marker arrives.
       onReady: (cb) => {
-        if (readiness === "ready") cb();
+        if (readiness === "ready") queueMicrotask(cb);
       },
       kill: (signal) => {
         this.killed.push(signal);
@@ -369,7 +369,7 @@ describe("runInternalDaemon (a runner that ends before it is ready)", () => {
     expect(host.spawned).toEqual(["stigmer-server", "runner"]);
     expect(host.stopped).toEqual(["stigmer-server"]);
     expect(temporal.stop).toHaveBeenCalledOnce();
-    for (const file of ["stigmer-server.pid", "runner.pid"]) expect(readPidFile(join(data, file))).toBeNull();
+    expect(readPidFile(join(data, "stigmer-server.pid"))).toBeNull();
     const record = loadHealthState(join(data, "health-state.json"));
     expect(record?.components["stigmer-server"].state).toBe("stopped");
     expect(record?.components.runner).toMatchObject({

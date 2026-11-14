@@ -149,4 +149,30 @@ describe("NodeProcessHost — a child's readiness", () => {
     unmarked.kill("SIGTERM");
     await Promise.all(gone);
   });
+
+  // The runner writes its boot timeline, a line of some 700 characters, right
+  // after the marker, so the two arrive in one chunk.
+  it("reads ready when a long line follows the marker in the same chunk", async () => {
+    const dir = tempDir();
+    const script = join(dir, "child.cjs");
+    writeFileSync(
+      script,
+      `process.stdout.write("Worker ready, polling for tasks...\\n" + JSON.stringify({ stigmer_timing: "runner_boot", pad: "x".repeat(700) }) + "\\n");\nsetInterval(() => {}, 1000);\n`,
+    );
+    const handle = new NodeProcessHost().spawn({
+      name: "runner",
+      command: process.execPath,
+      args: [script],
+      env: process.env,
+      logFile: join(dir, "child.log"),
+      readinessMarker: "Worker ready, polling for tasks",
+    });
+    const gone = new Promise<void>((resolve) => handle.onExit(() => resolve()));
+
+    await expect.poll(() => readFileSync(join(dir, "child.log"), "utf8"), { timeout: 5_000 }).toContain("runner_boot");
+    expect(handle.isReady()).toBe(true);
+
+    handle.kill("SIGTERM");
+    await gone;
+  });
 });

@@ -78,11 +78,14 @@ export class NodeProcessHost implements ProcessHost {
       out.write(chunk);
       mirrorStdout(chunk);
       if (marker !== undefined && !ready) {
-        tail = (tail + chunk.toString("utf8")).slice(-Math.max(marker.length * 2, 256));
-        if (tail.includes(marker)) {
+        // Search the whole chunk before trimming: the runner writes a long
+        // line right after its marker, often in the same chunk (stigmer#1629).
+        const window = tail + chunk.toString("utf8");
+        if (window.includes(marker)) {
           ready = true;
           readyCb?.();
         }
+        tail = window.slice(-marker.length);
       }
     });
     child.stderr?.on("data", (chunk: Buffer) => {
@@ -126,6 +129,7 @@ export class NodeProcessHost implements ProcessHost {
       pid,
       hasExited: () => exitInfo !== null,
       exitInfo: () => exitInfo,
+      isReady: () => ready,
       stderrTail: () => [...stderrTail],
       onExit: (cb) => {
         exitCb = cb;

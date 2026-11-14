@@ -6,15 +6,17 @@
 // server launch, runner entry) so failures surface with a clear message before
 // anything long-lived starts. The detached shape then re-execs this same CLI
 // as the hidden `internal-daemon` and waits until the server's gRPC port
-// answers; the foreground shape calls the same daemon body in-process, which
-// is what a container entrypoint, a systemd unit or a tmux pane wants: one
-// process to watch, signals delivered to it, the stack's output on its stdio.
+// answers and, when the stack has a runner, until the daemon records the
+// runner ready (stigmer#1629); the foreground shape calls the same daemon
+// body in-process, which is what a container entrypoint, a systemd unit or a
+// tmux pane wants: one process to watch, signals delivered to it, the stack's
+// output on its stdio.
 //
 // When the stack does not start, both shapes say why from the daemon's own
-// record, the health snapshot `stigmer status` reads: which component failed,
-// how, and its last stderr lines (stigmer#1845). The detached shape watches
-// the daemon for the whole wait, so a start that has given up is reported at
-// once, not when the wait runs out.
+// record, the health snapshot `stigmer status` reads: which component failed
+// (the runner among them), how, and its last stderr lines (stigmer#1845). The
+// detached shape watches the daemon for the whole wait, so a start that has
+// given up is reported at once, not when the wait runs out.
 //
 // A running stack is never touched by `up`: it refuses while the daemon on
 // record lives, and sweeps only a dead daemon's leftovers. `down` reports a
@@ -26,6 +28,7 @@ import { spawn } from "node:child_process";
 import { mkdirSync, openSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { type Config, load as loadConfig } from "../../config/config.js";
 import { log } from "../../logger.js";
 import { CliExitError } from "../../errors/cli-exit-error.js";
@@ -44,7 +47,7 @@ import { ensureRunner } from "../runtime/runner.js";
 import { ensureServer } from "../runtime/server.js";
 import { TemporalManager } from "../temporal/manager.js";
 import type { ProviderReach } from "../provider-reach.js";
-import { localRunnerReach } from "./components.js";
+import { localRunnerReach, RUNNER_GATE_TIMEOUT_MS } from "./components.js";
 import { buildDaemonEnv, type DaemonEnvInputs, readDaemonConfig } from "./env.js";
 import { NodeProcessHost, type OutputMirror } from "./host.js";
 import { type InternalDaemonDeps, runInternalDaemon } from "./process.js";
@@ -53,9 +56,18 @@ import { GRACEFUL_STOP_TIMEOUT_MS } from "./supervisor.js";
 
 /** How long `up` waits for the server's gRPC port after spawning the daemon. */
 const READY_TIMEOUT_MS = 60_000;
+/**
+ * How long `up` waits, once the server answers, for the daemon to record the
+ * runner ready: the daemon's own runner gate, plus room for the teardown that
+ * follows a failed gate, so the launcher never gives up while the daemon is
+ * still deciding.
+ */
+const RUNNER_READY_TIMEOUT_MS = RUNNER_GATE_TIMEOUT_MS + 30_000;
+/** How often `up` reads the daemon's record while it waits for the runner. */
+const RUNNER_READY_POLL_MS = 250;
 /** The components whose failure stops the stack, in start order: the first
  * one recorded failed is the one a failed start names. */
-const CRITICAL_COMPONENTS = ["temporal", "stigmer-server"] as const;
+const CRITICAL_COMPONENTS = ["temporal", "stigmer-server", "runner"] as const;
 /** How long `down` waits for graceful daemon exit before force-killing. */
 const STOP_TIMEOUT_MS = 15_000;
 const STOP_POLL_MS = 500;
@@ -92,7 +104,7 @@ export async function up(options: UpOptions = {}, home: string = homedir()): Pro
   log.info("daemon process started", { pid: daemonPid });
 
   /* v8 ignore next -- @preserve: up() spawns the real daemon, which no unit test starts; waitForStack has its own tests, and the cli-up lane runs this end to end */
-  await waitForStack({ data, logs, daemonPid });
+  await waitForStack({ data, logs, daemonPid, runner: options.serverOnly !== true });
 
   saveStartupConfig(data, buildStartupConfig(data, logs, temporalAddress, daemonPid, options));
   /* v8 ignore next -- @preserve: up() spawns the real daemon, which no unit test starts; the cli-up lane's smoke-getting-started runs it end to end, and upReport has its own tests */
@@ -104,17 +116,24 @@ export interface StackWait {
   data: string;
   logs: string;
   daemonPid: number;
+  /** Whether the stack starts a runner; the wait then lasts until the daemon records it ready. */
+  runner: boolean;
   /** Default SERVER_PORT; injectable for tests. */
   port?: number;
   /** Default READY_TIMEOUT_MS; injectable for tests. */
   timeoutMs?: number;
+  /** Default RUNNER_READY_TIMEOUT_MS; injectable for tests. */
+  runnerTimeoutMs?: number;
 }
 
 /**
- * Wait until the server answers, watching the daemon the whole time: the
- * daemon exits as soon as a critical component fails, so its exit ends the
- * wait at once, with the reason it recorded. Throws the failure, or, with no
- * record, says the daemon died (its log has the rest) or that the wait ran out.
+ * Wait until the server answers and, with a runner, until this daemon's record
+ * shows the runner ready, watching the daemon the whole time: the daemon exits
+ * as soon as a critical component fails, so its exit ends the wait at once,
+ * with the reason it recorded. Only that exit ends it: a runner recorded
+ * failed while the daemon still stops the stack is not yet a stopped stack.
+ * Throws the failure, or, with no record, says the daemon died (its log has
+ * the rest) or that the wait ran out.
  */
 export async function waitForStack(wait: StackWait): Promise<void> {
   const { data, logs, daemonPid } = wait;
@@ -125,6 +144,7 @@ export async function waitForStack(wait: StackWait): Promise<void> {
       label: "stigmer-server",
       getExit: () => (isProcessAlive(daemonPid) ? null : { code: null, signal: null }),
     });
+    if (wait.runner) await waitForRunnerReady(data, daemonPid, wait.runnerTimeoutMs ?? RUNNER_READY_TIMEOUT_MS);
   } catch (err) {
     const failure = startupFailure(data, daemonPid);
     if (failure !== null) throw failure;
@@ -135,6 +155,20 @@ export async function waitForStack(wait: StackWait): Promise<void> {
     }
     throw err;
   }
+}
+
+// Poll this daemon's record until it shows the runner ready. The daemon writes
+// that once its start is done, right after the runner passes its gate.
+async function waitForRunnerReady(data: string, daemonPid: number, timeoutMs: number): Promise<void> {
+  const path = join(data, HEALTH_STATE_FILE);
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const snapshot = loadHealthState(path);
+    if (snapshot?.daemon_pid === daemonPid && snapshot.components.runner?.ready === true) return;
+    if (!isProcessAlive(daemonPid)) throw new Error("the daemon exited before the runner was ready");
+    await delay(RUNNER_READY_POLL_MS);
+  }
+  throw new CliExitError(`runner did not report ready within ${timeoutMs / 1000} s`, ExitCode.General, [componentLogsHint("runner")]);
 }
 
 /**
