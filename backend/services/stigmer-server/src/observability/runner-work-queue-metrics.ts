@@ -11,8 +11,9 @@
  *     lane does not serve (the caller names it, so it is never a value);
  *   - `decision`: `allowed` (forwarded and answered), `refused` (the lane
  *     said no), `temporal_failed` (Temporal answered an error, relayed as
- *     is) or `failed` (the lane could not do its part: no engine, no
- *     receipt key, a malformed frame);
+ *     is), `failed` (the lane could not do its part: no engine, no receipt
+ *     key, a malformed frame) or `abandoned` (the caller left before its
+ *     answer, with status `CANCELLED`, whatever the answer would have been);
  *   - `status`: the gRPC status NAME the caller received;
  *   - `check`: the rule that refused, or `none`.
  *
@@ -29,7 +30,7 @@ import type { GrpcStatusName } from "./rpc-metrics.js";
 
 const METER_NAME = "stigmer-server";
 
-export type WorkQueueDecision = "allowed" | "refused" | "temporal_failed" | "failed";
+export type WorkQueueDecision = "allowed" | "refused" | "temporal_failed" | "failed" | "abandoned";
 
 export interface WorkQueueCall {
   readonly method: string;

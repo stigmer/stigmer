@@ -10,7 +10,10 @@
  * runner, the SDK's real worker on the real native connection, runs its
  * turns end to end through the lane, a pause (cancellation through the
  * heartbeat's answer) included; a receipt is good for A alone, and a poll
- * held across a server stop ends inside the drain.
+ * held across a server stop ends inside the drain. A worker shaped as the
+ * runner behind the server (two activity polls, its API key renewed while
+ * it polls) never holds more than two of A's slots and is never refused
+ * one (stigmer#2982).
  *
  * Runs on the SDK's test Temporal (`@temporalio/testing`); without one the
  * suite is skipped with the reason printed, like the other Temporal suites.
@@ -25,6 +28,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createLogger } from "../../../boot/logger.js";
 import { SHUTDOWN_DRAIN_TIMEOUT_MS } from "../../constants.js";
 import { createUnifiedPortServer, type UnifiedPortServer } from "../../server.js";
+import { newHeldPolls, type HeldPolls } from "../capacity.js";
 import { createTemporalWorkerDoorLane } from "../lane.js";
 import { newReceiptKeySource } from "../receipt-key.js";
 
@@ -35,6 +39,12 @@ const TOKEN_A = "token-of-sandbox-a";
 const TOKEN_B = "token-of-sandbox-b";
 const NAMESPACE = "default";
 const WORKFLOWS = fileURLToPath(new URL("./__fixtures__/workflows.ts", import.meta.url));
+
+/**
+ * The runner's poller behind the server (runner src/worker.ts): two activity
+ * polls, stated as the poller behaviour, the one poll option the SDK reads.
+ */
+const RUNNER_ACTIVITY_POLLERS = { type: "simple-maximum", maximum: 2 } as const;
 
 /** The gRPC codes a refusal may carry: the method is not served, or not for this caller. */
 const REFUSED = new Set([12, 7]);
@@ -85,6 +95,40 @@ function poll(connection: Connection, queue: string, ms = 15_000) {
       identity: "test",
     }),
   );
+}
+
+/** The lane's held polls, recording how many were taken, refused, and held at most at once. */
+function recordingHeldPolls(): HeldPolls & { taken(): number; refused(): number; mostHeld(): number } {
+  const inner = newHeldPolls();
+  let held = 0;
+  let most = 0;
+  let taken = 0;
+  let refused = 0;
+  return {
+    taken: () => taken,
+    refused: () => refused,
+    mostHeld: () => most,
+    hold(queue) {
+      const slot = inner.hold(queue);
+      if ("refused" in slot) {
+        refused += 1;
+        return slot;
+      }
+      taken += 1;
+      held += 1;
+      most = Math.max(most, held);
+      let released = false;
+      return {
+        release: () => {
+          if (!released) {
+            released = true;
+            held -= 1;
+          }
+          slot.release();
+        },
+      };
+    },
+  };
 }
 
 async function stopServer(): Promise<void> {
@@ -291,7 +335,7 @@ describe("a sandbox reaches Temporal only as itself", () => {
         connection,
         namespace: NAMESPACE,
         taskQueue: QUEUE_A,
-        maxConcurrentActivityTaskPolls: 2,
+        activityTaskPollerBehavior: RUNNER_ACTIVITY_POLLERS,
         activities: {
           async Turn(input: string): Promise<string> {
             if (input === "long") {
@@ -323,6 +367,77 @@ describe("a sandbox reaches Temporal only as itself", () => {
       await run?.catch(() => {});
       await connection?.close();
     }
+  }, 90_000);
+
+  it("holds at most two of A's slots for a runner-shaped worker, and refuses it none", async (ctx) => {
+    if (!ready || env === undefined) ctx.skip();
+    const { NativeConnection: Native, Worker: W } = await import("@temporalio/worker");
+    // Its own lane, with a recorder and a short budget, so polls cycle many
+    // times in seconds; Temporal refuses a poll deadline under two seconds.
+    const slots = recordingHeldPolls();
+    const temporal = env!.connection;
+    const stored = new Map<string, string>();
+    const own = createUnifiedPortServer({
+      logger: silent,
+      routes: () => {},
+      interceptors: [],
+      modelRegistryLane: (_request, response) => {
+        response.statusCode = 404;
+        response.end();
+      },
+      temporalWorkerDoorLane: createTemporalWorkerDoorLane({
+        logger: silent,
+        namespace: NAMESPACE,
+        connection: () => temporal,
+        queueOf: async (token) => (token === TOKEN_A ? QUEUE_A : undefined),
+        receiptKey: newReceiptKeySource({
+          claim: async (key, value) => {
+            if (!stored.has(key)) stored.set(key, value);
+            return stored.get(key) ?? "";
+          },
+        }),
+        heldPolls: slots,
+        pollBudgetMs: 2_500,
+      }),
+    });
+    const port = await own.listen(0, "127.0.0.1");
+    let connection: NativeConnection | undefined;
+    let worker: Worker | undefined;
+    let run: Promise<void> | undefined;
+    try {
+      connection = await Native.connect({ address: `127.0.0.1:${port}`, apiKey: TOKEN_A, tls: false });
+      worker = await W.create({
+        connection,
+        namespace: NAMESPACE,
+        taskQueue: QUEUE_A,
+        activityTaskPollerBehavior: RUNNER_ACTIVITY_POLLERS,
+        activities: {
+          async Turn(input: string): Promise<string> {
+            return `done: ${input}`;
+          },
+        },
+      });
+      run = worker.run();
+      // The runner hands its renewed token to the connection while it polls.
+      await connection.setApiKey(TOKEN_A);
+      for (const input of ["one", "two", "three"]) {
+        const done = await env!.client.workflow.execute("turn", {
+          taskQueue: SERVER_QUEUE,
+          workflowId: `door-bound-${input}-${Date.now()}`,
+          args: [QUEUE_A, input],
+        });
+        expect(done).toBe(`done: ${input}`);
+      }
+      // Idle: each poll ends on the budget and is replaced, several times over.
+      await new Promise((resolve) => setTimeout(resolve, 6_000));
+    } finally {
+      worker?.shutdown();
+      await run?.catch(() => {});
+      await connection?.close();
+      await own.shutdown();
+    }
+    expect(slots.taken()).toBeGreaterThanOrEqual(6);
+    expect({ refused: slots.refused(), mostHeld: slots.mostHeld() }).toEqual({ refused: 0, mostHeld: 2 });
   }, 90_000);
 
   it("ends a held poll inside the shutdown drain", async (ctx) => {
