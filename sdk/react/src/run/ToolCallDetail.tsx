@@ -383,7 +383,12 @@ function CommandOutput({ stdout, stderr, live }: { readonly stdout: string; read
 /** The folder a search or a listing looked in, from its input; "" when it names none. */
 function searchFolderOf(toolUse: ToolUse): string {
   const path = toolUse.input["path"];
-  return typeof path === "string" ? path.replace(/\/+$/, "") : "";
+  if (typeof path !== "string") return "";
+  // Trimmed by a loop: the path is the model's, and a pattern like /\/+$/
+  // backtracks quadratically on a long run of separators.
+  let end = path.length;
+  while (end > 0 && path[end - 1] === "/") end -= 1;
+  return path.slice(0, end);
 }
 
 /** A match's file, named from the folder searched ("invoice.ts" for src/billing/invoice.ts searched in src/billing). */
