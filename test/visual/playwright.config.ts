@@ -18,12 +18,15 @@ import { SHOWN_SCALE } from "./src/shown.ts";
  * three times (test/e2e/tests/interactive-approval/tool-card-ux.spec.ts).
  * Baselines carry no platform suffix, since there is one drawing platform.
  *
- * Two projects draw: `gallery`, every scene at one device pixel per CSS
+ * Three projects draw: `gallery`, every scene at one device pixel per CSS
  * pixel, compared at CSS scale, and the docs' live demos driven as a reader
- * drives them (live.spec.ts); and `shown`, the pictures the site and the
- * docs show (src/shown.ts), drawn at the device scale the site serves and
- * kept apart under tests/__shown__, because the gallery's spec holds its own
- * folder equal to the catalogue.
+ * drives them (live.spec.ts); `whole`, every built screen checked against
+ * the facts of the drawing that passed the owner's look and every scene
+ * audited for the kit's layout rules (design.spec.ts), and the whole
+ * pictures a Built look compares (whole.spec.ts); and `shown`, the pictures
+ * the site and the docs show (src/shown.ts), drawn at the device scale the
+ * site serves and kept apart under tests/__shown__, because the gallery's
+ * spec holds its own folder equal to the catalogue.
  */
 const PORT = 4179;
 
@@ -53,6 +56,16 @@ export default defineConfig({
       snapshotPathTemplate: "{testDir}/__screenshots__/{arg}{ext}",
       expect: { toHaveScreenshot: { ...EXACT, scale: "css" } },
       use: { deviceScaleFactor: 1 },
+    },
+    {
+      // The drawings' facts and the layout audit (design.spec.ts), and the
+      // whole pictures a Built look compares (whole.spec.ts), at two device
+      // pixels per CSS pixel, as the design pages show them. The pictures
+      // are taken only when asked for, with `WHOLE_OUT` naming the folder
+      // they go to; the suite's own run checks and draws nothing extra.
+      name: "whole",
+      testMatch: process.env["WHOLE_OUT"] ? ["design.spec.ts", "whole.spec.ts"] : ["design.spec.ts"],
+      use: { deviceScaleFactor: 2 },
     },
     {
       name: "shown",

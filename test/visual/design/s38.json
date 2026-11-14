@@ -1,0 +1,397 @@
+{
+  "screen": "S38",
+  "title": "Every shell step",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "Every shell step",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-shell-steps",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Fix invoice rounding",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Working · 4m 20s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "4 of 5 to-dos done",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Commands in this turn",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "6 commands",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Finished",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ran a command",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "npm test -- billing/invoice",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Tests: 12 passed, 12 total Time: 13.8 s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "14s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Run the credit-note tests",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "npm test -- billing/credit-note",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "9s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Run the whole billing suiteexit 1",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "npm test -- billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "The command failed; the agent read the output and fixed the test.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "✕ half-cent credit note (4 ms) Expected: 0.34 Received: 0.33 Tests: 1 failed, 18 passed, 19 total",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Last 5 of 214 lines · Show all",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "31s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Ran a command",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "git diff --stat",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Still running",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Running a command",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "npm test -- billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "PASS src/billing/invoice.test.ts PASS src/billing/credit-note.test.ts",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "30s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Running in the background npm run dev",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Started by the agent to try the change in the app. It stops when the turn ends.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "2m 04s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "The agent wants to run a command",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "git push origin fix/invoice-rounding",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Push the fix to its branch. Nothing runs until you allow it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Allow",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Deny",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Allow all commands this turn",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Allow",
+          "height": 34
+        },
+        {
+          "name": "Deny",
+          "height": 34
+        },
+        {
+          "name": "Allow all commands this turn",
+          "height": 34
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Stop generating",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Allow": "Steps, approvals and the finished turn: while a call waits its row is the sentence card",
+        "button Allow all commands this turn": "Steps, approvals and the finished turn: while a call waits its row is the sentence card",
+        "button Deny": "Steps, approvals and the finished turn: while a call waits its row is the sentence card",
+        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "type Allow": "Steps, approvals and the finished turn: while a call waits its row is the sentence card",
+        "type Deny": "Steps, approvals and the finished turn: while a call waits its row is the sentence card",
+        "type Running a command": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans",
+        "type The agent wants to run a command": "Steps, approvals and the finished turn: while a call waits its row is the sentence card",
+        "word 14s": "The session's frame: one duration format, \"1m 30s\"",
+        "word 2m 04s": "The session's frame: one duration format, \"1m 30s\"",
+        "word 31s": "The session's frame: one duration format, \"1m 30s\"",
+        "word 6 commands": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word 9s": "The session's frame: one duration format, \"1m 30s\"",
+        "word Allow all commands this turn": "Steps, approvals and the finished turn: while a call waits its row is the sentence card",
+        "word Commands in this turn": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word Finished": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word Last 5 of 214 lines · Show all": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word Run the whole billing suiteexit 1": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word Running in the background npm run dev": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word Started by the agent to try the change in the app. It stops when the turn ends.": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word Still running": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word The command failed; the agent read the output and fixed the test.": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word Working · 4m 20s": "The session's frame: one duration format, \"1m 30s\""
+      }
+    }
+  ]
+}

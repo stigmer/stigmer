@@ -1,0 +1,353 @@
+{
+  "screen": "G01",
+  "title": "Members",
+  "source": "the Console parts page, version 3",
+  "drawings": [
+    {
+      "caption": "Members",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-members",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Members",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Who belongs to this organization and the role each holds: owner, admin, member or viewer. Only an owner grants or removes owner.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "People",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "A",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "You",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "owner",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "G",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Grace Hopper",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "admin",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "K",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Katherine Johnson",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "member",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "A",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Alan Turing",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "member",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Change Grace Hopper's role",
+          "height": 28
+        },
+        {
+          "name": "Remove Grace Hopper",
+          "height": 28
+        },
+        {
+          "name": "Change Katherine Johnson's role",
+          "height": 28
+        },
+        {
+          "name": "Remove Katherine Johnson",
+          "height": 28
+        },
+        {
+          "name": "Change Alan Turing's role",
+          "height": 28
+        },
+        {
+          "name": "Remove Alan Turing",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Change Alan Turing's role": "The console's parts: the page says and offers what its drawing does",
+        "button Change Grace Hopper's role": "The console's parts: the page says and offers what its drawing does",
+        "button Change Katherine Johnson's role": "The console's parts: the page says and offers what its drawing does"
+      }
+    },
+    {
+      "caption": "Members, at 390 wide",
+      "narrow": true,
+      "built": [
+        {
+          "scene": "settings-members",
+          "width": "narrow"
+        }
+      ],
+      "words": [
+        {
+          "text": "Members",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Who belongs to this organization and the role each holds: owner, admin, member or viewer. Only an owner grants or removes owner.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "People",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "A",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "You",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "owner",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "G",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Grace Hopper",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "admin",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "K",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Katherine Johnson",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "member",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "A",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Alan Turing",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "member",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Change Grace Hopper's role",
+          "height": 28
+        },
+        {
+          "name": "Remove Grace Hopper",
+          "height": 28
+        },
+        {
+          "name": "Change Katherine Johnson's role",
+          "height": 28
+        },
+        {
+          "name": "Remove Katherine Johnson",
+          "height": 28
+        },
+        {
+          "name": "Change Alan Turing's role",
+          "height": 28
+        },
+        {
+          "name": "Remove Alan Turing",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Change Alan Turing's role": "The console's parts: the page says and offers what its drawing does",
+        "button Change Grace Hopper's role": "The console's parts: the page says and offers what its drawing does",
+        "button Change Katherine Johnson's role": "The console's parts: the page says and offers what its drawing does"
+      }
+    }
+  ]
+}

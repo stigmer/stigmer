@@ -1,0 +1,218 @@
+{
+  "screen": "P02",
+  "title": "Page header and frame",
+  "source": "the Console parts page, version 3",
+  "drawings": [
+    {
+      "caption": "Page header and frame",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "parts",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "API keys",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New API key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Keys sign the CLI and your own programs in to Stigmer as you. A key works in every organization you belong to, unless you limit it to one.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "daily-variance-report",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Run now",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "acme · Created Jul 20, 2026 · Updated Jul 20, 2026",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Widelists, settings, the dashboard, the marketplace, models",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "1024 (max-w-5xl)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Readingone column: a form, a detail page, the session",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "768 (max-w-3xl)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New API key",
+          "height": 32
+        },
+        {
+          "name": "Run now",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button More actions": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "button Run now": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word 1024 (max-w-5xl)": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word 768 (max-w-3xl)": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Active": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Readingone column: a form, a detail page, the session": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Run now": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Widelists, settings, the dashboard, the marketplace, models": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word acme · Created Jul 20, 2026 · Updated Jul 20, 2026": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word daily-variance-report": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene"
+      }
+    },
+    {
+      "caption": "Page header and frame, at 390 wide",
+      "narrow": true,
+      "built": [
+        {
+          "scene": "parts",
+          "width": "narrow"
+        }
+      ],
+      "words": [
+        {
+          "text": "API keys",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New API key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Keys sign the CLI and your own programs in to Stigmer as you.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "daily-variance-report",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Run now",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "acme · Created Jul 20, 2026",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New API key",
+          "height": 32
+        },
+        {
+          "name": "Run now",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button More actions": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "button Run now": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Run now": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word acme · Created Jul 20, 2026": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word daily-variance-report": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene"
+      }
+    }
+  ]
+}

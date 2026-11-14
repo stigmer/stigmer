@@ -1,0 +1,352 @@
+{
+  "screen": "S36",
+  "title": "Twenty files made",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "Twenty files made",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-many-files",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Nightly billing check",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Done",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Started by routine Nightly billing check",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "6m 02s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "20 files made",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Every October invoice is checked. Fourteen were a cent off; each has its own audit file, and the summary lists them all.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Made · 20 files",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "invoice-audit.md",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Markdown · 4.1 KB",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "rounding-cases.csv",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Spreadsheet · 1.8 KB",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "credit-note-audit.md",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Markdown · 3.2 KB",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "half-cent-cases.csv",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Spreadsheet · 0.9 KB",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "invoices-2026-10.pdf",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "PDF · 412 KB",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "15 more: 12 Markdown, 3 PDF",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Show all 20",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Changed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Undo all",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "invoice.ts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "src/billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "credit-note.ts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "src/billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "rounding.test.ts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "src/billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "New",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "How it got there: read 22 files, edited 3 files, wrote 20 files, ran 2 commands",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "5m 48s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Show all 20",
+          "height": 26
+        },
+        {
+          "name": "Undo all",
+          "height": 28
+        },
+        {
+          "name": "Undo invoice.ts",
+          "height": 28
+        },
+        {
+          "name": "Undo credit-note.ts",
+          "height": 28
+        },
+        {
+          "name": "Undo rounding.test.ts",
+          "height": 28
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Show all 20": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "type Done": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
+        "type Every October invoice is checked. Fourteen were a cent off; each has its own audit file, and the summary lists them all.": "The session's frame: the answer's lines at the scale's 20px, its acts in no reserved row",
+        "word 5m 48s": "The session's frame: one duration format, \"1m 30s\"",
+        "word 6m 02s": "The session's frame: one duration format, \"1m 30s\"",
+        "word How it got there: read 22 files, edited 3 files, wrote 20 files, ran 2 commands": "Steps, approvals and the finished turn: \"How it got there\" as the card's header with its count and span",
+        "word PDF · 412 KB": "Steps, approvals and the finished turn: the finished turn's cards, sizes and downloads",
+        "word Spreadsheet · 0.9 KB": "Steps, approvals and the finished turn: the finished turn's cards, sizes and downloads",
+        "word Started by routine Nightly billing check": "Steps, approvals and the finished turn: the screen's parts as drawn"
+      }
+    }
+  ]
+}

@@ -1,0 +1,222 @@
+{
+  "screen": "S52",
+  "title": "The opening",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "Starting: the passed skeleton; the 12px spinner sits beside its words.",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-starting",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Opening the session…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Agent": "The screens still in their old look: the opening draws the column and a closed composer",
+        "button Attach files": "The screens still in their old look: the opening draws the column and a closed composer",
+        "button Claude Sonnet 4.6": "The screens still in their old look: the opening draws the column and a closed composer",
+        "button Configure agent, tools, and skills": "The screens still in their old look: the opening draws the column and a closed composer",
+        "button Send message": "The screens still in their old look: the opening draws the column and a closed composer",
+        "button Workspace": "The screens still in their old look: the opening draws the column and a closed composer",
+        "type Opening the session…": "The screens still in their old look: this screen is still its pre-redesign self",
+        "word Agent": "The screens still in their old look: the opening draws the column and a closed composer",
+        "word Claude Sonnet 4.6": "The screens still in their old look: the opening draws the column and a closed composer",
+        "word Reply…": "The screens still in their old look: the opening draws the column and a closed composer"
+      }
+    },
+    {
+      "caption": "Loading an existing conversation: the same shapes without words, so loading and starting look alike.",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "loading an existing conversation is the thread's own loading scene (thread-loading), drawn without the session view's frame",
+      "words": [
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "At 390px.",
+      "narrow": true,
+      "built": [
+        {
+          "scene": "session-starting",
+          "width": "narrow"
+        }
+      ],
+      "words": [
+        {
+          "text": "Opening the session…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Attach files": "The screens still in their old look: the opening draws the column and a closed composer",
+        "button Claude Sonnet 4.6": "The screens still in their old look: the opening draws the column and a closed composer",
+        "button Configure agent, tools, and skills": "The screens still in their old look: the opening draws the column and a closed composer",
+        "button Send message": "The screens still in their old look: the opening draws the column and a closed composer",
+        "button Workspace": "The screens still in their old look: the opening draws the column and a closed composer",
+        "type Opening the session…": "The screens still in their old look: this screen is still its pre-redesign self",
+        "word Claude Sonnet 4.6": "The screens still in their old look: the opening draws the column and a closed composer",
+        "word Reply…": "The screens still in their old look: the opening draws the column and a closed composer"
+      }
+    }
+  ]
+}

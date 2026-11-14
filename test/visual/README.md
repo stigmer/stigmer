@@ -52,6 +52,12 @@ The docs embed some scenes live: `<Live name="chat-popup" alt="…" />` on a pag
 1. Add its entry to `LIVE` in `src/live.ts`. Its scene must be in the catalogue; a demo a reader can talk to needs a drawing with `liveRoutes`.
 2. Embed it with `<Live name="…" alt="…" />`.
 
+## The drawings' facts and whole pictures
+
+The screenshots hold the build to its own approved look; the `whole` project holds it to the drawing that passed the owner's look. `tests/design.spec.ts` draws each scene a drawing names, whole, and checks it against the drawing's facts in `design/` (its words with their type, its buttons' names and heights), with each known difference listed against the change that fixes it or the ruling that keeps it. It also audits every scene for the kit's layout rules: text on the type scale, no paragraph or heading keeping the browser's margin, paddings and gaps in half spacing units. `design/README.md` has the file format, how a fact holds and how a new design's facts come in.
+
+A scene the catalogue marks `whole` (the session view and the console pages the shared parts are drawn on) is pictured in a viewport grown until nothing in it scrolls, so its screenshot holds the whole turn or page, its top included. For a Built look, `WHOLE_OUT=<folder> node test/visual/run-in-image.mjs --project=whole whole.spec.ts` writes every scene the facts name, whole, in light and dark at two device pixels per CSS pixel.
+
 ## The browser image
 
 `playwright-image.json` names the official Playwright image by tag and digest, in its arm64 manifest, which an Apple-silicon Mac and GitHub's arm64 runner both run natively; an x64 machine runs it under emulation, with the same pixels. `src/__tests__/image-pin.test.ts` holds the `visual` job's `container.image` and runner, and the Playwright the lockfile pins, to it. Moving the pin re-mints every screenshot in one reviewed change. The file is a gate file (`test/README.md`, rule 5).

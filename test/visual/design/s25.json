@@ -1,0 +1,320 @@
+{
+  "screen": "S25",
+  "title": "Model not available",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "Model not available",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-fail-model-unavailable",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Fix invoice rounding",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Didn't finish",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "0s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invoices are off by a cent. Can you fix the rounding?",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "This key can't use Claude Sonnet 4.6.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Anthropic says the model isn't available to this account. Choose another model, then send your message again. Nothing was lost.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Choose another model",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Harness",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Thinking",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Extended reasoning; uses more output tokens",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Search models…",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Haiku 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Fastest $",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Quick responses, lower cost",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Fast $$ ✓",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Best for most tasks",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Powerful $$$",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Frontier agentic coding",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "GPT-5.2",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Fast $$",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "OpenAI's general model",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Show all models",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Choose another model",
+          "height": 26
+        },
+        {
+          "name": "Copy details",
+          "height": 26
+        },
+        {
+          "name": "Stigmer",
+          "height": 30
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {
+        "type Claude Sonnet 4.6": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included"
+      },
+      "pending": {
+        "button Choose another model": "Endings: a notice's acts at xs, with their icons",
+        "button Copy details": "Endings: a notice's acts at xs, with their icons",
+        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Stigmer": "Endings: the ending turn as drawn",
+        "type Best for most tasks": "Endings: the ending turn as drawn",
+        "type Choose another model": "Endings: a notice's acts at xs, with their icons",
+        "type Didn't finish": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
+        "type Extended reasoning; uses more output tokens": "Endings: the ending turn as drawn",
+        "type Fast $$": "Endings: the ending turn as drawn",
+        "type Fastest $": "Endings: the ending turn as drawn",
+        "type Frontier agentic coding": "Endings: the ending turn as drawn",
+        "type OpenAI's general model": "Endings: the ending turn as drawn",
+        "type Powerful $$$": "Endings: the ending turn as drawn",
+        "type Quick responses, lower cost": "Endings: the ending turn as drawn",
+        "word 0s": "The session's frame: one duration format, \"1m 30s\"",
+        "word Fast $$ ✓": "Endings: the ending turn as drawn"
+      }
+    }
+  ]
+}

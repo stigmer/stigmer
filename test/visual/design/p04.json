@@ -1,0 +1,349 @@
+{
+  "screen": "P04",
+  "title": "List rows",
+  "source": "the Console parts page, version 3",
+  "drawings": [
+    {
+      "caption": "List rows",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-members",
+          "width": "desktop"
+        },
+        {
+          "scene": "routine-history",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "A",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "You",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "owner",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "G",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Grace Hopper",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "admin",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Production",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "vlt_00000000000000000000000003 · 4 secrets",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Ready",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "daily-variance-report",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Every weekday at 07:00",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Running",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ledger service",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Shared with the Finance team",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "2 keys",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Created",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 20, 2026 by Ada Lovelace",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Used by",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "variance-reporter, payroll-reconciler",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "No fires yet. The routine's first fire shows here.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Outcome",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Origin",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Started by",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Fired",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Duration",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Started",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Manual",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "6m ago",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Completed",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Schedule",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "the routine",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "1d ago",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "1m 14s",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Change role",
+          "height": 28
+        },
+        {
+          "name": "Remove Grace Hopper",
+          "height": 28
+        },
+        {
+          "name": "More actions",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button More actions": "The console's parts: the part at its drawn size and weight",
+        "type Ada Lovelace": "The console's parts: the part at its drawn size and weight",
+        "type Duration": "The console's parts: the part at its drawn size and weight",
+        "type Fired": "The console's parts: the part at its drawn size and weight",
+        "type Manual": "The console's parts: the part at its drawn size and weight",
+        "type Origin": "The console's parts: the part at its drawn size and weight",
+        "type Outcome": "The console's parts: the part at its drawn size and weight",
+        "type Started": "The console's parts: the part at its drawn size and weight",
+        "type Started by": "The console's parts: the part at its drawn size and weight",
+        "type daily-variance-report": "The console's parts: the part at its drawn size and weight",
+        "word 1d ago": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word 1m 14s": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word 2 keys": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word 6m ago": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Completed": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Every weekday at 07:00": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Jul 20, 2026 by Ada Lovelace": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Ledger service": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word No fires yet. The routine's first fire shows here.": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Production": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Ready": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Running": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Schedule": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Shared with the Finance team": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Used by": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word the routine": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word variance-reporter, payroll-reconciler": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word vlt_00000000000000000000000003 · 4 secrets": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene"
+      }
+    }
+  ]
+}

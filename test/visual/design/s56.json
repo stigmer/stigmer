@@ -1,0 +1,116 @@
+{
+  "screen": "S56",
+  "title": "Waiting for a sandbox",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "While every sandbox is busy the turn waits for room, up to 15 minutes, and says so with the time it has waited. The pill stays Starting.",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-waiting-for-sandbox",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Fix invoice rounding",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Starting · 1m 20s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invoices are off by a cent. Can you fix the rounding?",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Waiting for a sandbox · 1m 20s",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Stop generating",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "word Starting · 1m 20s": "The session's frame: one duration format, \"1m 30s\""
+      }
+    }
+  ]
+}

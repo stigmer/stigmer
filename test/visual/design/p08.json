@@ -1,0 +1,180 @@
+{
+  "screen": "P08",
+  "title": "Notices and errors",
+  "source": "the Console parts page, version 3",
+  "drawings": [
+    {
+      "caption": "Notices and errors",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "parts",
+          "width": "desktop"
+        },
+        {
+          "scene": "settings-teams-oss",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Couldn't load the shared vaults.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the vault service did not answer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Your vaults and their secrets are safe; only this page's read failed.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer didn't answer.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the vault service did not answer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Agent hours are used up for this month.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Runs wait until the hours reset on Aug 1, or until an admin moves the organization to a larger plan.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "See plans",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Teams come with Stigmer Enterprise and Cloud.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "On this edition roles are granted on the organization only: people get access through their role in it, and nothing is shared with individual people or teams.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Compare editions",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "See plans",
+          "height": 32
+        },
+        {
+          "name": "Compare editions",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Compare editions": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "button See plans": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Agent hours are used up for this month.": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Compare editions": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Runs wait until the hours reset on Aug 1, or until an admin moves the organization to a larger plan.": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word See plans": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Your vaults and their secrets are safe; only this page's read failed.": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene"
+      }
+    }
+  ]
+}

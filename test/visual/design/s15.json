@@ -1,0 +1,136 @@
+{
+  "screen": "S15",
+  "title": "The message didn't send",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "The message didn't send",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "no gallery scene draws a message that didn't send; the rebuilt screen's change adds one",
+      "words": [
+        {
+          "text": "Fix invoice rounding",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Done",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "12s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invoices are off by a cent. Can you fix the rounding?",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Didn't send. Stigmer couldn't reach the server.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Your message is kept here, and nothing reached the agent. Try again when you're back online.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 26
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

@@ -1,0 +1,189 @@
+{
+  "screen": "P05",
+  "title": "Status pill",
+  "source": "the Console parts page, version 3",
+  "drawings": [
+    {
+      "caption": "Status pill",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "parts",
+          "width": "desktop"
+        },
+        {
+          "scene": "models-hub-none",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Ready",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Running",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Pending",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Degraded",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Failed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Disabled",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Draft",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Queued",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Running",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Waiting for you",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Completed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Failed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cancelled",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Not connected",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "daily-variance-report",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Fix invoice rounding",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Didn't finish",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "type Anthropic": "The console's parts: the part at its drawn size and weight",
+        "word Active": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Cancelled": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Completed": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Didn't finish": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Fix invoice rounding": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Queued": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Waiting for you": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word daily-variance-report": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene"
+      }
+    }
+  ]
+}

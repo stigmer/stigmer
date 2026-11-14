@@ -1,0 +1,271 @@
+{
+  "screen": "S51",
+  "title": "Compacted, and memories recalled",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "Recalled memories as a quiet line that opens to them; a compaction as a hairline marker in the steps, like the agent-version marker.",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-compacted",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Round credit notes",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Done",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "36s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1 change",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Apply the same rounding fix to credit notes.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Recalled 3 memories",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Invoices round half-even to the cent, at the total only.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Billing tests live beside the code: src/billing/__tests__.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Credit notes follow the invoice's rounding rule.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Credit notes now round once, at the total, as invoices do.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Changed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "credit-note.ts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "src/billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "How it got there",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "3 steps · 34s",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Read credit-note.ts",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "src/billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Earlier messages summarized · 11:00",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Edited credit-note.ts",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "+4−2 · src/billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Undo credit-note.ts",
+          "height": 28
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Undo credit-note.ts": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "type Credit notes now round once, at the total, as invoices do.": "The session's frame: the answer's lines at the scale's 20px, its acts in no reserved row",
+        "type Done": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
+        "word +4−2 · src/billing": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word 1s": "The session's frame: one duration format, \"1m 30s\"",
+        "word 3 steps · 34s": "The session's frame: one duration format, \"1m 30s\"",
+        "word 36s": "The session's frame: one duration format, \"1m 30s\"",
+        "word Read credit-note.ts": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans"
+      }
+    }
+  ]
+}

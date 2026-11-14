@@ -1,0 +1,82 @@
+{
+  "screen": "G02",
+  "title": "API keys, none yet",
+  "source": "the Console parts page, version 3",
+  "drawings": [
+    {
+      "caption": "API keys, none yet",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-api-keys",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "API keys",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New API key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Keys sign the CLI and your own programs in to Stigmer as you. A key works in every organization you belong to, unless you limit it to one.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No API keys yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "A key lets the CLI on a server, a CI job or a script act as you. You see its value once, when it's made.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "New API key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New API key",
+          "height": 32
+        },
+        {
+          "name": "New API key",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "word A key lets the CLI on a server, a CI job or a script act as you. You see its value once, when it's made.": "The console's parts: the page says and offers what its drawing does"
+      }
+    }
+  ]
+}

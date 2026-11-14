@@ -1,0 +1,188 @@
+{
+  "screen": "G03",
+  "title": "Vaults, failed to load",
+  "source": "the Console parts page, version 3",
+  "drawings": [
+    {
+      "caption": "Vaults, failed to load",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-vaults-failed",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Vaults",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New shared vault",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The logins and secrets your agents use: your own, in My vault, and your organization's, in shared vaults.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "My vault",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "You",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Your own logins and secrets. A chat that includes My vault uses them for the messages you send, never a teammate's, and a chat with an agent of another organization never does. Saved values can be replaced but are never shown again.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load My vault.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the vault service did not answer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Nothing in it is lost; only this page's read failed.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Shared vaults",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Your organization's team keys. Admins create them and choose who may use them; a conversation, a routine or a channel can name one so its runs use it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the shared vaults.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the vault service did not answer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Your organization's vaults are safe; only this page's read failed.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New shared vault",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

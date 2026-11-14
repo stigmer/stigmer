@@ -149,13 +149,19 @@ describe("buildThreadItems plan", () => {
     expect(ids(planOf(items)!.steps.plan[0]!.calls)).toEqual([task]);
   });
 
-  it("nests the busy turn's subagent and the suite still running under the item in progress", () => {
+  it("files the busy turn's steps under the to-do each was made for, the subagent and the suite under the item in progress", () => {
     const items = buildThreadItems(scenarios.busy.fold.turns, scenarios.busy.runs);
     const plan = planOf(items)!;
 
     expect(items.some((i) => i.kind === "subagent" || i.kind === "tool-group")).toBe(false);
-    const inProgress = plan.steps.plan.find((item) => item.todo.status === "in_progress")!;
-    expect(inProgress.calls.map((tool) => tool.name)).toEqual(["grep", "read_file", "edit_file", "execute", "task", "execute"]);
+    expect(plan.steps.plan.map((item) => [item.todo.status, item.calls.map((tool) => tool.name)])).toEqual([
+      ["completed", ["grep", "read_file"]],
+      ["completed", ["edit_file", "execute"]],
+      ["in_progress", ["task", "execute"]],
+      ["pending", []],
+      ["pending", []],
+    ]);
+    expect(plan.steps.loose).toEqual([]);
     expect(plan.working).toBe(true);
   });
 

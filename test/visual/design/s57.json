@@ -1,0 +1,160 @@
+{
+  "screen": "S57",
+  "title": "No sandbox came free",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "When no room came in 15 minutes: the failure pattern, with Run again, which waits again.",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-fail-no-sandbox-room",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Fix invoice rounding",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Didn't start",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "15m 00s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invoices are off by a cent. Can you fix the rounding?",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Every sandbox was busy, so this turn didn't start.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Nothing was lost: your message is still here. Run again waits for room again.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Run again",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Run again",
+          "height": 26
+        },
+        {
+          "name": "Copy details",
+          "height": 26
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Copy details": "Endings: a notice's acts at xs, with their icons",
+        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Run again": "Endings: a notice's acts at xs, with their icons",
+        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "type Didn't start": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
+        "type Run again": "Endings: a notice's acts at xs, with their icons",
+        "word 15m 00s": "The session's frame: one duration format, \"1m 30s\""
+      }
+    }
+  ]
+}

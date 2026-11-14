@@ -1,0 +1,112 @@
+{
+  "screen": "S21",
+  "title": "Agent hours used up",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "Agent hours used up",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "no gallery scene draws the agent-hours notice above the composer; the rebuilt screen's change adds one",
+      "words": [
+        {
+          "text": "Fix invoice rounding",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New session",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Your organization has used this month's agent hours.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Agents run again when the hours renew, or sooner on a bigger plan. Your message stays in the box.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "View plans",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Invoices are off by a cent. Can you fix the rounding?",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

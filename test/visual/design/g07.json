@@ -1,0 +1,194 @@
+{
+  "screen": "G07",
+  "title": "Routine history",
+  "source": "the Console parts page, version 3",
+  "drawings": [
+    {
+      "caption": "Routine history",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "routine-history",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "daily-variance-report",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Run now",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "acme · Created Jul 20, 2026 · Updated Jul 20, 2026",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Overview",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "History",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "API",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Outcome",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Origin",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Started by",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Fired",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Duration",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Run",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Started",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Manual",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "6m",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "run_000000…000001",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Run now",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button More actions": "The console's parts: the part at its drawn size and weight",
+        "type 6m": "The console's parts: the part at its drawn size and weight",
+        "type API": "The console's parts: the part at its drawn size and weight",
+        "type Ada Lovelace": "The console's parts: the part at its drawn size and weight",
+        "type Duration": "The console's parts: the part at its drawn size and weight",
+        "type Fired": "The console's parts: the part at its drawn size and weight",
+        "type History": "The console's parts: the part at its drawn size and weight",
+        "type Manual": "The console's parts: the part at its drawn size and weight",
+        "type Origin": "The console's parts: the part at its drawn size and weight",
+        "type Outcome": "The console's parts: the part at its drawn size and weight",
+        "type Overview": "The console's parts: the part at its drawn size and weight",
+        "type Run": "The console's parts: the part at its drawn size and weight",
+        "type Started": "The console's parts: the part at its drawn size and weight",
+        "type Started by": "The console's parts: the part at its drawn size and weight",
+        "type daily-variance-report": "The console's parts: the part at its drawn size and weight",
+        "word acme · Created Jul 20, 2026 · Updated Jul 20, 2026": "The console's parts: the page says and offers what its drawing does",
+        "word run_000000…000001": "The console's parts: the page says and offers what its drawing does"
+      }
+    }
+  ]
+}

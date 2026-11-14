@@ -1,0 +1,206 @@
+{
+  "screen": "P03",
+  "title": "Cards",
+  "source": "the Console parts page, version 3",
+  "drawings": [
+    {
+      "caption": "Cards",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "marketplace-admin",
+          "width": "desktop"
+        },
+        {
+          "scene": "dashboard-busy",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Completed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Shared vaults",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Your organization's team keys.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Tokens",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "18.4M",
+          "type": [
+            24,
+            32,
+            600
+          ]
+        },
+        {
+          "text": "A",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Atlassian",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Atlassian's Rovo MCP server: Jira issues and Confluence pages across your Atlassian site.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "L",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Linear",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Installed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Linear's hosted MCP server: issues, projects, cycles and comments in your Linear workspace.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install again",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Upload a plugin",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "A Cursor, Claude Code, Codex or Agent Plugins folder from your computer, or a .zip of one.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Install",
+          "height": 28
+        },
+        {
+          "name": "Install again",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Install": "The console's parts: the part at its drawn size and weight",
+        "button Install again": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "type Atlassian": "The console's parts: the part at its drawn size and weight",
+        "type Install": "The console's parts: the part at its drawn size and weight",
+        "type Install again": "The console's parts: the part at its drawn size and weight",
+        "type Linear": "The console's parts: the part at its drawn size and weight",
+        "type Upload a plugin": "The console's parts: the part at its drawn size and weight",
+        "word Shared vaults": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Your organization's team keys.": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene"
+      }
+    }
+  ]
+}
