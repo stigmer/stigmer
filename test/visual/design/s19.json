@@ -75,16 +75,7 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "button Agent": "The screens still in their old look: the opening draws the column and a closed composer",
-        "button Attach files": "The screens still in their old look: the opening draws the column and a closed composer",
-        "button Claude Sonnet 4.6": "The screens still in their old look: the opening draws the column and a closed composer",
-        "button Configure agent, tools, and skills": "The screens still in their old look: the opening draws the column and a closed composer",
-        "button Send message": "The screens still in their old look: the opening draws the column and a closed composer",
-        "button Workspace": "The screens still in their old look: the opening draws the column and a closed composer",
-        "type Opening the session…": "The screens still in their old look: this screen is still its pre-redesign self",
-        "word Agent": "The screens still in their old look: the opening draws the column and a closed composer",
-        "word Claude Sonnet 4.6": "The screens still in their old look: the opening draws the column and a closed composer",
-        "word Reply…": "The screens still in their old look: the opening draws the column and a closed composer"
+        "button Configure agent, tools, and skills": "The screens still in their old look: the opening draws the column and a closed composer"
       }
     }
   ]

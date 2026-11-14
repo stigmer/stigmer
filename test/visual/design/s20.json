@@ -119,7 +119,8 @@
         "button Export transcript": "The drawing frames the first refused message as a session page (a header, the message kept in the composer); the launcher has no header and keeps the message in its field: for his look",
         "word Fix invoice rounding": "The drawing frames the first refused message as a session page (a header, the message kept in the composer); the launcher has no header and keeps the message in its field: for his look",
         "word Invoices are off by a cent. Can you fix the rounding?": "The drawing frames the first refused message as a session page (a header, the message kept in the composer); the launcher has no header and keeps the message in its field: for his look",
-        "word New session": "The drawing frames the first refused message as a session page (a header, the message kept in the composer); the launcher has no header and keeps the message in its field: for his look"
+        "word New session": "The drawing frames the first refused message as a session page (a header, the message kept in the composer); the launcher has no header and keeps the message in its field: for his look",
+        "button Open Models & providers": "The drawing: its buttons at 34px and 26px are off the kit's 32px and 28px; redrawn at the next export"
       }
     }
   ]
