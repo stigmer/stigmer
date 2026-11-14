@@ -620,10 +620,10 @@ func (x *SendMessageResponse) GetRun() *Run {
 //
 // ## Example
 //
-// 	{
-// 	  "id": "run_abc123xyz456",
-// 	  "reason": "Agent stuck in infinite loop, not responding to cancel"
-// 	}
+//	{
+//	  "id": "run_abc123xyz456",
+//	  "reason": "Agent stuck in infinite loop, not responding to cancel"
+//	}
 type TerminateRunInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Run ID to terminate.
@@ -720,9 +720,9 @@ func (x *TerminateRunInput) GetReason() string {
 //
 // ## Example
 //
-// 	{
-// 	  "id": "run_abc123xyz456"
-// 	}
+//	{
+//	  "id": "run_abc123xyz456"
+//	}
 type RecoverRunInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Run ID to recover.
@@ -796,10 +796,10 @@ func (x *RecoverRunInput) GetId() string {
 //
 // ## Example
 //
-// 	{
-// 	  "id": "run_abc123xyz456",
-// 	  "reason": "Pausing to review progress before continuing"
-// 	}
+//	{
+//	  "id": "run_abc123xyz456",
+//	  "reason": "Pausing to review progress before continuing"
+//	}
 type PauseRunInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Run ID to pause.
@@ -889,13 +889,13 @@ func (x *PauseRunInput) GetReason() string {
 //
 // ## Example
 //
-// 	{
-// 	  "id": "run_abc123xyz456"
-// 	}
+//	{
+//	  "id": "run_abc123xyz456"
+//	}
 //
-// 	{
-// 	  "id": "run_abc123xyz456"
-// 	}
+//	{
+//	  "id": "run_abc123xyz456"
+//	}
 type ResumeRunInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Run ID to resume.
