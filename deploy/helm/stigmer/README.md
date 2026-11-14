@@ -350,7 +350,12 @@ the server as `PGDATABASE` and the password as `PGPASSWORD` from its Secret, so
 the password never appears in rendered manifests and no character in either can
 break the URL. Connection options the Postgres client reads from the
 environment, such as `PGSSLMODE=require` for a managed database, go through
-`server.extraEnv`. When Temporal stays bundled and Postgres is yours, the
+`server.extraEnv`, as do the server's pool bounds: `DATABASE_POOL_MAX` (default
+20 connections) and `DATABASE_POOL_CHECKOUT_TIMEOUT_MS` (default 10000), after
+which a request that could not get a connection is answered Unavailable, "try
+again", instead of waiting. Every server replica holds its own pool, so
+replicas times `DATABASE_POOL_MAX`, plus Temporal's connections when it shares
+the instance, must fit the database's `max_connections`. When Temporal stays bundled and Postgres is yours, the
 Temporal pod's schema step creates its two databases (`temporal`,
 `temporal_visibility`) on your instance at first boot and needs a user with
 `CREATE DATABASE`.

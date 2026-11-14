@@ -11,6 +11,14 @@
  * readers are the pipeline executor's failure line and the logging
  * interceptor's, both through error-cause.ts.
  *
+ * internalError is also the one store-to-wire seam for a failure that is
+ * not the server's fault: every store failure on its way to the wire passes
+ * it (the pipeline executor's fallback, the error boundary's net and each
+ * direct handler's own wrap), so a database that could not hand out a
+ * connection (`DatabaseUnavailableError` anywhere in the cause chain) is
+ * answered Unavailable there, with the caller's copy, and no call site
+ * changes (stigmer/stigmer#3086).
+ *
  * A refusal a client should branch on, rather than parse its copy, also
  * carries a google.rpc.ErrorInfo detail (domain "stigmer.ai"), the
  * platform's structured-refusal contract that the SDK's getErrorReason
@@ -23,6 +31,9 @@
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
+
+import { DatabaseUnavailableError } from "../store/interface.js";
+import { findInCauseChain } from "./error-cause.js";
 
 /**
  * Renders a name list as 'a', 'b', 'c' for an error message — the one way
@@ -186,9 +197,24 @@ export function unavailableError(message: string): ConnectError {
  * (#478). Callers write internalError(err, "failed to <do thing>") — the
  * split between operator-visible detail and client-visible copy happens
  * here.
+ *
+ * One exception to the code, never to the copy: when the cause chain holds
+ * a `DatabaseUnavailableError` (the database could not hand out a
+ * connection, store/interface.ts), the code is Unavailable, which clients
+ * read as "try again" (#3086). Same message, same server-side cause.
  */
 export function internalError(cause: unknown, message: string): ConnectError {
-  return new ConnectError(message, Code.Internal, undefined, undefined, cause);
+  const code =
+    findInCauseChain(cause, isDatabaseUnavailable) === undefined
+      ? Code.Internal
+      : Code.Unavailable;
+  return new ConnectError(message, code, undefined, undefined, cause);
+}
+
+function isDatabaseUnavailable(
+  link: unknown,
+): link is DatabaseUnavailableError {
+  return link instanceof DatabaseUnavailableError;
 }
 
 /**
