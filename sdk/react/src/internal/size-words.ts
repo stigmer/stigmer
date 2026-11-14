@@ -17,7 +17,8 @@ export function sizeWords(bytes: bigint | number | undefined): string {
   if (!(n > 0)) return "";
   let value = n / 1024;
   let unit = 0;
-  while (value >= 1024 && unit < UNITS.length - 1) {
+  // 1023.6 KB would round to "1024 KB": it is said in the next unit.
+  while (value >= 1023.5 && unit < UNITS.length - 1) {
     value /= 1024;
     unit += 1;
   }

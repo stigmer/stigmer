@@ -98,7 +98,8 @@ describe("PlanSteps", () => {
     const toggle = itemToggle("Fix it");
 
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
-    expect(toggle.textContent).toContain("2 steps");
+    // No count on the item: its steps are right below it.
+    expect(toggle.textContent).not.toMatch(/\d+ steps?/);
     expect(within(toggle).getByRole("img", { name: "In progress" })).toBeTruthy();
     expect(document.getElementById(toggle.getAttribute("aria-controls")!)?.querySelector('[role="group"]')?.getAttribute("aria-label")).toBe("2 tool calls");
   });
@@ -117,7 +118,6 @@ describe("PlanSteps", () => {
     const toggle = itemToggle("Read the code");
 
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
-    expect(toggle.textContent).toContain("1 step");
     expect(screen.queryByRole("group", { name: "1 tool call" })).toBeNull();
 
     fireEvent.click(toggle);
@@ -137,7 +137,6 @@ describe("PlanSteps", () => {
     const line = itemLine("Push the fix");
 
     expect(within(line).getByText("Waiting for you")).toBeTruthy();
-    expect(itemToggle("Push the fix").textContent).toContain("1 step");
     expect(within(line).getByRole("group", { name: "1 tool call" })).toBeTruthy();
   });
 

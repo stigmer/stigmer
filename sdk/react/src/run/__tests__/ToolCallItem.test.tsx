@@ -134,8 +134,8 @@ describe("ToolCallItem disclosure", () => {
     expect(container.querySelector(".stg\\:text-destructive")).toBeNull();
     expect(hasHeaderChevron(container)).toBe(false);
     expect(previewBody(container)).toBeNull();
-    // The kind's icon and the slash beside it.
-    expect(headerGlyphs(container)).toBe(2);
+    // One leading mark: the slash says the state, in the kind's place.
+    expect(headerGlyphs(container)).toBe(1);
   });
 
   it("collapses a force-opened running row the moment it settles to interrupted", () => {
@@ -199,7 +199,8 @@ describe("ToolCallItem disclosure", () => {
 
     fireEvent.click(rowHeaderToggle(container)!);
     const session = container.querySelector('[data-cursor-target="terminal-session"]');
-    expect(session?.textContent).toContain("$ echo hello");
+    // The output alone: the step's own line already says the command.
+    expect(session?.textContent).toBe("hello");
     expect(session?.textContent).toContain("hello");
   });
 
@@ -435,7 +436,7 @@ describe("ToolCallItem disclosure", () => {
 
   // --- Waiting calls (asks) ---------------------------------------------------
 
-  it("foregrounds a waiting summary tool behind its chevron with inline actions", () => {
+  it("draws a waiting call as its approval, open, with its acts and no chevron to close it", () => {
     const tu = toolUse({
       id: "tc-gated",
       name: "delete_file",
@@ -447,8 +448,9 @@ describe("ToolCallItem disclosure", () => {
       </ApprovalContext.Provider>,
     );
 
-    expect(hasHeaderChevron(container)).toBe(true);
-    expect(isExpanded(container)).toBe(true);
+    expect(hasHeaderChevron(container)).toBe(false);
+    expect(screen.getByRole("alert", { name: "Approval required for delete_file" })).toBeTruthy();
+    expect(screen.getByText("The agent wants to delete a file")).toBeTruthy();
     expect(screen.getByLabelText("Allow")).toBeTruthy();
     expect(screen.getByLabelText("Allow all file deletions")).toBeTruthy();
   });
@@ -937,7 +939,8 @@ describe("ToolCallItem header controls", () => {
     const search = render(
       <ToolCallItem toolUse={toolUse({ name: "Grep", input: { pattern: "invoices" }, result: "a.ts:1: x\nb.ts:2: y" })} />,
     );
-    expect(rowHeaderToggle(search.container)?.getAttribute("aria-label")).toBe("Searched for invoices, 2 files");
+    // "a.ts:1: x" is a match in a file, as ripgrep and other engines print it.
+    expect(rowHeaderToggle(search.container)?.getAttribute("aria-label")).toBe("Searched for invoices, 2 matches");
   });
 
   it("keeps the file control out of the toggle: its own target, acting without opening or closing the row", () => {
@@ -1059,7 +1062,7 @@ describe("ToolCallItem step line", () => {
     search.unmount();
 
     const list = render(<ToolCallItem toolUse={toolUse({ name: "ls", input: { path: "/src" }, result: "a.ts\nb.ts\nc.ts" })} />);
-    expect(within(rowHeader(list.container)).getByText("3 items")).toBeTruthy();
+    expect(within(rowHeader(list.container)).getByText("3 files")).toBeTruthy();
   });
 
   it("counts nothing before a step returned", () => {

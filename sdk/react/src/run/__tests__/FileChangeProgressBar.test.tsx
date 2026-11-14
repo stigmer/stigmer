@@ -64,7 +64,7 @@ describe("FileChangeProgressBar", () => {
     render(<FileChangeProgressBar progress={progress()} />);
     expect(screen.getByText(/Changing 2 files/)).toBeTruthy();
     expect(screen.getByText("+7")).toBeTruthy();
-    expect(screen.getByText("-3")).toBeTruthy();
+    expect(screen.getByText("−3")).toBeTruthy();
   });
 
   it("uses the singular noun for a single file", () => {

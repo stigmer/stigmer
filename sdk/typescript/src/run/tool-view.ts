@@ -638,10 +638,10 @@ function normalizeSearch(result: string): ToolResultView {
 // see matchOf); glob/semantic search emit one path per line.
 function searchFromPlainText(result: string): ToolResultView {
   const lines = nonEmptyLines(result);
-  const matches = lines.map(matchOf).filter((match): match is ToolSearchMatch => match !== undefined);
+  const found = lines.map(matchOf).filter((match): match is ToolSearchMatch => match !== undefined);
 
-  if (matches.length > 0) {
-    return { type: "search", matches, count: matches.length, kind: "content" };
+  if (found.length > 0) {
+    return { type: "search", matches: found, count: found.length, kind: "content" };
   }
 
   // Path/name results (glob, semantic search): each meaningful line is a match.

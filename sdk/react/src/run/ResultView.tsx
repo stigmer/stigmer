@@ -282,6 +282,8 @@ type TerminalView = Extract<ToolResultView, { type: "terminal" }>;
 // not echoed above it: the step's own line already says it (the approval's
 // preview, where the command is the content, still shows it).
 function TerminalResultView({ view, live, className }: { view: TerminalView; live: boolean; className?: string }) {
+  // A command that has printed nothing yet shows nothing, not an empty box.
+  if (view.stdout === "" && view.stderr === "" && (view.exitCode === undefined || view.exitCode === 0)) return null;
   return (
     <TerminalSession
       framed

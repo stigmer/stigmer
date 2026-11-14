@@ -16,12 +16,11 @@ describe("DecisionButton", () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
-  it("primary is a neutral chip (bordered fill), never the loud success green", () => {
+  it("primary is the kit's filled button, never the loud success green", () => {
     render(<DecisionButton label="Approve" variant="primary" onClick={() => {}} />);
     const cls = screen.getByRole("button").className;
-    expect(cls).toContain("border");
-    expect(cls).toContain("stg:bg-accent");
-    expect(cls).toContain("stg:text-accent-foreground");
+    expect(cls).toContain("stg:bg-primary");
+    expect(cls).toContain("stg:text-primary-foreground");
     expect(cls).not.toContain("stg:bg-success");
   });
 

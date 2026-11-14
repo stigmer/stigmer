@@ -176,7 +176,6 @@ export function ApprovalCardHeader({
       </span>
     </div>
   );
-
 }
 
 /** Props for {@link ApprovalCardBody}. */

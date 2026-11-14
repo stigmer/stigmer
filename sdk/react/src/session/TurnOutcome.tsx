@@ -17,10 +17,10 @@
 // card's open control is its name, stretched over the card, so Undo sits
 // beside it, never inside another button.
 
-import { useState, type ReactNode } from "react";
+import { useContext, useState, type ReactNode } from "react";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { cn } from "@stigmer/design-tokens";
-import { fileDecisionKey, type ReviewFileChangesOptions } from "@stigmer/react-core";
+import { StigmerContext, fileDecisionKey, type ReviewFileChangesOptions } from "@stigmer/react-core";
 import type { TurnChange, TurnOutcomeView } from "./turn-outcome.js";
 import { CHANGE_WORDS, changeWords } from "./turn-change-words.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
@@ -439,8 +439,16 @@ function EntryIcon({ icon }: { readonly icon: OutcomeItem["icon"] }) {
   );
 }
 
-/** A made File's Download: a fresh link minted on the click, since a link expires. */
-function FileDownloadButton({ fileId, filename }: { readonly fileId: string; readonly filename: string }) {
+/**
+ * A made File's Download: a fresh link minted on the click, since a link
+ * expires. Drawn only where a client is provided to mint the link with.
+ */
+function FileDownloadButton(props: { readonly fileId: string; readonly filename: string }) {
+  const client = useContext(StigmerContext);
+  return client === null ? null : <ProvidedFileDownloadButton {...props} />;
+}
+
+function ProvidedFileDownloadButton({ fileId, filename }: { readonly fileId: string; readonly filename: string }) {
   const { download, isDownloading } = useFileDownload();
   return (
     <IconButton

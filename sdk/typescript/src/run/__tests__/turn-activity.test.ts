@@ -217,7 +217,7 @@ describe("describeTurnActivity", () => {
     ["task", { description: "map the credit notes" }, "A helper is working on map the credit notes"],
     ["task", {}, "A helper is working"],
     ["Skill", { skill: "triage" }, "Using the skill triage"],
-    ["ls", { path: "src/billing" }, "Looking in billing"],
+    ["ls", { path: "src/billing" }, "Looking in src/billing"],
     ["lookup_invoice", {}, "Using lookup_invoice", "billing-mcp"],
     ["execute", { command: "npm test" }, "Running a command"],
     ["mystery_tool", {}, "Working"],

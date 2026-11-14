@@ -2,7 +2,7 @@
  * Proves the small parts around a turn's ending: the folded step row leaves
  * a stretch it has no words for (thinking, a subagent, the agent's
  * bookkeeping) as its rows, at the inset every row has; the outcome's card
- * sizes a File in bytes, kilobytes or megabytes after its kind, and names
+ * sizes a File in kilobytes or megabytes after its kind, and names
  * only the kind for an empty one; the change dialog closes on Escape as well
  * as from its button.
  */
@@ -34,7 +34,7 @@ describe("SettledStepsRow", () => {
 });
 
 describe("TurnOutcome sizes", () => {
-  it("sizes a File in bytes, kilobytes or megabytes, and says nothing for an empty one", () => {
+  it("sizes a File in kilobytes or megabytes, and says nothing for an empty one", () => {
     render(
       <TurnOutcome
         outcome={{
@@ -56,7 +56,7 @@ describe("TurnOutcome sizes", () => {
       />,
     );
     const cards = screen.getAllByRole("button").map((card) => card.getAttribute("aria-label"));
-    expect(cards).toEqual(["empty.txt Text", "note.txt Text · 512 B", "deck.pdf PDF · 3.0 MB", "notes.md Markdown · 2.0 KB"]);
+    expect(cards).toEqual(["empty.txt Text", "note.txt Text · 0.5 KB", "deck.pdf PDF · 3.0 MB", "notes.md Markdown · 2.0 KB"]);
   });
 });
 

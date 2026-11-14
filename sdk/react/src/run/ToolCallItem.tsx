@@ -25,6 +25,7 @@ import { ApprovalCardBody, ApprovalCardHeader } from "./ApprovalCard.js";
 import { MemoryProposalCardBody } from "../memory/MemoryProposalCard.js";
 import { useApproval, useWaitingWords } from "./ApprovalContext.js";
 import { BackgroundCommandTrail, BackgroundStopError } from "./BackgroundCommandStatus.js";
+import { useBackgroundStop } from "./BackgroundCommandContext.js";
 import { useFileReviewRowState } from "@stigmer/react-core";
 import { CHANGE_WORDS } from "../session/turn-change-words.js";
 import { FilePathLink } from "./FilePathLink.js";
@@ -163,9 +164,10 @@ export const ToolCallItem = memo(function ToolCallItem({
   const tailFailed = !isSubagent && disclosure === "tail" && failed;
 
   // What the step opens to. A running command opens to what it printed so
-  // far; a running call of another kind has nothing to show until it
+  // far, once it has printed something (the row above already names the
+  // command); a running call of another kind has nothing to show until it
   // returns.
-  const liveOutput = (isRunning && category === "shell") || backgroundRunning;
+  const liveOutput = (isRunning && category === "shell" && toolUse.liveOutput !== "") || backgroundRunning;
   const hasBody =
     isSubagent ||
     approval != null ||
@@ -173,8 +175,10 @@ export const ToolCallItem = memo(function ToolCallItem({
     liveOutput ||
     (toolUse.result !== undefined && hasResultBody(result));
   // A command left running in the background stays closed: its line says
-  // how it stands, and its output is there on a click.
-  const autoOpen = (isRunning && hasBody && !backgroundRunning) || approval != null || tailFailed;
+  // how it stands, and its output is there on a click. A Stop that failed
+  // opens it, since the reason sits in its body.
+  const stopFailed = useBackgroundStop(toolUse)?.error != null;
+  const autoOpen = (isRunning && hasBody && !backgroundRunning) || approval != null || tailFailed || stopFailed;
   const [expanded, handleToggle] = useAutoDisclosure(autoOpen, {
     initialOpen: defaultExpanded || autoOpen,
   });
@@ -257,7 +261,8 @@ export const ToolCallItem = memo(function ToolCallItem({
 
       {isSubagent && <HelperEndingBadge state={thread.state} />}
 
-      {isRunning && !isSubagent ? (
+      {/* A background command's own line already says its time. */}
+      {isRunning && !isSubagent && !backgroundRunning ? (
         <RunningTime startedAt={toolUse.processedAt} />
       ) : (
         settledDuration && <span className="stg:shrink-0 stg:text-xs stg:tabular-nums stg:text-muted-foreground">{settledDuration}</span>
@@ -374,8 +379,10 @@ export const ToolCallItem = memo(function ToolCallItem({
   if (approval != null) {
     return (
       <ThreadCardShell variant="card" accent={gateAccent} cursorTarget="tool-call-row" className={className}>
-        <ApprovalCardHeader toolUse={approval.toolUse} bordered />
-        <ThreadCardBody cursorTarget="tool-preview">{body}</ThreadCardBody>
+        <div role="alert" aria-label={`Approval required for ${toolUse.name}`}>
+          <ApprovalCardHeader toolUse={approval.toolUse} bordered />
+          <ThreadCardBody cursorTarget="tool-preview">{body}</ThreadCardBody>
+        </div>
       </ThreadCardShell>
     );
   }
