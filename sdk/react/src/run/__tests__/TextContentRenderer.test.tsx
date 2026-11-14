@@ -7,6 +7,17 @@ afterEach(cleanup);
 describe("TextContentRenderer — markdown", () => {
   const wrappedPlan = "```markdown\n# Plan\n\n1. First\n2. Second\n```";
 
+  it("draws Rendered and Source as plain text tabs, the open one bright, with no rule (S50)", () => {
+    render(<TextContentRenderer content={wrappedPlan} fileName="plan.md" />);
+    const tablist = screen.getByRole("tablist", { name: "View mode" });
+    expect(tablist.className).not.toContain("stg:bg-muted");
+    expect(tablist.parentElement!.className).not.toContain("stg:border-b");
+    const rendered = screen.getByRole("tab", { name: "Rendered" });
+    expect(rendered.className).toContain("stg:text-foreground");
+    expect(rendered.className).not.toContain("stg:shadow-sm");
+    expect(screen.getByRole("tab", { name: "Source" }).className).toContain("stg:text-muted-foreground");
+  });
+
   it("unwraps a model-wrapped ```markdown plan in the Rendered view", () => {
     const { container } = render(
       <TextContentRenderer content={wrappedPlan} fileName="plan.md" />,

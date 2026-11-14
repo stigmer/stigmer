@@ -97,13 +97,28 @@ describe("RecalledMemoriesCard", () => {
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
     const items = screen.getAllByRole("listitem").map((li) => li.textContent);
     expect(items).toEqual(["Prefers concise answers.", "Deploys with Bazel."]);
-    expect(screen.getByText("Chosen by text-embedding-3-small")).toBeTruthy();
+    // The model that chose them is not said (T07 3i: his look, S51).
+    expect(screen.queryByText(/text-embedding-3-small/)).toBeNull();
     // Non-injected snapshot facts never render.
     expect(screen.queryByText("Works in the Europe/Berlin timezone.")).toBeNull();
 
     await user.click(toggle);
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
     expect(screen.queryByRole("listitem")).toBeNull();
+  });
+
+  it("leads its line with the chevron, with no icon, flush to the column", () => {
+    const report = makeReport({ injectedMemoryIds: ["mem_a"] });
+    const { container } = render(<RecalledMemoriesCard recall={report} facts={SNAPSHOT} />);
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.className).not.toContain("stg:px-4");
+    const toggle = screen.getByRole("button", { expanded: false });
+    const line = toggle.parentElement as HTMLElement;
+    const drawn = Array.from(line.children).filter((child) => child !== toggle);
+    // The chevron first, then the words; no memory glyph between them.
+    expect(drawn[0]?.tagName.toLowerCase()).toBe("svg");
+    expect(drawn[1]?.textContent).toBe("Recalled 1 memory");
+    expect(line.querySelectorAll("svg")).toHaveLength(1);
   });
 
   it("keeps the summary count honest when an id cannot be resolved", async () => {

@@ -129,61 +129,66 @@ function Header({
   const slugForOrg = useOrgSlugForId();
 
   return (
-    <div className="stg:flex stg:min-w-0 stg:items-start stg:gap-3">
-      {iconUrl ? (
-        <img
-          src={iconUrl}
-          alt=""
-          className="stg:mt-0.5 stg:size-8 stg:shrink-0 stg:rounded stg:object-cover"
-        />
-      ) : icon ? (
-        <span className="stg:mt-1 stg:shrink-0">{icon}</span>
-      ) : null}
-      <div className="stg:min-w-0 stg:flex-1">
-        <div className="stg:flex stg:items-center stg:gap-2">
-          {nameElement ?? (
-            <h2 className="stg:truncate stg:text-xl stg:font-semibold stg:text-foreground">
-              {name}
-            </h2>
+    // The icon and the name share one row; the facts line and the
+    // description start at the header's edge, under the icon (the drawn
+    // detail header, his look's C1).
+    <div className="stg:min-w-0">
+      <div className="stg:flex stg:min-w-0 stg:items-start stg:gap-3">
+        {iconUrl ? (
+          <img
+            src={iconUrl}
+            alt=""
+            className="stg:mt-0.5 stg:size-8 stg:shrink-0 stg:rounded stg:object-cover"
+          />
+        ) : icon ? (
+          <span className="stg:mt-1 stg:shrink-0">{icon}</span>
+        ) : null}
+        <div className="stg:min-w-0 stg:flex-1">
+          <div className="stg:flex stg:items-center stg:gap-2">
+            {nameElement ?? (
+              <h2 className="stg:truncate stg:text-xl stg:font-semibold stg:text-foreground">
+                {name}
+              </h2>
+            )}
+            {showSlug && (
+              <code className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-xs stg:font-medium stg:text-muted-foreground">
+                {slug}
+              </code>
+            )}
+            {status && (
+              <StatusBadge
+                phase={status}
+                label={statusLabel}
+              />
+            )}
+            {visibilityControl}
+          </div>
+          {qualifiedSlug && (
+            <span className="stg:mt-0.5 stg:block stg:truncate stg:font-mono stg:text-xs stg:text-muted-foreground">
+              {qualifiedSlug}
+            </span>
           )}
-          {showSlug && (
-            <code className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-xs stg:font-medium stg:text-muted-foreground">
-              {slug}
-            </code>
-          )}
-          {status && (
-            <StatusBadge
-              phase={status}
-              label={statusLabel}
-            />
-          )}
-          {visibilityControl}
         </div>
-        {qualifiedSlug && (
-          <span className="stg:mt-0.5 stg:block stg:truncate stg:font-mono stg:text-xs stg:text-muted-foreground">
-            {qualifiedSlug}
-          </span>
+      </div>
+      <div className="stg:mt-1 stg:flex stg:flex-wrap stg:items-center stg:gap-x-1.5 stg:text-xs stg:text-muted-foreground">
+        {org && <span>{slugForOrg(org)}</span>}
+        {metaExtra}
+        {createdAt && (
+          <>
+            <Dot />
+            <span>Created {formatDate(createdAt)}</span>
+          </>
         )}
-        <div className="stg:mt-0.5 stg:flex stg:flex-wrap stg:items-center stg:gap-x-1.5 stg:text-xs stg:text-muted-foreground">
-          {org && <span>{slugForOrg(org)}</span>}
-          {metaExtra}
-          {createdAt && (
-            <>
-              <Dot />
-              <span>Created {formatDate(createdAt)}</span>
-            </>
-          )}
-          {updatedAt && (
-            <>
-              <Dot />
-              <span>Updated {formatDate(updatedAt)}</span>
-            </>
-          )}
-        </div>
-        {description && (
-          <p className="stg:mt-2 stg:text-sm stg:text-muted-foreground">{description}</p>
+        {updatedAt && (
+          <>
+            <Dot />
+            <span>Updated {formatDate(updatedAt)}</span>
+          </>
         )}
       </div>
+      {description && (
+        <p className="stg:mt-2 stg:text-sm stg:text-muted-foreground">{description}</p>
+      )}
     </div>
   );
 }

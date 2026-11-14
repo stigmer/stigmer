@@ -2,7 +2,6 @@
 
 import { memo, useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { cn } from "@stigmer/design-tokens";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { GetFileContentInputSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/io_pb";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
@@ -116,7 +115,7 @@ export const PlanFileCard = memo(function PlanFileCard({
         disabled: isDownloading,
       }}
       build={build === undefined ? undefined : { onClick: build, disabled, pending: buildPending }}
-      className={cn("stg:mx-4", className)}
+      className={className}
     >
       <div role="status" aria-live="polite" aria-atomic="true" className="stg:sr-only">
         {copied && "Plan copied to clipboard"}

@@ -126,3 +126,49 @@ export function ChevronIcon({ expanded }: { readonly expanded: boolean }) {
     </svg>
   );
 }
+
+/**
+ * Open in new: a box with an arrow leaving its corner, "open this where it
+ * opens" (a plan, a link out). One glyph for every act that opens elsewhere.
+ */
+export function ExternalLinkGlyph({ size = 14, className }: { readonly size?: number; readonly className?: string } = {}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn("stg:shrink-0", className)}
+      aria-hidden="true"
+    >
+      <path d="M15 3h6v6" />
+      <path d="M10 14 21 3" />
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+    </svg>
+  );
+}
+
+/** Plus, for an act that adds something ("New API key", "Add a server"). */
+export function PlusGlyph({ size = 14, className }: { readonly size?: number; readonly className?: string } = {}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn("stg:shrink-0", className)}
+      aria-hidden="true"
+    >
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
+    </svg>
+  );
+}

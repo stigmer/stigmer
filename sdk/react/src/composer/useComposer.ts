@@ -34,7 +34,7 @@ export interface UseComposerOptions {
 export interface UseComposerReturn {
   /** Current message text. */
   readonly message: string;
-  /** Replace the current message text. */
+  /** Replace the current message text; the textarea grows to it as it would to typed text. */
   readonly setMessage: (value: string) => void;
   /** Ref to attach to the `<textarea>` element. */
   readonly textareaRef: RefObject<HTMLTextAreaElement | null>;
@@ -135,6 +135,19 @@ export function useComposer({
     if (el) el.style.height = "auto";
   }, []);
 
+  // A message put in from outside (the handle's setMessage: a launcher
+  // giving back a refused message) is sized like typed text once it draws.
+  const sizePending = useRef(false);
+  const replaceMessage = useCallback((value: string) => {
+    sizePending.current = true;
+    setMessage(value);
+  }, []);
+  useEffect(() => {
+    if (!sizePending.current) return;
+    sizePending.current = false;
+    resize();
+  }, [message, resize]);
+
   const clear = useCallback(() => {
     setMessage("");
     resetHeight();
@@ -175,7 +188,7 @@ export function useComposer({
 
   return {
     message,
-    setMessage,
+    setMessage: replaceMessage,
     textareaRef,
     textareaProps,
     canSubmit,

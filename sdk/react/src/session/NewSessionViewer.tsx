@@ -1,9 +1,9 @@
 "use client";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactElement, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
 import type { ResourceRef } from "@stigmer/client";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import type { InteractionModeOption } from "../composer/index.js";
-import { SessionComposer, type SessionComposerProps } from "../composer/index.js";
+import { SessionComposer, type SessionComposerHandle, type SessionComposerProps } from "../composer/index.js";
 import type { HarnessOption } from "@stigmer/react-core";
 import type { AccountExecutionDefaults } from "../identity-account/useAccountExecutionDefaults.js";
 import { SessionViewerLayout } from "./SessionViewerLayout.js";
@@ -543,11 +543,31 @@ export function NewSessionViewer({
     [isGuest, isCurated, flow.harness, flow.modelId, flow.autoApproveAll, flow.setAutoApproveAll],
   );
 
+  // A refused first message stays in the launcher (his ruling of
+  // 2026-11-14): the composer clears its box on send, so the text sent is
+  // kept here and put back when the send is refused; the notice under the
+  // box says what to do next. Files the flow released stay released.
+  const composerRef = useRef<SessionComposerHandle>(null);
+  const sentMessage = useRef("");
+  const flowSubmit = flow.submit;
+  const submitKeepingMessage = useCallback<SessionComposerProps["onSubmit"]>(
+    (message, model, context) => {
+      sentMessage.current = message;
+      return flowSubmit(message, model, context);
+    },
+    [flowSubmit],
+  );
+  useEffect(() => {
+    if (flow.submitFailure === null || sentMessage.current === "") return;
+    composerRef.current?.setMessage(sentMessage.current);
+    sentMessage.current = "";
+  }, [flow.submitFailure]);
+
   const composerProps: SessionComposerProps = {
       extraSettings: runSettings,
       sendBlockedReason,
       modelReadinessOf: isGuest ? undefined : hub.readinessOf,
-      onSubmit: flow.submit,
+      onSubmit: submitKeepingMessage,
       isSubmitting: flow.isSubmitting,
       org,
       workspace: isGuest ? undefined : flow.workspace,
@@ -667,6 +687,7 @@ export function NewSessionViewer({
               <>
               {keyUncheckedNote}
               <SessionComposer
+                ref={composerRef}
                 // A new pick mounts a new composer: its agent, files and
                 // message are read once, when it mounts.
                 key={`${choice.agentRef.org}/${choice.agentRef.slug}`}
@@ -711,6 +732,7 @@ export function NewSessionViewer({
 
           {activeLaunch !== undefined ? (
             <SessionComposer
+              ref={composerRef}
               // A new launch mounts a new composer: its agent, files and
               // message are read once, when it mounts.
               key={activeLaunch.key}
@@ -721,7 +743,7 @@ export function NewSessionViewer({
               placeholder={activeLaunch.placeholder ?? placeholder}
             />
           ) : (
-            <SessionComposer {...composerProps} initialMessage={initialMessage} />
+            <SessionComposer ref={composerRef} {...composerProps} initialMessage={initialMessage} />
           )}
           </>
         )}

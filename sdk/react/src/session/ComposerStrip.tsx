@@ -1,12 +1,15 @@
 "use client";
 
 // One strip above the composer. Every line that can sit between the thread
-// and the reply box (reconnecting, a slow turn, files changing, auto-approve,
-// a newer agent version, a read-only reader) draws here, so the stack reads
-// as one family: one line at 14/20 under a hairline, a 16px glyph, the
-// words, and at most one quiet act. A strip that opens (the files changing)
-// is a disclosure: its line is the button, and what it holds draws under it.
-// Internal: the session viewer's own strips use it; no host imports it.
+// and the reply box (reconnecting, a slow turn, a lost stream, files
+// changing, auto-approve, a newer agent version, a read-only reader) draws
+// here, so the stack reads as one family: S18's shaded card (the muted
+// fill, rounded, 12/16 words), a 16px glyph, the words, and at most one
+// quiet act. A strip that opens (the files changing) is a disclosure: its
+// line is the button, and what it holds draws inside the card under it.
+// The card draws no edge of its own: the session view stacks the strips
+// 8px apart on the composer's gutter. Internal: the session viewer's own
+// strips use it; no host imports it.
 
 import { useId, type HTMLAttributes, type ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
@@ -41,8 +44,8 @@ export function ComposerStrip({ icon, children, act, tone = "plain", expanded = 
     </>
   );
   return (
-    <div {...rest} className={cn("stg:border-t stg:border-border-muted stg:px-4", className)}>
-      <div className="stg:flex stg:min-h-11 stg:items-center stg:gap-2 stg:py-2 stg:text-sm">
+    <div {...rest} data-composer-strip="" className={cn("stg:rounded-lg stg:bg-muted stg:px-3", className)}>
+      <div className="stg:flex stg:min-h-8 stg:items-center stg:gap-2 stg:py-2 stg:text-xs">
         {onToggle === undefined ? (
           line
         ) : (
@@ -73,7 +76,7 @@ export function ComposerStrip({ icon, children, act, tone = "plain", expanded = 
         {act}
       </div>
       {onToggle !== undefined && (
-        <div id={belowId} hidden={!expanded} className="stg:pb-3 stg:pl-6">
+        <div id={belowId} hidden={!expanded} className="stg:pb-2 stg:pl-6">
           {expanded && below}
         </div>
       )}

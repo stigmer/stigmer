@@ -186,7 +186,9 @@ export interface WorkspaceSurfaceProps {
    * Whether the rail and the sidebar show from the start (`"shown"`), or an
    * open file takes the whole surface and one button shows the files when
    * the person asks (`"on-request"`): the session view's panel, beside a
-   * thread that keeps its width. Any other view shows its sidebar either way.
+   * thread that keeps its width. On request, every newly opened file takes
+   * the surface again, whichever view it came from, and a view the host
+   * asks for next shows its sidebar.
    *
    * @default "shown"
    */
@@ -272,9 +274,20 @@ export function WorkspaceSurface({
     />
   );
 
-  // On request, the files hide only while a file is open on the files view:
-  // any other view (a host's extra view, search) is the sidebar itself.
-  if (!sidebarShown && activeView === "files" && editors.length > 0) {
+  // On request, an open file takes the whole surface, from whichever view it
+  // was opened (the Explorer, the agent's Files, a search): no rail and no
+  // list until the person asks. A newly opened file hides them again; a view
+  // the host asks for next (Usage from the header) shows them, since that
+  // view is the sidebar itself. Both read in render, so a file opened and a
+  // view moved in one update leave the file in front.
+  const selectedKey = selectedFile === null ? "" : `${selectedFile.entryId}\u0000${selectedFile.path}`;
+  const [seen, setSeen] = useState({ view: requestedView, file: selectedKey });
+  if (sidebar === "on-request" && (seen.view !== requestedView || seen.file !== selectedKey)) {
+    setSeen({ view: requestedView, file: selectedKey });
+    if (seen.file !== selectedKey && selectedKey !== "") setSidebarShown(false);
+    else if (seen.view !== requestedView) setSidebarShown(true);
+  }
+  if (!sidebarShown && editors.length > 0) {
     return (
       <div className={cn("stg:flex stg:h-full stg:min-h-0", className)}>
         {/* The rail's one button until the person asks for the files. */}

@@ -23,6 +23,7 @@ import {
 } from "./icons.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { IconButton } from "../button/IconButton.js";
+import { PlusGlyph } from "../internal/thread-card/glyphs.js";
 
 export interface ComposerToolbarProps {
   readonly disabled: boolean;
@@ -384,7 +385,7 @@ const NARROW_MODEL_CLASS = "stg:border-transparent stg:bg-transparent stg:px-2 s
 
 /** The "+" menu's trigger: what a person adds to the message. */
 const ADD_TRIGGER = {
-  icon: <PlusIcon />,
+  icon: <PlusGlyph size={18} />,
   label: "Add files or a folder",
   tooltip: "Add",
   className:
@@ -536,14 +537,6 @@ function ModeChoices({
         </button>
       ))}
     </div>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <path d="M12 5v14M5 12h14" />
-    </svg>
   );
 }
 

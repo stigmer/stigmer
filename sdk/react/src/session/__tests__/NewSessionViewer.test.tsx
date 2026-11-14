@@ -208,7 +208,8 @@ describe("NewSessionViewer — auto-approve placement (#816 rework)", () => {
 
     expect(screen.getByText(INDICATOR_TEXT)).toBeTruthy();
     const shield = screen.getByText(INDICATOR_TEXT).closest("[role='status']")?.querySelector("svg");
-    expect(shield?.getAttribute("class")?.split(" ")).toContain("stg:text-status-ready");
+    // Monochrome: a setting, not a status, so the shield takes no hue (his look, S53).
+    expect(shield?.getAttribute("class")?.split(" ")).toContain("stg:text-muted-foreground");
     fireEvent.click(screen.getByRole("button", { name: "Turn off" }));
     expect(setAutoApproveAll).toHaveBeenCalledExactlyOnceWith(false);
   });
@@ -286,5 +287,29 @@ describe("NewSessionViewer — a run refused for want of a provider key", () => 
     mockFlow = { ...stubEmptyFlow, submitFailure: new Error("something else") };
     render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
     expect(screen.queryByRole("link", { name: "Open Models & providers" })).toBeNull();
+  });
+});
+
+describe("NewSessionViewer — a refused first message stays in the box (his ruling, 2026-11-14)", () => {
+  it("puts the sent message back in the composer when the send is refused", async () => {
+    const { refusal } = await import("../../billing/__tests__/fixtures");
+    const submit = vi.fn();
+    mockFlow = { ...stubEmptyFlow, submit };
+    const { rerender } = render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
+    const props = composerProps.at(-1)!;
+    const setMessage = vi.fn();
+    (props.ref as { current: unknown }).current = { setMessage, focus: vi.fn(), submit: vi.fn() };
+
+    await (props.onSubmit as (message: string) => Promise<void> | void)("Fix invoice rounding");
+    expect(submit).toHaveBeenCalledWith("Fix invoice rounding", undefined, undefined);
+    expect(setMessage).not.toHaveBeenCalled();
+
+    mockFlow = {
+      ...stubEmptyFlow,
+      submit,
+      submitFailure: refusal("No key.", "PROVIDER_KEY_REQUIRED", { org: "acme", provider: "openai", model: "gpt-5" }),
+    };
+    rerender(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
+    await waitFor(() => expect(setMessage).toHaveBeenCalledWith("Fix invoice rounding"));
   });
 });

@@ -6,6 +6,7 @@ export {
   type ThreadCardVariant,
   type ThreadCardShellProps,
   type ThreadCardHeaderProps,
+  type ThreadCardChevron,
   type ThreadCardHeaderGesture,
   type ThreadCardHeaderControlProps,
   type ThreadCardBodyProps,
@@ -19,4 +20,6 @@ export {
   SlashCircleIcon,
   InspectIcon,
   ChevronIcon,
+  ExternalLinkGlyph,
+  PlusGlyph,
 } from "./glyphs.js";

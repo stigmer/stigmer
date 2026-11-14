@@ -16,6 +16,15 @@ describe("PlanStreamingDocument — live plan tab view", () => {
     expect(doc.querySelector("header")!.textContent).toBe("Live PlanWriting the plan…");
   });
 
+  it("ends the document on a shimmering, hidden 'Writing…' line (his look, S47)", () => {
+    render(<PlanStreamingDocument displayText={"# Live Plan\n\nFirst section"} />);
+    const doc = screen.getByRole("article", { name: "Plan document" });
+    const writing = doc.querySelector("[data-plan-writing]")!;
+    expect(writing.textContent).toBe("Writing…");
+    expect(writing.getAttribute("aria-hidden")).toBe("true");
+    expect(writing.className).toContain("stgm-shimmer-label");
+  });
+
   it("lifts the leading H1 into the header and renders the body as markdown", () => {
     render(
       <PlanStreamingDocument

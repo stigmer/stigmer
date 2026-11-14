@@ -29,7 +29,9 @@ export interface PlanStreamingDocumentProps {
  * Deliberately capability-free: no view tabs, no Edit, no Build — a plan in
  * flight cannot be edited or implemented, and offering dead controls would
  * misstate the turn's state. The header's subline says "Writing the plan…",
- * a live status, pulsing unless motion is reduced.
+ * a live status, pulsing unless motion is reduced, and the document ends on
+ * a shimmering "Writing…" line (hidden from assistive technology, which
+ * hears the header's status once).
  *
  * Rendering goes through `Streamdown` (the same streaming-aware renderer the
  * thread's `AiMessage` uses: block-level memoization, incomplete-syntax
@@ -64,6 +66,12 @@ export function PlanStreamingDocument({
           >
             {body}
           </Streamdown>
+          {/* The document ends on the line still being written, as the
+              drawing does; the header's status already says it, so this
+              line is seen and not read twice. */}
+          <p aria-hidden="true" data-plan-writing="" className="stgm-shimmer-label stg:mt-3 stg:mb-0 stg:text-sm">
+            Writing…
+          </p>
         </div>
       </div>
     </div>

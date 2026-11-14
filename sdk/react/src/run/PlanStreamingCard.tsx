@@ -1,7 +1,6 @@
 "use client";
 
 import { memo } from "react";
-import { cn } from "@stigmer/design-tokens";
 import { PlanCard } from "./PlanCard.js";
 
 /** Props for {@link PlanStreamingCard}. */
@@ -63,7 +62,7 @@ export const PlanStreamingCard = memo(function PlanStreamingCard({
       state="writing"
       title={title ?? "Plan"}
       open={onOpenPlan === undefined ? undefined : { label: "Open plan", onClick: onOpenPlan }}
-      className={cn("stg:mx-4", className)}
+      className={className}
     />
   );
 });

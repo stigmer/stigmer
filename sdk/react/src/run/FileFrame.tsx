@@ -6,11 +6,11 @@
  * preview through it) and the session panel's file tab (`FileDocument`).
  * Internal: the package exports those two, never this.
  *
- * The header says what the File is: a 32px muted square with the file
- * glyph, the name (14/20 semibold) with "{kind} · {size}" under it in the
- * words the thread's Made cards use, and the detection tag beside the name
- * once the File reads as a Stigmer resource. Its acts sit at the right: at
- * most one primary (Build for a plan, or Apply for a detected manifest),
+ * The header says what the File is, on one line: the file glyph alone, the
+ * name (14/20 semibold) and "{kind} · {size}" beside it in the words the
+ * thread's Made cards use, and the detection tag once the File reads as a
+ * Stigmer resource. No rule under it. Its acts sit at the right: at
+ * most one primary (Build, the word alone, for a plan, or Apply for a detected manifest),
  * then Copy, Download and Add as skill as ghost buttons with their glyphs,
  * the host's access controls, and Delete last in the destructive colour.
  * The window adds Close at the far right. Under the header, the shared
@@ -109,33 +109,28 @@ export function FileFrame({
       <div
         data-file-frame-header=""
         className={cn(
-          "stg:flex stg:min-w-0 stg:items-start stg:gap-3 stg:border-b stg:border-border stg:bg-background stg:px-4 stg:py-3",
+          "stg:flex stg:min-w-0 stg:items-center stg:gap-3 stg:bg-background stg:px-4 stg:py-3",
           !isWindow && "stg:sticky stg:top-0 stg:z-10",
         )}
       >
         <div className="stg:flex stg:min-w-0 stg:flex-1 stg:flex-wrap stg:items-center stg:gap-x-3 stg:gap-y-2">
-          <div className="stg:flex stg:min-w-0 stg:flex-1 stg:basis-60 stg:items-center stg:gap-3">
-            <span
-              className="stg:grid stg:size-8 stg:shrink-0 stg:place-items-center stg:rounded-md stg:bg-muted stg:text-muted-foreground"
-              aria-hidden="true"
-            >
+          {/* The glyph alone, then the name and what it is on one line
+              ("Markdown · 4.1 KB"), as the file window's drawing (S50). */}
+          <div className="stg:flex stg:min-w-0 stg:flex-1 stg:basis-60 stg:items-center stg:gap-2">
+            <span className="stg:flex stg:shrink-0 stg:text-muted-foreground" aria-hidden="true">
               <FileIcon />
             </span>
-            <div className="stg:min-w-0 stg:flex-1">
-              <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-2">
-                <h2 className="stg:m-0 stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">{name}</h2>
-                {inspection.isDetecting && !inspection.detectionLabel && (
-                  <span
-                    className="stg:h-4 stg:w-24 stg:shrink-0 stg:animate-pulse stg:rounded-full stg:bg-muted"
-                    aria-hidden="true"
-                  />
-                )}
-                {inspection.detectionLabel && <Tag className="stg:shrink-0">{inspection.detectionLabel}</Tag>}
-              </div>
-              <p className="stg:m-0 stg:truncate stg:text-xs stg:tabular-nums stg:text-muted-foreground">
-                {size === "" ? kind : `${kind} · ${size}`}
-              </p>
-            </div>
+            <h2 className="stg:m-0 stg:min-w-0 stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">{name}</h2>
+            <span data-file-frame-meta="" className="stg:shrink-0 stg:text-xs stg:tabular-nums stg:text-muted-foreground">
+              {size === "" ? kind : `${kind} · ${size}`}
+            </span>
+            {inspection.isDetecting && !inspection.detectionLabel && (
+              <span
+                className="stg:h-4 stg:w-24 stg:shrink-0 stg:animate-pulse stg:rounded-full stg:bg-muted"
+                aria-hidden="true"
+              />
+            )}
+            {inspection.detectionLabel && <Tag className="stg:shrink-0">{inspection.detectionLabel}</Tag>}
           </div>
 
           <FileActs
@@ -196,7 +191,7 @@ function FileActs({
   return (
     <div data-file-frame-acts="" className="stg:ml-auto stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:justify-end stg:gap-2">
       {onBuild ? (
-        <Button size="sm" onClick={onBuild} icon={<BuildIcon />}>
+        <Button size="sm" onClick={onBuild}>
           Build
         </Button>
       ) : (
@@ -316,14 +311,6 @@ function DownloadIcon() {
       <path d="M6 1.5V8.5" />
       <path d="M3 6L6 9L9 6" />
       <path d="M2 10.5H10" />
-    </svg>
-  );
-}
-
-function BuildIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="stg:shrink-0" aria-hidden="true">
-      <path d="M2 6h8M7 3l3 3-3 3" />
     </svg>
   );
 }

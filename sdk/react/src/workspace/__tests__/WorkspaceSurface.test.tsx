@@ -109,6 +109,29 @@ describe("WorkspaceSurface", () => {
     expect(screen.getByTestId("explorer-probe")).toBeTruthy();
   });
 
+  it("on request, hides the rail and list for a file opened from any view, not only the Explorer (S50)", () => {
+    const view = "saved";
+    render(
+      <WorkspaceSurface
+        sidebar="on-request"
+        view={view}
+        extraViews={[{ id: "saved", label: "Files", icon: <span />, content: <p data-testid="saved-list">Saved by the agent</p> }]}
+        entries={[gitEntry]}
+        lister={lister}
+        reader={reader}
+        editors={[{ entryId: "e1", path: "src/main.go", preview: false }]}
+        selectedFile={{ entryId: "e1", path: "src/main.go" }}
+        onOpenFile={vi.fn()}
+        onActivateEditor={vi.fn()}
+        onPinEditor={vi.fn()}
+        onCloseEditor={vi.fn()}
+        onCollapse={vi.fn()}
+      />,
+    );
+    expect(screen.queryByTestId("saved-list")).toBeNull();
+    expect(screen.getByRole("button", { name: "Show files" })).toBeTruthy();
+  });
+
   it("on request, still shows the files when no file is open", () => {
     renderSurface({ sidebar: "on-request", editors: [], selectedFile: null });
     expect(screen.getByTestId("explorer-probe")).toBeTruthy();

@@ -6,6 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js"
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 import { FilePathContext } from "./FilePathContext.js";
 import { resolvePathAction, splitDisplayPath } from "./file-path-resolver.js";
+import { ExternalLinkGlyph } from "../internal/thread-card/glyphs.js";
 
 /** How much of the directory prefix {@link FilePathLink} shows. */
 export type FilePathDirDisplay =
@@ -155,7 +156,7 @@ export function FilePathLink({
           }
         >
           {label}
-          <ExternalLinkIcon />
+          <ExternalLinkGlyph size={10} className="stg:opacity-0 stg:transition-opacity stg:group-hover/fpl:opacity-70" />
         </TooltipTrigger>
         <TooltipContent side="top" className="stg:break-all">
           {fullPath}
@@ -189,27 +190,6 @@ export function FilePathLink({
 // ---------------------------------------------------------------------------
 // Inline SVG icons — SDK pattern (no external icon dependency)
 // ---------------------------------------------------------------------------
-
-function ExternalLinkIcon() {
-  return (
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="stg:shrink-0 stg:opacity-0 stg:transition-opacity stg:group-hover/fpl:opacity-70"
-      aria-hidden="true"
-    >
-      <path d="M9 3L5 7" />
-      <path d="M7 3H9V5" />
-      <path d="M5 3H3.5C2.95 3 2.5 3.45 2.5 4V8.5C2.5 9.05 2.95 9.5 3.5 9.5H8C8.55 9.5 9 9.05 9 8.5V7" />
-    </svg>
-  );
-}
 
 function CopyIcon() {
   return (

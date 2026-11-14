@@ -1,15 +1,16 @@
 "use client";
 
-// A Plan-mode turn's plan, shown once in the thread as one card: a 32px
-// muted square with a list glyph, the plan's title (14/20 semibold) over a
-// subline (12/16 muted), and the acts at the right. Each state says its own
+// A Plan-mode turn's plan, shown once in the thread as one card: a bright
+// list glyph with no square of its own, the plan's title (14/20 semibold)
+// over a subline (12/16 muted), and the acts at the right. Each state says its own
 // words and offers only its own acts, so no caller can put Build on a plan
 // that is not the one to build:
 //
 // - writing: "Writing the plan…" (pulsing, still where motion is reduced);
 //   Open, as a labelled ghost button.
 // - ready: "Plan · 4.1 KB" (the size as the turn's Made cards say it);
-//   Open, Copy and Download as icons, then Build, the primary.
+//   Open (open in new), Copy and Download as icons, then Build, the
+//   primary, the word alone.
 // - replaced: "Replaced by a newer plan"; Open and Copy, never Build.
 // - text: a completed plan held only as message text; its text under the
 //   header, and Build.
@@ -28,6 +29,7 @@ import { Card } from "../internal/surface/Card.js";
 import { Button } from "../button/Button.js";
 import { IconButton } from "../button/IconButton.js";
 import { sizeWords } from "../internal/size-words.js";
+import { ExternalLinkGlyph } from "../internal/thread-card/glyphs.js";
 
 /** Which plan the card shows: being written, ready to build, replaced by a newer one, or held only as text. */
 export type PlanCardState = "writing" | "ready" | "replaced" | "text";
@@ -47,7 +49,7 @@ export interface PlanCardProps extends Omit<HTMLAttributes<HTMLDivElement>, "tit
   readonly sizeBytes?: bigint;
   /** The plan's text, drawn under the header (the `text` state). */
   readonly body?: ReactNode;
-  /** Opens the plan: a labelled "Open" while writing, an eye icon otherwise. */
+  /** Opens the plan: a labelled "Open" while writing, an open-in-new icon otherwise. */
   readonly open?: PlanCardAct;
   /** Copies the plan's text; `copied` draws the tick. Offered when ready or replaced. */
   readonly copy?: PlanCardAct & { readonly copied?: boolean };
@@ -70,7 +72,7 @@ export function PlanCard({ state, title, sizeBytes, body, open, copy, download, 
           Open
         </Button>
       )}
-      {offersIcons && open !== undefined && <IconButton size="xs" label={open.label} icon={<EyeGlyph />} onClick={open.onClick} disabled={open.disabled} />}
+      {offersIcons && open !== undefined && <IconButton size="xs" label={open.label} icon={<ExternalLinkGlyph />} onClick={open.onClick} disabled={open.disabled} />}
       {offersIcons && copy !== undefined && (
         <IconButton size="xs" label={copy.label} icon={copy.copied ? <CheckGlyph /> : <CopyGlyph />} onClick={copy.onClick} disabled={copy.disabled} />
       )}
@@ -78,7 +80,7 @@ export function PlanCard({ state, title, sizeBytes, body, open, copy, download, 
         <IconButton size="xs" label={download.label} icon={<DownloadGlyph />} onClick={download.onClick} disabled={download.disabled} />
       )}
       {offersBuild && build !== undefined && (
-        <Button size="xs" disabled={build.disabled} onClick={build.onClick} icon={<BuildGlyph />} className="stg:ml-1">
+        <Button size="xs" disabled={build.disabled} onClick={build.onClick} className="stg:ml-1">
           {build.pending ? "Starting build…" : "Build"}
         </Button>
       )}
@@ -133,15 +135,11 @@ export interface PlanCardHeaderProps {
   readonly className?: string;
 }
 
-/** The plan card's header alone: the glyph's square, the title over its subline, the acts at the right. */
+/** The plan card's header alone: the glyph, bright and bare, the title over its subline, the acts at the right. */
 export function PlanCardHeader({ title, subline, acts, as: Element = "div", className }: PlanCardHeaderProps) {
   return (
     <Element className={cn("stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-x-3 stg:gap-y-2", className)}>
-      <span
-        aria-hidden="true"
-        data-plan-glyph=""
-        className="stg:flex stg:h-8 stg:w-8 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-md stg:bg-muted stg:text-muted-foreground"
-      >
+      <span aria-hidden="true" data-plan-glyph="" className="stg:flex stg:shrink-0 stg:items-center stg:text-foreground">
         <ListGlyph />
       </span>
       <div className="stg:min-w-0 stg:flex-1 stg:basis-48">
@@ -208,16 +206,6 @@ function DownloadGlyph() {
       <path d="M12 3v12" />
       <path d="m7 10 5 5 5-5" />
       <path d="M5 21h14" />
-    </svg>
-  );
-}
-
-/** Build: an arrow, "go". */
-function BuildGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M5 12h14" />
-      <path d="m12 5 7 7-7 7" />
     </svg>
   );
 }
