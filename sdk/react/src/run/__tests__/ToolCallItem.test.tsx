@@ -17,14 +17,14 @@
 // carrying a cut-off detail's full text, with the file control a sibling
 // that acts without toggling.
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, screen, cleanup, fireEvent, waitFor, within } from "@testing-library/react";
+import { act, render, screen, cleanup, fireEvent, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { FileReviewSet, ToolUse } from "@stigmer/client";
 import { ToolCallItem } from "../ToolCallItem";
 import { ApprovalContext, type ApprovalContextValue } from "../ApprovalContext";
 import { registerToolPresenter } from "../tool-presenter";
 import { FileReviewContext } from "@stigmer/react-core";
-import { reviewFile, reviewSet, thread, toolUse } from "./__fixtures__/fold-values";
+import { reviewFile, reviewSet, thread, toolUse, TOOL_STARTED_AT } from "./__fixtures__/fold-values";
 import { tagClasses } from "../../internal/surface/Tag";
 import { samples } from "../../test";
 
@@ -1147,5 +1147,43 @@ describe("a waiting step, for a viewer who cannot answer it", () => {
       </ApprovalContext.Provider>,
     );
     expect(screen.queryByText(/Waiting for .* to approve/)).toBeNull();
+  });
+});
+
+describe("ToolCallItem's second line", () => {
+  it("says why a file step failed, in its tool's own first line, where a settled one says its folder", () => {
+    render(
+      <ToolCallItem
+        toolUse={toolUse({ name: "edit_file", input: { path: "src/billing/round.ts", old_string: "a", new_string: "b" }, result: "Error: old_string not found in file\nat line 3", isError: true })}
+      />,
+    );
+    expect(screen.getByText("Old_string not found in file")).toBeTruthy();
+    expect(screen.queryByText("at line 3")).toBeNull();
+  });
+
+  it("says what a File written to the outputs folder is and how big, not the folder", () => {
+    render(
+      <ToolCallItem
+        toolUse={toolUse({ name: "write_file", input: { path: "/workspace/.stigmer/outputs/audit.md", content: "x".repeat(4_210) }, result: "Wrote audit.md" })}
+      />,
+    );
+    expect(screen.getByText("Markdown · 4.1 KB")).toBeTruthy();
+    expect(screen.queryByText(/\.stigmer\/outputs/)).toBeNull();
+  });
+
+  it("counts a running step's time from its start, and shows nothing under a second", () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date(Date.parse(TOOL_STARTED_AT) + 400));
+      const running = toolUse({ name: "read_file", input: { path: "a.ts" }, state: "running" });
+      const { container } = render(<ToolCallItem toolUse={running} />);
+      expect(container.textContent).not.toMatch(/\d+s/);
+      act(() => {
+        vi.advanceTimersByTime(65_000);
+      });
+      expect(container.textContent).toContain("1m 05s");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

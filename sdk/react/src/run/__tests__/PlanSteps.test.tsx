@@ -88,6 +88,39 @@ describe("PlanSteps", () => {
     expect(within(itemLine("Fix it")).getByRole("img", { name: "In progress" })).toBeTruthy();
   });
 
+  it("marks the item an ended turn stopped on by the ending's tone: failed, paused or stopped", () => {
+    const steps = stepsOf(todos("t", [{ content: "Fix it", status: "in_progress" }]));
+    const { rerender } = render(<PlanSteps working={false} steps={steps} stoppedTone="failed" />);
+    const failed = within(itemLine("Fix it")).getByRole("img", { name: "Failed here" });
+    expect(failed.className).toContain("stg:text-status-failed");
+
+    rerender(<PlanSteps working={false} steps={steps} stoppedTone="paused" />);
+    expect(within(itemLine("Fix it")).getByRole("img", { name: "Paused" }).className).toContain("stg:border-status-degraded");
+
+    rerender(<PlanSteps working={false} steps={steps} />);
+    expect(within(itemLine("Fix it")).getByRole("img", { name: "Stopped" }).className).toContain("stg:border-muted-foreground");
+  });
+
+  it("sets the item in hand on the running band, and done items in the foreground", () => {
+    render(
+      <PlanSteps
+        working
+        steps={stepsOf(
+          todos("t", [
+            { content: "Read the code", status: "completed" },
+            { content: "Fix it", status: "in_progress" },
+            { content: "Test it", status: "pending" },
+          ]),
+        )}
+      />,
+    );
+    expect(itemLine("Fix it").className).toContain("stg:bg-status-running-subtle");
+    expect(itemLine("Read the code").className).not.toContain("stg:bg-status-running-subtle");
+    expect(screen.getByText("Read the code").className).toContain("stg:text-foreground");
+    // To do stays at the readable muted tone, never the faint one.
+    expect(screen.getByText("Test it").className).toContain("stg:text-muted-foreground");
+  });
+
   it("opens the item in progress while the turn works, to the steps it takes", () => {
     render(
       <PlanSteps

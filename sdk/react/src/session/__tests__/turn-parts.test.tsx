@@ -3,12 +3,14 @@
  * a stretch it has no words for (thinking, a subagent, the agent's
  * bookkeeping) as its rows, at the inset every row has; the outcome's card
  * sizes a File in kilobytes or megabytes after its kind, and names
- * only the kind for an empty one; the change dialog closes on Escape as well
- * as from its button.
+ * only the kind for an empty one, and offers a made File's download where a
+ * client is there to fetch it; the change dialog closes on Escape as well as
+ * from its button.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
-import type { DisplayFileChange } from "@stigmer/client";
+import type { DisplayFileChange, Stigmer } from "@stigmer/client";
+import { StigmerContext } from "@stigmer/react-core";
 import { samples } from "../../test";
 import { SettledStepsRow } from "../../run/SettledStepsRow";
 import { TurnOutcome } from "../TurnOutcome";
@@ -30,6 +32,35 @@ describe("SettledStepsRow", () => {
     // Flush to the thread's one gutter: no edge of its own.
     expect(screen.getByText("the rows").parentElement!.className).not.toContain("stg:mx-4");
     expect(screen.queryByRole("button")).toBeNull();
+  });
+});
+
+describe("TurnOutcome downloads", () => {
+  const outcome = {
+    runId: "run_1",
+    phase: "completed" as const,
+    elapsedMs: 3_000,
+    files: [samples.outputFile("notes.md", { sizeBytes: 2_048n })],
+    changes: [],
+    plans: [],
+    reviewSets: [],
+    estimatedCostUsd: undefined,
+  };
+
+  it("offers Download on a made File, minting its link on the click", () => {
+    const getDownloadUrl = vi.fn().mockResolvedValue({ url: "" });
+    render(
+      <StigmerContext.Provider value={{ file: { getDownloadUrl } } as unknown as Stigmer}>
+        <TurnOutcome outcome={outcome} onOpenFile={() => {}} />
+      </StigmerContext.Provider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Download notes.md" }));
+    expect(getDownloadUrl).toHaveBeenCalledWith(outcome.files[0]!.metadata!.id);
+  });
+
+  it("offers no Download where no client is there to fetch it", () => {
+    render(<TurnOutcome outcome={outcome} onOpenFile={() => {}} />);
+    expect(screen.queryByRole("button", { name: "Download notes.md" })).toBeNull();
   });
 });
 

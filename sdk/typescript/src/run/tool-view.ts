@@ -612,6 +612,8 @@ function normalizeShell(result: string, args: Args): ToolResultView {
 // the text).
 const GREP_MATCH_LINE = /^\s*(\d+)[:\t]\s?(.*)$/;
 const PATH_MATCH_LINE = /^(\S[^:]*):(\d+):(.*)$/;
+// The harness's file header above its matches, e.g. "/workspace/a.go:".
+const FILE_HEADER_LINE = /^\S.*:\s*$/;
 
 /** A match line as its parts, or undefined when the line is neither form. */
 function matchOf(line: string): ToolSearchMatch | undefined {
@@ -638,7 +640,15 @@ function normalizeSearch(result: string): ToolResultView {
 // see matchOf); glob/semantic search emit one path per line.
 function searchFromPlainText(result: string): ToolResultView {
   const lines = nonEmptyLines(result);
-  const found = lines.map(matchOf).filter((match): match is ToolSearchMatch => match !== undefined);
+  // The harness's form names each file once, on a "path:" line above its
+  // matches; each match carries the file it sits under.
+  const found: ToolSearchMatch[] = [];
+  let file: string | undefined;
+  for (const line of lines) {
+    const match = matchOf(line);
+    if (match !== undefined) found.push(match.file === undefined && file !== undefined ? { ...match, file } : match);
+    else if (FILE_HEADER_LINE.test(line)) file = line.trim().slice(0, -1);
+  }
 
   if (found.length > 0) {
     return { type: "search", matches: found, count: found.length, kind: "content" };
