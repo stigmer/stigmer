@@ -37,7 +37,9 @@ describe("buildThreadItems outcomes", () => {
     expect(kinds(items)).not.toContain("phase-badge");
     expect(kinds(items).slice(-2)).toEqual(["execution-error", "outcome"]);
 
-    expect(kinds(buildThreadItems(fold.turns, runs))).toContain("phase-badge");
+    // A host that passes no outcome: the notice says how it ended, so no pill beside it.
+    expect(kinds(buildThreadItems(fold.turns, runs))).not.toContain("phase-badge");
+    expect(kinds(buildThreadItems(fold.turns, runs))).toContain("execution-error");
     expect(kinds(buildThreadItems(fold.turns, runs))).not.toContain("outcome");
   });
 

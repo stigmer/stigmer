@@ -1011,8 +1011,9 @@ export function buildThreadItems(
     // and changed (its outcome), its plan document,
     // then one line that opens to how it got there, in time order. A turn
     // at work keeps time order; one that stopped or failed keeps its steps
-    // in view, because there the steps are the story.
-    const finished = turn.ended && turn.status?.phase === "completed";
+    // in view, because there the steps are the story, as they are when
+    // Stigmer stopped it.
+    const finished = finishedTurn(turn);
     if (finished) {
       const segment = items.splice(segmentStart);
       const answerKey = scoredMessageId ?? (planMessageId !== undefined && !collapsePlanMessage ? planMessageId : undefined);
@@ -1063,7 +1064,11 @@ export function buildThreadItems(
     }
   }
 
-  if (lastTurn?.ended && lastPhase !== undefined && BADGED_END_PHASES.has(lastPhase)) {
+  const ending = lastTurn?.ended === true ? describeTurnEnding({ turn: lastTurn, viewer: endingViewer, names: namesOf(lastTurn, endingNames) }) : undefined;
+
+  // The pill only where no ending notice says how the turn ended: the
+  // notice's headline already does, in words.
+  if (lastTurn?.ended && lastPhase !== undefined && BADGED_END_PHASES.has(lastPhase) && ending === undefined) {
     if (!includeOutcomes) {
       items.push({
         kind: "phase-badge",
@@ -1078,7 +1083,6 @@ export function buildThreadItems(
   // own words (`describeTurnEnding`), read from the failure's kind, never
   // from its error's text. A person's stop and the platform's read as
   // quiet notes; an ending its own surface tells reads none.
-  const ending = lastTurn?.ended === true ? describeTurnEnding({ turn: lastTurn, viewer: endingViewer, names: namesOf(lastTurn, endingNames) }) : undefined;
   if (lastTurn !== undefined && ending !== undefined) {
     const specMessage = lastRun?.spec?.message;
     // A build turn's label is no message to re-send: re-sending it as an
@@ -1092,14 +1096,16 @@ export function buildThreadItems(
       turn: lastTurn,
       key: `execution-error-${lastTurn.runId}`,
     };
-    // A turn that completed (the platform's stop) already closed with what
-    // it produced: the note goes above it, as on every other ending.
+    // A completed turn whose ending still has words (a limit it reached)
+    // already closed with what it produced: the note goes above it, as on
+    // every other ending. Stigmer's stop keeps its steps in view and closes
+    // below its note, as a failure does.
     const outcomeAt = items.findIndex((item) => item.kind === "outcome" && item.turn === lastTurn);
     if (outcomeAt === -1) items.push(notice);
     else items.splice(outcomeAt, 0, notice);
   }
 
-  if (includeOutcomes && lastTurn?.ended && lastPhase !== "completed") {
+  if (includeOutcomes && lastTurn?.ended && !finishedTurn(lastTurn)) {
     items.push({ kind: "outcome", turn: lastTurn, key: `outcome-${lastTurn.runId}` });
   }
 
@@ -1821,6 +1827,14 @@ function stoppedNoteOf(turn: Turn): string {
   const ending = describeTurnEnding({ turn, viewer: { canManageProviders: false, canOpenAgent: false, canAct: false, stoppedIt: false } });
   return ending?.stepNote ?? "Stopped here";
 }
+
+/** A turn that ended done: completed, and not by Stigmer's stop, which ends a turn the agent hadn't finished. */
+function finishedTurn(turn: Turn): boolean {
+  return turn.ended && turn.status?.phase === "completed" && turn.status.stopCause !== PLATFORM_STOP;
+}
+
+/** The stop cause of a turn Stigmer stopped (the runner's `platform_stop`). */
+const PLATFORM_STOP = "platform_stop";
 
 /** How the to-do an ended turn stopped on is marked, from its ending's tone: a failure, a pause, or a plain stop. */
 function stoppedToneOf(turn: Turn): PlanStoppedTone {

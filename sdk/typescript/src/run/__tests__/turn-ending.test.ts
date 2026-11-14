@@ -74,7 +74,7 @@ describe("describeTurnEnding", () => {
       pill: "Didn't finish",
       headline: "Anthropic refused this organization's model key.",
       comfort:
-        "The key on Models & providers isn't valid any more. Replace it, then run this again: the turn picks up where it stopped, and your message isn't sent twice. Nothing was lost.",
+        "The key on Models & providers isn't valid any more. Replace it, then Run again: the turn picks up where it stopped, and your message isn't sent twice. Nothing was lost.",
       stepNote: "Stopped here",
       act: "run_again",
       link: "models_hub",
@@ -97,7 +97,7 @@ describe("describeTurnEnding", () => {
 
   it("leads an agent's setup failure with the runner's own sentence, for one who can fix the agent", () => {
     const turn = turnOf({ phase: "failed", stopCause: "failed", error: "Fixer's tools list names no tool this turn has: [x].", stopDetail: { kind: "agent_setup", model: "", app: "" } });
-    expect(describeTurnEnding({ turn, viewer: ADMIN })!.comfort).toBe("Fixer's tools list names no tool this turn has: [x]. Change the agent, then run this again. Nothing was lost.");
+    expect(describeTurnEnding({ turn, viewer: ADMIN })!.comfort).toBe("Fixer's tools list names no tool this turn has: [x]. Change the agent, then Run again. Nothing was lost.");
     expect(describeTurnEnding({ turn, viewer: READER })!.comfort).not.toContain("tools list");
   });
 
