@@ -21,7 +21,7 @@ import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization
 import { StigmerContext } from "@stigmer/react-core";
 import { FetchCache } from "@stigmer/react-core/internal";
 import { FetchCacheContext } from "@stigmer/react-core/internal";
-import { OrgProvider, useActiveOrgId, useActiveOrgSlug, useOrg } from "../OrgProvider";
+import { OrgProvider, rememberActiveOrg, useActiveOrgId, useActiveOrgSlug, useOrg } from "../OrgProvider";
 
 afterEach(cleanup);
 
@@ -90,6 +90,16 @@ describe("OrgProvider persistence by id", () => {
 
     act(() => result.current.ctx.setActiveOrg(org(GLOBEX_ID, "globex")));
     expect(localStorage.getItem("stigmer:activeOrg")).toBe(GLOBEX_ID);
+  });
+
+  it("restores an org a page outside the provider remembered by id, as accepting an invitation does", async () => {
+    rememberActiveOrg("");
+    expect(localStorage.getItem("stigmer:activeOrg")).toBeNull();
+    rememberActiveOrg(GLOBEX_ID);
+    const { result } = renderOrg(
+      createMockStigmer([[org(ACME_ID, "acme"), org(GLOBEX_ID, "globex")]]),
+    );
+    await waitFor(() => expect(result.current.id).toBe(GLOBEX_ID));
   });
 
   it("restores the remembered org by id", async () => {

@@ -204,12 +204,38 @@ describe("CON-12 BringOthersIn — naming the organization", () => {
     expect(screen.queryByText(/Stigmer named it from your email/)).toBeNull();
   });
 
-  it("shows a named organization as one line with Rename", async () => {
+  it("asks again, and still keeps the name for now, where the browser's storage is unavailable", async () => {
+    const unavailable = () => {
+      throw new Error("storage unavailable");
+    };
+    vi.stubGlobal("localStorage", { getItem: unavailable, setItem: unavailable, removeItem: unavailable, clear: () => {} });
+    try {
+      renderPage();
+      fireEvent.click(await screen.findByRole("button", { name: "Keep acme" }));
+      await screen.findByRole("region", { name: "Your organization" });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("saves nothing for an empty name", async () => {
+    const client = renderPage();
+    const field = await screen.findByLabelText("Name");
+    fireEvent.submit(field.closest("form") as HTMLFormElement);
+    expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(client.organization.update).not.toHaveBeenCalled();
+  });
+
+  it("shows a named organization as one line with Rename, and Cancel puts it back", async () => {
     world.name = "Ledgerly";
     renderPage();
     await screen.findByRole("region", { name: "Your organization" });
     fireEvent.click(screen.getByRole("button", { name: "Rename" }));
     expect((screen.getByLabelText("Name") as HTMLInputElement).value).toBe("Ledgerly");
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await screen.findByRole("button", { name: "Rename" });
+    expect(screen.queryByLabelText("Name")).toBeNull();
   });
 
   it("says a failed read in place of loading for ever, with Try again", async () => {
@@ -257,6 +283,20 @@ describe("CON-12 BringOthersIn — inviting the team", () => {
     expect(days).toBeLessThanOrEqual(7);
     expect(screen.getByText(/Anyone with it can join as a Member until/)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Copy the invite link" })).toBeTruthy();
+  });
+
+  it("builds the link on the console's own address when the host names no builder, and Copy copies it", async () => {
+    world.name = "Ledgerly";
+    const writeText = vi.fn(async () => {});
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    renderPage("cloud", { buildInviteUrl: undefined });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Make an invite link" }));
+    const url = `${window.location.origin}/invite/tok-new`;
+    await screen.findByText(url);
+    fireEvent.click(screen.getByRole("button", { name: "Copy the invite link" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(url));
+    await screen.findByText("Copied");
   });
 
   it("makes an Admin link when Admin is picked", async () => {
@@ -363,6 +403,15 @@ describe("CON-12 BringOthersIn — who's here", () => {
     renderPage();
     await screen.findByText("Your team is here.");
     expect(screen.queryByText("All six steps done.")).toBeNull();
+  });
+
+  it("leaves out who's here for a viewer who may not read the access list", async () => {
+    world.name = "Ledgerly";
+    world.allowed.delete("can_view_access");
+    renderPage();
+    await screen.findByRole("region", { name: "Invite your team" });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(screen.queryByRole("region", { name: "Who's here" })).toBeNull();
   });
 
   it("counts nobody as joined until the viewer is known", async () => {

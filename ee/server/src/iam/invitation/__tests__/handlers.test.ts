@@ -192,6 +192,8 @@ function rig(
     creatorHolds?: (relation: string) => boolean;
     /** A fault the engine answers every creator question with, over `creatorHolds`. */
     creatorFault?: Error;
+    /** A fault the engine answers a redeemer's membership question with. */
+    memberFault?: Error;
     /** Where the lane's warnings go, when a case reads them; silent otherwise. */
     warnings?: string[];
     /** Where the lane's errors go, when a case reads them; silent otherwise. */
@@ -292,6 +294,9 @@ function rig(
       check: (grant) => {
         const principal = grant.principal?.id ?? "";
         if (principal !== CREATOR) {
+          if (options.memberFault !== undefined) {
+            return Promise.reject(options.memberFault);
+          }
           // A redeemer's membership: any role row this suite's grants left.
           const prefix = `${principal}#`;
           const suffix = `@${grant.resource?.id ?? ""}`;
@@ -718,6 +723,17 @@ describe("redeem", () => {
     expect(again.rawMessage).toBe("You are already a member of this organization");
     expect((await r.store.findById("inv_a"))?.status?.redemptionCount).toBe(1);
     expect(r.granted).toHaveLength(1);
+  });
+
+  it("refuses INTERNAL, granting and recording nothing, when a person not yet provisioned cannot be asked about membership", async () => {
+    const r = rig({ decide: outsider, unprovisionedSubject: "auth0|first-visit", memberFault: new Error("engine unavailable") });
+    await r.store.save(stored({ id: "inv_a", token: "Go" }));
+
+    const error = await failure(r.commands.redeem({ token: "Go" }));
+
+    expect(error.code).toBe(Code.Internal);
+    expect(r.granted).toHaveLength(0);
+    expect((await r.store.findById("inv_a"))?.status?.redemptionCount).toBe(0);
   });
 
   // Only `user` redeems: open source's own non-person classes, a class a

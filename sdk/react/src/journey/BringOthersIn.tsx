@@ -503,8 +503,8 @@ function InviteLink({ orgId, buildInviteUrl }: { readonly orgId: string; readonl
   }, [create, orgId, role]);
 
   const revokeLink = useCallback(async () => {
+    // A shown link is a listed or made invitation, which always has an id.
     const id = live?.metadata?.id ?? "";
-    if (id === "") return;
     try {
       await revoke(id);
       setRevokedId(id);

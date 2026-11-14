@@ -70,8 +70,8 @@ let signsIn = true;
 /** The organization's access list: people, service accounts and app users. */
 let access: { kind: string; id: string; name: string; mode: number }[] = [];
 let accessError: Error | null = null;
-/** The viewer's own account id, as whoAmI answers it; null makes whoAmI fail. */
-let me: string | null = "ida_owner";
+/** The viewer's own account id, as whoAmI answers it; null makes whoAmI fail, undefined leaves it unanswered. */
+let me: string | null | undefined = "ida_owner";
 
 const APP_USER = IdentityAccountProvisioningMode.app_user;
 const SERVICE_ACCOUNT = IdentityAccountProvisioningMode.service_account;
@@ -101,9 +101,10 @@ function client() {
       getServerInfo: vi.fn(async () => ({ authenticationRequired: signsIn, version: "0.1.3" })),
     },
     identityAccount: {
-      whoAmI: vi.fn(async () => {
-        if (me === null) throw new Error("unavailable");
-        return { metadata: { id: me } };
+      whoAmI: vi.fn(() => {
+        if (me === undefined) return new Promise<never>(() => {});
+        if (me === null) return Promise.reject(new Error("unavailable"));
+        return Promise.resolve({ metadata: { id: me } });
       }),
     },
     agent: {
@@ -382,6 +383,18 @@ describe("useJourney", () => {
     const failedMe = renderJourney();
     await waitFor(() => expect(failedMe.result.current.status).toBe("ready"));
     expect(failedMe.result.current.steps[5]?.state).not.toBe("done");
+  });
+
+  it("stays pending while the viewer is not yet known, though the access list is read", async () => {
+    me = undefined;
+    access = [{ kind: "identity_account", id: "ida_sam", name: "Sam", mode: PERSON }];
+    const { result, stigmer } = renderJourney();
+
+    await waitFor(() => expect(stigmer.grant.listResourceAccessByPrincipal).toHaveBeenCalled());
+    await waitFor(() => expect(stigmer.identityAccount.whoAmI).toHaveBeenCalled());
+    // Let the access list's answer land; the viewer's never does.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(result.current.status).toBe("pending");
   });
 
   it("counts a run that failed as no job done: the key and watch steps stay open, though something ran", async () => {
