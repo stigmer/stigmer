@@ -1,7 +1,7 @@
 {
   "screen": "S45",
   "title": "A turn's changes, with Undo",
-  "source": "the session page, version 15",
+  "source": "the session page, version 10",
   "drawings": [
     {
       "caption": "A finished turn with two edits. Each file shows once, with its line counts and Undo. Nothing asks to approve: the edits are in place and stay unless undone.",

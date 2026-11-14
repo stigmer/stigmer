@@ -1,7 +1,7 @@
 {
   "screen": "S09",
   "title": "The session didn't load",
-  "source": "the session page, version 15",
+  "source": "the session page, version 10",
   "drawings": [
     {
       "caption": "The session didn't load",
@@ -41,13 +41,12 @@
       "buttons": [
         {
           "name": "Try again",
-          "height": 34
+          "height": 32
         }
       ],
       "sample": {},
       "ruled": {},
       "pending": {
-        "button Try again": "The screens still in their old look: this screen is still its pre-redesign self",
         "word This session didn't open": "The screens still in their old look: this screen is still its pre-redesign self"
       }
     }

@@ -1,7 +1,7 @@
 {
   "screen": "S12",
   "title": "Failed, on a phone",
-  "source": "the session page, version 15",
+  "source": "the session page, version 10",
   "drawings": [
     {
       "caption": "Failed, on a phone",
@@ -109,11 +109,11 @@
         },
         {
           "name": "Run again",
-          "height": 26
+          "height": 28
         },
         {
           "name": "Copy details",
-          "height": 26
+          "height": 28
         },
         {
           "name": "Claude Sonnet 4.6",
@@ -145,8 +145,6 @@
         "type Reply…": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included"
       },
       "pending": {
-        "button Copy details": "Endings: a notice's acts at xs, with their icons",
-        "button Run again": "Endings: a notice's acts at xs, with their icons",
         "type Didn't finish": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export"
       }
     }

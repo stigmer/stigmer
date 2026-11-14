@@ -1,7 +1,7 @@
 {
   "screen": "S56",
   "title": "Waiting for a sandbox",
-  "source": "the session page, version 15",
+  "source": "the session page, version 10",
   "drawings": [
     {
       "caption": "While every sandbox is busy the turn waits for room, up to 15 minutes, and says so with the time it has waited. The pill stays Starting.",

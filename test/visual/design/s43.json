@@ -1,7 +1,7 @@
 {
   "screen": "S43",
   "title": "A helper at work",
-  "source": "the session page, version 15",
+  "source": "the session page, version 10",
   "drawings": [
     {
       "caption": "A helper reads as a step: what it's doing, its name as a tag, its time. Open while it runs, its own steps nested.",
@@ -70,14 +70,6 @@
           ]
         },
         {
-          "text": "1s",
-          "type": [
-            12,
-            16,
-            400
-          ]
-        },
-        {
           "text": "Reading credit-note.ts",
           "type": [
             14,
@@ -87,14 +79,6 @@
         },
         {
           "text": "src/billing",
-          "type": [
-            12,
-            16,
-            400
-          ]
-        },
-        {
-          "text": "2s",
           "type": [
             12,
             16,
@@ -169,9 +153,7 @@
       },
       "ruled": {},
       "pending": {
-        "type Working · 1m 30s": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
-        "word 1s": "The drawing is redrawn: a helper's own steps carry no time; redrawn",
-        "word 2s": "The drawing is redrawn: a helper's own steps carry no time; redrawn"
+        "type Working · 1m 30s": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export"
       }
     }
   ]

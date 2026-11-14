@@ -1,7 +1,7 @@
 {
   "screen": "S37",
   "title": "Every file step",
-  "source": "the session page, version 15",
+  "source": "the session page, version 10",
   "drawings": [
     {
       "caption": "Every file step",
@@ -46,7 +46,7 @@
           ]
         },
         {
-          "text": "How it got there, opened",
+          "text": "How it got there",
           "type": [
             12,
             16,
@@ -57,14 +57,6 @@
           "text": "9 steps · 1m 52s",
           "type": [
             12,
-            16,
-            500
-          ]
-        },
-        {
-          "text": "Looking",
-          "type": [
-            11,
             16,
             500
           ]
@@ -110,7 +102,31 @@
           ]
         },
         {
-          "text": "invoice.ts:41 sum + roundCents(lineTotal(line)) credit-note.ts:18 amount: roundCents(line.amount)",
+          "text": "invoice.ts:41",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "sum + roundCents(lineTotal(line))",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "credit-note.ts:18",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "amount: roundCents(line.amount)",
           "type": [
             12,
             16,
@@ -174,14 +190,6 @@
           ]
         },
         {
-          "text": "Changing",
-          "type": [
-            11,
-            16,
-            500
-          ]
-        },
-        {
           "text": "Edited credit-note.ts",
           "type": [
             14,
@@ -198,7 +206,7 @@
           ]
         },
         {
-          "text": "src/billing/credit-note.ts · line 16",
+          "text": "src/billing/credit-note.ts",
           "type": [
             12,
             16,
@@ -206,7 +214,7 @@
           ]
         },
         {
-          "text": "- (sum, line) => sum + roundCents(line.amount), 0);",
+          "text": "(sum, line) => sum + roundCents(line.amount), 0);",
           "type": [
             12,
             16,
@@ -214,7 +222,7 @@
           ]
         },
         {
-          "text": "+ (sum, line) => sum + line.amount, 0);",
+          "text": "(sum, line) => sum + line.amount, 0);",
           "type": [
             12,
             16,
@@ -222,7 +230,7 @@
           ]
         },
         {
-          "text": "- return note.lines.reduce(",
+          "text": "return note.lines.reduce(",
           "type": [
             12,
             16,
@@ -230,7 +238,7 @@
           ]
         },
         {
-          "text": "+ return roundHalfEven(note.lines.reduce(",
+          "text": "return roundHalfEven(note.lines.reduce(",
           "type": [
             12,
             16,
@@ -302,7 +310,7 @@
           ]
         },
         {
-          "text": "The text to replace wasn't in the file, so nothing changed. The agent read the file again and retried.",
+          "text": "The text to replace wasn't in the file, so nothing changed.",
           "type": [
             12,
             16,
@@ -331,14 +339,6 @@
             12,
             16,
             400
-          ]
-        },
-        {
-          "text": "Made",
-          "type": [
-            11,
-            16,
-            500
           ]
         },
         {
@@ -422,23 +422,13 @@
         "word Lines 14–17 of 88 · Open the whole file": "the scene's workspace holds no entry for the path, so the step offers Show all, not Open the whole file",
         "word Lines 1–5 of 24 · Open the whole file": "the scene's workspace holds no entry for the path, so the step offers Show all, not Open the whole file",
         "word Markdown · 2.3 KB · opens in the panel": "the scene's File is 0.1 KB (\"Markdown · 0.1 KB · opens in the panel\")",
-        "word import { roundHalfEven } from \"./rounding\"; test(\"0.335 rounds to 0.34\", () => { expect(roundHalfEven(33.5)).toBe(34); });": "the scene's file's first lines differ from the drawing's"
+        "word import { roundHalfEven } from \"./rounding\"; test(\"0.335 rounds to 0.34\", () => { expect(roundHalfEven(33.5)).toBe(34); });": "the scene's file's first lines differ from the drawing's",
+        "word (sum, line) => sum + line.amount, 0);": "the scene's edit closes one more parenthesis (\"(sum, line) => sum + line.amount, 0));\")"
       },
       "ruled": {},
       "pending": {
         "type Done": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
-        "type Made": "The drawing is redrawn: the drawing gathers every kind under its own headings to show them together; the kit's turn draws them as How it got there, redrawn so",
-        "word + (sum, line) => sum + line.amount, 0);": "The drawing is redrawn: the step's diff sets its +/− marker in a cell of its own (DiffViewer), which reads apart from the line; the drawing's diff is redrawn so at the next export",
-        "word + return roundHalfEven(note.lines.reduce(": "The drawing is redrawn: the step's diff sets its +/− marker in a cell of its own (DiffViewer), which reads apart from the line; the drawing's diff is redrawn so at the next export",
-        "word - (sum, line) => sum + roundCents(line.amount), 0);": "The drawing is redrawn: the step's diff sets its +/− marker in a cell of its own (DiffViewer), which reads apart from the line; the drawing's diff is redrawn so at the next export",
-        "word - return note.lines.reduce(": "The drawing is redrawn: the step's diff sets its +/− marker in a cell of its own (DiffViewer), which reads apart from the line; the drawing's diff is redrawn so at the next export",
-        "word 9 steps · 1m 52s": "The drawing is redrawn: the drawing gathers every kind under its own headings to show them together; the kit's turn draws them as How it got there, redrawn so",
-        "word Changing": "The drawing is redrawn: the drawing gathers every kind under its own headings to show them together; the kit's turn draws them as How it got there, redrawn so",
-        "word How it got there, opened": "The drawing is redrawn: the drawing gathers every kind under its own headings to show them together; the kit's turn draws them as How it got there, redrawn so",
-        "word Looking": "The drawing is redrawn: the drawing gathers every kind under its own headings to show them together; the kit's turn draws them as How it got there, redrawn so",
-        "word The text to replace wasn't in the file, so nothing changed. The agent read the file again and retried.": "The drawing is redrawn: why the agent retried is recorded nowhere; the drawing's second sentence is redrawn away",
-        "word invoice.ts:41 sum + roundCents(lineTotal(line)) credit-note.ts:18 amount: roundCents(line.amount)": "The drawing is redrawn: the matches read file then text in two columns, each an item of its own; the drawing's lines are redrawn so",
-        "word src/billing/credit-note.ts · line 16": "The drawing is redrawn: no line in the file is recorded, so the diff's header names the file only; redrawn"
+        "word 9 steps · 1m 52s": "The drawing is redrawn: the drawing gathers every kind under its own headings to show them together; the kit's turn draws them as How it got there, redrawn so"
       }
     }
   ]

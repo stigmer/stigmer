@@ -1,7 +1,7 @@
 {
   "screen": "G04",
   "title": "Models, none connected",
-  "source": "the Console parts page, version 3",
+  "source": "the Console parts page, version 5",
   "drawings": [
     {
       "caption": "Models, none connected",
@@ -31,14 +31,6 @@
         },
         {
           "text": "Providers",
-          "type": [
-            14,
-            20,
-            600
-          ]
-        },
-        {
-          "text": "A",
           "type": [
             14,
             20,
@@ -171,14 +163,6 @@
             12,
             16,
             500
-          ]
-        },
-        {
-          "text": "O",
-          "type": [
-            14,
-            20,
-            600
           ]
         },
         {
@@ -354,8 +338,7 @@
         "type Platform default (Claude Sonnet 4.6)": "The console's parts: the part at its drawn size and weight",
         "type Stigmer": "The console's parts: the part at its drawn size and weight",
         "word Paste an Anthropic API key, and every member of Acme Corp can run these models. Anthropic bills Acme Corp directly.": "The console's parts: the page says and offers what its drawing does",
-        "word Paste an OpenAI API key, and every member of Acme Corp can run these models. OpenAI bills Acme Corp directly.": "The console's parts: the page says and offers what its drawing does",
-        "word O": "The drawing is redrawn: the reader now matches whole words (whole words, in their case), and an avatar's or a mark's initial is hidden from assistive technology in the kit (it repeats the name beside it), which the reader skips; the drawing draws it as text, redrawn hidden at the next export"
+        "word Paste an OpenAI API key, and every member of Acme Corp can run these models. OpenAI bills Acme Corp directly.": "The console's parts: the page says and offers what its drawing does"
       }
     }
   ]

@@ -1,7 +1,7 @@
 {
   "screen": "G01",
   "title": "Members",
-  "source": "the Console parts page, version 3",
+  "source": "the Console parts page, version 5",
   "drawings": [
     {
       "caption": "Members",
@@ -38,14 +38,6 @@
           ]
         },
         {
-          "text": "A",
-          "type": [
-            12,
-            16,
-            500
-          ]
-        },
-        {
           "text": "Ada Lovelace",
           "type": [
             14,
@@ -70,14 +62,6 @@
           ]
         },
         {
-          "text": "G",
-          "type": [
-            12,
-            16,
-            500
-          ]
-        },
-        {
           "text": "Grace Hopper",
           "type": [
             14,
@@ -94,14 +78,6 @@
           ]
         },
         {
-          "text": "K",
-          "type": [
-            12,
-            16,
-            500
-          ]
-        },
-        {
           "text": "Katherine Johnson",
           "type": [
             14,
@@ -111,14 +87,6 @@
         },
         {
           "text": "member",
-          "type": [
-            12,
-            16,
-            500
-          ]
-        },
-        {
-          "text": "A",
           "type": [
             12,
             16,
@@ -207,14 +175,6 @@
           ]
         },
         {
-          "text": "A",
-          "type": [
-            12,
-            16,
-            500
-          ]
-        },
-        {
           "text": "Ada Lovelace",
           "type": [
             14,
@@ -239,14 +199,6 @@
           ]
         },
         {
-          "text": "G",
-          "type": [
-            12,
-            16,
-            500
-          ]
-        },
-        {
           "text": "Grace Hopper",
           "type": [
             14,
@@ -263,14 +215,6 @@
           ]
         },
         {
-          "text": "K",
-          "type": [
-            12,
-            16,
-            500
-          ]
-        },
-        {
           "text": "Katherine Johnson",
           "type": [
             14,
@@ -280,14 +224,6 @@
         },
         {
           "text": "member",
-          "type": [
-            12,
-            16,
-            500
-          ]
-        },
-        {
-          "text": "A",
           "type": [
             12,
             16,

@@ -1,7 +1,7 @@
 {
   "screen": "S30",
   "title": "Set up wrong",
-  "source": "the session page, version 15",
+  "source": "the session page, version 10",
   "drawings": [
     {
       "caption": "Set up wrong",
@@ -121,11 +121,11 @@
         },
         {
           "name": "Run again",
-          "height": 26
+          "height": 28
         },
         {
           "name": "Copy details",
-          "height": 26
+          "height": 28
         },
         {
           "name": "Agent",
@@ -155,8 +155,6 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "button Copy details": "Endings: a notice's acts at xs, with their icons",
-        "button Run again": "Endings: a notice's acts at xs, with their icons",
         "type Didn't finish": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
         "word Its tool list is empty: it names the plugin billing-tools, which isn't installed in this organization. Install it or change the agent, then Run again.": "Endings: the ending's words name the button and the status page"
       }

@@ -1,7 +1,7 @@
 {
   "screen": "G06",
   "title": "Marketplace",
-  "source": "the Console parts page, version 3",
+  "source": "the Console parts page, version 5",
   "drawings": [
     {
       "caption": "Marketplace",
@@ -86,14 +86,6 @@
           ]
         },
         {
-          "text": "A",
-          "type": [
-            14,
-            20,
-            600
-          ]
-        },
-        {
           "text": "Atlassian",
           "type": [
             14,
@@ -131,14 +123,6 @@
             12,
             16,
             500
-          ]
-        },
-        {
-          "text": "C",
-          "type": [
-            14,
-            20,
-            600
           ]
         },
         {
@@ -182,14 +166,6 @@
           ]
         },
         {
-          "text": "F",
-          "type": [
-            14,
-            20,
-            600
-          ]
-        },
-        {
           "text": "Figma",
           "type": [
             14,
@@ -227,14 +203,6 @@
             12,
             16,
             500
-          ]
-        },
-        {
-          "text": "L",
-          "type": [
-            14,
-            20,
-            600
           ]
         },
         {
@@ -283,14 +251,6 @@
             12,
             16,
             500
-          ]
-        },
-        {
-          "text": "N",
-          "type": [
-            14,
-            20,
-            600
           ]
         },
         {
@@ -367,11 +327,7 @@
         "type Search every source by name or description…": "The console's parts: the part at its drawn size and weight",
         "word All sources 8": "The console's parts: the page says and offers what its drawing does",
         "word Figma's hosted MCP server: read design files, components, variables and comments. Sign in with Figma.": "The console's parts: the page says and offers what its drawing does",
-        "word stigmer 8": "The console's parts: the page says and offers what its drawing does",
-        "word C": "The drawing is redrawn: the reader now matches whole words (whole words, in their case), and an avatar's or a mark's initial is hidden from assistive technology in the kit (it repeats the name beside it), which the reader skips; the drawing draws it as text, redrawn hidden at the next export",
-        "word F": "The drawing is redrawn: the reader now matches whole words (whole words, in their case), and an avatar's or a mark's initial is hidden from assistive technology in the kit (it repeats the name beside it), which the reader skips; the drawing draws it as text, redrawn hidden at the next export",
-        "word L": "The drawing is redrawn: the reader now matches whole words (whole words, in their case), and an avatar's or a mark's initial is hidden from assistive technology in the kit (it repeats the name beside it), which the reader skips; the drawing draws it as text, redrawn hidden at the next export",
-        "word N": "The drawing is redrawn: the reader now matches whole words (whole words, in their case), and an avatar's or a mark's initial is hidden from assistive technology in the kit (it repeats the name beside it), which the reader skips; the drawing draws it as text, redrawn hidden at the next export"
+        "word stigmer 8": "The console's parts: the page says and offers what its drawing does"
       }
     }
   ]

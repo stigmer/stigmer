@@ -1,7 +1,7 @@
 {
   "screen": "S44",
   "title": "Files changing",
-  "source": "the session page, version 15",
+  "source": "the session page, version 10",
   "drawings": [
     {
       "caption": "While the turn works: one strip above the composer, the counts beside the words.",
@@ -86,19 +86,11 @@
           ]
         },
         {
-          "text": "A helper is working on map where credit notes round",
+          "text": "Map where credit notes round researcher",
           "type": [
             14,
             20,
             500
-          ]
-        },
-        {
-          "text": "Searching for round( · nothing found yet",
-          "type": [
-            12,
-            16,
-            400
           ]
         },
         {
@@ -107,6 +99,14 @@
             12,
             16,
             400
+          ]
+        },
+        {
+          "text": "Searching for round(",
+          "type": [
+            14,
+            20,
+            500
           ]
         },
         {
@@ -119,6 +119,14 @@
         },
         {
           "text": "npm test -- billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "PASS src/billing/invoice.test.ts PASS src/billing/credit-note.test.ts",
           "type": [
             12,
             16,
@@ -216,13 +224,13 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word PASS src/billing/invoice.test.ts PASS src/billing/credit-note.test.ts": "the scene's command prints \"PASS src/billing/invoice.test.ts (12 tests)\" then \"RUNS src/billing/credit-note.test.ts\""
+      },
       "ruled": {},
       "pending": {
         "type Working · 1m 30s": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
-        "word A helper is working on map where credit notes round": "The drawing is redrawn: S01's helper is redrawn to S43's (its subject capitalised, its agent's tag, its own steps on a rail)",
-        "word Changing 2 files +10−5": "The next change: the strips as cards",
-        "word Searching for round( · nothing found yet": "The drawing is redrawn: S01's helper is redrawn to S43's (its subject capitalised, its agent's tag, its own steps on a rail)"
+        "word Changing 2 files +10−5": "The next change: the strips as cards"
       }
     },
     {
@@ -304,19 +312,11 @@
           ]
         },
         {
-          "text": "A helper is working on map where credit notes round",
+          "text": "Map where credit notes round researcher",
           "type": [
             14,
             20,
             500
-          ]
-        },
-        {
-          "text": "Searching for round( · nothing found yet",
-          "type": [
-            12,
-            16,
-            400
           ]
         },
         {
@@ -325,6 +325,14 @@
             12,
             16,
             400
+          ]
+        },
+        {
+          "text": "Searching for round(",
+          "type": [
+            14,
+            20,
+            500
           ]
         },
         {
@@ -337,6 +345,14 @@
         },
         {
           "text": "npm test -- billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "PASS src/billing/invoice.test.ts PASS src/billing/credit-note.test.ts",
           "type": [
             12,
             16,

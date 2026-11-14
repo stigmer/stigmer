@@ -1,7 +1,7 @@
 {
   "screen": "P06",
   "title": "Tags",
-  "source": "the Console parts page, version 3",
+  "source": "the Console parts page, version 5",
   "drawings": [
     {
       "caption": "Tags",
@@ -75,14 +75,6 @@
         },
         {
           "text": "2 keys",
-          "type": [
-            12,
-            16,
-            500
-          ]
-        },
-        {
-          "text": "G",
           "type": [
             12,
             16,
