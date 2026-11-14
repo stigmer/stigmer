@@ -254,6 +254,7 @@ class Tracker {
   private readonly endedRuns = new Set<string>();
   private admitted: readonly string[] = [];
   private refused = 0;
+  private lastTold = "";
 
   constructor(
     private readonly total: number,
@@ -278,8 +279,13 @@ class Tracker {
     this.tell();
   }
 
+  // Told only when a count moved: a run that ends after it started changes none.
   private tell(): void {
     const waiting = this.admitted.filter((id) => !this.startedRuns.has(id) && !this.endedRuns.has(id)).length;
-    this.onProgress?.({ sent: this.total, started: this.startedRuns.size, waiting, refused: this.refused });
+    const progress = { sent: this.total, started: this.startedRuns.size, waiting, refused: this.refused };
+    const key = JSON.stringify(progress);
+    if (key === this.lastTold) return;
+    this.lastTold = key;
+    this.onProgress?.(progress);
   }
 }

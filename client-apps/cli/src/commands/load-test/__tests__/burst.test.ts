@@ -81,8 +81,11 @@ describe("runBurst", () => {
     expect(server.agentsDeleted).toEqual(["agt_1"]);
     expect(result.leftBehind).toEqual([]);
     expect(result.interrupted).toBe(false);
-    expect(seen[0]).toEqual({ sent: 2, started: 0, waiting: 2, refused: 0 });
-    expect(seen.at(-1)).toEqual({ sent: 2, started: 2, waiting: 0, refused: 0 });
+    expect(seen).toEqual([
+      { sent: 2, started: 0, waiting: 2, refused: 0 },
+      { sent: 2, started: 1, waiting: 1, refused: 0 },
+      { sent: 2, started: 2, waiting: 0, refused: 0 },
+    ]);
   });
 
   it("leaves the model to the agent when none is asked for", async () => {
