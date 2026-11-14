@@ -14,9 +14,10 @@ import { createContext, useContext } from "react";
 export interface OutputFileOpener {
   /**
    * Opens the File the turn returned at `path` (the step's path, the outputs
-   * folder anywhere in it); false when no such File is in the session yet.
+   * folder anywhere in it); nothing when no such File is in the session yet
+   * (a step offers to open only a File {@link hasOutputPath} names).
    */
-  readonly openOutputPath: (path: string) => boolean;
+  readonly openOutputPath: (path: string) => void;
   /** Whether `path` names a File the session holds, so the step can offer to open it. */
   readonly hasOutputPath: (path: string) => boolean;
   /** Where a File opens: the session's panel, or a window over the conversation. */
