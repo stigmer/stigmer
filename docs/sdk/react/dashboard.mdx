@@ -173,7 +173,7 @@ Where each step leads, as the host routes it; the later steps' destinations are 
 
 <TypeTable
   type={{
-    bringOthers: { type: "string", description: "Where the team is invited (the console's members page)." },
+    bringOthers: { type: "string", description: "Where the team is brought in: the journey's last page (the console's `/settings/bring-others-in`)." },
     connectProvider: { type: "string", description: "Models & providers, where a provider key is connected.", required: true },
     createAgent: { type: "string", description: "Where a newcomer says what their agent should do: the launcher, whose first question offers the example jobs and \"Describe your own\".", required: true },
     makeItYours: { type: "(agent: ResourceRef) => string", description: "The agent page's \"Make it yours\" tab for an agent (the console's `/library/agents/<org>/<slug>?tab=make-it-yours`)." },

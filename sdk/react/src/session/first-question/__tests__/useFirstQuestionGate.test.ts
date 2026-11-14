@@ -1,6 +1,7 @@
 /**
- * The first question's gate on its own: it asks only on both answers (may
- * make agents, nothing has run), skips on either no or on a failed read, is
+ * The first question's gate on its own: it asks only on both answers (an
+ * admin of the organization, `can_edit` on it, never merely a person who may
+ * make agents; nothing has run), skips on either no or on a failed read, is
  * pending until both are in, holds its first settled answer for an
  * organization while the reads change under it, asks another organization
  * afresh, and skips at once when the launcher stops asking. The two reads are
@@ -12,10 +13,14 @@ import { renderHook } from "@testing-library/react";
 const reads = vi.hoisted(() => ({
   permission: { allowed: true, isLoading: false } as { allowed: boolean; isLoading: boolean },
   ever: { ran: false, error: null } as { ran: boolean | undefined; error: Error | null },
+  asked: [] as string[],
 }));
 
 vi.mock("../../../grant/useCheckPermission.js", () => ({
-  useCheckPermission: () => ({ ...reads.permission, error: null, refetch: () => {} }),
+  useCheckPermission: (_resource: unknown, relation: string) => {
+    reads.asked.push(relation);
+    return { ...reads.permission, error: null, refetch: () => {} };
+  },
 }));
 vi.mock("../../../dashboard/useEverRan.js", () => ({
   useEverRan: () => reads.ever,
@@ -29,8 +34,11 @@ beforeEach(() => {
 });
 
 describe("useFirstQuestionGate", () => {
-  it("asks when the person may make agents and nothing has run", () => {
+  it("asks when the person is an admin of the organization and nothing has run", () => {
     expect(renderHook(() => useFirstQuestionGate("org_a", true)).result.current).toBe("ask");
+    // A member may make agents, and a teammate who joined by invitation sees
+    // none of the owner's runs: the question is an admin's, never theirs.
+    expect(new Set(reads.asked)).toEqual(new Set(["can_edit"]));
   });
 
   it("skips when asked not to, or for an organization it cannot name", () => {

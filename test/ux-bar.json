@@ -276,6 +276,10 @@
       "promise": "The console offers the coding-agent door from the first question, with its own address in the prompt."
     },
     {
+      "id": "CON-12",
+      "promise": "The journey's last step brings the team in: the organization named, an invite link with its roles in plain words, who has joined; accepting lands the person in the organization."
+    },
+    {
       "id": "DSK-01",
       "promise": "Clicking the Dock icon reopens a closed window.",
       "pending": [

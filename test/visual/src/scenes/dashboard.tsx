@@ -1,8 +1,7 @@
 // The dashboard: its figures alone, over a busy week's summary; and the
 // whole dashboard as the console frames it (a centred column under the
-// page's heading) for a busy organization, as a member who may not make
-// agents sees it (the figures and failures alone: the journey's card is for
-// a person who may), and for one that has run nothing yet, as its admin
+// page's heading) for a busy organization, as a member sees it (the
+// figures and failures alone: the journey's card is its admins'), and for one that has run nothing yet, as its admin
 // sees it (the journey's card alone, nothing made yet), answered from the
 // calls its hooks make. The journey's other states are journey.tsx's.
 import { create } from "@bufbuild/protobuf";
@@ -62,10 +61,10 @@ function dashboardRoutes(week: DashboardWeek) {
       list: () => samples.runList(failedRuns(week)),
     });
     router.service(PlatformQueryController, { getModelReadiness: () => NOTHING_CONNECTED });
-    // The busy week's viewer is a member, who may not make agents; the new
-    // organization's is its admin, with no agent made yet.
+    // The busy week's viewer is a member, no admin and here one who may not
+    // make agents; the new organization's is its admin, with no agent made yet.
     router.service(GrantQueryController, {
-      checkMyPermission: (input) => ({ isAuthorized: week === "new-org" || input.relation !== "can_create_agent" }),
+      checkMyPermission: (input) => ({ isAuthorized: week === "new-org" || (input.relation !== "can_create_agent" && input.relation !== "can_edit") }),
     });
     router.service(AgentQueryController, { list: () => ({ entries: [], nextPageToken: "" }) });
   };

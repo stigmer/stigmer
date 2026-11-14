@@ -34,7 +34,7 @@ vi.mock("@stigmer/react-sdk", () => ({
 const JOURNEY_LINKS = vi.hoisted(() => ({
   makeItYours: (agent: { org: string; slug: string }) => `/library/agents/${agent.org}/${agent.slug}?tab=make-it-yours`,
   putInApp: (agent: { org: string; slug: string }) => `/library/agents/${agent.org}/${agent.slug}?tab=in-app`,
-  bringOthers: "/settings/members",
+  bringOthers: "/settings/bring-others-in",
   launch: () => "/?with=own",
 }));
 
@@ -97,7 +97,7 @@ describe("web DashboardPage", () => {
       startSession: "/",
       makeItYours: JOURNEY_LINKS.makeItYours,
       putInApp: JOURNEY_LINKS.putInApp,
-      bringOthers: "/settings/members",
+      bringOthers: "/settings/bring-others-in",
     });
     const renderLink = props?.renderLink as (link: { href: string; className: string; children: ReactNode }) => ReactNode;
     render(<>{renderLink({ href: "/models", className: "step", children: "Connect a provider" })}</>);

@@ -67,6 +67,13 @@
  *     identity is its lane account, whose id no direct row carries as a
  *     subject), nor any caller that is not of class `user`, nor a
  *     credential naming no subject.
+ *
+ * And the forward read, `accountIdForCaller`: the account id a caller
+ * stands for, or will. A provisioned caller answers its account's id; an
+ * idp-shaped caller of the platform's own sign-in answers the id
+ * provisionMyAccount then gives it (the invite page redeems before the
+ * account exists); the trusted-local operator with no account and any
+ * other caller answer their identity unchanged.
  */
 import { create } from "@bufbuild/protobuf";
 import { ConnectError } from "@connectrpc/connect";
@@ -79,6 +86,7 @@ import type { CallerIdentity } from "../../../extensions/identity.js";
 import { accountIdFor, localIdpIdFor } from "../constants.js";
 import {
   accountForCaller,
+  accountIdForCaller,
   isPreSignInOperatorStamp,
   mayProvisionDirectAccount,
   principalForSubject,
@@ -572,5 +580,50 @@ describe("mayProvisionDirectAccount — provisionMyAccount's admission", () => {
         PERSON,
       ),
     ).rejects.toBe(fault);
+  });
+});
+
+describe("accountIdForCaller — the account id a caller stands for, or will", () => {
+  it("a provisioned caller answers its account's id", async () => {
+    const accounts = seeded("auth0|known");
+    expect(
+      await accountIdForCaller(
+        accounts,
+        caller({
+          identityId: accountIdFor("auth0|known"),
+          issuer: "https://issuer.test",
+          rawToken: tokenFor("auth0|known"),
+        }),
+      ),
+    ).toBe(accountIdFor("auth0|known"));
+  });
+
+  it("an idp-shaped caller answers the id provisionMyAccount gives it, and the account made later carries that id", async () => {
+    const accounts = fakeIdentityAccountStore();
+    const stranger = caller({
+      identityId: "auth0|first-visit",
+      issuer: "https://issuer.test",
+      rawToken: tokenFor("auth0|first-visit"),
+    });
+
+    const before = await accountIdForCaller(accounts, stranger);
+
+    const made = seeded("auth0|first-visit");
+    expect(before).toBe(accountIdFor("auth0|first-visit"));
+    expect(await accountIdForCaller(made, stranger)).toBe(before);
+  });
+
+  it("a caller that is not the platform's own person answers its identity unchanged", async () => {
+    const accounts = fakeIdentityAccountStore();
+    const machine = caller({
+      identityId: "auth0|lane",
+      callerClass: "machine",
+      issuer: "https://issuer.test",
+      rawToken: tokenFor("auth0|lane"),
+    });
+    const operator = caller({ identityId: "operator@example.com" });
+
+    expect(await accountIdForCaller(accounts, machine)).toBe("auth0|lane");
+    expect(await accountIdForCaller(accounts, operator)).toBe("operator@example.com");
   });
 });

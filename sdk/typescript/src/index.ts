@@ -134,6 +134,7 @@ export {
   granteeFromView,
   granteeKey,
   isAppUserAccount,
+  isPersonAccount,
   isServiceAccount,
 } from "./iam-principal.js";
 export {

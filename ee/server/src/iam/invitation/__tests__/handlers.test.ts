@@ -46,6 +46,11 @@
  *     logged for a hand;
  *   - an app user, whose minted token the library binds to the
  *     organization it is for, redeems only into that organization;
+ *   - a person admitted before their account exists (the invite page
+ *     redeems a first visit's link) is recorded and granted as the account
+ *     provisionMyAccount will give them, never as their raw subject, and
+ *     redeeming again before that account is made is ALREADY_EXISTS, the
+ *     account's role asked of the engine, with no second seat taken;
  *   - the preview answers the organization's display and the link's
  *     validity, asking what redeem asks before it grants, so a link whose
  *     creator can no longer grant its role previews invalid with redeem's
@@ -71,6 +76,7 @@ import type {
   ResourceCreatedEvent,
 } from "@stigmer/server";
 import {
+  accountIdFor,
   boundOrgOf,
   callerIdentityKey,
   createLogger,
@@ -116,17 +122,24 @@ const ORG_CREATED = new Date("2026-09-01T00:00:00Z");
 
 const silent: Logger = createLogger({ level: "error", pretty: false, write: () => {} });
 
+/** An unsigned token naming `sub`: the chain verified it before the lane reads it. */
+function tokenNaming(sub: string): string {
+  const segment = (value: unknown): string => Buffer.from(JSON.stringify(value)).toString("base64url");
+  return `${segment({ alg: "none" })}.${segment({ sub })}.unsigned`;
+}
+
 function identityInterceptor(
   callerClass: string,
   boundOrg: string | undefined,
   mintedBy: string | undefined,
+  unprovisionedSubject: string | undefined,
 ): Interceptor {
   return (next) => (request) => {
     request.contextValues.set(callerIdentityKey, {
-      identityId: CALLER,
+      identityId: unprovisionedSubject ?? CALLER,
       callerClass,
       issuer: "https://issuer.invalid",
-      rawToken: "tok",
+      rawToken: unprovisionedSubject === undefined ? "tok" : tokenNaming(unprovisionedSubject),
       ...(boundOrg === undefined ? {} : { boundOrg }),
       ...(mintedBy === undefined ? {} : { mintedBy }),
     });
@@ -173,10 +186,14 @@ function rig(
     boundOrg?: string;
     /** The service account that minted the caller's token; none unless a case says otherwise. */
     mintedBy?: string;
+    /** A caller admitted idp-shaped (identity = this subject, no account yet); a provisioned one unless a case says otherwise. */
+    unprovisionedSubject?: string;
     /** What the engine answers about a row's creator; every relation held unless a case says otherwise. */
     creatorHolds?: (relation: string) => boolean;
     /** A fault the engine answers every creator question with, over `creatorHolds`. */
     creatorFault?: Error;
+    /** A fault the engine answers a redeemer's membership question with. */
+    memberFault?: Error;
     /** Where the lane's warnings go, when a case reads them; silent otherwise. */
     warnings?: string[];
     /** Where the lane's errors go, when a case reads them; silent otherwise. */
@@ -236,8 +253,12 @@ function rig(
     },
   };
   const deps: InvitationLaneDeps = {
-    // Nobody here is a service account: the refusal reads a person.
-    accounts: { findById: () => Promise.resolve(undefined) },
+    // Nobody here is a service account (the refusal reads a person), and no
+    // account is stored: a provisioned caller's stamp stands as it is.
+    accounts: {
+      findById: () => Promise.resolve(undefined),
+      findDirectByIdpId: () => Promise.resolve(undefined),
+    },
     authorizer,
     logger:
       options.warnings === undefined && options.errors === undefined
@@ -271,7 +292,17 @@ function rig(
     },
     authorizationQueries: {
       check: (grant) => {
-        creatorChecks.push(`${grant.relation} ${grant.principal?.id ?? ""}`);
+        const principal = grant.principal?.id ?? "";
+        if (principal !== CREATOR) {
+          if (options.memberFault !== undefined) {
+            return Promise.reject(options.memberFault);
+          }
+          // A redeemer's membership: any role row this suite's grants left.
+          const prefix = `${principal}#`;
+          const suffix = `@${grant.resource?.id ?? ""}`;
+          return Promise.resolve([...held].some((row) => row.startsWith(prefix) && row.endsWith(suffix)));
+        }
+        creatorChecks.push(`${grant.relation} ${principal}`);
         if (options.creatorFault !== undefined) {
           return Promise.reject(options.creatorFault);
         }
@@ -288,7 +319,12 @@ function rig(
     {
       router: {
         interceptors: [
-          identityInterceptor(options.callerClass ?? "user", options.boundOrg, options.mintedBy),
+          identityInterceptor(
+            options.callerClass ?? "user",
+            options.boundOrg,
+            options.mintedBy,
+            options.unprovisionedSubject,
+          ),
         ],
       },
     },
@@ -668,6 +704,36 @@ describe("redeem", () => {
       r.actingFor,
       "the grant acts for the inviter, who decided it, never the redeemer",
     ).toEqual([CREATOR]);
+  });
+
+  it("records and grants a person not yet provisioned as the account their first sign-in makes, never their raw subject", async () => {
+    const r = rig({ decide: outsider, unprovisionedSubject: "auth0|first-visit" });
+    await r.store.save(stored({ id: "inv_a", token: "Go" }));
+
+    const redeemed = await r.commands.redeem({ token: "Go" });
+
+    const account = accountIdFor("auth0|first-visit");
+    expect(redeemed.status?.redemptions.map((entry) => entry.identityAccountId)).toEqual([account]);
+    expect(r.granted[0]?.principal).toMatchObject({ kind: "identity_account", id: account });
+
+    // Again before their account is made: the role the first redeem granted
+    // refuses it, and no second seat is taken.
+    const again = await failure(r.commands.redeem({ token: "Go" }));
+    expect(again.code).toBe(Code.AlreadyExists);
+    expect(again.rawMessage).toBe("You are already a member of this organization");
+    expect((await r.store.findById("inv_a"))?.status?.redemptionCount).toBe(1);
+    expect(r.granted).toHaveLength(1);
+  });
+
+  it("refuses INTERNAL, granting and recording nothing, when a person not yet provisioned cannot be asked about membership", async () => {
+    const r = rig({ decide: outsider, unprovisionedSubject: "auth0|first-visit", memberFault: new Error("engine unavailable") });
+    await r.store.save(stored({ id: "inv_a", token: "Go" }));
+
+    const error = await failure(r.commands.redeem({ token: "Go" }));
+
+    expect(error.code).toBe(Code.Internal);
+    expect(r.granted).toHaveLength(0);
+    expect((await r.store.findById("inv_a"))?.status?.redemptionCount).toBe(0);
   });
 
   // Only `user` redeems: open source's own non-person classes, a class a

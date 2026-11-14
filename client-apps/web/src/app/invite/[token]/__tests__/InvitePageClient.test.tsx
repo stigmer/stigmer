@@ -12,7 +12,11 @@
 //   - the auto-accept flag written before the sign-in redirect is consumed
 //     exactly once, on the return with a live session;
 //   - "sign in to accept" stores the way back and the flag, and redirects
-//     through the configured issuer; an accepted invitation lands in its org.
+//     through the configured issuer;
+//   - an accepted invitation makes the visitor's account first (a first-time
+//     visitor has none yet), then remembers the organization joined as the
+//     active one and goes home, where the console restores it; a failed
+//     account step still lands, since the console's gate retries it.
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -78,6 +82,18 @@ interface RedemptionProps {
 const page = vi.hoisted(() => ({
   redemption: [] as RedemptionProps[],
   clients: [] as Stigmer[],
+  steps: [] as string[],
+  ensure: { fails: false },
+}));
+vi.mock("@stigmer/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/client")>()),
+  ensureMyIdentityAccount: async (client: Stigmer) => {
+    page.steps.push(
+      client === page.clients.at(-1) ? "account:page-client" : "account:other",
+    );
+    if (page.ensure.fails) throw new Error("unavailable");
+    return { account: {}, created: true };
+  },
 }));
 vi.mock("@stigmer/react-sdk", () => ({
   StigmerProvider: ({
@@ -93,6 +109,9 @@ vi.mock("@stigmer/react-sdk", () => ({
   InvitationRedemption: (props: RedemptionProps) => {
     page.redemption.push(props);
     return null;
+  },
+  rememberActiveOrg: (id: string) => {
+    page.steps.push(`remember:${id}`);
   },
 }));
 
@@ -132,6 +151,9 @@ describe("InvitePageClient", () => {
     nav.push.mockReset();
     page.redemption = [];
     page.clients = [];
+    page.steps = [];
+    page.ensure.fails = false;
+    nav.push.mockImplementation((path: string) => page.steps.push(`go:${path}`));
   });
 
   afterEach(() => {
@@ -221,13 +243,29 @@ describe("InvitePageClient", () => {
     });
   });
 
-  it.each([
-    [{ metadata: { org: "acme" } }, "/acme"],
-    [{ metadata: {} }, "/"],
-    [{}, "/"],
-  ])("lands an accepted invitation %o on %s", (invitation, target) => {
+  it("CON-12 makes the account, remembers the organization joined, then goes home", async () => {
     render(<InvitePageClient />);
-    latest().onAccepted(invitation);
-    expect(nav.push).toHaveBeenCalledWith(target);
+    latest().onAccepted({ metadata: { org: "org_acme" } });
+    await waitFor(() => expect(page.steps).toHaveLength(3));
+    expect(page.steps).toEqual([
+      "account:page-client",
+      "remember:org_acme",
+      "go:/",
+    ]);
+  });
+
+  it("still lands when the account step fails", async () => {
+    page.ensure.fails = true;
+    render(<InvitePageClient />);
+    latest().onAccepted({ metadata: { org: "org_acme" } });
+    await waitFor(() => expect(page.steps).toHaveLength(3));
+    expect(page.steps.slice(1)).toEqual(["remember:org_acme", "go:/"]);
+  });
+
+  it("remembers nothing for an invitation naming no organization", async () => {
+    render(<InvitePageClient />);
+    latest().onAccepted({});
+    await waitFor(() => expect(page.steps).toHaveLength(3));
+    expect(page.steps.slice(1)).toEqual(["remember:", "go:/"]);
   });
 });

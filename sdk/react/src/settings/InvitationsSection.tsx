@@ -24,8 +24,18 @@ import { SettingsSkeleton } from "./SettingsSkeleton.js";
 /** Shown in place of the manager to a caller who may not manage invitations. */
 const INVITATIONS_MANAGED_BY_ADMINS = "Invitations are managed by your organization's admins.";
 
+/** Props for {@link InvitationsSection}. */
+export interface InvitationsSectionProps {
+  /**
+   * Build the full invite URL from a token, when invitees accept somewhere
+   * other than this origin's `/invite/<token>` (a desktop app's links open
+   * the web console).
+   */
+  readonly buildInviteUrl?: (token: string) => string;
+}
+
 /** Settings section for creating and managing organization invitations. */
-export function InvitationsSection() {
+export function InvitationsSection({ buildInviteUrl }: InvitationsSectionProps = {}) {
   const { activeOrg } = useOrg();
   const invitationsAvailable = useResourceAvailable(ApiResourceKind.invitation);
   const orgId = activeOrg?.metadata?.id ?? "";
@@ -53,7 +63,7 @@ export function InvitationsSection() {
       ) : manage.isLoading ? (
         <SettingsSkeleton label="Loading invitations" rows={2} />
       ) : (
-        <InvitationManager org={orgId} />
+        <InvitationManager org={orgId} {...(buildInviteUrl === undefined ? {} : { buildInviteUrl })} />
       )}
     </SettingsPage>
   );

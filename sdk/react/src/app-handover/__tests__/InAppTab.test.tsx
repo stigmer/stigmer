@@ -329,7 +329,8 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
     const embedding = await row("Your users get accounts the first time your app signs them in");
     expect(await within(embedding).findByText(/couldn't chat/)).toBeTruthy();
 
-    fireEvent.click(within(embedding).getByRole("button", { name: "Let them chat as Member" }));
+    // The button waits on the edit check, which may answer after the row's words.
+    fireEvent.click(await within(embedding).findByRole("button", { name: "Let them chat as Member" }));
     await waitFor(() => expect(updateEmbedding.mock.calls[0]?.[0].embedding).toMatchObject({ createAccountsOnSignIn: true, signInRole: IamRole.member }));
   });
 
