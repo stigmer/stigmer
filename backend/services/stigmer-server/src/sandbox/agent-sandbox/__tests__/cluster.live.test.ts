@@ -160,7 +160,7 @@ describe("the agent-sandbox driver on a live cluster", () => {
   const sessionId = `ses_live_${Date.now()}`;
   const name = sandboxBaseName("session", sessionId);
   const taskQueue = `session:${sessionId}`;
-  const env = { taskQueue, stigmerToken: "tok-live", callerClass: "user" };
+  const env = { taskQueue, stigmerToken: "tok-live", callerClass: "user", executionId: "aex_live" };
   // The server's Temporal worker lane at the backend endpoint: the pod's
   // runner reaches Temporal nowhere else.
   const lane = createHttp2Server();

@@ -82,6 +82,7 @@ describe("docker driver against a Docker daemon", () => {
       taskQueue: `session:${sessionId}`,
       stigmerToken: "tok-docker-live",
       callerClass: "user",
+      executionId: "aex_test",
     });
     expect(await driver.probe("session", sessionId)).toBe("running");
 
@@ -115,6 +116,7 @@ describe("docker driver against a Docker daemon", () => {
       taskQueue: `session:${sessionId}`,
       stigmerToken: "tok-docker-live",
       callerClass: "user",
+      executionId: "aex_test",
     });
     expect(await driver.probe("session", sessionId)).toBe("running");
 

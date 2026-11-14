@@ -151,6 +151,7 @@ const env = (taskQueue: string) => ({
   taskQueue,
   stigmerToken: "tok",
   callerClass: "user",
+  executionId: "aex_test",
 });
 
 function modeOf(

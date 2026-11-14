@@ -82,6 +82,18 @@ export interface SandboxFacts {
    */
   readonly callerClass: CallerClass;
   /**
+   * The run whose request this sandbox serves: the turn's run for a
+   * session sandbox, the connect's for a connect sandbox; "" for a push no
+   * run asked for (a composition's token renewal through a driver's
+   * reattach). A host that
+   * accounts for each accepted start (a plan's number held under a burst
+   * of simultaneous starts) ties the sandbox's place back to the start it
+   * accepted by this id; the built-in drivers ignore it. A fact, never
+   * policy. Required for the reason `callerClass` is: a construction site
+   * that forgets it fails to compile instead of silently reading as no run.
+   */
+  readonly executionId: string;
+  /**
    * The routine whose fire provisioned this sandbox
    * (`CallerIdentity.routineId`, which the run starter sets in process on
    * the identity a fire presents for the routine's owner), absent for every
