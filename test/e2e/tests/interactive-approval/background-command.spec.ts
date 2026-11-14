@@ -67,6 +67,9 @@ test.describe("a command the agent runs in the background (deterministic mock LL
     const row = toolCallRow(page).filter({ has: page.locator('[data-cursor-target="background-command-status"]') }).first();
     const status = row.locator('[data-cursor-target="background-command-status"]');
     await expect(status).toContainText("Running in the background", { timeout: 30_000 });
+    // A command left running in the background is not the step in hand, so
+    // its row stays closed until clicked; opened, it shows its live output.
+    await row.locator('[data-cursor-target="thread-card-toggle"]').first().click();
     // Previews are not replayed to a page that opens late, so the first ticks
     // may have streamed before it connected (a cold console, a recorded
     // trace): any tick before the last proves the live view.

@@ -9,7 +9,9 @@
 // names the gallery scenes that build it; each scene is drawn whole, in
 // light, at its width (tests/draw.ts), and read with the same rules the
 // page read the drawing with (tests/design-read.ts). A fact holds when:
-// - word: some built block's words hold the drawn words;
+// - word: some built block's words hold the drawn words, in their case and
+//   as whole words ("find the rounding code" is not "Find the rounding
+//   code", and "30s" is not held by "1m 30s");
 // - type: the built block whose words are exactly the drawn words has the
 //   drawn size, line height and weight (checked only where such a block
 //   exists; a word that fails is already reported);
@@ -25,13 +27,15 @@
 // The layout audit reads every scene of the catalogue, drawn or not, for
 // the families of drift no drawing has to name: text off the type scale,
 // a paragraph or heading keeping the browser's margin, spacing off the
-// scale. Its known breaks are listed in `design/layout-pending.json` per
+// scale, and an opened step's body out of its step's column (it starts
+// where the step's words start and, under the words alone, ends before
+// the step's trail). Its known breaks are listed in `design/layout-pending.json` per
 // scene, against the change that fixes them, in the same way.
 import { appendFileSync, readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { expect, test, type Page } from "@playwright/test";
 import { SCENES, WIDTHS, type Scene, type WidthName } from "../src/catalog.ts";
-import { auditLayout, readPage, type Reading } from "./design-read.ts";
+import { auditLayout, auditSteps, readPage, type Reading } from "./design-read.ts";
 import { draw } from "./draw.ts";
 
 const DESIGN = fileURLToPath(new URL("../design/", import.meta.url));
@@ -90,9 +94,36 @@ function sceneOf(id: string): Scene {
   return scene;
 }
 
-/** Collapses a text the way the readers do, and folds case, so a sentence's capital never differs from a button's. */
+/** Collapses a text the way the readers do. */
+function collapse(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+/** Collapses a text and folds its case, for a button's name, whose capital a sentence may differ in. */
 function fold(text: string): string {
-  return text.replace(/\s+/g, " ").trim().toLowerCase();
+  return collapse(text).toLowerCase();
+}
+
+/** Whether `char` is part of a word: a letter or a digit in any script. */
+function wordChar(char: string | undefined): boolean {
+  return char !== undefined && /[\p{L}\p{N}]/u.test(char);
+}
+
+/**
+ * Whether `text` holds `words` as whole words: some occurrence whose ends do
+ * not run on into a longer word on either side. Found by index, never by a
+ * pattern built from the words.
+ */
+function holdsWords(text: string, words: string): boolean {
+  if (words === "") return true;
+  for (let at = text.indexOf(words); at !== -1; at = text.indexOf(words, at + 1)) {
+    const before = at === 0 ? undefined : text[at - 1];
+    const after = text[at + words.length];
+    const startsWord = wordChar(words[0]);
+    const endsWord = wordChar(words[words.length - 1]);
+    if ((!startsWord || !wordChar(before)) && (!endsWord || !wordChar(after))) return true;
+  }
+  return false;
 }
 
 /** The most readings taken while waiting for two to agree. */
@@ -127,9 +158,9 @@ function failingFacts(drawing: Drawing, readings: readonly Reading[]): Map<strin
   const blocks = readings.flatMap((reading) => reading.blocks);
   const buttons = readings.flatMap((reading) => reading.buttons);
   for (const word of drawing.words) {
-    const want = fold(word.text);
-    if (!blocks.some((block) => fold(block.text).includes(want))) failing.set(`word ${word.text}`, "no built block holds these words");
-    const exact = blocks.find((block) => fold(block.text) === want);
+    const want = collapse(word.text);
+    if (!blocks.some((block) => holdsWords(collapse(block.text), want))) failing.set(`word ${word.text}`, "no built block holds these words");
+    const exact = blocks.find((block) => collapse(block.text) === want);
     if (exact === undefined) continue;
     const [size, leading, weight] = word.type;
     const [builtSize, builtLeading, builtWeight] = exact.type;
@@ -140,7 +171,7 @@ function failingFacts(drawing: Drawing, readings: readonly Reading[]): Map<strin
   for (const button of drawing.buttons) {
     // A built button's name may say more than the drawing's word ("Stop"
     // drawn, "Stop this turn" built), never less.
-    const named = buttons.filter((built) => fold(built.name).includes(fold(button.name)));
+    const named = buttons.filter((built) => holdsWords(fold(built.name), fold(button.name)));
     if (named.length === 0) failing.set(`button ${button.name}`, "no built button has this name");
     else if (!named.some((built) => Math.abs(built.height - button.height) <= 1)) {
       failing.set(`button ${button.name}`, `built ${named.map((built) => built.height).join(", ")}px tall, drawn ${button.height}px`);
@@ -186,7 +217,7 @@ test.describe("every scene keeps the kit's layout rules", () => {
     const width = scene.widths[0] ?? "desktop";
     test(`${scene.id} keeps the layout rules`, async ({ page }) => {
       await draw(page, scene, "light", WIDTHS[width], { whole: true });
-      const breaks = await steady(page, auditLayout);
+      const breaks = [...(await steady(page, auditLayout)), ...(await steady(page, auditSteps))];
       if (REPORT !== undefined) appendFileSync(REPORT, `${JSON.stringify({ scene: scene.id, breaks: breaks.map((one) => `${one.rule} ${one.where}: ${one.detail}`) })}\n`);
       const known = LAYOUT_PENDING[scene.id] ?? {};
       const found = new Set(breaks.map((one) => `${one.rule} ${one.where}: ${one.detail}`));

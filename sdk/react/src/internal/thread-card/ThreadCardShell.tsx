@@ -351,8 +351,10 @@ export interface ThreadCardStepProps {
  * pointer, so a click anywhere on the line reaches the toggle, and they
  * paint over it, so its hover shade sits under the words.
  *
- * `data-step-title` and `data-step-body` mark the words and the body for the
- * design facts test, which checks that the one starts where the other does.
+ * `data-step-title`, `data-step-body` (with its span) and `data-step-trail`
+ * mark the words, the body and the trail for the design facts test, which
+ * checks that the body starts where the words do and, under the words
+ * alone, ends before the trail.
  */
 export function ThreadCardStep({
   gesture = { kind: "none" },
@@ -421,14 +423,14 @@ export function ThreadCardStep({
           <span className="stg:flex stg:min-w-0 stg:items-baseline stg:gap-1 stg:text-xs stg:text-muted-foreground">{detail}</span>
         )}
       </span>
-      <span className={cn(lineParts, "stg:col-start-3 stg:flex stg:min-h-5 stg:items-center stg:gap-2 stg:self-start")}>
+      <span data-step-trail="" className={cn(lineParts, "stg:col-start-3 stg:flex stg:min-h-5 stg:items-center stg:gap-2 stg:self-start")}>
         {trail}
         {gesture.kind === "expand" && <ChevronIcon expanded={gesture.expanded} />}
       </span>
       {hasBody && (
         <div
           id={bodyId}
-          data-step-body=""
+          data-step-body={bodySpan}
           data-cursor-target={bodyCursorTarget}
           className={cn(
             "stg:row-start-2 stg:min-w-0 stg:mt-1",

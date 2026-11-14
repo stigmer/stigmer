@@ -20,11 +20,11 @@ A screen a later look replaced names it in `replacedBy` and has no drawings (S16
 
 The test draws each scene whole, in light, at its width (`tests/draw.ts`), and reads it with `tests/design-read.ts`, the rules the design page reads its drawings with:
 
-- a word holds when a block of the built screen holds the drawn words (case and spacing aside);
+- a word holds when a block of the built screen holds the drawn words in their case and as whole words (spacing aside): a lower-case subject does not hold a sentence's capital, and "30s" is not held inside "1m 30s";
 - its type holds when the built block whose words are exactly the drawn words has the drawn size, line height and weight;
-- a button holds when a built button's name holds the drawn name and one such button has the drawn height, to a pixel.
+- a button holds when a built button's name holds the drawn name as whole words (case aside) and one such button has the drawn height, to a pixel.
 
-The layout audit reads every scene: text sizes with the line height their step pairs (`sdk/theme/src/tokens.css`), no paragraph or heading keeping the browser's margin, paddings and gaps in half spacing units.
+The layout audit reads every scene: text sizes with the line height their step pairs (`sdk/theme/src/tokens.css`), no paragraph or heading keeping the browser's margin, paddings and gaps in half spacing units, and every opened step's body in its step's column (`auditSteps`: its left edge within a pixel of its words', and a body under the words alone ending before the step's trail). Its known breaks are listed per scene in `layout-pending.json`.
 
 ## After a design passes his look
 

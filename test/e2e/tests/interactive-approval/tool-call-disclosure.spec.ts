@@ -30,8 +30,6 @@ import {
   readFileBlock,
   toolCallRow,
   toolRunGroup,
-  fileDiff,
-  fileDiffExpand,
   openHowItGotThere,
   type SeededGatedRun,
 } from "../../helpers/approval";
@@ -101,13 +99,14 @@ test.describe("tool-call disclosure timeline (deterministic mock LLM)", () => {
     await expect(toolRunGroup(page)).toHaveCount(0);
   });
 
-  test("a completed write shows its content inline as an additive diff", async ({
+  test("a completed write of a new file opens to its first lines", async ({
     page,
     stigmerClient,
   }) => {
     // A settled write is one closed line; one click opens it in place to the
-    // additive diff of what it wrote (filename-first). This is the
-    // post-execution half of the gate's before/after diff.
+    // file it wrote. A new file (its turn's review says added) reads
+    // "Created" and opens to its first lines, as the session page draws it
+    // (S37); a diff of nothing against them would say less.
     seeded = await seedToolRunSession(stigmerClient, control, {
       toolTurns: [[writeFileBlock("call_diff", "/tmp/e2e-additive.txt", "line one\nline two\n")]],
     });
@@ -116,27 +115,25 @@ test.describe("tool-call disclosure timeline (deterministic mock LLM)", () => {
 
     const row = toolCallRow(page).first();
     await expect(row).toBeVisible({ timeout: 30_000 });
-    // Closed until clicked: the row's own toggle, and no diff yet.
+    await expect(row).toContainText("Created");
+    // Closed until clicked: the row's own toggle, and no lines yet.
     const toggle = row.locator('[data-cursor-target="thread-card-toggle"]');
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
-    await expect(fileDiff(row)).toHaveCount(0);
-    // Opened in place, it shows the written lines.
+    await expect(row.getByText("line one")).toHaveCount(0);
+    // Opened in place, under its words, it shows the written lines.
     await toggle.click();
-    await expect(fileDiff(row).first()).toBeVisible();
-    await expect(row.getByText("line one")).toBeVisible();
-    await expect(row.getByText("line two")).toBeVisible();
+    await expect(row.getByText(/line one/)).toBeVisible();
+    await expect(row.getByText(/line two/)).toBeVisible();
   });
 
-  test("a large completed write is bounded to the shared budget and reveals in place", async ({
+  test("a large new file shows its first lines and the rest in place", async ({
     page,
     stigmerClient,
   }) => {
-    // The settled-card counterpart to the gate's bounded diff: a large write must
-    // not render the whole file inline. Opened, the diff is clamped to the same
-    // shared budget (max-h-48) as the gate, with a single in-place "Show more"
-    // that grows the clamp toward full height — it does NOT promote to a
-    // separate detail panel. The clamp is layout-driven, so it is only provable
-    // in a real browser — here.
+    // The settled counterpart to the gate's bounded preview: a large write
+    // must not render the whole file inline. Opened, it shows its first five
+    // lines, says which ("Lines 1–5 of 30"), and reveals the rest in place:
+    // never a separate detail panel.
     const big = Array.from({ length: 30 }, (_, i) => `row ${i + 1}`).join("\n") + "\n";
     seeded = await seedToolRunSession(stigmerClient, control, {
       toolTurns: [[writeFileBlock("call_big_settled", "/tmp/e2e-big-settled.txt", big)]],
@@ -148,42 +145,18 @@ test.describe("tool-call disclosure timeline (deterministic mock LLM)", () => {
     await expect(row).toBeVisible({ timeout: 30_000 });
 
     // A settled step is closed until clicked: the row carries exactly one
-    // header toggle (the card's `thread-card-toggle`; RevealToggle, the diff's
-    // own in-place reveal, is another button and deliberately does not match
-    // this pin), and opening it shows the diff in place.
+    // header toggle, and opening it shows the file's first lines in place.
     const toggle = row.locator('[data-cursor-target="thread-card-toggle"]');
     await expect(toggle).toHaveCount(1);
     await toggle.click();
 
-    // Collapsed: the diff body is clipped to the budget — the shared
-    // BoundedContent clamp (`stg:overflow-hidden` + the standard max height),
-    // the same primitive the approval gate uses, so the two surfaces are
-    // visually consistent by construction. (With capture on, the row's diff
-    // renders through the file-diff family, not the tool-preview wrapper —
-    // the selectors target the diff's own clamp.)
-    const diff = fileDiff(row).first();
-    await expect(diff).toBeVisible();
-    const clamp = diff.locator('[class*="overflow-hidden"]').first();
-    // Visible is not laid out, and the diff can re-render after it appears: a
-    // node read mid re-render reports 0 for one height and not the other
-    // (#2260). So both heights come from one read of one element, polled until
-    // the clamp is laid out and clipping: actually clipped, not the whole file.
-    // A clamp that never clips still fails, at the poll's timeout.
-    let measured = { collapsed: 0, full: 0 };
-    await expect
-      .poll(async () => {
-        measured = await clamp.evaluate((el) => ({ collapsed: el.clientHeight, full: el.scrollHeight }));
-        return measured.collapsed > 0 && measured.collapsed < measured.full;
-      })
-      .toBe(true);
-    const { collapsed } = measured;
-    expect(collapsed).toBeLessThanOrEqual(220); // ~max-h-48 (192px) + table chrome
+    const lines = row.getByRole("region", { name: "File content" });
+    await expect(lines).toContainText("row 5");
+    await expect(lines).not.toContainText("row 6");
+    await expect(row.getByText("Lines 1–5 of 30")).toBeVisible();
 
-    // "Show more" reveals the rest IN PLACE — the clamp grows past its collapsed
-    // height, rather than swapping in a separate detail panel.
-    const expand = fileDiffExpand(row);
-    await expect(expand).toBeVisible();
-    await expand.click();
-    await expect.poll(() => clamp.evaluate((el) => el.clientHeight)).toBeGreaterThan(collapsed);
+    // "Show all" reveals the rest IN PLACE.
+    await row.getByRole("button", { name: "Show all" }).click();
+    await expect(lines).toContainText("row 30");
   });
 });
