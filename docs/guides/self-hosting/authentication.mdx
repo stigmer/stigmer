@@ -178,6 +178,21 @@ person your provider lets in before the operator becomes an administrator, and
 everyone else joins as a member. With no operator email set, the first person to
 sign in owns the Organization.
 
+### Link people to sign-up
+
+To send newcomers straight to your provider's create-account screen, link them
+to `https://stigmer.example.com/login?signup=1`. The console asks your provider
+for that screen with the standard `prompt=create` request when the provider's
+discovery document lists `create` among its `prompt_values_supported`; any other
+provider shows its ordinary sign-in, from which people can still register if it
+allows them to. Someone already signed in lands in the console.
+
+A provider that ignores the standard and reads its own hint instead can be given
+that hint when you build the console as its own container:
+`NEXT_PUBLIC_OIDC_SIGNUP_PARAMS` takes the extra parameters as a query string,
+and the console refuses one that names a parameter of the sign-in flow itself,
+such as `client_id` or `redirect_uri`.
+
 ### Create the keys
 
 Open **Settings → API Keys** and choose **New API key**. Create one named

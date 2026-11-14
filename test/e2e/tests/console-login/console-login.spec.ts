@@ -14,7 +14,11 @@ import { OIDC_ISSUER, OIDC_STACK } from "../../fixtures/oidc";
  * identity account on first sign-in, lands in the organization the server
  * made with no onboarding and no dead wait, owns it (the first person on a
  * self-host with no operator email configured), and signs out to the
- * `/login` landing.
+ * `/login` landing. A second arm proves the sign-up arrival the website's
+ * "Start free" links to: `/login?signup=1` goes straight on to the issuer
+ * with the standard `prompt=create` (this issuer advertises it, and the
+ * stack sets no sign-up parameters of its own) and the round trip lands
+ * the person signed in on the console.
  *
  * Stack shape: `STIGMER_E2E_OIDC=1` (global-setup boots the issuer and the
  * server in the posture, on the shipped entry, which makes its one
@@ -109,5 +113,41 @@ test.describe("console login against an authenticated self-hosted server", () =>
     await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
     await page.waitForTimeout(1_500);
     expect(new URL(page.url()).pathname).toBe("/login");
+  });
+
+  test("the sign-up arrival goes straight to the issuer asking for its create-account screen, and lands signed in", async ({
+    page,
+  }) => {
+    // A fresh browser context: nobody is signed in.
+    const authorizeRequests: URL[] = [];
+    page.on("request", (request) => {
+      const url = new URL(request.url());
+      if (
+        url.origin === new URL(OIDC_ISSUER).origin &&
+        url.pathname === "/authorize"
+      ) {
+        authorizeRequests.push(url);
+      }
+    });
+
+    await page.goto("/login?signup=1");
+    await page.waitForURL((url) => url.pathname === "/auth/callback", {
+      timeout: 15_000,
+    });
+
+    // One authorization request, asking for sign-up the standard way and
+    // still carrying the audience the API's token needs.
+    expect(authorizeRequests).toHaveLength(1);
+    const query = authorizeRequests[0]!.searchParams;
+    expect(query.get("prompt")).toBe("create");
+    expect(query.get("audience")).not.toBeNull();
+    expect(query.get("code_challenge_method")).toBe("S256");
+
+    // The callback returns the person home, signed in.
+    await expect(page.getByRole("navigation").first()).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByRole("button", { name: "User menu" })).toBeVisible();
+    expect(new URL(page.url()).pathname).not.toBe("/login");
   });
 });

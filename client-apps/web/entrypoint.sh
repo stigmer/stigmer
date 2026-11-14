@@ -11,7 +11,8 @@ cat > /usr/share/nginx/html/config.json <<EOF
   "authMode": "${NEXT_PUBLIC_AUTH_MODE:-disabled}",
   "oidcIssuer": "${NEXT_PUBLIC_OIDC_ISSUER:-}",
   "oidcClientId": "${NEXT_PUBLIC_OIDC_CLIENT_ID:-}",
-  "oidcAudience": "${NEXT_PUBLIC_OIDC_AUDIENCE:-}"
+  "oidcAudience": "${NEXT_PUBLIC_OIDC_AUDIENCE:-}",
+  "oidcSignupParams": "${NEXT_PUBLIC_OIDC_SIGNUP_PARAMS:-}"
 }
 EOF
 

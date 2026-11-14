@@ -29,6 +29,10 @@
 //     the console never sends less, and a fixture that accepted less would
 //     let a weaker client pass), auto-consents as the configured `person`,
 //     and 302s to the redirect URI with a single-use code and the state;
+//     discovery lists `create` among `prompt_values_supported`, as an
+//     issuer with a sign-up screen does, so the console's sign-up arrival
+//     (`/login?signup=1`) sends `prompt=create`, and auto-consent answers
+//     it like any other prompt;
 //   - `/token` redeems the code once, only for the verifier whose S256 hash
 //     it was issued against and the redirect URI it was issued to, and
 //     mints an access token (`aud` = the audience, for the server), an
@@ -294,6 +298,7 @@ export async function startLocalOidcIssuer(
             subject_types_supported: ["public"],
             id_token_signing_alg_values_supported: ["RS256"],
             scopes_supported: ["openid", "email", "profile", "offline_access"],
+            prompt_values_supported: ["none", "login", "consent", "create"],
           });
           return;
         case "/jwks":

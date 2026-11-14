@@ -1,4 +1,5 @@
 import { getRuntimeConfig } from "@/config/runtime-config";
+import { parseSignupParams } from "./oidc/signup-params";
 import type { AuthConfig, AuthMode } from "./types";
 
 const VALID_MODES: readonly AuthMode[] = ["disabled", "oidc"];
@@ -34,6 +35,8 @@ export function resolveAuthConfig(): AuthConfig {
         issuer: config.oidcIssuer,
         clientId: config.oidcClientId,
         audience: config.oidcAudience,
+        // Already refused at load when it names a parameter the flow owns.
+        signupQueryParams: parseSignupParams(config.oidcSignupParams),
       },
     };
   }
