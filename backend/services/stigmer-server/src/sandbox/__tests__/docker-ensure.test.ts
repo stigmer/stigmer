@@ -40,6 +40,7 @@ const ENV: SandboxFacts = {
   taskQueue: "session:ses_ensure",
   stigmerToken: "token-ensure",
   callerClass: "user",
+  executionId: "aex_test",
 };
 
 let dir: string;
@@ -230,6 +231,7 @@ describe("docker driver ensure", () => {
       taskQueue: "mcpconnect:mcr_ensure",
       stigmerToken: "",
       callerClass: "user",
+      executionId: "aex_test",
     });
 
     expect(id).toBe("mcr_ensure");

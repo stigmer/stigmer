@@ -61,6 +61,7 @@ const facts: SandboxFacts = {
   taskQueue: "session:ses_1",
   stigmerToken: "tok-1",
   callerClass: "user",
+  executionId: "aex_test",
 };
 
 const name = sandboxBaseName("session", "ses_1");

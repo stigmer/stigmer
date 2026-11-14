@@ -939,6 +939,7 @@ const consumerSubstrateDriver: SandboxProvisionerFactory = ({
       taskQueue: sandboxTaskQueue("session", sessionId),
       stigmerToken: token,
       callerClass: "runner",
+      executionId: "",
     });
   void renewed;
   return driver.provisioner;

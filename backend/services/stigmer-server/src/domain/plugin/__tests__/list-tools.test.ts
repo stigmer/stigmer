@@ -43,7 +43,7 @@ import { untouchable } from "../../../pipeline/__tests__/support.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import type { RunnerCredentialProvider } from "../../../runnerauth/runner-credential-provider.js";
 import type { SandboxLane } from "../../../sandbox/lane.js";
-import type { SandboxProvisioner } from "../../../sandbox/provisioner.js";
+import type { SandboxFacts, SandboxProvisioner } from "../../../sandbox/provisioner.js";
 import type { ConnectAttemptRecord, Store } from "../../../store/interface.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
 import { newVaultResolver } from "../../vault/resolve.js";
@@ -543,12 +543,14 @@ describe("listTools — a listing", () => {
     expect(starts).toEqual([]);
   });
 
-  it("runs in a connect sandbox when the lane is enabled, and releases it after", async () => {
+  it("runs in a connect sandbox when the lane is enabled, names the connect's run in its facts, and releases it after", async () => {
     const created: string[] = [];
+    const runs: string[] = [];
     const released: string[] = [];
     const provisioner = {
-      createConnectSandbox: (id: string) => {
+      createConnectSandbox: (id: string, facts: SandboxFacts) => {
         created.push(id);
+        runs.push(facts.executionId);
         return Promise.resolve(`sbx-${id}`);
       },
       deprovisionConnectSandbox: (sandboxId: string) => {
@@ -578,6 +580,7 @@ describe("listTools — a listing", () => {
     );
     const id = starts[0]!.attemptId;
     expect(created).toEqual([id]);
+    expect(runs).toEqual([id]);
     expect(starts[0]?.taskQueue.kind).toBe("sandbox");
     expect(released).toEqual([`sbx-${id}`]);
     expect(attempts.rows.size).toBe(0);

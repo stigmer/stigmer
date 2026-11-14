@@ -297,6 +297,7 @@ describe("the ladder", () => {
       taskQueue: "session:ses_a",
       stigmerToken: "",
       callerClass: "user",
+      executionId: "aex_test",
     });
     await h.pass();
     expect(h.substrate.actors.get(name)?.state).toBe("running");
