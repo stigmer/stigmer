@@ -410,7 +410,8 @@ function SearchContentMatches({ matches }: { matches: readonly ToolSearchMatch[]
               className="stg:whitespace-pre-wrap stg:break-words stg:px-2 stg:py-0.5 stg:font-mono stg:text-foreground"
             >
               {m.line !== undefined && (
-                <span className="stg:select-none stg:text-muted-foreground-subtle">{m.line}: </span>
+                // A line number is read, so it takes the readable muted tone.
+                <span className="stg:select-none stg:text-muted-foreground">{m.line}: </span>
               )}
               {m.text}
             </div>
