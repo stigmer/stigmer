@@ -147,10 +147,7 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
-        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
         "type Working · 1m 30s": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
-        "word 1s": "The session's frame: one duration format, \"1m 30s\"",
         "word A cent off on many invoices sounds like rounding each line before the total. If lineTotal rounds and invoiceTotal adds the rounded lines, three lines of 0.335 give 1.02 where the exact total rounds to 1.01. Read invoice.ts before changing anything.": "Steps, approvals and the finished turn: the screen's parts as drawn",
         "word Read invoice.ts": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans",
         "word src/billing": "Steps, approvals and the finished turn: the screen's parts as drawn"

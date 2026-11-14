@@ -419,8 +419,6 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
-        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
         "type Credit notes now round once, like invoices. The old helper is gone and the new one has its own tests.": "The session's frame: the answer's lines at the scale's 20px, its acts in no reserved row",
         "type Done": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
         "type Made": "Steps, approvals and the finished turn: the finished turn's cards, sizes and downloads",
@@ -431,9 +429,7 @@
         "word +2−2 · src/billing": "Steps, approvals and the finished turn: the screen's parts as drawn",
         "word - (sum, line) => sum + roundCents(line.amount), 0);": "Steps, approvals and the finished turn: the screen's parts as drawn",
         "word - return note.lines.reduce(": "Steps, approvals and the finished turn: the screen's parts as drawn",
-        "word 1s": "The session's frame: one duration format, \"1m 30s\"",
         "word 2 matches in 2 files": "Steps, approvals and the finished turn: the screen's parts as drawn",
-        "word 2m 10s": "The session's frame: one duration format, \"1m 30s\"",
         "word 6 files": "Steps, approvals and the finished turn: the screen's parts as drawn",
         "word 9 steps · 1m 52s": "The session's frame: one duration format, \"1m 30s\"",
         "word Changing": "Steps, approvals and the finished turn: the screen's parts as drawn",

@@ -175,8 +175,6 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
-        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
         "type Running a command": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans",
         "type Stop": "Steps, approvals and the finished turn: the screen's parts as drawn",
         "word Ran a command npm run dev": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans",

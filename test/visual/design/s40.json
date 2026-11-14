@@ -136,10 +136,7 @@
       "ruled": {},
       "pending": {
         "button Copy details": "Endings: a notice's acts at xs, with their icons",
-        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
-        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
-        "type Didn't finish": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
-        "word 0s": "The session's frame: one duration format, \"1m 30s\""
+        "type Didn't finish": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)"
       }
     }
   ]

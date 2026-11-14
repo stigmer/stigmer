@@ -156,12 +156,9 @@
       "ruled": {},
       "pending": {
         "button Copy details": "Endings: a notice's acts at xs, with their icons",
-        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
         "button Run again": "Endings: a notice's acts at xs, with their icons",
-        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
         "type Didn't finish": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
         "type Run again": "Endings: a notice's acts at xs, with their icons",
-        "word 0s": "The session's frame: one duration format, \"1m 30s\"",
         "word Anthropic's status page": "Endings: the ending's words name the button and the status page"
       }
     }
