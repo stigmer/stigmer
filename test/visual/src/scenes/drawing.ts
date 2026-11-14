@@ -13,6 +13,12 @@ export interface Drawing {
   /** The calls the tree makes, answered; every other call answers `Unimplemented`. */
   readonly routes?: Routes;
   /**
+   * Methods (by their local name, `streamEvents`) the page leaves out of
+   * its idle count: a follow the scene holds open without a first frame,
+   * which would otherwise keep the scene from ever settling.
+   */
+  readonly uncounted?: readonly string[];
+  /**
    * The calls the tree makes in the docs mode (`?embed=1`), where a reader
    * can talk to it: its conversation answered by the scripted server
    * (src/live-server.ts). Omitted, the docs mode answers `routes`.

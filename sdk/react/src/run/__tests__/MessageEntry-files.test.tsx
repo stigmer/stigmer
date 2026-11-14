@@ -221,7 +221,10 @@ describe("MessageEntry file rendering", () => {
     );
 
     expect(screen.getByText("data.bin")).toBeTruthy();
-    expect(screen.getByText("2.0 KB")).toBeTruthy();
+    // The name and its size joined by a dot, in the tag's muted words (S54).
+    const chip = screen.getByRole("listitem", { name: "data.bin" });
+    expect(chip.textContent).toContain("data.bin· 2.0 KB");
+    expect(chip.className).toContain("stg:text-muted-foreground");
     fireEvent.click(screen.getByRole("button", { name: "Download data.bin" }));
     expect(downloadSpy).toHaveBeenCalledWith("file_data", "data.bin");
   });

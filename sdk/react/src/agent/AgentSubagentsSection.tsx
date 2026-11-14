@@ -25,6 +25,7 @@ import { useAgent } from "./useAgent.js";
 import { keptReference } from "../internal/kept-reference.js";
 import { Button } from "../button/Button.js";
 import { IconButton } from "../button/IconButton.js";
+import { PlusGlyph } from "../internal/thread-card/glyphs.js";
 
 /** The most agents one agent may list; the server refuses more. */
 export const MAX_SUBAGENTS = 20;
@@ -173,7 +174,7 @@ export function AgentSubagentsSection({
                 variant="outline"
                 size="xs"
                 onClick={() => setIsPicking(true)}
-                icon={<PlusIcon className="stg:size-3" />}
+                icon={<PlusGlyph size={12} />}
                 className="stg:border-dashed"
               >
                 Add subagent
@@ -327,14 +328,6 @@ function AgentIcon({ className }: { readonly className?: string }) {
       <rect x="3" y="5" width="10" height="8" rx="1.5" />
       <path d="M6 9h.01M10 9h.01" strokeWidth="2" />
       <path d="M8 2v3" />
-    </svg>
-  );
-}
-
-function PlusIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <path d="M8 3v10M3 8h10" />
     </svg>
   );
 }

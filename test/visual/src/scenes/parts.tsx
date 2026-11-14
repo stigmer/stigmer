@@ -115,7 +115,7 @@ function Parts() {
           headingLevel={2}
           title="API keys"
           description="Keys sign the CLI and your own programs in to Stigmer as you. A key works in every organization you belong to, unless you limit it to one."
-          actions={<Button>New API key</Button>}
+          actions={<Button icon={<PlusMark />}>New API key</Button>}
         />
       </Group>
       <Group label="Status pill">
@@ -146,4 +146,14 @@ function Parts() {
 /** Every shared part, in every variant and state it has. */
 export function partsScene(): Drawing {
   return { render: () => <Parts /> };
+}
+
+/** The plus a page header's create act leads with ("+ New API key"), as the settings page draws it. */
+function PlusMark() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
+    </svg>
+  );
 }

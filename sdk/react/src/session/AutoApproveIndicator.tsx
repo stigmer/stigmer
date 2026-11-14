@@ -24,9 +24,10 @@ export function AutoApproveIndicator({ onTurnOff }: { readonly onTurnOff: () => 
   return (
     <ComposerStrip
       role="status"
-      icon={<ShieldCheckIcon />}
+      icon={<ShieldIcon />}
       act={
-        <Button variant="ghost" size="xs" onClick={onTurnOff}>
+        // A quiet act, as the strips' acts are drawn: the muted ghost.
+        <Button variant="ghost" size="xs" onClick={onTurnOff} className="stg:text-muted-foreground">
           Turn off
         </Button>
       }
@@ -36,11 +37,11 @@ export function AutoApproveIndicator({ onTurnOff }: { readonly onTurnOff: () => 
   );
 }
 
-function ShieldCheckIcon() {
+/** A plain shield in the strip's muted tone: auto-approve is a setting, not a status, so it takes no hue. */
+function ShieldIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="stg:shrink-0 stg:text-status-ready" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="stg:shrink-0 stg:text-muted-foreground" aria-hidden="true">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-      <path d="m9 12 2 2 4-4" />
     </svg>
   );
 }

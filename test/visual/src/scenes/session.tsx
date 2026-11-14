@@ -33,6 +33,7 @@ import { FileChangeKind, InteractionMode, RunPhase } from "@stigmer/apis/ai/stig
 import { FileChangeProgressSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/command_pb";
 import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
+import { GetSessionUsageReportOutputSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { RecalledMemoriesSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import { WorkspaceWriteBackPhase, WorkspaceWriteBackSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
 import { ScoreQueryController } from "@stigmer/apis/ai/stigmer/agentic/score/v1/query_pb";
@@ -53,7 +54,7 @@ import { RoutineQueryController } from "@stigmer/apis/ai/stigmer/agentic/routine
 import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 import { ApiResourceAuditSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
-import { SessionInspector, SessionViewer, type SessionAudience } from "@stigmer/react-sdk";
+import { FilePreviewModal, SessionInspector, SessionViewer, type SessionAudience } from "@stigmer/react-sdk";
 import {
   endingStories,
   sampleInstant,
@@ -143,6 +144,20 @@ async function* follow(scenario: SessionReplay, request: StreamSessionEventsRequ
   }
 }
 
+/** A follow that sends nothing and stays open until the viewer leaves. */
+async function* held(context: HandlerContext): AsyncGenerator<never> {
+  await new Promise((resolve) => context.signal.addEventListener("abort", resolve));
+}
+
+/** The scenario's events after the client's place, then a dropped connection. */
+async function* dropping(scenario: SessionReplay, request: StreamSessionEventsRequest) {
+  const after = request.afterSeq ?? 0n;
+  for (const event of scenario.events) {
+    if (event.seq > after) yield samples.eventFrame(event);
+  }
+  throw new ConnectError("the connection dropped", Code.Unavailable);
+}
+
 /** `answer`, or the refusal of a scenario whose session cannot load (the server is unreachable). */
 function loadable<T>(scenario: SessionReplay, answer: T): T {
   if (scenario.loadError !== null) throw new ConnectError(scenario.loadError.message, Code.Unavailable);
@@ -162,10 +177,21 @@ export interface Answering {
   readonly attachments?: readonly { readonly file: StigmerFile; readonly url: string }[];
   /** How the server refuses a message the person sends: a send that never reached it, or a refusal it gave. */
   readonly sendRefusal?: ConnectError;
+  /** The session's usage report, for the panel's Usage view; unanswered (the view's empty state) when omitted. */
+  readonly usage?: MessageInitShape<typeof GetSessionUsageReportOutputSchema>;
+  /**
+   * How the follow behaves, beyond answering the events: `held` sends
+   * nothing and stays open (a turn that hasn't started, so the view's connect
+   * timeout shows); `drops` sends the events, then drops, and every reopen
+   * is held (a connection that keeps failing to come back, so the view
+   * says it reconnects). The draw leaves the follow out of its idle count
+   * for both (`Drawing.uncounted`).
+   */
+  readonly stream?: "held" | "drops";
 }
 
 /** The calls the viewer makes for `scenario`, answered as for the session's owner. */
-export function sessionRoutes(scenario: SessionReplay, { agent = samples.agent(), others = [], live, refused = [], attachments = [], sendRefusal }: Answering = {}) {
+export function sessionRoutes(scenario: SessionReplay, { agent = samples.agent(), others = [], live, refused = [], attachments = [], sendRefusal, usage, stream }: Answering = {}) {
   const replays = [scenario, ...others];
   // With one conversation every call is answered from it, whatever id it
   // names, as the scenes always have; with more, from the one it names.
@@ -179,6 +205,8 @@ export function sessionRoutes(scenario: SessionReplay, { agent = samples.agent()
     others.length === 0
       ? [SESSION_ORG]
       : [...new Set(replays.map((replay) => replay.session?.metadata?.org ?? ""))].map((org) => samples.organization({ id: org, slug: org }));
+  // The follows a `drops` scene has opened: the first is answered, then drops.
+  let follows = 0;
   return (router: ConnectRouter) => {
     router.service(SessionQueryController, {
       get: (request) => {
@@ -191,11 +219,21 @@ export function sessionRoutes(scenario: SessionReplay, { agent = samples.agent()
       },
       streamEvents: (request, context) => {
         const replay = replayOf(request.sessionId);
+        // A held stream sends nothing and stays open, as a turn that hasn't
+        // started does; a dropping one answers once, then drops, and every
+        // reopen is held, so the view keeps reconnecting.
+        if (stream === "held" || (stream === "drops" && follows > 0)) return held(context);
+        follows += 1;
+        if (stream === "drops") return dropping(loadable(replay, replay), request);
         return follow(loadable(replay, replay), request, context, replay === scenario ? live : undefined);
       },
     });
     router.service(RunQueryController, {
       listBySession: (request) => samples.runList([...replayOf(request.sessionId).runs]),
+      getSessionUsageReport: (request) => {
+        if (usage === undefined) throw new ConnectError("no usage report in this scene", Code.Unimplemented);
+        return create(GetSessionUsageReportOutputSchema, { ...usage, sessionId: request.sessionId });
+      },
       get: (request) => {
         const run = replays.flatMap((replay) => replay.runs).find((candidate) => candidate.metadata?.id === request.value);
         if (run === undefined) throw new ConnectError(`no run ${request.value}`, Code.NotFound);
@@ -366,6 +404,7 @@ export function sessionDrawing(source: SessionReplay, framing: Framing = {}, ans
   const session = replay.session ?? samples.session();
   return {
     inOrganization: true,
+    ...(answering.stream === undefined ? {} : { uncounted: ["streamEvents"] }),
     routes: sessionRoutes(replay, participant ? { ...answering, refused: ["can_edit"] } : answering),
     liveRoutes: () => new LiveConversation(replay).routes(),
     render: () => (
@@ -613,6 +652,56 @@ export function sessionPullRequestsScene(): Drawing {
  */
 export function sessionFilePreviewScene(): Drawing {
   return sessionDrawing(scenarios.finished, { audience: "endUser" });
+}
+
+/**
+ * The same File in the preview window for a member of the organization,
+ * the window the Library opens: beside Copy and Download, Delete (Add as
+ * skill is a skill archive's, never a Markdown file's).
+ */
+export function sessionFilePreviewMemberScene(): Drawing {
+  const finished = scenarios.finished;
+  const file = finished.files.find((candidate) => candidate.spec?.filename === "invoice-audit.md") ?? finished.files[0]!;
+  return {
+    inOrganization: true,
+    routes: sessionRoutes(finished),
+    render: () => (
+      <FilePreviewModal file={file} org={finished.session!.metadata!.org} isTerminal open onClose={() => {}} onDeleted={() => {}} />
+    ),
+  };
+}
+
+/**
+ * The finished session with the panel open on its usage: two turns on two
+ * models, so the total, By turn and By model all draw.
+ */
+export function sessionUsageScene(): Drawing {
+  const finished = scenarios.finished;
+  const runId = finished.runs[0]?.metadata?.id ?? RUN_ID;
+  return sessionDrawing(finished, { inspector: true }, {
+    usage: {
+      runCount: 2,
+      totalUsage: { inputTokens: 52_400n, outputTokens: 9_810n, totalTokens: 62_210n, cacheReadInputTokens: 18_200n, workingSeconds: 112n, llmCallCount: 11, primaryModel: "claude-sonnet-4-5", primaryProvider: "anthropic" },
+      runs: [
+        { runId: "run_00000000000000000000000090", primaryModel: "claude-haiku-4-5", inputTokens: 16_100n, outputTokens: 4_900n, totalTokens: 21_000n, workingSeconds: 38n },
+        { runId, primaryModel: "claude-sonnet-4-5", inputTokens: 36_300n, outputTokens: 4_910n, totalTokens: 41_210n, workingSeconds: 74n },
+      ],
+      modelBreakdown: [
+        { model: "claude-sonnet-4-5", provider: "anthropic", inputTokens: 36_300n, outputTokens: 4_910n, totalTokens: 41_210n, callCount: 7 },
+        { model: "claude-haiku-4-5", provider: "anthropic", inputTokens: 16_100n, outputTokens: 4_900n, totalTokens: 21_000n, callCount: 4 },
+      ],
+    },
+  });
+}
+
+/** The long turn at work after its connection dropped and keeps failing to come back: the view says it reconnects. */
+export function sessionReconnectingScene(): Drawing {
+  return sessionDrawing(scenarios.busy, { inspector: true }, { stream: "drops" });
+}
+
+/** A turn the agent hasn't started: the follow stays silent past the view's connect timeout, so the strip says so with Try again. */
+export function sessionNotStartedScene(): Drawing {
+  return sessionDrawing(scenarios["waiting-for-sandbox"], { inspector: true }, { stream: "held" });
 }
 
 /**

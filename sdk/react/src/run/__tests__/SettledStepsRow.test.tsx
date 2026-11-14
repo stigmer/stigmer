@@ -19,6 +19,18 @@ const read = samples.toolUse("read_file", "contents", { input: { path: "src/a.ts
 const think = samples.toolUse("think", "noted");
 
 describe("SettledStepsRow", () => {
+  it("reads its words at the foreground and its time muted, as drawn (S46)", () => {
+    render(
+      <SettledStepsRow toolUses={[read]}>
+        <p>the rows</p>
+      </SettledStepsRow>,
+    );
+    const words = screen.getByText("Read 1 file");
+    expect(words.className).toContain("stg:text-foreground");
+    expect(words.closest("button")!.className).not.toContain("stg:text-muted-foreground");
+    expect(screen.getByText("1s").className).toContain("stg:text-muted-foreground");
+  });
+
   it("says the calls' words and their time, closed, and opens and closes on a click", () => {
     render(
       <SettledStepsRow toolUses={[read]}>

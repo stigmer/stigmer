@@ -24,6 +24,7 @@ import {
   writeBackDisplayName,
 } from "./write-back-utils.js";
 import { IconButton } from "../button/IconButton.js";
+import { ExternalLinkGlyph } from "../internal/thread-card/glyphs.js";
 
 /** Props for {@link WriteBackCard}. */
 export interface WriteBackCardProps {
@@ -193,7 +194,7 @@ function PullRequestLink({ url, number }: { url: string; number: number }) {
       )}
     >
       <span className="stg:truncate">{text}</span>
-      <ExternalLinkIcon />
+      <ExternalLinkGlyph size={10} />
     </a>
   );
 }
@@ -302,27 +303,6 @@ function GitBranchIcon() {
       <path d="M4 5V9" />
       <path d="M10 7V5.5" />
       <path d="M4 5C4 5 4 7 7 7C10 7 10 5.5 10 5.5" />
-    </svg>
-  );
-}
-
-function ExternalLinkIcon() {
-  return (
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="stg:shrink-0"
-      aria-hidden="true"
-    >
-      <path d="M9 3L3 9" />
-      <path d="M5 3H9V7" />
-      <path d="M9 8V10H2V3H4" />
     </svg>
   );
 }

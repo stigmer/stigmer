@@ -412,8 +412,11 @@ function ThinkingMessage({
   return (
     <div role="article" aria-label="Model thinking" className={className}>
       <ThreadCardShell variant="quiet">
+        {/* A quiet line, led by its chevron; while it streams its spinner
+            leads in the chevron's place. */}
         <ThreadCardHeader
           gesture={hasContent ? { kind: "expand", expanded, onToggle: () => setExpanded((v) => !v), label } : { kind: "none" }}
+          chevron={isStreaming ? "none" : "lead"}
         >
           {isStreaming && <SpinnerIcon size={12} className="stg:shrink-0 stg:text-muted-foreground stg:motion-reduce:animate-none" />}
           {/* Live reasoning carries the ambient-liveness sweep (stigmer#277):

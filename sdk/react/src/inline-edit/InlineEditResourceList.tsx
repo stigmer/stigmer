@@ -6,6 +6,7 @@ import type { InlineEditBaseProps, ResourceRefRow } from "./types.js";
 import { useOrgIdForRef, useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { Button } from "../button/Button.js";
 import { IconButton } from "../button/IconButton.js";
+import { PlusGlyph } from "../internal/thread-card/glyphs.js";
 
 /** Props for {@link InlineEditResourceList}. */
 export interface InlineEditResourceListProps extends InlineEditBaseProps {
@@ -238,7 +239,7 @@ export function InlineEditResourceList({
               }
             }}
             disabled={!addSlug.trim()}
-            icon={<PlusIcon className="stg:size-3" />}
+            icon={<PlusGlyph size={12} />}
           />
         </div>
       ) : (
@@ -246,7 +247,7 @@ export function InlineEditResourceList({
           variant="outline"
           size="xs"
           onClick={() => renderPicker ? setShowPicker(true) : setShowGenericAdd(true)}
-          icon={<PlusIcon className="stg:size-3" />}
+          icon={<PlusGlyph size={12} />}
           className="stg:border-dashed"
         >
           Add {resourceLabel}
@@ -277,14 +278,6 @@ function PencilIcon({ className }: { readonly className?: string }) {
   return (
     <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M11.5 1.5a2.121 2.121 0 0 1 3 3L5 14l-4 1 1-4Z" />
-    </svg>
-  );
-}
-
-function PlusIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <path d="M8 3v10M3 8h10" />
     </svg>
   );
 }

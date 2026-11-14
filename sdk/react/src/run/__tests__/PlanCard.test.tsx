@@ -83,9 +83,28 @@ describe("PlanCard", () => {
     expect(copied.querySelector("svg")?.getAttribute("class")?.split(" ")).toContain("stg:text-status-ready");
   });
 
-  it("draws the glyph on a 32px muted square", () => {
+  it("draws the glyph bright, with no square of its own (S46)", () => {
     const { container } = render(<PlanCard state="ready" title="T" />);
-    const square = container.querySelector("[data-plan-glyph]")!;
-    expect(square.className.split(" ")).toEqual(expect.arrayContaining(["stg:h-8", "stg:w-8", "stg:bg-muted"]));
+    const glyph = container.querySelector("[data-plan-glyph]")!;
+    const classes = glyph.className.split(" ");
+    expect(classes).toContain("stg:text-foreground");
+    expect(classes).not.toContain("stg:bg-muted");
+    expect(classes).not.toContain("stg:h-8");
+  });
+
+  it("opens a ready plan with open-in-new, and says Build alone", () => {
+    render(
+      <PlanCard
+        state="ready"
+        title="T"
+        open={{ label: "Open plan", onClick: vi.fn() }}
+        build={{ onClick: vi.fn() }}
+      />,
+    );
+    const open = screen.getByRole("button", { name: "Open plan" });
+    // The open-in-new glyph: a box with an arrow out of its corner.
+    expect(open.querySelector("path")?.getAttribute("d")).toBe("M15 3h6v6");
+    const build = screen.getByRole("button", { name: "Build" });
+    expect(build.querySelector("svg")).toBeNull();
   });
 });

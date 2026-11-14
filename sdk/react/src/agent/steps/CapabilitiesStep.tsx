@@ -11,6 +11,7 @@ import type { AgentMcpServerValue } from "../agentMcpServers.js";
 import type { AgentWizardData, EnvVarEntry } from "./types.js";
 import { Button } from "../../button/Button.js";
 import { IconButton } from "../../button/IconButton.js";
+import { PlusGlyph } from "../../internal/thread-card/glyphs.js";
 
 /** Props for {@link CapabilitiesStep}. */
 export interface CapabilitiesStepProps {
@@ -335,7 +336,7 @@ function EnvVarEditor({
         variant="outline"
         size="xs"
         onClick={addEntry}
-        icon={<PlusIcon className="stg:size-3" />}
+        icon={<PlusGlyph size={12} />}
         className="stg:w-fit stg:border-dashed"
       >
         Add variable
@@ -361,22 +362,6 @@ function ChevronIcon({ className }: { readonly className?: string }) {
       aria-hidden="true"
     >
       <path d="m4 6 4 4 4-4" />
-    </svg>
-  );
-}
-
-function PlusIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      aria-hidden="true"
-    >
-      <path d="M8 3v10M3 8h10" />
     </svg>
   );
 }

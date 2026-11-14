@@ -68,7 +68,10 @@ describe("FileFrame — one header for the window and the tab", () => {
       const header = container.querySelector("[data-file-frame-header]")!;
       expect(screen.getByRole("heading", { name: "agent.yaml" })).toBeTruthy();
       expect(screen.getByText("YAML · 2.0 KB")).toBeTruthy();
-      expect(header.querySelector(".stg\\:size-8.stg\\:bg-muted svg")).toBeTruthy();
+      // The glyph alone, no square; no rule under the header (S50).
+      expect(header.querySelector("svg")).toBeTruthy();
+      expect(header.querySelector(".stg\\:bg-muted svg")).toBeNull();
+      expect(header.className).not.toContain("stg:border-b");
       shown.push(header.textContent ?? "");
       unmount();
     }

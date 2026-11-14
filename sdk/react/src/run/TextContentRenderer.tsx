@@ -147,12 +147,10 @@ function MarkdownView({
 
   return (
     <div>
-      <div className="stg:flex stg:items-center stg:border-b stg:border-border stg:px-4 stg:py-1.5">
-        <div
-          className="stg:inline-flex stg:rounded-md stg:bg-muted stg:p-0.5"
-          role="tablist"
-          aria-label="View mode"
-        >
+      {/* Rendered and Source as plain text tabs, the open one bright, with
+          no rule under them (the file window's drawing, S50). */}
+      <div className="stg:flex stg:items-center stg:px-4 stg:py-1.5">
+        <div className="stg:inline-flex stg:gap-3" role="tablist" aria-label="View mode">
           <TabButton
             active={tab === "rendered"}
             onClick={() => setTab("rendered")}
@@ -198,11 +196,9 @@ function TabButton({
       aria-selected={active}
       onClick={onClick}
       className={cn(
-        "stg:rounded-sm stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
+        "stg:rounded-sm stg:py-1 stg:text-xs stg:transition-colors",
         "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-        active
-          ? "stg:bg-background stg:text-foreground stg:shadow-sm"
-          : "stg:text-muted-foreground stg:hover:text-foreground",
+        active ? "stg:font-medium stg:text-foreground" : "stg:text-muted-foreground stg:hover:text-foreground",
       )}
     >
       {label}

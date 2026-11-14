@@ -278,6 +278,23 @@ const SESSION_SCENES = [
     opens: ["invoice-audit.md Markdown"],
   },
   {
+    id: "session-file-preview-member",
+    title: "Session: a File the finished turn made, in the preview window for a member, who may delete it",
+    widths: ["desktop"],
+  },
+  {
+    id: "session-reconnecting",
+    title: "Session: the long turn at work after its connection dropped, reconnecting above the composer",
+    widths: ["desktop"],
+  },
+  {
+    id: "session-not-started",
+    title: "Session: the agent hasn't started the turn yet, said above the composer with Try again",
+    widths: ["desktop"],
+    // Past the connect timeout, its one silent reconnect, and the second.
+    elapse: 25_000,
+  },
+  {
     id: "session-auto-approve",
     title: "Session: the long turn at work with tool calls approved automatically, said above the composer",
     widths: ["desktop"],
@@ -327,9 +344,9 @@ const SESSION_SCENES = [
   },
   {
     id: "session-how-opened",
-    title: "Session: the finished turn with how it got there opened, and a read opened to its lines",
+    title: "Session: the finished turn with how it got there opened, and its edit opened to the diff",
     widths: ["desktop"],
-    opens: ["How it got there", "Read invoice.ts"],
+    opens: ["How it got there", "Edited invoice.ts"],
   },
   {
     id: "session-mcp",

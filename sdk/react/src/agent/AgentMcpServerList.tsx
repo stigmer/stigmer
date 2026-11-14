@@ -20,6 +20,7 @@ import { McpServerIcon } from "../plugin/McpServerIcon.js";
 import { type HeaderRow, HeaderRowsEditor, headerRowsOf } from "../plugin/HeaderRowsEditor.js";
 import { type AgentMcpServerValue, agentMcpServerProblem, headerValueShown } from "./agentMcpServers.js";
 import { IconButton } from "../button/IconButton.js";
+import { PlusGlyph } from "../internal/thread-card/glyphs.js";
 
 /** Props for {@link AgentMcpServerList}. */
 export interface AgentMcpServerListProps {
@@ -97,7 +98,7 @@ export function AgentMcpServerList({ servers, editing, isSaving, onChange, rende
                 variant="outline"
                 size="xs"
                 onClick={() => setOpen("new")}
-                icon={<PlusIcon className="stg:size-3" />}
+                icon={<PlusGlyph size={12} />}
                 className="stg:border-dashed"
               >
                 Add MCP server
@@ -267,14 +268,6 @@ function AgentMcpServerForm({
 // ---------------------------------------------------------------------------
 // Icons: inline SVGs, as the agent page draws them
 // ---------------------------------------------------------------------------
-
-function PlusIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <path d="M8 3v10M3 8h10" />
-    </svg>
-  );
-}
 
 function XIcon({ className }: { readonly className?: string }) {
   return (

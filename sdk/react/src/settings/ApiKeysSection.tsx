@@ -11,6 +11,7 @@ import { CreateApiKeyForm } from "../api-key/CreateApiKeyForm.js";
 import { ApiKeyCreatedAlert } from "../api-key/ApiKeyCreatedAlert.js";
 import { Button } from "../button/Button.js";
 import { Card } from "../internal/surface/Card.js";
+import { PlusGlyph } from "../internal/thread-card/glyphs.js";
 import { SettingsPage } from "./SettingsPage.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
 
@@ -48,7 +49,7 @@ export function ApiKeysSection() {
       description="Keys sign the CLI and your own programs in to Stigmer as you. A key works in every organization you belong to, unless you limit it to one."
       actions={
         flow.phase === "idle" && (
-          <Button size="sm" onClick={startCreate}>
+          <Button size="sm" onClick={startCreate} icon={<PlusGlyph />}>
             New API key
           </Button>
         )

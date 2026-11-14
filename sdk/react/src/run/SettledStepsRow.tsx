@@ -56,16 +56,17 @@ export function SettledStepsRow({ toolUses, prefix, children, framed = true, cla
         aria-expanded={open}
         aria-controls={regionId}
         onClick={() => setOpen((was) => !was)}
-        className="stg:flex stg:w-full stg:items-center stg:gap-2 stg:px-3 stg:py-2 stg:text-left stg:text-sm stg:text-muted-foreground stg:hover:bg-muted-subtle stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring"
+        className="stg:flex stg:w-full stg:items-center stg:gap-2 stg:px-3 stg:py-2 stg:text-left stg:text-sm stg:hover:bg-muted-subtle stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring"
       >
-        <svg aria-hidden="true" viewBox="0 0 16 16" className={cn("stg:h-3 stg:w-3 stg:shrink-0 stg:transition-transform", open && "stg:rotate-90")}>
+        <svg aria-hidden="true" viewBox="0 0 16 16" className={cn("stg:h-3 stg:w-3 stg:shrink-0 stg:text-muted-foreground stg:transition-transform", open && "stg:rotate-90")}>
           <path d="M6 4l4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         {/* Closed, the line says what the steps did; opened, it is the card's
             header: its name, and how many steps over how long, the steps
-            themselves below it. */}
-        <span className={cn("stg:min-w-0 stg:flex-1 stg:truncate", header && "stg:text-xs stg:font-medium")}>{header ? prefix : label}</span>
-        <span className={cn("stg:shrink-0 stg:text-xs stg:tabular-nums", header && "stg:font-medium")}>
+            themselves below it. The words read at the foreground, as the
+            drawing sets them; the count and the time are its muted meta. */}
+        <span className={cn("stg:min-w-0 stg:flex-1 stg:truncate", header ? "stg:text-xs stg:font-medium stg:text-muted-foreground" : "stg:text-foreground")}>{header ? prefix : label}</span>
+        <span className={cn("stg:shrink-0 stg:text-xs stg:tabular-nums stg:text-muted-foreground", header && "stg:font-medium")}>
           {[header ? `${toolUses.length} ${toolUses.length === 1 ? "step" : "steps"}` : "", span >= 1000 ? formatElapsed(span) : ""].filter((part) => part !== "").join(" · ")}
         </span>
       </button>

@@ -1270,53 +1270,57 @@ const ConversationColumn = memo(function ConversationColumn({
       />
       <div className={CONVERSATION_COLUMN_CLASS}>
         {nextStep !== undefined && !isObserver && !isGuest && !isParticipant && settled && nextStep({ agentRef: sessionAgentRef ?? undefined })}
-        {planAttachFailed && (
-          <PlanAttachFailedNotice onDismiss={onDismissPlanAttachFailed} />
-        )}
-        {/* Live stream indicators stay for observers — watching an
-            in-flight conversation is the point of observability. */}
-        {conv.isReconnecting && <ReconnectingIndicator />}
-        {conv.connectTimedOut && (
-          <ConnectTimedOutBanner onRetry={conv.reconnectStream} />
-        )}
-        {/* The slow hint once nothing has arrived for a while; what the turn
-            does and for how long is the header's pill and the plan. */}
-        {conv.isSlow && !conv.connectTimedOut && <SlowIndicator />}
-        {conv.streamError && (
-          <StreamErrorBanner
-            error={conv.streamError}
-            onReconnect={conv.reconnectStream}
-          />
-        )}
         {!isObserver && sendError && !(unsentInThread && sendError === conv.sendError && isPlainSendError(sendError)) && (
           <SendErrorBanner error={sendError} modelsHubHref={modelsHubHref} />
         )}
-        {/* Armed-only disclosure (#816 rework): auto-approve's way ON lives in
-            the composer's run settings and the account preference; this strip is the
-            always-visible proof it is on, plus the one-click way off. Never
-            shown to observers (they cannot arm or disarm anything). */}
-        {!isObserver && !isParticipant && flow.autoApproveAll && (
-          <AutoApproveIndicator onTurnOff={() => flow.setAutoApproveAll(false)} />
-        )}
-        {/* The conversation keeps the agent version it started on; when the
-            agent's author has saved since, this offers the one explicit
-            move to the current version. Never for guests or observers. */}
-        {!isObserver && !isGuest && !isParticipant && flow.agentVersion.isOutdated && (
-          <AgentVersionNotice
-            agentName={flow.agentVersion.agentName}
-            personalKeys={flow.agentVersion.currentPersonalKeys}
-            onUpdate={() => void flow.agentVersion.update()}
-            isUpdating={flow.agentVersion.isUpdating}
-            error={flow.agentVersion.updateError}
-          />
-        )}
-        {/* While the turn works, the files it is changing so far; once it
-            ends, the same files show under its Changed group. */}
-        <FileChangeProgressBar progress={conv.fileChangeProgress} />
-        {/* Observers and viewers never get a composer: the server denies
-            them can_create_run_in, so the send surface simply is not
-            offered — read-only by construction, not by a disabled state. */}
-        {isObserver && <ReadOnlyNotice />}
+        {/* The strips: shaded cards stacked 8px apart on the composer's
+            gutter, so their edges are the reply box's (S18, S53). */}
+        <div data-composer-strips="" className={cn("stg:flex stg:flex-col stg:gap-2", isObserver && "stg:pb-3", THREAD_GUTTER_CLASS)}>
+          {planAttachFailed && (
+            <PlanAttachFailedNotice onDismiss={onDismissPlanAttachFailed} />
+          )}
+          {/* Live stream indicators stay for observers — watching an
+              in-flight conversation is the point of observability. */}
+          {conv.isReconnecting && <ReconnectingIndicator />}
+          {conv.connectTimedOut && (
+            <ConnectTimedOutBanner onRetry={conv.reconnectStream} />
+          )}
+          {/* The slow hint once nothing has arrived for a while; what the turn
+              does and for how long is the header's pill and the plan. */}
+          {conv.isSlow && !conv.connectTimedOut && <SlowIndicator />}
+          {conv.streamError && (
+            <StreamErrorBanner
+              error={conv.streamError}
+              onReconnect={conv.reconnectStream}
+            />
+          )}
+          {/* Armed-only disclosure (#816 rework): auto-approve's way ON lives in
+              the composer's run settings and the account preference; this strip is the
+              always-visible proof it is on, plus the one-click way off. Never
+              shown to observers (they cannot arm or disarm anything). */}
+          {!isObserver && !isParticipant && flow.autoApproveAll && (
+            <AutoApproveIndicator onTurnOff={() => flow.setAutoApproveAll(false)} />
+          )}
+          {/* The conversation keeps the agent version it started on; when the
+              agent's author has saved since, this offers the one explicit
+              move to the current version. Never for guests or observers. */}
+          {!isObserver && !isGuest && !isParticipant && flow.agentVersion.isOutdated && (
+            <AgentVersionNotice
+              agentName={flow.agentVersion.agentName}
+              personalKeys={flow.agentVersion.currentPersonalKeys}
+              onUpdate={() => void flow.agentVersion.update()}
+              isUpdating={flow.agentVersion.isUpdating}
+              error={flow.agentVersion.updateError}
+            />
+          )}
+          {/* While the turn works, the files it is changing so far; once it
+              ends, the same files show under its Changed group. */}
+          <FileChangeProgressBar progress={conv.fileChangeProgress} />
+          {/* Observers and viewers never get a composer: the server denies
+              them can_create_run_in, so the send surface simply is not
+              offered — read-only by construction, not by a disabled state. */}
+          {isObserver && <ReadOnlyNotice />}
+        </div>
         {!isObserver && (
           <SessionComposer
             ref={composerRef}
@@ -1568,15 +1572,19 @@ function StreamErrorBanner({
   error: Error;
   onReconnect: () => void;
 }) {
+  // One more strip: the lost stream's words and its one act, on the card.
   return (
-    <div role="alert" className="stg:flex stg:items-center stg:gap-3 stg:border-t stg:border-border stg:bg-muted stg:px-4 stg:py-2.5">
-      <p className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-sm stg:text-muted-foreground">
-        {getUserMessage(error)}
-      </p>
-      <Button variant="outline" size="xs" onClick={onReconnect}>
-        Reconnect
-      </Button>
-    </div>
+    <ComposerStrip
+      role="alert"
+      icon={<StripGlyph kind="info" />}
+      act={
+        <Button variant="outline" size="xs" onClick={onReconnect}>
+          Reconnect
+        </Button>
+      }
+    >
+      <span className="stg:block stg:truncate">{getUserMessage(error)}</span>
+    </ComposerStrip>
   );
 }
 

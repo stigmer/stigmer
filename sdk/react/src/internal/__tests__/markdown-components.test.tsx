@@ -292,3 +292,24 @@ describe("MARKDOWN_COMPONENTS.pre (mermaid dispatch seam)", () => {
     expect(container.querySelector("pre code.language-go")).not.toBeNull();
   });
 });
+
+describe("MARKDOWN_COMPONENTS — tables, as drawn (S50)", () => {
+  it("draws one rounded box with rules between rows only and a shaded header", () => {
+    const doc = "| Invoice | Off by |\n| --- | --- |\n| 1041 | 0.01 |\n| 1042 | 0.01 |";
+    const { container } = render(
+      <Markdown remarkPlugins={REMARK_PLUGINS} components={MARKDOWN_COMPONENTS}>
+        {doc}
+      </Markdown>,
+    );
+    const box = container.querySelector("table")!.parentElement!;
+    expect(box.className.split(" ")).toEqual(expect.arrayContaining(["stg:rounded-lg", "stg:border"]));
+    const th = container.querySelector("th")!;
+    expect(th.className).toContain("stg:bg-muted-faint");
+    expect(th.className.split(" ")).not.toContain("stg:border");
+    for (const td of Array.from(container.querySelectorAll("td"))) {
+      const classes = td.className.split(" ");
+      expect(classes).toContain("stg:border-t");
+      expect(classes).not.toContain("stg:border");
+    }
+  });
+});

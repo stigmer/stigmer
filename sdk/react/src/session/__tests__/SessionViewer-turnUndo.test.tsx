@@ -266,9 +266,12 @@ describe("SessionViewer — the files-changing strip and the thread", () => {
     expect(bar).toBeTruthy();
     expect(screen.getByText("Changing 2 files")).toBeTruthy();
 
-    // Pinned in the fixed strip, ordered before the composer input.
+    // Pinned in the strips' stack on the composer's gutter, the
+    // stack itself in the fixed foot beside the composer, ordered before it.
     const composer = screen.getByTestId("composer-probe");
-    expect(bar!.parentElement).toBe(composer.parentElement);
+    const stack = bar!.closest("[data-composer-strips]");
+    expect(stack).toBeTruthy();
+    expect(stack!.parentElement).toBe(composer.parentElement);
     expect(
       bar!.compareDocumentPosition(composer) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();

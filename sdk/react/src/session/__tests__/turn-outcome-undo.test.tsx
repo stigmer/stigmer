@@ -141,6 +141,13 @@ describe("KIT-14 a turn's changed and made files appear once, and only someone w
     ]);
   });
 
+  it("sets Changed with its Undo all at the group's top, as a plain title sits (S45's gap)", () => {
+    const files = [reviewFile("f1", "src/billing/invoice.ts"), reviewFile("f2", "src/billing/rounding.ts")];
+    render(<TurnOutcome outcome={turnOutcome(turnWith(files), [], undefined)} undo={undoProps({})} />);
+    const line = screen.getByRole("button", { name: "Undo all" }).parentElement!;
+    expect(line.className.split(" ").filter((name) => /(^|:)mt-/.test(name))).toEqual([]);
+  });
+
   it("says Undoing… while a file's undo is sent or put back, Undone once it is, and Couldn't undo, with no Try again, when the put-back failed", () => {
     const onUndo = vi.fn();
     const files = [

@@ -159,10 +159,24 @@ export type ThreadCardHeaderGesture =
       readonly hint?: string;
     };
 
+/**
+ * Where an `expand` header draws its chevron: `"trail"` at the line's end
+ * (a step row), `"lead"` before the words, flush to the column's edge (a
+ * quiet line: a thought, recalled memories), or `"none"` while something
+ * else leads in its place (a thought's spinner while it streams).
+ */
+export type ThreadCardChevron = "lead" | "trail" | "none";
+
 /** Props for {@link ThreadCardHeader}. */
 export interface ThreadCardHeaderProps {
   /** The primary gesture. Defaults to `{ kind: "none" }`. */
   readonly gesture?: ThreadCardHeaderGesture;
+  /**
+   * Where the `expand` gesture's chevron sits ({@link ThreadCardChevron}).
+   * Defaults to `"trail"`. A leading chevron also drops the line's side
+   * padding, so a quiet line starts where the answer's words start.
+   */
+  readonly chevron?: ThreadCardChevron;
   readonly children: ReactNode;
 }
 
@@ -172,6 +186,11 @@ export interface ThreadCardHeaderProps {
 // line a person reads, not a caption.
 const HEADER_LAYOUT =
   "stg:relative stg:isolate stg:flex stg:w-full stg:items-center stg:gap-2 stg:px-3 stg:py-2 stg:text-sm";
+
+// A quiet line led by its chevron sits flush to the column, 28px tall: the
+// drawing's quiet row, whose words start where the answer's do.
+const LEAD_HEADER_LAYOUT =
+  "stg:relative stg:isolate stg:flex stg:min-h-7 stg:w-full stg:items-center stg:gap-2 stg:py-1 stg:text-sm";
 
 const TOGGLE_CLASSES = cn(
   // z-1, not auto: a header child that draws with a transform (the open
@@ -186,10 +205,12 @@ const TOGGLE_CLASSES = cn(
 /** The thread card's one-line header. See the module doc for the contract. */
 export function ThreadCardHeader({
   gesture = { kind: "none" },
+  chevron = "trail",
   children,
 }: ThreadCardHeaderProps) {
+  const layout = chevron === "trail" ? HEADER_LAYOUT : LEAD_HEADER_LAYOUT;
   if (gesture.kind === "none") {
-    return <div className={HEADER_LAYOUT}>{children}</div>;
+    return <div className={layout}>{children}</div>;
   }
 
   const toggle = (
@@ -206,7 +227,7 @@ export function ThreadCardHeader({
   return (
     <div
       className={cn(
-        HEADER_LAYOUT,
+        layout,
         // Opened, the header keeps the row's own ground: the drawing shades
         // a header only under the pointer.
         "stg:transition-colors stg:hover:bg-muted-subtle",
@@ -223,8 +244,9 @@ export function ThreadCardHeader({
           </TooltipContent>
         )}
       </Tooltip>
+      {chevron === "lead" && <ChevronIcon expanded={gesture.expanded} />}
       {children}
-      <ChevronIcon expanded={gesture.expanded} />
+      {chevron === "trail" && <ChevronIcon expanded={gesture.expanded} />}
     </div>
   );
 }

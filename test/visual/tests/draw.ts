@@ -6,7 +6,8 @@
 // (one reached by time passing is held ten seconds past it, then run on by its
 // `elapse`),
 // with every request off the machine refused, and pictured once its calls
-// have settled and its fonts have loaded. A scene reached by acts (a
+// have settled, the page's own requests (a part's code loaded on demand
+// after a send, a font) have stopped, and its fonts have loaded. A scene reached by acts (a
 // click that opens it, a form a docs page fills) is pictured, and audited,
 // after them, settled after each.
 import type { Locator, Page } from "@playwright/test";
@@ -38,6 +39,7 @@ export async function draw(
   if (scene.elapse === undefined) await page.clock.setFixedTime(new Date(SCENARIO_CLOCK));
   else await page.clock.install({ time: new Date(SCENARIO_CLOCK) });
   await page.setViewportSize(size);
+  countRequests(page);
   await page.goto(sceneUrl(scene.id, mode));
   await settled(page);
   if (scene.elapse !== undefined) {
@@ -137,8 +139,62 @@ async function pressTarget(page: Page, control: Locator): Promise<Locator> {
   return control;
 }
 
+/** The page's own requests: how many are in flight, and when the count last moved (the spec's clock, not the page's). */
+interface PageRequests {
+  inFlight: number;
+  lastMoved: number;
+}
+
+/** Each drawn page's request count, kept from its first draw. */
+const REQUESTS = new WeakMap<Page, PageRequests>();
+
+/** How long the page's own requests stay still before it counts as settled: the fake server's quiet window. */
+const REQUESTS_QUIET_MS = 250;
+
+/** How long a scene may take to settle before the draw gives up and says so. */
+const SETTLE_LIMIT_MS = 30_000;
+
+/**
+ * Counts the page's own requests from the spec's side. The fake server
+ * counts the client's calls, but a part whose code loads on demand (a
+ * refusal's notice, imported after the send) is a module request the
+ * client never sees; Playwright's `networkidle` would not do either, since
+ * it is reached once at load and not looked at again after an act. A
+ * refused request (one off the machine) ends as failed, so it is counted
+ * out as well.
+ */
+function countRequests(page: Page): void {
+  if (REQUESTS.has(page)) return;
+  const state: PageRequests = { inFlight: 0, lastMoved: Date.now() };
+  REQUESTS.set(page, state);
+  const done = (): void => {
+    state.inFlight = Math.max(0, state.inFlight - 1);
+    state.lastMoved = Date.now();
+  };
+  page.on("request", () => {
+    state.inFlight += 1;
+    state.lastMoved = Date.now();
+  });
+  page.on("requestfinished", done);
+  page.on("requestfailed", done);
+}
+
+/**
+ * Waits until the scene has settled: the client's calls quiet (the fake
+ * server's `idle`) and the page's own requests quiet for the same window,
+ * both at once, since a module loaded late may start a call and a call
+ * answered may load a module. Then its fonts.
+ */
 async function settled(page: Page): Promise<void> {
-  await page.waitForFunction(() => window.gallery?.idle === true);
+  const requests = REQUESTS.get(page);
+  const deadline = Date.now() + SETTLE_LIMIT_MS;
+  for (;;) {
+    await page.waitForFunction(() => window.gallery?.idle === true);
+    const quiet = requests === undefined || (requests.inFlight === 0 && Date.now() - requests.lastMoved >= REQUESTS_QUIET_MS);
+    if (quiet && (await page.evaluate(() => window.gallery?.idle === true))) break;
+    if (Date.now() > deadline) throw new Error(`the page still had ${requests?.inFlight ?? 0} requests in flight after ${SETTLE_LIMIT_MS}ms`);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
   await page.evaluate(async () => {
     await document.fonts.ready;
   });

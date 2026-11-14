@@ -1,7 +1,6 @@
 "use client";
 
 import { memo } from "react";
-import { cn } from "@stigmer/design-tokens";
 import { PlanCard } from "./PlanCard.js";
 import { useBuildFromPlanHotkey } from "./use-build-from-plan-hotkey.js";
 
@@ -50,7 +49,7 @@ export const PlanCompletionCard = memo(function PlanCompletionCard({
       state="text"
       title="Plan"
       build={{ onClick: onImplement, disabled }}
-      className={cn("stg:mx-4", className)}
+      className={className}
     />
   );
 });

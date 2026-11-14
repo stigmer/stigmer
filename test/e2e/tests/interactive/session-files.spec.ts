@@ -133,6 +133,9 @@ test.describe("A conversation's Files tab", () => {
     await page.getByRole("article", { name: "File report.md" }).getByRole("button", { name: "Download" }).click();
     expect((await download).suggestedFilename()).toBe("report.md");
 
+    // An open file takes the whole panel, whichever view it came from; the
+    // rail's one button brings the list back.
+    await page.getByRole("button", { name: "Show files" }).click();
     // The first turn's version, behind its disclosure, in the preview.
     await saved.getByRole("button", { name: "Show 1 earlier version" }).click();
     await saved.getByRole("list", { name: "Earlier versions of report.md" }).getByText("report.md").click();

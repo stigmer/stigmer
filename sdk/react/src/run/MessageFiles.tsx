@@ -270,7 +270,10 @@ function DocumentChip({
       <FileGlyph />
       <TruncatedText text={name} className="stg:min-w-0" />
       {sizeBytes !== null && (
-        <span className="stg:shrink-0 stg:text-muted-foreground">{formatFileSize(sizeBytes)}</span>
+        <span className="stg:shrink-0">
+          <span aria-hidden="true">{"· "}</span>
+          {formatFileSize(sizeBytes)}
+        </span>
       )}
     </>
   );
@@ -280,8 +283,10 @@ function DocumentChip({
       role="listitem"
       aria-label={name}
       // The kit's tag, with the file glyph: one chip shape beside the image
-      // tiles, on the card fill so it reads on the message's muted bubble.
-      className={cn(tagClasses(), "stg:max-w-[200px] stg:bg-card")}
+      // tiles, on the card fill so it reads on the message's muted bubble
+      // (the drawing's tag in a bubble). Its words are the tag's muted
+      // label: the name, a dot, the size.
+      className={cn(tagClasses(), "stg:max-w-[200px] stg:bg-card stg:text-muted-foreground")}
     >
       {fileId ? (
         <button

@@ -324,11 +324,13 @@ export const MARKDOWN_COMPONENTS: Components = {
     );
   },
 
+  // A table is one rounded box with rules between its rows only and a
+  // shaded header row, in every Markdown surface (the drawn table, S50).
   table({ children, ...props }: MdProps<"table">) {
     return (
-      <div className="stg:mb-3 stg:last:mb-0 stg:overflow-x-auto">
+      <div className="stg:mb-3 stg:last:mb-0 stg:overflow-x-auto stg:rounded-lg stg:border stg:border-border">
         {/* A table reads at the scale's 12/16, denser than the prose around it, as drawn. */}
-        <table className="stg:w-full stg:border-collapse stg:text-xs" {...props}>
+        <table className="stg:w-full stg:border-collapse stg:text-xs stg:tabular-nums" {...props}>
           {children}
         </table>
       </div>
@@ -338,7 +340,7 @@ export const MARKDOWN_COMPONENTS: Components = {
   th({ children, ...props }: MdProps<"th">) {
     return (
       <th
-        className="stg:border stg:border-border stg:px-3 stg:py-1.5 stg:text-left stg:font-medium stg:text-foreground stg:bg-muted-subtle"
+        className="stg:bg-muted-faint stg:px-3 stg:py-2 stg:text-left stg:font-medium stg:text-muted-foreground"
         {...props}
       >
         {children}
@@ -348,7 +350,7 @@ export const MARKDOWN_COMPONENTS: Components = {
 
   td({ children, ...props }: MdProps<"td">) {
     return (
-      <td className="stg:border stg:border-border stg:px-3 stg:py-1.5 stg:text-foreground" {...props}>
+      <td className="stg:border-t stg:border-border-muted stg:px-3 stg:py-2 stg:text-foreground" {...props}>
         {children}
       </td>
     );

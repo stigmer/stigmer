@@ -52,7 +52,7 @@ function providerProps(drawing: Drawing): Pick<StigmerProviderProps, "preset" | 
 /** One scene in one mode. Its drawing and client are made once, outside React's render. */
 function sceneView(scene: Scene, mode: Mode): ReactElement {
   const drawing = DRAWINGS[scene.id]();
-  const client = fakeStigmer(drawing.routes);
+  const client = fakeStigmer(drawing.routes, drawing.uncounted);
   const tree = drawing.render();
   return (
     <StigmerProvider
@@ -140,7 +140,7 @@ function LiveScene({ scene, initial }: { readonly scene: Scene; readonly initial
   // provider, never the conversation a reader is in the middle of.
   const { drawing, client } = useMemo(() => {
     const drawing = DRAWINGS[scene.id]();
-    return { drawing, client: fakeStigmer(drawing.liveRoutes?.() ?? drawing.routes) };
+    return { drawing, client: fakeStigmer(drawing.liveRoutes?.() ?? drawing.routes, drawing.uncounted) };
   }, [scene.id]);
   useEffect(() => {
     const onMessage = (event: MessageEvent<unknown>) => {
