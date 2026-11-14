@@ -263,7 +263,7 @@ describe("NewSessionViewer — a first message refused because the plan's agent 
       }),
     };
     render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
-    expect(screen.getByText("Your organization has used this month\u2019s agent hours.")).toBeTruthy();
+    expect(screen.getByText("Your organization has used this month's agent hours.")).toBeTruthy();
     expect(screen.getByRole("link", { name: "View plans" }).getAttribute("href")).toBe("/settings/billing");
     expect(screen.queryByRole("link", { name: "Open Models & providers" })).toBeNull();
   });

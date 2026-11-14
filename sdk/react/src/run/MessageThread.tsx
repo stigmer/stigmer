@@ -2022,14 +2022,14 @@ function LoadedVersionsMarker({ changes }: { readonly changes: readonly LoadedVe
 
 /** Why a message didn't send, in the words for the error's kind: the drawn ones when the server never answered. */
 function unsentWords(error: Error | null): { readonly line: string; readonly comfort: string } {
-  if (error === null) return { line: "Didn\u2019t send.", comfort: "Your message is kept here, and nothing reached the agent." };
+  if (error === null) return { line: "Didn't send.", comfort: "Your message is kept here, and nothing reached the agent." };
   if (isUnreachable(error)) {
     return {
-      line: "Didn’t send. Stigmer couldn’t reach the server.",
-      comfort: "Your message is kept here, and nothing reached the agent. Try again when you’re back online.",
+      line: "Didn't send. Stigmer couldn't reach the server.",
+      comfort: "Your message is kept here, and nothing reached the agent. Try again when you're back online.",
     };
   }
-  return { line: `Didn’t send. ${getUserMessage(error)}`, comfort: "Your message is kept here, and nothing reached the agent." };
+  return { line: `Didn't send. ${getUserMessage(error)}`, comfort: "Your message is kept here, and nothing reached the agent." };
 }
 
 /**

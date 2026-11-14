@@ -666,7 +666,7 @@ describe("SessionViewer — audience wiring", () => {
     });
     render(<SessionViewer sessionId="ses_1" org="acme" />);
 
-    expect(screen.getByRole("alert").textContent).toContain("Your organization has used this month\u2019s agent hours.");
+    expect(screen.getByRole("alert").textContent).toContain("Your organization has used this month's agent hours.");
     expect(screen.getByRole("link", { name: "View plans" }).getAttribute("href")).toBe("/settings/billing");
   });
 });

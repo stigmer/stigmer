@@ -80,7 +80,7 @@ export function AgentHoursNotice({ error, billingHref = DEFAULT_BILLING_HREF, cl
       tone="paused"
       role="alert"
       // A child organization's hours are its parent's: the server's words say so, and it has no plans to offer.
-      headline={plan !== "" ? "Your organization has used this month’s agent hours." : getUserMessage(error)}
+      headline={plan !== "" ? "Your organization has used this month's agent hours." : getUserMessage(error)}
       link={plan !== "" ? { label: "View plans", href: billingHref } : undefined}
       className={className}
     >

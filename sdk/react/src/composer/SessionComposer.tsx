@@ -2026,8 +2026,9 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
             onKeyDown={handleTextareaKeyDown}
             onPaste={handlePaste}
             placeholder={placeholder}
-            // A placeholder is no name: the field says what it is to a screen reader.
-            aria-label="Message"
+            // The placeholder names the field for every reader, not only one
+            // that falls back to it: a scene or a label query finds it by it.
+            aria-label={placeholder}
             rows={initialRows}
             autoFocus={autoFocus}
             // Narrow, 16 px text, which also keeps a phone from zooming in on focus.

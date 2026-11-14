@@ -297,7 +297,7 @@ describe("MessageThread", () => {
     render(<MessageThread turns={[]} pendingUserMessage="unsent message" pendingMessageFailed onRetrySend={onRetrySend} />);
 
     expect(screen.getByText("unsent message").closest("[role='article']")?.className).toContain("stg:border-status-failed");
-    expect(screen.getByRole("alert").textContent).toContain("Didn\u2019t send.");
+    expect(screen.getByRole("alert").textContent).toContain("Didn't send.");
     expect(screen.getByText("Your message is kept here, and nothing reached the agent.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(onRetrySend).toHaveBeenCalledOnce();
@@ -307,11 +307,11 @@ describe("MessageThread", () => {
     const { rerender } = render(
       <MessageThread turns={[]} pendingUserMessage="unsent message" pendingMessageFailed pendingMessageError={new ConnectError("no healthy upstream", Code.Unavailable)} />,
     );
-    expect(screen.getByRole("alert").textContent).toContain("Didn\u2019t send. Stigmer couldn\u2019t reach the server.");
-    expect(screen.getByText("Your message is kept here, and nothing reached the agent. Try again when you\u2019re back online.")).toBeTruthy();
+    expect(screen.getByRole("alert").textContent).toContain("Didn't send. Stigmer couldn't reach the server.");
+    expect(screen.getByText("Your message is kept here, and nothing reached the agent. Try again when you're back online.")).toBeTruthy();
 
     rerender(<MessageThread turns={[]} pendingUserMessage="unsent message" pendingMessageFailed pendingMessageError={new ConnectError("message too long", Code.InvalidArgument)} />);
-    expect(screen.getByRole("alert").textContent).toContain("Didn\u2019t send. message too long");
+    expect(screen.getByRole("alert").textContent).toContain("Didn't send. message too long");
   });
 
   describe("how a turn ended", () => {

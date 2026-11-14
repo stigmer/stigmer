@@ -195,6 +195,12 @@
     "type-off-scale p \"Rather hand it to Claude Code, Cursor or Codex? Let your cod\": 12px on 20px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale p \"Say what it should do for your users, in a sentence or two.\": 12px on 20px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
+  "launcher-hours-used": {
+    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
+  },
+  "launcher-key-missing": {
+    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
+  },
   "launcher-next-line": {
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
@@ -371,6 +377,9 @@
   "session-pull-requests": {
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
     "type-off-scale span \"2\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
+  },
+  "session-send-failed": {
+    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
   "session-shell-steps": {
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"

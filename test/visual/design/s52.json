@@ -215,7 +215,9 @@
         "button Workspace": "The screens still in their old look: the opening draws the column and a closed composer",
         "type Opening the session…": "The screens still in their old look: this screen is still its pre-redesign self",
         "word Claude Sonnet 4.6": "The screens still in their old look: the opening draws the column and a closed composer",
-        "word Reply…": "The screens still in their old look: the opening draws the column and a closed composer"
+        "word Reply…": "The screens still in their old look: the opening draws the column and a closed composer",
+        "type Claude Sonnet 4.6": "The composer is kept as built (its phone form); the drawing redrawn to it at the next export",
+        "type Reply…": "The composer is kept as built (its phone form); the drawing redrawn to it at the next export"
       }
     }
   ]

@@ -49,7 +49,7 @@ describe("AgentHoursNotice", () => {
   it("says the organization used this month's hours, that the message stays, and links to the plans", () => {
     render(<AgentHoursNotice error={REFUSAL} />);
     const notice = screen.getByRole("alert");
-    expect(notice.textContent).toContain("Your organization has used this month\u2019s agent hours.");
+    expect(notice.textContent).toContain("Your organization has used this month's agent hours.");
     expect(notice.textContent).toContain("Your message stays in the box.");
     expect(screen.getByRole("link", { name: "View plans" }).getAttribute("href")).toBe("/settings/billing");
   });

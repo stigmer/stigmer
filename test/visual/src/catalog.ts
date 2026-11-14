@@ -317,7 +317,7 @@ const SESSION_SCENES = [
     id: "session-send-failed",
     title: "Session: a follow-up that didn't send because the server was never reached, kept on its bubble with Try again",
     widths: ["desktop"],
-    opens: [{ fill: "Message", with: "Invoices are off by a cent. Can you fix the rounding?" }, { press: "Send message", role: "button" }],
+    opens: [{ fill: "Reply\u2026", with: "Invoices are off by a cent. Can you fix the rounding?", exact: true }, { press: "Send message", role: "button" }],
   },
   {
     id: "session-steps-opened",
@@ -769,13 +769,19 @@ const LISTED: readonly Scene[] = [
     id: "launcher-key-missing",
     title: "Launcher: the first message refused because the organization has no key for the model's provider",
     widths: ["desktop"],
-    opens: [{ fill: "Message", with: "Invoices are off by a cent. Can you fix the rounding?" }, { press: "Send message", role: "button" }],
+    opens: [
+      { fill: "Describe what you need help with\u2026", with: "Invoices are off by a cent. Can you fix the rounding?", exact: true },
+      { press: "Send message", role: "button" },
+    ],
   },
   {
     id: "launcher-hours-used",
     title: "Launcher: the first message refused because the organization used this month's agent hours",
     widths: ["desktop"],
-    opens: [{ fill: "Message", with: "Invoices are off by a cent. Can you fix the rounding?" }, { press: "Send message", role: "button" }],
+    opens: [
+      { fill: "Describe what you need help with\u2026", with: "Invoices are off by a cent. Can you fix the rounding?", exact: true },
+      { press: "Send message", role: "button" },
+    ],
   },
   {
     id: "launcher-connect-admin",
