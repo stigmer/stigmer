@@ -8,7 +8,11 @@
  * again") rather than Internal. That module's header gives the reasons for
  * the size (20) and the deadline (ten seconds, covering the wait for a
  * client and the opening of one, never how long a client is held). This
- * module adds the two things a composition's pool needs beyond that.
+ * module adds the two things a composition's pool needs beyond that. A
+ * composition may pass its own size and deadline; the self-hosted
+ * Enterprise server passes the operator's DATABASE_POOL_MAX and
+ * DATABASE_POOL_CHECKOUT_TIMEOUT_MS, so one setting bounds both of its
+ * pools (editions/enterprise.ts).
  *
  * Why a warn-only idle-error listener with a name: a `pg.Pool` is an
  * EventEmitter that re-emits an idle client's error as its own `'error'`
@@ -48,6 +52,10 @@ export interface CompositionPoolOptions {
   readonly name: CompositionPoolName;
   readonly connectionString: string;
   readonly logger: Logger;
+  /** The most connections the pool holds; the server's default (20) when unset. */
+  readonly max?: number;
+  /** How long a checkout may wait; `POOL_CHECKOUT_TIMEOUT_MS` when unset. */
+  readonly checkoutTimeoutMs?: number;
 }
 
 /**
@@ -61,6 +69,8 @@ export function newCompositionPool(
 ): BoundedPool {
   return newBoundedPool({
     connectionString: options.connectionString,
+    max: options.max,
+    checkoutTimeoutMs: options.checkoutTimeoutMs,
     onIdleError: (error) => {
       options.logger.warn("postgres pool idle-connection error", {
         pool: options.name,

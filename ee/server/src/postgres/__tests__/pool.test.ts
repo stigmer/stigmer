@@ -9,7 +9,9 @@
  * carries the message. A last case pins that every composition pool
  * carries the checkout deadline, which bounds a starved checkout instead
  * of letting it wait forever, and is `@stigmer/server`'s bounded pool: the
- * same deadline constant, the same size, and a checkout that cannot open a
+ * same deadline constant, the same size unless its composition passes its
+ * own (as the self-hosted server passes the operator's), and a checkout
+ * that cannot open a
  * connection rejects with `DatabaseUnavailableError`, which every RPC
  * answers as Unavailable (stigmer/stigmer#3086). The starved checkout
  * itself is proven on a real database in the server's
@@ -138,6 +140,22 @@ describe("a composition pool is the server's bounded pool", () => {
       expect(pool).toBeInstanceOf(BoundedPool);
       expect(POOL_CHECKOUT_TIMEOUT_MS).toBe(DEFAULT_POOL_CHECKOUT_TIMEOUT_MS);
       expect(pool.options.max).toBe(DEFAULT_POOL_MAX);
+    } finally {
+      await pool.end();
+    }
+  });
+
+  it("takes the size and deadline its composition passes", async () => {
+    const pool = newCompositionPool({
+      name: "enterprise",
+      connectionString: CONNECTION_STRING,
+      logger: logCapture().logger,
+      max: 7,
+      checkoutTimeoutMs: 1_500,
+    });
+    try {
+      expect(pool.options.max).toBe(7);
+      expect(pool.options.connectionTimeoutMillis).toBe(1_500);
     } finally {
       await pool.end();
     }
