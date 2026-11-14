@@ -262,7 +262,7 @@ runner image, that adds about a second to the message's turn. A Session with a
 run in progress is never put to sleep. A run waiting on a person's approval, or
 paused, needs no sandbox while it waits: its sandbox sleeps after the same idle
 time, counted from the run's start, and when the person answers or resumes, the
-server wakes it, with its files and the agent's memory, before the turn carries
+server wakes it, with its files and the Agent's memory, before the turn carries
 on. `STIGMER_SANDBOX_AGENT_SANDBOX_SUSPEND_AFTER_SECONDS` sets the idle time,
 and `STIGMER_SANDBOX_AGENT_SANDBOX_SWEEP_INTERVAL_SECONDS` how often the server
 looks (30 seconds), so a sandbox sleeps within one interval of its idle time. A
