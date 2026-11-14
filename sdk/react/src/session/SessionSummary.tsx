@@ -81,6 +81,8 @@ export function SessionSummary({ session, turns, runs, files, showCost, routineH
   const status = sessionStatus(last, decides);
   const now = useNow(working);
   const progress = working && last !== undefined ? describeTurnActivity(last, now) : undefined;
+  // An ended turn that kept a to-do list says how far it got, as a working one does.
+  const endedTodos = !working && last !== undefined ? describeTurnActivity(last, now).todos : undefined;
   const outcomes = turns.map((turn) => turnOutcome(turn, files, runs.find((run) => run.metadata?.id === turn.runId)));
   const elapsedMs = outcomes.reduce((sum, outcome) => sum + outcome.elapsedMs, 0);
   const made = outcomes.reduce((sum, outcome) => sum + outcome.files.length, 0);
@@ -118,6 +120,7 @@ export function SessionSummary({ session, turns, runs, files, showCost, routineH
           : undefined;
   const facts = [
     formatElapsed(elapsedMs),
+    endedTodos !== undefined ? `${endedTodos.done} of ${endedTodos.total} to-dos done` : undefined,
     made > 0 ? `${made} ${made === 1 ? "file" : "files"} made` : undefined,
     plans > 0 ? `${plans} ${plans === 1 ? "plan" : "plans"}` : undefined,
     changed > 0 ? `${changed} ${changed === 1 ? "change" : "changes"}` : undefined,
@@ -134,13 +137,16 @@ export function SessionSummary({ session, turns, runs, files, showCost, routineH
         {status !== undefined && (
           <StatusBadge
             phase={status.phase}
-            label={status.timed && progress !== undefined ? `${status.label} · ${formatElapsed(progress.elapsedMs)}` : status.label}
+            label={
+              status.timed && progress !== undefined && progress.elapsedMs >= 1000 ? `${status.label} · ${formatElapsed(progress.elapsedMs)}` : status.label
+            }
           />
         )}
         {working ? (
-          howFar !== undefined && <span>{howFar}</span>
+          howFar !== undefined && <span>{status !== undefined && <Separator />}{howFar}</span>
         ) : (
           <span>
+            {status !== undefined && <Separator />}
             {origin}
             {origin !== undefined && " · "}
             {facts.join(" · ")}
@@ -149,4 +155,9 @@ export function SessionSummary({ session, turns, runs, files, showCost, routineH
       </div>
     </header>
   );
+}
+
+/** The dot between the pill and the facts after it, as between the facts themselves. */
+function Separator() {
+  return <span aria-hidden="true">· </span>;
 }

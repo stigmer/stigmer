@@ -3,7 +3,7 @@
  * from its newest turn: Working (blue, timed) while the agent works; Waiting
  * for you (amber, timed) while a question or approval waits on the reader,
  * or Waiting for an answer for a reader who cannot answer it; Paused (amber,
- * timed); Starting (grey) before the turn has a phase that runs; Done
+ * timed); Starting (grey, timed from the message) before the turn has a phase that runs; Done
  * (green) once it completed; and once it ended otherwise, its ending's own
  * words and tone (`describeTurnEnding`), so the pill agrees with the notice
  * under the turn: grey for a person's stop ("Stopped by you" to the one who
@@ -69,9 +69,9 @@ describe("sessionStatus", () => {
     expect(sessionStatus(turnThrough(["running", "paused"]), true)).toEqual({ phase: "degraded", label: "Paused", timed: true });
   });
 
-  it("says Starting, in grey without a time, before the turn runs", () => {
-    expect(sessionStatus(turnThrough([]), true)).toEqual({ phase: "pending", label: "Starting", timed: false });
-    expect(sessionStatus(turnThrough(["pending"]), true)).toEqual({ phase: "pending", label: "Starting", timed: false });
+  it("says Starting, in grey with its time from the message, before the turn runs", () => {
+    expect(sessionStatus(turnThrough([]), true)).toEqual({ phase: "pending", label: "Starting", timed: true });
+    expect(sessionStatus(turnThrough(["pending"]), true)).toEqual({ phase: "pending", label: "Starting", timed: true });
   });
 
   it("says Done, in green, once the turn completed", () => {
