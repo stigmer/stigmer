@@ -1,7 +1,7 @@
 {
   "screen": "S15",
   "title": "The message didn't send",
-  "source": "the session page, version 15",
+  "source": "the session page, version 10",
   "drawings": [
     {
       "caption": "The message didn't send",
@@ -106,7 +106,7 @@
         },
         {
           "name": "Try again",
-          "height": 26
+          "height": 28
         },
         {
           "name": "Agent",
@@ -138,9 +138,7 @@
         "type Done": "The drawing's sample turn (its time and pill); the scene's finished turn is the samples'"
       },
       "ruled": {},
-      "pending": {
-        "button Try again": "The drawing: its buttons at 34px and 26px are off the kit's 32px and 28px; redrawn at the next export"
-      }
+      "pending": {}
     }
   ]
 }

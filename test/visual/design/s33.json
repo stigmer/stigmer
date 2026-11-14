@@ -1,7 +1,7 @@
 {
   "screen": "S33",
   "title": "Steps opened",
-  "source": "the session page, version 15",
+  "source": "the session page, version 10",
   "drawings": [
     {
       "caption": "Steps opened",
@@ -78,7 +78,7 @@
           ]
         },
         {
-          "text": "2 matches",
+          "text": "2 matches in 2 files",
           "type": [
             12,
             16,
@@ -86,7 +86,31 @@
           ]
         },
         {
-          "text": "src/billing/invoice.ts:41 src/billing/credit-note.ts:18",
+          "text": "invoice.ts:41",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "sum + roundCents(lineTotal(line))",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "credit-note.ts:18",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "amount: roundCents(line.amount)",
           "type": [
             12,
             16,
@@ -142,7 +166,7 @@
           ]
         },
         {
-          "text": "1 change",
+          "text": "+1−1 · src/billing",
           "type": [
             12,
             16,
@@ -150,7 +174,7 @@
           ]
         },
         {
-          "text": "src/billing/invoice.ts · line 41",
+          "text": "src/billing/invoice.ts",
           "type": [
             12,
             16,
@@ -158,7 +182,7 @@
           ]
         },
         {
-          "text": "- return lines.reduce((sum, line) => sum + roundCents(lineTotal(line)), 0);",
+          "text": "return lines.reduce((sum, line) => sum + roundCents(lineTotal(line)), 0);",
           "type": [
             12,
             16,
@@ -166,7 +190,7 @@
           ]
         },
         {
-          "text": "+ return roundHalfEven(lines.reduce((sum, line) => sum + lineTotal(line), 0));",
+          "text": "return roundHalfEven(lines.reduce((sum, line) => sum + lineTotal(line), 0));",
           "type": [
             12,
             16,
@@ -222,19 +246,11 @@
           ]
         },
         {
-          "text": "A helper is working on map where credit notes round",
+          "text": "Map where credit notes round researcher",
           "type": [
             14,
             20,
             500
-          ]
-        },
-        {
-          "text": "Searching for round( · nothing found yet",
-          "type": [
-            12,
-            16,
-            400
           ]
         },
         {
@@ -243,6 +259,14 @@
             12,
             16,
             400
+          ]
+        },
+        {
+          "text": "Searching for round(",
+          "type": [
+            14,
+            20,
+            500
           ]
         },
         {
@@ -353,18 +377,14 @@
         }
       ],
       "sample": {
-        "word PASS src/billing/invoice.test.ts PASS src/billing/credit-note.test.ts": "the scene's command prints \"PASS src/billing/invoice.test.ts (12 tests)\" then \"RUNS src/billing/credit-note.test.ts\""
+        "word PASS src/billing/invoice.test.ts PASS src/billing/credit-note.test.ts": "the scene's command prints \"PASS src/billing/invoice.test.ts (12 tests)\" then \"RUNS src/billing/credit-note.test.ts\"",
+        "word src/billing/invoice.ts": "the scene leaves the edit closed; its diff opens on a click",
+        "word return lines.reduce((sum, line) => sum + roundCents(lineTotal(line)), 0);": "the scene leaves the edit closed; its diff opens on a click",
+        "word return roundHalfEven(lines.reduce((sum, line) => sum + lineTotal(line), 0));": "the scene leaves the edit closed; its diff opens on a click"
       },
       "ruled": {},
       "pending": {
-        "type Working · 1m 30s": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
-        "word + return roundHalfEven(lines.reduce((sum, line) => sum + lineTotal(line), 0));": "The drawing is redrawn: the step's diff sets its +/− marker in a cell of its own (DiffViewer), which reads apart from the line; the drawing's diff is redrawn so at the next export",
-        "word - return lines.reduce((sum, line) => sum + roundCents(lineTotal(line)), 0);": "The drawing is redrawn: the step's diff sets its +/− marker in a cell of its own (DiffViewer), which reads apart from the line; the drawing's diff is redrawn so at the next export",
-        "word 1 change": "The drawing is redrawn: S45's counts (+1 −1 · src/billing) replace S33's and S34's \"1 change\"; redrawn",
-        "word A helper is working on map where credit notes round": "The drawing is redrawn: S01's helper is redrawn to S43's (its subject capitalised, its agent's tag, its own steps on a rail)",
-        "word Searching for round( · nothing found yet": "The drawing is redrawn: S01's helper is redrawn to S43's (its subject capitalised, its agent's tag, its own steps on a rail)",
-        "word src/billing/invoice.ts · line 41": "The drawing is redrawn: no line in the file is recorded, so the diff's header names the file only; redrawn",
-        "word src/billing/invoice.ts:41 src/billing/credit-note.ts:18": "The drawing is redrawn: S33's search lines are redrawn to S37's (the file named from the folder, then the matched text)"
+        "type Working · 1m 30s": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export"
       }
     }
   ]

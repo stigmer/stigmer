@@ -1,7 +1,7 @@
 {
   "screen": "S28",
   "title": "Step limit",
-  "source": "the session page, version 15",
+  "source": "the session page, version 10",
   "drawings": [
     {
       "caption": "Step limit",
@@ -185,7 +185,7 @@
         },
         {
           "name": "Continue",
-          "height": 26
+          "height": 28
         },
         {
           "name": "Agent",
@@ -215,7 +215,6 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "button Continue": "Endings: a notice's acts at xs, with their icons",
         "type Paused at its step limit": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
         "word Agents pause after so many tool calls in one turn, so a loop can't run forever. What it finished is kept: 2 of 5 to-dos are done. Continue sends “Continue” and it carries on.": "Endings: the ending turn as drawn"
       }

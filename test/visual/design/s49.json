@@ -1,7 +1,7 @@
 {
   "screen": "S49",
   "title": "The side panel: Pull requests and Usage",
-  "source": "the session page, version 15",
+  "source": "the session page, version 10",
   "drawings": [
     {
       "caption": "Pull requests (today \"Changes\", which now means a turn's local edits): the repository, its state, the branch with Copy, the pull request.",

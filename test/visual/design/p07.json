@@ -1,7 +1,7 @@
 {
   "screen": "P07",
   "title": "Empty state",
-  "source": "the Console parts page, version 3",
+  "source": "the Console parts page, version 5",
   "drawings": [
     {
       "caption": "Empty state",
@@ -100,7 +100,9 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Only an admin can open Service accounts": "the parts scene's own words say \"service accounts\"; the kit's page says \"Service accounts\" (G09)"
+      },
       "ruled": {},
       "pending": {
         "button Clear search": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
@@ -109,8 +111,7 @@
         "word Clear search": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
         "word No fires yet. The routine's first fire shows here.": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
         "word Nothing matches “ledgr”": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Your organization's admins manage its service accounts.": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Only an admin can open Service accounts": "The drawing is redrawn: the kit says the page in sentence case (\"service accounts\"); the reader now matches case (whole words, in their case); the drawing is redrawn to the kit's words at the next export"
+        "word Your organization's admins manage its service accounts.": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene"
       }
     }
   ]

@@ -1,7 +1,7 @@
 {
   "screen": "G08",
   "title": "Library: agents",
-  "source": "the Console parts page, version 3",
+  "source": "the Console parts page, version 5",
   "drawings": [
     {
       "caption": "Library: agents",
@@ -42,14 +42,6 @@
           ]
         },
         {
-          "text": "V",
-          "type": [
-            12,
-            16,
-            500
-          ]
-        },
-        {
           "text": "Variance reporter",
           "type": [
             14,
@@ -71,14 +63,6 @@
             12,
             16,
             400
-          ]
-        },
-        {
-          "text": "R",
-          "type": [
-            12,
-            16,
-            500
           ]
         },
         {
@@ -106,14 +90,6 @@
           ]
         },
         {
-          "text": "P",
-          "type": [
-            12,
-            16,
-            500
-          ]
-        },
-        {
           "text": "Payroll reconciler",
           "type": [
             14,
@@ -138,14 +114,6 @@
           ]
         },
         {
-          "text": "I",
-          "type": [
-            12,
-            16,
-            500
-          ]
-        },
-        {
           "text": "Invoice auditor",
           "type": [
             14,
@@ -167,14 +135,6 @@
             12,
             16,
             400
-          ]
-        },
-        {
-          "text": "V",
-          "type": [
-            12,
-            16,
-            500
           ]
         },
         {

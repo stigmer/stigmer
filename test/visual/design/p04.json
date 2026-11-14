@@ -1,7 +1,7 @@
 {
   "screen": "P04",
   "title": "List rows",
-  "source": "the Console parts page, version 3",
+  "source": "the Console parts page, version 5",
   "drawings": [
     {
       "caption": "List rows",
@@ -17,14 +17,6 @@
         }
       ],
       "words": [
-        {
-          "text": "A",
-          "type": [
-            12,
-            16,
-            500
-          ]
-        },
         {
           "text": "Ada Lovelace",
           "type": [
@@ -43,14 +35,6 @@
         },
         {
           "text": "owner",
-          "type": [
-            12,
-            16,
-            500
-          ]
-        },
-        {
-          "text": "G",
           "type": [
             12,
             16,
