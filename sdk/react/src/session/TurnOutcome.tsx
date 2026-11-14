@@ -257,9 +257,11 @@ function OutcomeGroup({
           {asList && ` · ${items.length} files`}
         </p>
       ) : (
-        // With an act, the title shares its line: the same place as a plain
-        // title (its paragraph's default top margin), the act centred on it.
-        <div className="stg:mb-2 stg:mt-1.5 stg:flex stg:min-h-7 stg:items-center stg:justify-between stg:gap-2">
+        // With an act, the title shares its line, the act centred on it. No
+        // top margin: a paragraph keeps no margin of its own in the kit, so
+        // a plain title starts at the group's top too (S45: the gap above
+        // Changed was this margin over the drawing's).
+        <div className="stg:mb-2 stg:flex stg:min-h-7 stg:items-center stg:justify-between stg:gap-2">
           <p className="stg:m-0 stg:text-xs stg:font-medium stg:text-muted-foreground">
             {title}
             {asList && ` · ${items.length} files`}

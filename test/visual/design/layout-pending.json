@@ -332,15 +332,7 @@
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-file-steps": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
-    "type-off-scale td \"(sum, line) => sum + line.amount, 0));\": 12px on 19.2px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
-    "type-off-scale td \"(sum, line) => sum + roundCents(line.amount), 0);\": 12px on 19.2px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
-    "type-off-scale td \"+\": 12px on 19.2px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
-    "type-off-scale td \"-\": 12px on 19.2px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
-    "type-off-scale td \"return note.lines.reduce(\": 12px on 19.2px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
-    "type-off-scale td \"return roundHalfEven(note.lines.reduce(\": 12px on 19.2px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
-    "type-off-scale th \"Change\": 12px on 19.2px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
-    "type-off-scale th \"Content\": 12px on 19.2px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
+    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-file-undone": {
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
@@ -358,8 +350,7 @@
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-inspector": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
-    "type-off-scale span \"2\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
+    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-many-files": {
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
@@ -376,6 +367,9 @@
   "session-pull-requests": {
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
     "type-off-scale span \"2\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
+  },
+  "session-reconnecting": {
+    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The panel button's count: its 11px number on its 16px badge reads as 11px lines; the badge is drawn on the scale where the panel button is rebuilt"
   },
   "session-send-failed": {
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"

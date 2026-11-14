@@ -24,7 +24,7 @@ describe("ComposerStrip", () => {
     expect(classes).toEqual(expect.arrayContaining(["stg:rounded-lg", "stg:bg-muted", "stg:px-3"]));
     expect(classes).not.toContain("stg:border-t");
     expect(classes).not.toContain("stg:px-4");
-    expect(screen.getByText("Reconnecting…").parentElement!.className).toContain("stg:text-xs");
+    expect(screen.getByText("Reconnecting…").parentElement!.className).toContain("stg:text-sm");
   });
 
   it("draws what an open strip holds inside the card", () => {

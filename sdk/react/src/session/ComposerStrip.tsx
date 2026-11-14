@@ -4,7 +4,7 @@
 // and the reply box (reconnecting, a slow turn, a lost stream, files
 // changing, auto-approve, a newer agent version, a read-only reader) draws
 // here, so the stack reads as one family: S18's shaded card (the muted
-// fill, rounded, 12/16 words), a 16px glyph, the words, and at most one
+// fill, rounded, 14/20 words), a 16px glyph, the words, and at most one
 // quiet act. A strip that opens (the files changing) is a disclosure: its
 // line is the button, and what it holds draws inside the card under it.
 // The card draws no edge of its own: the session view stacks the strips
@@ -45,7 +45,8 @@ export function ComposerStrip({ icon, children, act, tone = "plain", expanded = 
   );
   return (
     <div {...rest} data-composer-strip="" className={cn("stg:rounded-lg stg:bg-muted stg:px-3", className)}>
-      <div className="stg:flex stg:min-h-8 stg:items-center stg:gap-2 stg:py-2 stg:text-xs">
+      {/* The line at body size, 14/20, as the drawing sets each strip (S53). */}
+      <div className="stg:flex stg:min-h-8 stg:items-center stg:gap-2 stg:py-2 stg:text-sm">
         {onToggle === undefined ? (
           line
         ) : (

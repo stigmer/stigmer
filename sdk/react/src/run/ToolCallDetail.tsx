@@ -458,7 +458,8 @@ function StepDiff({ path, oldText, newText }: { readonly path: string; readonly 
   return (
     <div data-cursor-target="file-diff" className="stg:overflow-hidden stg:rounded-lg stg:border stg:border-border-muted stg:bg-card">
       {path !== "" && <div className="stg:truncate stg:bg-muted-faint stg:px-3 stg:py-0.5 stg:font-mono stg:text-xs stg:text-muted-foreground">{path}</div>}
-      <DiffViewer hunks={hunks} lineNumbers={false} paired className="stg:rounded-none stg:border-0" />
+      {/* 12/16, the drawing's diff, on the kit's scale. */}
+      <DiffViewer hunks={hunks} lineNumbers={false} paired className="stg:rounded-none stg:border-0 stg:leading-4" />
     </div>
   );
 }
