@@ -222,6 +222,10 @@ beforeAll(async () => {
       STIGMER_OIDC_ISSUER: issuer,
       STIGMER_OIDC_AUDIENCE: AUDIENCE,
       STIGMER_OIDC_NATIVE_CLIENT_ID: NATIVE_CLIENT_ID,
+      // A help link whose words run past 40 characters: announced with the
+      // default words, and warned at boot.
+      STIGMER_HELP_URL: "https://help.acme.example/stigmer",
+      STIGMER_HELP_LABEL: "Ask the platform team in the #stigmer-help channel",
       STIGMER_CONSOLE_DIR: consoleDir,
     }),
     logger: createLogger({
@@ -303,6 +307,13 @@ describe("the console the server serves is told the posture", () => {
       oidcClientId: "",
       oidcAudience: AUDIENCE,
     });
+  });
+
+  it("getServerInfo announces the operator's help link before sign-in, with the default words for a label too long", async () => {
+    const platform = createClient(PlatformQueryController, transportWith());
+    const info = await platform.getServerInfo({});
+    expect(info.help).toEqual(expect.objectContaining({ url: "https://help.acme.example/stigmer", label: "Get help" }));
+    expect(warnings).toContainEqual(expect.stringContaining("STIGMER_HELP_LABEL is longer than 40 characters"));
   });
 
   it("the composition root WARNs at wiring time that the served console cannot sign in without STIGMER_OIDC_CONSOLE_CLIENT_ID", () => {

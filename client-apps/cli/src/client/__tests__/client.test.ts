@@ -9,7 +9,7 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Config } from "../../config/index.js";
 import { CliExitError, ExitCode } from "../../errors/index.js";
-import { dialedServerAddress, setServerAddress } from "../../runtime.js";
+import { dialedServerAddress, serverHelpProbe, setServerAddress, setServerHelpProbe } from "../../runtime.js";
 import { createBackendClient } from "../client.js";
 
 function cloud(token?: string): Config {
@@ -140,6 +140,27 @@ describe("BackendClient — the server's edition and what it serves", () => {
       true,
     );
     expect(server.asked(), "the rejection was not cached").toBe(2);
+  });
+
+  it("records how a failure asks the server for its help link, through the same one probe", async () => {
+    const help = { url: "https://help.acme.example", label: "Ask IT" };
+    let asked = 0;
+    const transport = createRouterTransport(({ service }) => {
+      service(PlatformQueryController, {
+        getServerInfo: () => {
+          asked += 1;
+          return create(GetServerInfoOutputSchema, { edition: ServerEdition.cloud, version: "1.2.3", help });
+        },
+      });
+    });
+    try {
+      const client = createBackendClient({ config: cloud("t"), transport });
+      await client.serverInfo();
+      expect(await serverHelpProbe()?.()).toEqual(help);
+      expect(asked, "the help ask reused the probe").toBe(1);
+    } finally {
+      setServerHelpProbe(undefined);
+    }
   });
 });
 
