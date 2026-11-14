@@ -7,7 +7,7 @@ import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/re
 import type { ReactNode } from "react";
 import type { Stigmer } from "@stigmer/client";
 import { StigmerContext } from "@stigmer/react-core";
-import { McpToolDetail } from "../McpToolDetail";
+import { McpArgsView, McpToolDetail } from "../McpToolDetail";
 import { toolUse, type ToolUseInit } from "./__fixtures__/fold-values";
 
 afterEach(cleanup);
@@ -151,5 +151,16 @@ describe("McpToolDetail — inline output", () => {
     );
     expect(Array.from(container.querySelectorAll("dt")).map((dt) => dt.textContent)).toEqual(["id"]);
     expect(container.textContent).toContain(long);
+  });
+
+  it("keeps a structured argument in its own block, under its key", () => {
+    render(<McpToolDetail toolUse={toolUse({ name: "create_issue", mcpServerName: "linear", input: { title: "Round once", labels: ["bug", "rounding"] }, result: "" })} />);
+    expect(screen.getByText("labels")).toBeTruthy();
+    expect(screen.getByText("title")).toBeTruthy();
+  });
+
+  it("draws nothing for a call with no fields and no short answer", () => {
+    const { container } = render(<McpArgsView args={{}} />);
+    expect(container.firstChild).toBeNull();
   });
 });

@@ -113,10 +113,10 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
     // The proposed content is the body of the gate: shown, not hidden.
     await expect(gateRow.getByText("alpha")).toBeVisible();
     await expect(gateRow.getByText("beta")).toBeVisible();
-    // The file name appears exactly once — in the card's header subtitle
+    // The file appears exactly once: its whole path on the header's own line
     // (the body deliberately suppresses it; the old design repeated the
     // absolute path three times).
-    await expect(gateRow.getByText("e2e-gate.txt", { exact: true })).toHaveCount(1);
+    await expect(gateRow.getByText(/e2e-gate\.txt$/)).toHaveCount(1);
   });
 
   // --- Empty-file create: no empty box, no redundant filename ---------------
@@ -137,7 +137,7 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
     const gateRow = toolCallRow(page).filter({ has: approveButton(page) }).first();
     await expect(gateRow).toBeVisible({ timeout: 30_000 });
 
-    await expect(gateRow.getByText("Nothing is written until you allow it.", { exact: true })).toBeVisible();
+    await expect(gateRow.getByText("It waits for your answer. Nothing is written until you allow it.", { exact: true })).toBeVisible();
     await expect(gateRow.getByText("New file — preview unavailable", { exact: true })).toHaveCount(0);
 
     // The filename appears exactly once — in the header, never restated by the
