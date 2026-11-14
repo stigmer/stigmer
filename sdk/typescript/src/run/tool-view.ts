@@ -612,8 +612,10 @@ function normalizeShell(result: string, args: Args): ToolResultView {
 // the text).
 const GREP_MATCH_LINE = /^\s*(\d+)[:\t]\s?(.*)$/;
 const PATH_MATCH_LINE = /^(\S[^:]*):(\d+):(.*)$/;
-// The harness's file header above its matches, e.g. "/workspace/a.go:".
-const FILE_HEADER_LINE = /^\S.*:\s*$/;
+/** Whether `line` is the harness's file header above its matches, e.g. "/workspace/a.go:" (checked without a pattern, in linear time). */
+function isFileHeader(line: string): boolean {
+  return line !== "" && line.trimStart() === line && line.trimEnd().endsWith(":");
+}
 
 /** A match line as its parts, or undefined when the line is neither form. */
 function matchOf(line: string): ToolSearchMatch | undefined {
@@ -647,7 +649,7 @@ function searchFromPlainText(result: string): ToolResultView {
   for (const line of lines) {
     const match = matchOf(line);
     if (match !== undefined) found.push(match.file === undefined && file !== undefined ? { ...match, file } : match);
-    else if (FILE_HEADER_LINE.test(line)) file = line.trim().slice(0, -1);
+    else if (isFileHeader(line)) file = line.trim().slice(0, -1);
   }
 
   if (found.length > 0) {

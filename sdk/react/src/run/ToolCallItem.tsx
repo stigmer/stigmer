@@ -431,12 +431,27 @@ export const ToolCallItem = memo(function ToolCallItem({
   );
 });
 
-/** Where a path lands in the outputs folder (the workspace's `.stigmer/outputs/`). */
-const OUTPUTS_FOLDER = /(?:^|\/)\.stigmer\/outputs\/(.+)$/;
+/** The workspace's outputs folder, as a path names it. */
+const OUTPUTS_FOLDER = ".stigmer/outputs/";
+
+/**
+ * The part of `path` below the outputs folder (the folder at its start or
+ * after a "/"), or undefined. Found by index, not a pattern: a path is a
+ * tool's input, and a pattern over it could take quadratic time.
+ */
+function underOutputs(path: string): string | undefined {
+  for (let at = path.indexOf(OUTPUTS_FOLDER); at !== -1; at = path.indexOf(OUTPUTS_FOLDER, at + 1)) {
+    if (at === 0 || path[at - 1] === "/") {
+      const rest = path.slice(at + OUTPUTS_FOLDER.length);
+      return rest === "" ? undefined : rest;
+    }
+  }
+  return undefined;
+}
 
 /** A File written to the outputs folder in words, its kind and size ("Markdown · 4.1 KB"); "" for any other path. */
 function outputFileWords(path: string, toolUse: ToolUse): string {
-  const saved = OUTPUTS_FOLDER.exec(path)?.[1];
+  const saved = underOutputs(path);
   if (saved === undefined) return "";
   const content = toolUse.input["content"];
   const size = typeof content === "string" ? sizeWords(new TextEncoder().encode(content).length) : (/\b(\d+(?:\.\d+)?\s?[KMG]?B)\b/.exec(toolUse.result?.text ?? "")?.[1] ?? "");
