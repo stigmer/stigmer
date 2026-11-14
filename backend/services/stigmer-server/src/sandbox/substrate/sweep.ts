@@ -6,7 +6,10 @@
  * workspace instead of a running machine. Open source keeps no record of its sandboxes, so
  * the sweep keeps none either and reads what the server already has
  * (SessionActivityReader): a session's executions say whether it is busy
- * and when it was last active.
+ * and when it was last active. Busy means a run is working; a turn parked
+ * on a person's answer or a pause is not, so its sandbox sleeps after the
+ * window like any idle one, and the run workflow asks for it again before
+ * the turn carries on (stigmer#3122).
  *
  * Only session sandboxes sleep. A connect sandbox lives for one request
  * and ends when the connect settles (domain/plugin/tools/sandbox.ts).
@@ -32,8 +35,11 @@
  * can only cost an act that the second decision refuses. A suspend is
  * followed by one more busy check: every turn's execution is saved
  * before its ensure runs (the create chain persists, starts the
- * workflow, then ensures), so a turn that began while the suspend was in
- * flight shows as busy here and the sweep wakes the sandbox again at
+ * workflow, then ensures), and a parked turn that carries on reads
+ * IN_PROGRESS before its workflow asks again (a resume and a recovery
+ * write it first; after an answer the workflow writes it itself), so a
+ * turn that began or carried on while the suspend was in flight shows as
+ * busy here and the sweep wakes the sandbox again at
  * once, a fresh runner that turn's ensure pushes to. A turn on another
  * server replica whose push lands in the moment between this replica's
  * last check and its suspend loses its runner and times out (a suspend

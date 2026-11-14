@@ -46,6 +46,6 @@ async function fetchOrganization(client: Stigmer, ref: ParsedReference): Promise
     return { schema: OrganizationSchema, message: await client.organization.get(ref.slug) };
   } catch (err) {
     if (!cannotSeeOrganization(err)) throw err;
-    throw new CliExitError(`organization "${ref.slug}" not found`, ExitCode.NotFound);
+    throw new CliExitError(`organization "${ref.slug}" not found`, ExitCode.NotFound, undefined, { cause: err });
   }
 }

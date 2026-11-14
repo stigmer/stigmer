@@ -10,6 +10,7 @@ import { ensureDefaultOrg } from "./fixtures/seed-helpers";
 import {
   OIDC_AUDIENCE,
   OIDC_CONSOLE_CLIENT_ID,
+  OIDC_HELP,
   OIDC_ISSUER,
   OIDC_STACK,
   startIssuerProcess,
@@ -89,6 +90,8 @@ async function globalSetup() {
         STIGMER_OIDC_ISSUER: OIDC_ISSUER,
         STIGMER_OIDC_AUDIENCE: OIDC_AUDIENCE,
         STIGMER_OIDC_CONSOLE_CLIENT_ID: OIDC_CONSOLE_CLIENT_ID,
+        STIGMER_HELP_URL: OIDC_HELP.url,
+        STIGMER_HELP_LABEL: OIDC_HELP.label,
       },
     }).catch((error: unknown) => {
       issuer.kill();

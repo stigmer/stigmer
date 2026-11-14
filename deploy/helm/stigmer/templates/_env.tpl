@@ -96,6 +96,14 @@ becomes %20, the encoding a URL's user and path segments read.
 - name: STIGMER_OIDC_NATIVE_CLIENT_ID
   value: {{ .Values.server.oidc.nativeClientId | quote }}
 {{- end }}
+{{- if .Values.server.help.url }}
+- name: STIGMER_HELP_URL
+  value: {{ .Values.server.help.url | quote }}
+{{- with .Values.server.help.label }}
+- name: STIGMER_HELP_LABEL
+  value: {{ . | quote }}
+{{- end }}
+{{- end }}
 {{- if include "stigmer.licenseSecret" . }}
 {{- include "stigmer.enterpriseServerEnv" . }}
 {{- end }}

@@ -61,6 +61,8 @@ import type { SessionAudience } from "./audience.js";
 import { showsRunScores } from "./audience.js";
 import type { SessionRunConfig } from "./run-config.js";
 import { Button } from "../button/Button.js";
+import { FailureHelpLine } from "../help/HelpLink.js";
+
 /**
  * The build turn's user message — a short human-readable label, NOT the
  * implement instruction. The agent-facing instruction is runner-injected
@@ -1405,6 +1407,7 @@ function SessionLoadError({ error }: { error: Error }) {
           <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">{unreachable ? UNREACHABLE_WORDS : getUserMessage(error)}</p>
         </div>
         <Button onClick={() => window.location.reload()}>Try again</Button>
+        <FailureHelpLine />
       </div>
     </div>
   );

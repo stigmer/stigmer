@@ -978,6 +978,15 @@ export {
   isSandboxNoRoom,
   SandboxNoRoomError,
 } from "./sandbox/provisioner.js";
+// The run phases a composition's own idle sweep reads: whether a run keeps
+// its session's sandbox awake (working), and whether it is alive at all
+// (a parked turn is alive but lets its sandbox sleep). Exported so the
+// sweep reads the core's rule, never a copy (stigmer#3122).
+export {
+  isActiveExecutionPhase,
+  isWorkingPhase,
+  keepsSandboxAwake,
+} from "./domain/run/phases.js";
 
 // The substrate driver (Agent Substrate actors that sleep and wake with
 // their files) for a composition that builds it itself: its provisioner,

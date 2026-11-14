@@ -52,6 +52,8 @@ export function StigmerTransportBridge({ children }: { children: ReactNode }) {
       deploymentMode={deploymentMode}
       colorMode={colorMode}
       loadMermaid={loadMermaid}
+      // The console's failure notes end with the server's help link.
+      showHelpLink
     >
       {children}
     </StigmerProvider>

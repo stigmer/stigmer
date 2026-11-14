@@ -82,6 +82,18 @@ export interface SandboxFacts {
    */
   readonly callerClass: CallerClass;
   /**
+   * The run whose request this sandbox serves: the turn's run for a
+   * session sandbox, the connect's for a connect sandbox; "" for a push no
+   * run asked for (a composition's token renewal through a driver's
+   * reattach). A host that
+   * accounts for each accepted start (a plan's number held under a burst
+   * of simultaneous starts) ties the sandbox's place back to the start it
+   * accepted by this id; the built-in drivers ignore it. A fact, never
+   * policy. Required for the reason `callerClass` is: a construction site
+   * that forgets it fails to compile instead of silently reading as no run.
+   */
+  readonly executionId: string;
+  /**
    * The routine whose fire provisioned this sandbox
    * (`CallerIdentity.routineId`, which the run starter sets in process on
    * the identity a fire presents for the routine's owner), absent for every
@@ -240,10 +252,13 @@ export interface SandboxProvisioner {
 
 /**
  * What one session's executions say about it, for a driver deciding
- * whether its sandbox is idle: busy while any execution is pending, in
- * progress, waiting for approval or paused (isActiveExecutionPhase), and
- * the last moment the server itself stamped on one of them (an
- * execution's creation or completion), undefined when it has none.
+ * whether its sandbox is idle: busy while any execution is pending or in
+ * progress (domain/run/phases.ts `keepsSandboxAwake`), and the last moment
+ * the server itself stamped on one of them (an execution's creation or
+ * completion), undefined when it has none. A turn waiting for a person's
+ * answer or paused is not busy: its sandbox may sleep, and the run
+ * workflow asks for it again before the turn carries on
+ * (stigmer#3122).
  */
 export interface SessionActivity {
   readonly busy: boolean;

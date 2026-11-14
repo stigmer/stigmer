@@ -7,15 +7,26 @@
  * latches, and a tool call its turn never finished is read as stopped.
  *
  * isActiveExecutionPhase answers the opposite question for a session:
- * "is a run of it still alive?" It guards a session's delete, and it is
- * the busy check of an idle sweep, which must never put a session to
- * sleep while a run is pending, running, waiting on a person, or paused.
+ * "is a run of it still alive?" It guards a session's delete and the eval
+ * and judge reads, which must still see a turn parked on a person as alive.
  *
  * isWorkingPhase is narrower: "is this run's turn still under way?" It is
  * what a session's status events say (domain/session/events): the session
  * is running while any run of it is pending, in progress or waiting for
  * approval. A paused run is not working (its session reads idle, and a
  * Stigmer client reads PAUSED from the run).
+ *
+ * keepsSandboxAwake is the idle sweeps' busy check, in both editions: a
+ * session's sandbox may sleep unless a run of it is working. A turn parked
+ * on a person's answer or a pause needs no sandbox while it waits, which
+ * can be days, and the run workflow asks for the sandbox again before it
+ * carries the turn on, waking it (temporal/agentexecution/sandbox-wait.ts,
+ * stigmer#3122). Its sandbox keeps its files while it sleeps.
+ * Accepted gap: a Pause writes PAUSED before the runner has heard the
+ * cancel, so a sweep pass in those seconds can suspend the sandbox while
+ * the runner winds the turn down. That is the crash a draining worker
+ * already deals the runner: the harness resumes from its last saved step
+ * when the turn carries on.
  */
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
@@ -34,8 +45,8 @@ export function isTerminalExecutionPhase(phase: RunPhase): boolean {
 /**
  * Pending, in progress, waiting for approval, or paused. WAITING_FOR_APPROVAL
  * and PAUSED are deliberately included: the execution is logically alive
- * and expected to resume. The hosted edition counts the same set as a
- * session's active runs.
+ * and expected to resume. Not the idle sweeps' busy check
+ * (keepsSandboxAwake), which leaves the last two out.
  */
 export function isActiveExecutionPhase(phase: RunPhase): boolean {
   switch (phase) {
@@ -73,3 +84,12 @@ export function isWaitingPhase(phase: RunPhase): boolean {
 
 /** The phase in which a run's turn is paused until a person resumes it. */
 export const PAUSED_PHASES: ReadonlyArray<RunPhase> = [RunPhase.RUN_PAUSED];
+
+/**
+ * Whether a run in this phase keeps its session's sandbox awake (module
+ * header): only while it is working. A parked run's sandbox may sleep; the
+ * hosted edition reads the same rule from this export.
+ */
+export function keepsSandboxAwake(phase: RunPhase): boolean {
+  return isWorkingPhase(phase);
+}

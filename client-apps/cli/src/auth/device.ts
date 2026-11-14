@@ -136,7 +136,9 @@ export async function pollDeviceToken(
             "Run 'stigmer auth login --device' to try again.",
           ]);
         default:
-          throw new CliExitError(`authentication failed: ${err.message}`, ExitCode.Auth);
+          throw new CliExitError(`the sign-in provider ended the sign-in: ${err.message}`, ExitCode.Auth, [
+            "Run 'stigmer auth login --device' to try again.",
+          ]);
       }
     }
   }

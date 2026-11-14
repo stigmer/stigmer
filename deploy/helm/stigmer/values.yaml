@@ -113,6 +113,16 @@ server:
     # public identifier, never a secret, and never the console's client.
     # Empty means the desktop app cannot sign in; the server warns.
     nativeClientId: ""
+  help:
+    # Where your people ask when they are stuck (STIGMER_HELP_URL): your
+    # support desk, team chat or a mail address. The server announces it,
+    # and every console screen, every failure note and every command the
+    # server refuses show it. An absolute https:, http: or mailto: address;
+    # empty shows no help link anywhere.
+    url: ""
+    # The link's words (STIGMER_HELP_LABEL), at most 40 characters. Empty
+    # says "Get help".
+    label: ""
   # Requests sized for one team; raise them with your load. Memory is
   # limited so a leak is a restart, not a node; CPU is requested, not
   # limited, so a burst (a search-index rebuild at boot on an adopted

@@ -262,6 +262,10 @@ services:
       STIGMER_OIDC_AUDIENCE: ${STIGMER_OIDC_AUDIENCE:-}
       STIGMER_OIDC_CONSOLE_CLIENT_ID: ${STIGMER_OIDC_CONSOLE_CLIENT_ID:-}
       STIGMER_OIDC_NATIVE_CLIENT_ID: ${STIGMER_OIDC_NATIVE_CLIENT_ID:-}
+      # Where your people ask for help, off until .env sets it (see
+      # .env.example). The chart's server.help.{url,label}.
+      STIGMER_HELP_URL: ${STIGMER_HELP_URL:-}
+      STIGMER_HELP_LABEL: ${STIGMER_HELP_LABEL:-}
     volumes:
       # Server state beyond Postgres: the skill content store
       # (~/.stigmer/storage) and anything else under the image's HOME=/data.

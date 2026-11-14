@@ -171,9 +171,12 @@ async function requireAgent(stigmer: import("@stigmer/client").Stigmer, org: str
     const { classify } = await import("../errors/index.js");
     const { Code } = await import("@connectrpc/connect");
     if (classify(err)?.code === Code.NotFound) {
-      throw new CliExitError(`no agent "${slug}" in ${org}`, ExitCode.NotFound, [
-        "See the organization's agents: stigmer list agents",
-      ]);
+      throw new CliExitError(
+        `no agent "${slug}" in ${org}`,
+        ExitCode.NotFound,
+        ["See the organization's agents: stigmer list agents"],
+        { cause: err },
+      );
     }
     throw err;
   }

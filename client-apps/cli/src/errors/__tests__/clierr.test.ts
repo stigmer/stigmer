@@ -3,14 +3,16 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 import { StigmerError } from "@stigmer/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { setDebug } from "../../runtime.js";
+import { setDebug, setServerHelpProbe } from "../../runtime.js";
 import { classify } from "../classify.js";
 import { ExitCode } from "@stigmer/client/exit-codes";
-import { formatError, handle } from "../handle.js";
+import { formatError, handle, isServerAnswer, serverHelpFor } from "../handle.js";
 import { UsageError } from "../usage-error.js";
+import { CliExitError } from "../cli-exit-error.js";
 
 afterEach(() => {
   setDebug(false);
+  setServerHelpProbe(undefined);
   vi.restoreAllMocks();
 });
 
@@ -229,21 +231,117 @@ describe("formatError", () => {
     const out = formatError({ exitCode: ExitCode.General, message: "x", cause }, false);
     expect(out).not.toContain("--- debug ---");
   });
+
+  it("ends with the server's help line, after the hints", () => {
+    const out = formatError(
+      { exitCode: ExitCode.NotFound, message: "agent missing", hints: ["List them: stigmer list agent"] },
+      false,
+      { url: "https://help.acme.example", label: "Ask IT" },
+    );
+    expect(out).toBe("Error: agent missing\n\nList them: stigmer list agent\n\nStuck? Ask IT: https://help.acme.example\n");
+  });
+
+  it("prints no help line for a silent error", () => {
+    expect(formatError({ exitCode: ExitCode.Success, message: "" }, false, { url: "https://h.example", label: "Help" })).toBe("");
+  });
+});
+
+describe("CLI-19 a command the server refused ends with the server's help line", () => {
+  const HELP = { url: "https://help.acme.example", label: "Ask IT" };
+  const refusal = classify(new ConnectError("agent missing", Code.NotFound));
+  const unreachable = classify(new ConnectError("fetch failed", Code.Unavailable, undefined, undefined, new Error("connect ECONNREFUSED 127.0.0.1:7234")));
+  const busy = classify(new ConnectError("the server is busy", Code.Unavailable));
+  const timedOut = classify(new ConnectError("deadline", Code.DeadlineExceeded));
+  const local = classify(new UsageError("unknown flag"));
+
+  it("counts a refusal and a server's own Unavailable as the server's answer", () => {
+    expect(refusal !== null && isServerAnswer(refusal)).toBe(true);
+    expect(busy !== null && isServerAnswer(busy)).toBe(true);
+  });
+
+  it("never counts an unreachable server, a timeout or a local refusal", () => {
+    for (const error of [unreachable, timedOut, local]) {
+      expect(error !== null && isServerAnswer(error)).toBe(false);
+    }
+  });
+
+  it("asks the server for its link after a refusal", async () => {
+    setServerHelpProbe(() => Promise.resolve(HELP));
+    expect(await serverHelpFor(refusal!)).toEqual(HELP);
+  });
+
+  it("asks nothing when the server could not be reached, or on a local refusal", async () => {
+    const probe = vi.fn(() => Promise.resolve(HELP));
+    setServerHelpProbe(probe);
+    expect(await serverHelpFor(unreachable!)).toBeUndefined();
+    expect(await serverHelpFor(local!)).toBeUndefined();
+    expect(await serverHelpFor(timedOut!)).toBeUndefined();
+    expect(probe).not.toHaveBeenCalled();
+  });
+
+  it("prints without the line when no client was made, the server set none, or asking fails", async () => {
+    expect(await serverHelpFor(refusal!)).toBeUndefined();
+    setServerHelpProbe(() => Promise.resolve(undefined));
+    expect(await serverHelpFor(refusal!)).toBeUndefined();
+    setServerHelpProbe(() => Promise.reject(new Error("down")));
+    expect(await serverHelpFor(refusal!)).toBeUndefined();
+  });
+
+  it("does not wait past its bound for a slow server", async () => {
+    setServerHelpProbe(() => new Promise(() => undefined));
+    const started = Date.now();
+    expect(await serverHelpFor(refusal!, 50)).toBeUndefined();
+    expect(Date.now() - started).toBeLessThan(1_000);
+  });
+
+  it("counts a refusal a command says in its own words, when it passes the refusal as its cause", async () => {
+    const reworded = classify(
+      new CliExitError('no agent "nope" in acme', ExitCode.NotFound, ["See them: stigmer list agents"], {
+        cause: new ConnectError("agent not found", Code.NotFound),
+      }),
+    );
+    expect(reworded?.code).toBe(Code.NotFound);
+    expect(reworded !== null && isServerAnswer(reworded)).toBe(true);
+    setServerHelpProbe(() => Promise.resolve(HELP));
+    expect(await serverHelpFor(reworded!)).toEqual(HELP);
+    // A local refusal carries no cause and stays the CLI's own.
+    expect(isServerAnswer(classify(new CliExitError("organization not set", ExitCode.Usage))!)).toBe(false);
+  });
+
+  it("prints the server's words and address with no control or escape sequence", () => {
+    const out = formatError({ exitCode: ExitCode.NotFound, message: "x" }, false, {
+      url: "https://help.acme.example/\u001b]52;c;cHduZWQ=\u0007",
+      label: "Ask\u001b[2K IT",
+    });
+    expect(out).not.toContain("\u001b");
+    expect(out).not.toContain("\u0007");
+    expect(out).toContain("Stuck? Ask [2K IT: https://help.acme.example/ ]52;c;cHduZWQ=");
+  });
+
+  it("handle prints the line as the failure's last line", async () => {
+    vi.spyOn(process, "exit").mockImplementation(((code?: number) => {
+      throw new Error(`__exit__:${code}`);
+    }) as never);
+    const stderrSpy = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    setServerHelpProbe(() => Promise.resolve(HELP));
+    await expect(handle(new ConnectError("agent missing", Code.NotFound))).rejects.toThrow("__exit__:5");
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringMatching(/Stuck\? Ask IT: https:\/\/help\.acme\.example\n$/));
+  });
 });
 
 describe("handle", () => {
-  it("exits with the mapped code and writes to stderr", () => {
+  it("exits with the mapped code and writes to stderr", async () => {
     const exitSpy = vi.spyOn(process, "exit").mockImplementation(((code?: number) => {
       throw new Error(`__exit__:${code}`);
     }) as never);
     const stderrSpy = vi.spyOn(process.stderr, "write").mockReturnValue(true);
 
-    expect(() => handle(new ConnectError("agent missing", Code.NotFound))).toThrow("__exit__:5");
+    await expect(handle(new ConnectError("agent missing", Code.NotFound))).rejects.toThrow("__exit__:5");
     expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("Error: agent missing"));
     expect(exitSpy).toHaveBeenCalledWith(ExitCode.NotFound);
   });
 
-  it("exits 0 silently for a local abort", () => {
+  it("exits 0 silently for a local abort", async () => {
     const exitSpy = vi.spyOn(process, "exit").mockImplementation(((code?: number) => {
       throw new Error(`__exit__:${code}`);
     }) as never);
@@ -251,14 +349,14 @@ describe("handle", () => {
 
     const abort = new Error("aborted");
     abort.name = "AbortError";
-    expect(() => handle(abort)).toThrow("__exit__:0");
+    await expect(handle(abort)).rejects.toThrow("__exit__:0");
     expect(stderrSpy).not.toHaveBeenCalled();
   });
 
-  it("exits 0 when there is no error", () => {
+  it("exits 0 when there is no error", async () => {
     vi.spyOn(process, "exit").mockImplementation(((code?: number) => {
       throw new Error(`__exit__:${code}`);
     }) as never);
-    expect(() => handle(null)).toThrow("__exit__:0");
+    await expect(handle(null)).rejects.toThrow("__exit__:0");
   });
 });

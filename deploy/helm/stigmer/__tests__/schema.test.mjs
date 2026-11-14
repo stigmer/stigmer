@@ -24,6 +24,8 @@
  *     or LoadBalancer Service, a public URL off loopback) while sign-in is
  *     off, unless server.allowUnauthenticatedExposure states it on purpose;
  *   - an issuer that is not https;
+ *   - a help address with another scheme, or a help label over 40
+ *     characters (the server would drop either with a warning);
  *   - a misspelled securityContext field;
  *   - an extraEnv entry that repeats a name the chart sets, or sets an
  *     Enterprise name the chart renders from its enterprise values, on
@@ -134,6 +136,28 @@ test("half an OIDC configuration is refused at render, before the server would r
     sets: ["server.oidc.issuer=https://issuer.example.com"],
   });
   expectRefusal(result, /server\.oidc\.audience/, "issuer without audience");
+});
+
+test("a help address that is not https, http or mailto is refused, and so is a label over 40 characters", () => {
+  expectRefusal(
+    helmTemplate("bundled", { sets: ["server.help.url=javascript:alert(1)"] }),
+    /server\.help\.url|help.*url/,
+    "help url scheme",
+  );
+  expectRefusal(
+    helmTemplate("bundled", {
+      sets: ["server.help.url=https://help.example.com", `server.help.label=${"x".repeat(41)}`],
+    }),
+    /help.*label|label/,
+    "help label length",
+  );
+  expectRefusal(
+    helmTemplate("bundled", { sets: ["server.help.url=https://"] }),
+    /server\.help\.url|help.*url/,
+    "help url with no host",
+  );
+  // The scheme's case is the server's to read, as URL parsing reads it.
+  assert.equal(helmTemplate("bundled", { sets: ["server.help.url=HTTPS://help.example.com"] }).ok, true);
 });
 
 test("an external Temporal address that is not host:port is refused at render", () => {

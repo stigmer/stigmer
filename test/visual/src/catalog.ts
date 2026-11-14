@@ -107,6 +107,8 @@ export type SceneId =
   | "agent-chat-popup"
   | "from-hooks"
   | "parts"
+  | "help"
+  | "help-none"
   | `preset-${Preset}`;
 
 /** The roles a control is pressed by: Playwright's own list, the one `getByRole` takes. */
@@ -961,6 +963,8 @@ const LISTED: readonly Scene[] = [
     widths: ["desktop", "narrow"],
   },
   { id: "parts", title: "The console's shared parts, each in every variant and state it has", widths: ["desktop", "narrow"] },
+  { id: "help", title: "The deployment's help link at the sidebar's foot and under a failure note", widths: ["desktop"] },
+  { id: "help-none", title: "A server that names no help link: no row at the sidebar's foot, no line under the failure", widths: ["desktop"] },
   ...PRESETS.map((preset) => ({
     id: `preset-${preset}` as const,
     title: `The completed thread in the ${preset} preset`,

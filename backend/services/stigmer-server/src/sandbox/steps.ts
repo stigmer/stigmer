@@ -151,7 +151,8 @@ export function newEnsureSessionSandboxStep(
  * point read of its own and resolved as the runner verifier resolves a
  * stamp (`accountForStamp`); `callerClass` and, for a routine's fire,
  * `routineId` ride onto the driver's environment as the request facts a
- * driver may decide durability by.
+ * driver may decide durability by, and `executionId` names the turn's run
+ * so a host can tie the sandbox's place to the start it accepted.
  * The chain always has a caller: the in-process transport mints
  * `internal` for the server's own calls.
  *
@@ -211,6 +212,7 @@ export async function ensureSessionSandboxForExecution(
         deps.logger,
       ),
       callerClass: caller.callerClass,
+      executionId,
       ...(caller.routineId !== undefined ? { routineId: caller.routineId } : {}),
       ...(environment !== undefined ? { environment } : {}),
     });

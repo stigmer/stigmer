@@ -2,8 +2,12 @@
  * Pins the store-backed session reader a sandbox driver's idle sweep
  * consumes (session-activity.ts), over a real sqlite store:
  *
- *   - busy while any execution of the session is pending, in progress,
- *     waiting for approval or paused; idle once every one has ended;
+ *   - busy while any execution of the session is pending or in progress
+ *     (domain/run/phases.ts `keepsSandboxAwake`); a run waiting for a
+ *     person's answer or paused is not busy, so its sandbox sleeps after
+ *     the idle window counted from its stamps, and the workflow asks for
+ *     the sandbox again when the turn carries on (stigmer#3122);
+ *     idle once every one has ended;
  *   - the activity clock is the latest creation or completion stamp the
  *     server wrote, never another session's;
  *   - a stamp more than a minute ahead of the server's clock is skipped,
@@ -12,6 +16,8 @@
  *     a minute ahead counts as it is;
  *   - a session with no executions has no clock;
  *   - every session id is paged out, past one page;
+ *   - the cheap read (recentActivity) re-reads a parked run on every pass,
+ *     so its resume reads busy at once, without a full read;
  *   - the cheap read (recentActivity) answers as the full read does
  *     through creates, completions, deletions and a stamp ahead of the
  *     clock, reading only the look-back window, and by id the active
@@ -107,24 +113,33 @@ async function save(...executions: ReturnType<typeof execution>[]) {
 }
 
 describe("activity(sessionId)", () => {
-  it("is busy while any execution is active, whatever its age", async () => {
-    await save(
-      execution(
-        "run_1",
-        "ses_a",
-        RunPhase.RUN_COMPLETED,
-        new Date("2026-10-03T10:00:00Z"),
-        new Date("2026-10-03T10:05:00Z"),
-      ),
-      execution(
-        "run_2",
-        "ses_a",
-        RunPhase.RUN_WAITING_FOR_APPROVAL,
-        new Date("2026-10-01T09:00:00Z"),
-      ),
-    );
-    const reader = newStoreSessionActivityReader(store, silentLogger, NOW);
-    expect((await reader.activity("ses_a")).busy).toBe(true);
+  it("is busy while any execution is working, pending or in progress, whatever its age", async () => {
+    for (const phase of [RunPhase.RUN_PENDING, RunPhase.RUN_IN_PROGRESS]) {
+      await save(
+        execution(
+          "run_1",
+          "ses_a",
+          RunPhase.RUN_COMPLETED,
+          new Date("2026-10-03T10:00:00Z"),
+          new Date("2026-10-03T10:05:00Z"),
+        ),
+        execution("run_2", "ses_a", phase, new Date("2026-10-01T09:00:00Z")),
+      );
+      const reader = newStoreSessionActivityReader(store, silentLogger, NOW);
+      expect({ phase, busy: (await reader.activity("ses_a")).busy }).toEqual({ phase, busy: true });
+    }
+  });
+
+  it("is not busy while its only live run waits for a person's answer or is paused, its clock that run's creation (stigmer#3122)", async () => {
+    for (const phase of [RunPhase.RUN_WAITING_FOR_APPROVAL, RunPhase.RUN_PAUSED]) {
+      await save(execution("run_2", "ses_a", phase, new Date("2026-10-01T09:00:00Z")));
+      const reader = newStoreSessionActivityReader(store, silentLogger, NOW);
+      expect({ phase, ...(await reader.activity("ses_a")) }).toEqual({
+        phase,
+        busy: false,
+        lastActiveAt: new Date("2026-10-01T09:00:00Z"),
+      });
+    }
   });
 
   it("is idle once every execution ended, its clock the latest stamp of that session", async () => {
@@ -254,6 +269,13 @@ describe("a stamp ahead of the server's clock", () => {
         new Date("2026-10-04T12:00:00Z"),
       ),
     );
+    const t = created.getTime();
+    expect(await ladderAt(t + SUSPEND_AFTER_MS - 1)).toBe("none");
+    expect(await ladderAt(t + SUSPEND_AFTER_MS)).toBe("suspend");
+  });
+
+  it("a turn waiting for a person's answer sleeps on the ladder after its window, like any idle session (stigmer#3122)", async () => {
+    await save(execution("run_1", "ses_a", RunPhase.RUN_WAITING_FOR_APPROVAL, created));
     const t = created.getTime();
     expect(await ladderAt(t + SUSPEND_AFTER_MS - 1)).toBe("none");
     expect(await ladderAt(t + SUSPEND_AFTER_MS)).toBe("suspend");
@@ -619,6 +641,25 @@ describe("recentActivity(sessionId)", () => {
       busy: false,
       lastActiveAt: at(-60 * 60_000 + 19 * 60_000 + 30_000),
     });
+  });
+
+  it("re-reads a parked run on every pass, so its resume reads busy at once without a full read (stigmer#3122)", async () => {
+    const r = rig();
+    await save(
+      execution("run_done", "ses_a", RunPhase.RUN_COMPLETED, at(-120 * 60_000), at(-119 * 60_000)),
+      execution("run_1", "ses_a", RunPhase.RUN_WAITING_FOR_APPROVAL, at(-90 * 60_000)),
+    );
+    expect((await r.reader.recentActivity("ses_a")).busy, "parked: not busy").toBe(false);
+    r.advance(PASS_MS);
+    expect((await r.reader.recentActivity("ses_a")).busy).toBe(false);
+    // The answer comes, long outside the look-back: the workflow writes
+    // the run IN_PROGRESS before it asks for the sandbox.
+    await save(execution("run_1", "ses_a", RunPhase.RUN_IN_PROGRESS, at(-90 * 60_000)));
+    r.advance(PASS_MS);
+    const rows = r.counts.rows;
+    expect((await r.reader.recentActivity("ses_a")).busy, "the resume reads busy").toBe(true);
+    expect(r.counts.rows - rows, "from the by-id read, not a full read").toBe(0);
+    expect(await r.reader.recentActivity("ses_a")).toEqual(await r.truth());
   });
 
   it("re-reads the run holding the latest stamp once it is older than the window", async () => {

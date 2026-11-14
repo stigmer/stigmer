@@ -31,6 +31,11 @@ vi.mock("@stigmer/react-sdk", async () => {
     StigmerProvider: ({ children }: { children: React.ReactNode }) => children,
   };
 });
+// The help line reads the server's answer; here it stands in, so the test
+// holds where the page places it.
+vi.mock("@stigmer/react-sdk/console", () => ({
+  HelpLink: () => <p>Stuck? Talk to us</p>,
+}));
 vi.mock("@/config/env", () => ({
   getApiBaseUrl: () => "https://stigmer.example.com",
 }));
@@ -63,6 +68,13 @@ describe("LoginPageView", () => {
     expect(screen.getAllByRole("button")).toHaveLength(1);
     expect(screen.getByRole("button", { name: "Sign in" })).toBeTruthy();
     expect(screen.queryByRole("textbox")).toBeNull();
+  });
+
+  it("CON-13 places the server's help line under Sign in", () => {
+    render(<LoginPageView />);
+    const help = screen.getByText("Stuck? Talk to us");
+    const signIn = screen.getByRole("button", { name: "Sign in" });
+    expect(signIn.compareDocumentPosition(help) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("starts the configured issuer's flow and returns home after it", () => {

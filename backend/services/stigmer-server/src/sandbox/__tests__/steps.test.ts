@@ -253,9 +253,29 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
           taskQueue: `session:${sessionId}`,
           stigmerToken: `tok-${execution.metadata?.id ?? ""}`,
           callerClass: "user",
+          executionId: execution.metadata?.id ?? "",
         },
       },
     ]);
+  });
+
+  it("names the turn's run in the facts, so a host can tie the sandbox's place to the start it accepted", async () => {
+    const provisioner = fakeProvisioner();
+    const { execution } = await seed(ExecutionTarget.CLOUD);
+    const runId = execution.metadata?.id ?? "";
+    expect(runId).not.toBe("");
+    await ensureSessionSandboxForExecution(
+      {
+        store,
+        logger: silentLogger,
+        lane: lane(provisioner),
+        temporalConfig: sessionRoutingCloudDefault,
+        accounts: undefined,
+      },
+      execution,
+      TEST_CALLER,
+    );
+    expect(provisioner.ensured[0]?.facts.executionId).toBe(runId);
   });
 
   it("hands the caller's class to the driver unchanged and the caller's id to the mint", async () => {

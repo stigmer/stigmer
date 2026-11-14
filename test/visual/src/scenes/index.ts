@@ -27,6 +27,7 @@ import {
   settingsVaultsScene,
 } from "./settings-pages.tsx";
 import { partsScene } from "./parts.tsx";
+import { helpNoneScene, helpScene } from "./help.tsx";
 import type { Drawing } from "./drawing.ts";
 import {
   ANTHROPIC_ONLY,
@@ -254,5 +255,7 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "agent-chat-popup": () => agentChatScene("finished", "popup", true),
   "from-hooks": fromHooksScene,
   parts: partsScene,
+  help: helpScene,
+  "help-none": helpNoneScene,
   ...presets,
 };

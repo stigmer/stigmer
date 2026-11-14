@@ -183,9 +183,12 @@ function roleWord(role: IamRole): string {
 /** A refusal in plain words, or undefined for any other failure. */
 function refusalOf(err: unknown): CliExitError | undefined {
   if (classify(err)?.code === Code.PermissionDenied) {
-    return new CliExitError("only the organization's admins can change how people sign in from your app", ExitCode.Auth, [
-      "Ask an admin to run: stigmer embedding set ...",
-    ]);
+    return new CliExitError(
+      "only the organization's admins can change how people sign in from your app",
+      ExitCode.Auth,
+      ["Ask an admin to run: stigmer embedding set ..."],
+      { cause: err },
+    );
   }
   return undefined;
 }

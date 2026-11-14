@@ -5,7 +5,10 @@
 // finish (`RunErrorNotice`), a page that couldn't load (`ErrorMessage`) and
 // the kit's info notes draw here, so every failure reads the same way:
 // what happened, what wasn't lost, one thing to do, and the details for
-// whoever fixes it. Internal: the kit's own components use it.
+// whoever fixes it. A failed notice ends with the server's help link when
+// the console turned it on (`StigmerProvider`'s `showHelpLink`), so a
+// person stuck at the failure knows where to ask. Internal: the kit's own
+// components use it.
 
 import type { ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
@@ -13,6 +16,7 @@ import { Button } from "../../button/Button.js";
 import { LinkButton } from "../../button/LinkButton.js";
 import type { ButtonSize } from "../../button/buttonClasses.js";
 import { useCopy } from "../CopyBlock.js";
+import { FailureHelpLine } from "../../help/HelpLink.js";
 
 /** A notice's tone: the status pill's hue for failed and paused, grey for plain. */
 export type NoticeTone = "failed" | "paused" | "plain";
@@ -74,7 +78,8 @@ const TONE_CLASSES: Readonly<Record<NoticeTone, { readonly box: string; readonly
 
 /**
  * A note on the page: an icon in the tone's hue, a bold headline, the
- * lines under it, and at most one act, one link and Copy details.
+ * lines under it, and at most one act, one link and Copy details; a
+ * failed one ends with the help line when the console turned it on.
  */
 export function Notice({ tone, headline, children, icon, act, link, actSize = "sm", details = "", role, className }: NoticeProps) {
   const classes = TONE_CLASSES[tone];
@@ -105,6 +110,7 @@ export function Notice({ tone, headline, children, icon, act, link, actSize = "s
             {copyable && <CopyDetails details={details} flush={act === undefined && link === undefined} />}
           </div>
         ) : null}
+        {tone === "failed" && <FailureHelpLine />}
       </div>
     </div>
   );

@@ -98,6 +98,7 @@ export async function acquireConnectRoute(
           logger,
         ),
         callerClass: caller.callerClass,
+        executionId: connectExecutionId,
       },
     );
   } catch (error) {
