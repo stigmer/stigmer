@@ -1,7 +1,7 @@
 /**
  * Platform controller: the server's
  * self-description surface (NOT a resource domain — no store, no
- * pipelines; four direct handlers on PlatformQueryController).
+ * pipelines; direct handlers on PlatformQueryController).
  *
  * Proven by platform.conformance.test.ts (getServerInfo,
  * getRunnerBootstrapConfig and getLicenseStatus shapes; getRunnerScopedToken
@@ -30,6 +30,12 @@
  * run-admission.conformance.test.ts holds a model reported missing to the
  * refusal, and platform.conformance.test.ts the answer's shape and
  * authorization on every edition.
+ *
+ * getOnboardingFunnel is the platform operator's count of how far new
+ * organizations got on the journey from a first agent to their users; the
+ * onboarding service (domain/onboarding/service.ts) answers it by the rule
+ * the organization's own getOnboarding answers, so the count and the
+ * console's card cannot disagree.
  *
  * getRunnerScopedToken is the mint side of the runner-token lane
  * (oss#535) — the seam src/runnerauth/. What the token IS depends on the
@@ -78,6 +84,10 @@ import type {
   GetModelReadinessOutput,
   ModelReadiness,
 } from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
+import type {
+  GetOnboardingFunnelInput,
+  GetOnboardingFunnelOutput,
+} from "@stigmer/apis/ai/stigmer/platform/v1/onboarding_funnel_pb";
 import {
   EnvironmentAvailabilitySchema,
   GetLicenseStatusOutputSchema,
@@ -115,6 +125,8 @@ import {
   type ModelProvider,
 } from "../../modelcatalog/provider-need.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
+import type { OnboardingService } from "../onboarding/service.js";
+import { resolveReportWindow } from "../run/usage.js";
 import { PROVIDER_AVAILABILITY_UNAVAILABLE_COPY } from "../run/require-model-provider.js";
 import type { EnvironmentPolicy } from "../run/environment-admission.js";
 import { isServiceAccountCaller } from "../../extensions/identity.js";
@@ -224,7 +236,12 @@ export interface PlatformControllerDeps {
    */
   readonly providerAvailability: ProviderAvailabilityProvider;
   readonly modelCatalog: ModelCatalogProvider;
-  /** Authorizes getModelReadiness against its annotation (can_view on the organization). */
+  /**
+   * Answers getOnboardingFunnel: how far new organizations got on the
+   * journey, by the rule getOnboarding answers (domain/onboarding).
+   */
+  readonly onboarding: OnboardingService;
+  /** Authorizes getModelReadiness and getOnboardingFunnel against their annotations. */
   readonly authorizer: Authorizer;
   /**
    * The deployment's Environment policy, the one the session and run
@@ -250,6 +267,7 @@ export function registerPlatformServices(
     getServerInfo: () => getServerInfo(deps),
     getLicenseStatus: () => getLicenseStatus(deps),
     getModelReadiness: (input, ctx) => getModelReadiness(deps, input, ctx),
+    getOnboardingFunnel: (input, ctx) => getOnboardingFunnel(deps, input, ctx),
     getRunnerBootstrapConfig: (_input, ctx) =>
       getRunnerBootstrapConfig(deps, ctx),
     getRunnerScopedToken: (input, ctx) =>
@@ -274,6 +292,27 @@ function getServerInfo(deps: PlatformControllerDeps): GetServerInfoOutput {
       packages: deps.environmentPolicy.support.packages,
     }),
   });
+}
+
+/**
+ * GetOnboardingFunnel: how far the organizations made in a window got on
+ * the journey, for a platform operator (can_view_platform_usage on
+ * platform:stigmer, the RPC's annotation). Both bounds are required by the
+ * message's own rules, which the boundary checks before any handler runs,
+ * and are read as the usage reports read them (domain/run/usage.ts).
+ */
+async function getOnboardingFunnel(
+  deps: PlatformControllerDeps,
+  input: GetOnboardingFunnelInput,
+  ctx: HandlerContext,
+): Promise<GetOnboardingFunnelOutput> {
+  await authorizeDirect(
+    PlatformQueryController.method.getOnboardingFunnel,
+    deps.authorizer,
+    callerIdentityOf(ctx),
+    input,
+  );
+  return deps.onboarding.funnel(resolveReportWindow(input.fromDate, input.toDate));
 }
 
 /** The engines a readiness answer lists: every engine the proto names, in its order. */

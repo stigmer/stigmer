@@ -6,6 +6,7 @@
 import { ChildOrgList, ListChildOrgsInput, ListMyOrganizationsInput, OrganizationExternalLookup, OrganizationId, Organizations } from "./io_pbjs";
 import { Organization } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
+import { OnboardingProgress } from "./onboarding_pbjs";
 
 /**
  * OrganizationQueryController handles read operations for organizations.
@@ -60,6 +61,23 @@ export const OrganizationQueryController = {
       name: "listChildOrgs",
       I: ListChildOrgsInput,
       O: ChildOrgList,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Get where an organization is on the journey from a first agent to its
+     * users: which of the six steps are done, and the facts a client's lines
+     * about them name.
+     *
+     * Every step is read from what the server already records, so a console
+     * asks once instead of reading agents, runs, models and access itself.
+     * The one asking is left out of the people who joined.
+     *
+     * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.getOnboarding
+     */
+    getOnboarding: {
+      name: "getOnboarding",
+      I: OrganizationId,
+      O: OnboardingProgress,
       kind: MethodKind.Unary,
     },
   }

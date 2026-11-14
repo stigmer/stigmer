@@ -23,6 +23,7 @@ const (
 	OrganizationQueryController_ListMine_FullMethodName        = "/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/listMine"
 	OrganizationQueryController_GetByExternalId_FullMethodName = "/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/getByExternalId"
 	OrganizationQueryController_ListChildOrgs_FullMethodName   = "/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/listChildOrgs"
+	OrganizationQueryController_GetOnboarding_FullMethodName   = "/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/getOnboarding"
 )
 
 // OrganizationQueryControllerClient is the client API for OrganizationQueryController service.
@@ -42,6 +43,14 @@ type OrganizationQueryControllerClient interface {
 	GetByExternalId(ctx context.Context, in *OrganizationExternalLookup, opts ...grpc.CallOption) (*Organization, error)
 	// List an organization's child organizations, newest first.
 	ListChildOrgs(ctx context.Context, in *ListChildOrgsInput, opts ...grpc.CallOption) (*ChildOrgList, error)
+	// Get where an organization is on the journey from a first agent to its
+	// users: which of the six steps are done, and the facts a client's lines
+	// about them name.
+	//
+	// Every step is read from what the server already records, so a console
+	// asks once instead of reading agents, runs, models and access itself.
+	// The one asking is left out of the people who joined.
+	GetOnboarding(ctx context.Context, in *OrganizationId, opts ...grpc.CallOption) (*OnboardingProgress, error)
 }
 
 type organizationQueryControllerClient struct {
@@ -92,6 +101,16 @@ func (c *organizationQueryControllerClient) ListChildOrgs(ctx context.Context, i
 	return out, nil
 }
 
+func (c *organizationQueryControllerClient) GetOnboarding(ctx context.Context, in *OrganizationId, opts ...grpc.CallOption) (*OnboardingProgress, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OnboardingProgress)
+	err := c.cc.Invoke(ctx, OrganizationQueryController_GetOnboarding_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // OrganizationQueryControllerServer is the server API for OrganizationQueryController service.
 // All implementations should embed UnimplementedOrganizationQueryControllerServer
 // for forward compatibility.
@@ -109,6 +128,14 @@ type OrganizationQueryControllerServer interface {
 	GetByExternalId(context.Context, *OrganizationExternalLookup) (*Organization, error)
 	// List an organization's child organizations, newest first.
 	ListChildOrgs(context.Context, *ListChildOrgsInput) (*ChildOrgList, error)
+	// Get where an organization is on the journey from a first agent to its
+	// users: which of the six steps are done, and the facts a client's lines
+	// about them name.
+	//
+	// Every step is read from what the server already records, so a console
+	// asks once instead of reading agents, runs, models and access itself.
+	// The one asking is left out of the people who joined.
+	GetOnboarding(context.Context, *OrganizationId) (*OnboardingProgress, error)
 }
 
 // UnimplementedOrganizationQueryControllerServer should be embedded to have
@@ -129,6 +156,9 @@ func (UnimplementedOrganizationQueryControllerServer) GetByExternalId(context.Co
 }
 func (UnimplementedOrganizationQueryControllerServer) ListChildOrgs(context.Context, *ListChildOrgsInput) (*ChildOrgList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListChildOrgs not implemented")
+}
+func (UnimplementedOrganizationQueryControllerServer) GetOnboarding(context.Context, *OrganizationId) (*OnboardingProgress, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetOnboarding not implemented")
 }
 func (UnimplementedOrganizationQueryControllerServer) testEmbeddedByValue() {}
 
@@ -222,6 +252,24 @@ func _OrganizationQueryController_ListChildOrgs_Handler(srv interface{}, ctx con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _OrganizationQueryController_GetOnboarding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationId)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrganizationQueryControllerServer).GetOnboarding(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrganizationQueryController_GetOnboarding_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrganizationQueryControllerServer).GetOnboarding(ctx, req.(*OrganizationId))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // OrganizationQueryController_ServiceDesc is the grpc.ServiceDesc for OrganizationQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -244,6 +292,10 @@ var OrganizationQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "listChildOrgs",
 			Handler:    _OrganizationQueryController_ListChildOrgs_Handler,
+		},
+		{
+			MethodName: "getOnboarding",
+			Handler:    _OrganizationQueryController_GetOnboarding_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

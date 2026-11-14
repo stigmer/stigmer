@@ -9,9 +9,10 @@
 // heading.
 //
 // The journey is read from the server as the kit reads it (`useJourney`):
-// the permission to make agents, the all-time run summary, readiness, the
-// agent list and each journey agent's versions, so every scene answers
-// those calls. The agent is the one the first question makes from the
+// the organization's onboarding, one answer the scenes give from their
+// state by the server's rule (an agent made; a key served or a job done; a
+// job done; the journey's agent changed; an app user; a teammate), so the
+// card and its lines draw exactly as against a server. The agent is the one the first question makes from the
 // variance-report example (`@stigmer/examples`, read from the package's
 // source): its name, slug, description, instructions and the tool it may
 // not use, and nothing else. Six of six needs an app user and a teammate on
@@ -28,9 +29,16 @@ import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
 import { SkillQueryController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/query_pb";
 import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
-import type { GetModelReadinessOutput } from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
+import { ProviderAvailability, type GetModelReadinessOutput } from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
 import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
+import {
+  OnboardingProgressSchema,
+  OnboardingStepId,
+  OnboardingStepSchema,
+  type OnboardingProgress,
+} from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/onboarding_pb";
+import { isJourneyAgentSlug } from "../../../../examples/src/journey/index.ts";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import {
   AgentDetailView,
@@ -53,7 +61,7 @@ import { exampleById, type Example } from "../../../../examples/src/index.ts";
 import { BUSY_WEEK_RUNS, BUSY_WEEK_USAGE, EMPTY_USAGE, NO_RUNS, ORGANIZATION } from "../fixtures.ts";
 import { agentRoutes, MENU, START_SESSION } from "./agent.tsx";
 import { ANTHROPIC_ONLY, launcherRoutes } from "./models.tsx";
-import { sessionRoutes, type SessionReplay } from "./session.tsx";
+import { SESSION_ORG, sessionRoutes, type SessionReplay } from "./session.tsx";
 import { numbered } from "./story-data.ts";
 import type { Drawing } from "./drawing.ts";
 
@@ -124,17 +132,84 @@ export interface JourneyState {
 }
 
 /**
- * The calls `useJourney` makes, answered for an admin of an organization in
- * `state`. A service named here replaces every method an earlier route gave
+ * The organization reads a scene answers beside the journey's: its own
+ * organization by default. The router answers a service from the last one
+ * named, so a scene whose other routes name its organizations passes them
+ * here.
+ */
+export interface OrganizationAnswers {
+  readonly listMine?: () => ReturnType<typeof samples.organizationList>;
+  readonly get?: () => typeof ORGANIZATION;
+}
+
+const THE_ORGANIZATION: OrganizationAnswers = { listMine: () => samples.organizationList([ORGANIZATION]), get: () => ORGANIZATION };
+
+/** Where the people of an organization stand, for the journey's last two steps. */
+export interface JourneyPeople {
+  /** The first app user's name, or undefined when none signed in from the app. */
+  readonly appUser?: string;
+  /** The teammates besides the viewer, in the list's order. */
+  readonly joined?: readonly string[];
+}
+
+/**
+ * The organization's onboarding as the server answers it for an admin of an
+ * organization in `state`, by the server's rule
+ * (domain/onboarding/progress.ts): an agent is made; a provider serves or a
+ * job is done; a job is done; the journey's agent changed; an app user
+ * signed in; a teammate joined.
+ */
+export function journeyAnswer(state: JourneyState, people: JourneyPeople = {}): OnboardingProgress {
+  const journeyAgents = state.agents.filter((agent) => isJourneyAgentSlug(agent.metadata?.slug ?? ""));
+  const named = (agent: Agent | undefined) =>
+    agent === undefined ? undefined : { org: agent.metadata?.org ?? ORG_ID, slug: agent.metadata?.slug ?? "", name: agent.metadata?.name ?? "" };
+  const served = state.readiness.providers.find((report) =>
+    [ProviderAvailability.served_by_organization, ProviderAvailability.served_by_parent_organization, ProviderAvailability.served_by_runners].includes(
+      report.availability,
+    ),
+  )?.provider;
+  const joined = people.joined ?? [];
+  const done = new Set<OnboardingStepId>([
+    ...(state.agents.length > 0 ? [OnboardingStepId.describe] : []),
+    ...(served !== undefined || state.ran ? [OnboardingStepId.key] : []),
+    ...(state.ran ? [OnboardingStepId.watch] : []),
+    ...(state.changed && journeyAgents.length > 0 ? [OnboardingStepId.make_yours] : []),
+    ...(people.appUser !== undefined ? [OnboardingStepId.in_app] : []),
+    ...(joined.length > 0 ? [OnboardingStepId.others] : []),
+  ]);
+  const answer = create(OnboardingProgressSchema, {
+    newestAgent: named(journeyAgents[0]),
+    changedAgent: state.changed ? named(journeyAgents[0]) : undefined,
+    servedProvider: served ?? "",
+    everRan: state.ran,
+    appUserName: people.appUser ?? "",
+    joinedNames: joined.slice(0, 2),
+    joinedCount: joined.length,
+  });
+  answer.steps = [
+    OnboardingStepId.describe,
+    OnboardingStepId.key,
+    OnboardingStepId.watch,
+    OnboardingStepId.make_yours,
+    OnboardingStepId.in_app,
+    OnboardingStepId.others,
+  ].map((id) => create(OnboardingStepSchema, { id, done: done.has(id) }));
+  return answer;
+}
+
+/**
+ * The calls `useJourney` and the pages around it make, answered for an
+ * admin of an organization in `state`. A service named here replaces every method an earlier route gave
  * it (connect's router answers each method from the last service named), so
  * each one carries every method the scenes that compose it call.
  */
-export function journeyRoutes(state: JourneyState) {
+export function journeyRoutes(state: JourneyState, organizations: OrganizationAnswers = THE_ORGANIZATION) {
   return (router: ConnectRouter) => {
     router.service(GrantQueryController, {
       checkMyPermission: (input) => ({ isAuthorized: input.relation !== "can_create_skill" || state.makesSkills !== false }),
     });
     router.service(PlatformQueryController, { getModelReadiness: () => state.readiness, getServerInfo: () => ({}) });
+    router.service(OrganizationQueryController, { ...organizations, getOnboarding: () => journeyAnswer(state) });
     router.service(AgentQueryController, {
       list: () => ({ entries: [...state.agents], nextPageToken: "" }),
       listVersions: () => journeyVersions(state.changed),
@@ -305,7 +380,7 @@ export function sessionFirstJobNextScene(): Drawing {
     inOrganization: true,
     routes: (router: ConnectRouter) => {
       sessionRoutes(replay, { agent })(router);
-      journeyRoutes({ ...RAN_ONCE, agents: [agent] })(router);
+      journeyRoutes({ ...RAN_ONCE, agents: [agent] }, { listMine: () => samples.organizationList([SESSION_ORG]) })(router);
       router.service(RunQueryController, {
         getRunSummary: () => BUSY_WEEK_RUNS,
         listBySession: () => samples.runList([...replay.runs]),

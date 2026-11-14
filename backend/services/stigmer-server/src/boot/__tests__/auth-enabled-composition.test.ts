@@ -226,6 +226,9 @@ beforeAll(async () => {
       // default words, and warned at boot.
       STIGMER_HELP_URL: "https://help.acme.example/stigmer",
       STIGMER_HELP_LABEL: "Ask the platform team in the #stigmer-help channel",
+      // The team's own addresses, one entry no address: dropped, and warned
+      // at boot.
+      STIGMER_INTERNAL_ACCOUNTS: "*@acme.example, the-platform-team",
       STIGMER_CONSOLE_DIR: consoleDir,
     }),
     logger: createLogger({
@@ -314,6 +317,19 @@ describe("the console the server serves is told the posture", () => {
     const info = await platform.getServerInfo({});
     expect(info.help).toEqual(expect.objectContaining({ url: "https://help.acme.example/stigmer", label: "Get help" }));
     expect(warnings).toContainEqual(expect.stringContaining("STIGMER_HELP_LABEL is longer than 40 characters"));
+  });
+
+  it("the composition root WARNs at boot about an internal-accounts entry that is no address, naming it", () => {
+    expect(warnings).toContainEqual(expect.stringContaining("STIGMER_INTERNAL_ACCOUNTS entry 'the-platform-team' is not an address"));
+  });
+
+  it("the onboarding count refuses a signed-in person who is no platform operator, with the annotation's copy", async () => {
+    const token = await mintOidcToken("auth0|counting-person", "counter@example.com");
+    const error = await createClient(PlatformQueryController, transportWith(token))
+      .getOnboardingFunnel({ fromDate: "2026-11-01", toDate: "2026-11-07" })
+      .catch((e: unknown) => e);
+    expect(ConnectError.from(error).code).toBe(Code.PermissionDenied);
+    expect(ConnectError.from(error).rawMessage).toBe("only platform operators can read onboarding counts");
   });
 
   it("the composition root WARNs at wiring time that the served console cannot sign in without STIGMER_OIDC_CONSOLE_CLIENT_ID", () => {

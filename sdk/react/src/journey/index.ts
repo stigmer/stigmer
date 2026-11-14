@@ -10,7 +10,7 @@ export {
   type JourneyStepState,
   type JourneyAgent,
 } from "./useJourney.js";
-export { isJourneyAgentSlug } from "./journey-agents.js";
+export { isJourneyAgentSlug } from "@stigmer/examples/journey";
 export { JourneyNextLine, JourneyLauncherLine, type JourneyNextLineProps, type JourneyLauncherLineProps } from "./JourneyNextLine.js";
 export { MakeItYoursTab, type MakeItYoursTabProps, type MakeItYoursLinks } from "./MakeItYoursTab.js";
 export {

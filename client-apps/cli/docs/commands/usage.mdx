@@ -5,7 +5,8 @@ how long your agents worked. Reports are available at three levels:
 per-session, per-agent, and per-organization. Usage is counted in tokens;
 Stigmer never prices it. Your model provider bills the calls made on your own
 keys. On Stigmer Cloud, `stigmer usage hours` shows the organization's agent
-hours against its plan.
+hours against its plan. A platform operator reads where new organizations
+stopped on their way to an agent in their app with `stigmer usage onboarding`.
 
 {/* AUTO_USAGE */}
 
@@ -23,6 +24,9 @@ stigmer usage org --from 2026-03-01 --to 2026-03-31
 
 # View the organization's agent hours (Stigmer Cloud)
 stigmer usage hours
+
+# See where last week's new organizations stopped (platform operators)
+stigmer usage onboarding
 ```
 
 {/* AUTO_FLAGS */}
@@ -35,6 +39,7 @@ stigmer usage hours
 | `usage agent` | All sessions for an agent | Optional `--from` / `--to` |
 | `usage org` | Entire organization | Required `--from` / `--to` |
 | `usage hours` | The organization's plan (Stigmer Cloud) | The plan's current month |
+| `usage onboarding` | Every new organization on the server (platform operators) | Optional `--from` / `--to`; the last week by default |
 
 A date is a UTC calendar day (`2026-03-01`) or an RFC 3339 instant
 (`2026-03-01T09:00:00Z`). Both bounds are inclusive: `--to 2026-03-31`
@@ -74,6 +79,19 @@ than the plan's agent hours. A child organization's hours are its parent's to
 read. A self-hosted server counts no agent hours, and the command says so. See
 [Billing](/docs/concepts/billing).
 
+### Where newcomers stop
+
+`stigmer usage onboarding` counts the organizations made in the range and how
+many of them took each of the six first steps: said what their agent should
+do, added a model key, watched it work, made it theirs, put it in their app,
+and brought others in. These are the steps each admin sees on the dashboard's
+first-steps card, read from the same server records, so the count and the card
+agree. It counts only, with no names or addresses. Organizations your own team
+made are left out when the server lists their addresses
+(`STIGMER_INTERNAL_ACCOUNTS`, see
+[Operations](/docs/guides/self-hosting/operations#where-newcomers-stop)). Only a
+platform operator may read it; anyone else is told so.
+
 {/* AUTO_SUBCOMMANDS */}
 
 ## Examples
@@ -104,6 +122,28 @@ Agent hours: 3.2 h of 30 h used this month (resets 2026-11-01 UTC). New work pau
 
 When the hours are used up, a new message is refused with the plan and the
 reset date, and the error points to `stigmer usage hours`.
+
+### Where last week's newcomers stopped
+
+```bash
+stigmer usage onboarding
+```
+
+```text
+Onboarding
+Period: 2026-11-08 to 2026-11-14
+
+  New organizations: 40 (2 made by your own team left out)
+
+STEP                       REACHED   SHARE
+------------------------   -------   -----
+1 Said what it should do   31        78%
+2 Added a model key        12        30%
+3 Watched it work          9         23%
+4 Made it theirs           5         13%
+5 Put it in their app      3         8%
+6 Brought others in        1         3%
+```
 
 ### Organization report as JSON
 

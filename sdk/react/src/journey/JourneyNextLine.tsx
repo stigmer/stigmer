@@ -22,7 +22,7 @@ import { cn } from "@stigmer/design-tokens";
 import type { ResourceRef } from "@stigmer/client";
 import { LinkButton } from "../button/LinkButton.js";
 import { cardClasses } from "../internal/surface/Card.js";
-import { isJourneyAgentSlug } from "./journey-agents.js";
+import { isJourneyAgentSlug } from "@stigmer/examples/journey";
 import { useJourney, type JourneyStepId, type UseJourneyReturn } from "./useJourney.js";
 import { anchorLink, type JourneyLinks } from "./links.js";
 

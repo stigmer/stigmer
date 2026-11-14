@@ -1,0 +1,48 @@
+# Store tests for the platform usage permission.
+#
+# can_view_platform_usage gates PlatformQueryController.getOnboardingFunnel:
+# counts across every organization on the server, how far new
+# organizations got on the journey. It derives from the platform operator
+# role only. Owning an organization never confers it, because the count
+# covers every other organization too; and holding it reaches nothing
+# inside an organization, because operator access never propagates there.
+#
+# Run with:
+#   fga model test --tests platform-usage-reader.fga.yaml
+name: platform-usage-reader
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # The bootstrap machine account is the platform operator
+  # (BootstrapIdentitySeeder re-asserts this tuple on every boot).
+  - user: identity_account:machine
+    relation: operator
+    object: platform:stigmer
+
+  # A tenant org owner — owns everything in their org, nothing on the
+  # platform.
+  - user: identity_account:mallory
+    relation: owner
+    object: organization:acme
+  - user: identity_account:mallory
+    relation: affiliated
+    object: organization:acme
+
+tests:
+  - name: operator may read platform counts, tenants may not
+    check:
+      - user: identity_account:machine
+        object: platform:stigmer
+        assertions:
+          can_view_platform_usage: true
+      - user: identity_account:mallory
+        object: platform:stigmer
+        assertions:
+          can_view_platform_usage: false
+  - name: the operator holds nothing inside an organization
+    check:
+      - user: identity_account:machine
+        object: organization:acme
+        assertions:
+          can_view: false
+          can_edit: false

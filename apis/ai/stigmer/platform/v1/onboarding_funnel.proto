@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package ai.stigmer.platform.v1;
+
+import "ai/stigmer/tenancy/organization/v1/onboarding.proto";
+import "buf/validate/validate.proto";
+
+// Input for counting how far new organizations got on the journey.
+message GetOnboardingFunnelInput {
+  // Start of the window, inclusive: a UTC calendar day ("2026-11-01", from
+  // its first instant) or an RFC 3339 instant. An organization is in the
+  // window when it was made in it. Required.
+  string from_date = 1 [(buf.validate.field).string.min_len = 1];
+
+  // End of the window, inclusive: a UTC calendar day ("2026-11-07", through
+  // its last instant) or an RFC 3339 instant. Required.
+  string to_date = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+// How many organizations in the window have one step done.
+message OnboardingStepCount {
+  // Which step.
+  ai.stigmer.tenancy.organization.v1.OnboardingStepId id = 1;
+
+  // How many counted organizations have the step done.
+  int32 reached = 2;
+}
+
+// How far the organizations made in a window got on the journey from a
+// first agent to its users. Counts only.
+message GetOnboardingFunnelOutput {
+  // How many organizations were counted: the top-level organizations made
+  // in the window, less those excluded.
+  int32 organizations = 1;
+
+  // How many were left out because the person who made them signs in with
+  // an address the server's operator listed as internal.
+  int32 excluded = 2;
+
+  // The six steps, in order, each with how many counted organizations
+  // have it done.
+  repeated OnboardingStepCount steps = 3;
+}

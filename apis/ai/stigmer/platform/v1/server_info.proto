@@ -5,6 +5,7 @@ package ai.stigmer.platform.v1;
 import "ai/stigmer/commons/rpc/method_options.proto";
 import "ai/stigmer/platform/v1/license.proto";
 import "ai/stigmer/platform/v1/model_readiness.proto";
+import "ai/stigmer/platform/v1/onboarding_funnel.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
 
@@ -63,6 +64,9 @@ enum ServerEdition {
 //
 // Signed-in members call getModelReadiness to learn which models can run in
 // their organization before they start a run.
+//
+// Platform operators call getOnboardingFunnel to learn how far new
+// organizations got on the journey from a first agent to their users.
 service PlatformQueryController {
   // Returns the server edition and version.
   //
@@ -128,6 +132,28 @@ service PlatformQueryController {
     option (ai.stigmer.commons.rpc.config).permission = can_view;
     option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view this organization's models";
+  }
+
+  // Returns how far the organizations made in a window got on the journey
+  // from a first agent to its users: how many were made, and how many have
+  // each of the six steps done.
+  //
+  // Counts only, with no names, addresses or identifiers. Organizations
+  // made by an address the operator lists as internal
+  // (STIGMER_INTERNAL_ACCOUNTS) are left out and counted apart. A window
+  // holding more organizations than one answer counts is refused with a
+  // narrower window suggested.
+  //
+  // @internal
+  // Authorization: can_view_platform_usage on platform:stigmer, the
+  // platform's operators. Each organization's steps are the same rule
+  // getOnboarding answers (domain/onboarding/progress.ts), with the
+  // organization's creator left out of the people who joined.
+  rpc getOnboardingFunnel(GetOnboardingFunnelInput) returns (GetOnboardingFunnelOutput) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_view_platform_usage;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can read onboarding counts";
   }
 
   // Returns everything an embedded runner needs to bootstrap itself.

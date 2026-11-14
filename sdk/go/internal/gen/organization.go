@@ -152,6 +152,11 @@ func (o *OrganizationClient) ListChildOrgsAll(ctx context.Context, input *organi
 	}
 }
 
+func (o *OrganizationClient) GetOnboarding(ctx context.Context, id string) (*organizationv1.OnboardingProgress, error) {
+	resp, err := o.query.GetOnboarding(ctx, &organizationv1.OrganizationId{Value: id})
+	return resp, wrapErr(err)
+}
+
 // OrganizationInput holds the fields for creating or applying a Organization.
 type OrganizationInput struct {
 	// Id is the resource's metadata.id: an apply that carries it changes

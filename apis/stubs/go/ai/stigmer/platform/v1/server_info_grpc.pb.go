@@ -22,6 +22,7 @@ const (
 	PlatformQueryController_GetServerInfo_FullMethodName            = "/ai.stigmer.platform.v1.PlatformQueryController/getServerInfo"
 	PlatformQueryController_GetLicenseStatus_FullMethodName         = "/ai.stigmer.platform.v1.PlatformQueryController/getLicenseStatus"
 	PlatformQueryController_GetModelReadiness_FullMethodName        = "/ai.stigmer.platform.v1.PlatformQueryController/getModelReadiness"
+	PlatformQueryController_GetOnboardingFunnel_FullMethodName      = "/ai.stigmer.platform.v1.PlatformQueryController/getOnboardingFunnel"
 	PlatformQueryController_GetRunnerBootstrapConfig_FullMethodName = "/ai.stigmer.platform.v1.PlatformQueryController/getRunnerBootstrapConfig"
 	PlatformQueryController_GetRunnerScopedToken_FullMethodName     = "/ai.stigmer.platform.v1.PlatformQueryController/getRunnerScopedToken"
 )
@@ -46,6 +47,9 @@ const (
 //
 // Signed-in members call getModelReadiness to learn which models can run in
 // their organization before they start a run.
+//
+// Platform operators call getOnboardingFunnel to learn how far new
+// organizations got on the journey from a first agent to their users.
 type PlatformQueryControllerClient interface {
 	// Returns the server edition and version.
 	//
@@ -87,6 +91,16 @@ type PlatformQueryControllerClient interface {
 	// Any member of the organization may ask, because a member about to start
 	// a run needs the answer; a guest never can.
 	GetModelReadiness(ctx context.Context, in *GetModelReadinessInput, opts ...grpc.CallOption) (*GetModelReadinessOutput, error)
+	// Returns how far the organizations made in a window got on the journey
+	// from a first agent to its users: how many were made, and how many have
+	// each of the six steps done.
+	//
+	// Counts only, with no names, addresses or identifiers. Organizations
+	// made by an address the operator lists as internal
+	// (STIGMER_INTERNAL_ACCOUNTS) are left out and counted apart. A window
+	// holding more organizations than one answer counts is refused with a
+	// narrower window suggested.
+	GetOnboardingFunnel(ctx context.Context, in *GetOnboardingFunnelInput, opts ...grpc.CallOption) (*GetOnboardingFunnelOutput, error)
 	// Returns everything an embedded runner needs to bootstrap itself.
 	//
 	// An embedded runner (a desktop or web app hosting the runner for local
@@ -161,6 +175,16 @@ func (c *platformQueryControllerClient) GetModelReadiness(ctx context.Context, i
 	return out, nil
 }
 
+func (c *platformQueryControllerClient) GetOnboardingFunnel(ctx context.Context, in *GetOnboardingFunnelInput, opts ...grpc.CallOption) (*GetOnboardingFunnelOutput, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetOnboardingFunnelOutput)
+	err := c.cc.Invoke(ctx, PlatformQueryController_GetOnboardingFunnel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *platformQueryControllerClient) GetRunnerBootstrapConfig(ctx context.Context, in *GetRunnerBootstrapConfigInput, opts ...grpc.CallOption) (*GetRunnerBootstrapConfigOutput, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetRunnerBootstrapConfigOutput)
@@ -201,6 +225,9 @@ func (c *platformQueryControllerClient) GetRunnerScopedToken(ctx context.Context
 //
 // Signed-in members call getModelReadiness to learn which models can run in
 // their organization before they start a run.
+//
+// Platform operators call getOnboardingFunnel to learn how far new
+// organizations got on the journey from a first agent to their users.
 type PlatformQueryControllerServer interface {
 	// Returns the server edition and version.
 	//
@@ -242,6 +269,16 @@ type PlatformQueryControllerServer interface {
 	// Any member of the organization may ask, because a member about to start
 	// a run needs the answer; a guest never can.
 	GetModelReadiness(context.Context, *GetModelReadinessInput) (*GetModelReadinessOutput, error)
+	// Returns how far the organizations made in a window got on the journey
+	// from a first agent to its users: how many were made, and how many have
+	// each of the six steps done.
+	//
+	// Counts only, with no names, addresses or identifiers. Organizations
+	// made by an address the operator lists as internal
+	// (STIGMER_INTERNAL_ACCOUNTS) are left out and counted apart. A window
+	// holding more organizations than one answer counts is refused with a
+	// narrower window suggested.
+	GetOnboardingFunnel(context.Context, *GetOnboardingFunnelInput) (*GetOnboardingFunnelOutput, error)
 	// Returns everything an embedded runner needs to bootstrap itself.
 	//
 	// An embedded runner (a desktop or web app hosting the runner for local
@@ -293,6 +330,9 @@ func (UnimplementedPlatformQueryControllerServer) GetLicenseStatus(context.Conte
 }
 func (UnimplementedPlatformQueryControllerServer) GetModelReadiness(context.Context, *GetModelReadinessInput) (*GetModelReadinessOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetModelReadiness not implemented")
+}
+func (UnimplementedPlatformQueryControllerServer) GetOnboardingFunnel(context.Context, *GetOnboardingFunnelInput) (*GetOnboardingFunnelOutput, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetOnboardingFunnel not implemented")
 }
 func (UnimplementedPlatformQueryControllerServer) GetRunnerBootstrapConfig(context.Context, *GetRunnerBootstrapConfigInput) (*GetRunnerBootstrapConfigOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRunnerBootstrapConfig not implemented")
@@ -374,6 +414,24 @@ func _PlatformQueryController_GetModelReadiness_Handler(srv interface{}, ctx con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PlatformQueryController_GetOnboardingFunnel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetOnboardingFunnelInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PlatformQueryControllerServer).GetOnboardingFunnel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PlatformQueryController_GetOnboardingFunnel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PlatformQueryControllerServer).GetOnboardingFunnel(ctx, req.(*GetOnboardingFunnelInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PlatformQueryController_GetRunnerBootstrapConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetRunnerBootstrapConfigInput)
 	if err := dec(in); err != nil {
@@ -428,6 +486,10 @@ var PlatformQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getModelReadiness",
 			Handler:    _PlatformQueryController_GetModelReadiness_Handler,
+		},
+		{
+			MethodName: "getOnboardingFunnel",
+			Handler:    _PlatformQueryController_GetOnboardingFunnel_Handler,
 		},
 		{
 			MethodName: "getRunnerBootstrapConfig",

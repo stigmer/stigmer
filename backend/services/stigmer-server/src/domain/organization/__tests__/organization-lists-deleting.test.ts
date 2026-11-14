@@ -28,6 +28,7 @@ import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/autho
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import { registerOrganizationServices } from "../controller.js";
+import type { OnboardingService } from "../../onboarding/service.js";
 import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
@@ -59,6 +60,12 @@ afterEach(async () => {
   await temp.cleanup();
 });
 
+/** The onboarding service a list test never asks. */
+const UNUSED_ONBOARDING: OnboardingService = {
+  progress: () => Promise.reject(new Error("not asked")),
+  funnel: () => Promise.reject(new Error("not asked")),
+};
+
 function query(
   directory?: OrganizationDirectory,
 ): Client<typeof OrganizationQueryController> {
@@ -76,6 +83,7 @@ function query(
         organizationDirectory: directory,
         orgLimit: undefined,
         purge: { kick: () => {} },
+        onboarding: UNUSED_ONBOARDING,
       }),
     {
       router: {
