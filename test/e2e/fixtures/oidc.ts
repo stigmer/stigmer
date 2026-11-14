@@ -93,3 +93,13 @@ export function startIssuerProcess(): Promise<{
     });
   });
 }
+
+/**
+ * The help link the OIDC stack's operator sets (STIGMER_HELP_URL and
+ * STIGMER_HELP_LABEL): a self-hosted server that names its own desk. The
+ * trusted-local stacks set none, so their consoles show no help link.
+ */
+export const OIDC_HELP = {
+  url: "https://support.e2e.stigmer.test/stigmer",
+  label: "Ask IT on Slack",
+} as const;

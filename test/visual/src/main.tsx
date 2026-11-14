@@ -40,8 +40,13 @@ import { DRAWINGS } from "./scenes/index.ts";
  * provider on this page reads a drawing the same way and a field added to
  * `Drawing` reaches each of them.
  */
-function providerProps(drawing: Drawing): Pick<StigmerProviderProps, "preset" | "deploymentMode" | "publicBaseUrl"> {
-  return { preset: drawing.preset, deploymentMode: drawing.deploymentMode, publicBaseUrl: drawing.publicBaseUrl };
+function providerProps(drawing: Drawing): Pick<StigmerProviderProps, "preset" | "deploymentMode" | "publicBaseUrl" | "showHelpLink"> {
+  return {
+    preset: drawing.preset,
+    deploymentMode: drawing.deploymentMode,
+    publicBaseUrl: drawing.publicBaseUrl,
+    showHelpLink: drawing.showHelpLink,
+  };
 }
 
 /** One scene in one mode. Its drawing and client are made once, outside React's render. */
