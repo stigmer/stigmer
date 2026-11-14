@@ -134,7 +134,9 @@ function PlanItemRow({
           status === "pending" && "stg:text-muted-foreground",
           status === "cancelled" && "stg:text-muted-foreground stg:line-through",
           live && "stg:font-medium stg:text-foreground",
-          status === "in_progress" && !working && "stg:font-medium stg:text-foreground",
+          // Where an ended turn stopped: the words at rest, the mark and the
+          // note under them saying how it ended.
+          status === "in_progress" && !working && "stg:text-foreground",
         )}
       >
         {item.todo.content}

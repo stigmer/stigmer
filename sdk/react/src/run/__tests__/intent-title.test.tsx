@@ -210,7 +210,7 @@ describe("ApprovalCardHeader shell title", () => {
     const { container } = render(<ApprovalCardBody toolUse={pending} onAnswer={() => {}} />);
 
     expect(container.querySelector('[data-cursor-target="approval-waits"]')?.textContent).toBe(
-      "Clean the build directory. It waits for your answer. Nothing runs until you allow it.",
+      "Clean the build directory. Nothing runs until you allow it.",
     );
   });
 

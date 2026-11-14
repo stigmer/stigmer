@@ -105,7 +105,7 @@ describe("ApprovalCard chrome", () => {
     );
     expect(screen.getByText("The agent wants to run a command")).toBeTruthy();
     expect(screen.queryByText("Run the unit tests")).toBeNull();
-    expect(waitLine(container)).toBe("Run the unit tests. It waits for your answer. Nothing runs until you allow it.");
+    expect(waitLine(container)).toBe("Run the unit tests. Nothing runs until you allow it.");
   });
 
   it("never shows the auto-keep note on a non-shell gate", () => {
@@ -205,7 +205,7 @@ describe("ApprovalCard wait line", () => {
         onAnswer={noop}
       />,
     );
-    expect(waitLine(container)).toBe("Run the unit tests. It waits for your answer. Nothing runs until you allow it.");
+    expect(waitLine(container)).toBe("Run the unit tests. Nothing runs until you allow it.");
   });
 
   it("says no description for one made only of periods and spaces, trimmed in linear time", () => {
