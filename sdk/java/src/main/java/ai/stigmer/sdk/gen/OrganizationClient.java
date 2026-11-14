@@ -6,6 +6,7 @@ import ai.stigmer.commons.apiresource.RenameInput;
 import ai.stigmer.tenancy.organization.v1.ChildOrgList;
 import ai.stigmer.tenancy.organization.v1.ListChildOrgsInput;
 import ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput;
+import ai.stigmer.tenancy.organization.v1.OnboardingProgress;
 import ai.stigmer.tenancy.organization.v1.Organization;
 import ai.stigmer.tenancy.organization.v1.OrganizationCommandControllerGrpc;
 import ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup;
@@ -122,5 +123,11 @@ public final class OrganizationClient {
             token -> listChildOrgs(input.toBuilder().setPageToken(token).build()),
             ChildOrgList::getEntriesList,
             ChildOrgList::getNextPageToken);
+    }
+
+    public OnboardingProgress getOnboarding(String id) {
+        try {
+            return query.getOnboarding(OrganizationId.newBuilder().setValue(id).build());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

@@ -104,6 +104,10 @@ becomes %20, the encoding a URL's user and path segments read.
   value: {{ . | quote }}
 {{- end }}
 {{- end }}
+{{- with .Values.server.internalAccounts }}
+- name: STIGMER_INTERNAL_ACCOUNTS
+  value: {{ . | quote }}
+{{- end }}
 {{- if include "stigmer.licenseSecret" . }}
 {{- include "stigmer.enterpriseServerEnv" . }}
 {{- end }}

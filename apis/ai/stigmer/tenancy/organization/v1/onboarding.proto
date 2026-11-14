@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+package ai.stigmer.tenancy.organization.v1;
+
+// One step of the journey from a first agent to its users.
+//
+// The six steps, in order: say what the agent should do, add a model key,
+// watch it work, make it yours, put it in your app, bring others in. A
+// client names and words each step itself; the server only says which are
+// done.
+enum OnboardingStepId {
+  onboarding_step_id_unspecified = 0;
+
+  // An agent exists in the organization.
+  describe = 1;
+
+  // A provider serves a model to the organization, or a run has completed.
+  key = 2;
+
+  // A run has completed. A run that failed or was stopped did no job.
+  watch = 3;
+
+  // An agent the journey made has a second version: its instructions
+  // changed, or a skill was added.
+  make_yours = 4;
+
+  // A person signed in from the builder's own app: an app user holds
+  // access to the organization. Never done on a server that signs nobody
+  // in.
+  in_app = 5;
+
+  // A person besides the one asking (or, in a count, besides the
+  // organization's creator) holds access to the organization. Never done on
+  // a server that signs nobody in.
+  others = 6;
+}
+
+// Whether one step of the journey is done.
+message OnboardingStep {
+  // Which step.
+  OnboardingStepId id = 1;
+
+  // Whether the server's records already show the step taken.
+  bool done = 2;
+}
+
+// An agent the journey made, named for a client's line about it.
+message OnboardingAgent {
+  // The organization the agent lives in.
+  string org = 1;
+
+  // The agent's slug.
+  string slug = 2;
+
+  // The agent's display name.
+  string name = 3;
+}
+
+// Where an organization is on the journey from a first agent to its users.
+//
+// Every step is read from records the server already keeps: its agents and
+// their versions, its runs, the providers that serve it, and who holds
+// access to it. Nothing is stored for the journey itself.
+message OnboardingProgress {
+  // The six steps, in order.
+  repeated OnboardingStep steps = 1;
+
+  // The newest agent the journey made (an example's, or one described in
+  // the person's own words). Unset when there is none.
+  OnboardingAgent newest_agent = 2;
+
+  // The newest agent the journey made that has a second version. Unset
+  // when none has one.
+  OnboardingAgent changed_agent = 3;
+
+  // The first provider that serves a model to the organization ("anthropic"
+  // or "openai"), in the server's order. Empty when none is known to.
+  string served_provider = 4;
+
+  // Whether any run has ever started here, a failed or stopped one
+  // included.
+  bool ever_ran = 5;
+
+  // The display name of the first person who signed in from the builder's
+  // own app. Empty when nobody has.
+  string app_user_name = 6;
+
+  // The display names of up to two people, besides the one asking, who hold
+  // access to the organization.
+  repeated string joined_names = 7;
+
+  // How many people, besides the one asking, hold access to the
+  // organization.
+  int32 joined_count = 8;
+}

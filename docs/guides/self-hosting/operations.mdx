@@ -347,6 +347,36 @@ does the same for words over 40 characters, which become `Get help`. Apps your
 builders make with the React SDK don't show it to their own users: help there is
 the builder's to give.
 
+### Where newcomers stop
+
+The server can tell you how far the organizations made on it got, from a first
+agent to their users: how many were made, and how many said what their agent
+should do, added a model key, watched it work, made it theirs, put it in their
+app and brought others in. It counts the same six steps each admin sees on the
+dashboard's first-steps card, from what the server already records, so the card
+and the count always agree. A platform operator reads it:
+
+```bash
+stigmer usage onboarding --from 2026-11-01 --to 2026-11-07
+```
+
+With no dates it counts the last week. It counts only: no names, no addresses.
+An organization made inside another (a customer's) isn't a newcomer and isn't
+counted.
+
+Leave out your own team's tries by naming their sign-in addresses:
+
+| `.env`                      | `values.yaml`             | What it holds                                                                      |
+| --------------------------- | ------------------------- | ---------------------------------------------------------------------------------- |
+| `STIGMER_INTERNAL_ACCOUNTS` | `server.internalAccounts` | Comma-separated addresses, each exact or a pattern with one `*` (`*@example.com`). |
+
+```bash title=".env"
+STIGMER_INTERNAL_ACCOUNTS=*@example.com,tester+*@example.org
+```
+
+An organization made by a matching address is left out and counted apart. A bad
+entry is dropped at start, and the log says which.
+
 ### Rotate the runner's key
 
 The runner's API key is the one credential you'll rotate on purpose. Create the

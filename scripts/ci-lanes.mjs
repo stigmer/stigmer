@@ -120,6 +120,8 @@ export const LANES = {
       // The libraries the server package links: the live test runs the
       // server's source, which imports them.
       "apis/stubs/ts/**",
+      // The journey-agent rule the server reads (`@stigmer/examples/journey`).
+      "examples/**",
       "backend/libs/ts/eval-runtime/**",
       "backend/libs/ts/outbound/**",
       "backend/libs/ts/plugin-package/**",
@@ -363,6 +365,8 @@ export const LANES = {
       // The shared test machinery the suites import (@stigmer/test-support).
       "test/support/**",
       "apis/**",
+      // The journey-agent rule the server reads (`@stigmer/examples/journey`).
+      "examples/**",
       // What the lane sets up and installs from (ci.all-in-one says why).
       ".nvmrc",
       "package.json",
@@ -378,6 +382,8 @@ export const LANES = {
       "test/conformance/**",
       "test/support/**",
       "apis/**",
+      // The journey-agent rule the server reads (`@stigmer/examples/journey`).
+      "examples/**",
       // Stigmer Enterprise, run from source by the target, and its lockfile.
       "ee/**",
       // What the lane sets up and installs from (ci.all-in-one says why).
@@ -393,6 +399,8 @@ export const LANES = {
       "test/conformance/**",
       "test/support/**",
       "apis/**",
+      // The journey-agent rule the server reads (`@stigmer/examples/journey`).
+      "examples/**",
       // The CLI, run from source: `make install-cli-shim` gives the suites
       // `stigmer`, because memory-enabled executions spawn `stigmer mcp-server`
       // (the workflow says why). Its source holds the Temporal CLI's pin,
@@ -606,6 +614,8 @@ export const LANES = {
       // in its own PR.
       "backend/services/stigmer-server/**",
       "apis/stubs/ts/**",
+      // The journey-agent rule the server reads (`@stigmer/examples/journey`).
+      "examples/**",
       "backend/libs/ts/**",
       "package.json",
       "package-lock.json",
@@ -906,6 +916,8 @@ export const LANES = {
       "backend/services/stigmer-server/**",
       // The packages the server links with `file:` and builds against.
       "apis/stubs/ts/**",
+      // The journey-agent rule the server reads (`@stigmer/examples/journey`).
+      "examples/**",
       "backend/libs/ts/**",
       // `npm run build:runner-deps` is the turbo wrapper, its task graph and
       // the set it resolves from. A change to any of them changes what this

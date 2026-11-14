@@ -328,6 +328,15 @@ export interface ServerConfig {
    */
   readonly helpLabel: string;
   /**
+   * The sign-in addresses of the people who run this server
+   * (STIGMER_INTERNAL_ACCOUNTS): comma-separated, each exact
+   * (`sam@example.com`) or with one `*` (`*@example.com`). The onboarding
+   * count leaves out the organizations they made. Lenient
+   * (boot/internal-accounts.ts): empty lists nobody; a bad entry is dropped
+   * with a WARN.
+   */
+  readonly internalAccounts: string;
+  /**
    * Sandbox provisioner driver (SANDBOX_PROVISIONER_TYPE). ""
    * — the default — is the external-runner posture: no provisioner is
    * constructed and an operator-managed runner polls the queues (today's
@@ -638,6 +647,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     oidcNativeClientId: envString(env, "STIGMER_OIDC_NATIVE_CLIENT_ID", "").trim(),
     helpUrl: envString(env, "STIGMER_HELP_URL", "").trim(),
     helpLabel: envString(env, "STIGMER_HELP_LABEL", "").trim(),
+    internalAccounts: envString(env, "STIGMER_INTERNAL_ACCOUNTS", "").trim(),
     sandboxProvisionerType: envString(env, "SANDBOX_PROVISIONER_TYPE", ""),
     sharedRunnerAcrossOrganizations: loadSharedRunnerAcknowledgement(env),
     sandboxBackendEndpoint: envString(

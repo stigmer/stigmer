@@ -70,7 +70,7 @@ import { LiveConversation } from "../live-server.ts";
 import type { Drawing } from "./drawing.ts";
 
 /** The organization the scenarios' session lives in, as the person's organization list names it. */
-const SESSION_ORG = samples.organization({ id: samples.session().metadata!.org, slug: samples.session().metadata!.org });
+export const SESSION_ORG = samples.organization({ id: samples.session().metadata!.org, slug: samples.session().metadata!.org });
 
 /** What a returned File holds when the inspector opens it: the audit the finished turn wrote. */
 const AUDIT_REPORT = new TextEncoder().encode(

@@ -69,6 +69,7 @@
     "@opentelemetry/api": "^1.9.0",
     "@stigmer/apis": "file:../../../apis/stubs/ts",
     "@stigmer/eval-runtime": "file:../../libs/ts/eval-runtime",
+    "@stigmer/examples": "file:../../../examples",
     "@stigmer/outbound": "file:../../libs/ts/outbound",
     "@stigmer/plugin-package": "file:../../libs/ts/plugin-package",
     "@stigmer/session-log": "file:../../libs/ts/session-log",

@@ -49,6 +49,7 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     can_fire: _ClassVar[IamPermission]
     can_create_environment: _ClassVar[IamPermission]
     can_create_file: _ClassVar[IamPermission]
+    can_view_platform_usage: _ClassVar[IamPermission]
 
 class IamRole(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -101,6 +102,7 @@ can_create_eval: IamPermission
 can_fire: IamPermission
 can_create_environment: IamPermission
 can_create_file: IamPermission
+can_view_platform_usage: IamPermission
 iam_role_unspecified: IamRole
 owner: IamRole
 admin: IamRole

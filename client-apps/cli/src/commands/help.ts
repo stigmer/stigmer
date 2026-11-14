@@ -155,6 +155,7 @@ export const HELP_EXAMPLES: ReadonlyMap<string, readonly HelpExample[]> = new Ma
   ["stigmer usage agent", [{ say: "view agent usage for a date range", run: "stigmer usage agent agt-01abc123 --from 2026-03-01 --to 2026-03-31" }]],
   ["stigmer usage hours", [{ say: "view the organization's agent hours (Stigmer Cloud)", run: "stigmer usage hours" }]],
   ["stigmer usage org", [{ say: "view organization-wide usage", run: "stigmer usage org --from 2026-03-01 --to 2026-03-31" }]],
+  ["stigmer usage onboarding", [{ say: "see where last week's new organizations stopped (platform operators)", run: "stigmer usage onboarding" }]],
   ["stigmer usage session", [{ say: "view usage for a specific session", run: "stigmer usage session ses_01j9z3k8m2q4r6t8v0w2y4a6c8" }]],
   ["stigmer validate", [{ say: "validate a single file", run: "stigmer validate -f agent.yaml" }, { say: "validate all YAML files in a directory", run: "stigmer validate -f ./manifests/" }]],
   ["stigmer vault connect-link", [{ say: "make a one-time sign-in page whose login lands in a shared vault", run: "stigmer vault connect-link ledger-keys --address https://mcp.linear.app/mcp --return-url https://app.example.com/settings" }]],

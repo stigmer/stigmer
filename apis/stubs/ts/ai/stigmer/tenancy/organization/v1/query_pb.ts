@@ -10,12 +10,14 @@ import type { OrganizationSchema } from "./api_pb.js";
 import { file_ai_stigmer_tenancy_organization_v1_api } from "./api_pb.js";
 import type { ChildOrgListSchema, ListChildOrgsInputSchema, ListMyOrganizationsInputSchema, OrganizationExternalLookupSchema, OrganizationIdSchema, OrganizationsSchema } from "./io_pb.js";
 import { file_ai_stigmer_tenancy_organization_v1_io } from "./io_pb.js";
+import type { OnboardingProgressSchema } from "./onboarding_pb.js";
+import { file_ai_stigmer_tenancy_organization_v1_onboarding } from "./onboarding_pb.js";
 
 /**
  * Describes the file ai/stigmer/tenancy/organization/v1/query.proto.
  */
 export const file_ai_stigmer_tenancy_organization_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("Ci5haS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL3F1ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxMvAFChtPcmdhbml6YXRpb25RdWVyeUNvbnRyb2xsZXISnwEKA2dldBIyLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uSWQaMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbiIywrgYLggyEB4iBXZhbHVlKiF1bmF1dGhvcml6ZWQgdG8gdmlldyBvcmdhbml6YXRpb24SgQEKCGxpc3RNaW5lEjwuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5MaXN0TXlPcmdhbml6YXRpb25zSW5wdXQaMS5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbnMiBNC4GAES2QEKD2dldEJ5RXh0ZXJuYWxJZBI+LmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uRXh0ZXJuYWxMb29rdXAaMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbiJUwrgYUAgxEB4iCnBhcmVudF9vcmcqPnVuYXV0aG9yaXplZCB0byBtYW5hZ2UgdGhpcyBvcmdhbml6YXRpb24ncyBjaGlsZCBvcmdhbml6YXRpb25zEsgBCg1saXN0Q2hpbGRPcmdzEjYuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5MaXN0Q2hpbGRPcmdzSW5wdXQaMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLkNoaWxkT3JnTGlzdCJNwrgYSQgxEB4iA29yZyo+dW5hdXRob3JpemVkIHRvIG1hbmFnZSB0aGlzIG9yZ2FuaXphdGlvbidzIGNoaWxkIG9yZ2FuaXphdGlvbnMaBKD/Kx5iBnByb3RvMw", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_tenancy_organization_v1_api, file_ai_stigmer_tenancy_organization_v1_io]);
+  fileDesc("Ci5haS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL3F1ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxMrQHChtPcmdhbml6YXRpb25RdWVyeUNvbnRyb2xsZXISnwEKA2dldBIyLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uSWQaMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbiIywrgYLggyEB4iBXZhbHVlKiF1bmF1dGhvcml6ZWQgdG8gdmlldyBvcmdhbml6YXRpb24SgQEKCGxpc3RNaW5lEjwuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5MaXN0TXlPcmdhbml6YXRpb25zSW5wdXQaMS5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbnMiBNC4GAES2QEKD2dldEJ5RXh0ZXJuYWxJZBI+LmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uRXh0ZXJuYWxMb29rdXAaMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbiJUwrgYUAgxEB4iCnBhcmVudF9vcmcqPnVuYXV0aG9yaXplZCB0byBtYW5hZ2UgdGhpcyBvcmdhbml6YXRpb24ncyBjaGlsZCBvcmdhbml6YXRpb25zEsgBCg1saXN0Q2hpbGRPcmdzEjYuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5MaXN0Q2hpbGRPcmdzSW5wdXQaMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLkNoaWxkT3JnTGlzdCJNwrgYSQgxEB4iA29yZyo+dW5hdXRob3JpemVkIHRvIG1hbmFnZSB0aGlzIG9yZ2FuaXphdGlvbidzIGNoaWxkIG9yZ2FuaXphdGlvbnMSwQEKDWdldE9uYm9hcmRpbmcSMi5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbklkGjYuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5PbmJvYXJkaW5nUHJvZ3Jlc3MiRMK4GEAIAhAeIgV2YWx1ZSozdW5hdXRob3JpemVkIHRvIHJlYWQgdGhpcyBvcmdhbml6YXRpb24ncyBvbmJvYXJkaW5nGgSg/yseYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_tenancy_organization_v1_api, file_ai_stigmer_tenancy_organization_v1_io, file_ai_stigmer_tenancy_organization_v1_onboarding]);
 
 /**
  * OrganizationQueryController handles read operations for organizations.
@@ -65,6 +67,22 @@ export const OrganizationQueryController: GenService<{
     methodKind: "unary";
     input: typeof ListChildOrgsInputSchema;
     output: typeof ChildOrgListSchema;
+  },
+  /**
+   * Get where an organization is on the journey from a first agent to its
+   * users: which of the six steps are done, and the facts a client's lines
+   * about them name.
+   *
+   * Every step is read from what the server already records, so a console
+   * asks once instead of reading agents, runs, models and access itself.
+   * The one asking is left out of the people who joined.
+   *
+   * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.getOnboarding
+   */
+  getOnboarding: {
+    methodKind: "unary";
+    input: typeof OrganizationIdSchema;
+    output: typeof OnboardingProgressSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_tenancy_organization_v1_query, 0);

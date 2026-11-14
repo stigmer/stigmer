@@ -271,5 +271,6 @@ Rows read `| \`Message.field\` | class |`.
 
 | Field | Class |
 |---|---|
+| `ai.stigmer.tenancy.organization.v1.OnboardingAgent.slug` | not a resource: the journey agent's own name, read from its live row each time the journey is answered and never stored, so a client can link to it |
 | `ai.stigmer.tenancy.organization.v1.OrganizationEmbedding.vaults` | manifest reference |
 | `ai.stigmer.tenancy.organization.v1.OrganizationPreferences.default_environment_ref` | manifest reference |

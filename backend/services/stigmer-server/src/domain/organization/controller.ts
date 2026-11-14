@@ -32,6 +32,7 @@ import { create } from "@bufbuild/protobuf";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { OrganizationCommandController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/command_pb";
+import type { OnboardingProgress } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/onboarding_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -62,7 +63,7 @@ import type { OrganizationDirectory } from "../../extensions/organization-direct
 import type { GrantPath } from "../grant/grant-path.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
-import { internalError } from "../../pipeline/errors.js";
+import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import {
   POLICIES_ORGANIZATION_KEY,
   newAnnounceCreatedOrganizationPoliciesStep,
@@ -83,6 +84,8 @@ import {
 } from "./embedding.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
+import { authorizeDirect } from "../../pipeline/steps/authorize.js";
+import type { OnboardingService } from "../onboarding/service.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import {
@@ -201,6 +204,8 @@ export interface OrganizationControllerDeps {
   readonly purge: OrganizationPurgeKick;
   /** The identity-account port: whether the caller is a service account, which creates and deletes no organization. */
   readonly accounts: ServiceAccountLookup;
+  /** Answers getOnboarding: the journey's steps, read from the organization's records (domain/onboarding). */
+  readonly onboarding: OnboardingService;
 }
 
 /** Registers both organization services on the router (routes stage). */
@@ -222,6 +227,7 @@ export function registerOrganizationServices(
     listMine: (input, ctx) => listMine(deps, input, ctx),
     getByExternalId: (lookup, ctx) => getByExternalId(deps, lookup, ctx),
     listChildOrgs: (input, ctx) => listChildOrgs(deps, input, ctx),
+    getOnboarding: (orgId, ctx) => getOnboarding(deps, orgId, ctx),
   });
 }
 
@@ -912,4 +918,23 @@ async function listChildOrgs(
     entries: page.entries,
     nextPageToken: page.nextPageToken,
   });
+}
+
+/**
+ * GetOnboarding: where the organization is on the journey from a first
+ * agent to its users, for an admin of it (can_edit, the RPC's annotation).
+ * Pipeline-less, like listMine: authorize, then hand the question to the
+ * onboarding service, with the caller left out of the people who joined.
+ */
+async function getOnboarding(
+  deps: OrganizationControllerDeps,
+  orgId: OrganizationId,
+  ctx: HandlerContext,
+): Promise<OnboardingProgress> {
+  if (orgId.value === "") {
+    throw invalidArgumentError("value: an organization id is required");
+  }
+  const caller = callerIdentityOf(ctx);
+  await authorizeDirect(OrganizationQueryController.method.getOnboarding, deps.authorizer, caller, orgId);
+  return deps.onboarding.progress(orgId.value, caller.identityId);
 }

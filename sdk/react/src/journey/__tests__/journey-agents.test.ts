@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { EXAMPLES } from "@stigmer/examples";
-import { OWN_AGENT_TRIES, isJourneyAgentSlug, isOwnAgentSlug, ownAgentSlug } from "../journey-agents";
+import { OWN_AGENT_TRIES, isJourneyAgentSlug, isOwnAgentSlug, ownAgentSlug } from "@stigmer/examples/journey";
 
 describe("journey agents", () => {
   it("counts every example's agent", () => {

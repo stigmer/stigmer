@@ -31,7 +31,7 @@ import { sampleDate, samples } from "@stigmer/react-sdk/test";
 import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
 import { ACCOUNT, BUSY_WEEK_RUNS, ORGANIZATION } from "../fixtures.ts";
 import type { Drawing } from "./drawing.ts";
-import { journeyRoutes, MADE_YOURS } from "./journey.tsx";
+import { journeyAnswer, journeyRoutes, MADE_YOURS } from "./journey.tsx";
 import { ANTHROPIC_ONLY } from "./models.tsx";
 
 /** Which moment of the page a scene draws. */
@@ -88,7 +88,12 @@ export function bringOthersInScene(face: BringOthersInFace): Drawing {
         getServerInfo: () => ({ authenticationRequired: signsIn, singleOrg: !signsIn, version: "0.1.3" }),
         getModelReadiness: () => ANTHROPIC_ONLY,
       });
-      router.service(OrganizationQueryController, { listMine: () => samples.organizationList([organization]), get: () => organization });
+      router.service(OrganizationQueryController, {
+        listMine: () => samples.organizationList([organization]),
+        get: () => organization,
+        getOnboarding: () =>
+          journeyAnswer(MADE_YOURS, signsIn && face === "joined" ? { appUser: "Dana Lee", joined: ["Sam Ortiz", "Priya Shah"] } : {}),
+      });
       router.service(GrantQueryController, {
         checkMyPermission: () => ({ isAuthorized: true }),
         listResourceAccessByPrincipal: () => ({ entries: people }),

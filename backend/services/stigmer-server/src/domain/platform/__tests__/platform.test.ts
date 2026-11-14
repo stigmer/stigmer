@@ -76,6 +76,7 @@ import {
   RunnerAuthService,
 } from "../../../runnerauth/runnerauth.js";
 import { registerPlatformServices } from "../controller.js";
+import type { OnboardingService } from "../../onboarding/service.js";
 import { runnerProviderAvailability } from "../../../extensions/provider-availability.js";
 import type { ProviderAvailabilityProvider } from "../../../extensions/provider-availability.js";
 import { organizationId, seedOrganizations } from "../../organization/__tests__/support.js";
@@ -122,6 +123,13 @@ const verifiedClaims = create(LicenseClaimsSchema, {
   expiresAt: timestampFromDate(new Date("2027-09-01T00:00:00Z")),
   graceUntil: timestampFromDate(new Date("2027-10-01T00:00:00Z")),
 });
+
+
+/** The onboarding service a test that never asks about the journey hands the controller. */
+const UNUSED_ONBOARDING: OnboardingService = {
+  progress: () => Promise.reject(new Error("not asked")),
+  funnel: () => Promise.reject(new Error("not asked")),
+};
 
 describe("platform domain (composed server)", () => {
   let server: ComposedServer;
@@ -545,6 +553,7 @@ describe("platform domain (native sign-in and help)", () => {
         modelCatalog: newModelCatalogProviderFromDocument(bundledModelRegistryDocument()),
         authorizer: newPermissiveSingleTeamAuthorizer(),
         environmentPolicy: NO_SANDBOX_POLICY,
+        onboarding: UNUSED_ONBOARDING,
         now: () => new Date(),
         logger: silentLogger,
       });
@@ -606,6 +615,7 @@ describe("platform domain (keyless runner-token service)", () => {
         modelCatalog: newModelCatalogProviderFromDocument(bundledModelRegistryDocument()),
         authorizer: newPermissiveSingleTeamAuthorizer(),
         environmentPolicy: NO_SANDBOX_POLICY,
+        onboarding: UNUSED_ONBOARDING,
         now: () => new Date(),
         logger: silentLogger,
       });
@@ -648,6 +658,7 @@ describe("platform domain (environment availability)", () => {
         modelCatalog: newModelCatalogProviderFromDocument(bundledModelRegistryDocument()),
         authorizer: newPermissiveSingleTeamAuthorizer(),
         environmentPolicy: policy,
+        onboarding: UNUSED_ONBOARDING,
         now: () => new Date(),
         logger: silentLogger,
       });
@@ -718,6 +729,7 @@ describe("platform domain (license status)", () => {
         modelCatalog: newModelCatalogProviderFromDocument(bundledModelRegistryDocument()),
         authorizer: newPermissiveSingleTeamAuthorizer(),
         environmentPolicy: NO_SANDBOX_POLICY,
+        onboarding: UNUSED_ONBOARDING,
         now: () => instant,
         logger: silentLogger,
       });
@@ -990,6 +1002,7 @@ describe("platform domain (a sandbox's own credential)", () => {
         modelCatalog: newModelCatalogProviderFromDocument(bundledModelRegistryDocument()),
         authorizer: newPermissiveSingleTeamAuthorizer(),
         environmentPolicy: NO_SANDBOX_POLICY,
+        onboarding: UNUSED_ONBOARDING,
         now: () => new Date(),
         logger: silentLogger,
       });

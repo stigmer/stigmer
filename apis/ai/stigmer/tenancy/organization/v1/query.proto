@@ -6,6 +6,7 @@ import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
 import "ai/stigmer/tenancy/organization/v1/api.proto";
 import "ai/stigmer/tenancy/organization/v1/io.proto";
+import "ai/stigmer/tenancy/organization/v1/onboarding.proto";
 
 // OrganizationQueryController handles read operations for organizations.
 service OrganizationQueryController {
@@ -58,5 +59,26 @@ service OrganizationQueryController {
     option (ai.stigmer.commons.rpc.config).permission = can_manage_child_orgs;
     option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage this organization's child organizations";
+  }
+
+  // Get where an organization is on the journey from a first agent to its
+  // users: which of the six steps are done, and the facts a client's lines
+  // about them name.
+  //
+  // Every step is read from what the server already records, so a console
+  // asks once instead of reading agents, runs, models and access itself.
+  // The one asking is left out of the people who joined.
+  //
+  // @internal
+  // Authorization: Requires can_edit on the organization, the journey's own
+  // gate: its steps are an admin's acts, so a member is refused and a
+  // console draws no journey for them. The rule is
+  // domain/onboarding/progress.ts, which the platform's onboarding count
+  // runs for every organization too.
+  rpc getOnboarding(OrganizationId) returns (OnboardingProgress) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to read this organization's onboarding";
   }
 }

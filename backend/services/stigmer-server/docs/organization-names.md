@@ -7,7 +7,7 @@ This document is the inventory of which fields the resolver reads, one row per m
 ## The rule
 
 - **Every field named `org` or ending `_org`, and every repeated `orgs`**, at any depth of the input: `metadata.org`, a top-level `org`, and the `org` of every reference in a spec. One spelling for an organization field is the contract's own rule (`docs/vocabulary.md`), so the name is the signal. A field that broke the rule (an `org` that names no organization) would appear here, and its review is this document's diff.
-- **The field a method's authorization annotation names when its kind is `organization`**: an Organization's own id on `get`, `update`, `updatePolicies`, `delete` and `rename`. Marked `(annotation)`.
+- **The field a method's authorization annotation names when its kind is `organization`**: an Organization's own id on `get`, `getOnboarding`, `update`, `updatePolicies`, `delete` and `rename`. Marked `(annotation)`.
 - **`ApiResourceRef.id` when the ref's kind is `organization`**: a grant on an organization, or one an organization holds. Marked `(kind organization)`.
 
 What the resolver does with a value:
@@ -283,3 +283,4 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | OrganizationQueryController.get | `value (annotation)` |
 | OrganizationQueryController.getByExternalId | `parent_org` |
 | OrganizationQueryController.listChildOrgs | `org` |
+| OrganizationQueryController.getOnboarding | `value (annotation)` |

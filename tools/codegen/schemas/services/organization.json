@@ -102,6 +102,14 @@
           "outputType": "ChildOrgList",
           "outputFullType": "ai.stigmer.tenancy.organization.v1.ChildOrgList",
           "description": "List an organization's child organizations, newest first."
+        },
+        {
+          "name": "GetOnboarding",
+          "inputType": "OrganizationId",
+          "inputFullType": "ai.stigmer.tenancy.organization.v1.OrganizationId",
+          "outputType": "OnboardingProgress",
+          "outputFullType": "ai.stigmer.tenancy.organization.v1.OnboardingProgress",
+          "description": "Get where an organization is on the journey from a first agent to its\n users: which of the six steps are done, and the facts a client's lines\n about them name.\n\n Every step is read from what the server already records, so a console\n asks once instead of reading agents, runs, models and access itself.\n The one asking is left out of the people who joined."
         }
       ]
     }
@@ -456,6 +464,103 @@
           "required": false
         }
       ]
+    },
+    {
+      "name": "OnboardingProgress",
+      "description": "Where an organization is on the journey from a first agent to its users.\n\n Every step is read from records the server already keeps: its agents and\n their versions, its runs, the providers that serve it, and who holds\n access to it. Nothing is stored for the journey itself.",
+      "protoType": "ai.stigmer.tenancy.organization.v1.OnboardingProgress",
+      "protoFile": "apis/ai/stigmer/tenancy/organization/v1/onboarding.proto",
+      "fields": [
+        {
+          "name": "Steps",
+          "jsonName": "steps",
+          "protoField": "steps",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "OnboardingStep"
+            }
+          },
+          "description": "The six steps, in order.",
+          "required": false
+        },
+        {
+          "name": "NewestAgent",
+          "jsonName": "newestAgent",
+          "protoField": "newest_agent",
+          "type": {
+            "kind": "message",
+            "messageType": "OnboardingAgent"
+          },
+          "description": "The newest agent the journey made (an example's, or one described in\n the person's own words). Unset when there is none.",
+          "required": false
+        },
+        {
+          "name": "ChangedAgent",
+          "jsonName": "changedAgent",
+          "protoField": "changed_agent",
+          "type": {
+            "kind": "message",
+            "messageType": "OnboardingAgent"
+          },
+          "description": "The newest agent the journey made that has a second version. Unset\n when none has one.",
+          "required": false
+        },
+        {
+          "name": "ServedProvider",
+          "jsonName": "servedProvider",
+          "protoField": "served_provider",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The first provider that serves a model to the organization (\"anthropic\"\n or \"openai\"), in the server's order. Empty when none is known to.",
+          "required": false
+        },
+        {
+          "name": "EverRan",
+          "jsonName": "everRan",
+          "protoField": "ever_ran",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether any run has ever started here, a failed or stopped one\n included.",
+          "required": false
+        },
+        {
+          "name": "AppUserName",
+          "jsonName": "appUserName",
+          "protoField": "app_user_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The display name of the first person who signed in from the builder's\n own app. Empty when nobody has.",
+          "required": false
+        },
+        {
+          "name": "JoinedNames",
+          "jsonName": "joinedNames",
+          "protoField": "joined_names",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "The display names of up to two people, besides the one asking, who hold\n access to the organization.",
+          "required": false
+        },
+        {
+          "name": "JoinedCount",
+          "jsonName": "joinedCount",
+          "protoField": "joined_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "How many people, besides the one asking, hold access to the\n organization.",
+          "required": false
+        }
+      ]
     }
   ],
   "enumTypes": [
@@ -672,6 +777,43 @@
           "name": "user",
           "number": 7,
           "description": "May use a shared vault: the runs of a person who holds it use the\n vault's logins and secrets. Shown as \"Can use\"."
+        }
+      ]
+    },
+    {
+      "name": "OnboardingStepId",
+      "description": "One step of the journey from a first agent to its users.\n\n The six steps, in order: say what the agent should do, add a model key,\n watch it work, make it yours, put it in your app, bring others in. A\n client names and words each step itself; the server only says which are\n done.",
+      "protoType": "ai.stigmer.tenancy.organization.v1.OnboardingStepId",
+      "values": [
+        {
+          "name": "describe",
+          "number": 1,
+          "description": "An agent exists in the organization."
+        },
+        {
+          "name": "key",
+          "number": 2,
+          "description": "A provider serves a model to the organization, or a run has completed."
+        },
+        {
+          "name": "watch",
+          "number": 3,
+          "description": "A run has completed. A run that failed or was stopped did no job."
+        },
+        {
+          "name": "make_yours",
+          "number": 4,
+          "description": "An agent the journey made has a second version: its instructions\n changed, or a skill was added."
+        },
+        {
+          "name": "in_app",
+          "number": 5,
+          "description": "A person signed in from the builder's own app: an app user holds\n access to the organization. Never done on a server that signs nobody\n in."
+        },
+        {
+          "name": "others",
+          "number": 6,
+          "description": "A person besides the one asking (or, in a count, besides the\n organization's creator) holds access to the organization. Never done on\n a server that signs nobody in."
         }
       ]
     }
