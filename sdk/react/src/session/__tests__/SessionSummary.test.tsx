@@ -80,7 +80,7 @@ describe("SessionSummary", () => {
     expect(link.getAttribute("href")).toBe("/library/routines/demo/nightly-billing-check");
     expect(screen.getByText("Done").className).toContain("--stgm-status-ready");
     const facts = link.parentElement!.textContent!;
-    expect(facts).toBe("· Started by routine Nightly billing check · 1m 14s · 2 files made · 1 change · about $0.42, estimated");
+    expect(facts).toBe("Started by routine Nightly billing check · 1m 14s · 2 files made · 1 change · about $0.42, estimated");
     expect(stigmer.routine.get).toHaveBeenCalledWith(scenarios.finished.session!.status!.routineId);
   });
 
@@ -140,7 +140,7 @@ describe("SessionSummary", () => {
   it("says one file made in the singular, and a File it did not return as a change", () => {
     const finished = scenarios.finished;
     renderSummary(client(async () => NIGHTLY), { readsRoutine: false, files: finished.files.slice(0, 1) });
-    expect(metaLine().textContent).toBe("Done· Started by a routine · 1m 14s · 1 file made · 2 changes · about $0.42, estimated");
+    expect(metaLine().textContent).toBe("Done·Started by a routine · 1m 14s · 1 file made · 2 changes · about $0.42, estimated");
   });
 
   it("says a Plan-mode turn's plan as a plan, after the files made, never as a file made", () => {
@@ -149,7 +149,7 @@ describe("SessionSummary", () => {
     run.spec!.interactionMode = InteractionMode.PLAN;
     const plan = samples.outputFile("fix-rounding_a1b2c3d4.plan.md", { runId: run.metadata!.id, sizeBytes: 312n });
     renderSummary(client(async () => NIGHTLY), { readsRoutine: false, runs: [run], files: [plan, ...finished.files] });
-    expect(metaLine().textContent).toBe("Done· Started by a routine · 1m 14s · 2 files made · 1 plan · 1 change · about $0.42, estimated");
+    expect(metaLine().textContent).toBe("Done·Started by a routine · 1m 14s · 2 files made · 1 plan · 1 change · about $0.42, estimated");
   });
 
   it("KIT-05 says while a turn works that it is Working, for how long, and how far its to-do list has got, ticking each second", () => {
@@ -158,7 +158,7 @@ describe("SessionSummary", () => {
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Fix invoice rounding");
     const pill = screen.getByText("Working · 1m 30s");
     expect(pill.className).toContain("--stgm-status-running");
-    expect(metaLine().textContent).toBe("Working · 1m 30s· 2 of 5 to-dos done");
+    expect(metaLine().textContent).toBe("Working · 1m 30s·2 of 5 to-dos done");
     expect(screen.queryByText(/Started by|estimated/)).toBeNull();
 
     act(() => {
@@ -177,7 +177,7 @@ describe("SessionSummary", () => {
     const settled = { name: "read_file", input: { path: "a.ts" }, result: "ok" };
     const open = { name: "execute", input: { command: "npm test" } };
     const { unmount } = renderSummary(client(async () => NIGHTLY), {}, oneTurn(samples.turn({ phase: "running", reply: "", tools: [settled, open] })));
-    expect(metaLine().textContent).toBe("Working · 12s· 1 step");
+    expect(metaLine().textContent).toBe("Working · 12s·1 step");
     unmount();
 
     const two = renderSummary(
@@ -185,7 +185,7 @@ describe("SessionSummary", () => {
       {},
       oneTurn(samples.turn({ phase: "running", reply: "", tools: [settled, { ...settled, name: "grep", input: { pattern: "x" } }, open] })),
     );
-    expect(metaLine().textContent).toBe("Working · 12s· 2 steps");
+    expect(metaLine().textContent).toBe("Working · 12s·2 steps");
     two.unmount();
 
     renderSummary(client(async () => NIGHTLY), {}, oneTurn(samples.turn({ phase: "running", reply: "", tools: [open] })));

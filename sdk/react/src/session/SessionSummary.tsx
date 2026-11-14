@@ -143,21 +143,28 @@ export function SessionSummary({ session, turns, runs, files, showCost, routineH
           />
         )}
         {working ? (
-          howFar !== undefined && <span>{status !== undefined && <Separator />}{howFar}</span>
+          howFar !== undefined && (
+            <>
+              {status !== undefined && <Separator />}
+              <span>{howFar}</span>
+            </>
+          )
         ) : (
-          <span>
+          <>
             {status !== undefined && <Separator />}
-            {origin}
-            {origin !== undefined && " · "}
-            {facts.join(" · ")}
-          </span>
+            <span>
+              {origin}
+              {origin !== undefined && " · "}
+              {facts.join(" · ")}
+            </span>
+          </>
         )}
       </div>
     </header>
   );
 }
 
-/** The dot between the pill and the facts after it, as between the facts themselves. */
+/** The dot between the pill and the facts after it, as between the facts themselves; a sibling, so the facts keep their own text. */
 function Separator() {
-  return <span aria-hidden="true">· </span>;
+  return <span aria-hidden="true">·</span>;
 }
