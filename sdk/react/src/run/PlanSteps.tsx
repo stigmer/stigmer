@@ -130,14 +130,13 @@ function PlanItemRow({
   const words = (
     <span
       className={cn(
-        "stg:min-w-0 stg:truncate",
         // Done and still to do read quiet, at the muted tone a person can
         // still read (the fainter token is for marks, never words: theme
         // contract); only the item in hand reads bright.
         status === "completed" && "stg:text-muted-foreground",
         status === "pending" && "stg:text-muted-foreground",
         status === "cancelled" && "stg:text-muted-foreground stg:line-through",
-        live && "stg:font-medium stg:text-foreground",
+        live && "stg:text-foreground",
         // Where an ended turn stopped: the words at rest, the mark and the
         // note under them saying how it ended.
         status === "in_progress" && !working && "stg:text-foreground",
@@ -153,6 +152,7 @@ function PlanItemRow({
         gesture={calls.length === 0 ? { kind: "none" } : { kind: "expand", expanded: open, onToggle: toggle, label: item.todo.content }}
         mark={mark}
         title={words}
+        titleClassName={live ? "stg:font-medium" : undefined}
         detail={detail}
         band={band}
         bodySpan="rail"

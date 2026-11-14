@@ -29,7 +29,7 @@ export function BackgroundCommandStatusWords({ toolUse }: { readonly toolUse: To
   const failed = background.state === "failed_to_start" || background.state === "timed_out" || (background.state === "exited" && background.exitCode !== 0);
   return (
     <span
-      className={cn("stg:min-w-0 stg:truncate stg:tabular-nums", !running && failed ? "stg:text-status-failed" : "stg:text-muted-foreground")}
+      className={cn("stg:tabular-nums", !running && failed ? "stg:text-status-failed" : "stg:text-muted-foreground")}
       data-cursor-target="background-command-status"
     >
       {running

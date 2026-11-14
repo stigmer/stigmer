@@ -118,7 +118,7 @@ describe("PlanSteps", () => {
     // page, S33), on the band token whose muted words the theme contract holds.
     expect(screen.getByText("Fix it").closest("div")!.className).toContain("stg:bg-status-running-band");
     expect(itemLine("Read the code").innerHTML).not.toContain("stg:bg-status-running-band");
-    expect(screen.getByText("Fix it").className).toContain("stg:font-medium");
+    expect(screen.getByText("Fix it").closest("[data-step-title]")!.className).toContain("stg:font-medium");
     // Done reads quiet beside its green tick.
     expect(screen.getByText("Read the code").className).toContain("stg:text-muted-foreground");
     // To do stays at the readable muted tone, never the faint one.

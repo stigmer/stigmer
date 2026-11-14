@@ -73,11 +73,12 @@ export const ToolRunGroup = memo(function ToolRunGroup({
         gesture={{ kind: "expand", expanded, onToggle: handleToggle, label }}
         place={outer.rows === "rail" ? "rail" : "card"}
         mark={<RunMark status={status} />}
+        titleClassName={isShimmering || status === "failed" ? "stg:font-medium" : undefined}
         title={
           // A running fold carries the ambient-liveness sweep on its label
           // (stigmer#277); the shimmer class owns `color`, so it replaces the
           // static color utility rather than fighting it. Done, it goes quiet.
-          <span className={cn("stg:min-w-0 stg:truncate", isShimmering ? "stgm-shimmer-label stg:font-medium" : status === "failed" ? "stg:font-medium stg:text-foreground" : "stg:text-muted-foreground")}>
+          <span className={cn(isShimmering ? "stgm-shimmer-label" : status === "failed" ? "stg:text-foreground" : "stg:text-muted-foreground")}>
             {label}
           </span>
         }

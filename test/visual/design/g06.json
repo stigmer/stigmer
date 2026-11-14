@@ -367,7 +367,11 @@
         "type Search every source by name or description…": "The console's parts: the part at its drawn size and weight",
         "word All sources 8": "The console's parts: the page says and offers what its drawing does",
         "word Figma's hosted MCP server: read design files, components, variables and comments. Sign in with Figma.": "The console's parts: the page says and offers what its drawing does",
-        "word stigmer 8": "The console's parts: the page says and offers what its drawing does"
+        "word stigmer 8": "The console's parts: the page says and offers what its drawing does",
+        "word C": "T07 3o: the reader now matches whole words (T07 G3), and an avatar's or a mark's initial is hidden from assistive technology in the kit (it repeats the name beside it), which the reader skips; the drawing draws it as text, redrawn hidden at the next export",
+        "word F": "T07 3o: the reader now matches whole words (T07 G3), and an avatar's or a mark's initial is hidden from assistive technology in the kit (it repeats the name beside it), which the reader skips; the drawing draws it as text, redrawn hidden at the next export",
+        "word L": "T07 3o: the reader now matches whole words (T07 G3), and an avatar's or a mark's initial is hidden from assistive technology in the kit (it repeats the name beside it), which the reader skips; the drawing draws it as text, redrawn hidden at the next export",
+        "word N": "T07 3o: the reader now matches whole words (T07 G3), and an avatar's or a mark's initial is hidden from assistive technology in the kit (it repeats the name beside it), which the reader skips; the drawing draws it as text, redrawn hidden at the next export"
       }
     }
   ]

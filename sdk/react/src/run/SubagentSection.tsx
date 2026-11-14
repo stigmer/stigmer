@@ -175,13 +175,14 @@ function HelperStep({ thread, displayLabel, startedAt, duration, toolUses, error
         <ThreadCardStep
           gesture={gesture}
           mark={<HelperMark state={thread.state} />}
+          titleClassName={isRunning || thread.state === "failed" ? "stg:font-medium" : undefined}
           title={
             <>
               {/* While it works the line carries the step rows' liveness
                   sweep; the shimmer class owns `color`, so it replaces the
                   static one. Done, its words go quiet. */}
-              <span className={cn("stg:min-w-0 stg:truncate", isRunning ? "stgm-shimmer-label stg:font-medium" : thread.state === "failed" ? "stg:font-medium stg:text-foreground" : "stg:text-muted-foreground")}>
-                {displayLabel}
+              <span className={cn(isRunning ? "stgm-shimmer-label" : thread.state === "failed" ? "stg:text-foreground" : "stg:text-muted-foreground")}>
+                {tag !== null ? `${displayLabel} ` : displayLabel}
               </span>
               {tag !== null && (
                 <Tag>

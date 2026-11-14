@@ -304,7 +304,7 @@ function Foot({ parts }: { readonly parts: readonly ReactNode[] }) {
   if (parts.length === 0) return null;
   return (
     <p className={STEP_INSET_FOOT}>
-      {parts.flatMap((part, at) => (at === 0 ? [<span key={at}>{part}</span>] : [<span key={`d${at}`} aria-hidden="true">·</span>, <span key={at}>{part}</span>]))}
+      {parts.flatMap((part, at) => (at === 0 ? [<span key={at}>{part}</span>] : [" · ", <span key={at}>{part}</span>]))}
     </p>
   );
 }

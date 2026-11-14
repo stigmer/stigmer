@@ -246,32 +246,28 @@ export const ToolCallItem = memo(function ToolCallItem({
     const parts: ReactNode[] = [];
     if (failed && isFileCategory(category) && toolUse.result !== undefined) {
       const reason = failureWords(toolUse.result.text);
-      if (reason !== "") return <span className="stg:min-w-0">{reason}</span>;
+      if (reason !== "") return reason;
     }
     if (outputWords !== "") {
-      return <span className="stg:min-w-0 stg:truncate">{opensOutput && opener !== null ? `${outputWords} · opens in ${opener.opensIn === "panel" ? "the panel" : "a window"}` : outputWords}</span>;
+      return opensOutput && opener !== null ? `${outputWords} · opens in ${opener.opensIn === "panel" ? "the panel" : "a window"}` : outputWords;
     }
     if (category === "shell" && toolUse.background !== undefined) {
       return <BackgroundCommandStatusWords toolUse={toolUse} />;
     }
     if (category === "shell" || category === "background-stop" || category === "unknown") {
       if (primaryArg === null) return null;
-      return (
-        <span ref={detailRef} className={cn("stg:min-w-0 stg:truncate", category === "shell" && "stg:font-mono stg:text-foreground")}>
-          {primaryArg}
-        </span>
-      );
+      return category === "shell" ? <span className="stg:font-mono stg:text-foreground">{primaryArg}</span> : primaryArg;
     }
     if (category === "mcp") {
       const answer = toolUse.result !== undefined && !failed ? oneLineAnswer(toolUse.result.text) : "";
-      if (primaryArg !== null) parts.push(<span key="arg" ref={detailRef} className="stg:min-w-0 stg:truncate">{`“${primaryArg}”`}</span>);
-      if (answer !== "") parts.push(<span key="answer" className="stg:min-w-0 stg:truncate">{answer}</span>);
+      if (primaryArg !== null) parts.push(`“${primaryArg}”`);
+      if (answer !== "") parts.push(answer);
       return joinParts(parts);
     }
-    if (hostSummary !== null) parts.push(<span key="summary" className="stg:shrink-0 stg:tabular-nums">{hostSummary}</span>);
+    if (hostSummary !== null) parts.push(<span key="summary" className="stg:tabular-nums">{hostSummary}</span>);
     else if (counts?.kind === "lines") {
       parts.push(
-        <span key="lines" className="stg:shrink-0 stg:font-mono stg:tabular-nums">
+        <span key="lines" className="stg:font-mono stg:tabular-nums">
           <span className="stg:text-status-ready">+{counts.added}</span>
           {!(category === "write" && counts.removed === 0) && (
             <>
@@ -281,13 +277,11 @@ export const ToolCallItem = memo(function ToolCallItem({
           )}
         </span>,
       );
-    } else if (counts?.kind === "count") parts.push(<span key="count" className="stg:shrink-0 stg:tabular-nums">{counts.text}</span>);
-    if (phrase.folder !== "") parts.push(<span key="folder" ref={detailRef} className="stg:min-w-0 stg:truncate">{phrase.folder}</span>);
-    if (category === "read" && result.type === "file" && result.range?.total !== undefined) {
-      parts.push(<span key="total" className="stg:shrink-0 stg:tabular-nums">{`${result.range.total} lines`}</span>);
-    }
-    if (created) parts.push(<span key="new" className="stg:shrink-0">new file</span>);
-    if (waitsOnSomeoneElse) parts.push(<span key="waits" className="stg:shrink-0">{waitingWords}</span>);
+    } else if (counts?.kind === "count") parts.push(counts.text);
+    if (phrase.folder !== "") parts.push(phrase.folder);
+    if (category === "read" && result.type === "file" && result.range?.total !== undefined) parts.push(`${result.range.total} lines`);
+    if (created) parts.push("new file");
+    if (waitsOnSomeoneElse) parts.push(waitingWords);
     return joinParts(parts);
   }
   // A host's registered summary (`registerToolPresenter({ summary })`) is
@@ -325,31 +319,22 @@ export const ToolCallItem = memo(function ToolCallItem({
       {/* While the call runs, the line carries the ambient-liveness sweep
           (stigmer#277); the shimmer class owns `color`, so it replaces
           (never joins) the static color utility. */}
-      <span
-        className={cn(
-          "stg:min-w-0 stg:shrink stg:max-w-full stg:truncate",
-          isRunning || waitsOnSomeoneElse
-            ? "stgm-shimmer-label stg:font-medium"
-            : failed
-              ? "stg:font-medium stg:text-foreground"
-              : "stg:text-muted-foreground",
-        )}
-      >
+      <span className={cn(isRunning || waitsOnSomeoneElse ? "stgm-shimmer-label" : failed ? "stg:text-foreground" : "stg:text-muted-foreground")}>
         {linkedFile && primaryArg ? (
           <>
             {verb}{" "}
             {/* Its own control, beside the row's toggle rather than inside it. */}
-            <ThreadCardHeaderControl className="stg:inline-flex stg:min-w-0">
+            <ThreadCardHeaderControl className="stg:inline-flex stg:max-w-full stg:align-bottom">
               <FilePathLink path={primaryArg} className="stg:min-w-0 stg:font-sans stg:text-sm" />
             </ThreadCardHeaderControl>
           </>
         ) : (
-          displayLabel
+          // The space before what follows is the words' own, as the drawing
+          // sets it, so the line reads as one run of words.
+          `${displayLabel}${backgroundCommand !== null || helperTag !== null ? " " : ""}`
         )}
       </span>
-      {backgroundCommand !== null && (
-        <span className="stg:min-w-0 stg:truncate stg:font-mono stg:text-xs stg:text-muted-foreground">{backgroundCommand}</span>
-      )}
+      {backgroundCommand !== null && <span className="stg:font-mono stg:text-xs stg:text-muted-foreground">{backgroundCommand}</span>}
       {helperTag !== null && (
         <Tag>
           <HelperGlyph />
@@ -449,7 +434,11 @@ export const ToolCallItem = memo(function ToolCallItem({
         place={stepPlace}
         mark={mark}
         title={titleWords}
+        // A step at work, waiting on someone or failed is news: its line at
+        // medium weight; a finished one quiet.
+        titleClassName={isRunning || waitsOnSomeoneElse || failed ? "stg:font-medium" : undefined}
         detail={detail}
+        detailRef={detailRef}
         trail={trail}
         body={shown}
         bodySpan={isSubagent ? "rail" : "words"}
@@ -497,10 +486,10 @@ export const ToolCallItem = memo(function ToolCallItem({
 /** A step's time on the right: 12/16 meta, its digits aligned. */
 const TIME_CLASSES = "stg:shrink-0 stg:text-xs stg:tabular-nums stg:text-muted-foreground";
 
-/** The parts of a second line, joined by a quiet dot. */
+/** The parts of a second line, as one run of words joined by a quiet dot ("+2 −2 · src/billing"). */
 function joinParts(parts: readonly ReactNode[]): ReactNode {
   if (parts.length === 0) return null;
-  return parts.flatMap((part, at) => (at === 0 ? [part] : [<span key={`dot-${at}`} aria-hidden="true">·</span>, part]));
+  return parts.flatMap((part, at) => (at === 0 ? [part] : [" · ", part]));
 }
 
 /** A string with its first letter capitalised, for display; the value itself stays as written. */
@@ -523,7 +512,7 @@ function stepCounts(view: ReturnType<typeof useToolPresentation>["result"], cate
 /** The exit code a failed command ended with: one mono tag in the failed hue, after its words. */
 function ExitTag({ code }: { readonly code: number }) {
   return (
-    <span className="stg:inline-flex stg:shrink-0 stg:rounded stg:bg-status-failed-subtle stg:px-1.5 stg:font-mono stg:text-2xs stg:leading-4 stg:text-status-failed">
+    <span className="stg:ml-1.5 stg:inline-flex stg:rounded stg:bg-status-failed-subtle stg:px-1.5 stg:align-[1px] stg:font-mono stg:text-2xs stg:leading-4 stg:text-status-failed">
       exit {code}
     </span>
   );
@@ -532,7 +521,7 @@ function ExitTag({ code }: { readonly code: number }) {
 /** A connected app's quiet mark after its tool's name: its initial in a 16px square, then its slug. */
 function AppMark({ app }: { readonly app: string }) {
   return (
-    <span className="stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1 stg:text-xs stg:text-muted-foreground">
+    <span className="stg:ml-2 stg:inline-flex stg:items-center stg:gap-1 stg:align-[-2px] stg:text-xs stg:text-muted-foreground">
       <span
         aria-hidden="true"
         className="stg:flex stg:h-4 stg:w-4 stg:items-center stg:justify-center stg:rounded stg:bg-primary stg:text-2xs stg:font-semibold stg:leading-4 stg:text-primary-foreground"

@@ -94,7 +94,7 @@ describe("each kind's lines", () => {
     const { container } = render(
       <ToolCallItem toolUse={toolUse({ name: "read_file", input: { path: "src/billing/credit-note.ts" }, result: "@@ lines 14-17 of 88 @@\na\nb\nc\nd" })} />,
     );
-    expect(secondLine(container)).toBe("src/billing·88 lines");
+    expect(secondLine(container)).toBe("src/billing · 88 lines");
     expect(within(open(container)).getByText("Lines 14–17 of 88")).toBeTruthy();
   });
 
@@ -128,7 +128,7 @@ describe("each kind's lines", () => {
     );
     expect(row(reviewed.container).textContent).toContain("Created");
     // No "−0" on a whole-file write (the session page, S45).
-    expect(secondLine(reviewed.container)).toBe("+2·/workspace/src/billing·new file");
+    expect(secondLine(reviewed.container)).toBe("+2 · /workspace/src/billing · new file");
     reviewed.unmount();
 
     const plain = render(<ToolCallItem toolUse={write} />);
@@ -196,7 +196,7 @@ describe("each kind's lines", () => {
       />,
     );
     expect(within(container.querySelector<HTMLElement>("[data-step-title]")!).getByText("issue-tracker")).toBeTruthy();
-    expect(secondLine(container)).toBe("“Credit notes round per line”·Created BILL-219");
+    expect(secondLine(container)).toBe("“Credit notes round per line” · Created BILL-219");
     // A list of words reads as one line in the fields box.
     expect(within(open(container)).getByText("bug, rounding")).toBeTruthy();
   });

@@ -307,8 +307,17 @@ export interface ThreadCardStepProps {
   readonly mark: ReactNode;
   /** The step's line: its words and what sits right after them (a tag, an exit code). */
   readonly title: ReactNode;
+  /**
+   * The line's own tone: its weight and colour, set on the line as a whole as
+   * the drawing sets it (`stg:font-medium` while it works or once it failed,
+   * the muted foreground once it is done), so a tag after the words keeps its
+   * own and a reader reads the line's.
+   */
+  readonly titleClassName?: string;
   /** The line under it, 12/16 muted: what came of the step and where. */
   readonly detail?: ReactNode;
+  /** Ref to the line under the words, to measure whether it was cut short. */
+  readonly detailRef?: Ref<HTMLSpanElement>;
   /** The trailing column, aligned to the line: badges, the time, a Stop. The chevron follows it. */
   readonly trail?: ReactNode;
   /** The opened body; drawn when given. */
@@ -360,7 +369,9 @@ export function ThreadCardStep({
   gesture = { kind: "none" },
   mark,
   title,
+  titleClassName,
   detail,
+  detailRef,
   trail,
   body,
   bodySpan = "words",
@@ -416,14 +427,20 @@ export function ThreadCardStep({
       )}
       <span className={cn(lineParts, "stg:col-start-1 stg:flex stg:h-5 stg:items-center stg:justify-center")}>{mark}</span>
       <span className={cn(lineParts, "stg:col-start-2 stg:flex stg:min-w-0 stg:flex-col")}>
-        <span data-step-title="" className="stg:flex stg:min-w-0 stg:items-baseline stg:gap-2">
+        {/* Each line is one run of words, as the drawing sets it: what sits
+            after the words (a tag, an exit code, the app) flows with them,
+            and the line is cut short as a whole. */}
+        <span data-step-title="" className={cn("stg:block stg:min-w-0 stg:truncate", titleClassName)}>
           {title}
         </span>
         {detail !== undefined && detail !== null && detail !== false && (
-          <span className="stg:flex stg:min-w-0 stg:items-baseline stg:gap-1 stg:text-xs stg:text-muted-foreground">{detail}</span>
+          <span ref={detailRef} className="stg:block stg:min-w-0 stg:truncate stg:text-xs stg:text-muted-foreground">
+            {detail}
+          </span>
         )}
       </span>
-      <span data-step-trail="" className={cn(lineParts, "stg:col-start-3 stg:flex stg:min-h-5 stg:items-center stg:gap-2 stg:self-start")}>
+      {/* The trail at 12/16, the drawing's `.tm`: the time, a badge, a Stop. */}
+      <span data-step-trail="" className={cn(lineParts, "stg:col-start-3 stg:flex stg:min-h-5 stg:items-center stg:gap-2 stg:self-start stg:text-xs")}>
         {trail}
         {gesture.kind === "expand" && <ChevronIcon expanded={gesture.expanded} />}
       </span>

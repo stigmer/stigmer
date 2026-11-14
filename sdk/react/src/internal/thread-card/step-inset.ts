@@ -23,8 +23,9 @@ export const STEP_INSET =
 /**
  * The line under a step's box that says how much of it shows and what opens
  * the rest ("Lines 14–17 of 88 · Open the whole file", "Last 5 of 214 lines ·
- * Show all"): the drawing's `.out-more`, 12/16 muted, 4px under the box.
+ * Show all"): the drawing's `.out-more`, 12/16 muted, 4px under the box,
+ * one run of words with its acts inline.
  *
  * @internal Not part of the public API.
  */
-export const STEP_INSET_FOOT = "stg:mt-1 stg:flex stg:flex-wrap stg:items-baseline stg:gap-x-1 stg:text-xs stg:text-muted-foreground";
+export const STEP_INSET_FOOT = "stg:mt-1 stg:text-xs stg:text-muted-foreground";

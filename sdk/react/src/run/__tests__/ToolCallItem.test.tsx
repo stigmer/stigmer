@@ -244,7 +244,7 @@ describe("ToolCallItem disclosure", () => {
     const command = within(header).getByText("ls /secret/abs/path");
     expect(command.className).toContain("stg:font-mono");
     expect(header.querySelector(".stg\\:text-status-failed")).not.toBeNull();
-    expect(within(header).getByText("Command failed").className).toContain("stg:font-medium");
+    expect(within(header).getByText("Command failed").closest("[data-step-title]")!.className).toContain("stg:font-medium");
     expect(isExpanded(container)).toBe(true);
     expect(rowHeaderToggle(container)?.getAttribute("aria-label")).toBe("Command failed ls /secret/abs/path, exit 2");
   });
@@ -1018,7 +1018,8 @@ describe("ToolCallItem step line", () => {
     // The true minus, never a hyphen.
     expect(within(header).getByText("+1")).toBeTruthy();
     expect(within(header).getByText("−2")).toBeTruthy();
-    expect(within(header).getByText("/src/billing")).toBeTruthy();
+    // The line under the words: the counts, then the folder (the session page, S37).
+    expect(container.querySelector("[data-step-title]")!.nextElementSibling!.textContent).toBe("+1 −2 · /src/billing");
     expect(rowHeaderToggle(container)?.getAttribute("aria-label")).toBe("Edited invoice.ts /src/billing, +1 −2");
   });
 
@@ -1151,7 +1152,8 @@ describe("a waiting step, for a viewer who cannot answer it", () => {
         <ToolCallItem toolUse={waiting} />
       </ApprovalContext.Provider>,
     );
-    expect(screen.getByText("Waiting for Maya Okafor to approve")).toBeTruthy();
+    // Drawn running, its line says whom it waits on after the folder (S48).
+    expect(screen.getByText(/· Waiting for Maya Okafor to approve$/)).toBeTruthy();
     unmount();
 
     render(
