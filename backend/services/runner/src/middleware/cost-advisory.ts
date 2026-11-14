@@ -25,7 +25,12 @@
  * wrapModelCall — after the model answers, reads `usage_metadata` off its
  *   response, prices the call at the parent's rates (a sub-agent on its own
  *   model is priced the same way the enforcement prices it; per-sub-agent
- *   pricing is #1121), and accumulates the running total. The call that
+ *   pricing is #1121), and accumulates the running total. The price is
+ *   `computeTurnCost`'s, the one pricer the cap's estimate uses, over the
+ *   same disjoint buckets `turn-stream.ts` reports: so the warning and the
+ *   cap read one formula, a long prompt's step included (stigmer#3131).
+ *   Until then the advisory had its own three-rate formula, which priced
+ *   cache writes at the input rate and knew nothing of a step. The call that
  *   takes the total to `warningPct` of the cap marks the run crossed, once.
  *   From then on every conversation in the run, the parent's and each
  *   sub-agent invocation's, is advised once, on its next model call
@@ -60,6 +65,7 @@
 import { AIMessage } from "@langchain/core/messages";
 import type { StigmerMiddleware, CostAdvisoryConfig, ModelCallRequest } from "./types.js";
 import { withAdvisories } from "./advisory-message.js";
+import { computeTurnCost } from "../shared/model-pricing.js";
 
 const DEFAULT_WARNING_PCT = 80;
 const MIN_WARNING_PCT = 50;
@@ -73,29 +79,29 @@ export interface CostAdvisoryMiddleware extends StigmerMiddleware {
 
 type WrapModelCall = NonNullable<StigmerMiddleware["wrapModelCall"]>;
 
+/**
+ * One response's usage as disjoint buckets. LangChain's `input_tokens`
+ * includes the cache buckets, so the uncached input is what is left after
+ * them, as `turn-stream.ts` reports it.
+ */
 function extractUsage(response: AIMessage): {
-  totalInput: number; output: number; cacheRead: number;
+  input: number; output: number; cacheWrite: number; cacheRead: number;
 } {
   const usage = response.usage_metadata;
-  if (!usage) return { totalInput: 0, output: 0, cacheRead: 0 };
+  if (!usage) return { input: 0, output: 0, cacheWrite: 0, cacheRead: 0 };
 
   const totalInput = usage.input_tokens ?? 0;
   const output = usage.output_tokens ?? 0;
   const details = usage.input_token_details;
-  const cacheRead = (details && typeof details === "object")
-    ? (details.cache_read ?? 0)
-    : 0;
+  const cacheRead = details?.cache_read ?? 0;
+  const cacheWrite = details?.cache_creation ?? 0;
+  const input = Math.max(totalInput - cacheRead - cacheWrite, 0);
 
-  return { totalInput, output, cacheRead };
+  return { input, output, cacheWrite, cacheRead };
 }
 
 export function createCostAdvisoryMiddleware(config: CostAdvisoryConfig): CostAdvisoryMiddleware {
-  const {
-    maxCostUsd,
-    inputPricePerMillion,
-    outputPricePerMillion,
-    cacheReadPricePerMillion,
-  } = config;
+  const { maxCostUsd, pricing } = config;
   const warningPct = config.warningPct ?? DEFAULT_WARNING_PCT;
 
   if (maxCostUsd <= 0) throw new Error(`maxCostUsd must be positive, got ${maxCostUsd}`);
@@ -106,23 +112,6 @@ export function createCostAdvisoryMiddleware(config: CostAdvisoryConfig): CostAd
   let runningCost = 0;
   let crossed = false;
   let modelCallCount = 0;
-
-  function computeCallCost(totalInput: number, output: number, cacheRead: number): number {
-    let inputCost: number;
-    let cacheCost: number;
-
-    if (cacheReadPricePerMillion > 0 && cacheRead > 0) {
-      const regularInput = Math.max(totalInput - cacheRead, 0);
-      inputCost = regularInput * inputPricePerMillion;
-      cacheCost = cacheRead * cacheReadPricePerMillion;
-    } else {
-      inputCost = totalInput * inputPricePerMillion;
-      cacheCost = 0;
-    }
-
-    const outputCost = output * outputPricePerMillion;
-    return (inputCost + cacheCost + outputCost) / 1_000_000;
-  }
 
   function createWarningText(): string {
     const pct = maxCostUsd > 0 ? (runningCost / maxCostUsd * 100) : 0;
@@ -141,10 +130,10 @@ export function createCostAdvisoryMiddleware(config: CostAdvisoryConfig): CostAd
   function priceResponse(response: unknown): void {
     if (!AIMessage.isInstance(response)) return;
 
-    const { totalInput, output, cacheRead } = extractUsage(response);
-    if (totalInput === 0 && output === 0) return;
+    const { input, output, cacheWrite, cacheRead } = extractUsage(response);
+    if (input + cacheWrite + cacheRead === 0 && output === 0) return;
 
-    runningCost += computeCallCost(totalInput, output, cacheRead);
+    runningCost += computeTurnCost(pricing, input, output, cacheWrite, cacheRead);
     modelCallCount++;
 
     const warningThreshold = maxCostUsd * warningPct / 100;

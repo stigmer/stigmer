@@ -1,7 +1,8 @@
 // Unit arms for the model-registry reader: a document
 // without a models array is refused by name — the runner degrades silently
 // against one, and the arms must not — a row lookup names the missing id, and
-// a row is priced only when it carries a pricing object.
+// a row is priced only when it carries a pricing object, and a row's
+// long-prompt step is read as served.
 // Pure. Domain: conformance harness (execution engine).
 import { describe, expect, it } from "vitest";
 import {
@@ -23,6 +24,7 @@ const row = (id: string, extra: Partial<Omit<ModelRegistryRow, "id">> = {}): Mod
   thinkingForm: "none",
   thinkingRequired: undefined,
   priced: false,
+  longContext: undefined,
   ...extra,
 });
 
@@ -53,6 +55,22 @@ describe("parseModelRegistryDocument", () => {
       ["priced", true],
       ["null-pricing", false],
       ["no-pricing", false],
+    ]);
+  });
+
+  it("reads a row's long-prompt step as served, and nothing where there is none", () => {
+    const step = { thresholdTokens: 100000, inputPricePerMillion: 0.5, outputPricePerMillion: 2.5, cacheWritePricePerMillion: 0.625, cacheReadPricePerMillion: 0.05 };
+    const document = parseModelRegistryDocument({
+      models: [
+        { id: "stepped", pricing: { inputPricePerMillion: 0.1, longContext: step } },
+        { id: "flat", pricing: { inputPricePerMillion: 3 } },
+        { id: "no-pricing" },
+      ],
+    });
+    expect(document.models.map((model) => [model.id, model.longContext])).toEqual([
+      ["stepped", step],
+      ["flat", undefined],
+      ["no-pricing", undefined],
     ]);
   });
 

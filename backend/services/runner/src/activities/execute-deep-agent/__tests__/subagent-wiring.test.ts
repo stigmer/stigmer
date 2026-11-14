@@ -34,9 +34,15 @@ describe("buildSubAgentMiddleware", () => {
   it("includes the parent's cost advisory view when one is provided", () => {
     const parentCostAdvisory = createCostAdvisoryMiddleware({
       maxCostUsd: 10,
-      inputPricePerMillion: 3,
-      outputPricePerMillion: 15,
-      cacheReadPricePerMillion: 0.3,
+      pricing: {
+        model: "test-model",
+        displayName: "Test Model",
+        costTier: "standard",
+        inputPricePerMillion: 3,
+        outputPricePerMillion: 15,
+        cacheWritePricePerMillion: 3,
+        cacheReadPricePerMillion: 0.3,
+      },
       warningPct: 80,
     });
 
@@ -52,9 +58,15 @@ describe("buildSubAgentMiddleware", () => {
   it("the sub-agent advisory view shares the parent's running total and has no tool hook", () => {
     const parentCostAdvisory = createCostAdvisoryMiddleware({
       maxCostUsd: 1,
-      inputPricePerMillion: 3,
-      outputPricePerMillion: 15,
-      cacheReadPricePerMillion: 0.3,
+      pricing: {
+        model: "test-model",
+        displayName: "Test Model",
+        costTier: "standard",
+        inputPricePerMillion: 3,
+        outputPricePerMillion: 15,
+        cacheWritePricePerMillion: 3,
+        cacheReadPricePerMillion: 0.3,
+      },
       warningPct: 80,
     });
 
@@ -134,9 +146,15 @@ describe("buildSubAgentMiddleware", () => {
   it("orders the gate before the cost-cap view", () => {
     const parentCostAdvisory = createCostAdvisoryMiddleware({
       maxCostUsd: 10,
-      inputPricePerMillion: 3,
-      outputPricePerMillion: 15,
-      cacheReadPricePerMillion: 0.3,
+      pricing: {
+        model: "test-model",
+        displayName: "Test Model",
+        costTier: "standard",
+        inputPricePerMillion: 3,
+        outputPricePerMillion: 15,
+        cacheWritePricePerMillion: 3,
+        cacheReadPricePerMillion: 0.3,
+      },
       warningPct: 80,
     });
 

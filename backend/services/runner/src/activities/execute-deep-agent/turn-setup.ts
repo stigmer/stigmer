@@ -705,9 +705,7 @@ export async function buildEngine(
     costAdvisory: maxCostUsd > 0
       ? {
           maxCostUsd,
-          inputPricePerMillion: pricing.inputPricePerMillion,
-          outputPricePerMillion: pricing.outputPricePerMillion,
-          cacheReadPricePerMillion: pricing.cacheReadPricePerMillion,
+          pricing,
           warningPct: 80,
         }
       : null,
