@@ -132,6 +132,38 @@ describe("WorkspaceSurface", () => {
     expect(screen.getByRole("button", { name: "Show files" })).toBeTruthy();
   });
 
+  it("on request, hides the list again for each newly opened file, and shows it for a view the host asks for next", () => {
+    const surface = (view: string, path: string) => (
+      <WorkspaceSurface
+        sidebar="on-request"
+        view={view}
+        extraViews={[
+          { id: "saved", label: "Files", icon: <span />, content: <p data-testid="saved-list">Saved by the agent</p> },
+          { id: "usage", label: "Usage", icon: <span />, content: <p data-testid="usage-view">Usage</p> },
+        ]}
+        entries={[gitEntry]}
+        lister={lister}
+        reader={reader}
+        editors={[{ entryId: "e1", path, preview: false }]}
+        selectedFile={{ entryId: "e1", path }}
+        onOpenFile={vi.fn()}
+        onActivateEditor={vi.fn()}
+        onPinEditor={vi.fn()}
+        onCloseEditor={vi.fn()}
+        onCollapse={vi.fn()}
+      />
+    );
+    const { rerender } = render(surface("saved", "src/main.go"));
+    fireEvent.click(screen.getByRole("button", { name: "Show files" }));
+    expect(screen.getByTestId("saved-list")).toBeTruthy();
+    // Another file opened: it takes the panel again.
+    rerender(surface("saved", "src/other.go"));
+    expect(screen.queryByTestId("saved-list")).toBeNull();
+    // The host asks for another view: that view is the sidebar, so it shows.
+    rerender(surface("usage", "src/other.go"));
+    expect(screen.getByTestId("usage-view")).toBeTruthy();
+  });
+
   it("on request, still shows the files when no file is open", () => {
     renderSurface({ sidebar: "on-request", editors: [], selectedFile: null });
     expect(screen.getByTestId("explorer-probe")).toBeTruthy();
