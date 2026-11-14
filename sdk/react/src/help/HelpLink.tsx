@@ -2,7 +2,7 @@
 
 // Where a person stuck on this server asks for help, drawn where they look
 // for it: a row at the foot of the console's sidebar, and a line under a
-// sign-in button, an invite or a failure ("Stuck? Talk to Suresh"). The
+// sign-in button, an invite or a failure ("Stuck? Ask IT on Slack"). The
 // address and its words are the server operator's (`getServerInfo`'s
 // `help`, read through `useHelpLink`); nothing about any deployment's help
 // is written here, and without one both forms draw nothing.
