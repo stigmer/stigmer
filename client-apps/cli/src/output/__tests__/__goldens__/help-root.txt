@@ -19,6 +19,8 @@ Run agents:
                    chat in your own app
   coding-agent     print the guide a coding agent follows to set Stigmer up for
                    your project
+  load-test        start many agents at once and report how many started, how
+                   long each waited, and which were refused
 
 Your library:
   get              get a resource by type and reference (slug, org/slug, or ID)

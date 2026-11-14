@@ -30,6 +30,7 @@ import { registerGet } from "./commands/get.js";
 import { registerInstall } from "./commands/install.js";
 import { registerInternalDaemon } from "./commands/internal-daemon.js";
 import { registerList } from "./commands/list.js";
+import { registerLoadTest } from "./commands/load-test/index.js";
 import { registerLogs } from "./commands/logs.js";
 import { registerMarketplace } from "./commands/marketplace.js";
 import { registerMcp } from "./commands/mcp.js";
@@ -94,6 +95,7 @@ export function buildProgram(): Command {
   registerRuns(program);
   registerAppHandover(program);
   registerCodingAgent(program);
+  registerLoadTest(program);
   // Your library
   registerGet(program);
   registerList(program);

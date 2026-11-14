@@ -3,7 +3,8 @@ title: Back up and upgrade your stack
 description:
   What a complete backup of a self-hosted Stigmer stack is, how to take one and
   restore it on Docker Compose or Kubernetes, how to move between released
-  versions, how to change a setting or rotate a key, and how to uninstall.
+  versions, how to change a setting or rotate a key, how to load test it, and
+  how to uninstall.
 ---
 
 This page is for the two shapes a team is served from: the
@@ -399,6 +400,34 @@ need to set it: without it the server generates one on its first start and keeps
 it in its data, as `download-url.key` beside its other key files. It has no
 backup story. Replacing or losing it only stops the links already handed out,
 and clients request new ones.
+
+## Load test it
+
+Before your team relies on the stack, check what happens when many people start
+an Agent at the same moment. `stigmer load-test` does that with the key you
+already use: it starts the number of Agents you name at once, each in a new
+conversation of its own, and reports how many started, how long each waited for
+a sandbox, and which the server refused and why.
+
+```bash
+stigmer load-test --agents 25
+```
+
+Every run calls your model provider, so it costs money. `--max-usd` is the whole
+burst's budget, $1 by default, split evenly across the runs: each stops once its
+own estimate reaches its share, and one model call can go past a share. The
+report adds up what the runs spent. When the burst is over, the command deletes
+every conversation it made and its own Agent, even when you press Ctrl-C.
+
+Only a fleet that can run out of room ever shows a wait. On the Agent Substrate
+driver, a run that finds every sandbox busy waits for one
+([When every sandbox is busy](./runners#when-every-sandbox-is-busy)), and the
+report gives the longest wait each run reported. The other drivers start every
+run at once, so the report says no run waited. The wait reaches the command from
+the server process that asked the fleet for room; with several server processes
+behind one address, a wait can read shorter than it was, while the time to
+start, from the server's own stamps, stays exact. The
+[command's reference](/docs/cli/commands/load-test) explains each column.
 
 ## After an Organization is deleted
 
