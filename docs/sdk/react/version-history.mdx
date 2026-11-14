@@ -72,6 +72,8 @@ Zero Console dependencies — safe for platform builder embedding.
     className: { type: "string", description: "Additional CSS classes for the root container." },
     filePath: { type: "string", description: "File path displayed in the header." },
     hunks: { type: "readonly DiffHunk[]", description: "Hunks to render — output of `computeDiff()`.", required: true },
+    lineNumbers: { type: "boolean", description: "Whether each line shows its number in the file. Defaults to `true`. A step's diff turns it off: its hunks are numbered from the fragment the agent replaced, not the file, so a number there would mislead." },
+    paired: { type: "boolean", description: "Whether each removed line sits beside the line that replaced it (`-a`, `+a'`, `-b`, `+b'`) rather than every removal before every addition. Defaults to `false`, the unified order version history reads in." },
   }}
 />
 

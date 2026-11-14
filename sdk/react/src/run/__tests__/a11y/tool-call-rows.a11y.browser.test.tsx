@@ -156,7 +156,9 @@ describe("a tool-call row's header in the browser", () => {
       { width: 320, height: 320 },
     );
     const toggle = toggleOf(container);
-    const detail = within(toggle.parentElement!).getByText(LONG_COMMAND);
+    // The line under the step's words is one run of words, cut short as a
+    // whole: the command sits in it, so the line is what overflows.
+    const detail = within(toggle.parentElement!).getByText(LONG_COMMAND).parentElement!;
     expect(detail.scrollWidth, "the command is cut off at this width").toBeGreaterThan(detail.clientWidth);
     expect(hitAtCentre(detail), "the toggle covers the detail").toBe(toggle);
 
