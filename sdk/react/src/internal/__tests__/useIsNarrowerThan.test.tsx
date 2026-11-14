@@ -1,6 +1,7 @@
-// useIsNarrowerThan reads the element's own laid-out width: false until it is
-// measured (and where there is no ResizeObserver), then whether each
-// measurement is under the width, following the element as it resizes.
+// useIsNarrowerThan reads the element's own laid-out width: measured before
+// the first paint, false while it is not laid out (and where there is no
+// ResizeObserver), then whether each measurement is under the width,
+// following the element as it resizes.
 
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { act, render, cleanup } from "@testing-library/react";
@@ -10,6 +11,7 @@ import { useIsNarrowerThan } from "../useIsNarrowerThan";
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 function Probe({ width }: { readonly width: number }) {
@@ -43,6 +45,13 @@ describe("useIsNarrowerThan", () => {
     vi.stubGlobal("ResizeObserver", undefined);
     const { container } = render(<Probe width={640} />);
     expect(container.firstElementChild!.getAttribute("data-narrow")).toBe("false");
+  });
+
+  it("measures the element before it first draws, so a narrow one never draws wide", () => {
+    stubResizeObserver();
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ width: 390 } as DOMRect);
+    const { container } = render(<Probe width={640} />);
+    expect(container.firstElementChild!.getAttribute("data-narrow")).toBe("true");
   });
 
   it("follows the element's width across the threshold, the threshold itself counting as wide", () => {
