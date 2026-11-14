@@ -32,6 +32,10 @@ export interface ChildHandle {
   hasExited(): boolean;
   /** How the child terminated, once observed; null while it runs. */
   exitInfo(): ExitInfo | null;
+  /** True once the child has written its readiness marker; always false
+   * without one. A gate reads this rather than registering `onReady`, whose
+   * one slot the supervisor holds. */
+  isReady(): boolean;
   /** The child's last few complete stderr lines, oldest first: its last
    * words, recorded beside a failure. */
   stderrTail(): readonly string[];
@@ -73,7 +77,11 @@ export interface ComponentSpec {
   gate?: ReadinessGate;
 }
 
-/** A post-spawn readiness check with its own deadline. */
+/**
+ * A post-spawn readiness check with its own deadline. It watches the handle
+ * through its reads (`exitInfo`, `isReady`) and never registers `onExit` or
+ * `onReady`: each holds one callback, which the supervisor has taken.
+ */
 export interface ReadinessGate {
   /** Resolves when ready; rejects if the deadline passes or the child exits. */
   wait(handle: ChildHandle): Promise<void>;
