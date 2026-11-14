@@ -6,11 +6,18 @@
 // load-bearing env explicitly (ports, queues, db/storage paths) rather than
 // relying on its compiled defaults makes the launch deterministic and the pin
 // enforceable.
+//
+// Both children gate the start and are critical while it runs: the server on
+// its gRPC port, the runner on its readiness marker. A runner that ends or
+// stays silent before it polls fails the start as a server does, so `stigmer
+// up` never reports a stack that cannot run anything (stigmer#1629). After
+// the start, a runner crash is the supervisor's to restart, as before.
 
 import { dirname, join } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { RUNNER_TASK_QUEUE, RUNNER_READY_MARKER, SERVER_PID_FILE, RUNNER_PID_FILE, SERVER_PORT, TEMPORAL_NAMESPACE } from "../constants.js";
 import { ARTIFACTS_SUBDIR } from "../paths.js";
-import { waitForTcp } from "../net/tcp.js";
+import { describeExit, waitForTcp } from "../net/tcp.js";
 import { type ProviderReach, providerReach, runnerProvidersValue } from "../provider-reach.js";
 import type { DaemonConfig } from "./env.js";
 import type { ComponentSpec, ReadinessGate } from "./types.js";
@@ -26,8 +33,33 @@ const RUNNER_EXIT_MARGIN_MS = 2_000;
 /** How long the server has to open its gRPC port before startup aborts. */
 const SERVER_GATE_TIMEOUT_MS = 30_000;
 
+/**
+ * How long the runner has, once spawned, to announce it is polling before
+ * startup aborts. Well above a cold start on a developer laptop, so only a
+ * runner that is stuck, not slow, fails the start.
+ */
+export const RUNNER_GATE_TIMEOUT_MS = 120_000;
+
+/** How often a gate looks at the child it waits on (the server gate's pace). */
+const GATE_POLL_MS = 150;
+
 /** The server's setting naming the providers its runners reach (the server's `boot/config.ts`). */
 export const RUNNER_PROVIDERS_ENV = "STIGMER_RUNNER_PROVIDERS";
+
+/** The server's two help settings (the server's `boot/help-link.ts`). */
+export const HELP_URL_ENV = "STIGMER_HELP_URL";
+export const HELP_LABEL_ENV = "STIGMER_HELP_LABEL";
+
+/**
+ * Where a person running Stigmer on their own laptop asks for help: the
+ * project's community chat (the README's Discord). A laptop has no operator
+ * to name one, so `stigmer up` names the project's own; a self-hosted server
+ * announces only what its operator sets.
+ */
+export const COMMUNITY_HELP = {
+  url: "https://discord.com/invite/EtANnfsJ8B",
+  label: "Ask the Stigmer community",
+} as const;
 
 /**
  * Environment for the `stigmer-server` child. Pins ports, Temporal coordinates,
@@ -70,6 +102,14 @@ export function buildServerEnv(
   const reach = localRunnerReach(config, base);
   if (reach !== undefined && base[RUNNER_PROVIDERS_ENV] === undefined) {
     env[RUNNER_PROVIDERS_ENV] = runnerProvidersValue(reach);
+  }
+  // Where the person asks for help (the console's sidebar and failures, the
+  // CLI's refused commands): the project's community, unless the person
+  // exported either setting themselves, an empty one included (it declares
+  // "none"), as RUNNER_PROVIDERS_ENV's rule above.
+  if (base[HELP_URL_ENV] === undefined && base[HELP_LABEL_ENV] === undefined) {
+    env[HELP_URL_ENV] = COMMUNITY_HELP.url;
+    env[HELP_LABEL_ENV] = COMMUNITY_HELP.label;
   }
   return env;
 }
@@ -170,7 +210,7 @@ export function buildComponents(
   components.push({
     name: "runner",
     pidFile: join(config.dataDir, RUNNER_PID_FILE),
-    critical: false,
+    critical: true,
     resolve: () => ({
       name: "runner",
       command: runner.nodeBin,
@@ -180,8 +220,32 @@ export function buildComponents(
       logFile: join(config.logDir, "runner.log"),
       readinessMarker: RUNNER_READY_MARKER,
     }),
+    gate: runnerGate(),
   });
   return components;
+}
+
+/**
+ * The runner is ready once it has written its readiness marker; fail fast,
+ * with how it ended, if it exits first, and at `timeoutMs` if it never
+ * announces. It reads the handle and registers nothing, as `ReadinessGate`
+ * requires, and keeps wall time as the server gate does; a test passes a
+ * short deadline.
+ */
+export function runnerGate(timeoutMs: number = RUNNER_GATE_TIMEOUT_MS): ReadinessGate {
+  return {
+    description: "runner polling for tasks",
+    wait: async (handle) => {
+      const deadline = Date.now() + timeoutMs;
+      for (;;) {
+        if (handle.isReady()) return;
+        const exit = handle.exitInfo();
+        if (exit !== null) throw new Error(`the runner ${describeExit(exit)} before it was ready`);
+        if (Date.now() >= deadline) throw new Error(`the runner did not report ready within ${timeoutMs / 1000} s`);
+        await delay(GATE_POLL_MS);
+      }
+    },
+  };
 }
 
 // The server is ready once its gRPC port accepts a connection; fail fast, with

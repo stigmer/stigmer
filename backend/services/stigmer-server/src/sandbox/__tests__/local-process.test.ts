@@ -94,6 +94,7 @@ describe.skipIf(process.platform === "win32")(
         taskQueue: "session:ses_smoke",
         stigmerToken: "tok-smoke",
         callerClass: "user",
+        executionId: "aex_test",
       });
       await vi.waitFor(() => expect(spawnCount()).toBe(1), {
         timeout: CHILD_SETTLE_TIMEOUT_MS,
@@ -105,6 +106,7 @@ describe.skipIf(process.platform === "win32")(
         taskQueue: "session:ses_smoke",
         stigmerToken: "tok-smoke",
         callerClass: "user",
+        executionId: "aex_test",
       });
       expect(spawnCount()).toBe(1);
 
@@ -149,6 +151,7 @@ describe.skipIf(process.platform === "win32")(
         taskQueue: "session:ses_smoke",
         stigmerToken: "",
         callerClass: "user",
+        executionId: "aex_test",
       });
       await vi.waitFor(() => expect(spawnCount()).toBe(2), {
         timeout: CHILD_SETTLE_TIMEOUT_MS,
@@ -166,6 +169,7 @@ describe.skipIf(process.platform === "win32")(
         taskQueue: "mcpconnect:mcr_smoke",
         stigmerToken: "",
         callerClass: "user",
+        executionId: "aex_test",
       });
       expect(id).toBe("mcr_smoke");
       await vi.waitFor(() => expect(spawnCount()).toBe(before + 1), {
@@ -231,6 +235,7 @@ describe.skipIf(process.platform === "win32")("the local-process driver with no 
         taskQueue: "session:ses_default",
         stigmerToken: "tok",
         callerClass: "user",
+        executionId: "aex_test",
       });
       // The shell creates env.dump before `env` writes into it, so wait for
       // what it holds, not for the file.

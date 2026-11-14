@@ -34,9 +34,14 @@ describe("invoke-agent-execution replay determinism", () => {
     // completed turn, a HITL approval cycle, a pause and resume, a failure
     // the runner reported, a user's cancel, a drained turn recovered, a
     // drained turn that continued, a Claude turn's HITL cycle on the
-    // deterministic-state flow, and a CLOUD turn that waited for a sandbox
-    // with room (the first history past a patch marker).
-    expect(historyFiles.length).toBeGreaterThanOrEqual(9);
+    // deterministic-state flow, a CLOUD turn that waited for a sandbox
+    // with room (the first history past a patch marker), and a CLOUD
+    // turn's approval and pause past the second marker, the ask before it
+    // carries on (hitl-approval-reensured, pause-resume-reensured). Two
+    // more were recorded from those scenarios' driving on the workflow
+    // before the ask existed (cloud-hitl-approval, cloud-pause-resume), so
+    // a CLOUD turn in flight across that change keeps its recorded path.
+    expect(historyFiles.length).toBeGreaterThanOrEqual(13);
   });
 
   it("replays every committed history deterministically", async () => {

@@ -122,6 +122,7 @@ const facts: SandboxFacts = {
   taskQueue: `session:${SESSION}`,
   stigmerToken: "tok-1",
   callerClass: "user",
+  executionId: "aex_test",
 };
 
 function harness(

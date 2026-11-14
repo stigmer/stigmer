@@ -38,7 +38,6 @@ import {
   APP_TOKEN_ROUTE_PORT,
   StigmerError,
   buildAppHandover,
-  getUserMessage,
   iamRoleDisplayName,
   type AppHandoverFile,
   type AppHandoverStack,
@@ -48,6 +47,7 @@ import { ApiKeyCreatedAlert } from "../api-key/ApiKeyCreatedAlert.js";
 import { DEFAULT_KEY_EXPIRY, keyExpiryFields } from "../api-key/KeyExpiryFieldset.js";
 import { Button } from "../button/Button.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
+import { serverSentence } from "../internal/server-words.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { CopyBlock } from "../internal/CopyBlock.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
@@ -112,7 +112,7 @@ export function InAppTab({ agent, links, onOpenChannels }: InAppTabProps) {
   let body: ReactNode;
   if (server.error !== null || org.error !== null) {
     const error = server.error ?? org.error;
-    body = <ErrorMessage error={error} title="This tab couldn't be read" retry={server.error ? server.refetch : org.refetch} />;
+    body = <ErrorMessage error={error} title="Stigmer couldn't load the code for your app" retry={server.error ? server.refetch : org.refetch} />;
   } else if (server.serverInfo === null || org.organization === null) {
     body = <LoadingRegion label="Loading" className="stg:h-48 stg:animate-pulse stg:rounded-xl stg:bg-muted" />;
   } else if (baseUrl === null) {
@@ -400,7 +400,7 @@ function ServiceAccountRow({
       access.refetch();
     } catch (err) {
       const what = account === null ? "The service account wasn't made." : `${account.metadata?.name ?? BACKEND_NAME} was made, but its key wasn't.`;
-      setFailure(`${what} ${getUserMessage(err, "Stigmer couldn't reach the server")}`);
+      setFailure(`${what} ${serverSentence(err)} Try again.`);
     }
   }, [made, createAccount, createKey, org, access]);
 
@@ -542,7 +542,7 @@ function EmbeddingRow({
       )}
       {update.error !== null && (
         <p role="alert" className="stg:m-0 stg:text-xs stg:text-destructive">
-          The setting wasn&apos;t saved. {getUserMessage(update.error, "Stigmer couldn't reach the server")}
+          The setting wasn&apos;t saved. {serverSentence(update.error)} Try again.
         </p>
       )}
     </Row>
@@ -567,7 +567,7 @@ function FirstUserRow({ access }: { readonly access: ReturnType<typeof useAppAcc
   if (access.error !== null) {
     line = (
       <span role="alert">
-        Stigmer couldn&apos;t say who has signed in. {getUserMessage(access.error, "Stigmer couldn't reach the server")}{" "}
+        Stigmer couldn&apos;t say who has signed in. {serverSentence(access.error)}{" "}
         <button type="button" onClick={access.refetch} className="stg:p-0 stg:text-sm stg:text-foreground stg:underline stg:underline-offset-2">
           Try again
         </button>

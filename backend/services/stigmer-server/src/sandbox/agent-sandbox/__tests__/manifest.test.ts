@@ -63,6 +63,7 @@ const env = {
   taskQueue: "session:ses_1",
   stigmerToken: "tok-1",
   callerClass: "user",
+  executionId: "aex_test",
 };
 const base = sandboxBaseName("session", "ses_1");
 const labels = {

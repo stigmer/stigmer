@@ -40,6 +40,7 @@ const env = {
   taskQueue: "session:ses_1",
   stigmerToken: "tok",
   callerClass: "user" as const,
+  executionId: "aex_test",
 };
 
 describe("buildDockerRun", () => {

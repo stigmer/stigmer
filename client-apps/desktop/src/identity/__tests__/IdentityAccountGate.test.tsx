@@ -18,6 +18,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuth, type AuthState } from "../../auth/AuthProvider";
 import { IdentityAccountGate } from "../IdentityAccountGate";
 
+// The help line reads the server's answer; here it stands in, so the test
+// holds where the gate places it.
+vi.mock("@stigmer/react-sdk/console", () => ({
+  HelpLink: () => <p>Stuck? Talk to us</p>,
+}));
+
 vi.mock("@stigmer/react-sdk", async () => {
   const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
   return {
@@ -116,6 +122,8 @@ describe("IdentityAccountGate", () => {
     renderGate();
     expect(screen.getByText("Failed to set up your account")).toBeTruthy();
     expect(screen.getByText("the server is unavailable")).toBeTruthy();
+    // CON-13: under Try again, the server's help line.
+    expect(screen.getByText("Stuck? Talk to us")).toBeTruthy();
     expect(screen.getByText("Sign out")).toBeTruthy();
     expect(screen.queryByText("the app")).toBeNull();
 

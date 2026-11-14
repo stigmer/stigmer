@@ -3,7 +3,8 @@
 // driven with a fake host and a fake Temporal, brings the stack up in order,
 // records a health snapshot and tears down in reverse; a server that hangs past
 // its gate is stopped and recorded failed with its last lines (stigmer#1845); a
-// Temporal that does not start stops everything else from starting; and a stop
+// runner that ends before it is ready stops the stack the same way
+// (stigmer#1629); a Temporal that does not start stops everything else from starting; and a stop
 // asked for at any point of startup is honoured at once, leaving nothing behind
 // (stigmer#1175). Every run that reaches the server's gate is given a port of
 // its own, never the real server port, so these cases neither race another
@@ -108,9 +109,13 @@ describe("NodeProcessHost (real spawn)", () => {
 // ---- Integration 2: the full daemon body, with a fake process host + fake
 // Temporal, but a real TCP listener satisfying the server's gRPC gate. ----
 
+// How a fake child meets its readiness gate: ready at once (the default), never,
+// or by exiting with code 1 before it is ready.
+type FakeReadiness = "ready" | "unready" | "exits";
+
 // Minimal fake host whose children exit on SIGTERM, each with the stderr tail
-// the test gives its component; `onSpawn` lets a test act the moment a
-// component starts.
+// the test gives its component, and each ready as soon as it starts unless the
+// test says otherwise; `onSpawn` lets a test act the moment a component starts.
 class FakeHost implements ProcessHost {
   private nextPid = 2000;
   readonly killed: NodeJS.Signals[] = [];
@@ -118,22 +123,37 @@ class FakeHost implements ProcessHost {
   /** The components signalled, in order. */
   readonly stopped: string[] = [];
   onSpawn: (name: string) => void = () => {};
-  constructor(private readonly stderr: Record<string, string[]> = {}) {}
+  constructor(
+    private readonly stderr: Record<string, string[]> = {},
+    private readonly readiness: Record<string, FakeReadiness> = {},
+  ) {}
   spawn(request: SpawnRequest): ChildHandle {
     let exited: ExitInfo | null = null;
     let exitCb: ((info: ExitInfo) => void) | null = null;
     const pid = this.nextPid++;
+    const readiness = this.readiness[request.name] ?? "ready";
     this.spawned.push(request.name);
     this.onSpawn(request.name);
+    if (readiness === "exits") {
+      setTimeout(() => {
+        if (exited !== null) return;
+        exited = { code: 1, signal: null };
+        exitCb?.(exited);
+      }, 20);
+    }
     return {
       pid,
       hasExited: () => exited !== null,
       exitInfo: () => exited,
+      isReady: () => readiness === "ready",
       stderrTail: () => this.stderr[request.name] ?? [],
       onExit: (cb) => {
         exitCb = cb;
       },
-      onReady: () => {},
+      // Announced just after the spawn, as a real child's marker arrives.
+      onReady: (cb) => {
+        if (readiness === "ready") queueMicrotask(cb);
+      },
       kill: (signal) => {
         this.killed.push(signal);
         this.stopped.push(request.name);
@@ -260,6 +280,8 @@ describe("runInternalDaemon (full body with fakes)", () => {
     expect(Object.keys(components.components).sort()).toEqual(["runner", "stigmer-server", "temporal", "web-console"]);
     expect(components.components["stigmer-server"].state).toBe("running");
     expect(components.components.runner.state).toBe("running");
+    // The record a detached `up` waits on says the runner is ready (stigmer#1629).
+    expect(components.components.runner.ready).toBe(true);
 
     // Children were signaled, and the daemon cleaned up after shutdown.
     expect(host.killed).toContain("SIGTERM");
@@ -315,6 +337,45 @@ describe("runInternalDaemon (a server that hangs past its gate)", () => {
       state: "failed",
       last_error: "the server did not become ready within 30000ms",
       last_output: ["waiting for the database…"],
+    });
+  });
+});
+
+// stigmer#1629: a runner that ends before it is ready fails the start as a
+// server does: everything that started is stopped, the body returns 1, and the
+// record says why in the runner's own words, for `stigmer up` to print.
+describe("runInternalDaemon (a runner that ends before it is ready)", () => {
+  it("stops the server and Temporal, returns 1, and keeps the runner failed with its last lines", async () => {
+    const config = stackConfig(false);
+    const data = config.dataDir;
+    const serverPort = await openGate();
+    const host = new FakeHost({ runner: ["!!! STALE RUNNER BUILD — REFUSING TO START !!!"] }, { runner: "exits" });
+    const temporal = fakeTemporal();
+    const onStarted = vi.fn();
+
+    const code = await runInternalDaemon({
+      config,
+      host,
+      clock: fastClock,
+      temporal,
+      log: silent,
+      shutdown: new AbortController().signal,
+      serverPort,
+      onStarted,
+    });
+
+    expect(code).toBe(1);
+    expect(onStarted).not.toHaveBeenCalled();
+    expect(host.spawned).toEqual(["stigmer-server", "runner"]);
+    expect(host.stopped).toEqual(["stigmer-server"]);
+    expect(temporal.stop).toHaveBeenCalledOnce();
+    expect(readPidFile(join(data, "stigmer-server.pid"))).toBeNull();
+    const record = loadHealthState(join(data, "health-state.json"));
+    expect(record?.components["stigmer-server"].state).toBe("stopped");
+    expect(record?.components.runner).toMatchObject({
+      state: "failed",
+      last_error: "the runner exited with code 1 before it was ready",
+      last_output: ["!!! STALE RUNNER BUILD — REFUSING TO START !!!"],
     });
   });
 });

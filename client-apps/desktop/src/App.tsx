@@ -114,6 +114,8 @@ function RunnerAdapterBridge({
       runnerAdapter={runnerAdapter}
       colorMode={colorMode}
       loadMermaid={loadMermaid}
+      // The app's failure notes end with the server's help link.
+      showHelpLink
     >
       <AppContent isInitialized={isInitialized} isAuthenticated={isAuthenticated} />
     </StigmerProvider>

@@ -23,7 +23,7 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { Code } from "@connectrpc/connect";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { OrganizationEmbeddingSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/spec_pb";
@@ -264,7 +264,7 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
     const account = await row("A service account for your backend");
     fireEvent.click(await within(account).findByRole("button", { name: "Make it" }));
 
-    expect(await within(account).findByText(/The service account wasn't made\. .*may not make service accounts/)).toBeTruthy();
+    expect(await within(account).findByText(/^The service account wasn't made\. .*may not make service accounts.*[.!?] Try again\.$/)).toBeTruthy();
     expect(createServiceAccount).toHaveBeenCalledTimes(1);
   });
 
@@ -284,7 +284,7 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
     const account = await row("A service account for your backend");
     fireEvent.click(await within(account).findByRole("button", { name: "Make it" }));
 
-    expect(await within(account).findByText(/app-backend was made, but its key wasn't\. .*key store is down/)).toBeTruthy();
+    expect(await within(account).findByText(/^app-backend was made, but its key wasn't\. .*key store is down.*[.!?] Try again\.$/)).toBeTruthy();
     fireEvent.click(within(account).getByRole("button", { name: "Make its key" }));
     expect(await within(account).findByText(/stk_live_secret/)).toBeTruthy();
     expect(createServiceAccount).toHaveBeenCalledTimes(1);
@@ -315,6 +315,14 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
     expect(saved.embedding).toMatchObject({ createAccountsOnSignIn: true, signInRole: IamRole.member, allowedOrigins: ["https://app.acme.example"] });
     expect(saved.embedding.vaults.map((ref: { slug: string }) => ref.slug)).toEqual(["shared-keys"]);
     await within(embedding).findByText(/they join as Member, from https:\/\/app\.acme\.example/);
+  });
+
+  it("says a setting that wasn't saved, in the server's words, and what to do", async () => {
+    const { updateEmbedding } = renderPage({ defaultTab: "in-app" }, { embedding: { createAccountsOnSignIn: false, signInRole: IamRole.iam_role_unspecified } });
+    updateEmbedding.mockRejectedValueOnce(new ConnectError("The settings store is down", Code.Unavailable));
+    const embedding = await row("Your users get accounts the first time your app signs them in");
+    fireEvent.click(await within(embedding).findByRole("switch"));
+    expect((await within(embedding).findByRole("alert")).textContent).toBe("The setting wasn't saved. The settings store is down. Try again.");
   });
 
   it("shows a newer read of the organization over its own saved answer", async () => {
@@ -353,7 +361,7 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
 
   it("says the tab couldn't be read when the organization read fails", async () => {
     renderPage({ defaultTab: "in-app" }, { orgFails: true });
-    expect(await screen.findByText("This tab couldn't be read")).toBeTruthy();
+    expect(await screen.findByText("Stigmer couldn't load the code for your app")).toBeTruthy();
   });
 
   it("asks the server again when its first answer failed", async () => {
@@ -393,7 +401,7 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
   it("says in its row when who signed in cannot be read, and the code still shows", async () => {
     renderPage({ defaultTab: "in-app" }, { accessFails: true });
     const first = await row("Your first user from your app");
-    expect(await within(first).findByText(/couldn't say who has signed in/)).toBeTruthy();
+    expect((await within(first).findByRole("alert")).textContent).toMatch(/^Stigmer couldn't say who has signed in\. .*[.!?] Try again$/);
     expect(within(first).getByRole("button", { name: "Try again" })).toBeTruthy();
     expect(within(await row("Add a token route to your backend")).getByRole("region", { name: "app/api/stigmer-token/route.ts" })).toBeTruthy();
   });

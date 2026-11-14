@@ -30,4 +30,6 @@ export interface Drawing {
    * omitted, which no reader's screen would show.
    */
   readonly publicBaseUrl?: string;
+  /** End the kit's failure notes with the server's help link, as a console does; off when omitted. */
+  readonly showHelpLink?: boolean;
 }

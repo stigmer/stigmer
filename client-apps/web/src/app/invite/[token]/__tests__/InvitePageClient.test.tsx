@@ -20,7 +20,7 @@
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import type { Stigmer } from "@stigmer/client";
 import type { AuthConfig } from "@/auth/types";
 import type { OidcConfig } from "@/auth/oidc/types";
@@ -115,6 +115,10 @@ vi.mock("@stigmer/react-sdk", () => ({
   },
 }));
 
+vi.mock("@stigmer/react-sdk/console", () => ({
+  HelpLink: () => <p>Stuck? Talk to us</p>,
+}));
+
 import InvitePageClient from "../InvitePageClient";
 
 const latest = () => page.redemption.at(-1) as RedemptionProps;
@@ -158,6 +162,11 @@ describe("InvitePageClient", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  it("CON-13 places the server's help line under the invitation", () => {
+    render(<InvitePageClient />);
+    expect(screen.getByText("Stuck? Talk to us")).toBeTruthy();
   });
 
   it("hands the route's token to the redemption", () => {

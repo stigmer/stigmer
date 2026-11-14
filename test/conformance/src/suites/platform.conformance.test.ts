@@ -79,6 +79,18 @@ afterAll(async () => {
   await target?.teardown();
 });
 
+/** An absolute https, http or mailto address, with words of 1 to 40 characters. */
+function isAnnouncedHelpLink(help: { readonly url: string; readonly label: string }): boolean {
+  let protocol: string;
+  try {
+    protocol = new URL(help.url).protocol;
+  } catch {
+    return false;
+  }
+  const length = [...help.label].length;
+  return ["https:", "http:", "mailto:"].includes(protocol) && length >= 1 && length <= 40;
+}
+
 describe("Platform conformance — getServerInfo", () => {
   it("[rpc:PlatformQueryController.getServerInfo] names exactly the edition the target's composition declares, and a non-empty version", async () => {
     const info = await clients.platformQuery.getServerInfo({});
@@ -106,6 +118,13 @@ describe("Platform conformance — getServerInfo", () => {
 
     expect(second.edition).toBe(first.edition);
     expect(second.version).toBe(first.version);
+  });
+
+  it("[rpc:PlatformQueryController.getServerInfo] announces a help link only as an absolute https, http or mailto address with words of 1 to 40 characters", async () => {
+    const { help } = await clients.platformQuery.getServerInfo({});
+    // Whether a target sets one is its operator's choice; what it announces
+    // when it does is the contract every console renders as a link.
+    expect(help === undefined || isAnnouncedHelpLink(help), `help ${JSON.stringify(help)}`).toBe(true);
   });
 });
 

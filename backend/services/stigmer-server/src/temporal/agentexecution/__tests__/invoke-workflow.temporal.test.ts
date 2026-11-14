@@ -58,7 +58,15 @@
  *     `failed`, or fails as an older server's worker would (the activity
  *     not registered), goes on to the runner; a LOCAL target, and an
  *     input without the caller's class, never ask. These waits are short
- *     real seconds (the asks are 5 s apart), on the same local server.
+ *     real seconds (the asks are 5 s apart), on the same local server;
+ *   - a turn asks for its sandbox again before every runner invocation
+ *     after its first, since a parked turn's sandbox may have gone to
+ *     sleep (stigmer#3122): after an approval (IN_PROGRESS written
+ *     first), after a resume and before a recovery attempt; a full pool
+ *     there waits PENDING as a new turn does, writes IN_PROGRESS once room
+ *     comes, and ends as no_sandbox_room past the limit; a pause during
+ *     that wait is taken once by the attempt's monitor and the turn asks
+ *     again on resume; a LOCAL target asks nothing.
  *
  * Recorder discipline (oss#892): Temporal activities are at-least-once —
  * a workflow task whose completion fails to commit re-executes its local
@@ -162,6 +170,8 @@ interface ActivityScript {
   sandboxDefault: string;
   /** Each EnsureSessionSandbox call's input, in order. */
   sandboxCalls: Array<Record<string, unknown>>;
+  /** The phase persisted last before each EnsureSessionSandbox call (undefined for none), in order. */
+  sandboxAfterPhases: Array<RunPhase | undefined>;
   /** Consumed per CountOpenGates call, in order; last one sticks. An Error fails the call. */
   openGateCounts: Array<number | Error>;
   /** Each CountOpenGates call's (execution id, session id), in order. */
@@ -206,6 +216,7 @@ function resetScript(): void {
     sandboxAnswers: [],
     sandboxDefault: "ready",
     sandboxCalls: [],
+    sandboxAfterPhases: [],
     openGateCounts: [],
     gateCalls: [],
     persistedStatuses: [],
@@ -299,6 +310,7 @@ function scriptedActivities(): Record<string, (...args: never[]) => Promise<unkn
     },
     EnsureSessionSandbox: async (input: Record<string, unknown>): Promise<string> => {
       script.sandboxCalls.push(input);
+      script.sandboxAfterPhases.push(script.persistedStatuses.at(-1)?.status.phase);
       script.order.push("sandbox");
       const answer = script.sandboxAnswers.shift() ?? script.sandboxDefault;
       if (answer === "throw") {
@@ -1070,6 +1082,154 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
       await (await startWorkflow(workflowInput({ execution_target: ExecutionTarget.CLOUD }))).result();
       expect(script.sandboxCalls).toEqual([]);
       expect(script.executeCalls).toHaveLength(2);
+    }, 60_000);
+  });
+
+  describe("a turn asks for its sandbox again before it carries on (stigmer#3122)", () => {
+    const cloud = (overrides: Partial<InvokeAgentExecutionWorkflowInput> = {}) =>
+      workflowInput({ execution_target: ExecutionTarget.CLOUD, caller_class: "user", ...overrides });
+
+    const phases = () => script.persistedStatuses.map((entry) => entry.status.phase);
+
+    it("after an approval: IN_PROGRESS is written, then the sandbox asked for, then the turn re-invoked", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.executeBehaviors = [
+        async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
+        async () => slimResult(RunPhase.RUN_COMPLETED),
+      ];
+      script.openGateCounts = [1];
+
+      const handle = await startWorkflow(cloud());
+      await waitForPersistedPhase(RunPhase.RUN_WAITING_FOR_APPROVAL);
+      expect(script.sandboxCalls, "one ask while the turn waits for its answer").toHaveLength(1);
+      await handle.signal(SIGNAL_APPROVAL_GATE_RESOLVED);
+      await handle.result();
+
+      expect(script.order).toEqual(["close", "sandbox", "execute", "sandbox", "execute", "queued"]);
+      expect(script.sandboxAfterPhases[1], "the run reads working before its sandbox is asked for").toBe(RunPhase.RUN_IN_PROGRESS);
+      expect(script.sandboxCalls[1]).toEqual({ execution_id: currentExecutionId, caller_class: "user" });
+      expect(script.executeCalls.map((call) => call.turn_seq)).toEqual([0, 1]);
+    }, 60_000);
+
+    it("after a resume: the sandbox is asked for before the next attempt", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      const firstStarted = new Promise<void>((resolve) => {
+        script.executeBehaviors = [
+          (): Promise<Record<string, unknown>> => {
+            resolve();
+            return blockedInvocation();
+          },
+          async () => slimResult(RunPhase.RUN_COMPLETED),
+        ];
+      });
+
+      const handle = await startWorkflow(cloud());
+      await firstStarted;
+      await handle.signal(SIGNAL_PAUSE, "Paused by user");
+      await waitForPersistedPhase(RunPhase.RUN_PAUSED);
+      expect(script.sandboxCalls, "a paused turn asks nothing").toHaveLength(1);
+      await handle.signal(SIGNAL_RESUME);
+      await handle.result();
+
+      expect(script.order).toEqual(["close", "sandbox", "execute", "sandbox", "execute", "queued"]);
+      expect(script.sandboxAfterPhases[1], "the resume's IN_PROGRESS lands before the ask").toBe(RunPhase.RUN_IN_PROGRESS);
+    }, 60_000);
+
+    it("before a recovery attempt: a drained turn asks for its sandbox before it continues", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      const { ApplicationFailure } = await import("@temporalio/common");
+      script.executeBehaviors = [
+        async () => {
+          throw ApplicationFailure.create({
+            message: "Worker is shutting down and this activity did not complete in time",
+            nonRetryable: true,
+          });
+        },
+        async () => slimResult(RunPhase.RUN_COMPLETED),
+      ];
+
+      await (await startWorkflow(cloud())).result();
+
+      expect(script.order).toEqual(["close", "sandbox", "execute", "sandbox", "execute", "queued"]);
+      expect(script.sandboxAfterPhases[1], "the recovery's IN_PROGRESS lands before the ask").toBe(RunPhase.RUN_IN_PROGRESS);
+    }, 60_000);
+
+    it("a full pool after an approval: the run waits PENDING as a new turn does, then reads IN_PROGRESS and runs", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.sandboxAnswers = ["ready", "no_room"];
+      script.executeBehaviors = [
+        async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
+        async () => slimResult(RunPhase.RUN_COMPLETED),
+      ];
+      script.openGateCounts = [1];
+
+      const handle = await startWorkflow(cloud());
+      await waitForPersistedPhase(RunPhase.RUN_WAITING_FOR_APPROVAL);
+      await handle.signal(SIGNAL_APPROVAL_GATE_RESOLVED);
+      await handle.result();
+
+      expect(script.order).toEqual(["close", "sandbox", "execute", "sandbox", "sandbox", "execute", "queued"]);
+      expect(typeof script.sandboxCalls[2]!["waiting_since_ms"], "the third ask is a wait's").toBe("number");
+      const seen = phases();
+      const waitingAt = seen.indexOf(RunPhase.RUN_PENDING);
+      expect(waitingAt, "the run waits PENDING after its answer").toBeGreaterThan(seen.indexOf(RunPhase.RUN_WAITING_FOR_APPROVAL));
+      expect(script.persistedStatuses[waitingAt]!.status.setupProgress?.currentPhase).toBe("Waiting for a sandbox");
+      expect(seen.slice(waitingAt + 1), "working again once room comes").toContain(RunPhase.RUN_IN_PROGRESS);
+      expect(script.executeCalls).toHaveLength(2);
+    }, 60_000);
+
+    it("a full pool that never frees ends the resumed turn as no_sandbox_room", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.sandboxAnswers = ["ready"];
+      script.sandboxDefault = "no_room";
+      script.executeBehaviors = [async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL)];
+      script.openGateCounts = [1];
+
+      const handle = await startWorkflow(cloud({ sandbox_wait_seconds: 1 }));
+      await waitForPersistedPhase(RunPhase.RUN_WAITING_FOR_APPROVAL);
+      await handle.signal(SIGNAL_APPROVAL_GATE_RESOLVED);
+      await expect(handle.result()).rejects.toThrow(/Workflow execution failed/);
+
+      expect(script.executeCalls, "nothing re-invoked").toHaveLength(1);
+      const failed = script.persistedStatuses.filter((entry) => entry.status.phase === RunPhase.RUN_FAILED);
+      expect(failed.at(-1)!.status.stopDetail?.kind).toBe("no_sandbox_room");
+    }, 60_000);
+
+    it("a pause while a resumed turn waits for room is taken once, and the turn asks again on resume", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.sandboxAnswers = ["ready", "no_room", "no_room"];
+      script.executeBehaviors = [
+        async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
+        async () => slimResult(RunPhase.RUN_COMPLETED),
+      ];
+      script.openGateCounts = [1];
+
+      const handle = await startWorkflow(cloud());
+      await waitForPersistedPhase(RunPhase.RUN_WAITING_FOR_APPROVAL);
+      await handle.signal(SIGNAL_APPROVAL_GATE_RESOLVED);
+      await waitForPersistedPhase(RunPhase.RUN_PENDING);
+      await handle.signal(SIGNAL_PAUSE, "Paused by user");
+      await waitForPersistedPhase(RunPhase.RUN_PAUSED);
+      const asked = script.sandboxCalls.length;
+      await handle.signal(SIGNAL_RESUME);
+      await handle.result();
+
+      expect(phases().filter((phase) => phase === RunPhase.RUN_PAUSED), "one pause, written once").toHaveLength(1);
+      expect(script.sandboxCalls.length, "asked again after the resume").toBeGreaterThan(asked);
+      expect(script.sandboxCalls[asked], "a fresh wait").not.toHaveProperty("waiting_since_ms");
+      // The pause ended the attempt, so the next one starts at the turn's
+      // first invocation, from its checkpoint, as any pause does.
+      expect(script.executeCalls.map((call) => call.turn_seq)).toEqual([0, 0]);
+    }, 60_000);
+
+    it("a LOCAL target asks nothing after an approval and writes no working phase of its own", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.executeBehaviors = [
+        async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
+        async () => slimResult(RunPhase.RUN_COMPLETED),
+      ];
+      script.openGateCounts = [1];
+
+      const handle = await startWorkflow(workflowInput({ execution_target: ExecutionTarget.LOCAL, caller_class: "user" }));
+      await waitForPersistedPhase(RunPhase.RUN_WAITING_FOR_APPROVAL);
+      await handle.signal(SIGNAL_APPROVAL_GATE_RESOLVED);
+      await handle.result();
+
+      expect(script.sandboxCalls).toEqual([]);
+      expect(phases()).not.toContain(RunPhase.RUN_IN_PROGRESS);
     }, 60_000);
   });
 });

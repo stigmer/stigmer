@@ -258,10 +258,13 @@ not copied onto it.
 An idle Session's sandbox goes to sleep. After 330 seconds with no run, its pod
 is removed and its claims kept; the Session's next message starts a pod again
 over the same files and the same conversation. On a node that already holds the
-runner image, that adds about a second to the message's turn. A Session that is
-running, or waiting on a person's approval, is never put to sleep.
-`STIGMER_SANDBOX_AGENT_SANDBOX_SUSPEND_AFTER_SECONDS` sets the idle time, and
-`STIGMER_SANDBOX_AGENT_SANDBOX_SWEEP_INTERVAL_SECONDS` how often the server
+runner image, that adds about a second to the message's turn. A Session with a
+run in progress is never put to sleep. A run waiting on a person's approval, or
+paused, needs no sandbox while it waits: its sandbox sleeps after the same idle
+time, counted from the run's start, and when the person answers or resumes, the
+server wakes it, with its files and the Agent's memory, before the turn carries
+on. `STIGMER_SANDBOX_AGENT_SANDBOX_SUSPEND_AFTER_SECONDS` sets the idle time,
+and `STIGMER_SANDBOX_AGENT_SANDBOX_SWEEP_INTERVAL_SECONDS` how often the server
 looks (30 seconds), so a sandbox sleeps within one interval of its idle time. A
 cluster whose nodes pull the runner image afresh wakes more slowly; lengthen the
 idle time there. A sleeping sandbox is never deleted: it goes when its Session
@@ -585,8 +588,11 @@ a node lost in those first 5 minutes loses what the Session wrote since its last
 copy. The next message wakes it with its files intact and a fresh runner, from
 its node when it wakes on the node that still holds them, and from storage when
 the node has let them go or Substrate places it on another node. A Session with
-a run in progress, waiting for approval or paused is never put to sleep. Connect
-sandboxes don't sleep; they end with their run.
+a run in progress is never put to sleep. A run waiting for approval, or paused,
+needs no sandbox while it waits: its sandbox sleeps after the same idle time,
+counted from the run's start, and wakes with its files before the turn carries
+on, when the person answers or resumes. Connect sandboxes don't sleep; they end
+with their run.
 
 On Stigmer Cloud, preprod (2026-10-31; Agent Substrate v0.6.0 on GKE, snapshots
 in Cloud Storage), a sleeping Session was working again, from the server
@@ -797,7 +803,9 @@ If no room comes by then, the run ends `RUN_FAILED` with stop cause
 every sandbox was busy and that nothing was lost. Running it again waits again.
 `0` ends such a run at once. The server refuses to boot with any other value
 than a whole number of seconds. A paused run takes no sandbox, and its wait
-starts over when it resumes.
+starts over when it resumes. A run that carries on after an approval, a resume
+or an interrupted turn asks for its sandbox again first, and waits for room the
+same way.
 
 Room comes from your workers: the sandboxes a worker can hold, times the
 replicas of your Substrate WorkerPool. Add replicas, or let an autoscaler add

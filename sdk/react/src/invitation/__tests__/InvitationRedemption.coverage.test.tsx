@@ -87,5 +87,6 @@ describe("InvitationRedemption", () => {
     render(<InvitationRedemption token="tok_1" isAuthenticated />);
 
     expect(screen.getByText("This invitation is no longer valid.")).toBeTruthy();
+    expect(screen.getByText("Ask whoever sent it for a new link.")).toBeTruthy();
   });
 });

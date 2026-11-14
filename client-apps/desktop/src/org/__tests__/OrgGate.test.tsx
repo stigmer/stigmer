@@ -23,6 +23,12 @@ const gate = vi.hoisted(() => ({
   onCreated: null as ((org: Organization) => void) | null,
 }));
 
+// The help line reads the server's answer; here it stands in, so the test
+// holds where the gate places it.
+vi.mock("@stigmer/react-sdk/console", () => ({
+  HelpLink: () => <p>Stuck? Talk to us</p>,
+}));
+
 vi.mock("@stigmer/react-sdk", async () => {
   const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
   return {
@@ -89,6 +95,8 @@ describe("desktop OrgGate", () => {
 
     expect(screen.getByText("Failed to load organizations")).toBeTruthy();
     expect(screen.getByText("The server could not be reached.")).toBeTruthy();
+    // CON-13: under Try again, the server's help line.
+    expect(screen.getByText("Stuck? Talk to us")).toBeTruthy();
     expect(screen.queryByText("the app")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
