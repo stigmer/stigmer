@@ -206,9 +206,6 @@
   "parts": {
     "type-off-scale h1 \"The console's shared parts\": 32px is no step's size": "The console's parts: the shared parts and their pages on the scale"
   },
-  "preset-monochrome": {
-    "type-off-scale p \"Fixed: invoices now round once, at the total.\": 14px on 22.75px lines, its step pairs 20px": "The session's frame: the answer and its markdown at the scale's paired lines"
-  },
   "routine-history": {
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The console's parts: the shared parts and their pages on the scale"
   },
