@@ -113,6 +113,16 @@ describe("the guide", () => {
     expect(guide).toContain("Never print, echo or ask for a key");
   });
 
+  it("passes on the help line the command line prints, in the words it prints it", () => {
+    const guide = files.get("skills/stigmer/SKILL.md") ?? "";
+    expect(guide).toContain("a `Stuck? …` line");
+    expect(guide).toContain("`stigmer auth whoami`");
+    for (const source of ["errors/handle.ts", "commands/auth/whoami.ts"]) {
+      const text = readFileSync(join(root, "..", "client-apps", "cli", "src", ...source.split("/")), "utf8");
+      expect(text).toContain("`Stuck? ${");
+    }
+  });
+
   it("sends the last step to a console page that exists", () => {
     const guide = files.get("skills/stigmer/SKILL.md") ?? "";
     const path = /<console>(\/settings\/[a-z-]+)/.exec(guide)?.[1];

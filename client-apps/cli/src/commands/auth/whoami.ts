@@ -6,6 +6,10 @@
 // who only ever uses the CLI is never left without an account. The result
 // says when THIS call created it — a first sign-in is visible, never silent.
 //
+// When the server names a place to ask for help, it says so last ("Stuck?
+// <words>: <address>"), so a person, or a coding agent signing its person
+// in, learns where to ask before anything fails.
+//
 // It names the context organization by the slug the backend answers now,
 // not the one `config context set` stored, and stores the current one when
 // the organization was renamed since.
@@ -37,6 +41,8 @@ export interface WhoamiContext {
   readonly orgId?: string;
   /** The server holds one organization and fills it, so the CLI never names one. */
   readonly singleOrg: boolean;
+  /** Where the server says to ask for help; absent when it names none. */
+  readonly help?: { readonly url: string; readonly label: string };
 }
 
 /**
@@ -84,6 +90,10 @@ export function whoamiResult(
     }
   }
 
+  if (context.help !== undefined) {
+    result.hint(`Stuck? ${context.help.label}: ${context.help.url}`);
+  }
+
   return result;
 }
 
@@ -97,7 +107,9 @@ export async function runWhoami(): Promise<CommandResult> {
   });
   const singleOrg = await omitsOrganization(client.stigmer);
   const org = singleOrg ? { label: "", id: "" } : await liveContextOrganization(client.stigmer, client.config);
-  return whoamiResult(account, { created, org: org.label, orgId: org.id, singleOrg });
+  // Printing never fails the command: a failed ask shows no help line.
+  const help = await client.serverInfo().then((info) => info.help, () => undefined);
+  return whoamiResult(account, { created, org: org.label, orgId: org.id, singleOrg, ...(help !== undefined ? { help } : {}) });
 }
 
 /**

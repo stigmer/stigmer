@@ -3,14 +3,15 @@
 // runner task queue and the ~/.stigmer paths; the runner polls the very queue
 // the server dispatches to, reads the server's artifact root, keeps its drain
 // under the supervisor's stop bound, and receives the provider keys; the server
-// hears which providers that runner reaches. Both children, and the server's
+// hears which providers that runner reaches, and where its person asks for
+// help (the project's community, unless they set their own). Both children, and the server's
 // readiness gate, follow the server port the daemon is given, 7234 by default.
 
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
 import { RUNNER_READY_MARKER, RUNNER_TASK_QUEUE } from "../../constants.js";
 import type { DaemonConfig } from "../env.js";
-import { buildComponents, buildRunnerEnv, buildServerEnv, localRunnerReach } from "../components.js";
+import { COMMUNITY_HELP, buildComponents, buildRunnerEnv, buildServerEnv, localRunnerReach } from "../components.js";
 import { GRACEFUL_STOP_TIMEOUT_MS } from "../supervisor.js";
 
 const config: DaemonConfig = {
@@ -53,6 +54,24 @@ describe("buildServerEnv", () => {
   it("does not deliver the operator identity to the runner — it resolves identity from session data", () => {
     const env = buildRunnerEnv({ ...config, operatorEmail: "ada@example.com" }, {});
     expect(env.STIGMER_OPERATOR_EMAIL).toBeUndefined();
+  });
+});
+
+describe("the server's help link", () => {
+  it("names the project's community on a laptop, with its words", () => {
+    const env = buildServerEnv(config, {});
+    expect(env.STIGMER_HELP_URL).toBe(COMMUNITY_HELP.url);
+    expect(env.STIGMER_HELP_LABEL).toBe("Ask the Stigmer community");
+  });
+
+  it("keeps the person's own link, and their own empty one, untouched", () => {
+    const own = buildServerEnv(config, { STIGMER_HELP_URL: "https://help.acme.example" });
+    expect(own.STIGMER_HELP_URL).toBe("https://help.acme.example");
+    expect(own.STIGMER_HELP_LABEL).toBeUndefined();
+    const none = buildServerEnv(config, { STIGMER_HELP_URL: "" });
+    expect(none.STIGMER_HELP_URL).toBe("");
+    const labelOnly = buildServerEnv(config, { STIGMER_HELP_LABEL: "Ask Dana" });
+    expect(labelOnly.STIGMER_HELP_URL).toBeUndefined();
   });
 });
 

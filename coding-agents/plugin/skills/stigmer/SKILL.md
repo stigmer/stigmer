@@ -31,7 +31,9 @@ it is in one line.
 - Never make a second service account or overwrite an existing agent without
   asking.
 - When a command fails, stop and say what failed in plain words, with the one
-  next thing to do. The CLI's own message usually says it; quote it.
+  next thing to do. The CLI's own message usually says it; quote it. When the
+  server named a place to ask for help (a `Stuck? …` line), pass that line on
+  too, so the person knows where to ask.
 - Commands that wait on the person (`stigmer auth login`) can take minutes. Run
   them in the background where your tool allows it, or with the longest timeout
   it allows, and tell the person what will open.
@@ -60,7 +62,8 @@ Then sign in: `stigmer auth login`. It prints an address and opens the browser;
 the person signs in there. Where no browser can open (an SSH session, a remote
 sandbox), run `stigmer auth login --device` and tell the person to open the
 address it prints and enter the code. `stigmer auth whoami` says who they are
-and which organization the CLI uses. If it says none is set and they belong to
+and which organization the CLI uses, and ends with a `Stuck? …` line when the
+server names a place to ask for help: keep it for when something fails. If it says none is set and they belong to
 several, ask which and run `stigmer config context set --org <slug>`.
 
 ## 2. What should your agent do for your users?

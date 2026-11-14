@@ -38,7 +38,7 @@ import {
   resolveToken,
 } from "../config/index.js";
 import { cannotConnect, CliExitError, ExitCode } from "../errors/index.js";
-import { type ServerAddress, setServerAddress } from "../runtime.js";
+import { type ServerAddress, setServerAddress, setServerHelpProbe } from "../runtime.js";
 
 /** The composed backend client returned by {@link createBackendClient}. */
 export interface BackendClient {
@@ -114,6 +114,9 @@ export function createBackendClient(
     });
     return serverInfo;
   };
+  // A failure this server answers ends with its help line (errors/handle.ts),
+  // asked through the same probe so a run that already read it asks nothing.
+  setServerHelpProbe(() => probeServerInfo().then((info) => info.help));
 
   return {
     stigmer,

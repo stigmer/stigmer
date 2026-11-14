@@ -93,6 +93,16 @@ describe("whoamiResult", () => {
     ]);
   });
 
+  it("says last where the server says to ask for help", () => {
+    const result = whoamiResult(ACCOUNT, {
+      created: false,
+      org: "",
+      singleOrg: true,
+      help: { url: "https://help.acme.example", label: "Ask IT" },
+    });
+    expect(result.hints).toEqual(["Stuck? Ask IT: https://help.acme.example"]);
+  });
+
   it("on a server that holds one organization, names none and hints nothing", () => {
     for (const org of ["", "acme"]) {
       const result = whoamiResult(ACCOUNT, { created: false, org, singleOrg: true });
