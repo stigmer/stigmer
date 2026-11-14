@@ -49,7 +49,7 @@ import { orgRole, triple } from "../../grant/__tests__/support.js";
 import { newResourceIdentityAccountStore } from "../../identityaccount/resource-store.js";
 import { newOnboardingService, type OnboardingService } from "../service.js";
 import { newOnboardingFactsReader, RUN_PAGE, type OnboardingFactsDeps } from "../facts.js";
-import { countOnboardingFunnel } from "../funnel.js";
+import { countOnboardingFunnel, ORGANIZATION_PAGE } from "../funnel.js";
 import type { Store } from "../../../store/interface.js";
 import { Code, ConnectError } from "@connectrpc/connect";
 
@@ -318,8 +318,11 @@ describe("the edges", () => {
   });
 
   it("skips a row whose bytes do not decode, and still reads the rest", async () => {
-    const facts = await newOnboardingFactsReader(factsDeps(withCorruptRows())).read("org_4", "f4");
-    expect([facts.changedAgent?.slug, facts.completedRun]).toEqual(["ticket-replier", true]);
+    const changed = await newOnboardingFactsReader(factsDeps(withCorruptRows())).read("org_4", "f4");
+    expect([changed.changedAgent?.slug, changed.completedRun]).toEqual(["ticket-replier", true]);
+    // org_1's agent is no journey agent and nothing ran, so both reads reach the undecodable row.
+    const read = await newOnboardingFactsReader(factsDeps(withCorruptRows())).read("org_1", "f1");
+    expect([read.hasAgent, read.newestAgent, read.everRan, read.completedRun]).toEqual([true, undefined, true, false]);
     const funnel = await countOnboardingFunnel(
       {
         store: withCorruptRows(),
@@ -358,5 +361,37 @@ describe("the edges", () => {
       code: Code.InvalidArgument,
       rawMessage: "this window holds more than 2 new organizations, more than one count reads; ask for a narrower window",
     });
+  });
+});
+
+describe("the count's window", () => {
+  function funnelOver(store: Pick<Store, "queryResources">) {
+    return countOnboardingFunnel(
+      {
+        store,
+        facts: newOnboardingFactsReader(factsDeps(temp.store)),
+        displayResolver: newAccountDisplayResolver(newResourceIdentityAccountStore(temp.store)),
+        internalAccounts: parseInternalAccounts("*@stigmer.ai"),
+        logger: silentLogger,
+      },
+      { fromMs: FROM, toMs: TO },
+    );
+  }
+
+  it("reads on past a page of organizations made after the window, and counts none of them", async () => {
+    for (let n = 0; n < ORGANIZATION_PAGE; n++) await organization(`org_later_${n}`, TO + DAY + n, "f1");
+    const funnel = await funnelOver(temp.store);
+    expect([funnel.organizations, funnel.excluded]).toEqual([7, 1]);
+  });
+
+  it("holds its own bounds over rows a store hands out from before the window", async () => {
+    const wide: Pick<Store, "queryResources"> = {
+      queryResources: ((declaration, query) => {
+        const { createdAtOrAfter: _ignored, ...rest } = query;
+        return temp.store.queryResources(declaration, rest);
+      }) as Store["queryResources"],
+    };
+    const funnel = await funnelOver(wide);
+    expect([funnel.organizations, funnel.excluded]).toEqual([7, 1]);
   });
 });

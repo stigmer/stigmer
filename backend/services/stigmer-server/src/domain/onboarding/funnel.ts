@@ -49,7 +49,7 @@ import { ONBOARDING_STEPS, stepsDone } from "./progress.js";
 export const FUNNEL_CAP = 2000;
 
 /** How many organization rows each read of the index takes. */
-const PAGE = 500;
+export const ORGANIZATION_PAGE = 500;
 
 /** How many organizations are read at once. */
 const CONCURRENCY = 8;
@@ -109,7 +109,7 @@ async function readCohort(deps: OnboardingFunnelDeps, window: ReportWindow): Pro
       withoutKeys: ["parent_org"],
       ...(window.fromMs === undefined ? {} : { createdAtOrAfter: listIndexInstantOfMillis(window.fromMs) }),
       ...(after === undefined ? {} : { after }),
-      limit: PAGE,
+      limit: ORGANIZATION_PAGE,
     });
     for (const row of rows) {
       let organization: Organization;
@@ -131,7 +131,7 @@ async function readCohort(deps: OnboardingFunnelDeps, window: ReportWindow): Pro
       }
     }
     const last = rows[rows.length - 1];
-    if (rows.length < PAGE || last === undefined) return cohort;
+    if (rows.length < ORGANIZATION_PAGE || last === undefined) return cohort;
     after = last.cursor;
   }
 }
