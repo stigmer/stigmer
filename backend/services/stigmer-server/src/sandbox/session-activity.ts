@@ -19,9 +19,15 @@
  * runner whose clock runs far ahead cannot keep its sandbox awake, since
  * reading such a stamp as now would only read it again as now on every
  * pass. A stamp less than a minute ahead counts as it is, which keeps a
- * sandbox awake at most that minute longer. An execution that has not
- * ended is in an active phase, which makes the session busy, so its
- * progress never needs a clock.
+ * sandbox awake at most that minute longer. A working execution (pending
+ * or in progress) makes the session busy, so its progress never needs a
+ * clock. One parked on a person's answer or a pause has not ended but is
+ * not busy (domain/run/phases.ts, `keepsSandboxAwake`). Its session's
+ * clock is still the run's creation (no stamp marks when it parked), so a
+ * turn that has already run past the idle window sleeps on the first pass
+ * after it parks, even when the person is about to answer; the run
+ * workflow asks for the sandbox again before it carries the turn on, so
+ * that costs the answer a wake, never the turn (stigmer#3122).
  *
  * An idle sweep asks every awake session on every pass, and a session's
  * full history is the store's fattest rows
@@ -29,7 +35,8 @@
  * per session it has read and offers a second, cheap read beside the
  * full one (stigmer#1803). `recentActivity` reads only the session's
  * executions created since its previous read, less RECENT_LOOKBACK_MS,
- * and re-reads by id the ones that were active and the one holding the
+ * and re-reads by id the ones that had not ended (working or parked, so
+ * a parked turn's resume reads busy at once) and the one holding the
  * latest stamp. Every other execution had already ended when it was
  * folded, and an ended execution changes only through Recover
  * (domain/run/lifecycle.ts), a late status report that
@@ -63,7 +70,7 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 
 import type { Logger } from "../boot/logger.js";
 import { agentExecutionListIndex } from "../domain/run/list-index.js";
-import { isActiveExecutionPhase } from "../domain/run/phases.js";
+import { isActiveExecutionPhase, keepsSandboxAwake } from "../domain/run/phases.js";
 import { ResourceNotFoundError, type Store } from "../store/interface.js";
 import {
   listIndexInstantOfMillis,
@@ -93,8 +100,10 @@ export const ENTRY_IDLE_EVICT_MS = 10 * 60_000;
 
 /** What the reader remembers of one session between reads (module header). */
 interface SessionEntry {
-  /** Executions in an active phase when last read. */
-  readonly busyIds: Set<string>;
+  /** Executions that had not ended (an active phase) when last read: re-read by id on every cheap read. */
+  readonly liveIds: Set<string>;
+  /** The live executions that were working when last read: the session is busy while any is. */
+  readonly workingIds: Set<string>;
   /** Ended executions already folded, by id, with their index instant, while the next read's bound can still return them. */
   readonly foldedIds: Map<string, string>;
   /** Stamps more than the allowance ahead when folded, counted once the clock reaches them and their execution still carries them. */
@@ -109,7 +118,8 @@ interface SessionEntry {
 
 function newEntry(readAtMs: number): SessionEntry {
   return {
-    busyIds: new Set(),
+    liveIds: new Set(),
+    workingIds: new Set(),
     foldedIds: new Map(),
     aheadStamps: [],
     lastActiveMs: undefined,
@@ -160,7 +170,7 @@ export function newStoreSessionActivityReader(
     foldExecution(entry, row.id, execution, nowMs);
     const instant = row.cursor.createdAt;
     if (
-      !entry.busyIds.has(row.id) &&
+      !entry.liveIds.has(row.id) &&
       (instant === "" || instant >= nextBound)
     ) {
       entry.foldedIds.set(row.id, instant);
@@ -236,11 +246,11 @@ export function newStoreSessionActivityReader(
     const latestMs = entry.lastActiveMs;
     let latestNow: Run | undefined;
     let latestRead = false;
-    // An execution the entry holds (active, or holding the latest stamp)
+    // An execution the entry holds (live, or holding the latest stamp)
     // that cannot be read now is one only the full read answers for: it
     // skips a row that will not decode, and fails on a store fault.
     const held = (id: string): boolean =>
-      id === latest || entry.busyIds.has(id);
+      id === latest || entry.liveIds.has(id);
     const present = new Set<string>();
     /** Executions decoded on this read, so current as of it. */
     const current = new Set<string>();
@@ -263,7 +273,7 @@ export function newStoreSessionActivityReader(
       current.add(row.id);
       foldRow(entry, row, execution, nowMs, nextBound);
     }
-    for (const id of [...entry.busyIds]) {
+    for (const id of [...entry.liveIds]) {
       if (present.has(id)) {
         continue;
       }
@@ -273,7 +283,7 @@ export function newStoreSessionActivityReader(
         latestRead = true;
       }
       if (execution === undefined) {
-        entry.busyIds.delete(id);
+        forgetLive(entry, id);
         continue;
       }
       current.add(id);
@@ -380,8 +390,9 @@ export function sessionActivityOf(
 }
 
 /**
- * Folds one execution into a session's entry: busy while it is active,
- * and its creation and completion as activity stamps, a stamp more than
+ * Folds one execution into a session's entry: live while it is active,
+ * busy while it is working, and its creation and completion as activity
+ * stamps, a stamp more than
  * the allowance ahead of `nowMs` held back until the clock reaches it
  * (module header). Folding an execution again only moves the entry
  * forward, so the cheap read may re-read one it has folded.
@@ -394,17 +405,22 @@ function foldExecution(
 ): void {
   const status = execution.status;
   if (status === undefined) {
-    entry.busyIds.delete(id);
+    forgetLive(entry, id);
     removeAheadStamps(entry, id);
     return;
   }
   if (isActiveExecutionPhase(status.phase)) {
-    entry.busyIds.add(id);
-    // An active run is read on every pass, so it is never one the
-    // window may skip as already folded (a recovered run read by id).
+    entry.liveIds.add(id);
+    if (keepsSandboxAwake(status.phase)) {
+      entry.workingIds.add(id);
+    } else {
+      entry.workingIds.delete(id);
+    }
+    // A live run is read on every pass, so it is never one the window
+    // may skip as already folded (a recovered run read by id).
     entry.foldedIds.delete(id);
   } else {
-    entry.busyIds.delete(id);
+    forgetLive(entry, id);
   }
   // The execution as read now replaces whatever it held back before.
   removeAheadStamps(entry, id);
@@ -415,6 +431,11 @@ function foldExecution(
     }
     counted(entry, id, stamp);
   }
+}
+
+function forgetLive(entry: SessionEntry, id: string): void {
+  entry.liveIds.delete(id);
+  entry.workingIds.delete(id);
 }
 
 function removeAheadStamps(entry: SessionEntry, id: string): void {
@@ -470,7 +491,7 @@ function reached(stamp: number, nowMs: number): boolean {
 
 function activityOfEntry(entry: SessionEntry): SessionActivity {
   return {
-    busy: entry.busyIds.size > 0,
+    busy: entry.workingIds.size > 0,
     lastActiveAt:
       entry.lastActiveMs === undefined
         ? undefined

@@ -5,8 +5,11 @@
  * whether its session is busy, when the session was last active, and
  * whether its worker is leaving.
  *
- *   - A busy session is never touched: a run that is pending, running,
- *     waiting on a person or paused keeps its sandbox running.
+ *   - A busy session is never touched: a run that is pending or running
+ *     keeps its sandbox running. A turn parked on a person's answer or a
+ *     pause does not (domain/run/phases.ts `keepsSandboxAwake`): it
+ *     sleeps like an idle session, and the run workflow asks for the
+ *     sandbox again before the turn carries on (stigmer#3122).
  *   - running and idle for `suspendAfter`: suspend (the sandbox stopped,
  *     its workspace kept on its node and copied to storage in the
  *     background; the next wakeup starts a fresh runner over it, on its

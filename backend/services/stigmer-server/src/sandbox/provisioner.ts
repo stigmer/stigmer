@@ -252,10 +252,13 @@ export interface SandboxProvisioner {
 
 /**
  * What one session's executions say about it, for a driver deciding
- * whether its sandbox is idle: busy while any execution is pending, in
- * progress, waiting for approval or paused (isActiveExecutionPhase), and
- * the last moment the server itself stamped on one of them (an
- * execution's creation or completion), undefined when it has none.
+ * whether its sandbox is idle: busy while any execution is pending or in
+ * progress (domain/run/phases.ts `keepsSandboxAwake`), and the last moment
+ * the server itself stamped on one of them (an execution's creation or
+ * completion), undefined when it has none. A turn waiting for a person's
+ * answer or paused is not busy: its sandbox may sleep, and the run
+ * workflow asks for it again before the turn carries on
+ * (stigmer#3122).
  */
 export interface SessionActivity {
   readonly busy: boolean;

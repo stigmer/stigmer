@@ -321,6 +321,56 @@ async function main(): Promise<void> {
     },
   );
 
+  // 10. A CLOUD turn's HITL cycle past the re-ask (stigmer#3122):
+  //     the first ask, WAITING, gate re-read, approvalGateResolved, then
+  //     IN_PROGRESS written, the sandbox asked for again (the second patch
+  //     marker) with no room once, waiting, room, IN_PROGRESS again, and
+  //     the re-invocation (TurnSeq 1) completes. The cloud-hitl-approval
+  //     history is the same turn recorded before the re-ask existed.
+  const CLOUD_INPUT = { ...RUN_INPUT, execution_target: 2, caller_class: "user", sandbox_wait_seconds: 900 };
+  executeBehaviors = [
+    async () => slim("RUN_WAITING_FOR_APPROVAL"),
+    async () => slim("RUN_COMPLETED"),
+  ];
+  gateCounts = [1];
+  sandboxAnswers = ["ready", "no_room"];
+  await capture(
+    "hitl-approval-reensured",
+    CLOUD_INPUT,
+    async (handle) => {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await handle.signal("approvalGateResolved");
+      await handle.result();
+    },
+  );
+
+  // 11. A CLOUD turn paused and resumed past the re-ask: the resume's
+  //     IN_PROGRESS, then the sandbox asked for again before the next
+  //     attempt, which completes. The cloud-pause-resume history is the
+  //     same turn recorded before the re-ask existed.
+  let releaseCloudHold: (() => void) | undefined;
+  executeBehaviors = [
+    () =>
+      new Promise<Record<string, unknown>>((resolve) => {
+        releaseCloudHold = () => resolve(slim("RUN_COMPLETED"));
+      }),
+    async () => slim("RUN_COMPLETED"),
+  ];
+  gateCounts = [];
+  sandboxAnswers = [];
+  await capture(
+    "pause-resume-reensured",
+    CLOUD_INPUT,
+    async (handle) => {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await handle.signal("pause", "replay capture");
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await handle.signal("resume");
+      await handle.result();
+      releaseCloudHold?.();
+    },
+  );
+
   worker.shutdown();
   await runPromise.catch(() => {});
   await env.teardown();

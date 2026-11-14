@@ -4,7 +4,12 @@
  * engine client that sets the wait's limit.
  *
  * A turn whose conversation runs in a provisioned sandbox (target CLOUD)
- * asks for its sandbox before its first runner activity. When the sandbox
+ * asks for its sandbox before its first runner activity, and again before
+ * every runner invocation after it: after an approval, after a resume, and
+ * before a recovery attempt. A turn parked on a person's answer or a pause
+ * is not busy for the idle sweep (domain/run/phases.ts,
+ * `keepsSandboxAwake`), so its sandbox may have gone to sleep while it
+ * waited, and only an ask wakes it (stigmer#3122). When the sandbox
  * fleet answers "no room" (sandbox/provisioner.ts, SandboxNoRoomError), the
  * workflow asks again, `sandboxWaitBackoffMs` apart, until room comes or
  * the server's limit (`STIGMER_SANDBOX_WAIT_SECONDS`, carried in the
@@ -36,6 +41,13 @@
  * history that took the patched path records it.
  */
 export const SANDBOX_WAIT_PATCH_ID = "ensure-sandbox-in-workflow";
+
+/**
+ * The `patched()` id that gates the ask before every runner invocation
+ * after a turn's first (module header). Wire constant: a history that took
+ * the patched path records it.
+ */
+export const SANDBOX_REENSURE_PATCH_ID = "ensure-sandbox-on-resume";
 
 /** How long a turn waits for room when the server sets no other limit: 15 minutes. */
 export const DEFAULT_SANDBOX_WAIT_SECONDS = 900;

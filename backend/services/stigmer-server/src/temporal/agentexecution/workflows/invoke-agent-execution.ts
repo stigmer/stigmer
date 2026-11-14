@@ -21,6 +21,17 @@
  *     wait starts over on resume); a cancel ends it as any cancel does. The
  *     wait is behind `patched()` and only on a CLOUD target whose input
  *     carries the caller's class, so every other history replays as before.
+ *   - A sandbox before every runner invocation after the first: after an
+ *     approval (IN_PROGRESS written first), after a resume, and before a
+ *     recovery attempt, the workflow asks for the sandbox again, waiting
+ *     for room as the first ask does, inside the attempt's cancellable
+ *     scope so a pause there is the attempt's. A turn parked on a person's
+ *     answer or a pause is not busy for the idle sweep, so its sandbox may
+ *     have gone to sleep while it waited (stigmer#3122); without the
+ *     ask, the runner activity would wait out its schedule-to-start on a
+ *     queue nobody polls. Behind its own `patched()` id and the same
+ *     conditions; the cloud HITL and pause histories recorded before it
+ *     replay as recorded.
  *   - Harness dispatch, one exhaustive switch: STIGMER/UNSPECIFIED and
  *     CLAUDE → the deterministic-state flow (EnsureThread once, thread
  *     stable across re-invocations; the engine derives its own state from
@@ -139,6 +150,7 @@ import {
 } from "../runner-result.js";
 import {
   DEFAULT_SANDBOX_WAIT_SECONDS,
+  SANDBOX_REENSURE_PATCH_ID,
   SANDBOX_WAIT_PATCH_ID,
   SANDBOX_WAIT_STOP_CAUSE,
   SANDBOX_WAIT_STOP_KIND,
@@ -595,6 +607,11 @@ async function executeDeterministicStateFlow(
   log.info("Step 2: Executing agent", { executionId, threadId, executeActivity });
   const agentProxy = newExecuteAgentProxy(activityTaskQueue);
 
+  // Every invocation after the first asks for the sandbox again
+  // (askBeforeCarryingOn): an attempt after a resume or a recovery has
+  // its IN_PROGRESS written already; a re-invocation after an approval
+  // writes it first.
+  let attempts = 0;
   return runWithPauseAndRecovery({
     executionId,
     activityLabel: executeActivity,
@@ -606,15 +623,22 @@ async function executeDeterministicStateFlow(
         executionId,
         sessionId,
         signals,
-        firstInvoke: () =>
-          agentProxy[executeActivity](
+        firstInvoke: async () => {
+          attempts++;
+          if (attempts > 1) {
+            await askBeforeCarryingOn(input, signals, false);
+          }
+          return agentProxy[executeActivity](
             executeActivityInput(input, threadId, 0),
-          ),
+          );
+        },
         // The thread id is stable — re-invocations reuse it.
-        reinvoke: (turnSeq) =>
-          agentProxy[executeActivity](
+        reinvoke: async (turnSeq) => {
+          await askBeforeCarryingOn(input, signals, true);
+          return agentProxy[executeActivity](
             executeActivityInput(input, threadId, turnSeq),
-          ),
+          );
+        },
         nullResultMessage: "activity returned null status - this should never happen",
         nullResultAfterApprovalMessage:
           "activity returned null status after approval - this should never happen",
@@ -643,14 +667,79 @@ async function waitForSandboxRoom(
   input: InvokeAgentExecutionWorkflowInput,
   signals: SignalBuffers,
 ): Promise<number> {
-  const callerClass = input.caller_class;
-  if (
-    input.execution_target !== ExecutionTarget.CLOUD ||
-    callerClass === undefined ||
-    !patched(SANDBOX_WAIT_PATCH_ID)
-  ) {
+  const callerClass = sandboxCallerClassOf(input);
+  if (callerClass === undefined || !patched(SANDBOX_WAIT_PATCH_ID)) {
     return 0;
   }
+  const wait = await askForRoom(input, callerClass, signals, "here");
+  return wait.pauseCycles;
+}
+
+/**
+ * The ask before every runner invocation after the turn's first (module
+ * header): after an approval, after a resume, before a recovery attempt.
+ * A parked turn is not busy for the idle sweep, so its sandbox may have
+ * gone to sleep while it waited; the ask wakes it, and waits for room as
+ * the first ask does. `writeWorking` writes IN_PROGRESS before the ask, for
+ * the approval path, whose answer writes no working phase of its own: the
+ * sweeps read "a turn's run reads busy before its ensure runs" to close
+ * the race with a suspend in flight (sandbox/substrate/sweep.ts). A resume
+ * and a recovery have written it already. A wait that saw no room wrote
+ * the run PENDING, so IN_PROGRESS is written again once room comes.
+ *
+ * It runs inside the attempt's cancellable scope, so a pause while it
+ * waits is the attempt's monitor's to take: the scope is cancelled, the
+ * pause branch writes PAUSED and waits for resume, and the next attempt
+ * asks again. Behind its own `patched()` id and the first ask's conditions,
+ * so a history from before it replays as recorded.
+ */
+async function askBeforeCarryingOn(
+  input: InvokeAgentExecutionWorkflowInput,
+  signals: SignalBuffers,
+  writeWorking: boolean,
+): Promise<void> {
+  const callerClass = sandboxCallerClassOf(input);
+  if (callerClass === undefined || !patched(SANDBOX_REENSURE_PATCH_ID)) {
+    return;
+  }
+  if (writeWorking) {
+    await persistResumedStatus(input.execution_id);
+  }
+  const wait = await askForRoom(input, callerClass, signals, "in-attempt");
+  if (wait.waited) {
+    await persistResumedStatus(input.execution_id);
+  }
+}
+
+/**
+ * The caller's class when the turn's sandbox is the workflow's to ask
+ * for: a CLOUD target whose input carries it. Undefined otherwise.
+ */
+function sandboxCallerClassOf(input: InvokeAgentExecutionWorkflowInput): string | undefined {
+  return input.execution_target === ExecutionTarget.CLOUD ? input.caller_class : undefined;
+}
+
+/** What one wait for room came to. */
+interface RoomWait {
+  /** Pause cycles taken while waiting; only a wait that takes its own pauses spends any. */
+  readonly pauseCycles: number;
+  /** Whether the last ask followed a "no room", so the run was written PENDING. */
+  readonly waited: boolean;
+}
+
+/**
+ * Asks for the turn's sandbox until any answer but "no room" or the
+ * input's limit (waitForSandboxRoom's doc). `pauses` says who takes a
+ * pause while it waits: "here", before the turn's first attempt, where no
+ * pause monitor runs; or "in-attempt", inside an attempt's scope, whose
+ * monitor takes it and cancels the backoff's sleep.
+ */
+async function askForRoom(
+  input: InvokeAgentExecutionWorkflowInput,
+  callerClass: string,
+  signals: SignalBuffers,
+  pauses: "here" | "in-attempt",
+): Promise<RoomWait> {
   const executionId = input.execution_id;
   const limitSeconds = input.sandbox_wait_seconds ?? DEFAULT_SANDBOX_WAIT_SECONDS;
   let pauseCycles = 0;
@@ -667,7 +756,7 @@ async function waitForSandboxRoom(
           outcome,
         });
       }
-      return pauseCycles;
+      return { pauseCycles, waited: since !== undefined };
     }
 
     const now = Date.now();
@@ -693,6 +782,11 @@ async function waitForSandboxRoom(
       await persistWaitingStatus(executionId);
     }
     attempt++;
+    if (pauses === "in-attempt") {
+      // The attempt's pause monitor takes a pause and cancels this sleep.
+      await sleep(sandboxWaitBackoffMs(attempt));
+      continue;
+    }
     const pauseRequested = await condition(
       () => signals.pauseQueue.length > 0,
       sandboxWaitBackoffMs(attempt),
@@ -907,6 +1001,13 @@ async function runWithPauseAndRecovery(
       // heals it — the same defense idiom as persistInterruptedStatus.
       await persistResumedStatus(executionId);
       continue;
+    }
+
+    if (attempt.error instanceof SandboxWaitRanOut) {
+      // A resumed turn's wait for room ran out (askBeforeCarryingOn): it
+      // ends as the first ask's does, its own kind and sentence, never
+      // wrapped as the runner activity's failure.
+      throw attempt.error;
     }
 
     if (attempt.error !== undefined) {
