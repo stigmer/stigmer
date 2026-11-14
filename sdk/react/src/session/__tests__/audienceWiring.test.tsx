@@ -621,7 +621,7 @@ describe("SessionViewer — audience wiring", () => {
     });
     render(<SessionViewer sessionId="ses_1" org="acme" />);
 
-    expect(screen.getByRole("alert").textContent).toContain("This organization has no Anthropic key.");
+    expect(screen.getByRole("alert").textContent).toContain("This organization has no Anthropic key yet.");
     expect(screen.getByRole("link", { name: "Open Models & providers" }).getAttribute("href")).toBe("/models");
   });
 
@@ -666,7 +666,7 @@ describe("SessionViewer — audience wiring", () => {
     });
     render(<SessionViewer sessionId="ses_1" org="acme" />);
 
-    expect(screen.getByRole("alert").textContent).toContain("used the 10 agent hours");
+    expect(screen.getByRole("alert").textContent).toContain("Your organization has used this month\u2019s agent hours.");
     expect(screen.getByRole("link", { name: "View plans" }).getAttribute("href")).toBe("/settings/billing");
   });
 });

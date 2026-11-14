@@ -50,6 +50,8 @@ export interface VirtualizedThreadProps {
   readonly planActionsDisabled?: boolean;
   readonly planBuildPending?: boolean;
   readonly contentColumn?: ThreadContentColumn;
+  /** Why the pending message didn't send, for its line's words. */
+  readonly pendingMessageError?: Error | null;
   readonly onRetrySend?: () => void;
   readonly onRetryRun?: (message: string) => void;
   readonly onEditMessage?: (text: string) => void;
@@ -122,6 +124,7 @@ export function VirtualizedThread({
   planActionsDisabled,
   planBuildPending,
   contentColumn,
+  pendingMessageError,
   onRetrySend,
   onRetryRun,
   onEditMessage,
@@ -162,12 +165,13 @@ export function VirtualizedThread({
       org,
       planActionsDisabled,
       planBuildPending,
+      pendingMessageError,
       onRetrySend,
       onRetryRun,
       onEditMessage,
       slots,
     }),
-    [formatToolCallSummary, onAnswerToolUse, answeringToolUseIds, answerErrors, onBuildFromPlan, onOpenPlan, org, planActionsDisabled, planBuildPending, onRetrySend, onRetryRun, onEditMessage, slots],
+    [formatToolCallSummary, onAnswerToolUse, answeringToolUseIds, answerErrors, onBuildFromPlan, onOpenPlan, org, planActionsDisabled, planBuildPending, pendingMessageError, onRetrySend, onRetryRun, onEditMessage, slots],
   );
 
   return (
