@@ -22,13 +22,24 @@ const UNREACHABLE = "postgres://nobody@127.0.0.1:1/never-connected";
 
 describe("a bounded pool's bounds", () => {
   it("defaults to 20 connections and a ten-second checkout deadline", async () => {
-    const pool = newBoundedPool({ connectionString: UNREACHABLE, onIdleError: () => {} });
+    const pool = newBoundedPool({
+      connectionString: UNREACHABLE,
+      onIdleError: () => {},
+    });
     try {
       expect(DEFAULT_POOL_MAX).toBe(20);
       expect(DEFAULT_POOL_CHECKOUT_TIMEOUT_MS).toBe(10_000);
       expect(pool.options.max).toBe(DEFAULT_POOL_MAX);
-      expect(pool.options.connectionTimeoutMillis).toBe(DEFAULT_POOL_CHECKOUT_TIMEOUT_MS);
-      expect(pool.stats()).toEqual({ max: 20, total: 0, idle: 0, waiting: 0, checkoutFailures: 0 });
+      expect(pool.options.connectionTimeoutMillis).toBe(
+        DEFAULT_POOL_CHECKOUT_TIMEOUT_MS,
+      );
+      expect(pool.stats()).toEqual({
+        max: 20,
+        total: 0,
+        idle: 0,
+        waiting: 0,
+        checkoutFailures: 0,
+      });
     } finally {
       await pool.end();
     }
@@ -59,9 +70,14 @@ describe("a bounded pool and an idle client's error", () => {
     });
     try {
       expect(() =>
-        pool.emit("error", new Error("terminating connection due to administrator command")),
+        pool.emit(
+          "error",
+          new Error("terminating connection due to administrator command"),
+        ),
       ).not.toThrow();
-      expect(seen).toEqual(["terminating connection due to administrator command"]);
+      expect(seen).toEqual([
+        "terminating connection due to administrator command",
+      ]);
     } finally {
       await pool.end();
     }
@@ -70,7 +86,11 @@ describe("a bounded pool and an idle client's error", () => {
 
 describe("a bounded pool that cannot open a connection", () => {
   it("rejects a query with DatabaseUnavailableError carrying the driver's error and the pool's counters", async () => {
-    const pool = newBoundedPool({ connectionString: UNREACHABLE, max: 4, onIdleError: () => {} });
+    const pool = newBoundedPool({
+      connectionString: UNREACHABLE,
+      max: 4,
+      onIdleError: () => {},
+    });
     try {
       const failure: unknown = await pool.query("SELECT 1").then(
         () => undefined,
@@ -91,9 +111,14 @@ describe("a bounded pool that cannot open a connection", () => {
   });
 
   it("rejects connect() the same way, and reports it through the callback form", async () => {
-    const pool = newBoundedPool({ connectionString: UNREACHABLE, onIdleError: () => {} });
+    const pool = newBoundedPool({
+      connectionString: UNREACHABLE,
+      onIdleError: () => {},
+    });
     try {
-      await expect(pool.connect()).rejects.toBeInstanceOf(DatabaseUnavailableError);
+      await expect(pool.connect()).rejects.toBeInstanceOf(
+        DatabaseUnavailableError,
+      );
       const viaCallback = await new Promise<unknown>((resolve) => {
         pool.connect((error, client) => {
           expect(client).toBeUndefined();

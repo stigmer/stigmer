@@ -26,25 +26,48 @@ afterEach(async () => {
   await meter.dispose();
 });
 
-function byState(points: ReadonlyArray<{ value: unknown; attributes: Record<string, unknown> }>) {
-  return Object.fromEntries(points.map((point) => [point.attributes["state"], point.value]));
+function byState(
+  points: ReadonlyArray<{
+    value: unknown;
+    attributes: Record<string, unknown>;
+  }>,
+) {
+  return Object.fromEntries(
+    points.map((point) => [point.attributes["state"], point.value]),
+  );
 }
 
 describe("the store pool's metrics", () => {
   it("reads connections by state and the checkout failures at each collection", async () => {
-    let stats: PoolStats = { max: 20, total: 3, idle: 1, waiting: 0, checkoutFailures: 0 };
+    let stats: PoolStats = {
+      max: 20,
+      total: 3,
+      idle: 1,
+      waiting: 0,
+      checkoutFailures: 0,
+    };
     const stop = await observeStorePool(() => stats);
     try {
       let collected = await meter.collect();
       const connections = collected.get(STORE_POOL_CONNECTIONS) ?? [];
-      expect(connections.map((point) => Object.keys(point.attributes))).toEqual([["state"], ["state"], ["state"]]);
+      expect(connections.map((point) => Object.keys(point.attributes))).toEqual(
+        [["state"], ["state"], ["state"]],
+      );
       expect(byState(connections)).toEqual({ total: 3, idle: 1, waiting: 0 });
-      expect(collected.get(STORE_POOL_CHECKOUT_FAILURES)).toEqual([{ value: 0, attributes: {} }]);
+      expect(collected.get(STORE_POOL_CHECKOUT_FAILURES)).toEqual([
+        { value: 0, attributes: {} },
+      ]);
 
       stats = { max: 20, total: 20, idle: 0, waiting: 7, checkoutFailures: 2 };
       collected = await meter.collect();
-      expect(byState(collected.get(STORE_POOL_CONNECTIONS) ?? [])).toEqual({ total: 20, idle: 0, waiting: 7 });
-      expect(collected.get(STORE_POOL_CHECKOUT_FAILURES)).toEqual([{ value: 2, attributes: {} }]);
+      expect(byState(collected.get(STORE_POOL_CONNECTIONS) ?? [])).toEqual({
+        total: 20,
+        idle: 0,
+        waiting: 7,
+      });
+      expect(collected.get(STORE_POOL_CHECKOUT_FAILURES)).toEqual([
+        { value: 2, attributes: {} },
+      ]);
     } finally {
       stop();
     }

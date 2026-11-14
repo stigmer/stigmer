@@ -34,7 +34,8 @@ import type { PoolStats } from "../store/postgres/pool.js";
 const METER_NAME = "stigmer-server";
 
 export const STORE_POOL_CONNECTIONS = "stigmer.store.pool.connections";
-export const STORE_POOL_CHECKOUT_FAILURES = "stigmer.store.pool.checkout_failures";
+export const STORE_POOL_CHECKOUT_FAILURES =
+  "stigmer.store.pool.checkout_failures";
 
 interface Instruments {
   readonly meter: Meter;
@@ -50,11 +51,16 @@ function instruments(): Promise<Instruments> {
     return {
       meter,
       connections: meter.createObservableGauge(STORE_POOL_CONNECTIONS, {
-        description: "Connections in the Stigmer server's store pool, and requests waiting for one, by state",
+        description:
+          "Connections in the Stigmer server's store pool, and requests waiting for one, by state",
       }),
-      checkoutFailures: meter.createObservableCounter(STORE_POOL_CHECKOUT_FAILURES, {
-        description: "Checkouts from the Stigmer server's store pool that failed (the request was answered Unavailable)",
-      }),
+      checkoutFailures: meter.createObservableCounter(
+        STORE_POOL_CHECKOUT_FAILURES,
+        {
+          description:
+            "Checkouts from the Stigmer server's store pool that failed (the request was answered Unavailable)",
+        },
+      ),
     };
   });
   return instrumentsPromise;

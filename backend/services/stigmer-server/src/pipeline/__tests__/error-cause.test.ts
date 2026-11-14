@@ -151,7 +151,9 @@ describe("findInCauseChain", () => {
 
   it("finds the nearest match under the wrappers, and nothing when none matches", () => {
     const marked = new Marked("driver");
-    const error = new Error("outer", { cause: new Error("middle", { cause: marked }) });
+    const error = new Error("outer", {
+      cause: new Error("middle", { cause: marked }),
+    });
     expect(findInCauseChain(error, isMarked)).toBe(marked);
     expect(findInCauseChain(new Error("plain"), isMarked)).toBeUndefined();
     expect(findInCauseChain("a string", isMarked)).toBeUndefined();

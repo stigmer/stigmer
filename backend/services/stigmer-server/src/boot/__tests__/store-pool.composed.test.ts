@@ -24,8 +24,16 @@ import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/or
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { silentLogger, baseConfig, transportFor } from "../../extensions/__tests__/composed-support.js";
-import { inMemoryMeter, until, type InMemoryMeter } from "../../observability/__tests__/in-memory-meter.js";
+import {
+  silentLogger,
+  baseConfig,
+  transportFor,
+} from "../../extensions/__tests__/composed-support.js";
+import {
+  inMemoryMeter,
+  until,
+  type InMemoryMeter,
+} from "../../observability/__tests__/in-memory-meter.js";
 import {
   STORE_POOL_CHECKOUT_FAILURES,
   STORE_POOL_CONNECTIONS,
@@ -41,7 +49,9 @@ import { loadConfig } from "../config.js";
 
 const CHECKOUT_TIMEOUT_MS = 400;
 
-async function failureOf(call: Promise<unknown>): Promise<ConnectError | undefined> {
+async function failureOf(
+  call: Promise<unknown>,
+): Promise<ConnectError | undefined> {
   try {
     await call;
     return undefined;
@@ -50,83 +60,99 @@ async function failureOf(call: Promise<unknown>): Promise<ConnectError | undefin
   }
 }
 
-describe.skipIf(testDatabaseAdminUrl() === undefined)("a composed server whose store pool is starved", () => {
-  let db: TestDatabase;
-  let dir: string;
-  let meter: InMemoryMeter;
-  let server: ComposedServer | undefined;
-  let port: number;
+describe.skipIf(testDatabaseAdminUrl() === undefined)(
+  "a composed server whose store pool is starved",
+  () => {
+    let db: TestDatabase;
+    let dir: string;
+    let meter: InMemoryMeter;
+    let server: ComposedServer | undefined;
+    let port: number;
 
-  beforeAll(async () => {
-    db = await createTestDatabase();
-    dir = mkdtempSync(path.join(tmpdir(), "store-pool-"));
-    meter = await inMemoryMeter(resetStorePoolMetrics);
-    server = await composeServer({
-      config: loadConfig({
-        ...baseConfig(dir),
-        DATABASE_URL: db.databaseUrl,
-        DATABASE_POOL_MAX: "1",
-        DATABASE_POOL_CHECKOUT_TIMEOUT_MS: String(CHECKOUT_TIMEOUT_MS),
-      }),
-      logger: silentLogger,
-      portOverride: 0,
+    beforeAll(async () => {
+      db = await createTestDatabase();
+      dir = mkdtempSync(path.join(tmpdir(), "store-pool-"));
+      meter = await inMemoryMeter(resetStorePoolMetrics);
+      server = await composeServer({
+        config: loadConfig({
+          ...baseConfig(dir),
+          DATABASE_URL: db.databaseUrl,
+          DATABASE_POOL_MAX: "1",
+          DATABASE_POOL_CHECKOUT_TIMEOUT_MS: String(CHECKOUT_TIMEOUT_MS),
+        }),
+        logger: silentLogger,
+        portOverride: 0,
+      });
+      port = await server.start();
     });
-    port = await server.start();
-  });
 
-  afterAll(async () => {
-    await server?.shutdown();
-    await meter.dispose();
-    rmSync(dir, { recursive: true, force: true });
-    await db.drop();
-  });
+    afterAll(async () => {
+      await server?.shutdown();
+      await meter.dispose();
+      rmSync(dir, { recursive: true, force: true });
+      await db.drop();
+    });
 
-  it("answers Unavailable within the deadline while the one connection is held, then serves", async () => {
-    const organizations = createClient(OrganizationQueryController, transportFor(port));
-    const locker = new pg.Client({ connectionString: db.databaseUrl });
-    await locker.connect();
-    let held: Promise<ConnectError | undefined> | undefined;
-    try {
-      const tables = await locker.query<{ name: string }>(
-        "SELECT quote_ident(tablename) AS name FROM pg_tables WHERE schemaname = 'public'",
+    it("answers Unavailable within the deadline while the one connection is held, then serves", async () => {
+      const organizations = createClient(
+        OrganizationQueryController,
+        transportFor(port),
       );
-      await locker.query("BEGIN");
-      await locker.query(`LOCK TABLE ${tables.rows.map((row) => row.name).join(", ")} IN ACCESS EXCLUSIVE MODE`);
+      const locker = new pg.Client({ connectionString: db.databaseUrl });
+      await locker.connect();
+      let held: Promise<ConnectError | undefined> | undefined;
+      try {
+        const tables = await locker.query<{ name: string }>(
+          "SELECT quote_ident(tablename) AS name FROM pg_tables WHERE schemaname = 'public'",
+        );
+        await locker.query("BEGIN");
+        await locker.query(
+          `LOCK TABLE ${tables.rows.map((row) => row.name).join(", ")} IN ACCESS EXCLUSIVE MODE`,
+        );
 
-      // The first read takes the pool's one connection and waits on the lock.
-      held = failureOf(organizations.get({ value: "org_absent" }));
-      await until(
-        async () =>
-          (
-            await locker.query<{ waiting: number }>(
-              "SELECT count(*)::int AS waiting FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'",
-            )
-          ).rows[0]?.waiting ?? 0,
-        (waiting) => waiting > 0,
+        // The first read takes the pool's one connection and waits on the lock.
+        held = failureOf(organizations.get({ value: "org_absent" }));
+        await until(
+          async () =>
+            (
+              await locker.query<{ waiting: number }>(
+                "SELECT count(*)::int AS waiting FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'",
+              )
+            ).rows[0]?.waiting ?? 0,
+          (waiting) => waiting > 0,
+        );
+
+        const startedAt = Date.now();
+        const starved = await failureOf(
+          organizations.get({ value: "org_absent" }),
+        );
+        const waitedMs = Date.now() - startedAt;
+        expect(starved?.code).toBe(Code.Unavailable);
+        expect(starved?.rawMessage).not.toContain("pool");
+        expect(waitedMs).toBeLessThan(CHECKOUT_TIMEOUT_MS + 2_000);
+
+        const collected = await meter.collect();
+        const connections = Object.fromEntries(
+          (collected.get(STORE_POOL_CONNECTIONS) ?? []).map((point) => [
+            point.attributes["state"],
+            point.value,
+          ]),
+        );
+        expect(connections).toEqual({ total: 1, idle: 0, waiting: 0 });
+        const failures = collected.get(STORE_POOL_CHECKOUT_FAILURES)?.[0]
+          ?.value;
+        expect(failures).toBeGreaterThanOrEqual(1);
+      } finally {
+        await locker.query("ROLLBACK");
+        await locker.end();
+        await held;
+      }
+
+      // Free again: the same read is served (the organization is absent).
+      const served = await failureOf(
+        organizations.get({ value: "org_absent" }),
       );
-
-      const startedAt = Date.now();
-      const starved = await failureOf(organizations.get({ value: "org_absent" }));
-      const waitedMs = Date.now() - startedAt;
-      expect(starved?.code).toBe(Code.Unavailable);
-      expect(starved?.rawMessage).not.toContain("pool");
-      expect(waitedMs).toBeLessThan(CHECKOUT_TIMEOUT_MS + 2_000);
-
-      const collected = await meter.collect();
-      const connections = Object.fromEntries(
-        (collected.get(STORE_POOL_CONNECTIONS) ?? []).map((point) => [point.attributes["state"], point.value]),
-      );
-      expect(connections).toEqual({ total: 1, idle: 0, waiting: 0 });
-      const failures = collected.get(STORE_POOL_CHECKOUT_FAILURES)?.[0]?.value;
-      expect(failures).toBeGreaterThanOrEqual(1);
-    } finally {
-      await locker.query("ROLLBACK");
-      await locker.end();
-      await held;
-    }
-
-    // Free again: the same read is served (the organization is absent).
-    const served = await failureOf(organizations.get({ value: "org_absent" }));
-    expect(served?.code).toBe(Code.NotFound);
-  });
-});
+      expect(served?.code).toBe(Code.NotFound);
+    });
+  },
+);

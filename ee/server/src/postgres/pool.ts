@@ -56,7 +56,9 @@ export interface CompositionPoolOptions {
  * whose failed checkouts reject with `DatabaseUnavailableError` after at
  * most `POOL_CHECKOUT_TIMEOUT_MS` instead of waiting forever.
  */
-export function newCompositionPool(options: CompositionPoolOptions): BoundedPool {
+export function newCompositionPool(
+  options: CompositionPoolOptions,
+): BoundedPool {
   return newBoundedPool({
     connectionString: options.connectionString,
     onIdleError: (error) => {
