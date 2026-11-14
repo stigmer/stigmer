@@ -1,10 +1,12 @@
 /**
  * Proves the ended turn's notice (../RunErrorNotice.tsx): it reads the
  * ending's headline and comfort, never the raw error; its one act and at
- * most one link are the ones it is handed; a red ending offers Copy details,
- * which copies the raw error, the run id and the kind, while an amber or
- * grey one does not and reads as a status rather than an alert; an act in
- * flight waits; an external link opens in a new tab; and without an ending
+ * most one link are the ones it is handed, its act at the kit's notice size;
+ * a failed or interrupted ending offers Copy details with its icon, which
+ * copies the raw error, the run id and the kind; an amber or grey one reads as a
+ * status rather than an alert, a limit with the info mark and an
+ * interruption with the clock; an act in flight waits; an external link
+ * opens in a new tab and says so with an arrow; and without an ending
  * or an act, it reads the generic sentence and falls back to re-sending the
  * turn's message.
  */
@@ -64,19 +66,35 @@ describe("RunErrorNotice", () => {
     expect(writeText).toHaveBeenCalledWith("[LLM_AUTHENTICATION_ERROR] 401\nRun: run_1\nKind: provider_key_rejected");
   });
 
-  it("reads a pause as a status, with no Copy details", () => {
-    render(<RunErrorNotice error="Agent reached the cost limit" ending={{ ...KEY, tone: "paused", headline: "This turn reached its spending cap." }} />);
+  it("reads a pause as a status: a limit with no Copy details, an interruption with them", () => {
+    const { rerender } = render(<RunErrorNotice error="Agent reached the cost limit" ending={{ ...KEY, tone: "paused", headline: "This turn reached its spending cap.", kind: "cost_cap" }} />);
 
     expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.getByRole("status").textContent).toContain("This turn reached its spending cap.");
     expect(screen.queryByRole("button", { name: "Copy details" })).toBeNull();
+
+    rerender(<RunErrorNotice error="runner lost" ending={{ ...KEY, tone: "paused", headline: "The turn was interrupted.", kind: "runner_lost" }} />);
+    expect(screen.getByRole("button", { name: "Copy details" }).querySelector("svg")).not.toBeNull();
+  });
+
+  it("marks a limit with the info mark and an interruption with the clock", () => {
+    const { container, rerender } = render(<RunErrorNotice error="" ending={{ ...KEY, tone: "paused", kind: "cost_cap" }} />);
+    // The info mark's dot; the clock has hands.
+    expect(container.querySelector('path[d="M12 16v-4M12 8h.01"]')).not.toBeNull();
+
+    rerender(<RunErrorNotice error="" ending={{ ...KEY, tone: "paused", kind: "runner_lost" }} />);
+    expect(container.querySelector('path[d="M12 6v6l4 2"]')).not.toBeNull();
   });
 
   it("holds the act while it is in flight, and opens an external link in a new tab", () => {
-    render(<RunErrorNotice error="x" ending={KEY} actLabel="Run again" onAct={vi.fn()} acting link={{ label: "Anthropic status", href: "https://status.anthropic.com", external: true }} />);
+    render(<RunErrorNotice error="x" ending={KEY} actLabel="Run again" onAct={vi.fn()} acting link={{ label: "Anthropic's status page", href: "https://status.anthropic.com", external: true }} />);
 
-    expect((screen.getByRole("button", { name: "Run again" }) as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByRole("link", { name: "Anthropic status" }).getAttribute("target")).toBe("_blank");
+    const act = screen.getByRole("button", { name: "Run again" }) as HTMLButtonElement;
+    expect(act.disabled).toBe(true);
+    expect(act.className).toContain("stg:h-7");
+    const link = screen.getByRole("link", { name: "Anthropic's status page" });
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.textContent).toBe("Anthropic's status page ↗");
   });
 
   it("reads the generic sentence without an ending, and re-sends the turn's message", () => {

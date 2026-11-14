@@ -320,14 +320,13 @@ describe("buildThreadItems finished turn", () => {
     expect(keys(items)).toEqual([`${R}-spec`, m(R, 0), `outcome-${R}`]);
   });
 
-  it("puts the platform's stop note above what its completed turn produced", () => {
+  it("keeps the steps of a turn Stigmer stopped in time order, its note before what it produced", () => {
     const items = build(
-      [user(R, "go"), status(R, "running"), said(R, 0, "Done so far."), status(R, "completed", { stopCause: "platform_stop" })],
+      [user(R, "go"), status(R, "running"), said(R, 0, "Looking."), call(R, "c1", "read_file", { path: "a.ts" }), status(R, "completed", { stopCause: "platform_stop" })],
       { includeOutcomes: true },
     );
-    const keyList = keys(items);
-    expect(keyList.indexOf(`execution-error-${R}`)).toBeGreaterThan(-1);
-    expect(keyList.indexOf(`execution-error-${R}`)).toBeLessThan(keyList.indexOf(`outcome-${R}`));
+    // Not folded as a finished turn: no "How it got there", the step in view.
+    expect(keys(items)).toEqual([`${R}-spec`, m(R, 0), tc(R, "c1"), `execution-error-${R}`, `outcome-${R}`]);
   });
 
   it.each(["failed", "cancelled"] as const)("keeps a turn that %s in time order, its ending's notice before what it produced", (phase) => {

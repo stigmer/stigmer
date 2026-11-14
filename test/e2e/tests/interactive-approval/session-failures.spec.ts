@@ -134,7 +134,7 @@ test.describe("Every way a turn ends badly, in its own words (deterministic mock
     const seeded = await seedTurn(stigmerClient, Harness.STIGMER);
     await awaitRunTerminal(stigmerClient, seeded.runId, { timeoutMs: RETRIED_MS });
     await expectNotice(page, seeded.sessionId, "Anthropic was too busy to answer.");
-    await expect(page.getByRole("link", { name: "Anthropic status" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Anthropic's status page" })).toBeVisible();
   });
 
   test("a model the key can't use offers another model, not Run again", async ({ page, stigmerClient }) => {

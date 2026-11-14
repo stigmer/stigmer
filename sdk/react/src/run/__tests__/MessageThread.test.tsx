@@ -354,7 +354,8 @@ describe("MessageThread", () => {
     it("renders a cancelled turn quietly, even with an error", () => {
       renderThread(conversation({ id: "c", message: "do the thing", phase: "cancelled", stopCause: "user", error: "Execution cancelled" }), { onRetryRun: vi.fn() });
 
-      expect(screen.getByText(/cancelled/i)).toBeTruthy();
+      // The notice says it in words; no pill beside it.
+      expect(screen.queryByText(/^cancelled$/i)).toBeNull();
       expect(screen.queryByRole("alert")).toBeNull();
       expect(screen.queryByText("Execution cancelled")).toBeNull();
       expect(screen.getByText("This turn was stopped.")).toBeTruthy();

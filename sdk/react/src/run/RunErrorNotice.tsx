@@ -1,7 +1,7 @@
 "use client";
 
 import type { TurnEnding, TurnEndingTone } from "@stigmer/client";
-import { Notice, type NoticeLinkSpec, type NoticeTone } from "../internal/surface/Notice.js";
+import { INFO_ICON, Notice, type NoticeLinkSpec, type NoticeTone } from "../internal/surface/Notice.js";
 
 /** The fix a notice links to: its words, and where it goes or what it does. */
 export interface RunErrorNoticeLink extends NoticeLinkSpec {
@@ -56,6 +56,9 @@ const GENERIC: TurnEnding = {
   kind: "",
 };
 
+/** The ending kind of a turn interrupted when its machine stopped. */
+const INTERRUPTED = "runner_lost";
+
 const NOTICE_TONE: Readonly<Record<TurnEndingTone, NoticeTone>> = {
   failed: "failed",
   paused: "paused",
@@ -66,8 +69,8 @@ const NOTICE_TONE: Readonly<Record<TurnEndingTone, NoticeTone>> = {
  * How a turn that didn't finish ended, as one note under it: an icon, a
  * bold sentence on what happened, one that says what wasn't lost or who
  * can fix it, the one act that picks the turn back up, at most one link to
- * the fix, and, when it failed, Copy details (the raw error, the run id and
- * the ending's kind) for a builder or for support.
+ * the fix, and, when it failed or was interrupted, Copy details (the raw
+ * error, the run id and the ending's kind) for a builder or for support.
  *
  * The words come from the ending (`describeTurnEnding`), which reads the
  * failure's kind from the wire, never from the error's text. The tone is
@@ -93,12 +96,21 @@ export function RunErrorNotice({
   const fallbackAct = onAct === undefined && onRetry !== undefined && retryMessage !== undefined && ending.act !== "none";
   const act = onAct ?? (fallbackAct ? () => onRetry!(retryMessage!) : undefined);
   const label = actLabel ?? (fallbackAct ? "Run again" : undefined);
-  const copyable = ending.tone === "failed" && error !== "";
+  // Copy details where someone may need to fix what happened: a failure,
+  // and a turn interrupted when its machine stopped. A limit it reached or
+  // a stop says all there is in its words.
+  const copyable = error !== "" && (ending.tone === "failed" || ending.kind === INTERRUPTED);
+  // A limit is a fact to read, not a wait: the info mark. The clock stays
+  // for a turn interrupted while it ran, which does wait to resume.
+  const icon = ending.tone === "paused" && ending.kind !== INTERRUPTED ? INFO_ICON : undefined;
 
   return (
     <Notice
       tone={NOTICE_TONE[ending.tone]}
       headline={ending.headline}
+      icon={icon}
+      // Under a turn in the thread: the act at a card's size.
+      actSize="xs"
       act={act !== undefined && label !== undefined ? { label, onClick: act, busy: acting } : undefined}
       link={link}
       details={copyable ? details : ""}

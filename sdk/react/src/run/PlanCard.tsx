@@ -78,7 +78,7 @@ export function PlanCard({ state, title, sizeBytes, body, open, copy, download, 
         <IconButton size="xs" label={download.label} icon={<DownloadGlyph />} onClick={download.onClick} disabled={download.disabled} />
       )}
       {offersBuild && build !== undefined && (
-        <Button size="sm" disabled={build.disabled} onClick={build.onClick} icon={<BuildGlyph />} className="stg:ml-1">
+        <Button size="xs" disabled={build.disabled} onClick={build.onClick} icon={<BuildGlyph />} className="stg:ml-1">
           {build.pending ? "Starting build…" : "Build"}
         </Button>
       )}

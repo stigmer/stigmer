@@ -325,8 +325,8 @@ export const ToolCallItem = memo(function ToolCallItem({
         <span
           className={cn(
             "stg:min-w-0 stg:shrink-0 stg:max-w-full stg:truncate",
-            // A step that failed or waits on someone is news: its words at medium weight.
-            isRunning ? "stgm-shimmer-label" : failed || status === "waiting" ? "stg:font-medium stg:text-foreground" : "stg:text-foreground",
+            // A step at work, failed or waiting on someone is news: its words at medium weight.
+            isRunning ? "stgm-shimmer-label stg:font-medium" : failed || status === "waiting" ? "stg:font-medium stg:text-foreground" : "stg:text-foreground",
           )}
         >
           {linkedFile && primaryArg ? (

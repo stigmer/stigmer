@@ -13,6 +13,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { Button } from "../../button/Button.js";
+import type { ButtonSize } from "../../button/buttonClasses.js";
 import { useCopy } from "../CopyBlock.js";
 import { FailureHelpLine } from "../../help/HelpLink.js";
 
@@ -52,6 +53,13 @@ export interface NoticeProps {
   readonly act?: NoticeAct;
   /** The one link to the fix. */
   readonly link?: NoticeLinkSpec;
+  /**
+   * The act's size: a page's notice offers its act at `sm`, a notice inside
+   * a thread or a card at `xs` (`buttonClasses`).
+   *
+   * @default "sm"
+   */
+  readonly actSize?: ButtonSize;
   /** What Copy details copies (the raw error, ids); no Copy details when absent or empty. */
   readonly details?: string;
   /** `alert` for a failure, `status` otherwise; the tone's by default. */
@@ -70,7 +78,7 @@ const TONE_CLASSES: Readonly<Record<NoticeTone, { readonly box: string; readonly
  * lines under it, and at most one act, one link and Copy details; a
  * failed one ends with the help line when the console turned it on.
  */
-export function Notice({ tone, headline, children, icon, act, link, details = "", role, className }: NoticeProps) {
+export function Notice({ tone, headline, children, icon, act, link, actSize = "sm", details = "", role, className }: NoticeProps) {
   const classes = TONE_CLASSES[tone];
   const copyable = details !== "";
   return (
@@ -87,7 +95,7 @@ export function Notice({ tone, headline, children, icon, act, link, details = ""
         {act !== undefined || link !== undefined || copyable ? (
           <div className="stg:mt-2 stg:flex stg:flex-wrap stg:items-center stg:gap-3">
             {act !== undefined && (
-              <Button size="sm" icon={act.icon} onClick={act.onClick} disabled={act.busy === true} aria-busy={act.busy === true}>
+              <Button size={actSize} icon={act.icon} onClick={act.onClick} disabled={act.busy === true} aria-busy={act.busy === true}>
                 {act.label}
               </Button>
             )}
@@ -107,6 +115,7 @@ function CopyDetails({ details, flush }: { readonly details: string; readonly fl
     <Button
       size="xs"
       variant="ghost"
+      icon={copied ? CHECK_ICON : COPY_ICON}
       onClick={copy}
       // Alone in its row it sits flush with the words above it.
       className={cn("stg:text-muted-foreground", flush && "stg:-ml-2.5")}
@@ -134,11 +143,36 @@ function NoticeLink({ link }: { readonly link: NoticeLinkSpec }) {
       {...(link.external === true ? { target: "_blank", rel: "noreferrer" } : {})}
     >
       {link.label}
+      {/* A page outside the console says so before it opens. */}
+      {link.external === true && <span aria-hidden="true"> ↗</span>}
     </a>
   );
 }
 
 const ICON_PROPS = { width: 16, height: 16, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" } as const;
+
+const SMALL_ICON_PROPS = { width: 12, height: 12, viewBox: "0 0 16 16", fill: "none", stroke: "currentColor", strokeWidth: 1.5, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true } as const;
+
+const COPY_ICON: ReactNode = (
+  <svg {...SMALL_ICON_PROPS}>
+    <rect x="5" y="5" width="9" height="9" rx="1.5" />
+    <path d="M5 11H3.5A1.5 1.5 0 0 1 2 9.5V3.5A1.5 1.5 0 0 1 3.5 2h6A1.5 1.5 0 0 1 11 3.5V5" />
+  </svg>
+);
+
+const CHECK_ICON: ReactNode = (
+  <svg {...SMALL_ICON_PROPS}>
+    <path d="M3 8.5l3 3 7-7" />
+  </svg>
+);
+
+/** The plain tone's info mark, for a caller whose paused notice is a limit, not a wait. */
+export const INFO_ICON: ReactNode = (
+  <svg {...ICON_PROPS}>
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 16v-4M12 8h.01" />
+  </svg>
+);
 
 /** The paused tone's clock, for a caller whose plain or failed notice is about time. */
 export const CLOCK_ICON: ReactNode = (
@@ -156,10 +190,5 @@ const TONE_ICONS: Readonly<Record<NoticeTone, ReactNode>> = {
     </svg>
   ),
   paused: CLOCK_ICON,
-  plain: (
-    <svg {...ICON_PROPS}>
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 16v-4M12 8h.01" />
-    </svg>
-  ),
+  plain: INFO_ICON,
 };

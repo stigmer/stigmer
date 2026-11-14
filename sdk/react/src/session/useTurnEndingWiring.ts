@@ -129,7 +129,7 @@ export function useTurnEndingWiring(input: TurnEndingWiringInput): { readonly wi
         case "provider_billing":
           return presentation?.billingUrl == null ? undefined : { label: `Open ${presentation.name} billing`, href: presentation.billingUrl, external: true };
         case "provider_status":
-          return presentation?.statusUrl == null ? undefined : { label: `${presentation.name} status`, href: presentation.statusUrl, external: true };
+          return presentation?.statusUrl == null ? undefined : { label: `${presentation.name}'s status page`, href: presentation.statusUrl, external: true };
         case "none":
           return undefined;
       }
