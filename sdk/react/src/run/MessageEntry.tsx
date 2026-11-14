@@ -274,7 +274,7 @@ function AiMessage({
       role="article"
       aria-label="AI response"
       aria-busy={isStreaming}
-      className={cn("stg:group stg:py-3", className)}
+      className={cn("stg:group stg:relative stg:py-3", className)}
     >
       <div className="stgm-prose">
         <Streamdown
@@ -285,13 +285,16 @@ function AiMessage({
           {markdown}
         </Streamdown>
       </div>
-      {/* The quiet per-message actions row (issue #278). Height is reserved
-          whenever it renders, so the hover reveal never shifts the prose; it
-          appears only once the message settles — a streaming message's text
-          is still changing, so a copy would race the content. Copies the
-          display markdown (fence-unwrapped), i.e. what the reader sees. */}
+      {/* The quiet per-message actions (issue #278), at the answer's foot in
+          the room the answer's own bottom padding and the thread's gap
+          already leave, so they reserve no row and the next part sits where
+          the drawing puts it. Shown on hover or keyboard focus, and always
+          where there is no hover (a touch screen). They appear only once the
+          message settles — a streaming message's text is still changing, so
+          a copy would race the content. Copies the display markdown
+          (fence-unwrapped), i.e. what the reader sees. */}
       {!isStreaming && markdown.trim().length > 0 && (
-        <div className="stg:mt-1 stg:flex stg:min-h-6 stg:items-start stg:gap-1">
+        <div className="stg:absolute stg:-bottom-3 stg:left-0 stg:flex stg:h-6 stg:items-center stg:gap-1 stg:opacity-0 stg:transition-opacity stg:group-hover:opacity-100 stg:focus-within:opacity-100 stg:[@media(hover:none)]:opacity-100">
           <CopyMessageButton text={markdown} variant="quiet" />
           {actions}
         </div>
@@ -317,11 +320,8 @@ const BUBBLE_ACTION_CLASSES = cn(
 // step below the reading text (`muted-foreground-subtle`, rising to
 // `muted-foreground` on hover) — findable when wanted, invisible while
 // reading. The same hover/focus reveal keeps both variants keyboard-reachable.
-const QUIET_ACTION_CLASSES = cn(
-  "stg:text-muted-foreground-subtle stg:transition",
-  "stg:hover:text-muted-foreground",
-  "stg:opacity-0 stg:group-hover:opacity-100 stg:focus-visible:opacity-100",
-);
+// Revealed with the row it sits in (the answer's acts), not on its own.
+const QUIET_ACTION_CLASSES = cn("stg:text-muted-foreground-subtle stg:transition", "stg:hover:text-muted-foreground");
 
 /**
  * The per-message copy control: writes the message's text to the clipboard

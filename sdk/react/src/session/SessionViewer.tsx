@@ -16,6 +16,7 @@ import type { SessionStreamingPlan } from "./inspector/SessionInspectorRegion.js
 import { isTerminalPhase } from "@stigmer/react-core/internal";
 import { MessageThread, type MessageThreadSlots } from "../run/MessageThread.js";
 import { THREAD_GUTTER_CLASS } from "../internal/thread-gutter.js";
+import { useIsNarrowerThan } from "../internal/useIsNarrowerThan.js";
 import { FileChangeProgressBar } from "../run/FileChangeProgressBar.js";
 import { ThreadSkeleton } from "../run/ThreadSkeleton.js";
 import { SessionComposer } from "../composer/index.js";
@@ -85,6 +86,9 @@ const EMPTY_FILE = create(FileSchema, {});
  * edge in the session lines up and only width and anchoring live here.
  */
 const CONVERSATION_COLUMN_CLASS = "stg:mx-auto stg:w-full stg:max-w-3xl";
+
+/** The narrowest the viewer may be and still keep its panel beside the conversation, in pixels (40rem). */
+const PANEL_MIN_VIEWER_PX = 640;
 
 /** What {@link SessionViewerProps.nextStep} is called with. */
 export interface SessionNextStepContext {
@@ -385,7 +389,12 @@ export function SessionViewer({
   // workspace). Everything the panel touches — the chip,
   // the region, plan auto-open, transcript path clicks — gates on this, so
   // the four affordances can never drift apart.
-  const panelEnabled = inspector !== undefined && !isGuest;
+  // Under 640px of the viewer's own width there is no room for a panel
+  // beside the conversation: the viewer then works as it does without an
+  // inspector, every file opening in the preview window.
+  const viewerRef = useRef<HTMLDivElement>(null);
+  const narrow = useIsNarrowerThan(viewerRef, PANEL_MIN_VIEWER_PX);
+  const panelEnabled = inspector !== undefined && !isGuest && !narrow;
   const inspectorProps = inspector?.props;
 
   const [modelId, setModelId] = flow.model;
@@ -712,6 +721,7 @@ export function SessionViewer({
 
   return (
     <>
+    <div ref={viewerRef} className="stg:flex stg:h-full stg:w-full stg:flex-col">
     <SessionViewerLayout
       className={className}
       headerActions={summaryShows ? undefined : headerCorner}
@@ -795,6 +805,7 @@ export function SessionViewer({
         ) : null
       }
     />
+    </div>
     <FilePreviewModal
       file={previewFile ?? EMPTY_FILE}
       org={org}
