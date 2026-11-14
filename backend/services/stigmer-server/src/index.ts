@@ -63,6 +63,8 @@ export type {
 export { loadConfig } from "./boot/config.js";
 export type { ServerConfig } from "./boot/config.js";
 export { createLogger } from "./boot/logger.js";
+export { NO_INTERNAL_ACCOUNTS, isInternalAccount, parseInternalAccounts } from "./boot/internal-accounts.js";
+export type { InternalAccounts } from "./boot/internal-accounts.js";
 // The process body every entry boots through: the shipped server's, the
 // test harness's, and an edition's own entry that composes other units.
 export { runServer } from "./boot/run.js";

@@ -20,7 +20,8 @@
  *
  * getModelReadiness sends the organization and the model to judge as asked,
  * returns the server's answer as it came, and wraps a refusal in the
- * client's own error.
+ * client's own error. getOnboardingFunnel sends the window as typed and
+ * returns the counts as they came; a refusal is the client's own error.
  */
 import { describe, expect, it } from "vitest";
 import { createRouterTransport } from "@connectrpc/connect";
@@ -38,6 +39,11 @@ import {
   ProviderAvailability,
   type GetModelReadinessInput,
 } from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
+import {
+  GetOnboardingFunnelOutputSchema,
+  type GetOnboardingFunnelInput,
+} from "@stigmer/apis/ai/stigmer/platform/v1/onboarding_funnel_pb";
+import { OnboardingStepId } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/onboarding_pb";
 
 import { StigmerError } from "../gen/errors";
 import { PlatformClient } from "../platform";
@@ -206,5 +212,37 @@ describe("PlatformClient.getModelReadiness", () => {
   it("wraps a refusal in the client's own error", async () => {
     const client = readinessClient(() => Promise.reject(new ConnectError("unauthorized", Code.PermissionDenied)));
     await expect(client.getModelReadiness("org_acme")).rejects.toBeInstanceOf(StigmerError);
+  });
+});
+
+describe("PlatformClient.getOnboardingFunnel", () => {
+  function funnelClient(answer: (input: GetOnboardingFunnelInput) => Promise<unknown>): PlatformClient {
+    return new PlatformClient(
+      createRouterTransport(({ service }) => {
+        service(PlatformQueryController, {
+          getOnboardingFunnel: async (input) => {
+            await answer(input);
+            return create(GetOnboardingFunnelOutputSchema, {
+              organizations: 40,
+              excluded: 2,
+              steps: [{ id: OnboardingStepId.describe, reached: 31 }],
+            });
+          },
+        });
+      }),
+    );
+  }
+
+  it("sends the window as typed and returns the counts as they came", async () => {
+    const sent: GetOnboardingFunnelInput[] = [];
+    const client = funnelClient(async (input) => sent.push(input));
+    const funnel = await client.getOnboardingFunnel({ from: "2026-11-01", to: "2026-11-07T12:00:00Z" });
+    expect(sent.map((input) => [input.fromDate, input.toDate])).toEqual([["2026-11-01", "2026-11-07T12:00:00Z"]]);
+    expect([funnel.organizations, funnel.excluded, funnel.steps[0]?.reached]).toEqual([40, 2, 31]);
+  });
+
+  it("wraps a refusal in the client's own error", async () => {
+    const client = funnelClient(() => Promise.reject(new ConnectError("only platform operators", Code.PermissionDenied)));
+    await expect(client.getOnboardingFunnel({ from: "2026-11-01", to: "2026-11-07" })).rejects.toBeInstanceOf(StigmerError);
   });
 });

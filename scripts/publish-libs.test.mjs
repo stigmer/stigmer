@@ -24,6 +24,7 @@ import { test } from "node:test";
 import {
   PACKAGES,
   assertStagedDist,
+  distPackageJsonOf,
   generateDistPackageJson,
   isTestSidePath,
   packCommand,
@@ -335,6 +336,26 @@ test("every published entry point stays outside the test side", () => {
     const { main, types, bin, exports } = publishConfig;
     for (const target of targets([main, types, bin, exports])) {
       assert.equal(isTestSidePath(target), false, `${relDir}: ${target}`);
+    }
+  }
+});
+
+test("no published manifest points into a dist/ folder the tarball does not have", () => {
+  // Every package is published from its dist/, so a manifest path that still
+  // starts ./dist/ names nothing: an import of the package fails on install.
+  // Pinned over the checked-in manifests, so a package whose publishConfig
+  // names no exports of its own (its source exports are carried) is covered.
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+  const targets = (value) =>
+    typeof value === "string"
+      ? [value]
+      : value && typeof value === "object"
+        ? Object.values(value).flatMap(targets)
+        : [];
+  for (const relDir of PACKAGES) {
+    const dist = distPackageJsonOf(JSON.parse(readFileSync(join(root, relDir, "package.json"), "utf8")), "1.2.3");
+    for (const target of targets([dist.main, dist.types, dist.bin, dist.exports])) {
+      assert.equal(target.startsWith("./dist/"), false, `${relDir}: ${target}`);
     }
   }
 });

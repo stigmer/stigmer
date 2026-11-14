@@ -12,13 +12,23 @@
 #                at its provider.
 #   cli-live     the CLI npm just published, `stigmer up` and an agent run on
 #                Claude Haiku (test/install/smoke-cli-cutover.mjs --live-model).
+#   door-live    the coding-agent door as a person meets it after the release:
+#                the prompt read from stigmer.ai's coding-agent page, pasted
+#                into Claude Code (on Haiku) in a scratch app, with the CLI,
+#                its coding-agent plugin and the app's Stigmer packages from
+#                npm at the released version; the server, runner and fake
+#                model from the tagged checkout
+#                (test/install/coding-agent-door.mjs --published).
 #
 # Runs:
 # - after `release.npm-libs` completes on a pushed `v*` release tag
 #   (workflow_run), against the tagged commit and the version it published;
 #   a prerelease tag ends the run green with nothing run;
 # - by hand (workflow_dispatch), against the dispatched ref's code and the
-#   newest published CLI (or the `version` given).
+#   newest published CLI (or the `version` given). With `registry: stigmer-dev`
+#   the `version` is a dev build (release.dev.yaml) in Stigmer's own npm
+#   repository (vars.STIGMER_NPM_REGISTRY, publicly readable, so no
+#   credential), and door-live alone walks it: the other jobs read releases.
 # Never on a pull request or in the merge queue: it spends money and depends
 # on providers being up, so it blocks nothing.
 #
@@ -26,15 +36,19 @@
 # (max_cost_usd) and each workflow call under a token cap. runner-live's step
 # summary lists the estimated spend of every case that has an estimate (the
 # Stigmer turns, the llm_call cases). The CLI's one turn has no product cap and
-# no estimate; it takes at most one short turn.
+# no estimate; it takes at most one short turn. door-live's Claude Code runs on
+# Haiku under its own bounds on every prompt (turns and dollars), at most nine
+# prompts; Stigmer's side of the door is the fake model and costs nothing.
 #
 # Key: ANTHROPIC_API_KEY from the `provider-integration` environment, which
 # deploys only to `main`. A release run runs on `main` and checks out the
 # tagged commit, which the release job admits only when `main` carries it; a
 # dispatch runs on its own ref, and the environment refuses every ref but
 # `main`. The key reaches one step per job through `env:` and is never
-# printed. STIGMER_LIVE=1 makes a missing key fail the
-# run instead of skipping it (backend/services/runner/src/__test-utils__/live-gate.ts).
+# printed. door-live hands it to Claude Code alone (DOOR_ANTHROPIC_API_KEY):
+# the CLI under test never sees it, and the walk fails if its stream shows it.
+# STIGMER_LIVE=1 makes a missing key fail the run instead of skipping it
+# (backend/services/runner/src/__test-utils__/live-gate.ts).
 #
 # Red: an unattended (workflow_run) failure files or comments on one
 # `live-failure` issue; a dispatch is watched by whoever dispatched it. The
@@ -58,10 +72,18 @@ on: # zizmor: ignore[dangerous-triggers]
   workflow_dispatch:
     inputs:
       version:
-        description: "The published CLI version for cli-live (X.Y.Z); empty means the newest release"
+        description: "The published version for cli-live and door-live (X.Y.Z, or a dev build with registry stigmer-dev); empty means the newest release"
         required: false
         type: string
         default: ""
+      registry:
+        description: "Where door-live reads @stigmer/*: npmjs (releases) or stigmer-dev (a dev build; door-live alone runs)"
+        required: false
+        type: choice
+        options:
+          - npmjs
+          - stigmer-dev
+        default: npmjs
 
 concurrency:
   group: live-${{ github.event.workflow_run.head_branch || github.ref }}
@@ -81,8 +103,10 @@ jobs:
        startsWith(github.event.workflow_run.head_branch, 'v'))
     outputs:
       run: ${{ steps.resolve.outputs.run }}
+      door: ${{ steps.resolve.outputs.door }}
       ref: ${{ steps.resolve.outputs.ref }}
       version: ${{ steps.resolve.outputs.version }}
+      registry: ${{ steps.resolve.outputs.registry }}
     steps:
       # The default checkout: main after a release (a workflow_run runs on the
       # default branch), the dispatched ref on a dispatch. A dispatch from any
@@ -96,6 +120,8 @@ jobs:
 
       # The rule lives in scripts/live-release.mjs, with its tests: run only a
       # commit main already carries, skip a prerelease, name the CLI version.
+      # A dev build dispatched for the door is the one prerelease walked: it
+      # names its own registry, and only door-live reads it.
       - name: The commit to test and the CLI version to install
         id: resolve
         env:
@@ -104,8 +130,38 @@ jobs:
           RUN_TAG: ${{ github.event.workflow_run.head_branch }}
           RUN_SHA: ${{ github.event.workflow_run.head_sha }}
           INPUT_VERSION: ${{ inputs.version }}
+          INPUT_REGISTRY: ${{ inputs.registry }}
+          DEV_REGISTRY: ${{ vars.STIGMER_NPM_REGISTRY }}
           DISPATCH_SHA: ${{ github.sha }}
         run: |
+          if [ -z "$RUN_TAG" ] && [ "$INPUT_REGISTRY" = "stigmer-dev" ]; then
+            version="${INPUT_VERSION#v}"
+            if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+-dev\.[0-9]{14}\.g[0-9a-f]{12}$'; then
+              echo "::error::registry stigmer-dev walks a dev build: version must be X.Y.Z-dev.<stamp>.g<sha>, not '$version'" >&2
+              exit 1
+            fi
+            if [ -z "$DEV_REGISTRY" ]; then
+              echo "::error::the repository Variable STIGMER_NPM_REGISTRY is unset: no dev registry to read" >&2
+              exit 1
+            fi
+            compare=$(gh api "repos/$REPO/compare/main...$DISPATCH_SHA" --jq .status)
+            case "$compare" in
+              identical|behind) ;;
+              *)
+                echo "::error::the dispatched commit is not on main ($compare against main); the live check runs only code main carries" >&2
+                exit 1
+                ;;
+            esac
+            {
+              echo "run=false"
+              echo "door=true"
+              echo "ref=$DISPATCH_SHA"
+              echo "version=$version"
+              echo "registry=$DEV_REGISTRY"
+            } >> "$GITHUB_OUTPUT"
+            echo "Walking the coding-agent door for dev build $version on $DISPATCH_SHA" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           if [ -n "$RUN_TAG" ]; then
             tag="$RUN_TAG"
             ref="$RUN_SHA"
@@ -130,8 +186,10 @@ jobs:
           fi
           {
             echo "run=true"
+            echo "door=true"
             echo "ref=$ref"
             echo "$decision"
+            echo "registry=https://registry.npmjs.org/"
           } >> "$GITHUB_OUTPUT"
           echo "Testing $ref against the published CLI ${decision#version=}" >> "$GITHUB_STEP_SUMMARY"
 
@@ -202,12 +260,67 @@ jobs:
           echo "### Published CLI ${VERSION}: one short turn on claude-haiku-4.5, no product cost cap, no estimate" >> "$GITHUB_STEP_SUMMARY"
           node test/install/smoke-cli-cutover.mjs --published --version="$VERSION" --live-model
 
+  door-live:
+    name: The coding-agent door, published
+    needs: release
+    if: needs.release.outputs.door == 'true'
+    runs-on: ubuntu-24.04
+    environment: provider-integration
+    # The builds (libs, server, runner), then up to nine Claude Code prompts
+    # and a Next.js dev server's first compile.
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ needs.release.outputs.ref }}
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      # The door's Stigmer side, from the tagged checkout: Temporal for the
+      # server, Chromium for the chat on the app's page, and the server and
+      # runner built from the shipped entries (make door-coding-agent's
+      # prerequisites).
+      - name: Install the Temporal CLI
+        uses: ./.github/actions/temporal-cli
+
+      - name: Install Playwright Chromium
+        uses: ./.github/actions/playwright-chromium
+
+      - name: Build the libs, the server and the runner
+        run: make build-libs build-server build-runner
+
+      # The coding agent a person pastes the prompt into, from npm's public
+      # registry by name, as a person installs it (no lockfile, so zizmor's
+      # adhoc-packages is waived here). Pinned to an exact version: the step
+      # after it holds the provider key, so what runs there is a version
+      # chosen, not whatever was published last; raise it by hand.
+      - name: Install Claude Code
+        run: npm install -g --registry=https://registry.npmjs.org/ @anthropic-ai/claude-code@2.1.311 # zizmor: ignore[adhoc-packages]
+
+      - name: Walk the coding-agent door against what was published
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
+          REGISTRY: ${{ needs.release.outputs.registry }}
+          DOOR_ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          echo "### The coding-agent door, ${VERSION} from ${REGISTRY}: Claude Code on Haiku, at most 9 prompts of 40 turns and \$1 each" >> "$GITHUB_STEP_SUMMARY"
+          node test/install/coding-agent-door.mjs --published --version="$VERSION" --registry="$REGISTRY" \
+            --model=haiku --max-turns=8 --claude-max-turns=40 --max-budget-usd=1
+
   # An unattended run's red announces itself (#477); a dispatch is watched by
   # whoever dispatched it. A skipped release job (the release itself failed,
   # or the run was not a tag push) is not failure() and files nothing.
   notify-failure:
     name: File Live Failure Issue
-    needs: [release, runner-live, cli-live]
+    needs: [release, runner-live, cli-live, door-live]
     if: failure() && github.event_name != 'workflow_dispatch'
     permissions:
       issues: write
@@ -217,9 +330,12 @@ jobs:
       title: "ci.live: the release's check against real model providers is failing"
       body-context: >-
         This workflow runs the runner's live suites and the published CLI
-        against the real model providers after each release. A failure means a
-        provider path a user takes is broken (a retired model id, a changed
-        provider API, a price table that no longer knows a model), a provider
-        was down, or a key expired; the job log names which. The release train
+        against the real model providers after each release, and walks the
+        coding-agent door with Claude Code against the published packages and
+        the live docs page. A failure means a provider path a user takes is
+        broken (a retired model id, a changed provider API, a price table that
+        no longer knows a model), the door a person takes from the docs no
+        longer lands (a published package, the page's prompt, the guide), a
+        provider was down, or a key expired; the job log names which. The release train
         reads this before it ships again; re-dispatch the workflow after the
         fix, and close this issue when it is green.

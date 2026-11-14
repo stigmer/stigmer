@@ -3,6 +3,7 @@
 import grpc
 
 from ai.stigmer.platform.v1 import model_readiness_pb2 as ai_dot_stigmer_dot_platform_dot_v1_dot_model__readiness__pb2
+from ai.stigmer.platform.v1 import onboarding_funnel_pb2 as ai_dot_stigmer_dot_platform_dot_v1_dot_onboarding__funnel__pb2
 from ai.stigmer.platform.v1 import server_info_pb2 as ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2
 
 
@@ -23,6 +24,9 @@ class PlatformQueryControllerStub(object):
 
     Signed-in members call getModelReadiness to learn which models can run in
     their organization before they start a run.
+
+    Platform operators call getOnboardingFunnel to learn how far new
+    organizations got on the journey from a first agent to their users.
     """
 
     def __init__(self, channel):
@@ -45,6 +49,11 @@ class PlatformQueryControllerStub(object):
                 '/ai.stigmer.platform.v1.PlatformQueryController/getModelReadiness',
                 request_serializer=ai_dot_stigmer_dot_platform_dot_v1_dot_model__readiness__pb2.GetModelReadinessInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_platform_dot_v1_dot_model__readiness__pb2.GetModelReadinessOutput.FromString,
+                _registered_method=True)
+        self.getOnboardingFunnel = channel.unary_unary(
+                '/ai.stigmer.platform.v1.PlatformQueryController/getOnboardingFunnel',
+                request_serializer=ai_dot_stigmer_dot_platform_dot_v1_dot_onboarding__funnel__pb2.GetOnboardingFunnelInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_platform_dot_v1_dot_onboarding__funnel__pb2.GetOnboardingFunnelOutput.FromString,
                 _registered_method=True)
         self.getRunnerBootstrapConfig = channel.unary_unary(
                 '/ai.stigmer.platform.v1.PlatformQueryController/getRunnerBootstrapConfig',
@@ -75,6 +84,9 @@ class PlatformQueryControllerServicer(object):
 
     Signed-in members call getModelReadiness to learn which models can run in
     their organization before they start a run.
+
+    Platform operators call getOnboardingFunnel to learn how far new
+    organizations got on the journey from a first agent to their users.
     """
 
     def getServerInfo(self, request, context):
@@ -127,6 +139,21 @@ class PlatformQueryControllerServicer(object):
 
         Any member of the organization may ask, because a member about to start
         a run needs the answer; a guest never can.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def getOnboardingFunnel(self, request, context):
+        """Returns how far the organizations made in a window got on the journey
+        from a first agent to its users: how many were made, and how many have
+        each of the six steps done.
+
+        Counts only, with no names, addresses or identifiers. Organizations
+        made by an address the operator lists as internal
+        (STIGMER_INTERNAL_ACCOUNTS) are left out and counted apart. A window
+        holding more organizations than one answer counts is refused with a
+        narrower window suggested.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -194,6 +221,11 @@ def add_PlatformQueryControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_platform_dot_v1_dot_model__readiness__pb2.GetModelReadinessInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_platform_dot_v1_dot_model__readiness__pb2.GetModelReadinessOutput.SerializeToString,
             ),
+            'getOnboardingFunnel': grpc.unary_unary_rpc_method_handler(
+                    servicer.getOnboardingFunnel,
+                    request_deserializer=ai_dot_stigmer_dot_platform_dot_v1_dot_onboarding__funnel__pb2.GetOnboardingFunnelInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_platform_dot_v1_dot_onboarding__funnel__pb2.GetOnboardingFunnelOutput.SerializeToString,
+            ),
             'getRunnerBootstrapConfig': grpc.unary_unary_rpc_method_handler(
                     servicer.getRunnerBootstrapConfig,
                     request_deserializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetRunnerBootstrapConfigInput.FromString,
@@ -229,6 +261,9 @@ class PlatformQueryController(object):
 
     Signed-in members call getModelReadiness to learn which models can run in
     their organization before they start a run.
+
+    Platform operators call getOnboardingFunnel to learn how far new
+    organizations got on the journey from a first agent to their users.
     """
 
     @staticmethod
@@ -302,6 +337,33 @@ class PlatformQueryController(object):
             '/ai.stigmer.platform.v1.PlatformQueryController/getModelReadiness',
             ai_dot_stigmer_dot_platform_dot_v1_dot_model__readiness__pb2.GetModelReadinessInput.SerializeToString,
             ai_dot_stigmer_dot_platform_dot_v1_dot_model__readiness__pb2.GetModelReadinessOutput.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getOnboardingFunnel(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.platform.v1.PlatformQueryController/getOnboardingFunnel',
+            ai_dot_stigmer_dot_platform_dot_v1_dot_onboarding__funnel__pb2.GetOnboardingFunnelInput.SerializeToString,
+            ai_dot_stigmer_dot_platform_dot_v1_dot_onboarding__funnel__pb2.GetOnboardingFunnelOutput.FromString,
             options,
             channel_credentials,
             insecure,

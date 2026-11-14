@@ -248,6 +248,17 @@ enum IamPermission {
   // A File uploaded into a conversation asks can_create_run_in on the
   // conversation instead.
   can_create_file = 61;
+
+  // Platform-level permission to read counts across every organization on
+  // the server, such as how far new organizations got on the journey from
+  // a first agent to its users. Counts only: no names, no addresses, no
+  // identifiers. Held by the platform's operators.
+  //
+  // @internal
+  // Checked on the static platform target (platform:stigmer), as
+  // can_manage_plans is; operator access never reaches into an
+  // organization, so this reads aggregates and nothing inside one.
+  can_view_platform_usage = 62;
 }
 
 // Display metadata for an IamRole value: the one place a role's name lives,

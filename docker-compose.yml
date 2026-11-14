@@ -266,6 +266,9 @@ services:
       # .env.example). The chart's server.help.{url,label}.
       STIGMER_HELP_URL: ${STIGMER_HELP_URL:-}
       STIGMER_HELP_LABEL: ${STIGMER_HELP_LABEL:-}
+      # Your own team's sign-in addresses, left out of the onboarding count
+      # (see .env.example). The chart's server.internalAccounts.
+      STIGMER_INTERNAL_ACCOUNTS: ${STIGMER_INTERNAL_ACCOUNTS:-}
     volumes:
       # Server state beyond Postgres: the skill content store
       # (~/.stigmer/storage) and anything else under the image's HOME=/data.

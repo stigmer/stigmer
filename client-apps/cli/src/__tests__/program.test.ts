@@ -74,7 +74,7 @@ describe("buildProgram", () => {
     const program = buildProgram();
     const usage = program.commands.find((command) => command.name() === "usage");
     const subs = usage?.commands.map((command) => command.name()).sort();
-    expect(subs).toEqual(["agent", "hours", "org", "session"]);
+    expect(subs).toEqual(["agent", "hours", "onboarding", "org", "session"]);
   });
 
   it("exposes the global flags as persistent options", () => {

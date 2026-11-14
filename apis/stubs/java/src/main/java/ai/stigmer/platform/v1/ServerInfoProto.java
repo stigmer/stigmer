@@ -99,83 +99,89 @@ public final class ServerInfoProto extends com.google.protobuf.GeneratedFile {
       "to\022\026ai.stigmer.platform.v1\032+ai/stigmer/c" +
       "ommons/rpc/method_options.proto\032$ai/stig" +
       "mer/platform/v1/license.proto\032,ai/stigme" +
-      "r/platform/v1/model_readiness.proto\032\033buf" +
-      "/validate/validate.proto\032\037google/protobu" +
-      "f/timestamp.proto\"\024\n\022GetServerInfoInput\"" +
-      "\324\003\n\023GetServerInfoOutput\022?\n\007edition\030\001 \001(\016" +
-      "2%.ai.stigmer.platform.v1.ServerEditionR" +
-      "\007edition\022\030\n\007version\030\002 \001(\tR\007version\022<\n\027au" +
-      "thentication_required\030\003 \001(\010H\000R\026authentic" +
-      "ationRequired\210\001\001\022\"\n\nsingle_org\030\004 \001(\010H\001R\t" +
-      "singleOrg\210\001\001\022S\n\014environments\030\005 \001(\0132/.ai." +
-      "stigmer.platform.v1.EnvironmentAvailabil" +
-      "ityR\014environments\022J\n\016native_sign_in\030\006 \001(" +
-      "\0132$.ai.stigmer.platform.v1.NativeSignInR" +
-      "\014nativeSignIn\0224\n\004help\030\007 \001(\0132 .ai.stigmer" +
-      ".platform.v1.HelpLinkR\004helpB\032\n\030_authenti" +
-      "cation_requiredB\r\n\013_single_org\"2\n\010HelpLi" +
-      "nk\022\020\n\003url\030\001 \001(\tR\003url\022\024\n\005label\030\002 \001(\tR\005lab" +
-      "el\"_\n\014NativeSignIn\022\026\n\006issuer\030\001 \001(\tR\006issu" +
-      "er\022\032\n\010audience\030\002 \001(\tR\010audience\022\033\n\tclient" +
-      "_id\030\003 \001(\tR\010clientId\"~\n\027EnvironmentAvaila" +
-      "bility\022\030\n\007applies\030\001 \001(\010R\007applies\022-\n\022limi" +
-      "ted_networking\030\002 \001(\010R\021limitedNetworking\022" +
-      "\032\n\010packages\030\003 \001(\010R\010packages\"\027\n\025GetLicens" +
-      "eStatusInput\"\345\001\n\026GetLicenseStatusOutput\022" +
-      ":\n\005state\030\001 \001(\0162$.ai.stigmer.platform.v1." +
-      "LicenseStateR\005state\022=\n\006claims\030\002 \001(\0132%.ai" +
-      ".stigmer.platform.v1.LicenseClaimsR\006clai" +
-      "ms\022\025\n\006key_id\030\003 \001(\tR\005keyId\0229\n\nchecked_at\030" +
-      "\004 \001(\0132\032.google.protobuf.TimestampR\tcheck" +
-      "edAt\"\037\n\035GetRunnerBootstrapConfigInput\"\346\004" +
-      "\n\036GetRunnerBootstrapConfigOutput\0222\n\020temp" +
-      "oral_address\030\001 \001(\tB\007\272H\004r\002\020\001R\017temporalAdd" +
-      "ress\0226\n\022temporal_namespace\030\002 \001(\tB\007\272H\004r\002\020" +
-      "\001R\021temporalNamespace\022.\n\023runner_access_to" +
-      "ken\030\003 \001(\tR\021runnerAccessToken\022\035\n\ntoken_ty" +
-      "pe\030\004 \001(\tR\ttokenType\022Q\n&runner_access_tok" +
-      "en_expires_in_seconds\030\005 \001(\005R!runnerAcces" +
-      "sTokenExpiresInSeconds\0224\n\026payload_encryp" +
-      "tion_key\030\006 \001(\tR\024payloadEncryptionKey\0229\n\031" +
-      "payload_encryption_key_id\030\007 \001(\tR\026payload" +
-      "EncryptionKeyId\022G\n payload_encryption_se" +
-      "condary_key\030\010 \001(\tR\035payloadEncryptionSeco" +
-      "ndaryKey\022L\n#payload_encryption_secondary" +
-      "_key_id\030\t \001(\tR\037payloadEncryptionSecondar" +
-      "yKeyId\022.\n\023mcp_bridge_endpoint\030\n \001(\tR\021mcp" +
-      "BridgeEndpoint\"\206\001\n\031GetRunnerScopedTokenI" +
-      "nput\022\027\n\006run_id\030\001 \001(\tH\000R\005runId\022@\n\007renewal" +
-      "\030\004 \001(\0132$.ai.stigmer.platform.v1.TokenRen" +
-      "ewalH\000R\007renewalB\016\n\005scope\022\005\272H\002\010\001\"\016\n\014Token" +
-      "Renewal\"\231\001\n\032GetRunnerScopedTokenOutput\022." +
-      "\n\023runner_scoped_token\030\001 \001(\tR\021runnerScope" +
-      "dToken\022\035\n\ntoken_type\030\002 \001(\tR\ttokenType\022,\n" +
-      "\022expires_in_seconds\030\003 \001(\005R\020expiresInSeco" +
-      "nds*S\n\rServerEdition\022\036\n\032server_edition_u" +
-      "nspecified\020\000\022\007\n\003oss\020\001\022\t\n\005cloud\020\002\022\016\n\nente" +
-      "rprise\020\0032\321\005\n\027PlatformQueryController\022n\n\r" +
-      "getServerInfo\022*.ai.stigmer.platform.v1.G" +
-      "etServerInfoInput\032+.ai.stigmer.platform." +
-      "v1.GetServerInfoOutput\"\004\310\270\030\001\022w\n\020getLicen" +
-      "seStatus\022-.ai.stigmer.platform.v1.GetLic" +
-      "enseStatusInput\032..ai.stigmer.platform.v1" +
-      ".GetLicenseStatusOutput\"\004\320\270\030\001\022\264\001\n\021getMod" +
-      "elReadiness\022..ai.stigmer.platform.v1.Get" +
-      "ModelReadinessInput\032/.ai.stigmer.platfor" +
-      "m.v1.GetModelReadinessOutput\">\302\270\030:\010\001\020\036\"\003" +
-      "org*/unauthorized to view this organizat" +
-      "ion\'s models\022\217\001\n\030getRunnerBootstrapConfi" +
-      "g\0225.ai.stigmer.platform.v1.GetRunnerBoot" +
-      "strapConfigInput\0326.ai.stigmer.platform.v" +
-      "1.GetRunnerBootstrapConfigOutput\"\004\320\270\030\001\022\203" +
-      "\001\n\024getRunnerScopedToken\0221.ai.stigmer.pla" +
-      "tform.v1.GetRunnerScopedTokenInput\0322.ai." +
-      "stigmer.platform.v1.GetRunnerScopedToken" +
-      "Output\"\004\320\270\030\001B\214\001B\017ServerInfoProtoP\001\242\002\003ASP" +
-      "\252\002\026Ai.Stigmer.Platform.V1\312\002\026Ai\\Stigmer\\P" +
-      "latform\\V1\342\002\"Ai\\Stigmer\\Platform\\V1\\GPBM" +
-      "etadata\352\002\031Ai::Stigmer::Platform::V1b\006pro" +
-      "to3"
+      "r/platform/v1/model_readiness.proto\032.ai/" +
+      "stigmer/platform/v1/onboarding_funnel.pr" +
+      "oto\032\033buf/validate/validate.proto\032\037google" +
+      "/protobuf/timestamp.proto\"\024\n\022GetServerIn" +
+      "foInput\"\324\003\n\023GetServerInfoOutput\022?\n\007editi" +
+      "on\030\001 \001(\0162%.ai.stigmer.platform.v1.Server" +
+      "EditionR\007edition\022\030\n\007version\030\002 \001(\tR\007versi" +
+      "on\022<\n\027authentication_required\030\003 \001(\010H\000R\026a" +
+      "uthenticationRequired\210\001\001\022\"\n\nsingle_org\030\004" +
+      " \001(\010H\001R\tsingleOrg\210\001\001\022S\n\014environments\030\005 \001" +
+      "(\0132/.ai.stigmer.platform.v1.EnvironmentA" +
+      "vailabilityR\014environments\022J\n\016native_sign" +
+      "_in\030\006 \001(\0132$.ai.stigmer.platform.v1.Nativ" +
+      "eSignInR\014nativeSignIn\0224\n\004help\030\007 \001(\0132 .ai" +
+      ".stigmer.platform.v1.HelpLinkR\004helpB\032\n\030_" +
+      "authentication_requiredB\r\n\013_single_org\"2" +
+      "\n\010HelpLink\022\020\n\003url\030\001 \001(\tR\003url\022\024\n\005label\030\002 " +
+      "\001(\tR\005label\"_\n\014NativeSignIn\022\026\n\006issuer\030\001 \001" +
+      "(\tR\006issuer\022\032\n\010audience\030\002 \001(\tR\010audience\022\033" +
+      "\n\tclient_id\030\003 \001(\tR\010clientId\"~\n\027Environme" +
+      "ntAvailability\022\030\n\007applies\030\001 \001(\010R\007applies" +
+      "\022-\n\022limited_networking\030\002 \001(\010R\021limitedNet" +
+      "working\022\032\n\010packages\030\003 \001(\010R\010packages\"\027\n\025G" +
+      "etLicenseStatusInput\"\345\001\n\026GetLicenseStatu" +
+      "sOutput\022:\n\005state\030\001 \001(\0162$.ai.stigmer.plat" +
+      "form.v1.LicenseStateR\005state\022=\n\006claims\030\002 " +
+      "\001(\0132%.ai.stigmer.platform.v1.LicenseClai" +
+      "msR\006claims\022\025\n\006key_id\030\003 \001(\tR\005keyId\0229\n\nche" +
+      "cked_at\030\004 \001(\0132\032.google.protobuf.Timestam" +
+      "pR\tcheckedAt\"\037\n\035GetRunnerBootstrapConfig" +
+      "Input\"\346\004\n\036GetRunnerBootstrapConfigOutput" +
+      "\0222\n\020temporal_address\030\001 \001(\tB\007\272H\004r\002\020\001R\017tem" +
+      "poralAddress\0226\n\022temporal_namespace\030\002 \001(\t" +
+      "B\007\272H\004r\002\020\001R\021temporalNamespace\022.\n\023runner_a" +
+      "ccess_token\030\003 \001(\tR\021runnerAccessToken\022\035\n\n" +
+      "token_type\030\004 \001(\tR\ttokenType\022Q\n&runner_ac" +
+      "cess_token_expires_in_seconds\030\005 \001(\005R!run" +
+      "nerAccessTokenExpiresInSeconds\0224\n\026payloa" +
+      "d_encryption_key\030\006 \001(\tR\024payloadEncryptio" +
+      "nKey\0229\n\031payload_encryption_key_id\030\007 \001(\tR" +
+      "\026payloadEncryptionKeyId\022G\n payload_encry" +
+      "ption_secondary_key\030\010 \001(\tR\035payloadEncryp" +
+      "tionSecondaryKey\022L\n#payload_encryption_s" +
+      "econdary_key_id\030\t \001(\tR\037payloadEncryption" +
+      "SecondaryKeyId\022.\n\023mcp_bridge_endpoint\030\n " +
+      "\001(\tR\021mcpBridgeEndpoint\"\206\001\n\031GetRunnerScop" +
+      "edTokenInput\022\027\n\006run_id\030\001 \001(\tH\000R\005runId\022@\n" +
+      "\007renewal\030\004 \001(\0132$.ai.stigmer.platform.v1." +
+      "TokenRenewalH\000R\007renewalB\016\n\005scope\022\005\272H\002\010\001\"" +
+      "\016\n\014TokenRenewal\"\231\001\n\032GetRunnerScopedToken" +
+      "Output\022.\n\023runner_scoped_token\030\001 \001(\tR\021run" +
+      "nerScopedToken\022\035\n\ntoken_type\030\002 \001(\tR\ttoke" +
+      "nType\022,\n\022expires_in_seconds\030\003 \001(\005R\020expir" +
+      "esInSeconds*S\n\rServerEdition\022\036\n\032server_e" +
+      "dition_unspecified\020\000\022\007\n\003oss\020\001\022\t\n\005cloud\020\002" +
+      "\022\016\n\nenterprise\020\0032\225\007\n\027PlatformQueryContro" +
+      "ller\022n\n\rgetServerInfo\022*.ai.stigmer.platf" +
+      "orm.v1.GetServerInfoInput\032+.ai.stigmer.p" +
+      "latform.v1.GetServerInfoOutput\"\004\310\270\030\001\022w\n\020" +
+      "getLicenseStatus\022-.ai.stigmer.platform.v" +
+      "1.GetLicenseStatusInput\032..ai.stigmer.pla" +
+      "tform.v1.GetLicenseStatusOutput\"\004\320\270\030\001\022\264\001" +
+      "\n\021getModelReadiness\022..ai.stigmer.platfor" +
+      "m.v1.GetModelReadinessInput\032/.ai.stigmer" +
+      ".platform.v1.GetModelReadinessOutput\">\302\270" +
+      "\030:\010\001\020\036\"\003org*/unauthorized to view this o" +
+      "rganization\'s models\022\301\001\n\023getOnboardingFu" +
+      "nnel\0220.ai.stigmer.platform.v1.GetOnboard" +
+      "ingFunnelInput\0321.ai.stigmer.platform.v1." +
+      "GetOnboardingFunnelOutput\"E\302\270\030A\010>\020\037*2onl" +
+      "y platform operators can read onboarding" +
+      " counts2\007stigmer\022\217\001\n\030getRunnerBootstrapC" +
+      "onfig\0225.ai.stigmer.platform.v1.GetRunner" +
+      "BootstrapConfigInput\0326.ai.stigmer.platfo" +
+      "rm.v1.GetRunnerBootstrapConfigOutput\"\004\320\270" +
+      "\030\001\022\203\001\n\024getRunnerScopedToken\0221.ai.stigmer" +
+      ".platform.v1.GetRunnerScopedTokenInput\0322" +
+      ".ai.stigmer.platform.v1.GetRunnerScopedT" +
+      "okenOutput\"\004\320\270\030\001B\214\001B\017ServerInfoProtoP\001\242\002" +
+      "\003ASP\252\002\026Ai.Stigmer.Platform.V1\312\002\026Ai\\Stigm" +
+      "er\\Platform\\V1\342\002\"Ai\\Stigmer\\Platform\\V1\\" +
+      "GPBMetadata\352\002\031Ai::Stigmer::Platform::V1b" +
+      "\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -183,6 +189,7 @@ public final class ServerInfoProto extends com.google.protobuf.GeneratedFile {
           ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
           ai.stigmer.platform.v1.LicenseProto.getDescriptor(),
           ai.stigmer.platform.v1.ModelReadinessProto.getDescriptor(),
+          ai.stigmer.platform.v1.OnboardingFunnelProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
           com.google.protobuf.TimestampProto.getDescriptor(),
         });
@@ -262,6 +269,7 @@ public final class ServerInfoProto extends com.google.protobuf.GeneratedFile {
     ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     ai.stigmer.platform.v1.LicenseProto.getDescriptor();
     ai.stigmer.platform.v1.ModelReadinessProto.getDescriptor();
+    ai.stigmer.platform.v1.OnboardingFunnelProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.TimestampProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =

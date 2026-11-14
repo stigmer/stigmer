@@ -189,13 +189,13 @@ export function parseReportBound(
 }
 
 /** A report's range in epoch ms; an absent side is unbounded. */
-interface ReportWindow {
+export interface ReportWindow {
   readonly fromMs: number | undefined;
   readonly toMs: number | undefined;
 }
 
 /** Parses both bounds; "" is unbounded, anything unparseable is refused. */
-function resolveReportWindow(from: string, to: string): ReportWindow {
+export function resolveReportWindow(from: string, to: string): ReportWindow {
   const fromMs = from === "" ? undefined : parseReportBound(from, "from");
   if (from !== "" && fromMs === undefined) {
     throw invalidArgumentError(

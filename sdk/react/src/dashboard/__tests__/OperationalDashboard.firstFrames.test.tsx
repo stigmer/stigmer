@@ -1,16 +1,17 @@
 /**
  * A new organization's dashboard from its first frame, over the real data
- * hooks: the week's summary answers at once and quiet, the all-time
- * summary answers later. Until that answer lands the figures wait as their
- * skeleton, so no zero card ever renders before the journey's card; then
- * the card stands alone. Pinned by recording every render of the cards,
+ * hooks: the week's summary answers at once and quiet, the journey's answer
+ * (the organization's onboarding) later. Until that answer lands the figures
+ * wait as their skeleton, so no zero card ever renders before the journey's
+ * card; then the card stands alone. Pinned by recording every render of the cards,
  * so a single render of settled figures (four zeros) fails the case.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
-import { RunSummarySchema, RunSummaryTimeWindow } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import { RunSummarySchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import { OnboardingProgressSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/onboarding_pb";
 import { StigmerContext } from "@stigmer/react-core";
 import { FetchCacheContext } from "@stigmer/react-core/internal";
 import type { DashboardKPICardsProps } from "../DashboardKPICards";
@@ -41,10 +42,7 @@ function renderNewOrganization() {
   });
   const client = {
     run: {
-      getRunSummary: vi.fn(async (input: { timeWindow: RunSummaryTimeWindow }) => {
-        if (input.timeWindow === RunSummaryTimeWindow.ALL_TIME) await everAnswered;
-        return create(RunSummarySchema, {});
-      }),
+      getRunSummary: vi.fn(async () => create(RunSummarySchema, {})),
       getOrgUsageReport: vi.fn(async () => ({})),
       list: vi.fn(async () => ({ entries: [], nextPageToken: "" })),
     },
@@ -52,15 +50,15 @@ function renderNewOrganization() {
       getModelReadiness: vi.fn(async () => ({ providers: [], models: [] })),
       getServerInfo: vi.fn(async () => ({ authenticationRequired: true, version: "0.1.3" })),
     },
-    grant: {
-      checkMyPermission: vi.fn(async () => ({ isAuthorized: true })),
-      listResourceAccessByPrincipal: vi.fn(async () => ({ entries: [] })),
-    },
-    // Step 6 tells the viewer apart from the people who joined.
-    identityAccount: { whoAmI: vi.fn(async () => ({ metadata: { id: "ida_viewer" } })) },
-    agent: {
-      list: vi.fn(async () => ({ entries: [], nextPageToken: "" })),
-      listVersions: vi.fn(async () => ({ entries: [], nextPageToken: "" })),
+    // The journey's one read: nothing done yet, nothing ever ran.
+    organization: {
+      getOnboarding: vi.fn(async () => {
+        await everAnswered;
+        return create(OnboardingProgressSchema, {
+          steps: [1, 2, 3, 4, 5, 6].map((id) => ({ id, done: false })),
+          everRan: false,
+        });
+      }),
     },
   };
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -77,7 +75,7 @@ function renderNewOrganization() {
 describe("OperationalDashboard for a new organization, frame by frame", () => {
   it("never shows a zero card before the journey's card", async () => {
     const { answerEver } = renderNewOrganization();
-    // The week's quiet summary lands; the all-time read is still out.
+    // The week's quiet summary lands; the journey's read is still out.
     await act(async () => {});
     expect(screen.queryByText("Completed")).toBeNull();
 

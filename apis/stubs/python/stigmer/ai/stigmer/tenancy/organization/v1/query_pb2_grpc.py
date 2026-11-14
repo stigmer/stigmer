@@ -4,6 +4,7 @@ import grpc
 
 from ai.stigmer.tenancy.organization.v1 import api_pb2 as ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_api__pb2
 from ai.stigmer.tenancy.organization.v1 import io_pb2 as ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2
+from ai.stigmer.tenancy.organization.v1 import onboarding_pb2 as ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_onboarding__pb2
 
 
 class OrganizationQueryControllerStub(object):
@@ -35,6 +36,11 @@ class OrganizationQueryControllerStub(object):
                 '/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/listChildOrgs',
                 request_serializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.ListChildOrgsInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.ChildOrgList.FromString,
+                _registered_method=True)
+        self.getOnboarding = channel.unary_unary(
+                '/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/getOnboarding',
+                request_serializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.OrganizationId.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_onboarding__pb2.OnboardingProgress.FromString,
                 _registered_method=True)
 
 
@@ -73,6 +79,19 @@ class OrganizationQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def getOnboarding(self, request, context):
+        """Get where an organization is on the journey from a first agent to its
+        users: which of the six steps are done, and the facts a client's lines
+        about them name.
+
+        Every step is read from what the server already records, so a console
+        asks once instead of reading agents, runs, models and access itself.
+        The one asking is left out of the people who joined.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_OrganizationQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -95,6 +114,11 @@ def add_OrganizationQueryControllerServicer_to_server(servicer, server):
                     servicer.listChildOrgs,
                     request_deserializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.ListChildOrgsInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.ChildOrgList.SerializeToString,
+            ),
+            'getOnboarding': grpc.unary_unary_rpc_method_handler(
+                    servicer.getOnboarding,
+                    request_deserializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.OrganizationId.FromString,
+                    response_serializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_onboarding__pb2.OnboardingProgress.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -206,6 +230,33 @@ class OrganizationQueryController(object):
             '/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/listChildOrgs',
             ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.ListChildOrgsInput.SerializeToString,
             ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.ChildOrgList.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getOnboarding(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/getOnboarding',
+            ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.OrganizationId.SerializeToString,
+            ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_onboarding__pb2.OnboardingProgress.FromString,
             options,
             channel_credentials,
             insecure,

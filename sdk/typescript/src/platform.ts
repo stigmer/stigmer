@@ -16,6 +16,8 @@ import {
   ModelOnEngineSchema,
 } from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
 import type { GetModelReadinessOutput } from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
+import { GetOnboardingFunnelInputSchema } from "@stigmer/apis/ai/stigmer/platform/v1/onboarding_funnel_pb";
+import type { GetOnboardingFunnelOutput } from "@stigmer/apis/ai/stigmer/platform/v1/onboarding_funnel_pb";
 import type { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { wrapError } from "./gen/errors.js";
 import {
@@ -152,7 +154,8 @@ function helpLinkOf(help: HelpLinkProto | undefined): HelpLink | undefined {
 }
 
 /**
- * Client for platform-level queries (server info, capabilities, license).
+ * Client for platform-level queries (server info, capabilities, license,
+ * the operator's onboarding count).
  *
  * The {@link getServerInfo} method is the authoritative source for
  * deployment mode detection. It replaces URL-based hostname guessing
@@ -254,6 +257,29 @@ export class PlatformClient {
           org,
           model: model === undefined ? undefined : create(ModelOnEngineSchema, model),
         }),
+      );
+    } catch (e) {
+      throw wrapError(e);
+    }
+  }
+
+  /**
+   * How far the organizations made in a window got on the journey from a
+   * first agent to their users: how many were made, how many were left out
+   * as the operator's own, and how many have each of the six steps done.
+   * Counts only. A platform operator's read; anyone else is refused with
+   * PERMISSION_DENIED, and a server older than the read answers
+   * UNIMPLEMENTED.
+   *
+   * @param window.from - A UTC calendar day ("2026-11-01"), from its first
+   *   instant, or an RFC 3339 instant; inclusive.
+   * @param window.to - A UTC calendar day, through its last instant, or an
+   *   RFC 3339 instant; inclusive.
+   */
+  async getOnboardingFunnel(window: { readonly from: string; readonly to: string }): Promise<GetOnboardingFunnelOutput> {
+    try {
+      return await this.platform.getOnboardingFunnel(
+        create(GetOnboardingFunnelInputSchema, { fromDate: window.from, toDate: window.to }),
       );
     } catch (e) {
       throw wrapError(e);

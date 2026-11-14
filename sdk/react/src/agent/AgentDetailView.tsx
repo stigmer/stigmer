@@ -58,7 +58,7 @@ import { EditResourceYamlDialog } from "../manifest/EditResourceYamlDialog.js";
 import { keptReference } from "../internal/kept-reference.js";
 import type { RenamedResource } from "../resource-detail/useRenameResource.js";
 import { MakeItYoursTab, type MakeItYoursLinks } from "../journey/MakeItYoursTab.js";
-import { isJourneyAgentSlug } from "../journey/journey-agents.js";
+import { isJourneyAgentSlug } from "@stigmer/examples/journey";
 import { InAppTab, type InAppLinks } from "../app-handover/InAppTab.js";
 
 const INSTRUCTIONS_COLLAPSED_HEIGHT = "12rem";

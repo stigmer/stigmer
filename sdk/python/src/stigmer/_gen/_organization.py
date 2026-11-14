@@ -11,6 +11,7 @@ from ai.stigmer.tenancy.organization.v1 import api_pb2
 from ai.stigmer.tenancy.organization.v1 import command_pb2_grpc
 from ai.stigmer.tenancy.organization.v1 import query_pb2_grpc
 from ai.stigmer.tenancy.organization.v1 import io_pb2
+from ai.stigmer.tenancy.organization.v1 import onboarding_pb2
 from ai.stigmer.tenancy.organization.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from google.protobuf import field_mask_pb2
@@ -118,6 +119,12 @@ class OrganizationClient:
             if not page.next_page_token:
                 return
             request.page_token = page.next_page_token
+
+    def get_onboarding(self, id: str) -> onboarding_pb2.OnboardingProgress:
+        try:
+            return self._query.getOnboarding(io_pb2.OrganizationId(value=id))
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
 
 
 @dataclass

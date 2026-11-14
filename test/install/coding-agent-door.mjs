@@ -5,10 +5,11 @@
  * pasted into a real coding agent in a clean scratch app, ends with an agent
  * made, run once, and its chat on the app's own page (the UX bar's CLI-18).
  *
- * It needs a coding agent signed in to its own model, so it runs by hand,
- * never in CI (`make door-coding-agent`); what it rests on is held in CI by
- * the CLI's own suites (the commands, the guide's drift test, the sign-in
- * smoke). The release walk reruns it.
+ * It needs a coding agent on a real model, so it is in no gate lane: by hand
+ * against this checkout (`make door-coding-agent`), and in the live lane
+ * after every release against what was published (`--published`, below).
+ * What it rests on is held in the gate by the CLI's own suites (the
+ * commands, the guide's drift test, the sign-in smoke).
  *
  * The stage, all on this machine and hermetic on Stigmer's side:
  *   - test/support's hermetic issuer, and a server from the built shipped
@@ -17,7 +18,8 @@
  *     whose model is test/support's fake (lib/fake-model.mjs): the agent's
  *     first run saves a scripted file, and every later turn (the chat in the
  *     app) gets the fake's default reply;
- *   - the CLI from this checkout behind a `stigmer` on PATH that runs it with
+ *   - the CLI from this checkout (the published one with `--published`)
+ *     behind a `stigmer` on PATH that runs it with
  *     a scratch HOME (its config lives under HOME, with no other override)
  *     and a stand-in `BROWSER` that follows the authorize address, so the
  *     issuer's auto-consent finishes the sign-in; npm's global prefix is a
@@ -39,9 +41,9 @@
  * STIGMER_API_KEY and no line of the stream shows it; the token route and
  * the chat are in the app, the route reading the app's own session; and a
  * browser signs in through the app's stand-in, opens the page, sends a
- * message and gets the fake's reply in the chat. The app's Stigmer packages
- * are the ones packed from this checkout (the registry's may predate the
- * handover), installed before the browser step.
+ * message and gets the fake's reply in the chat. Without `--published`, the
+ * app's Stigmer packages are the ones packed from this checkout (the
+ * registry's may predate the handover), installed before the browser step.
  *
  * With `--local`, the server trusts every caller, as `stigmer up` does: the
  * guide skips signing in, the key and the service account, and hands over the
@@ -49,15 +51,39 @@
  * the manifest, the run's file and the chat answering on the page are the
  * same.
  *
- * Usage:
- *   node test/install/coding-agent-door.mjs [--local] [--keep] [--max-turns=<n>]
- *   --local           a server that trusts every caller (the development chat)
- *   --keep            keep the scratch folder (app, stream, CLI home)
- *   --max-turns=<n>   how many times to answer the coding agent (default 8)
- * Needs `claude` signed in, and `make build-server build-runner build-libs`.
+ * With `--published --version=<v>`, the door is walked against what a
+ * release put out, the way a person on a fresh machine meets it (the live
+ * lane runs it after every release, .github/workflows/ci.live.yaml):
+ *   - the prompt is read from the page a person copies it from
+ *     (lib/coding-agent-door.mjs, PROMPT_PAGE), and a page that does not
+ *     carry it fails the walk; this checkout's copy is never used;
+ *   - the `stigmer` on PATH runs @stigmer/cli at <v>, installed from npm into
+ *     the scratch folder with its coding-agent plugin, and both must be at
+ *     <v>; the scratch app's .npmrc routes @stigmer to the same registry, so
+ *     what the coding agent installs comes from there too;
+ *   - the app's Stigmer packages, installed before the browser step, are
+ *     the registry's at <v>, every one checked.
+ * `--registry=<url>` names where @stigmer/* is read (npm's public registry
+ * by default; a dev build lives in Stigmer's own), and every npm read names
+ * it on its command line, since a machine's npm config may route the scope
+ * elsewhere. The server, runner, issuer and fake model still come from this
+ * checkout: the live lane checks out the released tag, so they are the
+ * released code.
+ *
+ * Claude Code runs on the person's own sign-in. Where there is none (CI),
+ * DOOR_ANTHROPIC_API_KEY is handed to it as ANTHROPIC_API_KEY, and to it
+ * alone: the `stigmer` shim drops it, GitHub Actions' Claude Code strips
+ * provider keys from the commands it runs (CLAUDE_CODE_SUBPROCESS_ENV_SCRUB
+ * is on there by default), and the stream must never show it. `--model`,
+ * `--claude-max-turns` and `--max-budget-usd` pass through to each
+ * `claude -p`, so an unattended walk runs on a cheap model under a bound.
+ *
+ * Usage: lib/coding-agent-door.mjs, USAGE (`--help` prints it).
+ * Needs `claude` signed in (or DOOR_ANTHROPIC_API_KEY), and
+ * `make build-server build-runner build-libs`.
  */
 
-import { execFileSync, spawn } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -73,6 +99,7 @@ import { spawnRunner } from "../support/src/runner-process.ts";
 import { spawnServer } from "../support/src/server-process.ts";
 import { spawnTemporal } from "../support/src/temporal.ts";
 import { tsServerEntryPath } from "../support/src/ts-build.ts";
+import { NPM_REGISTRY, USAGE, fetchPagePrompt, npmRegistryFlags, parseDoorArgs } from "./lib/coding-agent-door.mjs";
 import { FAKE_MODEL_REPLY_TEXT, fakeModelEnv, isTitleCall, startFakeModel } from "./lib/fake-model.mjs";
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
@@ -80,7 +107,7 @@ const cliEntry = join(repoRoot, "client-apps", "cli", "src", "cli", "stigmer.ts"
 const tsxBin = join(repoRoot, "node_modules", ".bin", "tsx");
 const AUDIENCE = "https://door.stigmer.test/api";
 const NATIVE_CLIENT = "stigmer-door";
-/** The console's prompt, as sdk/react's first question writes it (CODING_AGENT_PROMPT). */
+/** The console's prompt, as sdk/react's first question writes it (CODING_AGENT_PROMPT); `--published` reads the live page's instead. */
 export const PROMPT =
   "Set up Stigmer for this project. Install its command line (`npm install -g @stigmer/cli`, or `brew install stigmer/tap/stigmer`), run `stigmer coding-agent`, and follow what it prints.";
 const ANSWER = "Yes, go ahead with what you suggest. I'm happy with your choices; keep going until the chat is on the page.";
@@ -97,19 +124,13 @@ function log(step) {
   process.stdout.write(`coding-agent-door: ${step}\n`);
 }
 
-function parseArgs() {
-  const out = { keep: false, local: false, maxTurns: 8 };
-  for (const arg of process.argv.slice(2)) {
-    if (arg === "--keep") out.keep = true;
-    else if (arg === "--local") out.local = true;
-    else if (arg.startsWith("--max-turns=")) out.maxTurns = Number(arg.slice("--max-turns=".length));
-    else throw new Error(`unknown argument ${arg}`);
-  }
-  return out;
-}
-
-/** The scratch app: an invoicing product with its own stand-in sign-in. */
-function writeApp(dir) {
+/**
+ * The scratch app: an invoicing product with its own stand-in sign-in. With
+ * `npmrc`, the app routes the @stigmer scope in its own .npmrc, as a
+ * consumer of a registry other than npm's does, so the coding agent's
+ * installs read the walk's registry.
+ */
+function writeApp(dir, npmrc) {
   const files = {
     "package.json": JSON.stringify(
       {
@@ -208,6 +229,7 @@ export function GET(request: NextRequest) {
 }
 `,
   };
+  if (npmrc !== undefined) files[".npmrc"] = npmrc;
   for (const [path, text] of Object.entries(files)) {
     mkdirSync(join(dir, path, ".."), { recursive: true });
     writeFileSync(join(dir, path), text);
@@ -240,7 +262,7 @@ function scriptFirstRun(fake) {
  * dev server in the background keeps its process alive after it, so that
  * process (and what it started) is ended then.
  */
-function runClaude(appDir, env, sessionId, message, first, streamPath, signal) {
+function runClaude(appDir, env, sessionId, message, first, streamPath, signal, bounds) {
   const args = [
     "-p",
     message,
@@ -266,6 +288,9 @@ function runClaude(appDir, env, sessionId, message, first, streamPath, signal) {
     "Edit",
     "Glob",
     "Grep",
+    ...(bounds.model === "" ? [] : ["--model", bounds.model]),
+    ...(bounds.claudeMaxTurns === undefined ? [] : ["--max-turns", String(bounds.claudeMaxTurns)]),
+    ...(bounds.maxBudgetUsd === undefined ? [] : ["--max-budget-usd", String(bounds.maxBudgetUsd)]),
     ...(first ? ["--session-id", sessionId] : ["--resume", sessionId]),
   ];
   return new Promise((resolve, reject) => {
@@ -317,6 +342,62 @@ function check(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+/** The version a package.json under `dir` declares, or undefined when there is none. */
+function installedVersion(dir) {
+  const path = join(dir, "package.json");
+  return existsSync(path) ? JSON.parse(readFileSync(path, "utf8")).version : undefined;
+}
+
+/**
+ * Every @stigmer/* package npm put in `nodeModules`, nested ones included,
+ * as `name@version`, so a walk can say each one is the version it named.
+ */
+function stigmerPackagesUnder(nodeModules) {
+  const scope = join(nodeModules, "@stigmer");
+  if (!existsSync(scope)) return [];
+  return readdirSync(scope, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .flatMap((entry) => {
+      const dir = join(scope, entry.name);
+      return [`@stigmer/${entry.name}@${installedVersion(dir)}`, ...stigmerPackagesUnder(join(dir, "node_modules"))];
+    });
+}
+
+/** Refuses, naming each one, any @stigmer/* package under `nodeModules` that is not at `version`. */
+function checkAllAt(nodeModules, version, what) {
+  const found = stigmerPackagesUnder(nodeModules);
+  check(found.length > 0, `${what}: no @stigmer/* package installed`);
+  const off = found.filter((spec) => !spec.endsWith(`@${version}`));
+  check(off.length === 0, `${what}: not at ${version}: ${off.join(", ")}`);
+  return found;
+}
+
+/**
+ * The published CLI at `version`, installed from `registry` into its own
+ * folder (not npm's global prefix, which the coding agent may install into
+ * itself): its path, once it and its coding-agent plugin are both at
+ * `version`.
+ */
+function installPublishedCli(dir, version, registry) {
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "door-published-cli", private: true }));
+  log(`installing @stigmer/cli@${version} from ${registry}`);
+  execFileSync("npm", ["install", "--no-audit", "--no-fund", "--loglevel=error", ...npmRegistryFlags(registry), `@stigmer/cli@${version}`], {
+    cwd: dir,
+    stdio: "inherit",
+    env: { ...process.env, ANTHROPIC_API_KEY: undefined, DOOR_ANTHROPIC_API_KEY: undefined },
+  });
+  const nodeModules = join(dir, "node_modules");
+  const cli = installedVersion(join(nodeModules, "@stigmer", "cli"));
+  check(cli === version, `@stigmer/cli is ${cli ?? "missing"}, not ${version}`);
+  const plugin = [join(nodeModules, "@stigmer", "coding-agent-plugin"), join(nodeModules, "@stigmer", "cli", "node_modules", "@stigmer", "coding-agent-plugin")]
+    .map(installedVersion)
+    .find((v) => v !== undefined);
+  check(plugin === version, `@stigmer/coding-agent-plugin is ${plugin ?? "missing"} beside @stigmer/cli@${version}, not ${version}`);
+  checkAllAt(nodeModules, version, "the published CLI");
+  return join(nodeModules, ".bin", "stigmer");
+}
+
 function filesUnder(dir) {
   if (!existsSync(dir)) return [];
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
@@ -325,7 +406,17 @@ function filesUnder(dir) {
 }
 
 async function main() {
-  const args = parseArgs();
+  const args = parseDoorArgs(process.argv.slice(2));
+  if (args.help) {
+    process.stdout.write(`${USAGE}\n`);
+    return;
+  }
+  // Read before anything starts, so a page without the prompt leaves nothing to tear down.
+  let promptBody = PROMPT;
+  if (args.published) {
+    promptBody = await fetchPagePrompt();
+    log(`the prompt, from the live page${promptBody === PROMPT ? " (the same words as this checkout's)" : " (this checkout's words differ)"}: ${promptBody}`);
+  }
   for (const [what, path] of [
     ["server", tsServerEntryPath()],
     ["runner", runnerEntryPath()],
@@ -376,26 +467,42 @@ async function main() {
 
     writeFileSync(join(scratch, "browser.mjs"), FOLLOWER);
     const stigmer = join(binDir, "stigmer");
+    const cliCommand = args.published
+      ? `'${installPublishedCli(join(scratch, "published-cli"), args.version, args.registry)}'`
+      : `'${tsxBin}' '${cliEntry}'`;
+    // The coding agent's own model key, when it has one, is never the CLI's.
     writeFileSync(
       stigmer,
-      `#!/bin/sh\nHOME='${cliHome}' BROWSER='"${process.execPath}" "${join(scratch, "browser.mjs")}"' exec '${tsxBin}' '${cliEntry}' "$@"\n`,
+      `#!/bin/sh\nunset ANTHROPIC_API_KEY\nHOME='${cliHome}' BROWSER='"${process.execPath}" "${join(scratch, "browser.mjs")}"' exec ${cliCommand} "$@"\n`,
     );
     chmodSync(stigmer, 0o755);
-    writeApp(appDir);
+    if (args.published) {
+      // Before the coding agent spends a token: the guide it will be told to follow must print.
+      const guide = spawnSync(stigmer, ["coding-agent"], { encoding: "utf8" });
+      const why = (guide.stderr ?? "").split("\n").find((line) => line.trim() !== "") ?? `exit ${guide.status}`;
+      check(guide.status === 0, `the published CLI cannot print its guide (\`stigmer coding-agent\` exits ${guide.status}): ${why}`);
+      const header = guide.stdout.split("\n")[0];
+      check(header.startsWith(`Stigmer CLI ${args.version}:`), `the published CLI's guide does not name ${args.version}: ${header}`);
+      log(`the published CLI prints its guide: ${header}`);
+    }
+    writeApp(appDir, args.published ? `registry=${NPM_REGISTRY}\n@stigmer:registry=${args.registry}\n` : undefined);
 
     const env = { ...process.env, PATH: `${binDir}:${join(npmPrefix, "bin")}:${process.env.PATH ?? ""}`, npm_config_prefix: npmPrefix };
     for (const key of ["STIGMER_SERVER_ADDRESS", "STIGMER_API_KEY", "STIGMER_ORG", "ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL"]) delete env[key];
+    const claudeKey = process.env.DOOR_ANTHROPIC_API_KEY ?? "";
+    delete env.DOOR_ANTHROPIC_API_KEY;
+    if (claudeKey !== "") env.ANTHROPIC_API_KEY = claudeKey;
     const sessionId = randomUUID();
-    const prompt = `${PROMPT} Use the Stigmer at ${server.baseUrl}.`;
-    log(`claude -p in ${appDir}: ${prompt}`);
-    let turn = await runClaude(appDir, env, sessionId, prompt, true, streamPath, stop.signal);
+    const prompt = `${promptBody} Use the Stigmer at ${server.baseUrl}.`;
+    log(`claude -p in ${appDir}${args.model === "" ? "" : ` on ${args.model}`}${claudeKey === "" ? "" : " (DOOR_ANTHROPIC_API_KEY)"}: ${prompt}`);
+    let turn = await runClaude(appDir, env, sessionId, prompt, true, streamPath, stop.signal, args);
     const handedOver = () =>
       args.local
         ? filesUnder(join(appDir, "app")).some((f) => f.endsWith("page.tsx") && readFileSync(join(appDir, "app", f), "utf8").includes("StigmerAgentChat"))
         : existsSync(join(appDir, "app", "api", "stigmer-token", "route.ts"));
     for (let i = 0; i < args.maxTurns && !handedOver(); i++) {
       log(`the coding agent stopped (${turn.result.slice(0, 160).replace(/\n/g, " ")}); answering`);
-      turn = await runClaude(appDir, env, sessionId, ANSWER, false, streamPath, stop.signal);
+      turn = await runClaude(appDir, env, sessionId, ANSWER, false, streamPath, stop.signal, args);
     }
     log(`the coding agent's last word: ${turn.result.slice(0, 300).replace(/\n/g, " ")}`);
 
@@ -417,17 +524,32 @@ async function main() {
       const route = readFileSync(join(appDir, "app", "api", "stigmer-token", "route.ts"), "utf8");
       check(/getSession/.test(route), "the token route does not read the app's own session (getSession)");
     }
+    if (claudeKey !== "") check(!readFileSync(streamPath, "utf8").includes(claudeKey), "the coding agent's own model key appears in its stream");
     const chatPage = filesUnder(join(appDir, "app")).find((f) => f.endsWith("page.tsx") && readFileSync(join(appDir, "app", f), "utf8").includes("StigmerAgentChat"));
     check(chatPage !== undefined, "no page renders <StigmerAgentChat />");
     log(`left behind: ${manifests.join(", ")}; stigmer-output/${DOOR_FILE}; ${args.local ? "the development chat" : `the key in ${envFile}; the route; the chat`} on app/${chatPage}`);
 
-    // The app, with this checkout's packages, and its chat in a browser.
-    const packDir = join(scratch, "packs");
-    execFileSync(process.execPath, [join(repoRoot, "scripts", "publish-libs.mjs"), "--version", "0.0.0-door", "--pack-dir", packDir, "--only", "@stigmer/react-sdk", "--skip-build"], { cwd: repoRoot, stdio: "inherit" });
-    const tarballs = readdirSync(packDir).filter((f) => f.endsWith(".tgz")).map((f) => join(packDir, f));
-    execFileSync("npm", ["install", "--no-audit", "--no-fund", ...tarballs], { cwd: appDir, stdio: "inherit", env: { ...env, npm_config_prefix: undefined } });
+    // The app, with this checkout's packages (or the registry's at the
+    // published version), and its chat in a browser.
+    if (args.published) {
+      const manifest = JSON.parse(readFileSync(join(appDir, "package.json"), "utf8"));
+      const named = Object.keys({ ...manifest.dependencies, ...manifest.devDependencies }).filter((name) => name.startsWith("@stigmer/"));
+      const wanted = [...new Set(["@stigmer/react-sdk", "@stigmer/client", "@stigmer/apis", ...named])].map((name) => `${name}@${args.version}`);
+      log(`installing the app's Stigmer packages from ${args.registry}: ${wanted.join(", ")}`);
+      execFileSync("npm", ["install", "--no-audit", "--no-fund", "--loglevel=error", ...npmRegistryFlags(args.registry), ...wanted], {
+        cwd: appDir,
+        stdio: "inherit",
+        env: { ...env, npm_config_prefix: undefined, ANTHROPIC_API_KEY: undefined },
+      });
+      log(`the app's Stigmer packages: ${checkAllAt(join(appDir, "node_modules"), args.version, "the app").join(", ")}`);
+    } else {
+      const packDir = join(scratch, "packs");
+      execFileSync(process.execPath, [join(repoRoot, "scripts", "publish-libs.mjs"), "--version", "0.0.0-door", "--pack-dir", packDir, "--only", "@stigmer/react-sdk", "--skip-build"], { cwd: repoRoot, stdio: "inherit" });
+      const tarballs = readdirSync(packDir).filter((f) => f.endsWith(".tgz")).map((f) => join(packDir, f));
+      execFileSync("npm", ["install", "--no-audit", "--no-fund", ...tarballs], { cwd: appDir, stdio: "inherit", env: { ...env, npm_config_prefix: undefined } });
+    }
     const appPort = await freePort();
-    app = spawn("npx", ["next", "dev", "-p", String(appPort)], { cwd: appDir, env: { ...process.env, PORT: String(appPort) }, stdio: "ignore", detached: true });
+    app = spawn("npx", ["next", "dev", "-p", String(appPort)], { cwd: appDir, env: { ...process.env, DOOR_ANTHROPIC_API_KEY: undefined, PORT: String(appPort) }, stdio: "ignore", detached: true });
     const appUrl = `http://localhost:${appPort}`;
     for (let i = 0; i < 120; i++) {
       if (await fetch(appUrl).then((r) => r.ok).catch(() => false)) break;

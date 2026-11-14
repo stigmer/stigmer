@@ -91,7 +91,7 @@ describe("useAttentionNotifications", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const stigmer = {
       session: {
-        // eslint-disable-next-line require-yield
+         
         async *streamAttention() {
           throw new ConnectError("denied", Code.PermissionDenied);
         },
