@@ -130,6 +130,8 @@ describe("ToolCallGroup subagent rows", () => {
 
     expect(screen.getByText("Research competitor pricing")).toBeTruthy();
     expect(screen.getByText("echo hi")).toBeTruthy();
-    expect(screen.getByRole("group").getAttribute("aria-label")).toBe("2 tool calls");
+    expect(screen.getByRole("group", { name: "2 tool calls" })).toBeTruthy();
+    // The helper's row is named with its state, as a helper is wherever it shows.
+    expect(screen.getByRole("group", { name: "Subagent: Research competitor pricing, Completed" })).toBeTruthy();
   });
 });

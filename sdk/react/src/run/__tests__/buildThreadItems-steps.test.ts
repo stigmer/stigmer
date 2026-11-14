@@ -6,8 +6,9 @@
  * person stays out of the plan and is drawn as the bottom approval card,
  * while a nested subagent's own ask stays inline; `planSteps: false` keeps
  * the to-dos card and the calls in time order. The working turn folds a
- * stretch of calls once every call in it returned and no background
- * command still runs; an ended turn's stretches never fold. A turn that
+ * stretch of two or more calls once every call in it returned and no
+ * background command still runs (a single step stays its own row); an ended
+ * turn's stretches never fold. A turn that
  * completed leads with its answer, then its outcome and plan card, then one "How it got there" item holding everything else in
  * time order (none when nothing else is left), and its outcome is never
  * repeated at the thread's end; a turn that failed or stopped keeps time
@@ -231,6 +232,7 @@ describe("buildThreadItems fold of a settled stretch", () => {
       user(R2, "two"),
       status(R2, "running"),
       call(R2, "c1", "read_file", { path: "b.ts" }),
+      call(R2, "c2", "read_file", { path: "c.ts" }),
       said(R2, 0, "Reading."),
     ]);
     expect(groups(later).map((group) => [group.key, group.fold])).toEqual([
@@ -246,12 +248,18 @@ describe("buildThreadItems fold of a settled stretch", () => {
       use(R, "bg", "execute", { command: "npm run dev", background: true }),
       result(R, "bg", "Started in the background."),
       samples.backgroundCommandStatusEvent(toolId(R, "bg"), { runId: R }),
+      call(R, "c1", "read_file", { path: "a.ts" }),
       said(R, 0, "The server runs."),
     ];
     expect(groups(build(start)).map((group) => group.fold)).toEqual([undefined]);
 
     const ended = [...start, samples.backgroundCommandStatusEvent(toolId(R, "bg"), { runId: R, phase: "ended", exitCode: 0 })];
     expect(groups(build(ended)).map((group) => group.fold)).toEqual([true]);
+  });
+
+  it("keeps a single settled step its own row: a stretch of one never folds", () => {
+    const items = build([user(R, "go"), status(R, "running"), call(R, "c1", "read_file", { path: "a.ts" }), said(R, 0, "Reading.")]);
+    expect(groups(items).map((group) => group.fold)).toEqual([undefined]);
   });
 });
 

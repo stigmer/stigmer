@@ -354,7 +354,8 @@
         "type Platform default (Claude Sonnet 4.6)": "The console's parts: the part at its drawn size and weight",
         "type Stigmer": "The console's parts: the part at its drawn size and weight",
         "word Paste an Anthropic API key, and every member of Acme Corp can run these models. Anthropic bills Acme Corp directly.": "The console's parts: the page says and offers what its drawing does",
-        "word Paste an OpenAI API key, and every member of Acme Corp can run these models. OpenAI bills Acme Corp directly.": "The console's parts: the page says and offers what its drawing does"
+        "word Paste an OpenAI API key, and every member of Acme Corp can run these models. OpenAI bills Acme Corp directly.": "The console's parts: the page says and offers what its drawing does",
+        "word O": "The drawing is redrawn: the reader now matches whole words (whole words, in their case), and an avatar's or a mark's initial is hidden from assistive technology in the kit (it repeats the name beside it), which the reader skips; the drawing draws it as text, redrawn hidden at the next export"
       }
     }
   ]

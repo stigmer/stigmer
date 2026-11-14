@@ -216,6 +216,15 @@ describe("SessionViewer — transcript click-to-open wiring", () => {
     });
   });
 
+  it("answers whether a path opens, from the resolver its click uses", () => {
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+    const canOpen = threadProps.at(-1)?.canOpenFilePath as (path: string) => boolean;
+    expect(canOpen("/home/daytona/workspace/src/main.go")).toBe(true);
+    expect(canOpen(".stigmer/skills/x.md")).toBe(false);
+    // Asking opens nothing.
+    expect(surfaceProps.length).toBe(0);
+  });
+
   it("declines a platform path (returns false) and opens nothing", () => {
     render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
 

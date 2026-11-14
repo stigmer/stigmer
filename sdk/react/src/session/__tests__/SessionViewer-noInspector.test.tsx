@@ -216,6 +216,15 @@ describe("SessionViewer without an inspector", () => {
     expect(previews.at(-1)!.open).toBe(false);
   });
 
+  it("KIT-06 opens a File the turn returned from the step that wrote it, saying it opens in a window", () => {
+    render(<SessionViewer sessionId="ses_1" org="demo" audience="endUser" />);
+    fireEvent.click(screen.getByRole("button", { name: /^How it got there/ }));
+    // The step names where its File opens, and its line opens it.
+    expect(screen.getAllByText(/opens in a window/).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Open invoice-audit.md" }));
+    expect(previews.at(-1)).toMatchObject({ open: true, file: finished.files[0] });
+  });
+
   it("opens a guest's File read only, offering no act its credential is refused", () => {
     render(<SessionViewer sessionId="ses_1" org="demo" audience="guest" />);
     fireEvent.click(screen.getByRole("button", { name: /invoice-audit\.md/ }));

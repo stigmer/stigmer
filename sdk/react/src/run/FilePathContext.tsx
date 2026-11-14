@@ -33,6 +33,13 @@ export interface FilePathContextValue {
     path: string,
     resolved: ResolvedPathAction,
   ) => boolean | void;
+  /**
+   * Whether {@link onFilePathClick} would open `path` rather than decline it,
+   * answered before any click from the same resolver the click uses. A step
+   * offers "Open the whole file" only where this says yes; without it, no
+   * step offers it (a handler that declines some paths can't be asked).
+   */
+  readonly canOpenFilePath?: (path: string) => boolean;
 }
 
 const DEFAULT_VALUE: FilePathContextValue = {

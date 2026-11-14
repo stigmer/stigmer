@@ -1,13 +1,14 @@
-// Pins SubagentSection over a subagent's folded thread: a helper drawn as a
-// step (the step row's shell, its subject as the line, its agent's name as a
-// tag, "Helper" without one, no opacity modifiers, its messages at the body's
-// padding); disclosure (open while it runs or one of its calls waits for a
-// person, at any depth; settled closed, opening on a click); a pill only when
-// it failed (its reply as the error) or stopped, never Running or Completed;
-// the running counter and the static duration; the flat layout as the work
-// alone, with no header of its own; and its items as rows: messages, thinking
-// and notes on their own, runs of tool calls as groups, internal to-do calls
-// and compactions left out.
+// Pins SubagentSection over a subagent's folded thread, as the session page
+// draws a helper (S43): a step on the step's layout (its subject as the line,
+// first letter capitalised, its agent's name as a tag, "Helper" without one,
+// no opacity modifiers); disclosure (open while it runs or one of its calls
+// waits for a person, at any depth; settled closed, opening on a click); a
+// pill only when it failed (its reply as the error) or stopped, never
+// Running or Completed; the running counter and the static duration; and its
+// body as its own steps on a rail, undivided and without times, its brief,
+// messages, thinking and notes not drawn, internal to-do calls and
+// compactions left out; the flat layout the same body with no line of its
+// own.
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup, act, fireEvent } from "@testing-library/react";
 import type { MessageItem, NoteItem, ThinkingItem, Thread, TurnItem } from "@stigmer/client";
@@ -35,6 +36,10 @@ function sectionExpanded(container: HTMLElement): boolean {
   return toggle?.getAttribute("aria-expanded") === "true";
 }
 
+/** A step the helper took, so its line has something to open to. */
+const inner = (state: "running" | "completed" = "completed") =>
+  toolUse({ id: `tc-inner-${state}`, name: "grep", input: { pattern: "round(", path: "src/billing" }, state, ...(state === "completed" ? { result: "src/billing/a.ts:4:x" } : {}) });
+
 function waitingCall(id: string) {
   return toolUse({ id, name: "delete_file", ask: { argsPreview: '{"path":"/tmp/x"}' } });
 }
@@ -45,8 +50,9 @@ function waitingCall(id: string) {
 describe("SubagentSection as a step", () => {
   it("shows a running helper's subject, its agent's name as a tag, and no Running pill", () => {
     const { container } = render(
-      <SubagentSection thread={thread({ state: "running", agentName: "researcher" })} subject="Find the rounding code" />,
+      <SubagentSection thread={thread({ state: "running", agentName: "researcher", items: [inner("running")] })} subject="find the rounding code" />,
     );
+    // Its subject reads with its first letter capitalised (the session page, S43).
     expect(screen.getByText("Find the rounding code")).toBeTruthy();
     expect(screen.getByText("researcher").className).toBe(tagClasses());
     expect(screen.queryByText("Running")).toBeNull();
@@ -60,13 +66,18 @@ describe("SubagentSection as a step", () => {
 
   it("shows a finished helper closed, with no Completed pill, and opens on a click", () => {
     const { container } = render(
-      <SubagentSection thread={thread({ state: "completed", input: "Look in billing" })} subject="Find the rounding code" />,
+      <SubagentSection thread={thread({ state: "completed", input: "Look in billing", items: [inner()] })} subject="Find the rounding code" />,
     );
     expect(screen.queryByText("Completed")).toBeNull();
+    // Finished, its mark is the green tick and its words go quiet.
+    expect(container.querySelector(".stg\\:bg-status-ready")).not.toBeNull();
+    expect(screen.getByText("Find the rounding code").className).toContain("stg:text-muted-foreground");
     expect(sectionExpanded(container)).toBe(false);
-    expect(container.textContent).not.toContain("Look in billing");
+    expect(container.textContent).not.toContain("Searched for round(");
     fireEvent.click(container.querySelector('[data-cursor-target="thread-card-toggle"]')!);
-    expect(container.textContent).toContain("Look in billing");
+    // It opens to its own steps; its brief is not drawn.
+    expect(container.textContent).toContain("Searched for round(");
+    expect(container.textContent).not.toContain("Look in billing");
   });
 
   it.each([
@@ -77,20 +88,24 @@ describe("SubagentSection as a step", () => {
     expect(screen.getByText(label).className).toContain("stg:rounded-full");
   });
 
-  it("draws on the step row's shell with no opacity modifiers, its own steps at the body's padding", () => {
+  it("draws on the step's layout with no opacity modifiers, its own steps on a rail under its words", () => {
     const { container } = render(
-      <SubagentSection thread={thread({ state: "running", input: "Look in billing", items: [message("m1", "Looking.")] })} subject="Find it" />,
+      <SubagentSection thread={thread({ state: "running", input: "Look in billing", items: [message("m1", "Looking."), inner()] })} subject="Find it" />,
     );
     expect(container.querySelector('[data-cursor-target="subagent-row"]')?.className).toContain("stg:border-border-prominent");
     const classes = Array.from(container.querySelectorAll("[class]")).flatMap((el) => (el.getAttribute("class") ?? "").split(" "));
     expect(classes.filter((c) => /\/\d+$/.test(c)), "no opacity modifiers").toEqual([]);
-    expect(screen.getByRole("article", { name: "AI response" }).className).not.toContain("stg:px-4");
+    const body = container.querySelector("[data-step-body]")!;
+    expect(body.querySelector(".stg\\:border-l-2")).not.toBeNull();
+    // Its messages are not drawn; its step carries no time of its own.
+    expect(screen.queryByRole("article", { name: "AI response" })).toBeNull();
+    expect(body.querySelector('[data-cursor-target="tool-call-row"]')!.className).not.toContain("stg:border-b");
   });
 });
 
 describe("SubagentSection auto-disclosure", () => {
   it("auto-opens while the subagent is running", () => {
-    const { container } = render(<SubagentSection thread={thread({ state: "running" })} />);
+    const { container } = render(<SubagentSection thread={thread({ state: "running", items: [inner("running")] })} />);
     expect(sectionExpanded(container)).toBe(true);
   });
 
@@ -168,7 +183,7 @@ describe("SubagentSection flat layout and items", () => {
     return render(<SubagentSection thread={t} subject={subject} collapsible={false} />);
   }
 
-  it("renders the input and every item kind as rows, with no header of its own", () => {
+  it("renders the helper's steps alone, with no line of its own, and no brief or messages", () => {
     const thinking: ThinkingItem = { kind: "thinking", id: "t1", text: "weighing", live: false, processedAt: "" };
     const note: NoteItem = { kind: "note", id: "n1", text: "tools are off", processedAt: "" };
     const items: TurnItem[] = [
@@ -185,21 +200,21 @@ describe("SubagentSection flat layout and items", () => {
       "Locate config",
     );
     const text = container.textContent ?? "";
-    // The parent row draws the helper's header; the flat form is the work.
+    // The parent row draws the helper's line; the flat form is its steps.
     expect(text).not.toContain("researcher");
     expect(text).not.toContain("Locate config");
-    expect(text).toContain("Find the config");
-    expect(text).toContain("Looking around.");
-    expect(text).toContain("tools are off");
-    expect(text).toContain("Found it.");
+    expect(text).not.toContain("Find the config");
+    expect(text).not.toContain("Looking around.");
+    expect(text).not.toContain("tools are off");
+    expect(text).not.toContain("Found it.");
     // The shell call renders as a row; the internal to-do call does not.
     const rows = container.querySelectorAll('[data-cursor-target="tool-call-row"]');
     expect(rows).toHaveLength(1);
     expect(screen.queryByText("Context compacted")).toBeNull();
-    expect(screen.getByLabelText("Model thinking")).toBeTruthy();
+    expect(screen.queryByLabelText("Model thinking")).toBeNull();
   });
 
-  it("groups consecutive tool calls into one group and splits them at a message", () => {
+  it("keeps every step in one group on the rail, a message between them not drawn", () => {
     const items: TurnItem[] = [
       toolUse({ id: "s1", name: "Bash", input: { command: "ls" }, result: "x" }),
       toolUse({ id: "s2", name: "Bash", input: { command: "pwd" }, result: "y" }),
@@ -208,8 +223,8 @@ describe("SubagentSection flat layout and items", () => {
     ];
     const { container } = renderFlat(thread({ state: "completed", items }));
     const groups = container.querySelectorAll('[data-cursor-target="tool-call-group"]');
-    expect(groups).toHaveLength(2);
-    expect(groups[0]!.querySelectorAll('[data-cursor-target="tool-call-row"]')).toHaveLength(2);
+    expect(groups).toHaveLength(1);
+    expect(groups[0]!.querySelectorAll('[data-cursor-target="tool-call-row"]')).toHaveLength(3);
   });
 });
 

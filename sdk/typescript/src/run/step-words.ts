@@ -22,7 +22,7 @@
 // - Targets are cut short (`TARGET_MAX`) so a line stays one line.
 
 import type { ToolUse } from "@stigmer/session-log";
-import { normalizeToolResult, resolveToolKind, type ToolKind } from "./tool-view.js";
+import { normalizeToolResult, resolveToolKind, type FileLineRange, type ToolKind, type ToolResultView } from "./tool-view.js";
 
 /** How a step stands: running, returned, failed, or stopped before it returned (its turn ended). */
 export type StepTense = "present" | "past" | "failed" | "stopped";
@@ -173,6 +173,9 @@ export function stepTense(tool: ToolUse): StepTense {
   if (tool.state === "waiting") return "present";
   if (tool.state === "stopped") return "stopped";
   if (tool.result === undefined) return "present";
+  // An edit the Stigmer harness refused answers as a result, not an error
+  // ("Error: String not found in file"): nothing changed, so it failed.
+  if (resolveToolKind(tool) === "file_edit" && refusedEdit(tool.result.text)) return "failed";
   if (resolveToolKind(tool) === "shell" && tool.background === undefined) {
     const view = normalizeToolResult(tool);
     if (view.type === "terminal" && view.exitCode !== undefined && view.exitCode !== 0) return "failed";
@@ -185,10 +188,84 @@ export function stepTense(tool: ToolUse): StepTense {
  * waits for a person's yes has done nothing yet: it reads as what the agent
  * wants to do ("Wants to write rounding.ts").
  */
-export function stepPhrase(tool: ToolUse): StepPhrase {
+export function stepPhrase(tool: ToolUse, options: StepPhraseOptions = {}): StepPhrase {
   const phrase = stepPhraseByTense(tool);
+  // A write that made the file reads as what it did ("Created rounding.test.ts").
+  if (options.created === true && phrase.tense === "past" && resolveToolKind(tool) === "file_write") {
+    const wrote = KIND_WORDS.file_write.past;
+    const created = phrase.text === wrote[1] ? CREATED[1] : phrase.text.startsWith(`${wrote[0]} `) ? `${CREATED[0]}${phrase.text.slice(wrote[0].length)}` : phrase.text;
+    return { ...phrase, text: created };
+  }
   if (tool.state !== "waiting" || !phrase.text.startsWith("Couldn't ")) return phrase;
   return { ...phrase, text: `Wants to ${phrase.text.slice("Couldn't ".length)}` };
+}
+
+/** What a step's line may know beyond the call itself. */
+export interface StepPhraseOptions {
+  /**
+   * The file a write wrote did not exist before its turn: the turn's file
+   * review says so (its change is `added`). Nothing in the call says it, so
+   * a session with no review reads "Wrote".
+   */
+  readonly created?: boolean;
+}
+
+/** A write that made its file, with a target and without one. */
+const CREATED: Form = ["Created", "Created a file"];
+
+// The first lines the engines answer a refused edit with: the Stigmer
+// harness answers it as a result in both its backends' words, which the
+// conformance suite's classifier keys the same way
+// (test/conformance/src/benchmark/tool-call-facts.ts).
+const EDIT_NOT_FOUND = /^(?:Error: )?String not found in file/;
+const EDIT_NOT_UNIQUE = /has multiple occurrences|^(?:Error: )?Multiple occurrences found in/;
+const NO_SUCH_FILE = /no such file|ENOENT|file not found|does not exist/i;
+
+/** The first line of an answer that reads, trimmed; "" when it has none. */
+function firstLine(text: string): string {
+  return (text.split("\n").find((line) => line.trim() !== "") ?? "").trim();
+}
+
+/** Whether an edit's answer says it changed nothing. */
+function refusedEdit(text: string): boolean {
+  const first = firstLine(text);
+  return EDIT_NOT_FOUND.test(first) || EDIT_NOT_UNIQUE.test(first);
+}
+
+/**
+ * Why a step failed, as a sentence a person reads, from its answer. Only the
+ * answer's first line is the engine's reason: the runner appends recovery
+ * hints for the model after it (`enrichErrorMessage`), which are never shown.
+ * A reason the engines are known to give reads in plain words ("The text to
+ * replace wasn't in the file, so nothing changed."); any other is the
+ * engine's own line, without an "Error:" label, as a sentence.
+ */
+export function failureWords(text: string): string {
+  const first = firstLine(text);
+  if (EDIT_NOT_FOUND.test(first)) return "The text to replace wasn't in the file, so nothing changed.";
+  if (EDIT_NOT_UNIQUE.test(first)) return "The text to replace was in the file more than once, so nothing changed.";
+  if (NO_SUCH_FILE.test(first)) return "The file wasn't there.";
+  const reason = first.replace(/^error:\s*/i, "");
+  return reason === "" ? "" : reason.charAt(0).toUpperCase() + reason.slice(1);
+}
+
+/**
+ * How many a search found, as its step says it: "4 files" for a search by
+ * name, "2 matches", and "2 matches in 2 files" once its matches name more
+ * than one file. Other views count nothing ("").
+ */
+export function searchCountWords(view: ToolResultView): string {
+  if (view.type !== "search") return "";
+  if (view.kind === "files") return `${view.count} ${view.count === 1 ? "file" : "files"}`;
+  const matches = `${view.count} ${view.count === 1 ? "match" : "matches"}`;
+  const files = new Set(view.matches.flatMap((match) => (match.file === undefined ? [] : [match.file]))).size;
+  return files > 1 ? `${matches} in ${files} files` : matches;
+}
+
+/** The lines a step shows of a file, as words: "Lines 14–17 of 88", or "Lines 14–17" when the length is not known. */
+export function lineRangeWords(range: FileLineRange): string {
+  const span = range.start === range.end ? `Line ${range.start}` : `Lines ${range.start}–${range.end}`;
+  return range.total === undefined ? span : `${span} of ${range.total}`;
 }
 
 function stepPhraseByTense(tool: ToolUse): StepPhrase {

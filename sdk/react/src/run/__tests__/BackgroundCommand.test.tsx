@@ -49,13 +49,17 @@ function rowOf(container: HTMLElement): HTMLElement {
 }
 
 describe("a background command's row", () => {
-  it("runs live though its call returned: state with a clock, open body with its own output, never the start's answer", () => {
+  it("runs live though its call returned: state with a clock, closed until clicked, then its own output, never the start's answer", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(Date.parse(TOOL_STARTED_AT) + 125_000));
     try {
       const { container } = render(<ToolCallItem toolUse={backgroundStart({ liveOutput: "ready on :3000\n" })} />);
       expect(container.querySelector('[data-cursor-target="background-command-status"]')?.textContent).toBe("Running in the background · 2m 05s");
       expect(rowOf(container).querySelector(".stgm-shimmer-label"), "the running sweep").not.toBeNull();
+      // Closed by default: a command left running is not the step in hand
+      // (the session page, S55); a click opens it to what it printed.
+      expect(container.textContent).not.toContain("ready on :3000");
+      fireEvent.click(container.querySelector('[data-cursor-target="thread-card-toggle"]')!);
       expect(container.textContent).toContain("ready on :3000");
       expect(container.textContent).not.toContain("Started in the background");
     } finally {
@@ -76,7 +80,8 @@ describe("a background command's row", () => {
       expect(container.querySelector('[data-cursor-target="background-command-chip"]')).toBeNull();
       const status = container.querySelector('[data-cursor-target="background-command-status"]');
       expect(status?.textContent).toBe("Running in the background · 12s");
-      expect(status?.className).toContain("stg:text-xs");
+      // On the step's second line, 12/16.
+      expect(status?.parentElement?.className).toContain("stg:text-xs");
       expect(screen.getByRole("button", { name: "Stop" }).className).toBe(cn(buttonClasses("ghost", "xs")));
     } finally {
       vi.useRealTimers();

@@ -168,7 +168,10 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word 18s": "the scene's plan turn took under a second",
+        "word 24s": "the scene's plan turn took under a second"
+      },
       "ruled": {
         "button Agent": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
         "word Agent": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included"
@@ -176,10 +179,8 @@
       "pending": {
         "button Build": "The drawing: its buttons at 34px and 26px are off the kit's 32px and 28px; redrawn at the next export",
         "type Done": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
-        "word 18s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word 24s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word How it got there: searched 1 pattern, read invoice.ts": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Plan Plan how invoices should round. Don't change anything yet.": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows"
+        "word How it got there: searched 1 pattern, read invoice.ts": "The drawing is redrawn: the roll-up counts a read as a file (\"read 1 file\", settledStepsPhrase); redrawn",
+        "word Plan Plan how invoices should round. Don't change anything yet.": "The next change: the bubble's Plan tag and its words read as one run (\"PlanPlan…\")"
       }
     },
     {

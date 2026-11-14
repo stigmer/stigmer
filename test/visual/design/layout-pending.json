@@ -340,8 +340,7 @@
     "type-off-scale td \"return note.lines.reduce(\": 12px on 19.2px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
     "type-off-scale td \"return roundHalfEven(note.lines.reduce(\": 12px on 19.2px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
     "type-off-scale th \"Change\": 12px on 19.2px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
-    "type-off-scale th \"Content\": 12px on 19.2px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
-    "type-off-scale th \"Line\": 12px on 19.2px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
+    "type-off-scale th \"Content\": 12px on 19.2px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "session-file-undone": {
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"

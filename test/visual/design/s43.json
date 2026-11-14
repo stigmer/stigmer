@@ -160,18 +160,18 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word 2 matches": "the scene's helper is running one search, with no folder",
+        "word 38s": "the scene's helper started with its turn (\"1m 30s\")",
+        "word Reading credit-note.ts": "the scene's helper is running one search, with no folder",
+        "word Searched for round( in src/billing": "the scene's helper is running one search, with no folder",
+        "word src/billing": "the scene's helper is running one search, with no folder"
+      },
       "ruled": {},
       "pending": {
         "type Working · 1m 30s": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
-        "word 1s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word 2 matches": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word 2s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word 38s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Find the rounding code researcher": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Reading credit-note.ts": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Searched for round( in src/billing": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word src/billing": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows"
+        "word 1s": "The drawing is redrawn: a helper's own steps carry no time; redrawn",
+        "word 2s": "The drawing is redrawn: a helper's own steps carry no time; redrawn"
       }
     }
   ]

@@ -364,24 +364,24 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Last 5 of 214 lines · Show all": "the scene's command printed 7 lines (\"Last 5 of 7 lines · Show all\")",
+        "word Working · 4m 20s": "the scene waits for an answer (\"Waiting for you · 1m 30s\")"
+      },
       "ruled": {},
       "pending": {
         "button Allow": "The drawing: its buttons at 34px and 26px are off the kit's 32px and 28px; redrawn at the next export",
-        "button Allow all commands this turn": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
         "button Deny": "The drawing: its buttons at 34px and 26px are off the kit's 32px and 28px; redrawn at the next export",
-        "word 2m 04s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word 6 commands": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Allow all commands this turn": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Commands in this turn": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Finished": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Last 5 of 214 lines · Show all": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Run the whole billing suiteexit 1": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Running in the background npm run dev": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Started by the agent to try the change in the app. It stops when the turn ends.": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Still running": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word The command failed; the agent read the output and fixed the test.": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Working · 4m 20s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows"
+        "button Allow all commands this turn": "The drawing is redrawn: the grant is worded \"Allow all commands\" (stigmer#3047); redrawn",
+        "word 2m 04s": "The drawing is redrawn: S38's background row is redrawn to S55's",
+        "word 6 commands": "The drawing is redrawn: the drawing gathers every kind under its own headings to show them together; the kit's turn draws them as How it got there, redrawn so",
+        "word Allow all commands this turn": "The drawing is redrawn: the grant is worded \"Allow all commands\" (stigmer#3047); redrawn",
+        "word Commands in this turn": "The drawing is redrawn: the drawing gathers every kind under its own headings to show them together; the kit's turn draws them as How it got there, redrawn so",
+        "word Finished": "The drawing is redrawn: the drawing gathers every kind under its own headings to show them together; the kit's turn draws them as How it got there, redrawn so",
+        "word Running in the background npm run dev": "The drawing is redrawn: S38's background row is redrawn to S55's",
+        "word Started by the agent to try the change in the app. It stops when the turn ends.": "The drawing is redrawn: S38's background row is redrawn to S55's",
+        "word Still running": "The drawing is redrawn: the drawing gathers every kind under its own headings to show them together; the kit's turn draws them as How it got there, redrawn so",
+        "word The command failed; the agent read the output and fixed the test.": "The drawing is redrawn: what the agent did next is recorded nowhere; redrawn away"
       }
     }
   ]

@@ -48,7 +48,7 @@ import { backgroundCommandsHolding, hasStartedResponding, hasVisiblyRunningActiv
 import { SettledStepsRow } from "./SettledStepsRow.js";
 import { PlanSteps, type PlanStoppedTone } from "./PlanSteps.js";
 import { ThreadPresentationContext, useThreadPresentation, type ThreadPresentation, type TurnEndingWiring } from "./ThreadPresentationContext.js";
-import { SubagentSection } from "./SubagentSection.js";
+import { ToolCallItem } from "./ToolCallItem.js";
 import { RunPhaseBadge } from "./RunPhaseBadge.js";
 import { SetupProgress, type SetupProgressProps } from "./SetupProgress.js";
 import { RecalledMemoriesCard, type RecalledMemoriesCardProps } from "./RecalledMemoriesCard.js";
@@ -65,7 +65,7 @@ import { PlanStreamingCard, type PlanStreamingCardProps } from "./PlanStreamingC
 import { TodoCard, type TodoCardProps } from "./TodoCard.js";
 import type { TodoRowProps } from "./TodoList.js";
 import { findStreamingPlan } from "../library/detect-streaming-plan.js";
-import { extractPrimaryArg, resolveToolCategoryFromCall, subagentSubjectOf } from "@stigmer/react-core";
+import { extractPrimaryArg, resolveToolCategoryFromCall } from "@stigmer/react-core";
 import { isInternalTool } from "@stigmer/react-core/internal";
 import { fileForRowPath } from "@stigmer/react-core";
 import type { ToolUseAnswer } from "@stigmer/react-core";
@@ -333,6 +333,13 @@ export interface MessageThreadProps {
     path: string,
     resolved: ResolvedPathAction,
   ) => boolean | void;
+  /**
+   * Whether {@link onFilePathClick} would open `path` rather than decline
+   * it, answered from the same resolver before any click. A step offers
+   * "Open the whole file" only where this says yes. Passed to
+   * {@link FilePathContext}.
+   */
+  readonly canOpenFilePath?: (path: string) => boolean;
   /**
    * Absolute sandbox workspace root (e.g. `/home/daytona/workspace`).
    * When provided, shell commands and tool output normalize absolute
@@ -907,7 +914,10 @@ export function buildThreadItems(
       emitTodos();
       // A stretch folds once every call returned, none runs on in the
       // background, and none failed: a failure stays in view.
-      const settled = group.every((tool) => tool.result !== undefined && !isBackgroundRunning(tool) && stepTense(tool) !== "failed");
+      // A single step stays its own row: folding it would put one line
+      // behind another (segment-tool-calls.ts keeps runs under two as rows
+      // the same way).
+      const settled = group.length > 1 && group.every((tool) => tool.result !== undefined && !isBackgroundRunning(tool) && stepTense(tool) !== "failed");
       items.push({ kind: "tool-group", toolUses: group, key: `${group[0]!.id}-tc`, ...(isActiveTurn && settled ? { fold: true } : {}) });
       for (const toolUse of group) inlineToolUseIds.add(toolUse.id);
       group = [];
@@ -1250,6 +1260,7 @@ export function MessageThread({
   stopBackgroundErrors,
   resources,
   onFilePathClick,
+  canOpenFilePath,
   sandboxWorkspaceRoot,
   agentVersionLabel,
   virtualized = false,
@@ -1320,8 +1331,9 @@ export function MessageThread({
     () => ({
       resources: resources ?? [],
       onFilePathClick,
+      canOpenFilePath,
     }),
-    [resources, onFilePathClick],
+    [resources, onFilePathClick, canOpenFilePath],
   );
 
   const sandboxCtx = useMemo<SandboxContextValue>(
@@ -1699,14 +1711,9 @@ export function ThreadItemRenderer({
     case "outcome":
       return <OutcomeRow turn={item.turn} />;
     case "subagent":
-      return (
-        <SubagentSection
-          thread={item.thread}
-          subject={subagentSubjectOf(item.toolUse)}
-          startedAt={item.toolUse.processedAt}
-          completedAt={item.toolUse.result?.processedAt}
-        />
-      );
+      // The helper reads as the step that started it, wherever it shows:
+      // the same row a helper takes inside a plan, its own steps in its body.
+      return <ToolCallItem toolUse={item.toolUse} />;
     case "phase-badge":
       return (
         <div className="stg:flex stg:justify-center stg:py-3">
