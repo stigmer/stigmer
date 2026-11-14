@@ -46,6 +46,21 @@ const GATE_POLL_MS = 150;
 /** The server's setting naming the providers its runners reach (the server's `boot/config.ts`). */
 export const RUNNER_PROVIDERS_ENV = "STIGMER_RUNNER_PROVIDERS";
 
+/** The server's two help settings (the server's `boot/help-link.ts`). */
+export const HELP_URL_ENV = "STIGMER_HELP_URL";
+export const HELP_LABEL_ENV = "STIGMER_HELP_LABEL";
+
+/**
+ * Where a person running Stigmer on their own laptop asks for help: the
+ * project's community chat (the README's Discord). A laptop has no operator
+ * to name one, so `stigmer up` names the project's own; a self-hosted server
+ * announces only what its operator sets.
+ */
+export const COMMUNITY_HELP = {
+  url: "https://discord.com/invite/EtANnfsJ8B",
+  label: "Ask the Stigmer community",
+} as const;
+
 /**
  * Environment for the `stigmer-server` child. Pins ports, Temporal coordinates,
  * the runner task queue, and the db/storage paths to the ~/.stigmer layout.
@@ -87,6 +102,14 @@ export function buildServerEnv(
   const reach = localRunnerReach(config, base);
   if (reach !== undefined && base[RUNNER_PROVIDERS_ENV] === undefined) {
     env[RUNNER_PROVIDERS_ENV] = runnerProvidersValue(reach);
+  }
+  // Where the person asks for help (the console's sidebar and failures, the
+  // CLI's refused commands): the project's community, unless the person
+  // exported either setting themselves, an empty one included (it declares
+  // "none"), as RUNNER_PROVIDERS_ENV's rule above.
+  if (base[HELP_URL_ENV] === undefined && base[HELP_LABEL_ENV] === undefined) {
+    env[HELP_URL_ENV] = COMMUNITY_HELP.url;
+    env[HELP_LABEL_ENV] = COMMUNITY_HELP.label;
   }
   return env;
 }

@@ -324,6 +324,29 @@ kubectl -n stigmer rollout restart deploy/stigmer
 </Tab>
 </Tabs>
 
+### Where your people ask for help
+
+Set where your people ask when they're stuck (your support desk, team chat or a
+mail address) and every console screen shows it: at the foot of the sidebar,
+under the Sign in button, and under every failure. Every command the server
+refuses ends with it too. Unset, nothing shows.
+
+| `.env`               | `values.yaml`       | What it holds                                            |
+| -------------------- | ------------------- | -------------------------------------------------------- |
+| `STIGMER_HELP_URL`   | `server.help.url`   | An absolute `https:`, `http:` or `mailto:` address.      |
+| `STIGMER_HELP_LABEL` | `server.help.label` | Its words, at most 40 characters. `Get help` when unset. |
+
+```bash title=".env"
+STIGMER_HELP_URL=https://support.example.com/stigmer
+STIGMER_HELP_LABEL=Ask IT on Slack
+```
+
+A console shows it as "Stuck? Ask IT on Slack". The server never announces an
+address with another scheme: it drops one at start and says so in its log, and
+does the same for words over 40 characters, which become `Get help`. Apps your
+builders make with the React SDK don't show it to their own users: help there is
+the builder's to give.
+
 ### Rotate the runner's key
 
 The runner's API key is the one credential you'll rotate on purpose. Create the

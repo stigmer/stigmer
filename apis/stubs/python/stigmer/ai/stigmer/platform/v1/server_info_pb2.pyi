@@ -29,20 +29,30 @@ class GetServerInfoInput(_message.Message):
     def __init__(self) -> None: ...
 
 class GetServerInfoOutput(_message.Message):
-    __slots__ = ("edition", "version", "authentication_required", "single_org", "environments", "native_sign_in")
+    __slots__ = ("edition", "version", "authentication_required", "single_org", "environments", "native_sign_in", "help")
     EDITION_FIELD_NUMBER: _ClassVar[int]
     VERSION_FIELD_NUMBER: _ClassVar[int]
     AUTHENTICATION_REQUIRED_FIELD_NUMBER: _ClassVar[int]
     SINGLE_ORG_FIELD_NUMBER: _ClassVar[int]
     ENVIRONMENTS_FIELD_NUMBER: _ClassVar[int]
     NATIVE_SIGN_IN_FIELD_NUMBER: _ClassVar[int]
+    HELP_FIELD_NUMBER: _ClassVar[int]
     edition: ServerEdition
     version: str
     authentication_required: bool
     single_org: bool
     environments: EnvironmentAvailability
     native_sign_in: NativeSignIn
-    def __init__(self, edition: _Optional[_Union[ServerEdition, str]] = ..., version: _Optional[str] = ..., authentication_required: bool = ..., single_org: bool = ..., environments: _Optional[_Union[EnvironmentAvailability, _Mapping]] = ..., native_sign_in: _Optional[_Union[NativeSignIn, _Mapping]] = ...) -> None: ...
+    help: HelpLink
+    def __init__(self, edition: _Optional[_Union[ServerEdition, str]] = ..., version: _Optional[str] = ..., authentication_required: bool = ..., single_org: bool = ..., environments: _Optional[_Union[EnvironmentAvailability, _Mapping]] = ..., native_sign_in: _Optional[_Union[NativeSignIn, _Mapping]] = ..., help: _Optional[_Union[HelpLink, _Mapping]] = ...) -> None: ...
+
+class HelpLink(_message.Message):
+    __slots__ = ("url", "label")
+    URL_FIELD_NUMBER: _ClassVar[int]
+    LABEL_FIELD_NUMBER: _ClassVar[int]
+    url: str
+    label: str
+    def __init__(self, url: _Optional[str] = ..., label: _Optional[str] = ...) -> None: ...
 
 class NativeSignIn(_message.Message):
     __slots__ = ("issuer", "audience", "client_id")

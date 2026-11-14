@@ -295,7 +295,8 @@ describe("CON-08 after the first job, the console says what comes next and leads
     await waitFor(() => expect((add as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(add);
 
-    expect((await within(card).findByRole("alert")).textContent).toContain("Spreadsheet export wasn't added. SKILL.md is not valid");
+    // What happened, the server's sentence, then what to do.
+    expect((await within(card).findByRole("alert")).textContent).toMatch(/^Spreadsheet export wasn't added\. SKILL\.md is not valid.*[.!?] Try again\.$/);
     expect(update).not.toHaveBeenCalled();
   });
 
@@ -305,7 +306,7 @@ describe("CON-08 after the first job, the console says what comes next and leads
     const add = await within(card).findByRole("button", { name: "Add it" });
     await waitFor(() => expect((add as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(add);
-    expect((await within(card).findByRole("alert")).textContent).toContain("the store is busy");
+    expect((await within(card).findByRole("alert")).textContent).toMatch(/^Spreadsheet export wasn't added\. .*the store is busy.*[.!?] Try again\.$/);
 
     await waitFor(() => expect((within(card).getByRole("button", { name: "Add it" }) as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(within(card).getByRole("button", { name: "Add it" }));
@@ -318,7 +319,9 @@ describe("CON-08 after the first job, the console says what comes next and leads
     renderPage({ makeItYours: LINKS, defaultTab: "make-it-yours" }, { readFails: true });
     const card = await screen.findByRole("region", { name: "Give it a skill" });
 
-    expect((await within(card).findByRole("alert")).textContent).toContain("the skill store is down");
+    expect((await within(card).findByRole("alert")).textContent).toMatch(
+      /^Stigmer couldn't check whether Spreadsheet export is in this organization\. .*the skill store is down.*[.!?] Reload the page to try again\.$/,
+    );
     expect((within(card).getByRole("button", { name: "Add it" }) as HTMLButtonElement).disabled).toBe(true);
   });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import type { EnvironmentAvailability, ServerInfo } from "@stigmer/client";
+import type { EnvironmentAvailability, HelpLink, ServerInfo } from "@stigmer/client";
 import { useStigmer } from "@stigmer/react-core";
 import { useFetch } from "@stigmer/react-core/internal";
 
@@ -111,4 +111,24 @@ export function useSingleOrg(): boolean | undefined {
 export function useEnvironmentAvailability(): EnvironmentAvailability | undefined {
   const { serverInfo } = useServerInfo();
   return serverInfo?.environments;
+}
+
+/**
+ * Where a person stuck on the connected server asks for help
+ * (`serverInfo.help`): the address and the words its operator set, already
+ * checked to be an absolute `https:`, `http:` or `mailto:` address.
+ *
+ * `undefined` while the answer is loading, when it failed, when the
+ * operator set none, and on a server that predates the field: a surface
+ * then shows no help link, never a guess. `HelpLink` draws it.
+ *
+ * @example
+ * ```tsx
+ * const help = useHelpLink();
+ * return help === undefined ? null : <a href={help.url}>{help.label}</a>;
+ * ```
+ */
+export function useHelpLink(): HelpLink | undefined {
+  const { serverInfo } = useServerInfo();
+  return serverInfo?.help;
 }

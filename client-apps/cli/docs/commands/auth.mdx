@@ -46,6 +46,9 @@ site unless you pass `--trust-provider`.
 
 On your first sign-in the CLI also creates your identity account, the same
 way the web console does; `stigmer auth whoami` tells you when a call did.
+When the server's operator named a place to ask for help, `whoami` ends with
+it (`Stuck? Ask IT on Slack: https://…`), and so does every command the server
+refuses.
 
 For programmatic access (CI/CD, scripts), use
 [API keys](./apikey) instead of browser-based auth.

@@ -350,6 +350,68 @@ private static final long serialVersionUID = 0L;
     return nativeSignIn_ == null ? ai.stigmer.platform.v1.NativeSignIn.getDefaultInstance() : nativeSignIn_;
   }
 
+  public static final int HELP_FIELD_NUMBER = 7;
+  private ai.stigmer.platform.v1.HelpLink help_;
+  /**
+   * <pre>
+   * Where a person goes when they are stuck on this server: its operator's
+   * support desk, team chat or community, set by the operator.
+   *
+   * Absent when the operator set none, and then a client shows no help link
+   * rather than guessing one. A client shows it on its own screens (sign-in,
+   * every page's chrome, every failure) and never inside an app a builder
+   * made for their own users, whose help is the builder's. Read before
+   * sign-in, like the rest of this answer, since a person stuck at sign-in
+   * needs it most.
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.HelpLink help = 7 [json_name = "help"];</code>
+   * @return Whether the help field is set.
+   */
+  @java.lang.Override
+  public boolean hasHelp() {
+    return ((bitField0_ & 0x00000010) != 0);
+  }
+  /**
+   * <pre>
+   * Where a person goes when they are stuck on this server: its operator's
+   * support desk, team chat or community, set by the operator.
+   *
+   * Absent when the operator set none, and then a client shows no help link
+   * rather than guessing one. A client shows it on its own screens (sign-in,
+   * every page's chrome, every failure) and never inside an app a builder
+   * made for their own users, whose help is the builder's. Read before
+   * sign-in, like the rest of this answer, since a person stuck at sign-in
+   * needs it most.
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.HelpLink help = 7 [json_name = "help"];</code>
+   * @return The help.
+   */
+  @java.lang.Override
+  public ai.stigmer.platform.v1.HelpLink getHelp() {
+    return help_ == null ? ai.stigmer.platform.v1.HelpLink.getDefaultInstance() : help_;
+  }
+  /**
+   * <pre>
+   * Where a person goes when they are stuck on this server: its operator's
+   * support desk, team chat or community, set by the operator.
+   *
+   * Absent when the operator set none, and then a client shows no help link
+   * rather than guessing one. A client shows it on its own screens (sign-in,
+   * every page's chrome, every failure) and never inside an app a builder
+   * made for their own users, whose help is the builder's. Read before
+   * sign-in, like the rest of this answer, since a person stuck at sign-in
+   * needs it most.
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.HelpLink help = 7 [json_name = "help"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.platform.v1.HelpLinkOrBuilder getHelpOrBuilder() {
+    return help_ == null ? ai.stigmer.platform.v1.HelpLink.getDefaultInstance() : help_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -382,6 +444,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000008) != 0)) {
       output.writeMessage(6, getNativeSignIn());
     }
+    if (((bitField0_ & 0x00000010) != 0)) {
+      output.writeMessage(7, getHelp());
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -413,6 +478,10 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000008) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(6, getNativeSignIn());
+    }
+    if (((bitField0_ & 0x00000010) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(7, getHelp());
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -452,6 +521,11 @@ private static final long serialVersionUID = 0L;
       if (!getNativeSignIn()
           .equals(other.getNativeSignIn())) return false;
     }
+    if (hasHelp() != other.hasHelp()) return false;
+    if (hasHelp()) {
+      if (!getHelp()
+          .equals(other.getHelp())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -484,6 +558,10 @@ private static final long serialVersionUID = 0L;
     if (hasNativeSignIn()) {
       hash = (37 * hash) + NATIVE_SIGN_IN_FIELD_NUMBER;
       hash = (53 * hash) + getNativeSignIn().hashCode();
+    }
+    if (hasHelp()) {
+      hash = (37 * hash) + HELP_FIELD_NUMBER;
+      hash = (53 * hash) + getHelp().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -621,6 +699,7 @@ private static final long serialVersionUID = 0L;
               .alwaysUseFieldBuilders) {
         internalGetEnvironmentsFieldBuilder();
         internalGetNativeSignInFieldBuilder();
+        internalGetHelpFieldBuilder();
       }
     }
     @java.lang.Override
@@ -640,6 +719,11 @@ private static final long serialVersionUID = 0L;
       if (nativeSignInBuilder_ != null) {
         nativeSignInBuilder_.dispose();
         nativeSignInBuilder_ = null;
+      }
+      help_ = null;
+      if (helpBuilder_ != null) {
+        helpBuilder_.dispose();
+        helpBuilder_ = null;
       }
       return this;
     }
@@ -701,6 +785,12 @@ private static final long serialVersionUID = 0L;
             : nativeSignInBuilder_.build();
         to_bitField0_ |= 0x00000008;
       }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.help_ = helpBuilder_ == null
+            ? help_
+            : helpBuilder_.build();
+        to_bitField0_ |= 0x00000010;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -735,6 +825,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasNativeSignIn()) {
         mergeNativeSignIn(other.getNativeSignIn());
+      }
+      if (other.hasHelp()) {
+        mergeHelp(other.getHelp());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -796,6 +889,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000020;
               break;
             } // case 50
+            case 58: {
+              input.readMessage(
+                  internalGetHelpFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 58
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1633,6 +1733,235 @@ private static final long serialVersionUID = 0L;
         nativeSignIn_ = null;
       }
       return nativeSignInBuilder_;
+    }
+
+    private ai.stigmer.platform.v1.HelpLink help_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.platform.v1.HelpLink, ai.stigmer.platform.v1.HelpLink.Builder, ai.stigmer.platform.v1.HelpLinkOrBuilder> helpBuilder_;
+    /**
+     * <pre>
+     * Where a person goes when they are stuck on this server: its operator's
+     * support desk, team chat or community, set by the operator.
+     *
+     * Absent when the operator set none, and then a client shows no help link
+     * rather than guessing one. A client shows it on its own screens (sign-in,
+     * every page's chrome, every failure) and never inside an app a builder
+     * made for their own users, whose help is the builder's. Read before
+     * sign-in, like the rest of this answer, since a person stuck at sign-in
+     * needs it most.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.HelpLink help = 7 [json_name = "help"];</code>
+     * @return Whether the help field is set.
+     */
+    public boolean hasHelp() {
+      return ((bitField0_ & 0x00000040) != 0);
+    }
+    /**
+     * <pre>
+     * Where a person goes when they are stuck on this server: its operator's
+     * support desk, team chat or community, set by the operator.
+     *
+     * Absent when the operator set none, and then a client shows no help link
+     * rather than guessing one. A client shows it on its own screens (sign-in,
+     * every page's chrome, every failure) and never inside an app a builder
+     * made for their own users, whose help is the builder's. Read before
+     * sign-in, like the rest of this answer, since a person stuck at sign-in
+     * needs it most.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.HelpLink help = 7 [json_name = "help"];</code>
+     * @return The help.
+     */
+    public ai.stigmer.platform.v1.HelpLink getHelp() {
+      if (helpBuilder_ == null) {
+        return help_ == null ? ai.stigmer.platform.v1.HelpLink.getDefaultInstance() : help_;
+      } else {
+        return helpBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Where a person goes when they are stuck on this server: its operator's
+     * support desk, team chat or community, set by the operator.
+     *
+     * Absent when the operator set none, and then a client shows no help link
+     * rather than guessing one. A client shows it on its own screens (sign-in,
+     * every page's chrome, every failure) and never inside an app a builder
+     * made for their own users, whose help is the builder's. Read before
+     * sign-in, like the rest of this answer, since a person stuck at sign-in
+     * needs it most.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.HelpLink help = 7 [json_name = "help"];</code>
+     */
+    public Builder setHelp(ai.stigmer.platform.v1.HelpLink value) {
+      if (helpBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        help_ = value;
+      } else {
+        helpBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Where a person goes when they are stuck on this server: its operator's
+     * support desk, team chat or community, set by the operator.
+     *
+     * Absent when the operator set none, and then a client shows no help link
+     * rather than guessing one. A client shows it on its own screens (sign-in,
+     * every page's chrome, every failure) and never inside an app a builder
+     * made for their own users, whose help is the builder's. Read before
+     * sign-in, like the rest of this answer, since a person stuck at sign-in
+     * needs it most.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.HelpLink help = 7 [json_name = "help"];</code>
+     */
+    public Builder setHelp(
+        ai.stigmer.platform.v1.HelpLink.Builder builderForValue) {
+      if (helpBuilder_ == null) {
+        help_ = builderForValue.build();
+      } else {
+        helpBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Where a person goes when they are stuck on this server: its operator's
+     * support desk, team chat or community, set by the operator.
+     *
+     * Absent when the operator set none, and then a client shows no help link
+     * rather than guessing one. A client shows it on its own screens (sign-in,
+     * every page's chrome, every failure) and never inside an app a builder
+     * made for their own users, whose help is the builder's. Read before
+     * sign-in, like the rest of this answer, since a person stuck at sign-in
+     * needs it most.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.HelpLink help = 7 [json_name = "help"];</code>
+     */
+    public Builder mergeHelp(ai.stigmer.platform.v1.HelpLink value) {
+      if (helpBuilder_ == null) {
+        if (((bitField0_ & 0x00000040) != 0) &&
+          help_ != null &&
+          help_ != ai.stigmer.platform.v1.HelpLink.getDefaultInstance()) {
+          getHelpBuilder().mergeFrom(value);
+        } else {
+          help_ = value;
+        }
+      } else {
+        helpBuilder_.mergeFrom(value);
+      }
+      if (help_ != null) {
+        bitField0_ |= 0x00000040;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Where a person goes when they are stuck on this server: its operator's
+     * support desk, team chat or community, set by the operator.
+     *
+     * Absent when the operator set none, and then a client shows no help link
+     * rather than guessing one. A client shows it on its own screens (sign-in,
+     * every page's chrome, every failure) and never inside an app a builder
+     * made for their own users, whose help is the builder's. Read before
+     * sign-in, like the rest of this answer, since a person stuck at sign-in
+     * needs it most.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.HelpLink help = 7 [json_name = "help"];</code>
+     */
+    public Builder clearHelp() {
+      bitField0_ = (bitField0_ & ~0x00000040);
+      help_ = null;
+      if (helpBuilder_ != null) {
+        helpBuilder_.dispose();
+        helpBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Where a person goes when they are stuck on this server: its operator's
+     * support desk, team chat or community, set by the operator.
+     *
+     * Absent when the operator set none, and then a client shows no help link
+     * rather than guessing one. A client shows it on its own screens (sign-in,
+     * every page's chrome, every failure) and never inside an app a builder
+     * made for their own users, whose help is the builder's. Read before
+     * sign-in, like the rest of this answer, since a person stuck at sign-in
+     * needs it most.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.HelpLink help = 7 [json_name = "help"];</code>
+     */
+    public ai.stigmer.platform.v1.HelpLink.Builder getHelpBuilder() {
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return internalGetHelpFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Where a person goes when they are stuck on this server: its operator's
+     * support desk, team chat or community, set by the operator.
+     *
+     * Absent when the operator set none, and then a client shows no help link
+     * rather than guessing one. A client shows it on its own screens (sign-in,
+     * every page's chrome, every failure) and never inside an app a builder
+     * made for their own users, whose help is the builder's. Read before
+     * sign-in, like the rest of this answer, since a person stuck at sign-in
+     * needs it most.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.HelpLink help = 7 [json_name = "help"];</code>
+     */
+    public ai.stigmer.platform.v1.HelpLinkOrBuilder getHelpOrBuilder() {
+      if (helpBuilder_ != null) {
+        return helpBuilder_.getMessageOrBuilder();
+      } else {
+        return help_ == null ?
+            ai.stigmer.platform.v1.HelpLink.getDefaultInstance() : help_;
+      }
+    }
+    /**
+     * <pre>
+     * Where a person goes when they are stuck on this server: its operator's
+     * support desk, team chat or community, set by the operator.
+     *
+     * Absent when the operator set none, and then a client shows no help link
+     * rather than guessing one. A client shows it on its own screens (sign-in,
+     * every page's chrome, every failure) and never inside an app a builder
+     * made for their own users, whose help is the builder's. Read before
+     * sign-in, like the rest of this answer, since a person stuck at sign-in
+     * needs it most.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.HelpLink help = 7 [json_name = "help"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.platform.v1.HelpLink, ai.stigmer.platform.v1.HelpLink.Builder, ai.stigmer.platform.v1.HelpLinkOrBuilder> 
+        internalGetHelpFieldBuilder() {
+      if (helpBuilder_ == null) {
+        helpBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.platform.v1.HelpLink, ai.stigmer.platform.v1.HelpLink.Builder, ai.stigmer.platform.v1.HelpLinkOrBuilder>(
+                getHelp(),
+                getParentForChildren(),
+                isClean());
+        help_ = null;
+      }
+      return helpBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.platform.v1.GetServerInfoOutput)

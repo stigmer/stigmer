@@ -2,6 +2,7 @@
 
 import { Loader2, AlertCircle, RefreshCw, LogOut } from "lucide-react";
 import { Button, useIdentityAccountGate } from "@stigmer/react-sdk";
+import { HelpLink } from "@stigmer/react-sdk/console";
 import { useAuth } from "@/auth";
 import { getRuntimeConfig } from "@/config/runtime-config";
 
@@ -139,6 +140,7 @@ function ErrorState({
       <Button icon={<RefreshCw className="size-3.5" />} onClick={onRetry}>
         Try again
       </Button>
+      <HelpLink />
     </div>
   );
 }

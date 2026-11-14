@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
-import { SettingsSidebar, useSettingsNavGroups } from "@stigmer/react-sdk/console";
+import { HelpLink, SettingsSidebar, useSettingsNavGroups } from "@stigmer/react-sdk/console";
 import type { SidebarLinkRenderProps } from "@stigmer/react-sdk/console";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";
@@ -46,7 +46,12 @@ export function ManagementSidebar({
       activePath={pathname}
       backHref={lastSessionZonePath ?? "/"}
       renderLink={renderLink}
-      footer={<UserMenu />}
+      footer={
+        <>
+          <HelpLink variant="row" />
+          <UserMenu />
+        </>
+      }
       isOpen={sidebar.isOpen}
       onCollapse={sidebar.close}
       onOrgChanged={handleOrgChanged}

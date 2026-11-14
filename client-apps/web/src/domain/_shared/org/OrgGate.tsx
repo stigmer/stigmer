@@ -10,6 +10,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { Button, CreateOrganizationForm, useOrgGate } from "@stigmer/react-sdk";
+import { HelpLink } from "@stigmer/react-sdk/console";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { useAuth } from "@/auth";
 
@@ -122,6 +123,7 @@ function ErrorState({
       <Button icon={<RefreshCw className="size-3.5" />} onClick={onRetry}>
         Try again
       </Button>
+      <HelpLink />
     </div>
   );
 }

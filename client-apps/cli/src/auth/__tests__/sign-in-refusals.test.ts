@@ -129,8 +129,8 @@ describe("a code on any device", () => {
   });
 
   it.each([
-    ["an error the grant does not name", ["server_error"] as const, "authentication failed: server_error: the tenant is down"],
-    ["an answer that is not JSON", ["not_json"] as const, "authentication failed: HTTP 502"],
+    ["an error the grant does not name", ["server_error"] as const, "the sign-in provider ended the sign-in: server_error: the tenant is down"],
+    ["an answer that is not JSON", ["not_json"] as const, "the sign-in provider ended the sign-in: HTTP 502"],
   ])("ends on %s, in the provider's words", async (_label, answers, words) => {
     issuer = await startFakeIssuer({ device: true, deviceAnswers: [...answers] });
     const discovery = await discover(issuer.issuer);
@@ -197,6 +197,25 @@ describe("the browser sign-in", () => {
       expect(err.hints?.[0]).toBe("Finish or stop the other sign-in, then try again.");
     } finally {
       for (const server of taken) await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+});
+
+describe("a sign-in left unfinished in the browser", () => {
+  it("says nothing was saved and names the two commands that try again", async () => {
+    const callback = new CallbackServer([await freePort()], "/auth/callback");
+    await callback.start();
+    try {
+      const err = await refusal(() => callback.waitForCallback(20));
+      expect(err.message).toBe("the sign-in wasn't finished in the browser in time, so nothing was saved");
+      // The exit code scripts read is unchanged: 1, as before the words changed.
+      expect(err.exitCode).toBe(ExitCode.General);
+      expect(err.hints).toEqual([
+        "Run 'stigmer auth login' again and finish signing in on the page it opens.",
+        "Where no browser can open here, run 'stigmer auth login --device' instead.",
+      ]);
+    } finally {
+      await callback.shutdown();
     }
   });
 });

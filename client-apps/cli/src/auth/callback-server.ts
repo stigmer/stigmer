@@ -66,7 +66,12 @@ export class CallbackServer {
   waitForCallback(timeoutMs: number): Promise<CallbackResult> {
     return new Promise<CallbackResult>((resolve, reject) => {
       const timer = setTimeout(() => {
-        reject(new CliExitError("timed out waiting for authentication — please try again", ExitCode.General));
+        reject(
+          new CliExitError("the sign-in wasn't finished in the browser in time, so nothing was saved", ExitCode.General, [
+            "Run 'stigmer auth login' again and finish signing in on the page it opens.",
+            "Where no browser can open here, run 'stigmer auth login --device' instead.",
+          ]),
+        );
       }, timeoutMs);
       this.settler = {
         resolve: (result) => {

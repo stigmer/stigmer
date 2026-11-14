@@ -232,4 +232,55 @@ public interface GetServerInfoOutputOrBuilder extends
    * <code>.ai.stigmer.platform.v1.NativeSignIn native_sign_in = 6 [json_name = "nativeSignIn"];</code>
    */
   ai.stigmer.platform.v1.NativeSignInOrBuilder getNativeSignInOrBuilder();
+
+  /**
+   * <pre>
+   * Where a person goes when they are stuck on this server: its operator's
+   * support desk, team chat or community, set by the operator.
+   *
+   * Absent when the operator set none, and then a client shows no help link
+   * rather than guessing one. A client shows it on its own screens (sign-in,
+   * every page's chrome, every failure) and never inside an app a builder
+   * made for their own users, whose help is the builder's. Read before
+   * sign-in, like the rest of this answer, since a person stuck at sign-in
+   * needs it most.
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.HelpLink help = 7 [json_name = "help"];</code>
+   * @return Whether the help field is set.
+   */
+  boolean hasHelp();
+  /**
+   * <pre>
+   * Where a person goes when they are stuck on this server: its operator's
+   * support desk, team chat or community, set by the operator.
+   *
+   * Absent when the operator set none, and then a client shows no help link
+   * rather than guessing one. A client shows it on its own screens (sign-in,
+   * every page's chrome, every failure) and never inside an app a builder
+   * made for their own users, whose help is the builder's. Read before
+   * sign-in, like the rest of this answer, since a person stuck at sign-in
+   * needs it most.
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.HelpLink help = 7 [json_name = "help"];</code>
+   * @return The help.
+   */
+  ai.stigmer.platform.v1.HelpLink getHelp();
+  /**
+   * <pre>
+   * Where a person goes when they are stuck on this server: its operator's
+   * support desk, team chat or community, set by the operator.
+   *
+   * Absent when the operator set none, and then a client shows no help link
+   * rather than guessing one. A client shows it on its own screens (sign-in,
+   * every page's chrome, every failure) and never inside an app a builder
+   * made for their own users, whose help is the builder's. Read before
+   * sign-in, like the rest of this answer, since a person stuck at sign-in
+   * needs it most.
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.HelpLink help = 7 [json_name = "help"];</code>
+   */
+  ai.stigmer.platform.v1.HelpLinkOrBuilder getHelpOrBuilder();
 }

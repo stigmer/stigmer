@@ -27,6 +27,11 @@ start, it stops everything it started, exits non-zero, and says which part
 failed, why, its last lines and how to see its full log, for example
 `runner did not start: the runner exited with code 78 before it was ready`.
 
+The console's sidebar, its failure notes and every command the server refuses
+point at the Stigmer community ("Ask the Stigmer community") when you're
+stuck. Export `STIGMER_HELP_URL` (and `STIGMER_HELP_LABEL`) before
+`stigmer up` to point them somewhere else, or export it empty for no link.
+
 Use `stigmer up server` to start only the control plane (Temporal and
 `stigmer-server`) when you manage your own runners — for example, the desktop
 app with an embedded runner, your own customer code, or cloud sandboxes.

@@ -257,6 +257,30 @@ message GetServerInfoOutput {
   // instead of guessing an identity provider. Read before sign-in, like
   // the rest of this answer.
   NativeSignIn native_sign_in = 6;
+
+  // Where a person goes when they are stuck on this server: its operator's
+  // support desk, team chat or community, set by the operator.
+  //
+  // Absent when the operator set none, and then a client shows no help link
+  // rather than guessing one. A client shows it on its own screens (sign-in,
+  // every page's chrome, every failure) and never inside an app a builder
+  // made for their own users, whose help is the builder's. Read before
+  // sign-in, like the rest of this answer, since a person stuck at sign-in
+  // needs it most.
+  HelpLink help = 7;
+}
+
+// HelpLink is a place to ask for help and the words a client shows for it.
+message HelpLink {
+  // An absolute `https:`, `http:` or `mailto:` address. A server announces
+  // no other scheme, and a client refuses one it is handed anyway, since it
+  // renders the address as a link.
+  string url = 1;
+
+  // The link's words, at most 40 characters ("Get help" when the operator
+  // set only the address). A client shows them as they are, never as
+  // markup.
+  string label = 2;
 }
 
 // NativeSignIn names the identity provider and the public client an app on

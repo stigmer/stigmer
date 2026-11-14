@@ -176,6 +176,13 @@
       "components": 8
     },
     {
+      "slug": "help",
+      "title": "help",
+      "description": "",
+      "hooks": 0,
+      "components": 1
+    },
+    {
       "slug": "identity-account",
       "title": "Identity Account",
       "description": "Hooks for identity account lookup and profile resolution.",

@@ -26,7 +26,8 @@ import { useCallback, useState, type ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { PushSkillRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
-import { getUserMessage, isNotFound, type AgentInput, type ResourceRef } from "@stigmer/client";
+import { isNotFound, type AgentInput, type ResourceRef } from "@stigmer/client";
+import { asSentence, serverSentence } from "../internal/server-words.js";
 import { EXAMPLES, skillById, type Example } from "@stigmer/examples";
 import { cn } from "@stigmer/design-tokens";
 import { useStigmer } from "@stigmer/react-core";
@@ -240,7 +241,7 @@ function SkillCard({
       const kept = refs.map((ref) => keptReference({ org: ref.org || org, slug: ref.slug, ...(ref.id ? { id: ref.id } : {}), ...(ref.version ? { version: ref.version } : {}) }));
       await saveField("skillRefs", [...kept, { org, slug: OFFERED_SKILL_ID }]);
     } catch (err) {
-      setFailure(`${offered.name} wasn't added. ${getUserMessage(err, "Stigmer couldn't reach the server")}`);
+      setFailure(`${offered.name} wasn't added. ${serverSentence(err)} Try again.`);
     } finally {
       setAdding(false);
     }
@@ -250,7 +251,7 @@ function SkillCard({
   if (skill === undefined) return null;
   const refused = exists === false && !createSkill.isLoading && !createSkill.allowed;
   const ready = has || exists === true || (exists === false && createSkill.allowed);
-  const saveFailed = saveError?.field === "skillRefs" ? saveError.message : null;
+  const saveFailed = saveError?.field === "skillRefs" ? `${skill.name} wasn't added. ${asSentence(saveError.message)} Try again.` : null;
 
   return (
     <Card title="Give it a skill" className="stg:md:col-span-3 stg:lg:col-span-2">
@@ -284,7 +285,8 @@ function SkillCard({
           )}
           {readError !== null && (
             <p role="alert" className="stg:m-0 stg:text-xs stg:text-destructive">
-              {getUserMessage(readError, "Stigmer couldn't reach the server")}
+              Stigmer couldn&apos;t check whether {skill.name} is in this organization. {serverSentence(readError)} Reload the page to try
+              again.
             </p>
           )}
           {(failure ?? saveFailed) !== null && (
