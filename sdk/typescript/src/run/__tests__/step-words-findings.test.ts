@@ -10,7 +10,7 @@ import { describe, it, expect } from "vitest";
 import type { JsonObject } from "@bufbuild/protobuf";
 import type { ToolUse } from "@stigmer/session-log";
 import { failureWords, lineRangeWords, searchCountWords, stepPhrase, stepTense } from "../step-words";
-import { normalizeToolResult } from "../tool-view";
+import { editAttemptOf, normalizeToolResult } from "../tool-view";
 
 function call(name: string, input: JsonObject, text = "ok", isError = false): ToolUse {
   return {
@@ -92,5 +92,13 @@ describe("a read's range", () => {
     expect(lineRangeWords({ start: 14, end: 17, total: 88 })).toBe("Lines 14–17 of 88");
     expect(lineRangeWords({ start: 14, end: 17 })).toBe("Lines 14–17");
     expect(lineRangeWords({ start: 3, end: 3 })).toBe("Line 3");
+  });
+});
+
+describe("editAttemptOf", () => {
+  it("reads what a failed edit tried as the diff of its own input, and nothing for another call", () => {
+    const failed = call("edit_file", { path: "a.ts", old_string: "x", new_string: "y" }, "Error: String not found in file: 'x'", true);
+    expect(editAttemptOf(failed)).toMatchObject({ type: "diff", path: "a.ts", oldText: "x", newText: "y" });
+    expect(editAttemptOf(call("read_file", { path: "a.ts" }))).toBeUndefined();
   });
 });

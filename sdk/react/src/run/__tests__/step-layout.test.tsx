@@ -14,11 +14,14 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import type { ToolUse } from "@stigmer/client";
-import { FileReviewContext } from "@stigmer/react-core";
+import type { Stigmer } from "@stigmer/client";
+import { FileReviewContext, StigmerContext } from "@stigmer/react-core";
 import { ToolCallItem } from "../ToolCallItem";
 import { FilePathContext } from "../FilePathContext";
 import { OutputFileContext, type OutputFileOpener } from "../OutputFileContext";
 import { DiffViewer, pairChanges } from "../../version-history/DiffViewer";
+import { BackgroundCommandTrail } from "../BackgroundCommandStatus";
+import { ToolCallDetail } from "../ToolCallDetail";
 import { computeDiff } from "@stigmer/react-core";
 import { reviewFile, reviewSet, toolUse } from "./__fixtures__/fold-values";
 
@@ -218,5 +221,42 @@ describe("a step's diff", () => {
     unmount();
     const history = render(<DiffViewer hunks={hunks} />);
     expect(history.container.querySelectorAll("tbody tr")[0]!.children).toHaveLength(3);
+  });
+});
+
+describe("the box's edges", () => {
+  it("names a search's files from the folder however the folder was written, and says an empty listing", () => {
+    const slashed = render(
+      <ToolCallDetail toolUse={toolUse({ name: "grep", input: { pattern: "x", path: "./src/billing//" }, result: "src/billing/a.ts:4:x\nsrc/billing/b.ts:9:x" })} />,
+    );
+    expect(within(slashed.container).getByText("a.ts:4")).toBeTruthy();
+    slashed.unmount();
+    const empty = render(<ToolCallDetail toolUse={toolUse({ name: "ls", input: { path: "src/empty" }, result: "" })} />);
+    expect(within(empty.container).getByText("Empty")).toBeTruthy();
+  });
+
+  it("opens an edit that changed nothing to nothing, and an answer with no words of its own as its own view", () => {
+    const same = render(<ToolCallDetail toolUse={toolUse({ name: "edit_file", input: { path: "a.ts", old_string: "x", new_string: "x" }, result: "ok" })} />);
+    expect(same.container.querySelector('[data-cursor-target="file-diff"]')).toBeNull();
+    same.unmount();
+    // An offloaded output reads through the run's storage, so the kit's provider is there.
+    const stigmer = { run: { getArtifactContent: vi.fn(), getArtifactDownloadUrl: vi.fn() } } as unknown as Stigmer;
+    const offloaded = render(
+      <StigmerContext.Provider value={stigmer}>
+        <ToolCallDetail toolUse={toolUse({ name: "execute", input: { command: "cat big.log" }, result: "head", fullOutput: { storageKey: "runs/run_1/out.txt", isImage: false } })} />
+      </StigmerContext.Provider>,
+    );
+    expect(offloaded.container.textContent).toContain("View full output");
+  });
+});
+
+describe("BackgroundCommandTrail", () => {
+  it("draws a background command's status words and nothing for any other call", () => {
+    const started = toolUse({ name: "execute", input: { command: "npm run dev", background: true }, result: "Started" });
+    const background = { ...started, background: { state: "running", startedAt: started.processedAt, liveOutput: "", output: "", exitCode: undefined, stopRequested: false } } as unknown as ToolUse;
+    const { container, unmount } = render(<BackgroundCommandTrail toolUse={background} />);
+    expect(container.querySelector('[data-cursor-target="background-command-status"]')).not.toBeNull();
+    unmount();
+    expect(render(<BackgroundCommandTrail toolUse={started} />).container.textContent).toBe("");
   });
 });
