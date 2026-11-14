@@ -299,6 +299,54 @@ A key that belongs to one of your customers goes in that customer's own vault
 instead: see
 [Keep your customers' keys](/docs/guides/authentication/customer-keys).
 
+## Removing a user
+
+When someone leaves your product, an admin of the Organization the user's tokens
+are minted for deletes their Stigmer account, signed in as themselves (their own
+API key or sign-in, never the service account's key). The service account's key
+cannot delete an account, so a leaked backend key can never wipe your users.
+
+Your backend does not need to remember a Stigmer account id. Every user a mint
+creates is keyed by a subject Stigmer derives from the Organization's id and
+your `user_id`, and that form is stable:
+
+```text
+stgm_pc|<organization id>|<user_id>
+```
+
+The Organization's id is its `metadata.id` (`org_…`), which
+`stigmer get organization <slug> -o yaml` prints; a slug does not work here.
+Look the account up by that subject, then delete it:
+
+```typescript
+declare const organizationId: string;
+declare const departedUserId: string;
+// ---cut---
+import { createNodeClient } from "@stigmer/client/node";
+
+// An Organization admin's own API key, never the service account's.
+const admin = createNodeClient({
+  baseUrl: "https://api.stigmer.ai",
+  apiKey: process.env.STIGMER_ADMIN_API_KEY!,
+});
+
+const account = await admin.identityAccount.getByIdpId(
+  `stgm_pc|${organizationId}|${departedUserId}`,
+);
+await admin.identityAccount.delete(account.metadata!.id);
+```
+
+Deleting the account removes the user's roles, their API keys and their private
+vaults with it. If your backend mints a token for the same `user_id` again with
+account creation on, Stigmer creates the account afresh under the same id,
+holding only the sign-in role your embedding settings name now. To keep the user
+out, stop minting for them.
+
+Only the admins of that Organization, and of its parent, can view, rename or
+delete its users' accounts; an admin of any other Organization is refused
+`PERMISSION_DENIED`. Accounts of people who signed in to Stigmer on their own
+are never reachable this way.
+
 ## Error handling
 
 All SDKs return structured errors with actionable messages:
@@ -331,7 +379,8 @@ All SDKs return structured errors with actionable messages:
   or change or delete the user's account. Otherwise a user you removed, or
   anyone holding a stolen browser token, could keep working with a key that
   never expires, or delete their account so the next mint re-creates it with the
-  sign-in role.
+  sign-in role. An Organization admin removes a user's account instead
+  ([Removing a user](#removing-a-user)).
 - The email and name you pass to `mintUserToken` are your assertion. Stigmer
   shows them and grants nothing because of them.
 - Tokens are signed by the server's own platform-token key and verified
@@ -396,8 +445,7 @@ Organization's embedding settings, grant or revoke a role in the Organization,
 or change or delete the account: those calls fail with `PERMISSION_DENIED`, and
 an Organization admin does them. Other edits follow the user's role: with the
 admin sign-in role, the token can still edit the Organization's other settings
-and policies. An admin removing an app user's account is tracked in
-[stigmer#3104](https://github.com/stigmer/stigmer/issues/3104).
+and policies. To remove a user, see [Removing a user](#removing-a-user).
 
 </Step>
 </Steps>

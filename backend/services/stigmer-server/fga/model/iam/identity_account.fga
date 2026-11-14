@@ -13,16 +13,20 @@ module iam
 #
 # A service account is the organization's own, so its organization's
 # current admins manage it and its API keys, as they manage a team or an
-# OAuth app. Only a service account's row carries the organization
-# link; a person's account has none, so nobody but the person reaches a
+# OAuth app. An app user, a person the organization's product signs in
+# through a minted token, is the organization's too: its admins view,
+# rename and delete the account, and the next mint creates it again
+# (#3104). Only those two kinds of row carry the organization link; a
+# person's own account has none, so nobody but the person reaches a
 # person's account or keys. A service account's own key never manages
 # keys or accounts, its own included: the server refuses that caller
 # class on those RPCs, which an admin service account's role here would
-# otherwise admit.
+# otherwise admit. Keys are created for service accounts alone, so the
+# link never lets an admin speak as an app user.
 #
 # FGA tuples on account creation:
 # - identity_account:alice#owner@identity_account:alice
-# A service account, besides its self-owner tuple:
+# A service account or an app user, besides its self-owner tuple:
 # - identity_account:ida_sa#organization@organization:acme
 
 type identity_account
@@ -35,7 +39,7 @@ type identity_account
     define owner: [identity_account]
 
     # ========================================
-    # OWNING ORGANIZATION (service accounts only)
+    # OWNING ORGANIZATION (service accounts and app users only)
     # ========================================
     define organization: [organization]
 

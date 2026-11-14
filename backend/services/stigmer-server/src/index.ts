@@ -183,6 +183,7 @@ export type { ResolvedExtensionDrivers } from "./extensions/registry.js";
 export type {
   ChildOrganizationLinkedEvent,
   ServiceAccountLinkedEvent,
+  AppUserLinkedEvent,
   OrganizationAffiliationEvent,
   OrganizationPoliciesChangedEvent,
   GrantedEvent,
