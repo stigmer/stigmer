@@ -37,7 +37,6 @@
  */
 import { fromBinary, toBinary } from "@bufbuild/protobuf";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
-import pg from "pg";
 import type { Pool, PoolClient } from "pg";
 
 import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -93,6 +92,8 @@ import type {
   ListIndexRow,
 } from "../list-index.js";
 import { NOOP_STORE_LOGGER } from "../logger.js";
+import { newBoundedPool } from "./pool.js";
+import type { BoundedPool, PoolStats } from "./pool.js";
 import {
   QueuedSessionMessageGoneError,
   SessionEventConflictError,
@@ -214,6 +215,18 @@ const UNPROVEN_ROWS_SQL = `
 /** How many unproven rows the reconciliation at open decodes per round trip. */
 const RECONCILE_BATCH = 500;
 
+/**
+ * What the Postgres driver opens with: the shared options, and the bounds
+ * of its connection pool (pool.ts), which mean nothing to SQLite. Unset
+ * bounds take the pool's defaults; the composition root passes the
+ * operator's DATABASE_POOL_MAX and DATABASE_POOL_CHECKOUT_TIMEOUT_MS
+ * (boot/config.ts).
+ */
+export interface PostgresStoreOpenOptions extends StoreOpenOptions {
+  readonly poolMax?: number;
+  readonly poolCheckoutTimeoutMs?: number;
+}
+
 export class PostgresStore implements Store {
   readonly bootstrapState: BootstrapStateStore;
   readonly resourceNames: ResourceNameStore;
@@ -225,13 +238,13 @@ export class PostgresStore implements Store {
   readonly sessionEvents: SessionEventStore;
   readonly files: FileBlobStore;
 
-  private pool: Pool | undefined;
+  private pool: BoundedPool | undefined;
   private readonly logger: StoreLogger;
   private readonly listIndexes: ListIndexRegistry;
   private readonly gates: SessionEventGateDeclaration | undefined;
 
   private constructor(
-    pool: Pool,
+    pool: BoundedPool,
     logger: StoreLogger,
     listIndexes: ListIndexRegistry,
     gates: SessionEventGateDeclaration | undefined,
@@ -277,17 +290,23 @@ export class PostgresStore implements Store {
   static async open(
     databaseUrl: string,
     logger: StoreLogger = NOOP_STORE_LOGGER,
-    options: StoreOpenOptions = {},
+    options: PostgresStoreOpenOptions = {},
   ): Promise<PostgresStore> {
     const listIndexes = new ListIndexRegistry(options.listIndexes ?? []);
-    const pool = new pg.Pool({ connectionString: databaseUrl });
-    // An idle pooled connection dropping (server restart, network blip)
-    // emits 'error' on the pool; without a listener that is a process
-    // crash. The next query checks out a fresh connection, so warn-only.
-    pool.on("error", (error) => {
-      logger.warn("postgres pool idle-connection error", {
-        error: error.message,
-      });
+    // Bounded in size and in how long a checkout waits; a checkout that
+    // fails is a DatabaseUnavailableError (pool.ts). An idle pooled
+    // connection dropping (server restart, network blip) emits 'error' on
+    // the pool; without a listener that is a process crash. The next query
+    // checks out a fresh connection, so warn-only.
+    const pool = newBoundedPool({
+      connectionString: databaseUrl,
+      max: options.poolMax,
+      checkoutTimeoutMs: options.poolCheckoutTimeoutMs,
+      onIdleError: (error) => {
+        logger.warn("postgres pool idle-connection error", {
+          error: error.message,
+        });
+      },
     });
 
     // Migrations run on a dedicated client: pg_advisory_lock is
@@ -1792,8 +1811,19 @@ export class PostgresStore implements Store {
     await pool.end();
   }
 
+  /**
+   * The connection pool's state (pool.ts, `PoolStats`), for the
+   * composition root's pool gauges; zeros once the store is closed.
+   */
+  poolStats(): PoolStats {
+    if (this.pool === undefined) {
+      return { max: 0, total: 0, idle: 0, waiting: 0, checkoutFailures: 0 };
+    }
+    return this.pool.stats();
+  }
+
   /** Live pool or the contract's "store is closed" error (both drivers). */
-  private open(): Pool {
+  private open(): BoundedPool {
     if (this.pool === undefined) {
       throw new Error("store is closed");
     }

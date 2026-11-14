@@ -32,6 +32,10 @@ import {
 } from "../modelcatalog/provider-need.js";
 
 import { DEFAULT_FILE_MAX_BYTES } from "../domain/file/constants.js";
+import {
+  DEFAULT_POOL_CHECKOUT_TIMEOUT_MS,
+  DEFAULT_POOL_MAX,
+} from "../store/postgres/pool.js";
 import { DEFAULT_ROUTINE_FIRES_PER_HOUR } from "../domain/routine/fire-rate.js";
 import {
   loginProviderSettingNames,
@@ -77,6 +81,22 @@ export interface ServerConfig {
    * fails loudly).
    */
   readonly databaseUrl: string;
+  /**
+   * The most connections the store's Postgres pool holds
+   * (DATABASE_POOL_MAX, default 20); a value below 1 keeps the default.
+   * Every replica holds its own pool, so replicas times this, plus every
+   * other pool on the database, must fit its `max_connections`. Ignored on
+   * SQLite (store/postgres/pool.ts).
+   */
+  readonly databasePoolMax: number;
+  /**
+   * How long a request waits for a pooled Postgres connection, free or
+   * new, before it is answered Unavailable instead of hanging
+   * (DATABASE_POOL_CHECKOUT_TIMEOUT_MS, default 10000); a value below 1
+   * keeps the default. It never bounds how long a connection is held.
+   * Ignored on SQLite (store/postgres/pool.ts).
+   */
+  readonly databasePoolCheckoutTimeoutMs: number;
   /**
    * Operator identity for audit stamping (stigmer/stigmer#400). Empty email
    * keeps the "system" placeholder; the runner demotes that to anonymous.
@@ -577,6 +597,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     readyLine: env["STIGMER_READY_LINE"] === "stdout" ? "stdout" : undefined,
     dbPath: envString(env, "DB_PATH", defaultDbPath()),
     databaseUrl: envString(env, "DATABASE_URL", ""),
+    databasePoolMax: positiveOr(
+      envInt(env, "DATABASE_POOL_MAX", DEFAULT_POOL_MAX),
+      DEFAULT_POOL_MAX,
+    ),
+    databasePoolCheckoutTimeoutMs: positiveOr(
+      envInt(
+        env,
+        "DATABASE_POOL_CHECKOUT_TIMEOUT_MS",
+        DEFAULT_POOL_CHECKOUT_TIMEOUT_MS,
+      ),
+      DEFAULT_POOL_CHECKOUT_TIMEOUT_MS,
+    ),
     storagePath: envString(env, "STORAGE_PATH", defaultStoragePath()),
     skillArtifactStorageType,
     skillTransferBaseUrl: envString(env, "SKILL_TRANSFER_BASE_URL", ""),

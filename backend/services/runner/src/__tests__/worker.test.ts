@@ -6,8 +6,13 @@
  * options (temporal-lane.ts) with a fixed poll count behind the server, and
  * the heartbeat throttle a cancellation is delivered within
  * (`shared/heartbeat.ts`). NativeConnection and Worker are mocked; the
- * connection and worker the SDK returns are handed back unchanged.
+ * connection and worker the SDK returns are handed back unchanged. The poll
+ * count is read where the SDK's native core reads it, through the SDK's own
+ * option compiler (unmocked): an option the SDK ignores passes a check on
+ * the object handed to `Worker.create` (stigmer#2982).
  */
+import { compileWorkerOptions, toNativeWorkerOptions } from "@temporalio/worker/lib/worker-options.js";
+import type { WorkerOptions } from "@temporalio/worker";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const sdk = vi.hoisted(() => ({
@@ -37,6 +42,7 @@ const config = {
   temporalNamespace: "default",
   taskQueue: "stigmer_runner",
   maxConcurrentActivities: 4,
+  drainGraceMs: 30_000,
 } as unknown as Config;
 
 const activities: WorkerActivities = {
@@ -91,7 +97,7 @@ describe("startWorker", () => {
     const options = sdk.create.mock.calls[0]![0];
     expect(options.workflowBundle).toBeUndefined();
     expect(options.workflowsPath).toBeUndefined();
-    expect(options.maxConcurrentActivityTaskPolls).toBeUndefined();
+    expect(options.activityTaskPollerBehavior).toBeUndefined();
     expect(options.taskQueue).toBe("stigmer_runner");
     expect(options.namespace).toBe("default");
     expect(options.maxConcurrentActivityTaskExecutions).toBe(4);
@@ -113,7 +119,30 @@ describe("startWorker", () => {
       lane: { kind: "through-server", connection: { apiKey: "tok", tls: false } },
     });
     expect(sdk.connect).toHaveBeenCalledWith({ address: "127.0.0.1:7233", apiKey: "tok", tls: false });
-    const options = sdk.create.mock.calls[0]![0];
-    expect(options.maxConcurrentActivityTaskPolls).toBe(THROUGH_SERVER_ACTIVITY_POLLS);
+    expect(nativeActivityPollers(sdk.create.mock.calls[0]![0])).toEqual({
+      type: "simple-maximum",
+      maximum: THROUGH_SERVER_ACTIVITY_POLLS,
+    });
   });
 });
+
+/** The activity poller behaviour the SDK's native core receives for these worker options. */
+function nativeActivityPollers(options: WorkerOptions): unknown {
+  const quiet = { log() {}, trace() {}, debug() {}, info() {}, warn() {}, error() {} };
+  const meter = {
+    createCounter: () => ({ add() {} }),
+    createHistogram: () => ({ record() {} }),
+    createGauge: () => ({ set() {} }),
+    withTags() {
+      return meter;
+    },
+  };
+  // The compiler's logger and meter parameters are the SDK's internal types.
+  const compiled = compileWorkerOptions(
+    options,
+    quiet as unknown as Parameters<typeof compileWorkerOptions>[1],
+    meter as unknown as Parameters<typeof compileWorkerOptions>[2],
+  );
+  // `Worker.create` stamps a build id before this step; its value is not read here.
+  return toNativeWorkerOptions({ ...compiled, buildId: "test" }).activityTaskPollerBehavior;
+}

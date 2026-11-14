@@ -5,6 +5,11 @@
  * reads the detail the same way the round trip below does, so a refusal
  * this helper builds is one a console can branch on. The PermissionDenied
  * twin shares the same detail builder and keeps its own code.
+ *
+ * And internalError's one code exception (stigmer/stigmer#3086): a
+ * database that could not hand out a connection, found anywhere in the
+ * cause chain, is Unavailable with the caller's copy and the cause kept;
+ * every other cause stays Internal.
  */
 import { create } from "@bufbuild/protobuf";
 import {
@@ -17,9 +22,11 @@ import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 import { Health, HealthCheckRequestSchema } from "@stigmer/apis/grpc/health/v1/health_pb";
 import { describe, expect, it } from "vitest";
 
+import { DatabaseUnavailableError } from "../../store/interface.js";
 import {
   ERROR_REASON_DOMAIN,
   failedPreconditionError,
+  internalError,
   permissionDeniedWithReasonError,
   quoteJoin,
 } from "../errors.js";
@@ -100,5 +107,42 @@ describe("quoteJoin", () => {
 
   it("renders an empty list as an empty string", () => {
     expect(quoteJoin([])).toBe("");
+  });
+});
+
+describe("internalError", () => {
+  const unavailable = () =>
+    new DatabaseUnavailableError("the connection pool could not hand out a connection", {
+      cause: new Error("timeout exceeded when trying to connect"),
+    });
+
+  it("is Internal with only the caller's copy for any other cause", () => {
+    const cause = new Error("database is locked");
+    const error = internalError(cause, "failed to load agent");
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe("failed to load agent");
+    expect(error.cause).toBe(cause);
+    expect(internalError("a string", "failed to load agent").code).toBe(Code.Internal);
+  });
+
+  it("is Unavailable with the same copy when the cause is a DatabaseUnavailableError", () => {
+    const cause = unavailable();
+    const error = internalError(cause, "failed to load agent");
+    expect(error.code).toBe(Code.Unavailable);
+    expect(error.rawMessage).toBe("failed to load agent");
+    expect(error.cause).toBe(cause);
+  });
+
+  it("finds it under wrappers: a step's { cause } and an earlier internalError", () => {
+    const wrapped = new Error("load failed", { cause: unavailable() });
+    expect(internalError(wrapped, "failed to load agent").code).toBe(Code.Unavailable);
+    const rewrapped = internalError(internalError(wrapped, "inner"), "outer");
+    expect(rewrapped.code).toBe(Code.Unavailable);
+    expect(rewrapped.rawMessage).toBe("outer");
+  });
+
+  it("never puts the pool's numbers on the wire", () => {
+    const error = internalError(unavailable(), "failed to load agent");
+    expect(error.message).not.toContain("pool");
   });
 });

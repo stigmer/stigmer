@@ -17,10 +17,15 @@
  *     current slug, read only when refusing (a mint that succeeds reads no
  *     name), the id when it holds none, and a fault reading it is INTERNAL;
  *   - provisioning GRANTS FIRST on the derived account id, as an ordinary
- *     grant made acting for the minting service account, then creates the
- *     account as that account with the name split; a failed grant writes
- *     nothing; a failed create leaves the grant, and the next mint
- *     completes the account; a concurrent winner is read back;
+ *     grant made acting for the minting service account, then announces
+ *     the account's organization link (`onAppUserLinked`, #3104) for the
+ *     same id, then creates the account as that account with the name
+ *     split; a failed grant writes nothing; a failed link stores no row
+ *     and the retry announces it again; a failed create leaves the grant
+ *     and the link, and the next mint completes the account; a concurrent
+ *     winner is read back with no second announcement; a mint that finds
+ *     the account announces nothing; a composition with no lifecycle (the
+ *     open-source posture, which derives the link from the row) mints;
  *   - no role grants nothing, owner and a role no organization grants are
  *     refused before anything is written, and the token carries the claim
  *     set for the account, `minted_by` naming the minting account.
@@ -42,6 +47,7 @@ import { IamPermission, IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb"
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import type { Authorizer, AuthzCheck } from "../../../extensions/authorizer.js";
+import type { AppUserLinkedEvent } from "../../../extensions/resource-authorization.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
@@ -95,6 +101,7 @@ interface Harness {
   readonly checks: AuthzCheck[];
   readonly created: Array<{ input: CreateAccountInput; caller: CallerIdentity }>;
   readonly granted: Array<{ spec: GrantSpec; caller: CallerIdentity; cause: string }>;
+  readonly linked: AppUserLinkedEvent[];
   readonly accounts: Map<string, IdentityAccount>;
 }
 
@@ -108,12 +115,15 @@ function harness(
     failCreate?: "fault" | "lost-race";
     failLookup?: boolean;
     name?: "fault" | "none";
+    /** The composed lifecycle: present by default; absent is open source's posture. */
+    lifecycle?: "absent" | "fault";
   } = {},
 ): Harness {
   const events: string[] = [];
   const checks: AuthzCheck[] = [];
   const created: Harness["created"] = [];
   const granted: Harness["granted"] = [];
+  const linked: AppUserLinkedEvent[] = [];
   const accounts = new Map<string, IdentityAccount>();
   const embedding = options.embedding ?? { createAccountsOnSignIn: true };
   const organizations: Pick<Store, "getResource" | "resourceNames"> = {
@@ -181,11 +191,22 @@ function harness(
       return account;
     },
     grantPath,
+    ...(options.lifecycle === "absent"
+      ? {}
+      : {
+          authorizationLifecycle: {
+            async onAppUserLinked(event) {
+              events.push("link");
+              if (options.lifecycle === "fault") throw new Error("tuple store down");
+              linked.push(event);
+            },
+          },
+        }),
     keys: "keys" in options ? options.keys : RING,
     logger: silentLogger,
     now: () => NOW,
   };
-  return { deps, events, checks, created, granted, accounts };
+  return { deps, events, checks, created, granted, linked, accounts };
 }
 
 function request(
@@ -418,7 +439,7 @@ describe("mintUserToken — the person", () => {
     const h = harness({ embedding: { createAccountsOnSignIn: true, signInRole: IamRole.member } });
     const minted = await mintUserToken(h.deps, request(), KEY_CALLER);
 
-    expect(h.events).toEqual(["read acme", "lookup", "grant", "create"]);
+    expect(h.events).toEqual(["read acme", "lookup", "grant", "link", "create"]);
     const grant = h.granted[0];
     expect(grant?.spec.principal?.id).toBe(accountIdFor(SUBJECT));
     expect(grant?.spec.relation).toBe("member");
@@ -482,7 +503,7 @@ describe("mintUserToken — the person", () => {
     const h = harness();
     await mintUserToken(h.deps, request(), KEY_CALLER);
     expect(h.granted).toEqual([]);
-    expect(h.events).toEqual(["read acme", "lookup", "create"]);
+    expect(h.events).toEqual(["read acme", "lookup", "link", "create"]);
 
     const owner = harness({ embedding: { createAccountsOnSignIn: true, signInRole: IamRole.owner } });
     const refusedOwner = await refusal(mintUserToken(owner.deps, request(), KEY_CALLER));
@@ -520,7 +541,7 @@ describe("mintUserToken — the person", () => {
     await expect(mintUserToken(failing.deps, request(), KEY_CALLER)).rejects.toThrow(
       "account store down",
     );
-    expect(failing.events).toEqual(["read acme", "lookup", "grant", "create", "lookup"]);
+    expect(failing.events).toEqual(["read acme", "lookup", "grant", "link", "create", "lookup"]);
 
     const retry = harness({ embedding });
     await mintUserToken(retry.deps, request(), KEY_CALLER);
@@ -531,6 +552,66 @@ describe("mintUserToken — the person", () => {
   it("reads a concurrent winner back when the create loses the race", async () => {
     const h = harness({ failCreate: "lost-race" });
     const minted = await mintUserToken(h.deps, request(), KEY_CALLER);
+    const verified = verifyPlatformToken(RING, minted.accessToken, NOW);
+    expect(verified.outcome === "verified" && verified.token.subject).toBe(accountIdFor(SUBJECT));
+    expect(h.events).toEqual(["read acme", "lookup", "link", "create", "lookup"]);
+  });
+});
+
+describe("mintUserToken — the organization link (#3104)", () => {
+  it("announces the link for the derived id as the minting account, after the grant and before the row", async () => {
+    const h = harness({ embedding: { createAccountsOnSignIn: true, signInRole: IamRole.viewer } });
+    await mintUserToken(h.deps, request(), KEY_CALLER);
+    expect(h.events).toEqual(["read acme", "lookup", "grant", "link", "create"]);
+    expect(h.linked).toEqual([
+      {
+        accountId: accountIdFor(SUBJECT),
+        orgId: "acme",
+        caller: { identityId: MINTER, callerClass: "internal", issuer: "", rawToken: "" },
+      },
+    ]);
+    expect(h.created[0]?.input.spec.idpId).toBe(SUBJECT);
+  });
+
+  it("links a child's person to the child the token is for", async () => {
+    const h = harness();
+    await mintUserToken(h.deps, request({ org: "org_acmecust" }), KEY_CALLER);
+    expect(h.linked.map((event) => [event.accountId, event.orgId])).toEqual([
+      [accountIdFor(appUserSubject("org_acmecust", "user-7")), "org_acmecust"],
+    ]);
+  });
+
+  it("stores no row when the link fails, and the retry announces it again before the row", async () => {
+    const embedding = { createAccountsOnSignIn: true, signInRole: IamRole.viewer };
+    const failing = harness({ embedding, lifecycle: "fault" });
+    const failed = await refusal(mintUserToken(failing.deps, request(), KEY_CALLER));
+    expect([failed.code, failed.rawMessage]).toEqual([Code.Internal, PROVISIONING_FAILED_MESSAGE]);
+    expect(failing.events).toEqual(["read acme", "lookup", "grant", "link"]);
+    expect(failing.accounts.size).toBe(0);
+
+    const retry = harness({ embedding });
+    await mintUserToken(retry.deps, request(), KEY_CALLER);
+    expect(retry.events).toEqual(["read acme", "lookup", "grant", "link", "create"]);
+    expect(retry.linked[0]?.accountId).toBe(accountIdFor(SUBJECT));
+  });
+
+  it("announces nothing for an account that exists", async () => {
+    const h = harness();
+    h.accounts.set(
+      SUBJECT,
+      create(IdentityAccountSchema, {
+        metadata: { id: accountIdFor(SUBJECT) },
+        spec: { idpId: SUBJECT, provisioningMode: IdentityAccountProvisioningMode.app_user },
+      }),
+    );
+    await mintUserToken(h.deps, request(), KEY_CALLER);
+    expect(h.linked).toEqual([]);
+  });
+
+  it("mints with no lifecycle composed, the open-source posture that derives the link", async () => {
+    const h = harness({ lifecycle: "absent" });
+    const minted = await mintUserToken(h.deps, request(), KEY_CALLER);
+    expect(h.events).toEqual(["read acme", "lookup", "create"]);
     const verified = verifyPlatformToken(RING, minted.accessToken, NOW);
     expect(verified.outcome === "verified" && verified.token.subject).toBe(accountIdFor(SUBJECT));
   });

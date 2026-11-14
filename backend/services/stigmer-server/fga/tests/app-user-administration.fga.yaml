@@ -1,0 +1,88 @@
+# An app user (a person an organization's product signs in through a
+# minted token) is administered by that organization's current admins:
+# they view, rename and delete the account, so the next mint creates it
+# again (#3104). Its organization's other people, the app user's peers,
+# and the admins of any other organization reach none of it. A person who
+# signed in on their own carries no organization link, so the same admins
+# never reach that person's account. The app user still owns its account.
+#
+# Cast (organization acme unless named):
+#   root  - acme owner (an admin through the role hierarchy)
+#   ana   - acme admin
+#   dave  - acme member-role member
+#   zara  - admin of the unrelated organization other
+#   pat   - an app user of acme, signed in with the viewer role
+#   sam   - another app user of acme, signed in with the viewer role
+#   lee   - a person who signed in on their own and holds member on acme
+#
+# `pat` and `sam` carry their self-owner tuple and the organization link
+# the mint writes (or open source derives from the row); `lee` carries
+# only the self-owner tuple.
+name: app-user-administration
+model_file: ../../src/authorization/model/data/authorization-model.json
+tuples:
+  - {user: identity_account:root, relation: owner, object: organization:acme}
+  - {user: identity_account:root, relation: affiliated, object: organization:acme}
+  - {user: identity_account:ana, relation: admin, object: organization:acme}
+  - {user: identity_account:ana, relation: affiliated, object: organization:acme}
+  - {user: identity_account:dave, relation: member, object: organization:acme}
+  - {user: identity_account:dave, relation: affiliated, object: organization:acme}
+  - {user: identity_account:zara, relation: admin, object: organization:other}
+  - {user: identity_account:zara, relation: affiliated, object: organization:other}
+  - {user: identity_account:pat, relation: viewer, object: organization:acme}
+  - {user: identity_account:pat, relation: affiliated, object: organization:acme}
+  - {user: identity_account:pat, relation: owner, object: identity_account:pat}
+  - {user: organization:acme, relation: organization, object: identity_account:pat}
+  - {user: identity_account:sam, relation: viewer, object: organization:acme}
+  - {user: identity_account:sam, relation: affiliated, object: organization:acme}
+  - {user: identity_account:sam, relation: owner, object: identity_account:sam}
+  - {user: organization:acme, relation: organization, object: identity_account:sam}
+  - {user: identity_account:lee, relation: member, object: organization:acme}
+  - {user: identity_account:lee, relation: affiliated, object: organization:acme}
+  - {user: identity_account:lee, relation: owner, object: identity_account:lee}
+tests:
+  - name: an admin views, renames and deletes the app user, the owner through the same role
+    check:
+      - user: identity_account:ana
+        object: identity_account:pat
+        assertions: {can_view: true, can_edit: true, can_delete: true, can_grant_access: false, can_view_access: false}
+      - user: identity_account:root
+        object: identity_account:pat
+        assertions: {can_view: true, can_edit: true, can_delete: true}
+  - name: a member and the app user's peers reach nothing
+    check:
+      - user: identity_account:dave
+        object: identity_account:pat
+        assertions: {can_view: false, can_edit: false, can_delete: false, can_manage_keys: false}
+      - user: identity_account:sam
+        object: identity_account:pat
+        assertions: {can_view: false, can_edit: false, can_delete: false, can_manage_keys: false}
+  - name: an admin of another organization reaches nothing
+    check:
+      - user: identity_account:zara
+        object: identity_account:pat
+        assertions: {can_view: false, can_edit: false, can_delete: false, can_manage_keys: false}
+  - name: the app user still owns its account and manages no keys
+    check:
+      - user: identity_account:pat
+        object: identity_account:pat
+        assertions: {can_view: true, can_edit: true, can_delete: true, can_grant_access: true, can_manage_keys: false}
+  - name: a person who signed in on their own is reached by nobody but themselves
+    check:
+      - user: identity_account:ana
+        object: identity_account:lee
+        assertions: {can_view: false, can_edit: false, can_delete: false, can_manage_keys: false}
+      - user: identity_account:root
+        object: identity_account:lee
+        assertions: {can_view: false, can_edit: false, can_delete: false}
+      - user: identity_account:lee
+        object: identity_account:lee
+        assertions: {can_view: true, can_delete: true}
+  - name: an admin lists the organization's app users among the accounts it may delete
+    list_objects:
+      - user: identity_account:ana
+        type: identity_account
+        assertions: {can_delete: [identity_account:pat, identity_account:sam]}
+      - user: identity_account:dave
+        type: identity_account
+        assertions: {can_delete: []}
