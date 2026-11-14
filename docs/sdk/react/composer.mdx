@@ -43,7 +43,7 @@ function useComposer(options: UseComposerOptions): UseComposerReturn
     canSubmit: { type: "boolean", description: "Whether the current message is non-empty and the input is not disabled." },
     clear: { type: "() => void", description: "Clear the message and reset textarea height." },
     message: { type: "string", description: "Current message text." },
-    setMessage: { type: "(value: string) => void", description: "Replace the current message text." },
+    setMessage: { type: "(value: string) => void", description: "Replace the current message text; the textarea grows to it as it would to typed text." },
     submit: { type: "() => void", description: "Programmatically submit the current message. No-op if `canSubmit` is false." },
     textareaProps: { type: "{ disabled: boolean; onChange: (e: ChangeEvent<HTMLTextAreaElement>) => void; onKeyDown: (e: KeyboardEvent<HTMLTextAreaElement>) => void; ref: RefObject<HTMLTextAreaElement | null>; value: string }", description: "Spread-ready props for the `<textarea>` element.  Includes `ref`, `value`, `onChange`, `onKeyDown`, and `disabled`. Consumers can override individual props by spreading first and then specifying overrides." },
     textareaRef: { type: "RefObject<HTMLTextAreaElement | null>", description: "Ref to attach to the `<textarea>` element." },
