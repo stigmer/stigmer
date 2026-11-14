@@ -17,8 +17,7 @@ import { SessionPanelChip } from "./SessionPanelChip.js";
 import { AutoApproveIndicator } from "./AutoApproveIndicator.js";
 import { includesMyVaultByDefault, type SessionAudience } from "./audience.js";
 import type { SessionRunConfig } from "./run-config.js";
-import { AgentHoursNotice, agentHoursUsedUp } from "../billing/AgentHoursNotice.js";
-import { DEFAULT_MODELS_HUB_HREF, ProviderKeyNotice, providerKeyRequired } from "../billing/ProviderKeyNotice.js";
+import { agentHoursUsedUp, DEFAULT_MODELS_HUB_HREF, providerKeyRequired } from "../billing/refusals.js";
 import {
   ConnectProviderPanel,
   connectReason,
@@ -41,6 +40,10 @@ const FirstQuestion = lazy(() => import("./first-question/FirstQuestion.js").the
 const ChosenBar = lazy(() => import("./first-question/FirstQuestion.js").then((m) => ({ default: m.ChosenBar })));
 // The journey's next line, and the reads behind it, load only for a host that
 // passes `journeyLinks`: an embed never downloads them.
+// The refusal notices load only when a refusal arrives: the launcher's first
+// draw carries the check, not the notice.
+const ProviderKeyNotice = lazy(() => import("../billing/ProviderKeyNotice.js").then((m) => ({ default: m.ProviderKeyNotice })));
+const AgentHoursNotice = lazy(() => import("../billing/AgentHoursNotice.js").then((m) => ({ default: m.AgentHoursNotice })));
 const JourneyLauncherLine = lazy(() => import("../journey/JourneyNextLine.js").then((m) => ({ default: m.JourneyLauncherLine })));
 
 /** What an end user reads when the agent their launcher is pinned to cannot be found. */
@@ -734,10 +737,14 @@ export function NewSessionViewer({
             used says when they reset and where the plans are; every other
             refusal reaches the host's onError. */}
         {flow.submitFailure !== null && providerKeyRequired(flow.submitFailure) !== null && (
-          <ProviderKeyNotice error={flow.submitFailure} modelsHubHref={modelsHubHref} />
+          <Suspense fallback={null}>
+            <ProviderKeyNotice error={flow.submitFailure} modelsHubHref={modelsHubHref} />
+          </Suspense>
         )}
         {flow.submitFailure !== null && agentHoursUsedUp(flow.submitFailure) !== null && (
-          <AgentHoursNotice error={flow.submitFailure} />
+          <Suspense fallback={null}>
+            <AgentHoursNotice error={flow.submitFailure} />
+          </Suspense>
         )}
 
         {/* Armed-only disclosure (#816 rework): a persisted account preference

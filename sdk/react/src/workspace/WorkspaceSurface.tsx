@@ -182,6 +182,15 @@ export interface WorkspaceSurfaceProps {
    * viewer, which opens in File view and scrolls to / highlights the line.
    */
   readonly reveal?: RevealTarget;
+  /**
+   * Whether the rail and the sidebar show from the start (`"shown"`), or an
+   * open file takes the whole surface and one button shows the files when
+   * the person asks (`"on-request"`): the session view's panel, beside a
+   * thread that keeps its width. Any other view shows its sidebar either way.
+   *
+   * @default "shown"
+   */
+  readonly sidebar?: "shown" | "on-request";
   /** Additional CSS classes for the root element. */
   readonly className?: string;
 }
@@ -220,8 +229,10 @@ export function WorkspaceSurface({
   onCollapse,
   change,
   reveal,
+  sidebar = "shown",
   className,
 }: WorkspaceSurfaceProps) {
+  const [sidebarShown, setSidebarShown] = useState(sidebar === "shown");
   // Optionally controlled (standard React pattern): a host that owns view
   // routing (e.g. the session panel's auto-view logic) passes `view` +
   // `onViewChange`; standalone embedders get internal state for free.
@@ -244,6 +255,36 @@ export function WorkspaceSurface({
   const fallbackView = builtInViews[0] ?? extraViews?.[0]?.id ?? "files";
   const activeView = isKnownView ? requestedView : fallbackView;
   const activeExtraView = extraViews?.find((v) => v.id === activeView);
+
+  const editorArea = (
+    <EditorArea
+      entries={entries}
+      reader={reader}
+      editors={editors}
+      selectedFile={selectedFile}
+      virtualDocuments={virtualDocuments}
+      change={change}
+      reveal={reveal}
+      onActivateEditor={onActivateEditor}
+      onPinEditor={onPinEditor}
+      onCloseEditor={onCloseEditor}
+      onCollapse={onCollapse}
+    />
+  );
+
+  // On request, the files hide only while a file is open on the files view:
+  // any other view (a host's extra view, search) is the sidebar itself.
+  if (!sidebarShown && activeView === "files" && editors.length > 0) {
+    return (
+      <div className={cn("stg:flex stg:h-full stg:min-h-0", className)}>
+        {/* The rail's one button until the person asks for the files. */}
+        <div className="stg:flex stg:shrink-0 stg:flex-col stg:border-r stg:border-border stg:p-1">
+          <IconButton label="Show files" icon={<FilesIcon />} onClick={() => setSidebarShown(true)} />
+        </div>
+        <div className="stg:flex stg:min-h-0 stg:min-w-0 stg:flex-1 stg:flex-col">{editorArea}</div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("stg:flex stg:h-full stg:min-h-0", className)}>
@@ -287,21 +328,7 @@ export function WorkspaceSurface({
             />
           )
         }
-        secondary={
-          <EditorArea
-            entries={entries}
-            reader={reader}
-            editors={editors}
-            selectedFile={selectedFile}
-            virtualDocuments={virtualDocuments}
-            change={change}
-            reveal={reveal}
-            onActivateEditor={onActivateEditor}
-            onPinEditor={onPinEditor}
-            onCloseEditor={onCloseEditor}
-            onCollapse={onCollapse}
-          />
-        }
+        secondary={editorArea}
       />
     </div>
   );

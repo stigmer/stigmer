@@ -1,49 +1,11 @@
 "use client";
 
-import { cn } from "@stigmer/design-tokens";
-import { getErrorReason, getUserMessage } from "@stigmer/client";
+import { getUserMessage } from "@stigmer/client";
+import { agentHoursUsedUp } from "./refusals.js";
+import { Notice } from "../internal/surface/Notice.js";
 import { DEFAULT_BILLING_HREF } from "./UpgradeNotice.js";
 
-/**
- * The reason Stigmer Cloud refuses a new turn when the organization's plan
- * has used the agent hours it includes and new work pauses until they
- * reset. The refusal is FAILED_PRECONDITION with this reason and the
- * metadata `org`, `plan`, `included_hours` and `resets_at`; a guest or a
- * channel user is refused without it.
- */
-export const AGENT_HOURS_USED_UP = "AGENT_HOURS_USED_UP";
-
-/** What an `AGENT_HOURS_USED_UP` refusal names. */
-export interface AgentHoursUsedUp {
-  /** The organization the turn was refused in. */
-  readonly org: string;
-  /**
-   * The plan whose hours are used; empty for a child organization, which is
-   * on its parent's plan and cannot change it.
-   */
-  readonly plan: string;
-  /** The hours the plan includes each month, as the refusal states them. */
-  readonly includedHours: string;
-  /** When the hours reset, an RFC 3339 instant; empty when the refusal names none. */
-  readonly resetsAt: string;
-}
-
-/**
- * What a refusal names, when `error` is Stigmer Cloud's
- * `AGENT_HOURS_USED_UP`; `null` for any other error.
- */
-export function agentHoursUsedUp(error: unknown): AgentHoursUsedUp | null {
-  const reason = getErrorReason(error);
-  if (reason?.reason !== AGENT_HOURS_USED_UP) {
-    return null;
-  }
-  return {
-    org: reason.metadata.org ?? "",
-    plan: reason.metadata.plan ?? "",
-    includedHours: reason.metadata.included_hours ?? "",
-    resetsAt: reason.metadata.resets_at ?? "",
-  };
-}
+export { AGENT_HOURS_USED_UP, agentHoursUsedUp, type AgentHoursUsedUp } from "./refusals.js";
 
 /** Props for {@link AgentHoursNotice}. */
 export interface AgentHoursNoticeProps {
@@ -76,19 +38,17 @@ export interface AgentHoursNoticeProps {
 export function AgentHoursNotice({ error, billingHref = DEFAULT_BILLING_HREF, className }: AgentHoursNoticeProps) {
   const plan = agentHoursUsedUp(error)?.plan ?? "";
   return (
-    <div
-      className={cn(
-        "stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:px-3 stg:py-2 stg:text-xs",
-        className,
-      )}
+    <Notice
+      tone="paused"
       role="alert"
+      // A child organization's hours are its parent's: the server's words say so, and it has no plans to offer.
+      headline={plan !== "" ? "Your organization has used this month's agent hours." : getUserMessage(error)}
+      link={plan !== "" ? { label: "View plans", href: billingHref } : undefined}
+      className={className}
     >
-      <p className="stg:text-foreground">{getUserMessage(error)}</p>
-      {plan !== "" && (
-        <a href={billingHref} className="stg:mt-1 stg:inline-block stg:font-medium stg:text-primary stg:hover:underline">
-          View plans
-        </a>
-      )}
-    </div>
+      <p className="stg:m-0">
+        {plan !== "" ? "Agents run again when the hours renew, or sooner on a bigger plan. Your message stays in the box." : "Your message stays in the box."}
+      </p>
+    </Notice>
   );
 }

@@ -15,7 +15,7 @@
 import { Fragment, type ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
-import { DEFAULT_MODELS_HUB_HREF } from "../billing/ProviderKeyNotice.js";
+import { DEFAULT_MODELS_HUB_HREF } from "../billing/refusals.js";
 import { type HarnessOption } from "@stigmer/react-core";
 import { HARNESS_META } from "@stigmer/react-core/internal";
 import { ProviderKeyCheck } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/api_pb";

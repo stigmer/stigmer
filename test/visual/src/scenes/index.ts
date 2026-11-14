@@ -33,7 +33,9 @@ import {
   ANTHROPIC_ONLY,
   CONNECTED,
   launcherFirstQuestionScene,
+  launcherRefusedScene,
   launcherScene,
+  runRefusal,
   modelSelectorNotReadyScene,
   modelsHubLocalScene,
   modelsHubScene,
@@ -58,6 +60,7 @@ import {
   sessionPlanWritingScene,
   sessionPullRequestsScene,
   sessionScene,
+  sessionSendFailedScene,
   sessionStartingScene,
   stepStoryScene,
 } from "./session.tsx";
@@ -92,6 +95,23 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "models-hub-local": modelsHubLocalScene,
   "models-hub-member": () => modelsHubScene(NOTHING_CONNECTED, [], "member"),
   "launcher-ready": () => launcherScene(ANTHROPIC_ONLY, "admin"),
+  "launcher-key-missing": () =>
+    launcherRefusedScene(
+      runRefusal("This organization has no Anthropic key for model 'claude-sonnet-4-6', so the run was not started.", "PROVIDER_KEY_REQUIRED", {
+        org: "acme",
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+      }),
+    ),
+  "launcher-hours-used": () =>
+    launcherRefusedScene(
+      runRefusal("Your organization has used the 40 agent hours in its Team plan this month.", "AGENT_HOURS_USED_UP", {
+        org: "acme",
+        plan: "team",
+        included_hours: "40",
+        resets_at: "2026-12-01T00:00:00Z",
+      }),
+    ),
   "launcher-connect-admin": () => launcherScene(NOTHING_CONNECTED, "admin"),
   "launcher-connect-member": () => launcherScene(NOTHING_CONNECTED, "member"),
   "launcher-connect-local": () => launcherScene(NOTHING_ON_THE_RUNNER, "admin", true),
@@ -167,6 +187,7 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "session-guest": () => sessionScene("finished", { audience: "guest" }),
   "session-observer": () => sessionScene("finished", { audience: "observer", inspector: true }),
   "session-load-failed": () => sessionScene("load-failed", { inspector: true }),
+  "session-send-failed": () => sessionSendFailedScene(),
   "session-steps-opened": () => sessionScene("busy", { inspector: true, height: 1800 }),
   "session-how-opened": () => sessionScene("finished", { inspector: true, height: 1400 }),
   "session-mcp": () => stepStoryScene("mcp-turn", { inspector: true, height: 1200 }),

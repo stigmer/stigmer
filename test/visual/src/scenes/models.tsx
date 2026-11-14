@@ -38,6 +38,8 @@ import {
 import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
+import { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/command_pb";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 import { ModelSelector, ModelsHub, NewSessionViewer, SessionInspector, useModelReadiness } from "@stigmer/react-sdk";
 import { samples } from "@stigmer/react-sdk/test";
 import { ACCOUNT, NOTHING_ON_THE_RUNNER, NO_RUNS, ORGANIZATION, readiness } from "../fixtures.ts";
@@ -128,6 +130,31 @@ export function launcherScene(answer: GetModelReadinessOutput, viewer: Viewer, l
     deploymentMode: local ? "local" : undefined,
     inOrganization: true,
     routes: launcherRoutes(answer, viewer),
+    render: () => (
+      <div style={{ height: "calc(100vh - 48px)" }}>
+        <NewSessionViewer org={ORG_ID} onSessionCreated={inert} autoFocus={false} inspector={<SessionInspector />} />
+      </div>
+    ),
+  };
+}
+
+/** A run the server refuses with a reason, as Stigmer Cloud refuses one: its words, the reason, and what the reason names. */
+export function runRefusal(message: string, reason: string, metadata: Record<string, string>): ConnectError {
+  return new ConnectError(message, Code.FailedPrecondition, undefined, [{ desc: ErrorInfoSchema, value: { domain: "stigmer.ai", reason, metadata } }]);
+}
+
+/** The launcher, ready, whose first message the server refuses as `refusal` says: the scene types it and sends it. */
+export function launcherRefusedScene(refusal: ConnectError): Drawing {
+  return {
+    inOrganization: true,
+    routes: (router: ConnectRouter) => {
+      launcherRoutes(ANTHROPIC_ONLY, "admin")(router);
+      router.service(RunCommandController, {
+        create: () => {
+          throw refusal;
+        },
+      });
+    },
     render: () => (
       <div style={{ height: "calc(100vh - 48px)" }}>
         <NewSessionViewer org={ORG_ID} onSessionCreated={inert} autoFocus={false} inspector={<SessionInspector />} />

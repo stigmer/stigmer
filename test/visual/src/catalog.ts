@@ -55,6 +55,8 @@ export type SceneId =
   | "models-hub-local"
   | "models-hub-member"
   | "launcher-ready"
+  | "launcher-key-missing"
+  | "launcher-hours-used"
   | "launcher-connect-admin"
   | "launcher-connect-member"
   | "launcher-connect-local"
@@ -311,6 +313,12 @@ const SESSION_SCENES = [
     widths: ["desktop", "narrow"],
   },
   { id: "session-load-failed", title: "Session: the conversation cannot load", widths: ["desktop"] },
+  {
+    id: "session-send-failed",
+    title: "Session: a follow-up that didn't send because the server was never reached, kept on its bubble with Try again",
+    widths: ["desktop"],
+    opens: [{ fill: "Reply\u2026", with: "Invoices are off by a cent. Can you fix the rounding?", exact: true }, { press: "Send message", role: "button" }],
+  },
   {
     id: "session-steps-opened",
     title: "Session: the long turn at work with its steps opened: a search's matches and a command's output",
@@ -757,6 +765,24 @@ const LISTED: readonly Scene[] = [
   { id: "models-hub-local", title: "Models & providers: a laptop whose runner has no key", widths: ["desktop"] },
   { id: "models-hub-member", title: "Models & providers: a member, nothing connected yet", widths: ["desktop"] },
   { id: "launcher-ready", title: "Launcher: a model provider connected, ready to send", widths: ["desktop", "narrow"] },
+  {
+    id: "launcher-key-missing",
+    title: "Launcher: the first message refused because the organization has no key for the model's provider",
+    widths: ["desktop"],
+    opens: [
+      { fill: "Describe what you need help with\u2026", with: "Invoices are off by a cent. Can you fix the rounding?", exact: true },
+      { press: "Send message", role: "button" },
+    ],
+  },
+  {
+    id: "launcher-hours-used",
+    title: "Launcher: the first message refused because the organization used this month's agent hours",
+    widths: ["desktop"],
+    opens: [
+      { fill: "Describe what you need help with\u2026", with: "Invoices are off by a cent. Can you fix the rounding?", exact: true },
+      { press: "Send message", role: "button" },
+    ],
+  },
   {
     id: "launcher-connect-admin",
     title: "Launcher: nothing can run, an admin connects a provider in place",

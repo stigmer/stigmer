@@ -6,7 +6,12 @@
     {
       "caption": "The message didn't send",
       "narrow": false,
-      "built": [],
+      "built": [
+        {
+          "scene": "session-send-failed",
+          "width": "desktop"
+        }
+      ],
       "unbuilt": "no gallery scene draws a message that didn't send; the rebuilt screen's change adds one",
       "words": [
         {
@@ -128,9 +133,14 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word 12s": "The drawing's sample turn (its time and pill); the scene's finished turn is the samples'",
+        "type Done": "The drawing's sample turn (its time and pill); the scene's finished turn is the samples'"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "button Try again": "The drawing: its buttons at 34px and 26px are off the kit's 32px and 28px; redrawn at the next export"
+      }
     }
   ]
 }

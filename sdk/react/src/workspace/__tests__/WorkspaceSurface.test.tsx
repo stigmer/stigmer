@@ -99,6 +99,21 @@ describe("WorkspaceSurface", () => {
     expect(screen.queryByTestId("search-probe")).toBeNull();
   });
 
+  it("on request, gives an open file the whole surface until the person asks for the files", () => {
+    renderSurface({ sidebar: "on-request" });
+    expect(screen.queryByRole("radio", { name: "Explorer" })).toBeNull();
+    expect(screen.queryByTestId("explorer-probe")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Show files" }));
+    expect(screen.getByRole("radio", { name: "Explorer" })).toBeTruthy();
+    expect(screen.getByTestId("explorer-probe")).toBeTruthy();
+  });
+
+  it("on request, still shows the files when no file is open", () => {
+    renderSurface({ sidebar: "on-request", editors: [], selectedFile: null });
+    expect(screen.getByTestId("explorer-probe")).toBeTruthy();
+  });
+
   it("switches to the search surface when Search is selected", () => {
     renderSurface();
     fireEvent.click(screen.getByRole("radio", { name: "Search" }));

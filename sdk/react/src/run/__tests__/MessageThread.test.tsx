@@ -14,6 +14,7 @@
  * the plan document, the mode badge); and the ambient liveness line.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -291,13 +292,26 @@ describe("MessageThread", () => {
     expect(screen.getByText("I am thinking...").closest("[role='article']")?.className).toContain("stg:opacity-70");
   });
 
-  it("renders a failed pending message with an inline Retry", () => {
+  it("renders a failed pending message edged in the failed tone, with why and Try again", () => {
     const onRetrySend = vi.fn();
     render(<MessageThread turns={[]} pendingUserMessage="unsent message" pendingMessageFailed onRetrySend={onRetrySend} />);
 
-    expect(screen.getByText("unsent message")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /retry/i }));
+    expect(screen.getByText("unsent message").closest("[role='article']")?.className).toContain("stg:border-status-failed");
+    expect(screen.getByRole("alert").textContent).toContain("Didn't send.");
+    expect(screen.getByText("Your message is kept here, and nothing reached the agent.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(onRetrySend).toHaveBeenCalledOnce();
+  });
+
+  it("says a send the server never answered in the drawn words, and any other in the client's", () => {
+    const { rerender } = render(
+      <MessageThread turns={[]} pendingUserMessage="unsent message" pendingMessageFailed pendingMessageError={new ConnectError("no healthy upstream", Code.Unavailable)} />,
+    );
+    expect(screen.getByRole("alert").textContent).toContain("Didn't send. Stigmer couldn't reach the server.");
+    expect(screen.getByText("Your message is kept here, and nothing reached the agent. Try again when you're back online.")).toBeTruthy();
+
+    rerender(<MessageThread turns={[]} pendingUserMessage="unsent message" pendingMessageFailed pendingMessageError={new ConnectError("message too long", Code.InvalidArgument)} />);
+    expect(screen.getByRole("alert").textContent).toContain("Didn't send. message too long");
   });
 
   describe("how a turn ended", () => {
@@ -416,6 +430,13 @@ describe("MessageThread", () => {
 
       expect(screen.queryByRole("region", { name: "Plan being written" })).toBeNull();
       expect(screen.getByText(/First step/)).toBeTruthy();
+    });
+
+    it("leads a Plan turn's message with its Plan tag, on the message's first line", () => {
+      renderThread(conversation({ id: "p", mode: InteractionMode.PLAN, message: "Plan the rollout" }));
+
+      const tag = screen.getByRole("status", { name: "Plan mode" });
+      expect(tag.closest("p")?.textContent).toBe("PlanPlan the rollout");
     });
 
     it("renders the build card of a completed Plan turn and routes Build", () => {

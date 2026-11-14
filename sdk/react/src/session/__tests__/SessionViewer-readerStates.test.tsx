@@ -21,6 +21,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { Code, ConnectError } from "@connectrpc/connect";
 import type { UseSessionConversationReturn } from "@stigmer/react-core";
 import { CHANNEL_SESSION_LABELS } from "../channelOrigin";
 import { conversationOf, samples, scenarios } from "../../test";
@@ -33,7 +34,7 @@ vi.mock("../../composer", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../composer")>();
   return {
     ...actual,
-    SessionComposer: () => <div data-testid="composer-probe" />,
+    SessionComposer: ({ disabled }: { disabled?: boolean }) => <div data-testid="composer-probe" data-disabled={disabled === true ? "true" : "false"} />,
   };
 });
 
@@ -131,11 +132,13 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("SessionViewer — what a reader is told around the conversation", () => {
-  it("outlines a session not made yet, announced as opening", () => {
+  it("outlines a session not made yet, announced as opening, its composer in place and closed", () => {
     conversation({ session: null });
     render(<SessionViewer sessionId="" org="demo" />);
     const opening = screen.getByRole("status", { name: "Opening the session" });
     expect(opening.textContent).toBe("Opening the session…");
+    expect(screen.getByText("Opening the session…").className).toContain("stg:text-sm");
+    expect(screen.getByTestId("composer-probe").getAttribute("data-disabled")).toBe("true");
     expect(screen.queryByTestId("thread-probe")).toBeNull();
     expect(screen.queryByText(/Starting session/)).toBeNull();
   });
@@ -192,11 +195,21 @@ describe("SessionViewer — what a reader is told around the conversation", () =
       expect(screen.getByRole("heading", { name: "This session didn’t open" })).toBeTruthy();
       expect(screen.queryByTestId("thread-probe")).toBeNull();
 
+      // Any other kind keeps the client's own sentence for it.
+      expect(screen.getByText("session not found")).toBeTruthy();
+
       fireEvent.click(screen.getByRole("button", { name: "Try again" }));
       expect(reload).toHaveBeenCalledTimes(1);
     } finally {
       Object.defineProperty(window, "location", { value: location, configurable: true });
     }
+  });
+
+  it("says the server didn't answer, and that the session is safe, when it was never reached", () => {
+    conversation({ loadError: new ConnectError("upstream connect error", Code.Unavailable) });
+    render(<SessionViewer sessionId="ses_1" org="demo" />);
+    expect(screen.getByText("Stigmer's server didn't answer. The session itself is safe; nothing in it was lost.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Try again" }).className).toContain("stg:bg-primary");
   });
 
   it("says a broken stream beside the conversation, and reconnects on Reconnect", () => {

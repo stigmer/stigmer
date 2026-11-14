@@ -13,6 +13,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { Button } from "../../button/Button.js";
+import { LinkButton } from "../../button/LinkButton.js";
 import type { ButtonSize } from "../../button/buttonClasses.js";
 import { useCopy } from "../CopyBlock.js";
 import { FailureHelpLine } from "../../help/HelpLink.js";
@@ -30,10 +31,12 @@ export interface NoticeLinkSpec {
   readonly onClick?: () => void;
 }
 
-/** The one act a notice offers. */
+/** The one act a notice offers: a click, or (`href`) a page to open. */
 export interface NoticeAct {
   readonly label: ReactNode;
-  readonly onClick: () => void;
+  readonly onClick?: () => void;
+  /** Opens this address instead of taking a click: the act is a link drawn as the button. */
+  readonly href?: string;
   /** The act is in flight: its button waits. */
   readonly busy?: boolean;
   /** Leading icon. */
@@ -94,11 +97,15 @@ export function Notice({ tone, headline, children, icon, act, link, actSize = "s
         {children}
         {act !== undefined || link !== undefined || copyable ? (
           <div className="stg:mt-2 stg:flex stg:flex-wrap stg:items-center stg:gap-3">
-            {act !== undefined && (
+            {act?.href !== undefined ? (
+              <LinkButton href={act.href} size={actSize} icon={act.icon}>
+                {act.label}
+              </LinkButton>
+            ) : act !== undefined ? (
               <Button size={actSize} icon={act.icon} onClick={act.onClick} disabled={act.busy === true} aria-busy={act.busy === true}>
                 {act.label}
               </Button>
-            )}
+            ) : null}
             {link !== undefined && <NoticeLink link={link} />}
             {copyable && <CopyDetails details={details} flush={act === undefined && link === undefined} />}
           </div>
@@ -182,13 +189,16 @@ export const CLOCK_ICON: ReactNode = (
   </svg>
 );
 
+/** The failed tone's alert mark, for a caller whose paused notice needs a fix before it can go on. */
+export const ALERT_ICON: ReactNode = (
+  <svg {...ICON_PROPS}>
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 8v4M12 16h.01" />
+  </svg>
+);
+
 const TONE_ICONS: Readonly<Record<NoticeTone, ReactNode>> = {
-  failed: (
-    <svg {...ICON_PROPS}>
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 8v4M12 16h.01" />
-    </svg>
-  ),
+  failed: ALERT_ICON,
   paused: CLOCK_ICON,
   plain: INFO_ICON,
 };

@@ -96,7 +96,10 @@ export function readPage(selector: string): Reading {
     blocks.push({ text, type: [size, Math.round(leading * 100) / 100, Number.parseInt(style.fontWeight, 10)] });
   }
   const buttons: Button[] = [];
-  for (const button of root.querySelectorAll("button, [role='button'], a[data-button], .btn")) {
+  // A link drawn as the kit's button (`LinkButton`: an anchor with the
+  // button's classes) is a button to the reader, as the drawing draws it.
+  const kitButtonLink = 'a[class~="stg:inline-flex"][class~="stg:rounded-lg"][class~="stg:border"][class~="stg:font-medium"]';
+  for (const button of root.querySelectorAll(`button, [role='button'], a[data-button], .btn, ${kitButtonLink}`)) {
     if (!shown(button)) continue;
     const name = collapse(button.getAttribute("aria-label") ?? (button as HTMLElement).innerText ?? "");
     if (name === "") continue;

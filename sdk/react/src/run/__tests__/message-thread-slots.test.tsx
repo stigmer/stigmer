@@ -140,7 +140,7 @@ describe("MessageThread slots", () => {
     const entries = screen.getAllByTestId("custom-entry");
     expect(entries.map((e) => e.textContent)).toEqual(["prompt text", "Hi there!", "failed follow-up"]);
     expect(screen.queryByRole("article", { name: "User message" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
   });
 
   it("renders the ApprovalCard slot with the row's stabilized answer wiring intact", () => {

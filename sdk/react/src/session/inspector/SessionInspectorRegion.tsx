@@ -314,6 +314,8 @@ export function SessionInspectorRegion({
 
   return (
     <WorkspaceSurface
+      // A file opens beside the thread on its own; the files show on request.
+      sidebar="on-request"
       entries={surfaceEntries}
       lister={workspaceFileLister}
       reader={workspaceFileReader}

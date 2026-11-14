@@ -14,7 +14,7 @@ import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccou
 import type { IdentityAccountPreferences } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/spec_pb";
 import { useMyIdentityAccount } from "./useMyIdentityAccount.js";
 import { useUpdateIdentityAccount } from "./useUpdateIdentityAccount.js";
-import { DEFAULT_MODELS_HUB_HREF } from "../billing/ProviderKeyNotice.js";
+import { DEFAULT_MODELS_HUB_HREF } from "../billing/refusals.js";
 import { useServerInfo } from "../server-info.js";
 import { type HarnessOption } from "@stigmer/react-core";
 import { HARNESS_META, HARNESS_OPTIONS, isHarnessOption } from "@stigmer/react-core/internal";

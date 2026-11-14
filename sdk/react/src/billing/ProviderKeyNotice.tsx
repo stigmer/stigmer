@@ -1,43 +1,16 @@
 "use client";
 
-import { cn } from "@stigmer/design-tokens";
-import { getErrorReason, getUserMessage } from "@stigmer/client";
+import { getUserMessage } from "@stigmer/client";
+import { DEFAULT_MODELS_HUB_HREF, providerKeyRequired } from "./refusals.js";
+import { ALERT_ICON, Notice } from "../internal/surface/Notice.js";
+import { providerName } from "../models/provider-name.js";
 
-/**
- * The reason a server refuses a run that needs a provider nothing serves:
- * the organization holds no key for it, or this server's runners do not
- * reach it (`PlatformQueryController.getModelReadiness` reports the same).
- */
-export const PROVIDER_KEY_REQUIRED = "PROVIDER_KEY_REQUIRED";
-
-/** Models & providers, where the notice links by default: the top-level route every client serves. */
-export const DEFAULT_MODELS_HUB_HREF = "/models";
-
-/** What a `PROVIDER_KEY_REQUIRED` refusal names. */
-export interface ProviderKeyRequired {
-  /** The organization the run was refused in. */
-  readonly org: string;
-  /** The provider it has no key for: `anthropic` or `openai`. */
-  readonly provider: string;
-  /** The model the run would have used; empty when it names none. */
-  readonly model: string;
-}
-
-/**
- * What a refusal names, when `error` is a `PROVIDER_KEY_REQUIRED` refusal;
- * `null` for any other error.
- */
-export function providerKeyRequired(error: unknown): ProviderKeyRequired | null {
-  const reason = getErrorReason(error);
-  if (reason?.reason !== PROVIDER_KEY_REQUIRED) {
-    return null;
-  }
-  return {
-    org: reason.metadata.org ?? "",
-    provider: reason.metadata.provider ?? "",
-    model: reason.metadata.model ?? "",
-  };
-}
+export {
+  DEFAULT_MODELS_HUB_HREF,
+  PROVIDER_KEY_REQUIRED,
+  providerKeyRequired,
+  type ProviderKeyRequired,
+} from "./refusals.js";
 
 /** Props for {@link ProviderKeyNotice}. */
 export interface ProviderKeyNoticeProps {
@@ -50,10 +23,11 @@ export interface ProviderKeyNoticeProps {
 }
 
 /**
- * Says a run was not started because nothing serves the provider it needs
- * (the server's own words: where an admin adds a key, or how a laptop's
- * runner gets one), and links Models & providers, in place of a bare
- * refusal.
+ * Says a run was not started because nothing serves the provider it needs,
+ * as the console's notice: the organization has no key for the provider
+ * (or, where the refusal names no organization, the server's own words,
+ * such as how a laptop's runner gets one), that the message stays in the
+ * box, and Open Models & providers, in place of a bare refusal.
  *
  * @example
  * ```tsx
@@ -68,21 +42,20 @@ export function ProviderKeyNotice({
   modelsHubHref = DEFAULT_MODELS_HUB_HREF,
   className,
 }: ProviderKeyNoticeProps) {
+  const required = providerKeyRequired(error);
+  const provider = required !== null && required.provider !== "" ? providerName(required.provider) : "";
+  const ofOrganization = required !== null && required.org !== "";
   return (
-    <div
-      className={cn(
-        "stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:px-3 stg:py-2 stg:text-xs",
-        className,
-      )}
+    <Notice
+      tone="paused"
       role="alert"
+      icon={ALERT_ICON}
+      headline={ofOrganization ? `This organization has no ${provider === "" ? "model" : provider} key yet.` : getUserMessage(error)}
+      act={{ label: "Open Models & providers", href: modelsHubHref }}
+      actSize="xs"
+      className={className}
     >
-      <p className="stg:text-foreground">{getUserMessage(error)}</p>
-      <a
-        href={modelsHubHref}
-        className="stg:mt-1 stg:inline-block stg:font-medium stg:text-primary stg:hover:underline"
-      >
-        Open Models &amp; providers
-      </a>
-    </div>
+      <p className="stg:m-0">{ofOrganization ? "Add one on Models & providers, then send. Your message stays in the box." : "Your message stays in the box."}</p>
+    </Notice>
   );
 }

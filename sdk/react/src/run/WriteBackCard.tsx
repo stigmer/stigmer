@@ -255,7 +255,8 @@ function statLine(diffSummary: string): ReactNode {
         fileCount={stats.filesChanged}
         additions={stats.insertions}
         deletions={stats.deletions}
-        className="stg:min-w-0"
+        // The counts read as one line, never broken between their parts.
+        className="stg:min-w-0 stg:whitespace-nowrap"
       />
     );
   }

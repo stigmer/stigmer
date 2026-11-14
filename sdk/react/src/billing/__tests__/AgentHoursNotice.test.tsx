@@ -1,7 +1,8 @@
 // The agent-hours refusal: read off the refusal's reason, never its copy,
-// with what it names (a child organization's names no plan); rendered with
-// the server's copy and, only where the organization can change its plan,
-// a link to the plans, the host's or the default.
+// with what it names (a child organization's names no plan); rendered as
+// the console's notice (the server's own words for a child organization,
+// whose hours are its parent's) and, only where the organization can change
+// its plan, a link to the plans, the host's or the default.
 
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -45,9 +46,11 @@ describe("agentHoursUsedUp", () => {
 });
 
 describe("AgentHoursNotice", () => {
-  it("shows the server's copy and links to the plans", () => {
+  it("says the organization used this month's hours, that the message stays, and links to the plans", () => {
     render(<AgentHoursNotice error={REFUSAL} />);
-    expect(screen.getByRole("alert").textContent).toContain(COPY);
+    const notice = screen.getByRole("alert");
+    expect(notice.textContent).toContain("Your organization has used this month's agent hours.");
+    expect(notice.textContent).toContain("Your message stays in the box.");
     expect(screen.getByRole("link", { name: "View plans" }).getAttribute("href")).toBe("/settings/billing");
   });
 

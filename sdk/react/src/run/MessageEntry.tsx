@@ -187,11 +187,6 @@ function HumanMessage({
         className,
       )}
     >
-      {/* The badge renders only for non-default modes (a "Plan" pill), so
-          ordinary Agent turns carry no extra chrome. */}
-      {interactionMode !== undefined && (
-        <InteractionModeBadge mode={interactionMode} className="stg:mb-1.5" />
-      )}
       {/* The evidence a file rode with this turn (#372) — above the prose,
           mirroring the composer's chips-above-input layout. */}
       {files && files.length > 0 && (
@@ -201,7 +196,13 @@ function HumanMessage({
           className="stg:mb-2"
         />
       )}
-      <p className="stg:text-sm stg:text-foreground stg:whitespace-pre-wrap">{content}</p>
+      <p className="stg:text-sm stg:text-foreground stg:whitespace-pre-wrap">
+        {/* The mode's tag leads the message's first line, and only for a
+            non-default mode (a "Plan" tag), so ordinary Agent turns carry
+            no extra chrome. */}
+        {interactionMode !== undefined && <InteractionModeBadge mode={interactionMode} />}
+        {content}
+      </p>
       {/* The hover-revealed action cluster on the bubble's shoulder: copy is
           always offered (the message text is the content), edit only when the
           host wired the callback. */}

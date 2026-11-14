@@ -2,6 +2,7 @@
 import { memo, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { getUserMessage, type DisplayFileChange, type ResourceRef, type Turn } from "@stigmer/client";
+import { isUnreachable } from "../internal/unreachable.js";
 import { create } from "@bufbuild/protobuf";
 import { FileSchema, type File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
@@ -20,7 +21,7 @@ import { useIsNarrowerThan } from "../internal/useIsNarrowerThan.js";
 import { FileChangeProgressBar } from "../run/FileChangeProgressBar.js";
 import { ThreadSkeleton } from "../run/ThreadSkeleton.js";
 import { SessionComposer } from "../composer/index.js";
-import { AgentHoursNotice, agentHoursUsedUp } from "../billing/AgentHoursNotice.js";
+import { AgentHoursNotice } from "../billing/AgentHoursNotice.js";
 import { ChatActivityReporterContext } from "../agent-chat/chat-activity.js";
 import { chatActivityOf } from "../agent-chat/chat-activity-of.js";
 import { TurnOutcome, type TurnOutcomeUndo } from "./TurnOutcome.js";
@@ -33,7 +34,8 @@ import { deriveRunFileChanges } from "../run/deriveRunFileChanges.js";
 import { SessionSummary } from "./SessionSummary.js";
 import { CONVERSATION_FILES_VIEW_ID } from "./useSessionRailViews.js";
 import { useRunSettings } from "./run-settings.js";
-import { DEFAULT_MODELS_HUB_HREF, ProviderKeyNotice, providerKeyRequired } from "../billing/ProviderKeyNotice.js";
+import { ProviderKeyNotice } from "../billing/ProviderKeyNotice.js";
+import { agentHoursUsedUp, DEFAULT_MODELS_HUB_HREF, providerKeyRequired } from "../billing/refusals.js";
 import { ErrorMessage, SecretFlowErrorGuide, isSecretFlowError } from "../error/index.js";
 import { useStigmer } from "@stigmer/react-core";
 import { findLatestSessionPlan, planFilesByRun } from "../library/detect-plan-file.js";
@@ -688,7 +690,30 @@ export function SessionViewer({
   }
 
   if (!conv.session && !conv.isLoading) {
-    return <SessionStarting />;
+    // Where the conversation will be, its composer in place and closed: it
+    // can't send before the session exists.
+    return (
+      <SessionStarting className={className}>
+        {!isObserver && (
+          <SessionComposer
+            onSubmit={() => {}}
+            disabled
+            org={org}
+            harness={flow.harness}
+            defaultModelId={modelId}
+            agentRunDefaults={flow.agentRunDefaults}
+            interactionMode={interactionMode}
+            showInteractionModePicker={!isGuest}
+            showModelSelector={modelSelectorVisible}
+            enableFiles={!isGuest}
+            workspace={isGuest ? undefined : flow.workspace}
+            agentRef={flow.agentRef}
+            lockAgent={isCurated}
+            className={cn("stg:py-3", THREAD_GUTTER_CLASS)}
+          />
+        )}
+      </SessionStarting>
+    );
   }
 
   // The header's controls: host actions + the panel chip. The chip is the
@@ -1019,6 +1044,9 @@ const ConversationColumn = memo(function ConversationColumn({
   // A refused recover reads as a refused send does (its typed reason: the
   // plan's hours, another turn unfinished), never as raw text.
   const sendError = conv.sendError ?? conv.stopError ?? ending.error;
+  // A message that didn't send says why on its own bubble; a plain send
+  // failure is not said a second time above the composer.
+  const unsentInThread = !!conv.sendError && !!conv.pendingUserMessage;
 
   // The next message starts a conversation on the selected agent when the
   // session has no turn yet, or when the person picked a different agent
@@ -1145,7 +1173,8 @@ const ConversationColumn = memo(function ConversationColumn({
         pendingUserMessage={conv.pendingUserMessage}
         pendingFiles={conv.pendingFiles}
         queued={conv.queued}
-        pendingMessageFailed={!!conv.sendError && !!conv.pendingUserMessage}
+        pendingMessageFailed={unsentInThread}
+        pendingMessageError={conv.sendError ?? null}
         // Observers get a pure transcript: every interaction affordance
         // (retry, approvals, edit, build-from-plan) is opt-in via its
         // callback, so passing none removes the controls entirely. Opening
@@ -1222,7 +1251,9 @@ const ConversationColumn = memo(function ConversationColumn({
             onReconnect={conv.reconnectStream}
           />
         )}
-        {!isObserver && sendError && <SendErrorBanner error={sendError} modelsHubHref={modelsHubHref} />}
+        {!isObserver && sendError && !(unsentInThread && sendError === conv.sendError && isPlainSendError(sendError)) && (
+          <SendErrorBanner error={sendError} modelsHubHref={modelsHubHref} />
+        )}
         {/* Armed-only disclosure (#816 rework): auto-approve's way ON lives in
             the composer's run settings and the account preference; this strip is the
             always-visible proof it is on, plus the one-click way off. Never
@@ -1356,20 +1387,27 @@ function StripGlyph({ kind }: { readonly kind: "info" | "clock" | "eye" }) {
 // Local sub-components (error states)
 // ---------------------------------------------------------------------------
 
+/** What the page says when the server never answered: the session is safe on it. */
+const UNREACHABLE_WORDS = "Stigmer's server didn't answer. The session itself is safe; nothing in it was lost.";
+
+/**
+ * A session that didn't open: what happened, in the client's words for the
+ * error's kind (the drawing's words when the server never answered), a
+ * quiet mark, and one act.
+ */
 function SessionLoadError({ error }: { error: Error }) {
+  const unreachable = isUnreachable(error);
   return (
     <div className="stg:flex stg:min-h-[60vh] stg:flex-col stg:items-center stg:justify-center stg:px-4">
-      <div className="stg:w-full stg:max-w-sm stg:space-y-6 stg:text-center">
-        <div className="stg:mx-auto stg:flex stg:size-12 stg:items-center stg:justify-center stg:rounded-full stg:bg-destructive-subtle">
-          <ErrorTriangleIcon />
+      <div className="stg:flex stg:w-full stg:max-w-sm stg:flex-col stg:items-center stg:gap-4 stg:text-center">
+        <span className="stg:text-muted-foreground" aria-hidden="true">
+          {unreachable ? <NoConnectionIcon /> : <AlertCircleIcon />}
+        </span>
+        <div className="stg:flex stg:flex-col stg:gap-2">
+          <h1 className="stg:m-0 stg:text-lg stg:font-semibold">This session didn&rsquo;t open</h1>
+          <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">{unreachable ? UNREACHABLE_WORDS : getUserMessage(error)}</p>
         </div>
-        <div className="stg:space-y-2">
-          <h1 className="stg:text-lg stg:font-semibold">This session didn&rsquo;t open</h1>
-          <p className="stg:text-sm stg:text-muted-foreground">{getUserMessage(error)}</p>
-        </div>
-        <Button variant="outline" onClick={() => window.location.reload()}>
-          Try again
-        </Button>
+        <Button onClick={() => window.location.reload()}>Try again</Button>
         <FailureHelpLine />
       </div>
     </div>
@@ -1380,18 +1418,23 @@ function SessionLoadError({ error }: { error: Error }) {
  * A session being made: the header and the first message in outline, where
  * they will be, so the page does not jump when they arrive.
  */
-function SessionStarting() {
+function SessionStarting({ className, children }: { readonly className?: string; readonly children?: ReactNode }) {
   return (
-    <div className={cn("stg:flex stg:h-full stg:flex-col stg:gap-5 stg:pt-6", CONVERSATION_COLUMN_CLASS)} role="status" aria-label="Opening the session">
-      <div className="stg:space-y-2 stg:border-b stg:border-border stg:px-4 stg:pb-4">
-        <div className="stg:h-5 stg:w-56 stg:animate-pulse stg:rounded-md stg:bg-muted" />
-        <div className="stg:h-3 stg:w-36 stg:animate-pulse stg:rounded-md stg:bg-muted" />
+    <div className={cn("stg:flex stg:h-full stg:w-full stg:flex-col", className)}>
+      <div className={cn("stg:flex stg:min-h-0 stg:flex-1 stg:flex-col stg:gap-5 stg:pt-6", CONVERSATION_COLUMN_CLASS)} role="status" aria-label="Opening the session">
+        <div className={cn("stg:flex stg:flex-col stg:gap-2 stg:border-b stg:border-border stg:pb-4", THREAD_GUTTER_CLASS)}>
+          <div className="stg:h-5 stg:w-56 stg:animate-pulse stg:rounded-md stg:bg-muted" />
+          <div className="stg:h-3 stg:w-36 stg:animate-pulse stg:rounded-md stg:bg-muted" />
+        </div>
+        <div className={cn("stg:flex stg:flex-col stg:gap-3", THREAD_GUTTER_CLASS)}>
+          <div className="stg:h-16 stg:w-3/5 stg:self-end stg:animate-pulse stg:rounded-xl stg:bg-muted" />
+          <p className="stg:m-0 stg:flex stg:items-center stg:gap-2 stg:text-sm stg:text-muted-foreground">
+            <LoaderIcon />
+            Opening the session…
+          </p>
+        </div>
       </div>
-      <div className="stg:mx-4 stg:h-16 stg:w-3/5 stg:self-end stg:animate-pulse stg:rounded-xl stg:bg-muted" />
-      <p className="stg:flex stg:items-center stg:gap-2 stg:px-4 stg:text-xs stg:text-muted-foreground">
-        <LoaderIcon />
-        Opening the session…
-      </p>
+      <div className={CONVERSATION_COLUMN_CLASS}>{children}</div>
     </div>
   );
 }
@@ -1416,6 +1459,11 @@ function PlanAttachFailedNotice({ onDismiss }: { onDismiss: () => void }) {
       Couldn&rsquo;t attach plan.md. The agent follows the plan from the conversation instead.
     </ComposerStrip>
   );
+}
+
+/** A send failure with no notice of its own: the generic error, not a key, hours or secret to set up. */
+function isPlainSendError(error: Error): boolean {
+  return !isSecretFlowError(error) && providerKeyRequired(error) === null && agentHoursUsedUp(error) === null;
 }
 
 function SendErrorBanner({ error, modelsHubHref }: { readonly error: Error; readonly modelsHubHref: string }) {
@@ -1499,12 +1547,25 @@ function StreamErrorBanner({
 // Inline SVG icons (SDK independence — no lucide dependency)
 // ---------------------------------------------------------------------------
 
-function ErrorTriangleIcon() {
+function NoConnectionIcon() {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="stg:text-destructive">
-      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-      <line x1="12" y1="9" x2="12" y2="13" />
-      <line x1="12" y1="17" x2="12.01" y2="17" />
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 2l20 20" />
+      <path d="M8.5 16.5a5 5 0 0 1 7 0" />
+      <path d="M2 8.82a15 15 0 0 1 4.17-2.65" />
+      <path d="M10.66 5c4.01-.36 8.14.9 11.34 3.76" />
+      <path d="M16.85 11.25a10 10 0 0 1 2.22 1.68" />
+      <path d="M5 13a10 10 0 0 1 5.24-2.76" />
+      <path d="M12 20h.01" />
+    </svg>
+  );
+}
+
+function AlertCircleIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 8v4M12 16h.01" />
     </svg>
   );
 }

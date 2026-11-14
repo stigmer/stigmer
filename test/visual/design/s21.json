@@ -6,7 +6,12 @@
     {
       "caption": "Agent hours used up",
       "narrow": false,
-      "built": [],
+      "built": [
+        {
+          "scene": "launcher-hours-used",
+          "width": "desktop"
+        }
+      ],
       "unbuilt": "no gallery scene draws the agent-hours notice above the composer; the rebuilt screen's change adds one",
       "words": [
         {
@@ -106,7 +111,12 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "button Export transcript": "The drawing frames the first refused message as a session page (a header, the message kept in the composer); the launcher has no header and keeps the message in its field: for his look",
+        "word Fix invoice rounding": "The drawing frames the first refused message as a session page (a header, the message kept in the composer); the launcher has no header and keeps the message in its field: for his look",
+        "word Invoices are off by a cent. Can you fix the rounding?": "The drawing frames the first refused message as a session page (a header, the message kept in the composer); the launcher has no header and keeps the message in its field: for his look",
+        "word New session": "The drawing frames the first refused message as a session page (a header, the message kept in the composer); the launcher has no header and keeps the message in its field: for his look"
+      }
     }
   ]
 }

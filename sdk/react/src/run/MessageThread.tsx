@@ -31,11 +31,13 @@ import {
   type TurnEndingNames,
   type TurnEndingViewer,
   describeTurnEnding,
+  getUserMessage,
   isBackgroundRunning,
   stepTense,
   turnSteps,
 } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
+import { isUnreachable } from "../internal/unreachable.js";
 import { runPhaseOf } from "@stigmer/react-core";
 import { MessageEntry, type MessageEntryProps, type ThreadMessage } from "./MessageEntry.js";
 import { RunScores } from "../score/RunScores.js";
@@ -219,8 +221,14 @@ export interface MessageThreadProps {
    */
   readonly pendingMessageFailed?: boolean;
   /**
+   * Why the pending message didn't send, when {@link pendingMessageFailed}
+   * is `true`: its line says so in the words for the error's kind ("Stigmer
+   * couldn't reach the server" when the server never answered).
+   */
+  readonly pendingMessageError?: Error | null;
+  /**
    * Retry handler for a failed pending message. Wired to the inline
-   * "Retry" control when {@link pendingMessageFailed} is `true`.
+   * "Try again" control when {@link pendingMessageFailed} is `true`.
    */
   readonly onRetrySend?: () => void;
   /**
@@ -1226,6 +1234,7 @@ export function MessageThread({
   pendingFiles,
   queued,
   pendingMessageFailed = false,
+  pendingMessageError,
   onRetrySend,
   scrollOnSend = true,
   onRetryRun,
@@ -1387,6 +1396,7 @@ export function MessageThread({
             planActionsDisabled={planActionsDisabled}
             planBuildPending={planBuildPending}
             contentColumn={contentColumn}
+            pendingMessageError={pendingMessageError}
             onRetrySend={onRetrySend}
             onRetryRun={onRetryRun}
             onEditMessage={onEditMessage}
@@ -1417,7 +1427,8 @@ export function MessageThread({
       org={org}
       planActionsDisabled={planActionsDisabled}
       planBuildPending={planBuildPending}
-      onRetrySend={onRetrySend}
+      pendingMessageError={pendingMessageError}
+            onRetrySend={onRetrySend}
       onRetryRun={onRetryRun}
       onEditMessage={onEditMessage}
       slots={slots}
@@ -1449,6 +1460,7 @@ interface NonVirtualizedThreadProps {
   readonly planActionsDisabled?: boolean;
   /** True while the approved plan is being uploaded ahead of the build turn. */
   readonly planBuildPending?: boolean;
+  readonly pendingMessageError?: Error | null;
   readonly onRetrySend?: () => void;
   readonly onRetryRun?: (message: string) => void;
   readonly onEditMessage?: (text: string) => void;
@@ -1475,6 +1487,7 @@ function NonVirtualizedThread({
   org,
   planActionsDisabled,
   planBuildPending,
+  pendingMessageError,
   onRetrySend,
   onRetryRun,
   onEditMessage,
@@ -1521,7 +1534,8 @@ function NonVirtualizedThread({
                   org={org}
                   planActionsDisabled={planActionsDisabled}
                   planBuildPending={planBuildPending}
-                  onRetrySend={onRetrySend}
+                  pendingMessageError={pendingMessageError}
+            onRetrySend={onRetrySend}
                   onRetryRun={onRetryRun}
                   onEditMessage={onEditMessage}
                   slots={slots}
@@ -1573,6 +1587,7 @@ export interface ThreadItemRendererProps {
   readonly planActionsDisabled?: boolean;
   /** True while the approved plan is being uploaded ahead of the build turn. */
   readonly planBuildPending?: boolean;
+  readonly pendingMessageError?: Error | null;
   readonly onRetrySend?: () => void;
   readonly onRetryRun?: (message: string) => void;
   readonly onEditMessage?: (text: string) => void;
@@ -1606,6 +1621,7 @@ export function ThreadItemRenderer({
   org,
   planActionsDisabled,
   planBuildPending,
+  pendingMessageError,
   onRetrySend,
   onRetryRun,
   onEditMessage,
@@ -1620,6 +1636,7 @@ export function ThreadItemRenderer({
           <FailedUserMessage
             message={item.message}
             files={item.files}
+            error={pendingMessageError ?? null}
             onRetry={onRetrySend}
             MessageEntryComponent={Entry}
           />
@@ -1668,7 +1685,8 @@ export function ThreadItemRenderer({
                 org={org}
                 planActionsDisabled={planActionsDisabled}
                 planBuildPending={planBuildPending}
-                onRetrySend={onRetrySend}
+                pendingMessageError={pendingMessageError}
+            onRetrySend={onRetrySend}
                 onRetryRun={onRetryRun}
                 onEditMessage={onEditMessage}
                 slots={slots}
@@ -2002,11 +2020,23 @@ function LoadedVersionsMarker({ changes }: { readonly changes: readonly LoadedVe
 // FailedUserMessage — optimistic turn whose send failed
 // ---------------------------------------------------------------------------
 
+/** Why a message didn't send, in the words for the error's kind: the drawn ones when the server never answered. */
+function unsentWords(error: Error | null): { readonly line: string; readonly comfort: string } {
+  if (error === null) return { line: "Didn't send.", comfort: "Your message is kept here, and nothing reached the agent." };
+  if (isUnreachable(error)) {
+    return {
+      line: "Didn't send. Stigmer couldn't reach the server.",
+      comfort: "Your message is kept here, and nothing reached the agent. Try again when you're back online.",
+    };
+  }
+  return { line: `Didn't send. ${getUserMessage(error)}`, comfort: "Your message is kept here, and nothing reached the agent." };
+}
+
 /**
- * Renders a user message whose send failed: the message itself stays visible
- * (so the typed text is never lost) with an inline, actionable error beneath
- * it. The error copy is intentionally short — the full reason is surfaced by
- * the consumer's send-error banner; this is the in-thread "Retry" affordance.
+ * A message that didn't send: its bubble edged in the failed tone (so the
+ * typed text is never lost), a line under it saying why with Try again, and
+ * what wasn't lost. The thread says it once: the session view shows no
+ * second notice above the composer for the same failure.
  *
  * The bubble renders through the caller-resolved MessageEntry slot so an
  * overridden bubble style also applies to failed sends.
@@ -2014,32 +2044,45 @@ function LoadedVersionsMarker({ changes }: { readonly changes: readonly LoadedVe
 function FailedUserMessage({
   message,
   files,
+  error,
   onRetry,
   MessageEntryComponent,
 }: {
   message: ThreadMessage;
   files?: readonly MessageFileView[];
+  error: Error | null;
   onRetry?: () => void;
   MessageEntryComponent: ComponentType<MessageEntryProps>;
 }) {
+  const words = unsentWords(error);
   return (
-    <div className="stg:flex stg:flex-col stg:gap-1">
+    <div className="stg:flex stg:flex-col stg:gap-2">
       {/* The files stay visible on the failed bubble — the one turn where
           the user most needs evidence of what they tried to send (and what
-          Retry will re-send). No executionId: the send never created one. */}
-      <MessageEntryComponent message={message} files={files} />
-      <div
-        role="alert"
-        className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-destructive"
-      >
-        <span className="stg:min-w-0 stg:flex-1 stg:truncate">Didn&rsquo;t send. Your message is kept here.</span>
+          Try again will re-send). No executionId: the send never created one. */}
+      <MessageEntryComponent message={message} files={files} className="stg:border stg:border-status-failed" />
+      <div role="alert" className="stg:flex stg:flex-wrap stg:items-center stg:justify-end stg:gap-2 stg:text-xs stg:text-status-failed">
+        <span className="stg:inline-flex stg:items-center stg:gap-1.5">
+          <UnsentMark />
+          {words.line}
+        </span>
         {onRetry && (
-          <Button variant="ghost" size="xs" onClick={onRetry} className="stg:text-destructive stg:hover:bg-destructive-subtle">
-            Retry
+          <Button variant="outline" size="xs" onClick={onRetry}>
+            Try again
           </Button>
         )}
       </div>
+      <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">{words.comfort}</p>
     </div>
+  );
+}
+
+function UnsentMark() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 8v4M12 16h.01" />
+    </svg>
   );
 }
 

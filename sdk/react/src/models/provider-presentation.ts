@@ -6,6 +6,8 @@
 // presented plainly by `presentationOf`, so a provider added on the server
 // shows up before any client knows it.
 
+import { providerName } from "./provider-name.js";
+
 /** How one provider is presented. */
 export interface ProviderPresentation {
   readonly name: string;
@@ -85,7 +87,7 @@ const PRESENTATIONS: Readonly<Record<string, ProviderPresentation>> = {
 export function presentationOf(provider: string): ProviderPresentation {
   return (
     PRESENTATIONS[provider] ?? {
-      name: provider.charAt(0).toUpperCase() + provider.slice(1),
+      name: providerName(provider),
       placeholder: "",
       keysUrl: null,
       keysUrlLabel: null,

@@ -250,7 +250,7 @@ describe("NewSessionViewer — composer stays centered", () => {
 });
 
 describe("NewSessionViewer — a first message refused because the plan's agent hours are used", () => {
-  it("says when they reset and where the plans are", async () => {
+  it("says the hours are used for the month, and where the plans are", async () => {
     const { refusal } = await import("../../billing/__tests__/fixtures");
     const copy = "This organization has used the 10 agent hours its Free plan includes this month.";
     mockFlow = {
@@ -263,7 +263,8 @@ describe("NewSessionViewer — a first message refused because the plan's agent 
       }),
     };
     render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
-    expect(screen.getByText(copy)).toBeTruthy();
+    // The notice loads when the refusal arrives.
+    expect(await screen.findByText("Your organization has used this month's agent hours.")).toBeTruthy();
     expect(screen.getByRole("link", { name: "View plans" }).getAttribute("href")).toBe("/settings/billing");
     expect(screen.queryByRole("link", { name: "Open Models & providers" })).toBeNull();
   });
@@ -278,7 +279,7 @@ describe("NewSessionViewer — a run refused for want of a provider key", () => 
       submitFailure: refusal(copy, "PROVIDER_KEY_REQUIRED", { org: "acme", provider: "openai", model: "gpt-5" }),
     };
     render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
-    expect(screen.getByText(copy)).toBeTruthy();
+    expect(await screen.findByText("This organization has no OpenAI key yet.")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Open Models & providers" }).getAttribute("href")).toBe("/models");
 
     cleanup();
