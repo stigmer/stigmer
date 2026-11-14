@@ -34,6 +34,11 @@
  *   - The stack goes to debug alone, from the deepest Error link: that is
  *     the driver's or the code's own throw, while the wrappers' stacks
  *     point at catch sites the line already names by step or procedure.
+ *
+ * The same bounded walk answers one question for the wire:
+ * `findInCauseChain` is how internalError (errors.ts) finds a typed store
+ * failure under the wrappers (stigmer/stigmer#3086), so there is one walker
+ * with one bound and one cycle guard.
  */
 import type { LogFields } from "../boot/logger.js";
 
@@ -68,6 +73,21 @@ export function causeStack(error: unknown): string | undefined {
     }
   }
   return undefined;
+}
+
+/**
+ * The first of `error` and the causes under it (the same bounded walk as
+ * the log line's) that satisfies `matches`, nearest first; undefined when
+ * none does.
+ */
+export function findInCauseChain<T>(
+  error: unknown,
+  matches: (link: unknown) => link is T,
+): T | undefined {
+  if (matches(error)) {
+    return error;
+  }
+  return causeChain(error).links.find(matches);
 }
 
 function causeChain(error: unknown): { links: unknown[]; truncated: boolean } {

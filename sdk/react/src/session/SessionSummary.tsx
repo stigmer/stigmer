@@ -142,14 +142,23 @@ export function SessionSummary({ session, turns, runs, files, showCost, routineH
             }
           />
         )}
+        {/* The dot and the facts after it wrap together, so a dot never ends
+            the pill's line alone. */}
         {working ? (
-          howFar !== undefined && <span>{status !== undefined && <Separator />}{howFar}</span>
+          howFar !== undefined && (
+            <span className="stg:inline-flex stg:min-w-0 stg:gap-x-2">
+              {status !== undefined && <Separator />}
+              <span>{howFar}</span>
+            </span>
+          )
         ) : (
-          <span>
+          <span className="stg:inline-flex stg:min-w-0 stg:gap-x-2">
             {status !== undefined && <Separator />}
-            {origin}
-            {origin !== undefined && " · "}
-            {facts.join(" · ")}
+            <span>
+              {origin}
+              {origin !== undefined && " · "}
+              {facts.join(" · ")}
+            </span>
           </span>
         )}
       </div>
@@ -157,7 +166,7 @@ export function SessionSummary({ session, turns, runs, files, showCost, routineH
   );
 }
 
-/** The dot between the pill and the facts after it, as between the facts themselves. */
+/** The dot between the pill and the facts after it, as between the facts themselves; a sibling, so the facts keep their own text. */
 function Separator() {
-  return <span aria-hidden="true">· </span>;
+  return <span aria-hidden="true">·</span>;
 }

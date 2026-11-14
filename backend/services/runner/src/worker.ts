@@ -71,9 +71,16 @@ export async function startWorker(opts: StartWorkerOptions): Promise<StartedWork
     activities,
     maxConcurrentActivityTaskExecutions: config.maxConcurrentActivities,
     // Behind the server, a fixed few polls: the server bounds what one
-    // sandbox may hold open (temporal-lane.ts).
+    // sandbox may hold open (temporal-lane.ts). Stated as the poller
+    // behaviour, the one option the SDK reads: 1.16.2 ignores
+    // `maxConcurrentActivityTaskPolls` and opens up to ten (stigmer#2982).
     ...(lane.kind === "through-server"
-      ? { maxConcurrentActivityTaskPolls: THROUGH_SERVER_ACTIVITY_POLLS }
+      ? {
+          activityTaskPollerBehavior: {
+            type: "simple-maximum",
+            maximum: THROUGH_SERVER_ACTIVITY_POLLS,
+          },
+        }
       : {}),
     // In-flight turns yield at a step boundary within it (`Config.drainGraceMs`).
     shutdownGraceTime: config.drainGraceMs,

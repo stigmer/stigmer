@@ -304,6 +304,7 @@ import {
 import { temporalAddressThroughServer } from "../transport/temporal-worker-door/address.js";
 import { newReceiptKeySource } from "../transport/temporal-worker-door/receipt-key.js";
 import { initWorkQueueMetrics } from "../observability/runner-work-queue-metrics.js";
+import { observeStorePool } from "../observability/store-pool-metrics.js";
 import { chooseListenHost } from "./listen-host.js";
 import { registerExtensionServicesUnshadowed } from "./route-shadowing.js";
 import { defaultSandboxRunnerImage, type ServerConfig } from "./config.js";
@@ -473,9 +474,23 @@ export async function composeServer(
   // identity seam deliberately is not.
   let store: Store;
   const storeOptions = STORE_OPEN_OPTIONS;
+  // The pool's bounds (store/postgres/pool.ts) ride the Postgres arm only;
+  // `pgStore` keeps the driver's own type for the pool gauges, which start
+  // with the request metrics and stop in the drain before the store closes.
+  let pgStore: PostgresStore | undefined;
+  let stopStorePoolMetrics: (() => void) | undefined;
   if (config.databaseUrl !== "") {
-    store = await PostgresStore.open(config.databaseUrl, logger, storeOptions);
-    logger.info("storage driver selected", { driver: "postgres" });
+    pgStore = await PostgresStore.open(config.databaseUrl, logger, {
+      ...storeOptions,
+      poolMax: config.databasePoolMax,
+      poolCheckoutTimeoutMs: config.databasePoolCheckoutTimeoutMs,
+    });
+    store = pgStore;
+    logger.info("storage driver selected", {
+      driver: "postgres",
+      poolMax: config.databasePoolMax,
+      poolCheckoutTimeoutMs: config.databasePoolCheckoutTimeoutMs,
+    });
   } else {
     store = SqliteStore.open(config.dbPath, logger, storeOptions);
     logger.info("storage driver selected", {
@@ -1965,8 +1980,10 @@ export async function composeServer(
     // register it (route-shadowing.ts): mintGuestToken dispatches to the
     // composed capability. The mint writes app users through the
     // identity-account create path and the one grant path, as the minting
-    // service account (domain/token/mint.ts), and signs with the ring the
-    // keys stage resolved (none without a posture: the mint then refuses).
+    // service account (domain/token/mint.ts), announces each new one's
+    // organization link to the composed tuple lifecycle, and signs with
+    // the ring the keys stage resolved (none without a posture: the mint
+    // then refuses).
     registerTokenService(router, {
       mint: {
         store,
@@ -1974,6 +1991,7 @@ export async function composeServer(
         accounts: identityAccounts,
         createAccount: createIdentityAccount,
         grantPath,
+        authorizationLifecycle,
         keys: platformTokenKeys,
         logger,
         now: () => new Date(),
@@ -2698,10 +2716,17 @@ export async function composeServer(
       // two states an operator must be able to tell apart in the log.
       await initRpcMetrics();
       await initWorkQueueMetrics();
+      if (pgStore !== undefined) {
+        const observed = pgStore;
+        stopStorePoolMetrics = await observeStorePool(() => observed.poolStats());
+      }
       logger.info("request metrics", {
         posture: await metricsExportPosture(),
         instruments:
-          "stigmer.grpc.request.count, stigmer.grpc.request.duration, stigmer.runner.work_queue.calls",
+          "stigmer.grpc.request.count, stigmer.grpc.request.duration, stigmer.runner.work_queue.calls" +
+          (pgStore === undefined
+            ? ""
+            : ", stigmer.store.pool.connections, stigmer.store.pool.checkout_failures"),
       });
       // Wiring complete → SERVING → background refresh → bind. The port
       // must be the LAST observable effect (serverGate contract).
@@ -2759,7 +2784,10 @@ export async function composeServer(
       await temporalManager.close();
       await server.shutdown();
       // The store closes LAST: in-flight handlers drained above may still
-      // be mid-write.
+      // be mid-write. Its pool gauges stop first, so no collection reads a
+      // closed pool.
+      stopStorePoolMetrics?.();
+      stopStorePoolMetrics = undefined;
       await store.close();
       logger.info("stigmer-server stopped");
     },
