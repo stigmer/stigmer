@@ -594,6 +594,32 @@ describe("SessionViewer — audience wiring", () => {
     }
   });
 
+  it("says a plain send failure once, on the unsent bubble, and hands the thread why", () => {
+    stubConv.sendError = new Error("the run could not start");
+    (stubConv as { pendingUserMessage: string | null }).pendingUserMessage = "Invoices are off by a cent.";
+    try {
+      render(<SessionViewer sessionId="ses_1" org="acme" />);
+      expect(screen.queryByRole("alert")).toBeNull();
+      const last = threadProps.at(-1)!;
+      expect(last.pendingMessageFailed).toBe(true);
+      expect(last.pendingMessageError).toBe(stubConv.sendError);
+    } finally {
+      (stubConv as { pendingUserMessage: string | null }).pendingUserMessage = null;
+    }
+  });
+
+  it("still shows a refusal's own notice above the composer when the message stays unsent", async () => {
+    const { refusal } = await import("../../billing/__tests__/fixtures");
+    stubConv.sendError = refusal("no key", "PROVIDER_KEY_REQUIRED", { org: "acme", provider: "anthropic", model: "m" });
+    (stubConv as { pendingUserMessage: string | null }).pendingUserMessage = "Invoices are off by a cent.";
+    try {
+      render(<SessionViewer sessionId="ses_1" org="acme" />);
+      expect(screen.getByRole("alert").textContent).toContain("This organization has no Anthropic key yet.");
+    } finally {
+      (stubConv as { pendingUserMessage: string | null }).pendingUserMessage = null;
+    }
+  });
+
   it("renders the conversation's send error through the send-error banner", () => {
     stubConv.sendError = new Error("the run could not start");
     render(<SessionViewer sessionId="ses_1" org="acme" />);

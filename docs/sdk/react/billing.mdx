@@ -681,10 +681,11 @@ function Plans({ org }: { org: string }) {
 
 ### ProviderKeyNotice
 
-Says a run was not started because nothing serves the provider it needs
-(the server's own words: where an admin adds a key, or how a laptop's
-runner gets one), and links Models & providers, in place of a bare
-refusal.
+Says a run was not started because nothing serves the provider it needs,
+as the console's notice: the organization has no key for the provider
+(or, where the refusal names no organization, the server's own words,
+such as how a laptop's runner gets one), that the message stays in the
+box, and Open Models & providers, in place of a bare refusal.
 
 **Props** — `ProviderKeyNoticeProps`
 

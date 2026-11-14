@@ -263,7 +263,8 @@ describe("NewSessionViewer — a first message refused because the plan's agent 
       }),
     };
     render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
-    expect(screen.getByText("Your organization has used this month's agent hours.")).toBeTruthy();
+    // The notice loads when the refusal arrives.
+    expect(await screen.findByText("Your organization has used this month's agent hours.")).toBeTruthy();
     expect(screen.getByRole("link", { name: "View plans" }).getAttribute("href")).toBe("/settings/billing");
     expect(screen.queryByRole("link", { name: "Open Models & providers" })).toBeNull();
   });
@@ -278,7 +279,7 @@ describe("NewSessionViewer — a run refused for want of a provider key", () => 
       submitFailure: refusal(copy, "PROVIDER_KEY_REQUIRED", { org: "acme", provider: "openai", model: "gpt-5" }),
     };
     render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
-    expect(screen.getByText("This organization has no OpenAI key yet.")).toBeTruthy();
+    expect(await screen.findByText("This organization has no OpenAI key yet.")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Open Models & providers" }).getAttribute("href")).toBe("/models");
 
     cleanup();
