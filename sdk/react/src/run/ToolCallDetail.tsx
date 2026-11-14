@@ -205,7 +205,7 @@ function CategoryDetail({
             <FileExcerpt
               path={primaryArg}
               content={result.content}
-              footFor={() => readFoot(result.type === "file" ? result : undefined)}
+              footFor={readFootOf(result)}
             />
           ) : result.type === "error" ? (
             <ErrorBox view={result} />
@@ -318,10 +318,9 @@ function writeFoot(shown: number, total: number): string | null {
 }
 
 /** A read's foot: the lines it read ("Lines 14–17 of 88") when its answer says, or that it is part of the file when the engine cut it. */
-function readFoot(view: Extract<ToolResultView, { type: "file" }> | undefined): string | null {
-  if (view === undefined) return null;
-  if (view.range !== undefined) return lineRangeWords(view.range);
-  return view.truncated ? "Part of the file" : null;
+function readFootOf(view: Extract<ToolResultView, { type: "file" }>): FootWords {
+  const words = view.range !== undefined ? lineRangeWords(view.range) : view.truncated ? "Part of the file" : null;
+  return () => words;
 }
 
 /**
