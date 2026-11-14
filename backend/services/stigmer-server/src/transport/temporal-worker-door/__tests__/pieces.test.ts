@@ -1,15 +1,17 @@
 /**
  * The lane's small parts: a receipt opens only under its key, for its
- * queue, unaltered; the frame helpers read gRPC's own encodings; the
- * held-poll limits count per sandbox and in all and free a slot once; the
+ * queue, unaltered; the frame helpers read gRPC's own encodings, and know
+ * a caller that left even before they asked; the held-poll limits count per sandbox and in all and free a slot once; the
  * receipt key is one claimed row, read once, retried after a failure, and
  * refused when it is not 32 bytes.
  */
+import { EventEmitter } from "node:events";
+
 import { describe, expect, it, vi } from "vitest";
 
 import { temporalAddressThroughServer } from "../address.js";
 import { newHeldPolls } from "../capacity.js";
-import { grpcTimeoutMs, percentEncode, readUnaryMessage, unframe, writeGrpcAnswer } from "../frame.js";
+import { callerGone, grpcTimeoutMs, percentEncode, readUnaryMessage, unframe, writeGrpcAnswer } from "../frame.js";
 import { issueReceipt, openReceipt } from "../receipts.js";
 import { RECEIPT_KEY_STATE_KEY, newReceiptKeySource } from "../receipt-key.js";
 
@@ -60,9 +62,23 @@ describe("frame helpers", () => {
     })();
     expect(await readUnaryMessage(body as never, 4)).toMatchObject({ ok: false, reason: "tooLarge", code: 8 });
     const writeHead = vi.fn();
-    writeGrpcAnswer({ headersSent: true, destroyed: false, writeHead } as never, { code: 0 });
-    writeGrpcAnswer({ headersSent: false, destroyed: true, writeHead } as never, { code: 0 });
+    writeGrpcAnswer({ headersSent: true, stream: { destroyed: false }, writeHead } as never, { code: 0 });
+    writeGrpcAnswer({ headersSent: false, stream: { destroyed: true }, writeHead } as never, { code: 0 });
     expect(writeHead).not.toHaveBeenCalled();
+  });
+
+  it("know a caller that left before they asked, and one that leaves after", () => {
+    for (const state of [{ destroyed: true, closed: true }, { destroyed: false, closed: true }]) {
+      expect(callerGone({ stream: state } as never).signal.aborted, JSON.stringify(state)).toBe(true);
+    }
+    const stream = Object.assign(new EventEmitter(), { destroyed: false, closed: false });
+    const gone = callerGone({ stream } as never);
+    expect(gone.signal.aborted).toBe(false);
+    stream.emit("close");
+    expect(gone.signal.aborted).toBe(true);
+    const disposed = callerGone({ stream } as never);
+    disposed.dispose();
+    expect(stream.listenerCount("close")).toBe(0);
   });
 
   it("percent-encode grpc-message as gRPC does", () => {

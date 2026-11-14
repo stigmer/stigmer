@@ -71,6 +71,24 @@ export class AuditNotFoundError extends Error {
   }
 }
 
+/**
+ * The database could not hand this request a connection: every pooled
+ * connection stayed busy past the checkout deadline, or a new one could
+ * not be opened (the database is down, refusing or unreachable). Neither
+ * is the request's fault, and both pass for a server that booted, so the
+ * wire answers Unavailable ("try again") rather than Internal: the one
+ * mapping is `internalError` (pipeline/errors.ts), which finds this error
+ * anywhere in the cause chain it is handed. The message is for the
+ * operator's log, never the wire; `cause` is the driver's own error. Thrown
+ * by the Postgres driver's pool (postgres/pool.ts).
+ */
+export class DatabaseUnavailableError extends Error {
+  constructor(detail: string, options: { readonly cause: unknown }) {
+    super(`database unavailable: ${detail}`, options);
+    this.name = "DatabaseUnavailableError";
+  }
+}
+
 // =============================================================================
 // Record types
 // =============================================================================

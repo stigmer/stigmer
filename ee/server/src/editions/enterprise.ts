@@ -177,7 +177,15 @@ export async function composeEnterprise(
   const clock = options.clock ?? ((): Date => new Date());
   const pool =
     options.pool ??
-    newCompositionPool({ name: "enterprise", connectionString: config.databaseUrl, logger });
+    newCompositionPool({
+      name: "enterprise",
+      connectionString: config.databaseUrl,
+      logger,
+      // The store's two bounds, so an operator's DATABASE_POOL_MAX and
+      // DATABASE_POOL_CHECKOUT_TIMEOUT_MS bound this pool too.
+      max: config.databasePoolMax,
+      checkoutTimeoutMs: config.databasePoolCheckoutTimeoutMs,
+    });
   const postgres = newEnterprisePostgres(pool);
   const accounts = newEnterpriseAccounts();
   const growthGate = newLicenseGrowthGate({ claims: verdict.claims, clock });

@@ -24,7 +24,8 @@
  * which a child's `spec.parent_org` decides (child-organizations.ts), and
  * `agent_creation_open`, which its `spec.policies` decides
  * (organization-policies.ts); on the identity account, `organization`,
- * which a service account's `metadata.org` decides (service-accounts.ts).
+ * which a service account's or an app user's `metadata.org` decides
+ * (organization-accounts.ts).
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 
@@ -55,9 +56,9 @@ import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import { childOrg, parentOrg } from "./child-organizations.js";
+import { administeringOrganization } from "./organization-accounts.js";
 import { agentCreationOpen } from "./organization-policies.js";
 import type { DerivedRelation } from "./rewrite.js";
-import { serviceAccountOrganization } from "./service-accounts.js";
 
 /** A type with no stored resource: it resolves over tuples alone (the module header). */
 export const ROWLESS = undefined;
@@ -79,7 +80,7 @@ export const KIND_BINDINGS: ReadonlyMap<ApiResourceKind, KindBinding> = new Map<
     ApiResourceKind.identity_account,
     {
       schema: IdentityAccountSchema,
-      derived: { organization: serviceAccountOrganization },
+      derived: { organization: administeringOrganization },
     },
   ],
   [ApiResourceKind.federation_issuer, { schema: FederationIssuerSchema }],

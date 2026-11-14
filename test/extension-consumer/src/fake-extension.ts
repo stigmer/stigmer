@@ -131,6 +131,7 @@ import type {
   RunResponseDecorator,
   AgentExecutionTemporalConfig,
   RunStatusObserver,
+  AppUserLinkedEvent,
   ArtifactStorage,
   ArtifactStorageDriverFactory,
   AuthorizationQueryEngine,
@@ -1282,6 +1283,12 @@ const authorizationLifecycle: ResourceAuthorizationLifecycle = {
   onChildOrganizationLinked: (event: ChildOrganizationLinkedEvent) => {
     void event.childId;
     void event.parentId;
+    return Promise.resolve();
+  },
+  onAppUserLinked: (event: AppUserLinkedEvent) => {
+    void event.accountId;
+    void event.orgId;
+    void event.caller;
     return Promise.resolve();
   },
 };

@@ -42,14 +42,21 @@
  *      account row exists. The grant path is idempotent, and an account
  *      belongs to that one organization alone (its subject names it), so
  *      its creation is its one first sign-in there.
- *   3. The account is created through the identity-account domain's one
+ *   3. The account's link to the token's organization is announced for the
+ *      same derived id (`onAppUserLinked`), so an edition that stores
+ *      tuples lets that organization's admins view, rename and delete the
+ *      person (#3104); open source derives the link from the row
+ *      (authorization/model/organization-accounts.ts).
+ *   4. The account is created through the identity-account domain's one
  *      create path, in `app_user` mode. A concurrent first mint that won
  *      the race is read back.
  *
- * Granting first makes every failure retry-safe with nothing to undo: a
- * failed grant has written nothing; a failed create leaves one policy row
- * naming an account that does not exist yet, which the next mint for that
- * person completes.
+ * Writing first makes every failure retry-safe with nothing to undo: a
+ * failed grant or link leaves no account; a failed create leaves a policy
+ * row and the link naming an account that does not exist yet, which the
+ * next mint for that person completes. So no app user is ever stored
+ * without the link its admins reach it by, and a mint that finds the
+ * account announces nothing.
  *
  * Who acts: the account and the grant are written as the server acting
  * for the minting service account (`serverActingFor`), so the account's
@@ -103,6 +110,7 @@ import {
   boundOrgOf,
   isServiceAccountCaller,
 } from "../../extensions/identity.js";
+import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { internalError } from "../../pipeline/errors.js";
 import { serverActingFor } from "../../pipeline/interceptors/auth.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
@@ -159,6 +167,12 @@ export interface UserTokenMintDeps {
   /** The identity-account domain's one create path (identityaccount/controller.ts). */
   readonly createAccount: CreateAccount;
   readonly grantPath: Pick<GrantPath, "grant">;
+  /**
+   * The composed tuple lifecycle, whose optional `onAppUserLinked` stores
+   * a new app user's organization link; absent, the link is derived from
+   * the row (the open-source posture).
+   */
+  readonly authorizationLifecycle?: Pick<ResourceAuthorizationLifecycle, "onAppUserLinked">;
   /** The composed ring; undefined when the server trusts every request. */
   readonly keys: PlatformTokenKeyRing | undefined;
   readonly logger: Logger;
@@ -296,16 +310,12 @@ async function resolveOrProvisionAccount(
   }
   const input = accountInput(idpId, org, user);
   const actor = serverActingFor(minterId);
+  const accountId = accountIdFor(idpId);
 
   if (embedding.signInRole !== IamRole.iam_role_unspecified) {
-    await grantSignInRole(
-      deps,
-      embedding.signInRole,
-      org,
-      accountIdFor(idpId),
-      actor,
-    );
+    await grantSignInRole(deps, embedding.signInRole, org, accountId, actor);
   }
+  await linkToOrganization(deps, org, accountId, actor);
 
   try {
     const created = await deps.createAccount(input, actor);
@@ -439,6 +449,37 @@ async function grantSignInRole(
   } catch (error) {
     deps.logger.error(
       "app user sign-in role grant failed; nothing was provisioned",
+      {
+        accountId,
+        mintedBy: actor.identityId,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    );
+    throw new ConnectError(PROVISIONING_FAILED_MESSAGE, Code.Internal);
+  }
+}
+
+/**
+ * Announces the account's link to the token's organization, for the
+ * derived id, before its row exists (`onAppUserLinked`'s doc). A failure
+ * is INTERNAL with nothing created, like the grant's: the retry announces
+ * it again.
+ */
+async function linkToOrganization(
+  deps: UserTokenMintDeps,
+  org: string,
+  accountId: string,
+  actor: CallerIdentity,
+): Promise<void> {
+  const lifecycle = deps.authorizationLifecycle;
+  if (lifecycle?.onAppUserLinked === undefined) {
+    return;
+  }
+  try {
+    await lifecycle.onAppUserLinked({ accountId, orgId: org, caller: actor });
+  } catch (error) {
+    deps.logger.error(
+      "app user organization link failed; nothing was provisioned",
       {
         accountId,
         mintedBy: actor.identityId,

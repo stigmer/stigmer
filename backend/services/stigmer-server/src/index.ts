@@ -183,6 +183,7 @@ export type { ResolvedExtensionDrivers } from "./extensions/registry.js";
 export type {
   ChildOrganizationLinkedEvent,
   ServiceAccountLinkedEvent,
+  AppUserLinkedEvent,
   OrganizationAffiliationEvent,
   OrganizationPoliciesChangedEvent,
   GrantedEvent,
@@ -711,8 +712,9 @@ export {
 export { TARGET_RESOURCE_KEY } from "./pipeline/steps/load-target.js";
 
 // The driver interfaces and the store-fault classes the store-fault mapping
-// keys on (typed not-found → NotFound; anything else rethrows as an
-// infrastructure fault — the guidelines' instanceof idiom).
+// keys on (typed not-found → NotFound; a database that could not hand out
+// a connection → Unavailable, through internalError; anything else
+// rethrows as an infrastructure fault — the guidelines' instanceof idiom).
 export type { Store, StoreOpenOptions } from "./store/interface.js";
 // What a write hands `Store.insertResource` and `Store.deleteResource` to
 // record a change to an access row in the permission history.
@@ -723,6 +725,7 @@ export type {
 } from "./store/permission-history.js";
 export {
   AuditNotFoundError,
+  DatabaseUnavailableError,
   ResourceNotFoundError,
 } from "./store/interface.js";
 // The resource-name table (`Store.resourceNames`): the names a resource
@@ -846,6 +849,18 @@ export type { RawResourceDocument } from "./store/interface.js";
 // piecemeal. Not for production wiring: compose.ts selects the driver from
 // config, and a composition never opens a second store.
 export { PostgresStore } from "./store/postgres/store.js";
+export type { PostgresStoreOpenOptions } from "./store/postgres/store.js";
+// The one constructor for a bounded Postgres pool (stigmer/stigmer#3086):
+// the store's own pool and every pool a composition owns share its size,
+// its checkout deadline and its failure type, `DatabaseUnavailableError`,
+// which every RPC answers as Unavailable (pipeline/errors.ts).
+export {
+  BoundedPool,
+  DEFAULT_POOL_CHECKOUT_TIMEOUT_MS,
+  DEFAULT_POOL_MAX,
+  newBoundedPool,
+} from "./store/postgres/pool.js";
+export type { BoundedPoolOptions, PoolStats } from "./store/postgres/pool.js";
 // The one runner for every Postgres schema chain in a shared database: a
 // composition's own chain (its schema, its lock key, its steps as data) runs
 // through it, with the same ledger, digest check and refusals as the store's

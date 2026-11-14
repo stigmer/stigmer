@@ -40,7 +40,10 @@
  * A poll is held for at most `POLL_BUDGET_MS`, forwarded with that deadline,
  * so every held poll ends inside the server's shutdown drain
  * (`SHUTDOWN_DRAIN_TIMEOUT_MS`) with Temporal's own empty answer, which the
- * SDK takes as "no task yet" and polls again.
+ * SDK takes as "no task yet" and polls again. A caller that goes away is let
+ * go at once, at any point of its call, and its slot with it: whether it is
+ * still there is known from the call's first moment (frame.ts `callerGone`),
+ * and nothing is forwarded to Temporal after it left.
  *
  * Every refusal is a sentence from words.ts; every gRPC call is counted
  * once (observability/runner-work-queue-metrics.ts), because these calls do
@@ -67,7 +70,14 @@ import type { SandboxScope } from "../../sandbox/provisioner.js";
 import { MAX_MESSAGE_BYTES } from "../constants.js";
 import type { LaneHandler, LaneRequest, LaneResponse } from "../lanes.js";
 import { newHeldPolls, type HeldPolls } from "./capacity.js";
-import { GrpcCode, grpcTimeoutMs, readUnaryMessage, writeGrpcAnswer, type GrpcAnswer } from "./frame.js";
+import {
+  GrpcCode,
+  callerGone,
+  grpcTimeoutMs,
+  readUnaryMessage,
+  writeGrpcAnswer,
+  type GrpcAnswer,
+} from "./frame.js";
 import { issueReceipt, openReceipt } from "./receipts.js";
 import type { ReceiptKeySource } from "./receipt-key.js";
 import { WORDS } from "./words.js";
@@ -340,16 +350,24 @@ async function serve(
     recordWorkQueueCall({ method: UNSERVED_METHOD, decision: "refused", status: "UNIMPLEMENTED", check: "method" });
     return;
   }
-  const outcome = await decide(deps, heldPolls, handler, request, response);
-  writeGrpcAnswer(response, outcome.answer);
-  recordWorkQueueCall({
-    method,
-    decision: outcome.decision,
-    status: STATUS_NAMES[outcome.answer.code] ?? "UNKNOWN",
-    check: outcome.check,
-  });
-  if (outcome.decision === "refused") {
-    deps.logger.debug("Temporal worker lane refused a call", { method, check: outcome.check });
+  // Before the first await: a caller that leaves at any later point is seen.
+  const gone = callerGone(response);
+  try {
+    const decided = await decide(deps, heldPolls, handler, request, gone.signal);
+    writeGrpcAnswer(response, decided.answer);
+    // No one is there to receive the answer, whatever it would have been.
+    const outcome = gone.signal.aborted ? ABANDONED : decided;
+    recordWorkQueueCall({
+      method,
+      decision: outcome.decision,
+      status: STATUS_NAMES[outcome.answer.code] ?? "UNKNOWN",
+      check: outcome.check,
+    });
+    if (outcome.decision === "refused") {
+      deps.logger.debug("Temporal worker lane refused a call", { method, check: outcome.check });
+    }
+  } finally {
+    gone.dispose();
   }
 }
 
@@ -358,7 +376,7 @@ async function decide(
   heldPolls: HeldPolls,
   handler: Handler,
   request: Http2ServerRequest,
-  response: Http2ServerResponse,
+  signal: AbortSignal,
 ): Promise<Outcome> {
   const contentType = request.headers["content-type"] ?? "";
   if (contentType !== "application/grpc" && !contentType.startsWith("application/grpc+proto")) {
@@ -380,23 +398,16 @@ async function decide(
   if (connection === undefined) {
     return failed(GrpcCode.UNAVAILABLE, WORDS.engineUnavailable, "engine");
   }
-  const aborted = new AbortController();
-  const onClose = (): void => aborted.abort();
-  response.once("close", onClose);
-  try {
-    return await handler({
-      deps,
-      connection,
-      queue,
-      identity: identityOf(queue),
-      message: read.message,
-      signal: aborted.signal,
-      callerDeadlineMs: grpcTimeoutMs(request.headers["grpc-timeout"]),
-      heldPolls,
-    });
-  } finally {
-    response.off("close", onClose);
-  }
+  return handler({
+    deps,
+    connection,
+    queue,
+    identity: identityOf(queue),
+    message: read.message,
+    signal,
+    callerDeadlineMs: grpcTimeoutMs(request.headers["grpc-timeout"]),
+    heldPolls,
+  });
 }
 
 type WorkflowService = ConnectionLike["workflowService"];
@@ -407,12 +418,20 @@ interface ForwardOptions {
   readonly onDeadline?: () => Uint8Array;
 }
 
-/** Forwards on the server's connection; relays Temporal's failure exactly. */
+/**
+ * Forwards on the server's connection; relays Temporal's failure exactly.
+ * The one place any call reaches Temporal, so the one place a caller that
+ * already left is let go: the SDK's abort listener never fires for a signal
+ * aborted before it is added, and the call would run to its deadline.
+ */
 async function forward(
   call: CallContext,
   run: (service: WorkflowService) => Promise<Uint8Array>,
   options: ForwardOptions = {},
 ): Promise<Outcome> {
+  if (call.signal.aborted) {
+    return ABANDONED;
+  }
   const deadlineMs = options.deadlineMs ?? call.callerDeadlineMs;
   const scoped = (): Promise<Uint8Array> =>
     deadlineMs === undefined
@@ -491,6 +510,9 @@ function decode<T>(type: { decode(bytes: Uint8Array): T }, bytes: Uint8Array): T
     return undefined;
   }
 }
+
+/** A call whose caller left before its answer; nothing reads the answer. */
+const ABANDONED: Outcome = { answer: { code: GrpcCode.CANCELLED }, decision: "abandoned", check: "none" };
 
 function malformed(): Outcome {
   return failed(GrpcCode.INTERNAL, WORDS.malformed, "decode");

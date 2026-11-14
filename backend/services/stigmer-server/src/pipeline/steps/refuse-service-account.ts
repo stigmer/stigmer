@@ -41,8 +41,12 @@
  * working. And an app user who deletes their own account is created again
  * by the next mint with the embedding sign-in role, which would undo an
  * admin's demotion or removal of that person (stigmer#2955). The
- * organization's admins do these acts; how they remove an app user's
- * account is stigmer#3104. The claim is read from the raw token, as
+ * organization's admins do these acts, signed in as themselves: the
+ * account of a person the product signs in carries its organization's
+ * link, so they view, rename and delete it (#3104,
+ * authorization/model/organization-accounts.ts), while the minting service
+ * account's key is refused the delete as every service account is. The
+ * claim is read from the raw token, as
  * `isFirstPartyHumanOperator` reads it (extensions/identity.ts), and a
  * request the server composed is never refused for it.
  *

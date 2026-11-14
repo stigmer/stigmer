@@ -24,7 +24,7 @@
  *      organization, the provisioning arm `service_account`;
  *   5. the organization link, announced to an edition that stores tuples
  *      (`onServiceAccountLinked`; open source derives it from the row,
- *      authorization/model/service-accounts.ts);
+ *      authorization/model/organization-accounts.ts);
  *   6. its organization role, through the grant path with the cause
  *      `service_account_created`, so the grant's history names the admin.
  *
