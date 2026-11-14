@@ -36,11 +36,16 @@ export interface HelpLinkProps {
  *
  * @example
  * ```tsx
- * <WorkspaceSidebar
- *   renderLink={renderLink}
- *   recentActivity={recentActivity}
- *   footer={<><HelpLink variant="row" /><UserMenu /></>}
- * />
+ * import { HelpLink, UserMenu } from "@stigmer/react-sdk/console";
+ *
+ * function SidebarFooter({ onSignOut }: { onSignOut: () => void }) {
+ *   return (
+ *     <>
+ *       <HelpLink variant="row" />
+ *       <UserMenu user={{ name: "Dana" }} onSignOut={onSignOut} />
+ *     </>
+ *   );
+ * }
  * ```
  */
 export function HelpLink({ variant = "line", className }: HelpLinkProps) {
