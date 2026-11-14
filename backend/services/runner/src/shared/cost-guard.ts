@@ -22,8 +22,9 @@
  * The running figure is the runtime usage accumulator's local pricing-table
  * estimate (`harness/usage-accumulator.ts`; authoritative billing is the
  * BiDi proxy) — acceptable for a safety net. The cost advisory warns from
- * its own tally on the same estimation basis, which can differ slightly: it
- * prices cache writes at the input rate.
+ * its own tally, priced by the same `computeTurnCost` over the same disjoint
+ * buckets, so the warning and the cap read one formula (stigmer#3131; before
+ * it the advisory priced cache writes at the input rate).
  */
 
 import { COST_LIMIT_ERROR_PREFIX, formatTryStop } from "@stigmer/eval-runtime";

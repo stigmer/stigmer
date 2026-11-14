@@ -11,6 +11,8 @@
  * a sub-agent's stream folded into the main loop's would double its spend.
  * The counts follow the Stigmer harness's convention (`input` includes both
  * cache buckets) and the price is the shared table's over the disjoint ones.
+ * A model priced by prompt length (stigmer#3131) prices each call at its own
+ * prompt, and a result's remainder at the longest prompt since the last one.
  */
 
 import { describe, it, expect } from "vitest";
@@ -162,6 +164,53 @@ describe("ClaudeUsage", () => {
     usage.observe(delta(4));
     usage.observe(stop());
     expect(usage.observe(resultWith({ "claude-sonnet-4-6": 47, "claude-haiku-4-5": 5 })), "summed over every model, cumulative over the run").toMatchObject({ outputTokens: 15 });
+  });
+
+  describe("a model priced by prompt length (#3131)", () => {
+    const STEPPED: ModelPricing = {
+      ...PRICING,
+      longContext: {
+        thresholdTokens: 100_000,
+        inputPricePerMillion: 6,
+        outputPricePerMillion: 22.5,
+        cacheWritePricePerMillion: 7.5,
+        cacheReadPricePerMillion: 0.6,
+      },
+    };
+
+    it("prices a long main-loop call at the step, its cache reads counted toward the prompt", () => {
+      const usage = new ClaudeUsage(STEPPED, "m");
+      usage.observe(start({ input: 10_000, cacheWrite: 0, cacheRead: 95_000, output: 0 }));
+      usage.observe(delta(1_000));
+      expect(usage.observe(stop())?.estimatedCostUsd).toBeCloseTo((10_000 * 6 + 1_000 * 22.5 + 95_000 * 0.6) / 1_000_000, 12);
+    });
+
+    it("prices a short call after a long one at the base rates", () => {
+      const usage = new ClaudeUsage(STEPPED, "m");
+      usage.observe(subagentMessage("msg_long", { input: 150_000, cacheWrite: 0, cacheRead: 0 }));
+      usage.observe(start({ input: 1_000, cacheWrite: 0, cacheRead: 0, output: 0 }));
+      usage.observe(delta(10));
+      expect(usage.observe(stop())?.estimatedCostUsd).toBeCloseTo((1_000 * 3 + 10 * 15) / 1_000_000, 12);
+    });
+
+    it("prices a result's remainder at the longest prompt since the last result, then starts over", () => {
+      const usage = new ClaudeUsage(STEPPED, "m");
+      usage.observe(subagentMessage("msg_sub_1", { input: 2_000, cacheWrite: 0, cacheRead: 0 }));
+      usage.observe(subagentMessage("msg_sub_2", { input: 20_000, cacheWrite: 0, cacheRead: 130_000 }));
+      expect(usage.observe(resultWith({ m: 1_000 }))?.estimatedCostUsd, "a long sub-agent call ran: the step").toBeCloseTo((1_000 * 22.5) / 1_000_000, 12);
+      usage.observe(subagentMessage("msg_sub_3", { input: 2_000, cacheWrite: 0, cacheRead: 0 }));
+      expect(usage.observe(resultWith({ m: 1_400 }))?.estimatedCostUsd, "only short calls since: the base rate").toBeCloseTo((400 * 15) / 1_000_000, 12);
+    });
+
+    it("forgets a long call at a result that had no remainder to price", () => {
+      const usage = new ClaudeUsage(STEPPED, "m");
+      usage.observe(start({ input: 150_000, cacheWrite: 0, cacheRead: 0, output: 0 }));
+      usage.observe(delta(5));
+      usage.observe(stop());
+      expect(usage.observe(resultWith({ m: 5 }))).toBeUndefined();
+      usage.observe(subagentMessage("msg_sub", { input: 1_000, cacheWrite: 0, cacheRead: 0 }));
+      expect(usage.observe(resultWith({ m: 105 }))?.estimatedCostUsd).toBeCloseTo((100 * 15) / 1_000_000, 12);
+    });
   });
 });
 

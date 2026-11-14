@@ -31,6 +31,12 @@
  * model, as the Stigmer harness prices them (stigmer#1121). The runtime
  * accounts and enforces; this only reports (`harness/usage-accumulator.ts`).
  * The bill is the proxy's, from the wire.
+ *
+ * A model priced by prompt length (stigmer#3131) prices each call at its own
+ * prompt. The output reported at a result belongs to no call this count saw
+ * whole, so it is priced as if at the longest prompt among the calls since
+ * the last result: it leans high when those calls differ in length, the right
+ * error for a cap, and is exact when they don't.
  */
 
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
@@ -53,6 +59,8 @@ export class ClaudeUsage {
   private readonly counted = new Set<string>();
   /** The output reported so far this run, against the results' cumulative figure. */
   private outputReported = 0;
+  /** The longest prompt among the calls since the last result, which prices the result's remainder (the header). */
+  private longestPrompt = 0;
 
   constructor(
     private readonly pricing: ModelPricing,
@@ -99,18 +107,23 @@ export class ClaudeUsage {
   /** At a result: the output the cumulative figure holds and no call reported (the header). */
   private atResult(modelUsage: Readonly<Record<string, { readonly outputTokens: number }>>): UsageDelta | undefined {
     const total = Object.values(modelUsage).reduce((sum, model) => sum + model.outputTokens, 0);
+    const promptTokens = this.longestPrompt;
+    this.longestPrompt = 0;
     if (total <= this.outputReported) return undefined;
-    return this.priced({ input: 0, cacheWrite: 0, cacheRead: 0, output: total - this.outputReported });
+    return this.priced({ input: 0, cacheWrite: 0, cacheRead: 0, output: total - this.outputReported }, promptTokens);
   }
 
-  private priced(call: CallCounts): UsageDelta {
+  /** Prices `call` at its own prompt, or at `promptTokens` for counts that are not one call's. */
+  private priced(call: CallCounts, promptTokens?: number): UsageDelta {
+    const prompt = call.input + call.cacheWrite + call.cacheRead;
     this.outputReported += call.output;
+    if (promptTokens === undefined) this.longestPrompt = Math.max(this.longestPrompt, prompt);
     return {
-      inputTokens: call.input + call.cacheWrite + call.cacheRead,
+      inputTokens: prompt,
       outputTokens: call.output,
       cacheReadTokens: call.cacheRead,
       cacheWriteTokens: call.cacheWrite,
-      estimatedCostUsd: computeTurnCost(this.pricing, call.input, call.output, call.cacheWrite, call.cacheRead),
+      estimatedCostUsd: computeTurnCost(this.pricing, call.input, call.output, call.cacheWrite, call.cacheRead, promptTokens ?? prompt),
       model: this.model,
     };
   }

@@ -140,9 +140,15 @@ describe("an advised request through the real @langchain/anthropic conversion", 
   it("the cost advisory once the estimate crosses 80% of max_cost_usd", async () => {
     const mw = createCostAdvisoryMiddleware({
       maxCostUsd: 1,
-      inputPricePerMillion: 100_000,
-      outputPricePerMillion: 100_000,
-      cacheReadPricePerMillion: 0,
+      pricing: {
+        model: "test-model",
+        displayName: "Test Model",
+        costTier: "standard",
+        inputPricePerMillion: 100_000,
+        outputPricePerMillion: 100_000,
+        cacheWritePricePerMillion: 100_000,
+        cacheReadPricePerMillion: 0,
+      },
       warningPct: 80,
     });
     const request = await firstAdvisedRequest(mw, (call) => toolResponse({ file_path: `/f${call}.md` }));
@@ -152,9 +158,15 @@ describe("an advised request through the real @langchain/anthropic conversion", 
   it("the cost advisory on a sub-agent's first call after the run crossed: right after the task message", async () => {
     const mw = createCostAdvisoryMiddleware({
       maxCostUsd: 1,
-      inputPricePerMillion: 100_000,
-      outputPricePerMillion: 100_000,
-      cacheReadPricePerMillion: 0,
+      pricing: {
+        model: "test-model",
+        displayName: "Test Model",
+        costTier: "standard",
+        inputPricePerMillion: 100_000,
+        outputPricePerMillion: 100_000,
+        cacheWritePricePerMillion: 100_000,
+        cacheReadPricePerMillion: 0,
+      },
       warningPct: 80,
     });
     // The parent's call crosses the line; the sub-agent is invoked after it.

@@ -338,6 +338,19 @@ rows:
     needs: [none]
     note: >-
       The model catalog operator lanes (upsert/retire/list) are operator tooling with a console. Baselines are PLATFORM-GLOBAL state, not org state — the arm keys on a run-unique model id and retires it on cleanup so nothing outlives the test.
+  - id: billing.rpc.upsert-model-pricing-baseline.renders-long-context
+    surface: billing
+    lane: >-
+      rpc.upsertModelPricingBaseline
+    behavior: >-
+      An operator's upsertModelPricingBaseline whose pricing block carries long_context (a prompt-token threshold and the four rates a longer prompt pays) is listed back by listModelPricingBaselines with the step whole, and the served model registry document carries it on the model's row as pricing.longContext — thresholdTokens and the four rates in dollars per million, beside the block's own rates.
+    class: behavior
+    disposition: conformance
+    observability: launcher
+    caller: operator
+    needs: [none]
+    note: >-
+      The runner prices each model call from that document; a step the document does not carry is a step no runner applies. Keyed on a run-unique model id and retired on cleanup, like the round-trip arm.
   - id: billing.rpc.retire-model-pricing-baseline.unknown-not-found
     surface: billing
     lane: >-

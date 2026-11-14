@@ -858,7 +858,9 @@ export interface TargetProfile {
   // authenticated proxy lane on cloud). The model-resolution arms compare the
   // id the mock saw on the wire with this document's apiModelId — proving the
   // runner resolved through the real registry, whichever edition served it.
-  // Present only on execution targets. Valid only after setup().
+  // Present on the execution targets, and on the cloud target, where the
+  // billing suite reads back the catalog an operator's upsert rendered.
+  // Valid only after setup().
   modelRegistryDocument?(): Promise<ModelRegistryDocument>;
 
   // The HOME the target's runner runs under — a harness-owned directory, so

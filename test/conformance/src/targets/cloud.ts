@@ -25,6 +25,7 @@ import {
 } from "../harness/clients";
 import { newPrimaryEnforcingLane } from "../harness/enforcing-lane";
 import { awaitGrpcReady } from "../harness/grpc-ready";
+import { fetchModelRegistryDocument, type ModelRegistryDocument } from "../harness/model-registry";
 import { PERSON_TOKEN_TTL_SECONDS, PrimaryPeople } from "../harness/people";
 import { moveToTeamPlan } from "../harness/plan-move";
 import { freshSubject, optInToMemory } from "../support/identityaccounts";
@@ -340,6 +341,15 @@ export class CloudTarget implements TargetProfile {
 
   publicBaseUrl(): string {
     return requireEnv(CLOUD_ENV.publicAddress);
+  }
+
+  // The model registry document the composition serves on its authenticated
+  // proxy lane, read with the primary user's credential: the billing suite's
+  // catalog arm reads back what an operator's upsert rendered into it.
+  modelRegistryDocument(): Promise<ModelRegistryDocument> {
+    return fetchModelRegistryDocument(this.proxyBaseUrl(), {
+      authorization: `Bearer ${requireEnv(CLOUD_ENV.token)}`,
+    });
   }
 
   stripeWebhook(): StripeWebhookLane {

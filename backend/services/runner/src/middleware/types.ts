@@ -15,6 +15,7 @@ import type { BackgroundCommands, BackgroundOutputPaths } from "../shared/shell/
 import type { TurnInputChannel } from "../harness/turn-input.js";
 import type { InputBarriers } from "../activities/execute-deep-agent/input-barrier.js";
 import type { McpToolIndex } from "../shared/mcp-tool-names.js";
+import type { ModelPricing } from "../shared/model-pricing-data.js";
 
 export type { ToolMessage, SystemMessage, AIMessage };
 
@@ -111,9 +112,8 @@ export interface ToolTruncationConfig {
 /** The cap the advisory warns toward; the turn runtime enforces it (`shared/cost-guard.ts`). */
 export interface CostAdvisoryConfig {
   readonly maxCostUsd: number;
-  readonly inputPricePerMillion: number;
-  readonly outputPricePerMillion: number;
-  readonly cacheReadPricePerMillion: number;
+  /** The turn's rates, priced through `computeTurnCost` as the cap's estimate is. */
+  readonly pricing: ModelPricing;
   readonly warningPct: number;
 }
 

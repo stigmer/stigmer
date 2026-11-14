@@ -4,7 +4,22 @@
  * On first access, fetches the full model registry, filters to models
  * with pricing info, and caches the result. Falls back to conservative
  * default pricing if the API is unreachable.
+ *
+ * A model priced by prompt length carries `pricing.longContext`, the rates a
+ * call pays once its prompt is over `thresholdTokens` (the contract's
+ * `LongContextPricing`, stigmer#3131). A step that is not well formed is
+ * dropped with one warning naming the model, which is then priced at its base
+ * rates: the same tolerance this parser has for the rest of a bad document.
  */
+
+/** The rates a call pays once its prompt is longer than `thresholdTokens`. */
+export interface LongContextRates {
+  readonly thresholdTokens: number;
+  readonly inputPricePerMillion: number;
+  readonly outputPricePerMillion: number;
+  readonly cacheWritePricePerMillion: number;
+  readonly cacheReadPricePerMillion: number;
+}
 
 export interface ModelPricing {
   readonly model: string;
@@ -14,6 +29,8 @@ export interface ModelPricing {
   readonly outputPricePerMillion: number;
   readonly cacheWritePricePerMillion: number;
   readonly cacheReadPricePerMillion: number;
+  /** Absent: one set of rates at every prompt length. */
+  readonly longContext?: LongContextRates;
 }
 
 interface RegistryEntry {
@@ -27,6 +44,7 @@ interface RegistryEntry {
     outputPricePerMillion: number;
     cacheWritePricePerMillion: number;
     cacheReadPricePerMillion: number;
+    longContext?: unknown;
   };
 }
 
@@ -56,6 +74,40 @@ export const DEFAULT_PRICING: ModelPricing = {
 let cache: { data: readonly ModelPricing[]; expiresAt: number } | null = null;
 let inflightFetch: Promise<readonly ModelPricing[]> | null = null;
 
+function isRate(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+/** The step when every field is well formed; otherwise undefined. */
+function parseLongContext(raw: unknown): LongContextRates | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const {
+    thresholdTokens,
+    inputPricePerMillion,
+    outputPricePerMillion,
+    cacheWritePricePerMillion,
+    cacheReadPricePerMillion,
+  } = raw as Record<string, unknown>;
+  if (typeof thresholdTokens !== "number" || !Number.isInteger(thresholdTokens) || thresholdTokens <= 0) {
+    return undefined;
+  }
+  if (
+    !isRate(inputPricePerMillion)
+    || !isRate(outputPricePerMillion)
+    || !isRate(cacheWritePricePerMillion)
+    || !isRate(cacheReadPricePerMillion)
+  ) {
+    return undefined;
+  }
+  return {
+    thresholdTokens,
+    inputPricePerMillion,
+    outputPricePerMillion,
+    cacheWritePricePerMillion,
+    cacheReadPricePerMillion,
+  };
+}
+
 function parsePricingTable(json: unknown): ModelPricing[] {
   if (!json || typeof json !== "object") return [];
   const models = (json as Record<string, unknown>).models;
@@ -63,15 +115,27 @@ function parsePricingTable(json: unknown): ModelPricing[] {
 
   return (models as RegistryEntry[])
     .filter((m) => m.pricing != null)
-    .map((m) => ({
-      model: m.id,
-      displayName: m.displayName,
-      costTier: m.costTier ?? "standard",
-      inputPricePerMillion: m.pricing!.inputPricePerMillion,
-      outputPricePerMillion: m.pricing!.outputPricePerMillion,
-      cacheWritePricePerMillion: m.pricing!.cacheWritePricePerMillion,
-      cacheReadPricePerMillion: m.pricing!.cacheReadPricePerMillion,
-    }));
+    .map((m) => {
+      const pricing = m.pricing!;
+      const entry: ModelPricing = {
+        model: m.id,
+        displayName: m.displayName,
+        costTier: m.costTier ?? "standard",
+        inputPricePerMillion: pricing.inputPricePerMillion,
+        outputPricePerMillion: pricing.outputPricePerMillion,
+        cacheWritePricePerMillion: pricing.cacheWritePricePerMillion,
+        cacheReadPricePerMillion: pricing.cacheReadPricePerMillion,
+      };
+      if (pricing.longContext == null) return entry;
+      const longContext = parseLongContext(pricing.longContext);
+      if (!longContext) {
+        console.warn(
+          `Model "${m.id}" has a malformed long-prompt price step; pricing it at its base rates at every prompt length`,
+        );
+        return entry;
+      }
+      return { ...entry, longContext };
+    });
 }
 
 async function fetchFromApi(): Promise<readonly ModelPricing[]> {
