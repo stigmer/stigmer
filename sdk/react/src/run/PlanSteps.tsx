@@ -117,6 +117,10 @@ function PlanItemRow({
   const live = status === "in_progress" && working;
   const [open, toggle] = useAutoDisclosure(live && calls.length > 0, { initialOpen: live && calls.length > 0 });
   const mark = <PlanMark status={status} live={live} stoppedTone={stoppedTone} />;
+  // The item in hand sits on a band of the running hue, the drawing's one
+  // tint in the plan: its own line only, so its steps below keep the card's
+  // ground, and not while it waits, whose words take the waiting hue.
+  const band = live && !waiting && "stg:bg-status-running-subtle";
   const words: ReactNode = (
     <span className="stg:min-w-0 stg:flex-1">
       <span
@@ -140,11 +144,9 @@ function PlanItemRow({
     </span>
   );
   return (
-    // The item in hand sits on a band of the running hue, the drawing's one
-    // tint in the plan.
-    <li className={cn("stg:border-b stg:border-border-muted stg:last:border-b-0", live && "stg:bg-status-running-subtle")}>
+    <li className="stg:border-b stg:border-border-muted stg:last:border-b-0">
       {calls.length === 0 ? (
-        <div className="stg:flex stg:items-start stg:gap-2 stg:px-3 stg:py-2 stg:text-sm">
+        <div className={cn("stg:flex stg:items-start stg:gap-2 stg:px-3 stg:py-2 stg:text-sm", band)}>
           {mark}
           {words}
         </div>
@@ -155,7 +157,10 @@ function PlanItemRow({
             aria-expanded={open}
             aria-controls={regionId}
             onClick={toggle}
-            className="stg:flex stg:w-full stg:items-start stg:gap-2 stg:px-3 stg:py-2 stg:text-left stg:text-sm stg:hover:bg-muted-subtle stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring"
+            className={cn(
+              "stg:flex stg:w-full stg:items-start stg:gap-2 stg:px-3 stg:py-2 stg:text-left stg:text-sm stg:hover:bg-muted-subtle stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
+              band,
+            )}
           >
             {mark}
             {words}

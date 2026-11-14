@@ -101,7 +101,7 @@ describe("PlanSteps", () => {
     expect(within(itemLine("Fix it")).getByRole("img", { name: "Stopped" }).className).toContain("stg:border-muted-foreground");
   });
 
-  it("sets the item in hand on the running band, and done items in the foreground", () => {
+  it("sets the item in hand's own line on the running band, not its steps, and done items in the foreground", () => {
     render(
       <PlanSteps
         working
@@ -114,8 +114,9 @@ describe("PlanSteps", () => {
         )}
       />,
     );
-    expect(itemLine("Fix it").className).toContain("stg:bg-status-running-subtle");
-    expect(itemLine("Read the code").className).not.toContain("stg:bg-status-running-subtle");
+    expect(screen.getByText("Fix it").closest("div")!.className).toContain("stg:bg-status-running-subtle");
+    expect(itemLine("Fix it").className).not.toContain("stg:bg-status-running-subtle");
+    expect(itemLine("Read the code").innerHTML).not.toContain("stg:bg-status-running-subtle");
     expect(screen.getByText("Read the code").className).toContain("stg:text-foreground");
     // To do stays at the readable muted tone, never the faint one.
     expect(screen.getByText("Test it").className).toContain("stg:text-muted-foreground");

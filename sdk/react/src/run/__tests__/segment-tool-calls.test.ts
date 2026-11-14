@@ -59,12 +59,12 @@ describe("segmentToolCalls", () => {
   });
 
   it("splits adjacent runs of different groupable categories", () => {
-    // read, read, search, search -> two chips, in order.
+    // read, read, list, list -> two chips, in order.
     const calls = [
       tc("Read", "r1"),
       tc("Read", "r2"),
-      tc("Grep", "g1"),
-      tc("Grep", "g2"),
+      tc("ls", "l1"),
+      tc("ls", "l2"),
     ];
     const segments = segmentToolCalls(calls);
 
@@ -72,7 +72,13 @@ describe("segmentToolCalls", () => {
     expect(segments[0].kind).toBe("run");
     expect(segments[1].kind).toBe("run");
     if (segments[0].kind === "run") expect(segments[0].category).toBe("read");
-    if (segments[1].kind === "run") expect(segments[1].category).toBe("search");
+    if (segments[1].kind === "run") expect(segments[1].category).toBe("list");
+  });
+
+  it("keeps consecutive searches as their own rows, each naming its pattern", () => {
+    const segments = segmentToolCalls([tc("Grep", "g1"), tc("Grep", "g2")]);
+
+    expect(segments.map((segment) => segment.kind)).toEqual(["row", "row"]);
   });
 
   it("folds a run that is bounded by high-signal rows on both sides", () => {

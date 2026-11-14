@@ -217,7 +217,7 @@ describe("useToolPresentation", () => {
 
   describe("runGroupable", () => {
     it("folds read-only repetitive categories", () => {
-      for (const name of ["Read", "Grep", "Glob"]) {
+      for (const name of ["Read", "ls"]) {
         const tc = toolUse({ name, input: { path: "/x", pattern: "p" } });
         const { result } = renderHook(() => useToolPresentation(tc));
         expect(result.current.runGroupable).toBe(true);
@@ -225,7 +225,8 @@ describe("useToolPresentation", () => {
     });
 
     it("never folds high-signal categories", () => {
-      for (const name of ["Bash", "Edit"]) {
+      // A search names its own pattern and what it found: folding hides both.
+      for (const name of ["Bash", "Edit", "Grep", "Glob"]) {
         const tc = toolUse({ name, input: { command: "ls", path: "/x" } });
         const { result } = renderHook(() => useToolPresentation(tc));
         expect(result.current.runGroupable).toBe(false);
