@@ -981,7 +981,7 @@ export {
 // The run phases a composition's own idle sweep reads: whether a run keeps
 // its session's sandbox awake (working), and whether it is alive at all
 // (a parked turn is alive but lets its sandbox sleep). Exported so the
-// sweep reads the core's rule, never a copy (stigmer-cloud#1558).
+// sweep reads the core's rule, never a copy (stigmer#3122).
 export {
   isActiveExecutionPhase,
   isWorkingPhase,

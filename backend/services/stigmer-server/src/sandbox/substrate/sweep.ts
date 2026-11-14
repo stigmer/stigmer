@@ -9,7 +9,7 @@
  * and when it was last active. Busy means a run is working; a turn parked
  * on a person's answer or a pause is not, so its sandbox sleeps after the
  * window like any idle one, and the run workflow asks for it again before
- * the turn carries on (stigmer-cloud#1558).
+ * the turn carries on (stigmer#3122).
  *
  * Only session sandboxes sleep. A connect sandbox lives for one request
  * and ends when the connect settles (domain/plugin/tools/sandbox.ts).

@@ -27,7 +27,7 @@
  * turn that has already run past the idle window sleeps on the first pass
  * after it parks, even when the person is about to answer; the run
  * workflow asks for the sandbox again before it carries the turn on, so
- * that costs the answer a wake, never the turn (stigmer-cloud#1558).
+ * that costs the answer a wake, never the turn (stigmer#3122).
  *
  * An idle sweep asks every awake session on every pass, and a session's
  * full history is the store's fattest rows

@@ -7,7 +7,7 @@
  *     keeps its pod. A turn parked on a person's answer or a pause does
  *     not (domain/run/phases.ts `keepsSandboxAwake`): its pod goes like an
  *     idle session's, its claims stay, and the run workflow asks for the
- *     sandbox again before the turn carries on (stigmer-cloud#1558).
+ *     sandbox again before the turn carries on (stigmer#3122).
  *   - A Running Sandbox whose session has been idle for `suspendAfter` is
  *     suspended: its pod goes, its claims stay, and the next message wakes
  *     it over the same files.

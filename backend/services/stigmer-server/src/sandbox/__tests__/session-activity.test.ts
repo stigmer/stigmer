@@ -6,7 +6,7 @@
  *     (domain/run/phases.ts `keepsSandboxAwake`); a run waiting for a
  *     person's answer or paused is not busy, so its sandbox sleeps after
  *     the idle window counted from its stamps, and the workflow asks for
- *     the sandbox again when the turn carries on (stigmer-cloud#1558);
+ *     the sandbox again when the turn carries on (stigmer#3122);
  *     idle once every one has ended;
  *   - the activity clock is the latest creation or completion stamp the
  *     server wrote, never another session's;
@@ -130,7 +130,7 @@ describe("activity(sessionId)", () => {
     }
   });
 
-  it("is not busy while its only live run waits for a person's answer or is paused, its clock that run's creation (stigmer-cloud#1558)", async () => {
+  it("is not busy while its only live run waits for a person's answer or is paused, its clock that run's creation (stigmer#3122)", async () => {
     for (const phase of [RunPhase.RUN_WAITING_FOR_APPROVAL, RunPhase.RUN_PAUSED]) {
       await save(execution("run_2", "ses_a", phase, new Date("2026-10-01T09:00:00Z")));
       const reader = newStoreSessionActivityReader(store, silentLogger, NOW);
@@ -274,7 +274,7 @@ describe("a stamp ahead of the server's clock", () => {
     expect(await ladderAt(t + SUSPEND_AFTER_MS)).toBe("suspend");
   });
 
-  it("a turn waiting for a person's answer sleeps on the ladder after its window, like any idle session (stigmer-cloud#1558)", async () => {
+  it("a turn waiting for a person's answer sleeps on the ladder after its window, like any idle session (stigmer#3122)", async () => {
     await save(execution("run_1", "ses_a", RunPhase.RUN_WAITING_FOR_APPROVAL, created));
     const t = created.getTime();
     expect(await ladderAt(t + SUSPEND_AFTER_MS - 1)).toBe("none");
@@ -643,7 +643,7 @@ describe("recentActivity(sessionId)", () => {
     });
   });
 
-  it("re-reads a parked run on every pass, so its resume reads busy at once without a full read (stigmer-cloud#1558)", async () => {
+  it("re-reads a parked run on every pass, so its resume reads busy at once without a full read (stigmer#3122)", async () => {
     const r = rig();
     await save(
       execution("run_done", "ses_a", RunPhase.RUN_COMPLETED, at(-120 * 60_000), at(-119 * 60_000)),

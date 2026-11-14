@@ -27,7 +27,7 @@
  *     for room as the first ask does, inside the attempt's cancellable
  *     scope so a pause there is the attempt's. A turn parked on a person's
  *     answer or a pause is not busy for the idle sweep, so its sandbox may
- *     have gone to sleep while it waited (stigmer-cloud#1558); without the
+ *     have gone to sleep while it waited (stigmer#3122); without the
  *     ask, the runner activity would wait out its schedule-to-start on a
  *     queue nobody polls. Behind its own `patched()` id and the same
  *     conditions; the cloud HITL and pause histories recorded before it

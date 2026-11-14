@@ -321,7 +321,7 @@ async function main(): Promise<void> {
     },
   );
 
-  // 10. A CLOUD turn's HITL cycle past the re-ask (stigmer-cloud#1558):
+  // 10. A CLOUD turn's HITL cycle past the re-ask (stigmer#3122):
   //     the first ask, WAITING, gate re-read, approvalGateResolved, then
   //     IN_PROGRESS written, the sandbox asked for again (the second patch
   //     marker) with no room once, waiting, room, IN_PROGRESS again, and

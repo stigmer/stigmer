@@ -21,7 +21,7 @@
  * on a person's answer or a pause needs no sandbox while it waits, which
  * can be days, and the run workflow asks for the sandbox again before it
  * carries the turn on, waking it (temporal/agentexecution/sandbox-wait.ts,
- * stigmer-cloud#1558). Its sandbox keeps its files while it sleeps.
+ * stigmer#3122). Its sandbox keeps its files while it sleeps.
  * Accepted gap: a Pause writes PAUSED before the runner has heard the
  * cancel, so a sweep pass in those seconds can suspend the sandbox while
  * the runner winds the turn down. That is the crash a draining worker

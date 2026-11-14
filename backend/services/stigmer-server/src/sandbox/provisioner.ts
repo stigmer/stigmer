@@ -246,7 +246,7 @@ export interface SandboxProvisioner {
  * completion), undefined when it has none. A turn waiting for a person's
  * answer or paused is not busy: its sandbox may sleep, and the run
  * workflow asks for it again before the turn carries on
- * (stigmer-cloud#1558).
+ * (stigmer#3122).
  */
 export interface SessionActivity {
   readonly busy: boolean;

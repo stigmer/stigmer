@@ -61,7 +61,7 @@
  *     real seconds (the asks are 5 s apart), on the same local server;
  *   - a turn asks for its sandbox again before every runner invocation
  *     after its first, since a parked turn's sandbox may have gone to
- *     sleep (stigmer-cloud#1558): after an approval (IN_PROGRESS written
+ *     sleep (stigmer#3122): after an approval (IN_PROGRESS written
  *     first), after a resume and before a recovery attempt; a full pool
  *     there waits PENDING as a new turn does, writes IN_PROGRESS once room
  *     comes, and ends as no_sandbox_room past the limit; a pause during
@@ -1085,7 +1085,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     }, 60_000);
   });
 
-  describe("a turn asks for its sandbox again before it carries on (stigmer-cloud#1558)", () => {
+  describe("a turn asks for its sandbox again before it carries on (stigmer#3122)", () => {
     const cloud = (overrides: Partial<InvokeAgentExecutionWorkflowInput> = {}) =>
       workflowInput({ execution_target: ExecutionTarget.CLOUD, caller_class: "user", ...overrides });
 

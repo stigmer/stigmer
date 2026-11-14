@@ -9,7 +9,7 @@
  * before a recovery attempt. A turn parked on a person's answer or a pause
  * is not busy for the idle sweep (domain/run/phases.ts,
  * `keepsSandboxAwake`), so its sandbox may have gone to sleep while it
- * waited, and only an ask wakes it (stigmer-cloud#1558). When the sandbox
+ * waited, and only an ask wakes it (stigmer#3122). When the sandbox
  * fleet answers "no room" (sandbox/provisioner.ts, SandboxNoRoomError), the
  * workflow asks again, `sandboxWaitBackoffMs` apart, until room comes or
  * the server's limit (`STIGMER_SANDBOX_WAIT_SECONDS`, carried in the
