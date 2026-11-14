@@ -1,44 +1,16 @@
 "use client";
 
-import { getErrorReason, getUserMessage } from "@stigmer/client";
+import { getUserMessage } from "@stigmer/client";
+import { DEFAULT_MODELS_HUB_HREF, providerKeyRequired } from "./refusals.js";
 import { ALERT_ICON, Notice } from "../internal/surface/Notice.js";
-import { presentationOf } from "../models/provider-presentation.js";
+import { providerName } from "../models/provider-name.js";
 
-/**
- * The reason a server refuses a run that needs a provider nothing serves:
- * the organization holds no key for it, or this server's runners do not
- * reach it (`PlatformQueryController.getModelReadiness` reports the same).
- */
-export const PROVIDER_KEY_REQUIRED = "PROVIDER_KEY_REQUIRED";
-
-/** Models & providers, where the notice links by default: the top-level route every client serves. */
-export const DEFAULT_MODELS_HUB_HREF = "/models";
-
-/** What a `PROVIDER_KEY_REQUIRED` refusal names. */
-export interface ProviderKeyRequired {
-  /** The organization the run was refused in. */
-  readonly org: string;
-  /** The provider it has no key for: `anthropic` or `openai`. */
-  readonly provider: string;
-  /** The model the run would have used; empty when it names none. */
-  readonly model: string;
-}
-
-/**
- * What a refusal names, when `error` is a `PROVIDER_KEY_REQUIRED` refusal;
- * `null` for any other error.
- */
-export function providerKeyRequired(error: unknown): ProviderKeyRequired | null {
-  const reason = getErrorReason(error);
-  if (reason?.reason !== PROVIDER_KEY_REQUIRED) {
-    return null;
-  }
-  return {
-    org: reason.metadata.org ?? "",
-    provider: reason.metadata.provider ?? "",
-    model: reason.metadata.model ?? "",
-  };
-}
+export {
+  DEFAULT_MODELS_HUB_HREF,
+  PROVIDER_KEY_REQUIRED,
+  providerKeyRequired,
+  type ProviderKeyRequired,
+} from "./refusals.js";
 
 /** Props for {@link ProviderKeyNotice}. */
 export interface ProviderKeyNoticeProps {
@@ -71,7 +43,7 @@ export function ProviderKeyNotice({
   className,
 }: ProviderKeyNoticeProps) {
   const required = providerKeyRequired(error);
-  const provider = required !== null && required.provider !== "" ? presentationOf(required.provider).name : "";
+  const provider = required !== null && required.provider !== "" ? providerName(required.provider) : "";
   const ofOrganization = required !== null && required.org !== "";
   return (
     <Notice

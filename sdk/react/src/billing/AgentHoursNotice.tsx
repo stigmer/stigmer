@@ -1,49 +1,11 @@
 "use client";
 
-import { getErrorReason, getUserMessage } from "@stigmer/client";
+import { getUserMessage } from "@stigmer/client";
+import { agentHoursUsedUp } from "./refusals.js";
 import { Notice } from "../internal/surface/Notice.js";
 import { DEFAULT_BILLING_HREF } from "./UpgradeNotice.js";
 
-/**
- * The reason Stigmer Cloud refuses a new turn when the organization's plan
- * has used the agent hours it includes and new work pauses until they
- * reset. The refusal is FAILED_PRECONDITION with this reason and the
- * metadata `org`, `plan`, `included_hours` and `resets_at`; a guest or a
- * channel user is refused without it.
- */
-export const AGENT_HOURS_USED_UP = "AGENT_HOURS_USED_UP";
-
-/** What an `AGENT_HOURS_USED_UP` refusal names. */
-export interface AgentHoursUsedUp {
-  /** The organization the turn was refused in. */
-  readonly org: string;
-  /**
-   * The plan whose hours are used; empty for a child organization, which is
-   * on its parent's plan and cannot change it.
-   */
-  readonly plan: string;
-  /** The hours the plan includes each month, as the refusal states them. */
-  readonly includedHours: string;
-  /** When the hours reset, an RFC 3339 instant; empty when the refusal names none. */
-  readonly resetsAt: string;
-}
-
-/**
- * What a refusal names, when `error` is Stigmer Cloud's
- * `AGENT_HOURS_USED_UP`; `null` for any other error.
- */
-export function agentHoursUsedUp(error: unknown): AgentHoursUsedUp | null {
-  const reason = getErrorReason(error);
-  if (reason?.reason !== AGENT_HOURS_USED_UP) {
-    return null;
-  }
-  return {
-    org: reason.metadata.org ?? "",
-    plan: reason.metadata.plan ?? "",
-    includedHours: reason.metadata.included_hours ?? "",
-    resetsAt: reason.metadata.resets_at ?? "",
-  };
-}
+export { AGENT_HOURS_USED_UP, agentHoursUsedUp, type AgentHoursUsedUp } from "./refusals.js";
 
 /** Props for {@link AgentHoursNotice}. */
 export interface AgentHoursNoticeProps {
