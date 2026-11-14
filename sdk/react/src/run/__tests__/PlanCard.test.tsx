@@ -83,7 +83,7 @@ describe("PlanCard", () => {
     expect(copied.querySelector("svg")?.getAttribute("class")?.split(" ")).toContain("stg:text-status-ready");
   });
 
-  it("draws the glyph bright, with no square of its own (his look, S46)", () => {
+  it("draws the glyph bright, with no square of its own (S46)", () => {
     const { container } = render(<PlanCard state="ready" title="T" />);
     const glyph = container.querySelector("[data-plan-glyph]")!;
     const classes = glyph.className.split(" ");

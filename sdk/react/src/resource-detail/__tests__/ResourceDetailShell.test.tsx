@@ -1,5 +1,5 @@
 /**
- * Proves the detail page's header lays out as drawn (his look's C1): the
+ * Proves the detail page's header lays out as drawn (the owner's look at the console's parts): the
  * icon and the name share one row, and the facts line ("acme · Created …")
  * starts at the header's edge under the icon, not past it, for every
  * detail page that shares the shell.

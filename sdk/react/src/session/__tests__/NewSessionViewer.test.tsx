@@ -208,7 +208,7 @@ describe("NewSessionViewer — auto-approve placement (#816 rework)", () => {
 
     expect(screen.getByText(INDICATOR_TEXT)).toBeTruthy();
     const shield = screen.getByText(INDICATOR_TEXT).closest("[role='status']")?.querySelector("svg");
-    // Monochrome: a setting, not a status, so the shield takes no hue (his look, S53).
+    // Monochrome: a setting, not a status, so the shield takes no hue (S53).
     expect(shield?.getAttribute("class")?.split(" ")).toContain("stg:text-muted-foreground");
     fireEvent.click(screen.getByRole("button", { name: "Turn off" }));
     expect(setAutoApproveAll).toHaveBeenCalledExactlyOnceWith(false);

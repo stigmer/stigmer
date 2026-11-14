@@ -16,7 +16,7 @@ describe("PlanStreamingDocument — live plan tab view", () => {
     expect(doc.querySelector("header")!.textContent).toBe("Live PlanWriting the plan…");
   });
 
-  it("ends the document on a shimmering, hidden 'Writing…' line (his look, S47)", () => {
+  it("ends the document on a shimmering, hidden 'Writing…' line (S47)", () => {
     render(<PlanStreamingDocument displayText={"# Live Plan\n\nFirst section"} />);
     const doc = screen.getByRole("article", { name: "Plan document" });
     const writing = doc.querySelector("[data-plan-writing]")!;

@@ -131,7 +131,7 @@ function Header({
   return (
     // The icon and the name share one row; the facts line and the
     // description start at the header's edge, under the icon (the drawn
-    // detail header, his look's C1).
+    // detail header, the owner's look at the console's parts).
     <div className="stg:min-w-0">
       <div className="stg:flex stg:min-w-0 stg:items-start stg:gap-3">
         {iconUrl ? (

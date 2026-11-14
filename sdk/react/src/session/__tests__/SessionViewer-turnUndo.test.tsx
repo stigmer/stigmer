@@ -266,7 +266,7 @@ describe("SessionViewer — the files-changing strip and the thread", () => {
     expect(bar).toBeTruthy();
     expect(screen.getByText("Changing 2 files")).toBeTruthy();
 
-    // Pinned in the strips' stack on the composer's gutter (T07 3j), the
+    // Pinned in the strips' stack on the composer's gutter, the
     // stack itself in the fixed foot beside the composer, ordered before it.
     const composer = screen.getByTestId("composer-probe");
     const stack = bar!.closest("[data-composer-strips]");

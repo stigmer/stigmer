@@ -27,7 +27,7 @@ describe("PlanStreamingCard — live plan stand-in", () => {
     expect(region.textContent).toBe("Refactor the auth flowWriting the plan…Open");
   });
 
-  it("sits flush to the thread's one edge, with no edge of its own (his look, S46)", () => {
+  it("sits flush to the thread's one edge, with no edge of its own (S46)", () => {
     render(<PlanStreamingCard title="T" sizeBytes={0} onOpenPlan={vi.fn()} />);
     expect(screen.getByRole("region", { name: "Plan being written" }).className).not.toContain("stg:mx-4");
   });

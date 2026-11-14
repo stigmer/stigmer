@@ -97,7 +97,7 @@ describe("RecalledMemoriesCard", () => {
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
     const items = screen.getAllByRole("listitem").map((li) => li.textContent);
     expect(items).toEqual(["Prefers concise answers.", "Deploys with Bazel."]);
-    // The model that chose them is not said (T07 3i: his look, S51).
+    // The model that chose them is not said (S51).
     expect(screen.queryByText(/text-embedding-3-small/)).toBeNull();
     // Non-injected snapshot facts never render.
     expect(screen.queryByText("Works in the Europe/Berlin timezone.")).toBeNull();
