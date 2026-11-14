@@ -80,6 +80,7 @@ export function ProviderKeyNotice({
       icon={ALERT_ICON}
       headline={ofOrganization ? `This organization has no ${provider === "" ? "model" : provider} key yet.` : getUserMessage(error)}
       act={{ label: "Open Models & providers", href: modelsHubHref }}
+      actSize="xs"
       className={className}
     >
       <p className="stg:m-0">{ofOrganization ? "Add one on Models & providers, then send. Your message stays in the box." : "Your message stays in the box."}</p>

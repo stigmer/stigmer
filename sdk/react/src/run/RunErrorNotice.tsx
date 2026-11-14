@@ -109,6 +109,8 @@ export function RunErrorNotice({
       tone={NOTICE_TONE[ending.tone]}
       headline={ending.headline}
       icon={icon}
+      // Under a turn in the thread: the act at a card's size.
+      actSize="xs"
       act={act !== undefined && label !== undefined ? { label, onClick: act, busy: acting } : undefined}
       link={link}
       details={copyable ? details : ""}

@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { Button } from "../../button/Button.js";
 import { LinkButton } from "../../button/LinkButton.js";
+import type { ButtonSize } from "../../button/buttonClasses.js";
 import { useCopy } from "../CopyBlock.js";
 
 /** A notice's tone: the status pill's hue for failed and paused, grey for plain. */
@@ -51,6 +52,13 @@ export interface NoticeProps {
   readonly act?: NoticeAct;
   /** The one link to the fix. */
   readonly link?: NoticeLinkSpec;
+  /**
+   * The act's size: a page's notice offers its act at `sm`, a notice inside
+   * a thread or a card at `xs` (`buttonClasses`).
+   *
+   * @default "sm"
+   */
+  readonly actSize?: ButtonSize;
   /** What Copy details copies (the raw error, ids); no Copy details when absent or empty. */
   readonly details?: string;
   /** `alert` for a failure, `status` otherwise; the tone's by default. */
@@ -68,7 +76,7 @@ const TONE_CLASSES: Readonly<Record<NoticeTone, { readonly box: string; readonly
  * A note on the page: an icon in the tone's hue, a bold headline, the
  * lines under it, and at most one act, one link and Copy details.
  */
-export function Notice({ tone, headline, children, icon, act, link, details = "", role, className }: NoticeProps) {
+export function Notice({ tone, headline, children, icon, act, link, actSize = "sm", details = "", role, className }: NoticeProps) {
   const classes = TONE_CLASSES[tone];
   const copyable = details !== "";
   return (
@@ -84,13 +92,12 @@ export function Notice({ tone, headline, children, icon, act, link, details = ""
         {children}
         {act !== undefined || link !== undefined || copyable ? (
           <div className="stg:mt-2 stg:flex stg:flex-wrap stg:items-center stg:gap-3">
-            {/* A notice's act at the kit's size for a card's and a notice's acts (`buttonClasses`). */}
             {act?.href !== undefined ? (
-              <LinkButton href={act.href} size="xs" icon={act.icon}>
+              <LinkButton href={act.href} size={actSize} icon={act.icon}>
                 {act.label}
               </LinkButton>
             ) : act !== undefined ? (
-              <Button size="xs" icon={act.icon} onClick={act.onClick} disabled={act.busy === true} aria-busy={act.busy === true}>
+              <Button size={actSize} icon={act.icon} onClick={act.onClick} disabled={act.busy === true} aria-busy={act.busy === true}>
                 {act.label}
               </Button>
             ) : null}
