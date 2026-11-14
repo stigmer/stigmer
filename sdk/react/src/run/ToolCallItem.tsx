@@ -28,6 +28,8 @@ import { BackgroundCommandTrail, BackgroundStopError } from "./BackgroundCommand
 import { useFileReviewRowState } from "@stigmer/react-core";
 import { CHANGE_WORDS } from "../session/turn-change-words.js";
 import { FilePathLink } from "./FilePathLink.js";
+import { sizeWords } from "../internal/size-words.js";
+import { fileKind } from "../session/TurnOutcome.js";
 import { splitDisplayPath } from "./file-path-resolver.js";
 import { subagentSubjectOf } from "@stigmer/react-core";
 import { isFileCategory } from "@stigmer/react-core/internal";
@@ -205,13 +207,18 @@ export const ToolCallItem = memo(function ToolCallItem({
   // A file step that failed says why, in its tool's own words (the first
   // line of its answer), where a settled one says its folder.
   const failureReason = failed && isFileCategory(category) && toolUse.result?.isError === true ? reasonOf(toolUse.result.text) : "";
+  // A File the turn wrote to its outputs folder says what it is and how big,
+  // not the folder's path ("Markdown · 4.1 KB").
+  const outputWords = !failed && category === "write" && primaryArg != null ? outputFileWords(primaryArg, toolUse) : "";
   const detail = isSubagent
     ? null
     : category === "shell" || category === "mcp" || category === "unknown" || category === "background-stop"
       ? primaryArg
       : failureReason !== ""
         ? failureReason
-        : phrase.folder !== ""
+        : outputWords !== ""
+          ? outputWords
+          : phrase.folder !== ""
           ? phrase.folder
           : null;
   // A host's registered summary (`registerToolPresenter({ summary })`) is
@@ -415,6 +422,19 @@ export const ToolCallItem = memo(function ToolCallItem({
     </ThreadCardShell>
   );
 });
+
+/** Where a path lands in the outputs folder (the workspace's `.stigmer/outputs/`). */
+const OUTPUTS_FOLDER = /(?:^|\/)\.stigmer\/outputs\/(.+)$/;
+
+/** A File written to the outputs folder in words, its kind and size ("Markdown · 4.1 KB"); "" for any other path. */
+function outputFileWords(path: string, toolUse: ToolUse): string {
+  const saved = OUTPUTS_FOLDER.exec(path)?.[1];
+  if (saved === undefined) return "";
+  const content = toolUse.input["content"];
+  const size = typeof content === "string" ? sizeWords(new TextEncoder().encode(content).length) : (/\b(\d+(?:\.\d+)?\s?[KMG]?B)\b/.exec(toolUse.result?.text ?? "")?.[1] ?? "");
+  const kind = fileKind(saved, "");
+  return size === "" ? kind : `${kind} · ${size}`;
+}
 
 /** A tool's answer as the reason it failed: its first line, without an "Error:" label, as a sentence. */
 function reasonOf(text: string): string {
