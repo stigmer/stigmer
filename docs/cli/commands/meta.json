@@ -5,6 +5,7 @@
     "---Run agents---",
     "app-handover",
     "coding-agent",
+    "load-test",
     "resume",
     "run",
     "runs",
