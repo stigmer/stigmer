@@ -147,11 +147,8 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
-        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
         "type Done": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
         "type INV-1042 rounds each line before the total, so it lands a cent high. The ledger shows thirteen more like it.": "The session's frame: the answer's lines at the scale's 20px, its acts in no reserved row",
-        "word 1s": "The session's frame: one duration format, \"1m 30s\"",
         "word 8s": "The session's frame: one duration format, \"1m 30s\"",
         "word Plan Plan how invoices should round. Don't change anything yet.": "Steps, approvals and the finished turn: the screen's parts as drawn",
         "word ledger-october.csv · 9.2 KB": "Steps, approvals and the finished turn: the finished turn's cards, sizes and downloads"

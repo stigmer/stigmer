@@ -152,8 +152,8 @@ describe("buildStatusResult", () => {
 describe("formatDuration", () => {
   it("renders coarse human durations", () => {
     expect(formatDuration(5_000)).toBe("5s");
-    expect(formatDuration(125_000)).toBe("2m 5s");
-    expect(formatDuration(3_700_000)).toBe("1h 1m");
-    expect(formatDuration(90_000_000)).toBe("1d 1h");
+    expect(formatDuration(125_000)).toBe("2m 05s");
+    expect(formatDuration(3_700_000)).toBe("1h 01m");
+    expect(formatDuration(90_000_000)).toBe("1d 01h");
   });
 });

@@ -102,7 +102,6 @@ export function RunErrorNotice({
       act={act !== undefined && label !== undefined ? { label, onClick: act, busy: acting } : undefined}
       link={link}
       details={copyable ? details : ""}
-      className="stg:mx-4"
     >
       <p className="stg:m-0 stg:break-words">{ending.comfort}</p>
     </Notice>

@@ -26,7 +26,6 @@ import { describeTurnActivity, formatElapsed, type Turn } from "@stigmer/client"
 import { cn } from "@stigmer/design-tokens";
 import { useStigmer } from "@stigmer/react-core";
 import { useFetch } from "@stigmer/react-core/internal";
-import { durationWords } from "./duration-words.js";
 import { standingChanges, turnOutcome } from "./turn-outcome.js";
 import { isChannelOriginSession } from "./channelOrigin.js";
 import { sessionStatus } from "./session-status.js";
@@ -82,6 +81,8 @@ export function SessionSummary({ session, turns, runs, files, showCost, routineH
   const status = sessionStatus(last, decides);
   const now = useNow(working);
   const progress = working && last !== undefined ? describeTurnActivity(last, now) : undefined;
+  // An ended turn that kept a to-do list says how far it got, as a working one does.
+  const endedTodos = !working && last !== undefined ? describeTurnActivity(last, now).todos : undefined;
   const outcomes = turns.map((turn) => turnOutcome(turn, files, runs.find((run) => run.metadata?.id === turn.runId)));
   const elapsedMs = outcomes.reduce((sum, outcome) => sum + outcome.elapsedMs, 0);
   const made = outcomes.reduce((sum, outcome) => sum + outcome.files.length, 0);
@@ -118,7 +119,8 @@ export function SessionSummary({ session, turns, runs, files, showCost, routineH
           ? `${progress.stepsSettled} ${progress.stepsSettled === 1 ? "step" : "steps"}`
           : undefined;
   const facts = [
-    durationWords(elapsedMs),
+    formatElapsed(elapsedMs),
+    endedTodos !== undefined ? `${endedTodos.done} of ${endedTodos.total} to-dos done` : undefined,
     made > 0 ? `${made} ${made === 1 ? "file" : "files"} made` : undefined,
     plans > 0 ? `${plans} ${plans === 1 ? "plan" : "plans"}` : undefined,
     changed > 0 ? `${changed} ${changed === 1 ? "change" : "changes"}` : undefined,
@@ -126,7 +128,7 @@ export function SessionSummary({ session, turns, runs, files, showCost, routineH
   ].filter((fact): fact is string => fact !== undefined);
 
   return (
-    <header className={cn("stg:space-y-1 stg:border-b stg:border-border stg:px-4 stg:pb-3 stg:pt-4", className)}>
+    <header className={cn("stg:space-y-1 stg:border-b stg:border-border stg:pb-3 stg:pt-4", className)}>
       <div className="stg:flex stg:items-center stg:gap-2">
         <h1 className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-lg stg:font-semibold">{asked}</h1>
         {actions != null && <div className="stg:-my-1 stg:flex stg:shrink-0 stg:items-center stg:gap-2">{actions}</div>}
@@ -135,19 +137,36 @@ export function SessionSummary({ session, turns, runs, files, showCost, routineH
         {status !== undefined && (
           <StatusBadge
             phase={status.phase}
-            label={status.timed && progress !== undefined ? `${status.label} · ${formatElapsed(progress.elapsedMs)}` : status.label}
+            label={
+              status.timed && progress !== undefined && progress.elapsedMs >= 1000 ? `${status.label} · ${formatElapsed(progress.elapsedMs)}` : status.label
+            }
           />
         )}
+        {/* The dot and the facts after it wrap together, so a dot never ends
+            the pill's line alone. */}
         {working ? (
-          howFar !== undefined && <span>{howFar}</span>
+          howFar !== undefined && (
+            <span className="stg:inline-flex stg:min-w-0 stg:gap-x-2">
+              {status !== undefined && <Separator />}
+              <span>{howFar}</span>
+            </span>
+          )
         ) : (
-          <span>
-            {origin}
-            {origin !== undefined && " · "}
-            {facts.join(" · ")}
+          <span className="stg:inline-flex stg:min-w-0 stg:gap-x-2">
+            {status !== undefined && <Separator />}
+            <span>
+              {origin}
+              {origin !== undefined && " · "}
+              {facts.join(" · ")}
+            </span>
           </span>
         )}
       </div>
     </header>
   );
+}
+
+/** The dot between the pill and the facts after it, as between the facts themselves; a sibling, so the facts keep their own text. */
+function Separator() {
+  return <span aria-hidden="true">·</span>;
 }

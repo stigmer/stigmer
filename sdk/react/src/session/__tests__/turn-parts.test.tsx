@@ -27,7 +27,8 @@ describe("SettledStepsRow", () => {
         <p>the rows</p>
       </SettledStepsRow>,
     );
-    expect(screen.getByText("the rows").parentElement!.className).toContain("stg:mx-4");
+    // Flush to the thread's one gutter: no edge of its own.
+    expect(screen.getByText("the rows").parentElement!.className).not.toContain("stg:mx-4");
     expect(screen.queryByRole("button")).toBeNull();
   });
 });

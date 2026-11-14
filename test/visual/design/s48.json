@@ -123,8 +123,6 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
-        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
         "type Waiting for an answer · 1m 30s": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
         "word 12s": "The session's frame: one duration format, \"1m 30s\"",
         "word Wants to write rounding.ts": "Steps, approvals and the finished turn: the screen's parts as drawn",

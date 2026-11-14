@@ -12,7 +12,7 @@
 import { useId, useState, type ReactNode } from "react";
 import { settledStepsPhrase, stepsSpanMs, type ToolUse } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
-import { durationWords } from "../session/duration-words.js";
+import { formatElapsed } from "@stigmer/client";
 
 /** Props for {@link SettledStepsRow}. */
 export interface SettledStepsRowProps {
@@ -41,12 +41,12 @@ export function SettledStepsRow({ toolUses, prefix, children, framed = true, cla
   const regionId = useId();
   const words = settledStepsPhrase(toolUses);
   const label = prefix === undefined ? words : words === "" ? prefix : `${prefix}: ${words.charAt(0).toLowerCase()}${words.slice(1)}`;
-  if (label === "") return <div className={cn(framed && "stg:mx-4", className)}>{children}</div>;
+  if (label === "") return <div className={className}>{children}</div>;
   const span = stepsSpanMs(toolUses);
   return (
     <div
       className={cn(
-        framed ? "stg:mx-4 stg:overflow-hidden stg:rounded-lg stg:border stg:border-border stg:bg-card" : "stg:border-t stg:border-border-muted",
+        framed ? "stg:overflow-hidden stg:rounded-lg stg:border stg:border-border stg:bg-card" : "stg:border-t stg:border-border-muted",
         className,
       )}
     >
@@ -61,7 +61,7 @@ export function SettledStepsRow({ toolUses, prefix, children, framed = true, cla
           <path d="M6 4l4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         <span className="stg:min-w-0 stg:flex-1 stg:truncate">{label}</span>
-        {span > 0 && <span className="stg:shrink-0 stg:text-xs stg:tabular-nums">{durationWords(span)}</span>}
+        {span >= 1000 && <span className="stg:shrink-0 stg:text-xs stg:tabular-nums">{formatElapsed(span)}</span>}
       </button>
       {open && (
         <div id={regionId} className="stg:border-t stg:border-border-muted">

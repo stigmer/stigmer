@@ -15,6 +15,8 @@ import type { SessionInspectorProps } from "./inspector/SessionInspector.js";
 import type { SessionStreamingPlan } from "./inspector/SessionInspectorRegion.js";
 import { isTerminalPhase } from "@stigmer/react-core/internal";
 import { MessageThread, type MessageThreadSlots } from "../run/MessageThread.js";
+import { THREAD_GUTTER_CLASS } from "../internal/thread-gutter.js";
+import { useIsNarrowerThan } from "../internal/useIsNarrowerThan.js";
 import { FileChangeProgressBar } from "../run/FileChangeProgressBar.js";
 import { ThreadSkeleton } from "../run/ThreadSkeleton.js";
 import { SessionComposer } from "../composer/index.js";
@@ -79,11 +81,14 @@ const EMPTY_FILE = create(FileSchema, {});
  * with the session panel collapsed the column sits in the middle of the
  * row; opening the panel narrows the chat pane below the column max, so
  * the column simply fills it. The thread applies the same geometry via
- * `contentColumn="center"`, which adds the item gutter; the composer/banner
- * block's children carry their own edge padding, so only width and
- * anchoring live here.
+ * `contentColumn="center"`, which adds the one gutter (`THREAD_GUTTER_CLASS`);
+ * the header and the composer/banner block take the same gutter, so every
+ * edge in the session lines up and only width and anchoring live here.
  */
 const CONVERSATION_COLUMN_CLASS = "stg:mx-auto stg:w-full stg:max-w-3xl";
+
+/** The narrowest the viewer may be and still keep its panel beside the conversation, in pixels (40rem). */
+const PANEL_MIN_VIEWER_PX = 640;
 
 /** What {@link SessionViewerProps.nextStep} is called with. */
 export interface SessionNextStepContext {
@@ -384,7 +389,12 @@ export function SessionViewer({
   // workspace). Everything the panel touches — the chip,
   // the region, plan auto-open, transcript path clicks — gates on this, so
   // the four affordances can never drift apart.
-  const panelEnabled = inspector !== undefined && !isGuest;
+  // Under 640px of the viewer's own width there is no room for a panel
+  // beside the conversation: the viewer then works as it does without an
+  // inspector, every file opening in the preview window.
+  const viewerRef = useRef<HTMLDivElement>(null);
+  const narrow = useIsNarrowerThan(viewerRef, PANEL_MIN_VIEWER_PX);
+  const panelEnabled = inspector !== undefined && !isGuest && !narrow;
   const inspectorProps = inspector?.props;
 
   const [modelId, setModelId] = flow.model;
@@ -711,6 +721,7 @@ export function SessionViewer({
 
   return (
     <>
+    <div ref={viewerRef} className="stg:flex stg:h-full stg:w-full stg:flex-col">
     <SessionViewerLayout
       className={className}
       headerActions={summaryShows ? undefined : headerCorner}
@@ -794,6 +805,7 @@ export function SessionViewer({
         ) : null
       }
     />
+    </div>
     <FilePreviewModal
       file={previewFile ?? EMPTY_FILE}
       org={org}
@@ -1108,9 +1120,9 @@ const ConversationColumn = memo(function ConversationColumn({
   );
 
   return (
-    <div ref={columnRef} className="stg:flex stg:h-full stg:min-w-0 stg:flex-col">
+    <div ref={columnRef} className="stg:@container/session stg:flex stg:h-full stg:min-w-0 stg:flex-col">
       {conv.session !== null && hasTurns && (
-        <div className={CONVERSATION_COLUMN_CLASS}>
+        <div className={cn(CONVERSATION_COLUMN_CLASS, THREAD_GUTTER_CLASS)}>
           <SessionSummary
             session={conv.session}
             turns={conv.turns}
@@ -1282,7 +1294,7 @@ const ConversationColumn = memo(function ConversationColumn({
             vaultPickCreatorId={sessionCreatorId}
             sessionId={sessionId}
             extraSettings={extraSettings}
-            className="stg:px-4 stg:py-3"
+            className={cn("stg:py-3", THREAD_GUTTER_CLASS)}
           />
         )}
       </div>
@@ -1405,15 +1417,15 @@ function PlanAttachFailedNotice({ onDismiss }: { onDismiss: () => void }) {
 
 function SendErrorBanner({ error, modelsHubHref }: { readonly error: Error; readonly modelsHubHref: string }) {
   if (isSecretFlowError(error)) {
-    return <SecretFlowErrorGuide error={error} className="stg:mx-4 stg:my-2" />;
+    return <SecretFlowErrorGuide error={error} className={cn("stg:my-2", THREAD_GUTTER_CLASS)} />;
   }
   if (providerKeyRequired(error) !== null) {
-    return <ProviderKeyNotice error={error} modelsHubHref={modelsHubHref} className="stg:mx-4 stg:my-2" />;
+    return <ProviderKeyNotice error={error} modelsHubHref={modelsHubHref} className={cn("stg:my-2", THREAD_GUTTER_CLASS)} />;
   }
   if (agentHoursUsedUp(error) !== null) {
-    return <AgentHoursNotice error={error} className="stg:mx-4 stg:my-2" />;
+    return <AgentHoursNotice error={error} className={cn("stg:my-2", THREAD_GUTTER_CLASS)} />;
   }
-  return <ErrorMessage error={error} className="stg:mx-4 stg:my-2" />;
+  return <ErrorMessage error={error} className={cn("stg:my-2", THREAD_GUTTER_CLASS)} />;
 }
 
 function ReconnectingIndicator() {

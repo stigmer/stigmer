@@ -63,7 +63,7 @@ export function PlanSteps({ steps, working, stoppedNote = "Stopped here", classN
     <section
       aria-label="Plan"
       data-cursor-target="plan-steps"
-      className={cn("stg:mx-4 stg:overflow-hidden stg:rounded-lg stg:border stg:border-border stg:bg-card", className)}
+      className={cn("stg:overflow-hidden stg:rounded-lg stg:border stg:border-border stg:bg-card", className)}
     >
       <header className="stg:flex stg:items-center stg:justify-between stg:gap-2 stg:border-b stg:border-border-muted stg:px-3 stg:py-2 stg:text-xs stg:font-medium stg:text-muted-foreground">
         <span>Plan</span>

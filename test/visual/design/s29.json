@@ -220,14 +220,10 @@
       "ruled": {},
       "pending": {
         "button Copy details": "Endings: a notice's acts at xs, with their icons",
-        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
         "button Resume": "Endings: a notice's acts at xs, with their icons",
-        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
         "type Apply the same rule to credit notes": "Endings: the ending turn as drawn",
         "type Didn't finish": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
-        "type Resume": "Endings: a notice's acts at xs, with their icons",
-        "word 11m 30s": "The session's frame: one duration format, \"1m 30s\"",
-        "word 2 of 5 to-dos done": "The session's frame: an ended turn keeps its to-do count first among its facts"
+        "type Resume": "Endings: a notice's acts at xs, with their icons"
       }
     }
   ]

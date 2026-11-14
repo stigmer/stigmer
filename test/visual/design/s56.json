@@ -107,8 +107,6 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
-        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
         "word Starting · 1m 20s": "The session's frame: one duration format, \"1m 30s\""
       }
     }

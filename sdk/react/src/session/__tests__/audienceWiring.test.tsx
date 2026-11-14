@@ -602,6 +602,16 @@ describe("SessionViewer — audience wiring", () => {
     expect(alert.textContent).toContain("the run could not start");
   });
 
+  it("renders a secret-flow refusal as the guide to the missing keys, on the session's gutter", async () => {
+    const { StigmerError } = await import("@stigmer/client");
+    stubConv.sendError = new StigmerError("failed-precondition", "Linear needs LINEAR_API_KEY: set it in a vault the agent reads", 9);
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+
+    // The guide names the missing key and sits on the session's one gutter.
+    const key = screen.getByText("LINEAR_API_KEY");
+    expect(key.closest('[class*="@min-[40rem]/session:px-6"]')).not.toBeNull();
+  });
+
   it("renders a provider-key refusal with the link to Models & providers", async () => {
     const { refusal } = await import("../../billing/__tests__/fixtures");
     stubConv.sendError = refusal("This organization has no Anthropic key.", "PROVIDER_KEY_REQUIRED", {

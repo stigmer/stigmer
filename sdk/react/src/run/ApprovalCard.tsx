@@ -24,7 +24,8 @@ import { FilePathLink } from "./FilePathLink.js";
 import { DecisionButton } from "../internal/DecisionButton.js";
 import { InCardDecisionError } from "../internal/InCardDecisionError.js";
 import { INPUT_CLASSES } from "../internal/form-primitives.js";
-import { useElapsedSince, formatElapsed } from "../internal/useElapsedSince.js";
+import { formatElapsed } from "@stigmer/client";
+import { useElapsedSince } from "../internal/useElapsedSince.js";
 import type { ToolUseAnswer } from "@stigmer/react-core";
 
 /** Props for {@link ApprovalCard}. */
@@ -630,7 +631,8 @@ const DENY_SUBMIT_CLASSES = cn(
 
 function WaitingDuration({ requestedAt }: { requestedAt: string }) {
   const elapsed = useElapsedSince(requestedAt);
-  if (elapsed === null) return null;
+  // Under a second says nothing yet.
+  if (elapsed === null || elapsed < 1000) return null;
 
   return (
     <span className="stg:shrink-0 stg:text-xs stg:text-muted-foreground">

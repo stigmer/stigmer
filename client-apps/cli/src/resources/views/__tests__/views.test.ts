@@ -329,8 +329,8 @@ describe("CLI-09 the shared words", () => {
   it("dates a run's span: ended, working so far, not started, ended with no end", () => {
     const run = (phase: RunPhase, startedAt: string, completedAt = "") =>
       runJson(create(RunSchema, { status: { phase, startedAt, completedAt } }));
-    expect(runSpan(run(RunPhase.RUN_COMPLETED, fixtures.at(-2), fixtures.at(-1)), fixtures.FROZEN)).toBe("1m 0s");
-    expect(runSpan(run(RunPhase.RUN_IN_PROGRESS, fixtures.at(-125)), fixtures.FROZEN)).toBe("2h 5m so far");
+    expect(runSpan(run(RunPhase.RUN_COMPLETED, fixtures.at(-2), fixtures.at(-1)), fixtures.FROZEN)).toBe("1m 00s");
+    expect(runSpan(run(RunPhase.RUN_IN_PROGRESS, fixtures.at(-125)), fixtures.FROZEN)).toBe("2h 05m so far");
     expect(runSpan(run(RunPhase.RUN_PENDING, ""), fixtures.FROZEN)).toBeUndefined();
     expect(runSpan(run(RunPhase.RUN_CANCELLED, fixtures.at(-2)), fixtures.FROZEN)).toBeUndefined();
   });

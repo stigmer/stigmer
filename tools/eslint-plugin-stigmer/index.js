@@ -11,6 +11,7 @@ const noNativeTitle = require("./rules/no-native-title");
 const noTokenOpacityModifiers = require("./rules/no-token-opacity-modifiers");
 const requireListReset = require("./rules/require-list-reset");
 const requireLoadingRegion = require("./rules/require-loading-region");
+const requireTextMargin = require("./rules/require-text-margin");
 const sdkImportBoundaries = require("./rules/sdk-import-boundaries");
 const textSizeFromScale = require("./rules/text-size-from-scale");
 
@@ -31,6 +32,7 @@ const plugin = {
     "no-token-opacity-modifiers": noTokenOpacityModifiers,
     "require-list-reset": requireListReset,
     "require-loading-region": requireLoadingRegion,
+    "require-text-margin": requireTextMargin,
     "sdk-import-boundaries": sdkImportBoundaries,
     "text-size-from-scale": textSizeFromScale,
   },

@@ -255,13 +255,10 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
-        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
         "button Undo credit-note.ts": "Steps, approvals and the finished turn: the screen's parts as drawn",
         "type Credit notes now round once, at the total, as invoices do.": "The session's frame: the answer's lines at the scale's 20px, its acts in no reserved row",
         "type Done": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
         "word +4−2 · src/billing": "Steps, approvals and the finished turn: the screen's parts as drawn",
-        "word 1s": "The session's frame: one duration format, \"1m 30s\"",
         "word 3 steps · 34s": "The session's frame: one duration format, \"1m 30s\"",
         "word 36s": "The session's frame: one duration format, \"1m 30s\"",
         "word Read credit-note.ts": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans"

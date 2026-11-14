@@ -25,11 +25,12 @@ describe("SettledStepsRow", () => {
         <p>the rows</p>
       </SettledStepsRow>,
     );
-    const line = screen.getByRole("button", { name: "Read 1 file 1 s" });
+    const line = screen.getByRole("button", { name: "Read 1 file 1s" });
 
     expect(line.getAttribute("aria-expanded")).toBe("false");
     expect(screen.queryByText("the rows")).toBeNull();
-    expect(line.parentElement!.className).toContain("stg:mx-4");
+    // Flush to the thread's one gutter: no edge of its own.
+    expect(line.parentElement!.className).not.toContain("stg:mx-4");
 
     fireEvent.click(line);
     expect(line.getAttribute("aria-expanded")).toBe("true");
@@ -45,7 +46,7 @@ describe("SettledStepsRow", () => {
         <p>the rows</p>
       </SettledStepsRow>,
     );
-    expect(screen.getByRole("button", { name: "How it got there: read 1 file 1 s" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "How it got there: read 1 file 1s" })).toBeTruthy();
   });
 
   it("shows a prefix alone when the calls have nothing to count, and no time when they span none", () => {
@@ -63,7 +64,7 @@ describe("SettledStepsRow", () => {
         <p>the rows</p>
       </SettledStepsRow>,
     );
-    expect(screen.getByRole("button", { name: "Steps so far 1 s" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Steps so far 1s" })).toBeTruthy();
   });
 
   it("draws a divider row, not a card, unframed, with the host's class", () => {
@@ -97,6 +98,6 @@ describe("SettledStepsRow", () => {
         <p>the rows</p>
       </SettledStepsRow>,
     );
-    expect(screen.getByText("the rows").parentElement!.className).toBe("stg:mx-4");
+    expect(screen.getByText("the rows").parentElement!.className).toBe("");
   });
 });

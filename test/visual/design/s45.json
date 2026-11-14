@@ -207,8 +207,6 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
-        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
         "type Done": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
         "word 40s": "The session's frame: one duration format, \"1m 30s\"",
         "word 42s": "The session's frame: one duration format, \"1m 30s\"",
@@ -468,8 +466,6 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
-        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
         "button Try again": "Endings: a notice's acts at xs, with their icons",
         "button Undo all": "Steps, approvals and the finished turn: the screen's parts as drawn",
         "type Done": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
@@ -884,7 +880,6 @@
         "type Reply…": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included"
       },
       "pending": {
-        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
         "type Done": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
         "word 40s": "The session's frame: one duration format, \"1m 30s\"",
         "word 42s": "The session's frame: one duration format, \"1m 30s\"",

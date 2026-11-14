@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { renderHook, act, cleanup } from "@testing-library/react";
-import { useElapsedSince, formatElapsed } from "../useElapsedSince";
+import { useElapsedSince } from "../useElapsedSince";
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -53,16 +53,5 @@ describe("useElapsedSince", () => {
     );
     unmount();
     expect(vi.getTimerCount()).toBe(0);
-  });
-});
-
-describe("formatElapsed", () => {
-  it("formats each magnitude", () => {
-    expect(formatElapsed(500)).toBe("just now");
-    expect(formatElapsed(42_000)).toBe("42s");
-    expect(formatElapsed(3 * 60_000 + 12_000)).toBe("3m 12s");
-    expect(formatElapsed(5 * 60_000)).toBe("5m");
-    expect(formatElapsed(65 * 60_000)).toBe("1h 5m");
-    expect(formatElapsed(120 * 60_000)).toBe("2h");
   });
 });

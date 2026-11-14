@@ -19,6 +19,9 @@ describe("SessionPanelChip", () => {
     const button = screen.getByRole("button", { name: "Show panel" });
     expect(button.getAttribute("aria-expanded")).toBe("false");
     expect(button.textContent).toContain("3");
+    // The count rides the square button's corner.
+    expect(screen.getByLabelText("3 new items").className).toContain("stg:absolute");
+    expect(button.className).toContain("stg:size-8");
   });
 
   it("open: offers Hide panel without the count (the panel carries it)", () => {

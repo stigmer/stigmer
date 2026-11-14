@@ -43,29 +43,3 @@ export function useElapsedSince(startedAt: string): number | null {
 
   return startMs === null ? null : elapsed;
 }
-
-/**
- * Format an elapsed duration for the live tickers driven by
- * {@link useElapsedSince}: `just now`, `42s`, `3m 12s`, `1h 5m`.
- *
- * Second-granularity (unlike ToolCallDetail's `formatDuration`, which keeps
- * millisecond precision for completed calls) because a live counter that
- * flickers sub-second digits reads as noise, not progress.
- */
-export function formatElapsed(ms: number): string {
-  if (ms < 1000) return "just now";
-  const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  if (minutes < 60) {
-    return remainingSeconds > 0
-      ? `${minutes}m ${remainingSeconds}s`
-      : `${minutes}m`;
-  }
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-  return remainingMinutes > 0
-    ? `${hours}h ${remainingMinutes}m`
-    : `${hours}h`;
-}

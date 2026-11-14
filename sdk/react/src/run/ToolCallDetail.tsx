@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { CapturedFileChange } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
-import { isBackgroundRunning, toDisplayFileChange } from "@stigmer/client";
+import { formatElapsed, isBackgroundRunning, toDisplayFileChange } from "@stigmer/client";
 import type { ToolResultView, ToolUse } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import { BoundedContent } from "../internal/BoundedContent.js";
@@ -408,20 +408,21 @@ export function formatDuration(
 }
 
 /**
- * {@link formatDuration} for header duration chips: returns `null` below one
+ * A call's duration for its header chip, in whole seconds in the one format
+ * every surface uses (`formatElapsed`: "14s", "1m 05s"); `null` below one
  * second. A duration chip earns its place only when it carries information —
  * a `4ms` chip on a directory listing draws the eye to the least interesting
  * row in the thread (stigmer#274), so sub-second work renders no chip at all.
- * `formatDuration` itself stays exact — it is public API with consumers that
+ * {@link formatDuration} stays exact — it is public API with consumers that
  * want the precise value.
  */
 export function formatHeaderDuration(
   startedAt: string,
   completedAt: string,
 ): string | null {
-  const formatted = formatDuration(startedAt, completedAt);
-  // Exactly the sub-second arm of formatDuration ("123ms"); every other arm
-  // is >= 1s by construction.
-  if (formatted === null || formatted.endsWith("ms")) return null;
-  return formatted;
+  if (!startedAt || !completedAt) return null;
+  const ms = new Date(completedAt).getTime() - new Date(startedAt).getTime();
+  if (Number.isNaN(ms) || ms < 1000) return null;
+  // Whole seconds, in the one duration format every surface uses.
+  return formatElapsed(ms);
 }

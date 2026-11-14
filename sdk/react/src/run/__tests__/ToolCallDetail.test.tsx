@@ -475,12 +475,8 @@ describe("formatHeaderDuration", () => {
     expect(formatHeaderDuration(T0, at(400))).toBeNull();
   });
 
-  it("passes through everything from one second up, exactly as formatDuration renders it", () => {
-    const cases = [1000, 2500, 61_000, 180_000];
-    for (const ms of cases) {
-      expect(formatHeaderDuration(T0, at(ms))).toBe(formatDuration(T0, at(ms)));
-      expect(formatHeaderDuration(T0, at(ms))).not.toBeNull();
-    }
+  it("says everything from one second up in whole seconds, in the one duration format", () => {
+    expect([1000, 2500, 61_000, 65_400, 180_000].map((ms) => formatHeaderDuration(T0, at(ms)))).toEqual(["1s", "2s", "1m 01s", "1m 05s", "3m 00s"]);
   });
 
   it("stays null for missing or invalid timestamps, like the exact helper", () => {

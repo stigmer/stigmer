@@ -462,7 +462,6 @@
       },
       "pending": {
         "button Add as skill": "Steps, approvals and the finished turn: the screen's parts as drawn",
-        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
         "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
         "type Billed": "Steps, approvals and the finished turn: the screen's parts as drawn",
         "type Correct": "Steps, approvals and the finished turn: the screen's parts as drawn",
@@ -474,7 +473,6 @@
         "type Invoice": "Steps, approvals and the finished turn: the screen's parts as drawn",
         "type Source": "Steps, approvals and the finished turn: the screen's parts as drawn",
         "type invoice-audit.md": "Steps, approvals and the finished turn: the screen's parts as drawn",
-        "word 1m 14s": "The session's frame: one duration format, \"1m 30s\"",
         "word Add as skill": "Steps, approvals and the finished turn: the screen's parts as drawn"
       }
     }
