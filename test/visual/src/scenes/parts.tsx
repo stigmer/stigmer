@@ -9,7 +9,7 @@
 // kit's tokens), so they never move when a part does.
 import type { ComponentProps, ReactNode } from "react";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { Button, EmptyState, ErrorMessage, PageHeader, StatusBadge } from "@stigmer/react-sdk";
+import { ActionMenu, Button, EmptyState, ErrorMessage, LinkButton, PageHeader, StatusBadge } from "@stigmer/react-sdk";
 import type { Drawing } from "./drawing.ts";
 
 const PHASES: readonly ComponentProps<typeof StatusBadge>["phase"][] = ["ready", "running", "pending", "degraded", "failed", "disabled", "draft"];
@@ -22,6 +22,17 @@ function PlusIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
       <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+/** A row's or a page's overflow mark, drawn as the kit's icons are. */
+function MoreIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <circle cx="5" cy="12" r="1.75" />
+      <circle cx="12" cy="12" r="1.75" />
+      <circle cx="19" cy="12" r="1.75" />
     </svg>
   );
 }
@@ -65,7 +76,7 @@ function Parts() {
             New API key
           </Button>
           <Button variant="primary" disabled>
-            Saving
+            Saving…
           </Button>
         </Row>
       </Group>
@@ -75,6 +86,28 @@ function Parts() {
           <Button variant="outline" size="xs">Install</Button>
           <Button variant="ghost" size="xs">Edit</Button>
           <Button variant="destructive" size="xs">Remove</Button>
+          <Button variant="outline" size="xs">Install again</Button>
+        </Row>
+      </Group>
+      <Group label="Buttons in their places">
+        <Row>
+          <Button variant="primary">Run now</Button>
+          <Button variant="outline">Change role</Button>
+          <Button variant="destructive">Remove</Button>
+          <ActionMenu>
+            <ActionMenu.Trigger aria-label="More actions" size="sm">
+              <MoreIcon />
+            </ActionMenu.Trigger>
+            <ActionMenu.Content>
+              <ActionMenu.Item onSelect={() => {}}>Rename</ActionMenu.Item>
+            </ActionMenu.Content>
+          </ActionMenu>
+          <Button variant="outline">Apply YAML</Button>
+          <Button variant="outline" size="xs">Change role</Button>
+          <Button variant="destructive" size="xs">Remove</Button>
+          <LinkButton href="#create-agent">Create agent</LinkButton>
+          <LinkButton href="#models" variant="outline">Open Models &amp; providers</LinkButton>
+          <LinkButton href="#runs" variant="ghost">View all runs</LinkButton>
         </Row>
       </Group>
       <Group label="Page header">
