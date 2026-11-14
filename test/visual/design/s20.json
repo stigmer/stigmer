@@ -6,7 +6,12 @@
     {
       "caption": "No model key",
       "narrow": false,
-      "built": [],
+      "built": [
+        {
+          "scene": "launcher-key-missing",
+          "width": "desktop"
+        }
+      ],
       "unbuilt": "no gallery scene draws the no-key notice above the composer; the rebuilt screen's change adds one",
       "words": [
         {

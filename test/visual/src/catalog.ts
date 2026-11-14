@@ -55,6 +55,8 @@ export type SceneId =
   | "models-hub-local"
   | "models-hub-member"
   | "launcher-ready"
+  | "launcher-key-missing"
+  | "launcher-hours-used"
   | "launcher-connect-admin"
   | "launcher-connect-member"
   | "launcher-connect-local"
@@ -761,6 +763,18 @@ const LISTED: readonly Scene[] = [
   { id: "models-hub-local", title: "Models & providers: a laptop whose runner has no key", widths: ["desktop"] },
   { id: "models-hub-member", title: "Models & providers: a member, nothing connected yet", widths: ["desktop"] },
   { id: "launcher-ready", title: "Launcher: a model provider connected, ready to send", widths: ["desktop", "narrow"] },
+  {
+    id: "launcher-key-missing",
+    title: "Launcher: the first message refused because the organization has no key for the model's provider",
+    widths: ["desktop"],
+    opens: [{ fill: "Message", with: "Invoices are off by a cent. Can you fix the rounding?" }, { press: "Send message", role: "button" }],
+  },
+  {
+    id: "launcher-hours-used",
+    title: "Launcher: the first message refused because the organization used this month's agent hours",
+    widths: ["desktop"],
+    opens: [{ fill: "Message", with: "Invoices are off by a cent. Can you fix the rounding?" }, { press: "Send message", role: "button" }],
+  },
   {
     id: "launcher-connect-admin",
     title: "Launcher: nothing can run, an admin connects a provider in place",

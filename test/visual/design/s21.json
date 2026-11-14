@@ -6,7 +6,12 @@
     {
       "caption": "Agent hours used up",
       "narrow": false,
-      "built": [],
+      "built": [
+        {
+          "scene": "launcher-hours-used",
+          "width": "desktop"
+        }
+      ],
       "unbuilt": "no gallery scene draws the agent-hours notice above the composer; the rebuilt screen's change adds one",
       "words": [
         {
