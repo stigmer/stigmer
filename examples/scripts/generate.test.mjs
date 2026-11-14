@@ -7,11 +7,12 @@
 // is both met by the tree and caught when broken.
 
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { cpSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { GENERATED, GENERATED_SLUGS, ROOT, displayName, frontmatterOf, problems, readTree, render, renderSlugs } from "./generate.mjs";
+import { GENERATED, GENERATED_SLUGS, ROOT, displayName, frontmatterOf, problems, readTree, render, renderSlugs, withLf } from "./generate.mjs";
 
 const tree = readTree();
 
@@ -100,4 +101,26 @@ test("the catalogue holds the skill the React kit's agent page offers by id", ()
   // this id; renaming it here without there would leave the tab's skill card
   // with nothing to offer.
   assert.ok(tree.catalogue.skills.some((skill) => skill.id === "spreadsheet-export"));
+});
+
+test("a Windows checkout's CRLF files read to the modules the repository keeps", () => {
+  // The examples tree as git checks it out on Windows: every text file with CRLF endings.
+  const crlfRoot = mkdtempSync(join(tmpdir(), "examples-crlf-"));
+  try {
+    cpSync(ROOT, crlfRoot, { recursive: true, filter: (from) => !/[\\/](node_modules|dist)$/.test(from) });
+    const toCrlf = (dir) => {
+      for (const name of readdirSync(dir)) {
+        const path = join(dir, name);
+        if (statSync(path).isDirectory()) toCrlf(path);
+        else if (/\.(md|ya?ml|json|csv|txt|ts)$/.test(name)) writeFileSync(path, readFileSync(path, "utf8").replace(/\n/g, "\r\n"));
+      }
+    };
+    toCrlf(crlfRoot);
+    const crlf = readTree(crlfRoot);
+    assert.equal(render(crlf), readFileSync(join(ROOT, GENERATED), "utf8"));
+    assert.equal(renderSlugs(crlf), readFileSync(join(ROOT, GENERATED_SLUGS), "utf8"));
+    assert.equal(withLf(readFileSync(join(crlfRoot, GENERATED), "utf8")), render(crlf));
+  } finally {
+    rmSync(crlfRoot, { recursive: true, force: true });
+  }
 });

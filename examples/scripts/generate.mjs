@@ -60,6 +60,15 @@ export function displayName(slug) {
     .join(" ");
 }
 
+/**
+ * A file's text with its line endings as the repository keeps them (LF): a
+ * checkout on Windows gives CRLF, and the generated modules must be the same
+ * bytes wherever they are written or checked.
+ */
+export function withLf(text) {
+  return text.replace(/\r\n/g, "\n");
+}
+
 /** Reads the catalogue and every file it names, as plain data, from a root folder. */
 export function readTree(root = ROOT) {
   const catalogue = JSON.parse(readFileSync(join(root, "catalogue.json"), "utf8"));
@@ -68,7 +77,7 @@ export function readTree(root = ROOT) {
     .sort();
   const read = (folder, file) => {
     const path = join(root, folder, file);
-    return existsSync(path) ? readFileSync(path, "utf8") : undefined;
+    return existsSync(path) ? withLf(readFileSync(path, "utf8")) : undefined;
   };
   return { catalogue, folders, read };
 }
@@ -238,7 +247,7 @@ function main() {
   ];
   for (const [path, text] of outputs) {
     const target = join(ROOT, path);
-    const current = existsSync(target) ? readFileSync(target, "utf8") : "";
+    const current = existsSync(target) ? withLf(readFileSync(target, "utf8")) : "";
     if (check) {
       if (current !== text) {
         console.error(`examples: ${path} is stale; run \`npm run generate -w @stigmer/examples\``);

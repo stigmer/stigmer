@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { NPM_REGISTRY, fetchPagePrompt, npmRegistryFlags, parseDoorArgs, promptFromPage } from "./coding-agent-door.mjs";
+import { NPM_REGISTRY, fetchPagePrompt, npmRegistryFlags, parseDoorArgs, promptFromPage, withoutTags } from "./coding-agent-door.mjs";
 
 const SERVED = `<figure dir="ltr" class="my-4 bg-fd-card rounded-xl shiki relative border"><div class="flex text-fd-muted-foreground items-center gap-2 h-9.5 border-b px-4"><figcaption class="flex-1 truncate">Paste into your coding agent</figcaption></div><div class="text-[13px] py-3.5 overflow-auto max-h-[600px] fd-scroll-container"><pre class="min-w-full w-max *:flex *:flex-col"><code><span class="line"><span>Set up Stigmer for this project. Install its command line</span></span>
 <span class="line"><span>(\`npm install -g @stigmer/cli\`, or \`brew install stigmer/tap/stigmer\`),</span></span>
@@ -106,4 +106,12 @@ test("every npm read names both registries", () => {
     "--registry=https://registry.npmjs.org/",
     "--@stigmer:registry=https://npm.example.test/stigmer-npm/",
   ]);
+});
+
+test("withoutTags removes tags until none is left, a tag formed by removing another included", () => {
+  assert.equal(withoutTags("<code>Set up <b>Stigmer</b></code>"), "Set up Stigmer");
+  for (const crafted of ["<<b>script>x", "<scr<b>ipt>x", "<<<a>>>b", "<a<b<c>>>d"]) {
+    assert.doesNotMatch(withoutTags(crafted), /<[^>]*>/, crafted);
+  }
+  assert.equal(withoutTags("plain words"), "plain words");
 });

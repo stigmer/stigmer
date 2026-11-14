@@ -149,6 +149,20 @@ function decodeEntities(text) {
 }
 
 /**
+ * A block's text with every tag gone, removed until none is left, so a tag
+ * that removing another one forms (`<<b>pre>`) never survives. The text is
+ * read as plain words, never put back into a page.
+ */
+export function withoutTags(html) {
+  let text = html;
+  for (;;) {
+    const next = text.replace(/<[^>]*>/g, "");
+    if (next === text) return text;
+    text = next;
+  }
+}
+
+/**
  * The prompt the served page shows in its code block: the one `<pre>` whose
  * text starts with the prompt's first words, its lines joined with single
  * spaces (the page wraps the prompt at its source's line width; a person's
@@ -158,7 +172,7 @@ function decodeEntities(text) {
  */
 export function promptFromPage(html, { page = PROMPT_PAGE } = {}) {
   const blocks = [...html.matchAll(/<pre\b[^>]*>([\s\S]*?)<\/pre>/gi)].map((match) =>
-    decodeEntities(match[1].replace(/<[^>]*>/g, ""))
+    decodeEntities(withoutTags(match[1]))
       .split("\n")
       .map((line) => line.trim())
       .filter((line) => line !== "")
