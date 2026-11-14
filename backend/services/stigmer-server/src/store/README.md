@@ -16,7 +16,10 @@ wins when both are set — `DB_PATH` always has a default value); else sqlite on
 a composition's pools build on too): `DATABASE_POOL_MAX` connections (default
 20), and a checkout that waits past `DATABASE_POOL_CHECKOUT_TIMEOUT_MS` (default
 10000) or cannot open a connection fails with `DatabaseUnavailableError`, which
-every RPC answers as Unavailable (`pipeline/errors.ts`, `internalError`). Domain code depends on `interface.ts` only — never on a driver
+every RPC answers as Unavailable (`pipeline/errors.ts`, `internalError`). The
+two settings bound the store's pool; a composition's own pools take the default
+size and deadline unless it passes its own (the licensed Enterprise server
+passes these two). Domain code depends on `interface.ts` only — never on a driver
 directory. Driver-neutral helpers shared by both drivers live here
 (`proto-fields.ts` reflection + scan semantics, `list-index.ts`, `logger.ts`).
 
