@@ -115,7 +115,7 @@ describe("Saved run settings name the model their tier or thinking is for", () =
     // against every engine's list, so the web channel names the Stigmer harness's id and
     // the Slack channel another, and both are known.
     const onStigmer = create(RunConfigSchema, { modelName: "claude-haiku-4.5", thinkingMode: ThinkingMode.ENABLED });
-    const onAnyEngine = create(RunConfigSchema, { modelName: "claude-sonnet-4.5", thinkingMode: ThinkingMode.ENABLED });
+    const onAnyEngine = create(RunConfigSchema, { modelName: "claude-sonnet-4.6", thinkingMode: ThinkingMode.ENABLED });
 
     const routine = create(RoutineSchema, makeRoutine(org, uniqueName("sched-saved-ok"), slug));
     if (routine.spec?.agent === undefined) {
