@@ -4,8 +4,6 @@ Temporal payload codecs shared by Stigmer's TypeScript Temporal processes:
 
 - **`EncryptionPayloadCodec`** — AES-256-GCM encryption of payloads at rest
   in workflow history, with key-id-addressed rotation.
-- **`ClaimcheckPayloadCodec`** — transparent offload of large payloads to
-  blob storage (with optional gzip), replaced in history by a small marker.
 - **`@stigmer/temporal-codecs/activity-names`** — the Temporal activity
   names the runner registers and the server's agent execution workflow
   calls, declared once so the two sides cannot drift (a split name shows
@@ -48,6 +46,8 @@ Temporal core-sdk protobuf namespace twice and crashes worker init.
   `loadPayloadEncryptionConfig` takes an injected secret reader, so each
   consumer applies its own secret-custody policy (the runner routes reads
   through its boot-capture credential store; see stigmer/stigmer#508).
-- The claim-check codec depends on the minimal `ClaimcheckStorage` port
-  declared here — two methods, `upload` and `download` — which consumers
-  satisfy structurally with their own storage clients.
+- There is no large-payload offload codec. The claim-check codec once here
+  was removed (stigmer/stigmer#992): a codec never knows which run a payload
+  belongs to, so it cannot store under that run's artifacts, and the runner
+  already offloads oversized tool output and file bodies before they reach
+  Temporal, where the run is known.

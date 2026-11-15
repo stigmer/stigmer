@@ -388,7 +388,7 @@ async function buildStigmerRunner(
   // Server-managed keys from the bootstrap response apply here too (a CLI
   // daemon with a cloud token is desktop-class); cloud sandboxes are
   // unaffected — their env-injected platform key wins inside the loader.
-  const payloadCodecs = await createPayloadCodecs(config, coordinates.payloadEncryption);
+  const payloadCodecs = await createPayloadCodecs(coordinates.payloadEncryption);
 
   // Register the queue's shutdown signal BEFORE the worker can poll, so an
   // activity interrupted by shutdown() below classifies the cancellation as a

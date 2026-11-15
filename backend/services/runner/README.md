@@ -237,17 +237,6 @@ Keys come from two sources with strict precedence: the env vars below (the opera
 | `STIGMER_PAYLOAD_ENCRYPTION_SECONDARY_KEY` | Payload encryption | No | _(unset)_ | Decrypt-only key accepted during rotation windows (payloads written under the previous key stay readable). |
 | `STIGMER_PAYLOAD_ENCRYPTION_SECONDARY_KEY_ID` | Payload encryption | With the secondary key | _(none)_ | Key id of the secondary key. |
 
-### Claim-check (large Temporal payloads)
-
-The claim-check codec offloads oversized Temporal payloads to artifact storage and passes a reference instead. When payload encryption is enabled, encryption runs first, so offloaded blobs are ciphertext.
-
-| Variable | Applies to | Required | Default | Purpose |
-|----------|-----------|----------|---------|---------|
-| `CLAIMCHECK_ENABLED` | All | No | `false` | Enables the claim-check payload codec. When disabled, payloads pass through unchanged. |
-| `CLAIMCHECK_THRESHOLD_BYTES` | Claim-check | No | `131072` (128 KB) | Payload size at or above which the codec offloads to artifact storage. |
-| `CLAIMCHECK_COMPRESSION_ENABLED` | Claim-check | No | `true` | Compresses offloaded payloads. Only the literal value `false` disables it. |
-| `CLAIMCHECK_KEY_PREFIX` | Claim-check | No | `claimcheck/` | Key prefix for offloaded payloads in artifact storage. |
-
 ### Credentials and providers
 
 | Variable | Applies to | Required | Default | Purpose |
