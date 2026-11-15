@@ -3088,6 +3088,13 @@
               }
             ]
           },
+          "lane_org": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
           "organization": {
             "directly_related_user_types": [
               {
@@ -3135,8 +3142,24 @@
           }
         },
         "can_delete": {
-          "computedUserset": {
-            "relation": "owner"
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "lane_org"
+                  }
+                }
+              }
+            ]
           }
         },
         "can_edit": {
@@ -3186,6 +3209,16 @@
                     "relation": "eval_run"
                   }
                 }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "lane_org"
+                  }
+                }
               }
             ]
           }
@@ -3199,6 +3232,9 @@
           "this": {}
         },
         "eval_run": {
+          "this": {}
+        },
+        "lane_org": {
           "this": {}
         },
         "organization": {

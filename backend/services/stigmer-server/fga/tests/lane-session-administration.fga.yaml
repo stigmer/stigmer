@@ -1,0 +1,212 @@
+# Store tests for lane-session administration (the session `lane_org`
+# structural link).
+#
+# A session a system lane account owns, that nothing else can remove while
+# its organization lives, carries a single
+#   session#lane_org@organization:<org>
+# tuple. The hosted edition writes it on a chat-link visitor's conversation
+# (the guest lane). `admin from lane_org` is composed into session.can_view
+# and session.can_delete ONLY, never into viewer or participant, so the
+# organization's admins (a parent organization's admins included, through
+# organization#admin) read and remove the conversation, with its runs and
+# Files, and never add a turn, stop a run, or reach its access list.
+#
+# The personal-session invariant is untouched: a person's session never
+# carries the link, and a channel session carries the channel link instead
+# (its admins read it through the channel and cannot delete it).
+#
+# Run with:
+#   fga model test --tests lane-session-administration.fga.yaml
+#
+# Scenario: org "acme" has owner olivia, admin alice and member bob.
+# "planton" is acme's parent, with admin pat. "rival" is another org whose
+# admin eve must see nothing. acme's guest account owns two visitor
+# conversations: guest-chat carries the lane link, guest-chat-unlinked (a
+# conversation from before the link existed) does not. bob has a personal
+# session, and acme's channel account owns a Slack conversation.
+name: lane-session-administration
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # --- Org roles ---
+  - {user: identity_account:olivia, relation: owner, object: organization:acme}
+  - {user: identity_account:olivia, relation: affiliated, object: organization:acme}
+  - {user: identity_account:alice, relation: admin, object: organization:acme}
+  - {user: identity_account:alice, relation: affiliated, object: organization:acme}
+  - {user: identity_account:bob, relation: member, object: organization:acme}
+  - {user: identity_account:bob, relation: affiliated, object: organization:acme}
+  - {user: identity_account:eve, relation: admin, object: organization:rival}
+  - {user: identity_account:eve, relation: affiliated, object: organization:rival}
+
+  # --- acme is a child of planton, whose admin pat is acme's admin ---
+  - {user: organization:planton, relation: parent_org, object: organization:acme}
+  - {user: organization:acme, relation: child_org, object: organization:planton}
+  - {user: identity_account:pat, relation: admin, object: organization:planton}
+  - {user: identity_account:pat, relation: affiliated, object: organization:planton}
+
+  # --- acme's guest lane account (holds only organization#guest) ---
+  - {user: identity_account:sys-guest-acme, relation: guest, object: organization:acme}
+  - {user: identity_account:sys-guest-acme, relation: affiliated, object: organization:acme}
+
+  # --- A visitor's conversation, with the lane link ---
+  - {user: organization:acme, relation: organization, object: session:guest-chat}
+  - {user: identity_account:sys-guest-acme, relation: owner, object: session:guest-chat}
+  - {user: organization:acme, relation: lane_org, object: session:guest-chat}
+  - {user: session:guest-chat, relation: session, object: run:guest-run-1}
+  - {user: organization:acme, relation: organization, object: file:guest-upload}
+  - {user: identity_account:sys-guest-acme, relation: owner, object: file:guest-upload}
+  - {user: session:guest-chat, relation: session, object: file:guest-upload}
+
+  # --- A visitor's conversation without the link ---
+  - {user: organization:acme, relation: organization, object: session:guest-chat-unlinked}
+  - {user: identity_account:sys-guest-acme, relation: owner, object: session:guest-chat-unlinked}
+
+  # --- bob's personal console session ---
+  - {user: organization:acme, relation: organization, object: session:bobs-chat}
+  - {user: identity_account:bob, relation: owner, object: session:bobs-chat}
+  - {user: session:bobs-chat, relation: session, object: run:bobs-run-1}
+
+  # --- A Slack conversation (channel link, no lane link) ---
+  - {user: organization:acme, relation: organization, object: channel:slack-conn}
+  - {user: identity_account:bob, relation: owner, object: channel:slack-conn}
+  - {user: identity_account:sys-channel-acme, relation: guest, object: organization:acme}
+  - {user: identity_account:sys-channel-acme, relation: affiliated, object: organization:acme}
+  - {user: organization:acme, relation: organization, object: session:channel-chat}
+  - {user: identity_account:sys-channel-acme, relation: owner, object: session:channel-chat}
+  - {user: channel:slack-conn, relation: channel, object: session:channel-chat}
+
+tests:
+  - name: the organization's admins and owner view and delete a lane session, and nothing more
+    check:
+      - user: identity_account:alice
+        object: session:guest-chat
+        assertions:
+          can_view: true
+          can_delete: true
+          can_edit: false
+          can_create_run_in: false
+          can_grant_access: false
+          can_view_access: false
+      - user: identity_account:olivia
+        object: session:guest-chat
+        assertions:
+          can_view: true
+          can_delete: true
+          can_edit: false
+          can_create_run_in: false
+
+  - name: a parent organization's admin reaches the child's lane session
+    check:
+      - user: identity_account:pat
+        object: session:guest-chat
+        assertions:
+          can_view: true
+          can_delete: true
+          can_create_run_in: false
+
+  - name: a member and another organization's admin get nothing
+    check:
+      - user: identity_account:bob
+        object: session:guest-chat
+        assertions:
+          can_view: false
+          can_delete: false
+          can_create_run_in: false
+      - user: identity_account:eve
+        object: session:guest-chat
+        assertions:
+          can_view: false
+          can_delete: false
+
+  - name: the guest account keeps its ownership
+    check:
+      - user: identity_account:sys-guest-acme
+        object: session:guest-chat
+        assertions:
+          can_view: true
+          can_create_run_in: true
+          can_edit: true
+          can_delete: true
+
+  - name: the lane session's runs and Files are read through it, never controlled
+    check:
+      - user: identity_account:alice
+        object: run:guest-run-1
+        assertions:
+          can_view: true
+          can_edit: false
+      - user: identity_account:pat
+        object: run:guest-run-1
+        assertions:
+          can_view: true
+          can_edit: false
+      - user: identity_account:bob
+        object: run:guest-run-1
+        assertions:
+          can_view: false
+      - user: identity_account:alice
+        object: file:guest-upload
+        assertions:
+          can_view: true
+          can_edit: false
+      - user: identity_account:bob
+        object: file:guest-upload
+        assertions:
+          can_view: false
+
+  - name: without the link, a visitor's conversation stays closed to the admins
+    check:
+      - user: identity_account:alice
+        object: session:guest-chat-unlinked
+        assertions:
+          can_view: false
+          can_delete: false
+
+  - name: a person's session stays closed to the admins
+    check:
+      - user: identity_account:alice
+        object: session:bobs-chat
+        assertions:
+          can_view: false
+          can_delete: false
+      - user: identity_account:pat
+        object: session:bobs-chat
+        assertions:
+          can_view: false
+          can_delete: false
+      - user: identity_account:alice
+        object: run:bobs-run-1
+        assertions:
+          can_view: false
+
+  - name: a channel session is read through the channel and never deleted by the admins
+    check:
+      - user: identity_account:alice
+        object: session:channel-chat
+        assertions:
+          can_view: true
+          can_delete: false
+          can_create_run_in: false
+
+  - name: listing finds the lane session for the admins alone
+    list_objects:
+      - user: identity_account:alice
+        type: session
+        assertions:
+          can_view:
+            - session:guest-chat
+            - session:channel-chat
+          can_delete:
+            - session:guest-chat
+      - user: identity_account:bob
+        type: session
+        assertions:
+          can_view:
+            - session:bobs-chat
+            - session:channel-chat
+          can_delete:
+            - session:bobs-chat
+      - user: identity_account:eve
+        type: session
+        assertions:
+          can_view: []

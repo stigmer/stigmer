@@ -24,7 +24,8 @@ module agentic
 # Default access:
 # - Owner (creator) can view/edit/delete
 # - Other org members must be explicitly granted participant or viewer
-# - Org admins have NO implicit access (personal resource)
+# - Org admins have NO implicit access (personal resource), with one
+#   exception: a lane session (LANE SESSIONS below)
 #
 # CHANNEL SESSIONS (structural read-only observability, a parent link
 # composed narrowly): sessions created by the channel runtime
@@ -54,6 +55,26 @@ module agentic
 # turn to it. Open source writes no such link: there the tries act as the
 # eval run's creator, who owns them as any session's creator does.
 #
+# LANE SESSIONS (the channel idiom, fourth application, and the one that
+# reaches past can_view): a session owned by an organization's system lane
+# account that nothing else can remove while the organization lives carries
+# a single session#lane_org@organization:<org> tuple, and the organization's
+# admins (a parent organization's admins included, through admin) view and
+# delete it, with its runs and Files. They never add a turn to it, stop a
+# run or answer an approval (can_create_run_in and run#can_edit stay the
+# owner's), and they get no role in its access list (can_view_access,
+# can_grant_access): the link is a structural fact, not a grant. In the
+# hosted edition the link goes on a chat-link visitor's conversation (the
+# guest lane), which has no other road out: its owner is the organization's
+# guest account, and nobody in the organization could open or delete it.
+# The other lanes write none, each because its conversations already have
+# an owner path: a channel's conversation is the channel's (deleting it
+# under a live Slack or WhatsApp thread breaks the thread, and its admins
+# already read it through the channel link), an eval try goes with its
+# eval run, and a judge deletes its own session once the grade is
+# recorded. Open source writes no such link: there a visitor's session is
+# owned as any session's creator owns it.
+#
 # Deletion cascades to the session's agent runs. The billing trail is
 # unaffected: llm_call_usage_record rows are immutable and carry their own
 # denormalized copies of session/execution/org identifiers (owners may
@@ -65,6 +86,7 @@ module agentic
 # - session:<id>#channel@channel:<channel>  (Slack and WhatsApp sessions only)
 # - session:<id>#routine@routine:<routine>        (sessions a routine's fire started)
 # - session:<id>#eval_run@eval_run:<eval_run>     (eval run tries only)
+# - session:<id>#lane_org@organization:<org>      (hosted edition: a chat-link visitor's conversation)
 
 type session
   relations
@@ -109,6 +131,16 @@ type session
     define eval_run: [eval_run]
 
     # ========================================
+    # LANE ORGANIZATION LINK (Structural Administration)
+    # ========================================
+    # Written ONLY by the hosted edition, from the validated caller class
+    # of the token that created the session, never from a label: today the
+    # guest lane's (a chat-link visitor's conversation). Names the
+    # session's own organization, whose admins view and delete the
+    # conversation (can_view and can_delete below) and nothing else.
+    define lane_org: [organization]
+
+    # ========================================
     # OWNERSHIP (Personal Resource)
     # ========================================
     # Org admins explicitly excluded — sessions are personal resources
@@ -133,14 +165,16 @@ type session
     # PERMISSIONS
     # ========================================
     # can_view adds `viewer from channel` (channel sessions only),
-    # `viewer from routine` (sessions a routine's fire started) and
-    # `viewer from eval_run` (eval run tries only) WITHOUT widening
-    # `viewer`, because can_view_access derives from viewer and
-    # can_create_run_in from participant — runtime-surface observability
-    # must stay read-only.
-    define can_view: viewer or viewer from channel or viewer from routine or viewer from eval_run
+    # `viewer from routine` (sessions a routine's fire started),
+    # `viewer from eval_run` (eval run tries only) and `admin from lane_org`
+    # (lane sessions only) WITHOUT widening `viewer`, because
+    # can_view_access derives from viewer and can_create_run_in from
+    # participant — runtime-surface observability must stay read-only.
+    # can_delete adds `admin from lane_org` alone: a lane session's
+    # organization removes what nobody else can.
+    define can_view: viewer or viewer from channel or viewer from routine or viewer from eval_run or admin from lane_org
     define can_edit: owner
-    define can_delete: owner
+    define can_delete: owner or admin from lane_org
     
     # ========================================
     # SESSION INTERACTION
