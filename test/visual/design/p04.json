@@ -15,6 +15,10 @@
         {
           "scene": "routine-history",
           "width": "desktop"
+        },
+        {
+          "scene": "settings-vaults",
+          "width": "desktop"
         }
       ],
       "words": [
@@ -301,24 +305,22 @@
       "ruled": {},
       "pending": {
         "button More actions": "A row's overflow menu at 28px",
-        "type daily-variance-report": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word 1d ago": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word 1m 14s": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word 2 keys": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Completed": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Every weekday at 07:00": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Jul 20, 2026 by Ada Lovelace": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Ledger service": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word No fires yet. The routine's first fire shows here.": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Production": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Ready": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Running": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Schedule": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Shared with the Finance team": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Used by": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word the routine": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word variance-reporter, payroll-reconciler": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word vlt_00000000000000000000000003 · 4 secrets": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene"
+        "type daily-variance-report": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
+        "word 1d ago": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
+        "word 1m 14s": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
+        "word 2 keys": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
+        "word Completed": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
+        "word Every weekday at 07:00": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
+        "word Jul 20, 2026 by Ada Lovelace": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
+        "word No fires yet. The routine's first fire shows here.": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
+        "word Ready": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
+        "word Running": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
+        "word Schedule": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
+        "word Shared with the Finance team": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
+        "word Used by": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
+        "word the routine": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
+        "word variance-reporter, payroll-reconciler": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
+        "word vlt_00000000000000000000000003 · 4 secrets": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows"
       }
     }
   ]

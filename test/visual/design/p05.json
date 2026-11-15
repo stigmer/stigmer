@@ -15,6 +15,22 @@
         {
           "scene": "models-hub-none",
           "width": "desktop"
+        },
+        {
+          "scene": "dashboard-busy",
+          "width": "desktop"
+        },
+        {
+          "scene": "session-approval",
+          "width": "desktop"
+        },
+        {
+          "scene": "session-failed",
+          "width": "desktop"
+        },
+        {
+          "scene": "routine-disabled",
+          "width": "desktop"
         }
       ],
       "words": [
@@ -175,14 +191,10 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "word Active": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Cancelled": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Completed": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Didn't finish": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Fix invoice rounding": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Queued": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Waiting for you": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word daily-variance-report": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene"
+        "word Cancelled": "When its page is redesigned: a cancelled and a queued run's pills, which no scene draws yet",
+        "word Queued": "When its page is redesigned: a cancelled and a queued run's pills, which no scene draws yet",
+        "type daily-variance-report": "When its page is redesigned: a run's and a routine's name drawn as a list row's, where the scenes show it as the page's title",
+        "type Fix invoice rounding": "When its page is redesigned: a run's and a routine's name drawn as a list row's, where the scenes show it as the page's title"
       }
     }
   ]

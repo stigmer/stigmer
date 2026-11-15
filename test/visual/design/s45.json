@@ -206,12 +206,11 @@
         }
       ],
       "sample": {
-        "word Invoices now round once, at the total. I added a rounding helper with tests for the half-cent cases.": "The scene's own summary: \"I added a rounding helper and used it in invoice.ts\" (\"and redrew the sample invoice\" after the undo)"
+        "word Invoices now round once, at the total. I added a rounding helper with tests for the half-cent cases.": "The scene's own summary: \"I added a rounding helper and used it in invoice.ts\" (\"and redrew the sample invoice\" after the undo)",
+        "word 40s": "The scene's steps take their real span inside its 42s turn"
       },
       "ruled": {},
       "pending": {
-        "word 40s": "The scene's turn takes its real span, so its times read as drawn",
-        "word 42s": "The scene's turn takes its real span, so its times read as drawn",
         "word How it got there: read invoice.ts, edited invoice.ts, wrote rounding.ts": "How it got there names a lone read or write by its file, as it names a lone edit, and the scene's turn reads before it edits"
       }
     },
@@ -441,12 +440,11 @@
         }
       ],
       "sample": {
-        "word Invoices now round once, at the total. I added a rounding helper with tests for the half-cent cases.": "The scene's own summary: \"I added a rounding helper and used it in invoice.ts\" (\"and redrew the sample invoice\" after the undo)"
+        "word Invoices now round once, at the total. I added a rounding helper with tests for the half-cent cases.": "The scene's own summary: \"I added a rounding helper and used it in invoice.ts\" (\"and redrew the sample invoice\" after the undo)",
+        "word 40s": "The scene's steps take their real span inside its 42s turn"
       },
       "ruled": {},
       "pending": {
-        "word 40s": "The scene's turn takes its real span, so its times read as drawn",
-        "word 42s": "The scene's turn takes its real span, so its times read as drawn",
         "word How it got there: read invoice.ts, edited invoice.ts, wrote rounding.ts": "How it got there names a lone read or write by its file, as it names a lone edit, and the scene's turn reads before it edits"
       }
     },
@@ -845,7 +843,8 @@
         }
       ],
       "sample": {
-        "word Invoices now round once, at the total. I added a rounding helper with tests for the half-cent cases.": "The scene's own summary: \"I added a rounding helper and used it in invoice.ts\" (\"and redrew the sample invoice\" after the undo)"
+        "word Invoices now round once, at the total. I added a rounding helper with tests for the half-cent cases.": "The scene's own summary: \"I added a rounding helper and used it in invoice.ts\" (\"and redrew the sample invoice\" after the undo)",
+        "word 40s": "The scene's steps take their real span inside its 42s turn"
       },
       "ruled": {
         "button Attach files": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
@@ -855,8 +854,6 @@
         "type Reply…": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included"
       },
       "pending": {
-        "word 40s": "The scene's turn takes its real span, so its times read as drawn",
-        "word 42s": "The scene's turn takes its real span, so its times read as drawn",
         "word How it got there: read invoice.ts, edited invoice.ts, wrote rounding.ts": "How it got there names a lone read or write by its file, as it names a lone edit, and the scene's turn reads before it edits"
       }
     }

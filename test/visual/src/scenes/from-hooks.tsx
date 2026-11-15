@@ -19,7 +19,9 @@ const SESSION = SCENARIO.session!.metadata!;
 function FromHooks(): ReactElement {
   const client = useStigmer();
   return (
-    <div style={{ height: "calc(100vh - 48px)" }}>
+    // The example is deliberately unstyled (it shows the hooks, not the kit's
+    // look), so the kit's layout audit does not read it.
+    <div style={{ height: "calc(100vh - 48px)" }} data-layout-audit="skip">
       <Chat client={client} org={SESSION.org} agent={`${AGENT.org}/${AGENT.slug}`} sessionId={SESSION.id} />
     </div>
   );

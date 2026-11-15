@@ -204,6 +204,9 @@ test.describe("every built screen says what its drawing says", () => {
         return;
       }
       test(`${name} matches its drawing`, async ({ page }) => {
+        // Each scene is drawn and read in turn: a drawing several scenes
+        // build between them (the strips above the composer) takes theirs.
+        if (drawing.built.length > 3) test.slow();
         const readings: Reading[] = [];
         for (const { scene, width } of drawing.built) readings.push(await readScene(page, scene, width));
         const judged = new Set([...Object.keys(drawing.sample), ...Object.keys(drawing.ruled)]);

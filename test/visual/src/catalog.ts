@@ -213,7 +213,12 @@ const SESSION_SCENES = [
     title: "Session: every sandbox is busy, and the turn has waited 1m 20s for one, in the console",
     widths: ["desktop", "narrow"],
   },
-  { id: "session-thinking", title: "Session: the agent thought, read a file, and is thinking again, in the console", widths: ["desktop", "narrow"] },
+  {
+    id: "session-thinking",
+    title: "Session: the agent thought, read a file, and is thinking again, in the console, its first thought opened",
+    widths: ["desktop", "narrow"],
+    opens: ["Thought"],
+  },
   { id: "session-busy", title: "Session: a long turn at work, in the console", widths: ["desktop", "narrow"] },
   { id: "session-helper", title: "Session: a helper agent at work on part of the job, in the console", widths: ["desktop", "narrow"] },
   {
@@ -236,6 +241,17 @@ const SESSION_SCENES = [
     id: "session-plan-build",
     title: "Session: a Plan-mode turn finished and returned its plan, shown as a card with Build",
     widths: ["desktop", "narrow"],
+  },
+  {
+    id: "session-plan-attach-failed",
+    title: "Session: the owner edited the plan and pressed Build, and its edited copy could not be attached, so the build follows the conversation",
+    widths: ["desktop"],
+    opens: [
+      { press: "Open plan", role: "button", exact: true },
+      { press: "Edit", role: "tab", exact: true },
+      { fill: "Edit plan", with: "# Round invoices once\n\nRound at the invoice total only, half-even to the cent." },
+      { press: "Build", role: "button", exact: true, first: true },
+    ],
   },
   {
     id: "session-file-undone",

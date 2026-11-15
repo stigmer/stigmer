@@ -15,6 +15,10 @@
         {
           "scene": "dashboard-busy",
           "width": "desktop"
+        },
+        {
+          "scene": "settings-vaults",
+          "width": "desktop"
         }
       ],
       "words": [
@@ -176,9 +180,7 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "button Install again": "When its page is redesigned: an installed source offers Install again",
-        "word Shared vaults": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Your organization's team keys.": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene"
+        "button Install again": "When its page is redesigned: an installed source offers Install again"
       }
     }
   ]

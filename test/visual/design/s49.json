@@ -211,9 +211,7 @@
         "button Workspace": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
         "button Attach files": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included"
       },
-      "pending": {
-        "button Undo invoice.ts": "The scene's turn carries its file review, with each edit's line counts, and its usage is estimated"
-      }
+      "pending": {}
     },
     {
       "caption": "Nothing pushed yet, in words that are true: a turn pushes when it ends, and an Undo is pushed after it.",
@@ -581,9 +579,7 @@
         "button Workspace": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
         "button Attach files": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included"
       },
-      "pending": {
-        "word Estimated": "The scene's turn carries its file review, with each edit's line counts, and its usage is estimated"
-      }
+      "pending": {}
     },
     {
       "caption": "Usage with nothing yet.",

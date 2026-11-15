@@ -15,6 +15,10 @@
         {
           "scene": "settings-vaults",
           "width": "desktop"
+        },
+        {
+          "scene": "models-hub-local",
+          "width": "desktop"
         }
       ],
       "words": [
@@ -135,12 +139,7 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "word 2 keys": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Anthropic": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Claude Haiku 4.5": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Claude Sonnet 4.6": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Not connected": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word stigmer": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene"
+        "word 2 keys": "When its page is redesigned: a provider's key count"
       }
     }
   ]

@@ -447,6 +447,11 @@ type SessionEventInit = MessageInitShape<typeof SessionEventSchema>["event"];
 /** The review set a finished turn recorded, with the decisions and outcomes given after it. */
 const REVIEW_SET_EVENT_ID = `${RUN_ID}.review.cs-1`;
 
+/** A finished turn's events with its review set placed just before its final status, as a turn's review lands before it ends. */
+function withReviewBeforeEnd(turn: readonly SessionEvent[], review: SessionEvent): SessionEvent[] {
+  return [...turn.slice(0, -1), review, turn.at(-1)!];
+}
+
 /**
  * The session view after its owner undid two of a turn's three edits: one
  * put back, one whose put-back failed, and a changed image (a binary file,
@@ -470,17 +475,17 @@ export function sessionFileUndoneScene(): Drawing {
       value: { id, changeSetId: "cs-1", scope: "file", fileChangeId, action: "undo", expectedDigest: `fd-${fileChangeId}`, origin: "person", processedAt: sampleInstant(80_000) },
     });
   const events = logged([
-    ...samples.turnEvents({
+    ...withReviewBeforeEnd(samples.turnEvents({
       message,
       tools: [
+        { name: "read_file", input: { path: "src/billing/invoice.ts" }, result: "export function lineTotal(line: Line): Cents {" },
         { name: "edit_file", input: { path: "src/billing/invoice.ts" }, result: "1 edit applied" },
         { name: "write_file", input: { path: "src/billing/rounding.ts" }, result: "Wrote 30 lines" },
         { name: "write_file", input: { path: "docs/invoice-sample.png" }, result: "Wrote 18 KB" },
       ],
       reply: "Invoices now round once, at the total. I added a rounding helper and redrew the sample invoice.",
-      phase: "running",
-    }),
-    sessionEvent({
+      durationMs: 42_000,
+    }), sessionEvent({
       case: "stigmerFileReviewChanges",
       value: {
         id: REVIEW_SET_EVENT_ID,
@@ -492,8 +497,7 @@ export function sessionFileUndoneScene(): Drawing {
           file("f3", "docs/invoice-sample.png", "modified", 0, 0, "binary"),
         ],
       },
-    }),
-    samples.runStatusEvent("completed"),
+    })),
     undo(`${RUN_ID}.undo-f1`, "f1"),
     undo(`${RUN_ID}.undo-f2`, "f2"),
     sessionEvent({
@@ -537,9 +541,18 @@ export function sessionCompactedScene(): Drawing {
     message,
     tools: [
       { name: "read_file", input: { path: "src/billing/credit-note.ts" }, result: "export function creditTotal(note: CreditNote): Cents {" },
-      { name: "edit_file", input: { path: "src/billing/credit-note.ts" }, result: "1 edit applied" },
+      {
+        name: "edit_file",
+        input: {
+          path: "src/billing/credit-note.ts",
+          old_string: "  const lines = note.lines.map(roundLine);\n  return sum(lines);",
+          new_string: "  // Round once, at the total, as invoices do.\n  const exact = note.lines.map(lineAmount);\n  const total = sum(exact);\n  return roundHalfEven(total);",
+        },
+        result: "1 edit applied",
+      },
     ],
     reply: "Credit notes now round once, at the total, as invoices do.",
+    durationMs: 36_000,
   });
   const events = logged([
     user!,
@@ -556,13 +569,23 @@ export function sessionCompactedScene(): Drawing {
     }),
     rest[0]!,
     rest[1]!,
-    sessionEvent({ case: "agentThreadContextCompacted", value: { id: `${RUN_ID}.compacted`, processedAt: sampleInstant(30_000) } }),
-    ...rest.slice(2),
+    sessionEvent({ case: "agentThreadContextCompacted", value: { id: `${RUN_ID}.compacted`, processedAt: sampleInstant(18_000) } }),
+    ...withReviewBeforeEnd(rest.slice(2), sessionEvent({
+      case: "stigmerFileReviewChanges",
+      value: {
+        id: REVIEW_SET_EVENT_ID,
+        changeSetId: "cs-1",
+        aggregateDigest: "agg-1",
+        files: [{ fileChangeId: "f1", path: "src/billing/credit-note.ts", previousPath: "", change: "modified", digest: "fd-f1", linesAdded: 4, linesRemoved: 2, reviewable: "complete" }],
+      },
+    })),
   ]);
   const run = samples.run({ phase: RunPhase.RUN_COMPLETED, message });
   run.status!.recalledMemories = create(RecalledMemoriesSchema, { enabled: true, facts: RECALLED_FACTS });
+  const session = samples.session({ subject: "Round credit notes" });
+  session.spec!.fileReview = true;
   return sessionDrawing(
-    { session: samples.session({ subject: "Round credit notes" }), events, runs: [run], files: [], liveness: undefined, loadError: null },
+    { session, events, runs: [run], files: [], liveness: undefined, loadError: null },
     { inspector: true, height: 1100 },
   );
 }
@@ -588,6 +611,7 @@ export function sessionAttachmentsScene(): Drawing {
       message,
       tools: [{ name: "read_file", input: { path: "ledger-october.csv" }, result: "INV-1042,118.07" }],
       reply: "INV-1042 rounds each line before the total, so it lands a cent high. The ledger shows thirteen more like it.",
+      durationMs: 8_000,
     }),
   );
   const run = samples.run({ phase: RunPhase.RUN_COMPLETED, message });
@@ -638,7 +662,19 @@ function finishedWithWriteBack(): SessionReplay {
     ];
     return pushed;
   });
-  return { ...finished, runs };
+  // Its edit is one the owner can still undo: the session keeps a review set.
+  const session = clone(SessionSchema, finished.session!);
+  session.spec!.fileReview = true;
+  const review = sessionEvent({
+    case: "stigmerFileReviewChanges",
+    value: {
+      id: REVIEW_SET_EVENT_ID,
+      changeSetId: "cs-1",
+      aggregateDigest: "agg-1",
+      files: [{ fileChangeId: "f1", path: "src/billing/invoice.ts", previousPath: "", change: "modified", digest: "fd-f1", linesAdded: 12, linesRemoved: 4, reviewable: "complete" }],
+    },
+  });
+  return { ...finished, session, runs, events: logged(withReviewBeforeEnd(finished.events, review)) };
 }
 
 /** The session view over the finished turn with the panel open on where its work was pushed. */
@@ -684,7 +720,7 @@ export function sessionUsageScene(): Drawing {
       totalUsage: { inputTokens: 52_400n, outputTokens: 9_810n, totalTokens: 62_210n, cacheReadInputTokens: 18_200n, workingSeconds: 112n, llmCallCount: 11, primaryModel: "claude-sonnet-4-6", primaryProvider: "anthropic" },
       runs: [
         { runId: "run_00000000000000000000000090", primaryModel: "claude-haiku-4-5", inputTokens: 16_100n, outputTokens: 4_900n, totalTokens: 21_000n, workingSeconds: 38n },
-        { runId, primaryModel: "claude-sonnet-4-6", inputTokens: 36_300n, outputTokens: 4_910n, totalTokens: 41_210n, workingSeconds: 74n },
+        { runId, primaryModel: "claude-sonnet-4-6", inputTokens: 36_300n, outputTokens: 4_910n, totalTokens: 41_210n, workingSeconds: 74n, isEstimated: true },
       ],
       modelBreakdown: [
         { model: "claude-sonnet-4-6", provider: "anthropic", inputTokens: 36_300n, outputTokens: 4_910n, totalTokens: 41_210n, callCount: 7 },

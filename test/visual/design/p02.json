@@ -11,6 +11,10 @@
         {
           "scene": "parts",
           "width": "desktop"
+        },
+        {
+          "scene": "routine-history",
+          "width": "desktop"
         }
       ],
       "words": [
@@ -103,13 +107,7 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {
-        "word Active": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word daily-variance-report": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word acme": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Created Jul 20, 2026": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Updated Jul 20, 2026": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene"
-      }
+      "pending": {}
     },
     {
       "caption": "Page header and frame, at 390 wide",
@@ -118,6 +116,10 @@
         {
           "scene": "parts",
           "width": "narrow"
+        },
+        {
+          "scene": "routine-disabled",
+          "width": "desktop"
         }
       ],
       "words": [
@@ -194,11 +196,7 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {
-        "word daily-variance-report": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word acme": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Created Jul 20, 2026": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene"
-      }
+      "pending": {}
     }
   ]
 }

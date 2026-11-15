@@ -253,14 +253,12 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word 1s": "The scene's steps take their own times in its 36s turn",
+        "word 3 steps · 34s": "The scene's turn: 2 steps, taking their real span inside its 36s"
+      },
       "ruled": {},
-      "pending": {
-        "button Undo credit-note.ts": "The scene's turn carries its file review, with each edit's line counts, and its usage is estimated",
-        "word 3 steps · 34s": "The scene's turn takes its real span, so its times read as drawn",
-        "word 36s": "The scene's turn takes its real span, so its times read as drawn",
-        "word +4 −2 · src/billing": "The scene's turn carries its file review, with each edit's line counts, and its usage is estimated"
-      }
+      "pending": {}
     }
   ]
 }

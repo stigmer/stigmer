@@ -147,9 +147,7 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {
-        "word A cent off on many invoices sounds like rounding each line before the total. If lineTotal rounds and invoiceTotal adds the rounded lines, three lines of 0.335 give 1.02 where the exact total rounds to 1.01. Read invoice.ts before changing anything.": "The scene opens its thought, as drawn"
-      }
+      "pending": {}
     }
   ]
 }
