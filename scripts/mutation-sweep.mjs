@@ -62,8 +62,9 @@
  *     is keyed by the finding and its file's content, and records the content
  *     of the tests that judged it, so it is judged again when they change.
  *     `--budget <minutes>` bounds the whole run, counted from the script's
- *     start: the confirm step starts no check that could end past it, and the
- *     findings it does not reach stay "not re-checked" for the next run.
+ *     start: the confirm step checks until it, each check limited to the time
+ *     that is left (one the budget cuts gives no verdict), and the findings
+ *     it does not reach stay "not re-checked" for the next run.
  *   - `--list` prints the targets file's targets, validated, as JSON
  *     (`[{ "name", "package" }]`), for a workflow's matrix.
  *   - `--report` reads every `target.json` under the `--input` directories
@@ -417,7 +418,12 @@ export function relatedOutcome(result, report, { afterGreen = false } = {}) {
   return "inconclusive";
 }
 
-/** How long a run of a file's related tests may take: three times its unchanged run, and at least two minutes. */
+/**
+ * The hang limit of a changed run of a file's related tests: three times its
+ * unchanged run, and at least two minutes. A run that outlives it is a change
+ * that made the tests hang. It is a limit only, never a reserve: near the
+ * deadline a run gets less (`confirmFindings`).
+ */
 export function confirmTimeout(baselineMs) {
   return Math.max(120_000, 3 * baselineMs);
 }
@@ -426,10 +432,10 @@ export function confirmTimeout(baselineMs) {
  * Applies each finding's change to the real file, runs every test that
  * imports it with the package's own config, and restores the file byte for
  * byte. `runRelated(relativePath)` returns `{ outcome, tests }`: the outcome
- * above and the package-relative test files that ran; it is told the time
- * limit for a changed run (three times the unchanged run, at least two
- * minutes, so a change that hangs cannot stall the sweep) and whether a green
- * run of the same tests came just before.
+ * above and the package-relative test files that ran; it is told the run's
+ * time limit (for a changed run, the hang limit of `confirmTimeout`, so a
+ * change that hangs cannot stall the sweep, or less near the deadline) and
+ * whether a green run of the same tests came just before.
  *
  * The related tests first run once per file with no change: a file whose
  * tests are not green before any change (a flaky or failing test, an engine
@@ -438,14 +444,23 @@ export function confirmTimeout(baselineMs) {
  * (`hashFile`), so it is dropped when one of them changes or goes away: a
  * catch that a later edit to the tests undid must be judged again.
  *
- * `deadline` (a time from `now`, in milliseconds) is the run's time budget: no
- * run starts whose limit could carry it past the deadline, and a file's
- * unchanged run is limited to the time that is left. When the budget is
- * spent the step stops, with the verdicts so far; the findings it did not
- * reach stay "not re-checked", and the next run's cache starts where this one
- * stopped. The first week of a large target has more findings to confirm
- * than a hosted job's six hours hold (the server's authorization code, about
- * two hours of them alone, 2026-10-01).
+ * `deadline` (a time from `now`, in milliseconds) is the run's time budget,
+ * and every run is limited to the time that is left. A file's unchanged run
+ * gets all of it. A changed run gets the smaller of its hang limit and the
+ * time left, and starts only when that is more than zero and at least what the
+ * unchanged run took, since a run given less would almost surely be cut. The
+ * budget is used to its end, not held back in a reserve: on 2-core runners
+ * with 4-minute tests a reserve of three runs left 11 minutes of a 20-minute
+ * budget unused. A run that times out is read by its limit: the unchanged run,
+ * or a changed run whose limit the deadline cut below its hang limit, was
+ * stopped by the budget, which gives no verdict and does not count the finding
+ * as handled; a changed run that times out at its full hang limit made the
+ * tests hang, a catch. When the budget is spent the step stops, with the
+ * verdicts so far; the findings it did not reach stay "not re-checked", and
+ * the next run's cache starts where this one stopped. The first week of a
+ * large target has more findings to confirm than a hosted job's six hours
+ * hold (the server's authorization code, about two hours of them alone,
+ * 2026-10-01).
  *
  * The loop is synchronous, so a signal cannot be handled between steps; the
  * caller keeps one from killing the process mid-change, which would leave the
@@ -461,21 +476,22 @@ export function confirmFindings(findings, packageDir, { runRelated, isClean, has
   const verdicts = {};
   let interrupted = false;
   let handled = 0;
-  // At the deadline exactly, a limit of zero would be no limit at all to spawnSync.
-  const outOfTime = (limitMs) => deadline !== undefined && now() + limitMs >= deadline;
+  // spawnSync reads a limit of zero as no limit at all, so no run starts with nothing left.
+  const timeLeft = () => (deadline === undefined ? Infinity : deadline - now());
   const stopForBudget = () => log(`budget reached; ${findings.length - handled} finding(s) left not re-checked`);
   const byFile = new Map();
   for (const f of findings) byFile.set(f.relativePath, [...(byFile.get(f.relativePath) ?? []), f]);
   files: for (const [relativePath, group] of byFile) {
     const file = join(packageDir, relativePath);
     if (!isClean(file)) throw new Error(`${group[0].path} has uncommitted changes; the confirm step edits it and must be able to restore it from git`);
-    if (outOfTime(0)) {
+    if (!(timeLeft() > 0)) {
       stopForBudget();
       break;
     }
     const started = now();
     const baseline = runRelated(relativePath, { timeoutMs: deadline === undefined ? undefined : deadline - started, afterGreen: false });
-    const timeoutMs = confirmTimeout(now() - started);
+    const baselineMs = now() - started;
+    const hangMs = confirmTimeout(baselineMs);
     if (baseline.outcome === "interrupted") {
       interrupted = true;
       break;
@@ -491,7 +507,8 @@ export function confirmFindings(findings, packageDir, { runRelated, isClean, has
     }
     const original = readFileSync(file, "utf8");
     for (const f of group) {
-      if (outOfTime(timeoutMs)) {
+      const timeoutMs = Math.min(hangMs, timeLeft());
+      if (!(timeoutMs > 0) || timeoutMs < baselineMs) {
         stopForBudget();
         break files;
       }
@@ -504,6 +521,10 @@ export function confirmFindings(findings, packageDir, { runRelated, isClean, has
       }
       if (run.outcome === "interrupted") {
         interrupted = true;
+        break files;
+      }
+      if (run.outcome === "timeout" && timeoutMs < hangMs) {
+        stopForBudget();
         break files;
       }
       handled += 1;

@@ -30,7 +30,9 @@
 // a failed one and a dry run so the next run starts, `--list`, and the
 // refusals of a dirty package, an untracked
 // file and a file outside it. The confirm step's budget is also driven by a
-// fake clock: no check starts that its limit could carry past the deadline.
+// fake clock: checks run until the deadline, the last one's limit cut to the
+// time left; a check the budget cut gives no verdict, while one that hit its
+// full hang limit is a catch; and no check is handed a limit of zero.
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -450,28 +452,41 @@ test("a change that makes the tests hang is caught, and a changed run is limited
   }
 });
 
-test("the confirm step starts no check its time limit could carry past the budget, and says how many it left", () => {
-  const { dir, findings } = confirmFixture();
+test("the confirm step runs changed runs until the budget ends, cutting the last one's limit to the time left, and says how many it left", () => {
+  const { dir, file, findings } = confirmFixture();
   try {
+    const minute = 60_000;
     let clock = 0;
     const seen = [];
     const logged = [];
+    // Every run, unchanged or changed, takes 4 minutes, so the hang limit is 12.
     const runRelated = (p, options) => {
       seen.push(options);
-      clock += 1_000;
+      clock += 4 * minute;
       return { outcome: "green", tests: [] };
     };
-    // The unchanged run takes 1 s, so a changed run may take 120 s: the first fits before 121.5 s, the second would not.
-    const { verdicts } = confirmFindings(findings, dir, { isClean: () => true, hashFile: () => "h", runRelated, log: (l) => logged.push(l), deadline: 121_500, now: () => clock });
-    assert.equal(Object.keys(verdicts).length, 1);
-    assert.equal(seen[0].timeoutMs, 121_500, "the unchanged run is limited to the time that is left");
-    assert.equal(seen.length, 2);
+    const options = (deadline) => ({ isClean: () => true, hashFile: () => "h", runRelated, log: (l) => logged.push(l), deadline, now: () => clock });
+
+    // 10 minutes left after the unchanged run: the first changed run gets 10, the second the 6 still left.
+    const both = confirmFindings(findings, dir, options(14 * minute));
+    assert.equal(Object.keys(both.verdicts).length, 2, "a 12-minute reserve would have started neither");
+    assert.deepEqual(seen.map((o) => o.timeoutMs), [14 * minute, 10 * minute, 6 * minute], "each run is handed the smaller of its hang limit and the time left");
+    assert.deepEqual(logged.filter((l) => l.startsWith("budget")), []);
+    assert.equal(readFileSync(file, "utf8"), SOURCE);
+
+    // 6 minutes left after the unchanged run: one changed run fits; then 2 are left, less than the unchanged run took.
+    clock = 0;
+    seen.length = 0;
+    logged.length = 0;
+    const one = confirmFindings(findings, dir, options(10 * minute));
+    assert.equal(Object.keys(one.verdicts).length, 1);
+    assert.deepEqual(seen.map((o) => o.timeoutMs), [10 * minute, 6 * minute]);
     assert.deepEqual(logged.filter((l) => l.startsWith("budget")), ["budget reached; 1 finding(s) left not re-checked"]);
 
     clock = 200_000;
     logged.length = 0;
     seen.length = 0;
-    const spent = confirmFindings(findings, dir, { isClean: () => true, hashFile: () => "h", runRelated, log: (l) => logged.push(l), deadline: 200_000, now: () => clock });
+    const spent = confirmFindings(findings, dir, options(200_000));
     assert.deepEqual(spent.verdicts, {});
     assert.equal(seen.length, 0, "no run starts with no time left");
     assert.deepEqual(logged, ["budget reached; 2 finding(s) left not re-checked"], "at the deadline exactly nothing starts: a zero limit would be none");
@@ -481,6 +496,75 @@ test("the confirm step starts no check its time limit could carry past the budge
     const cutShort = confirmFindings(findings, dir, { isClean: () => true, hashFile: () => "h", runRelated: () => ({ outcome: "timeout", tests: [] }), log: (l) => logged.push(l), deadline: 60_000, now: () => clock });
     assert.deepEqual(cutShort, { verdicts: {}, interrupted: false });
     assert.deepEqual(logged, ["budget reached; 2 finding(s) left not re-checked"], "an unchanged run cut short by the budget is the budget, not a red file");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a changed run the budget cut gives no verdict, while one that hit its full hang limit is still a catch", () => {
+  const { dir, file, findings } = confirmFixture();
+  try {
+    const minute = 60_000;
+    let clock = 0;
+    const seen = [];
+    const logged = [];
+    // The unchanged run takes 4 minutes; every changed run runs until it is stopped.
+    const runRelated = (p, options) => {
+      seen.push(options);
+      if (readFileSync(join(dir, p), "utf8") === SOURCE) {
+        clock += 4 * minute;
+        return { outcome: "green", tests: [] };
+      }
+      clock += options.timeoutMs;
+      return { outcome: "timeout", tests: [] };
+    };
+    const options = (deadline) => ({ isClean: () => true, hashFile: () => "h", runRelated, log: (l) => logged.push(l), deadline, now: () => clock });
+
+    const cut = confirmFindings(findings, dir, options(9 * minute));
+    assert.deepEqual(cut, { verdicts: {}, interrupted: false }, "the tests did not hang: the budget stopped them");
+    assert.deepEqual(seen.map((o) => o.timeoutMs), [9 * minute, 5 * minute], "the cut run was started with the 5 minutes left");
+    assert.deepEqual(logged, ["budget reached; 2 finding(s) left not re-checked"], "the cut finding is still not re-checked");
+    assert.equal(readFileSync(file, "utf8"), SOURCE, "the file is restored after a cut run");
+
+    clock = 0;
+    seen.length = 0;
+    logged.length = 0;
+    const hung = confirmFindings(findings, dir, options(1_000 * minute));
+    assert.deepEqual(Object.values(hung.verdicts).map((v) => v.verdict), [false, false]);
+    assert.deepEqual(seen.map((o) => o.timeoutMs), [1_000 * minute, 12 * minute, 12 * minute]);
+    assert.equal(logged.length, 2);
+    for (const line of logged) assert.match(line, /^refuted .* \(the tests hung\)$/);
+    assert.equal(readFileSync(file, "utf8"), SOURCE);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("no changed run is handed a limit of zero, even after an unchanged run that measured 0 ms", () => {
+  const { dir, findings } = confirmFixture();
+  try {
+    const deadline = 5_000;
+    let baselineDone = false;
+    let readsAfter = 0;
+    // The first read after the unchanged run measures it as 0 ms; every later read is at the deadline.
+    const now = () => (!baselineDone ? 0 : readsAfter++ === 0 ? 0 : deadline);
+    const seen = [];
+    const logged = [];
+    const { verdicts } = confirmFindings(findings, dir, {
+      isClean: () => true,
+      hashFile: () => "h",
+      runRelated: (p, options) => {
+        seen.push(options);
+        baselineDone = true;
+        return { outcome: "green", tests: [] };
+      },
+      log: (l) => logged.push(l),
+      deadline,
+      now,
+    });
+    assert.deepEqual(verdicts, {});
+    assert.equal(seen.length, 1, "only the unchanged run: spawnSync reads a limit of 0 as no limit");
+    assert.deepEqual(logged, ["budget reached; 2 finding(s) left not re-checked"]);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
