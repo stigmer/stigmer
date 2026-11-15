@@ -266,7 +266,9 @@ const LIST_TABLES = ["resources", "resource_list_keys"] as const;
  * statistics, and for `resources` data in the stamp statistic schema v2
  * added (`resources_list_proven`, migrations.ts). `pg_stats`, not
  * `pg_class.reltuples`: an index built on a loaded table, as a restore
- * builds them, sets the row count and gathers no statistics. Only the
+ * builds them, sets the row count and gathers no statistics. The stamp
+ * statistic is listed from its creation with every value NULL, so it holds
+ * data once an ANALYZE has set its null fraction. Only the
  * table's owner sees the expression statistic and may ANALYZE, so the
  * owner check rides along. Parameter: the statistic's name.
  */
@@ -277,7 +279,7 @@ const LIST_STATISTICS_SQL = `
                   WHERE s.schemaname = n.nspname AND s.tablename = c.relname) AS has_columns,
          EXISTS (SELECT 1 FROM pg_stats_ext_exprs e
                   WHERE e.schemaname = n.nspname AND e.tablename = c.relname
-                    AND e.statistics_name = $1) AS has_stamp
+                    AND e.statistics_name = $1 AND e.null_frac IS NOT NULL) AS has_stamp
     FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
    WHERE c.oid IN ('resources'::regclass, 'resource_list_keys'::regclass)
    ORDER BY c.relname COLLATE "C"`;

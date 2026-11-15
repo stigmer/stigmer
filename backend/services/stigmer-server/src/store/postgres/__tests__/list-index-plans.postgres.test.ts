@@ -36,12 +36,15 @@
  *
  * Gated on TEST_DATABASE_URL (support.ts).
  */
+import { randomBytes } from "node:crypto";
+
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { ListIndexQuery } from "../../list-index.js";
 import type { StoreLogger } from "../../logger.js";
 import { provenReadSql } from "../list-index-read.js";
+import { runMigrations } from "../migrations.js";
 import { PostgresStore } from "../store.js";
 import {
   createTestDatabase,
@@ -411,23 +414,31 @@ async function statisticsOf(pool: pg.Pool): Promise<Statistics> {
   };
 }
 
-/** A store logger that keeps every info line, so a case can read what the open said. */
+/** One line a store logged. */
+interface LoggedLine {
+  readonly message: string;
+  readonly fields: Record<string, unknown> | undefined;
+}
+
+/** A store logger that keeps every info and warn line, so a case can read what the open said. */
 function recordingLogger(): {
   logger: StoreLogger;
-  info: Array<{ message: string; fields: Record<string, unknown> | undefined }>;
+  info: LoggedLine[];
+  warn: LoggedLine[];
 } {
-  const info: Array<{
-    message: string;
-    fields: Record<string, unknown> | undefined;
-  }> = [];
+  const info: LoggedLine[] = [];
+  const warn: LoggedLine[] = [];
   return {
     info,
+    warn,
     logger: {
       debug() {},
       info(message, fields) {
         info.push({ message, fields });
       },
-      warn() {},
+      warn(message, fields) {
+        warn.push({ message, fields });
+      },
     },
   };
 }
@@ -488,3 +499,106 @@ for (const shape of SHAPES) {
     },
   );
 }
+
+/** The issue's shape: enough rows for the statistics cases below. */
+const SMALL = SHAPES[SHAPES.length - 1]!;
+
+describe.skipIf(testDatabaseAdminUrl() === undefined)(
+  "postgres list statistics at open, the states a database reaches it in",
+  () => {
+    it("analyzes only the stamp statistic's table on the first open after schema v2, its columns already analyzed", async () => {
+      const db = await createTestDatabase();
+      const pool = new pg.Pool({ connectionString: db.databaseUrl, max: 2 });
+      try {
+        // A database the previous release left: v1, loaded and analyzed.
+        const client = await pool.connect();
+        try {
+          await runMigrations(client, { through: 1 });
+        } finally {
+          client.release();
+        }
+        await seed(pool, SMALL);
+        await pool.query("ANALYZE");
+        const before = await statisticsOf(pool);
+        expect(before.resources).toBeGreaterThan(0);
+        expect(before.proven).toBeNull();
+
+        const opened = recordingLogger();
+        const store = await PostgresStore.open(db.databaseUrl, opened.logger);
+        await store.close();
+
+        expect(
+          opened.info.filter(
+            (line) => line.message === "list statistics gathered",
+          ),
+        ).toEqual([
+          {
+            message: "list statistics gathered",
+            fields: { resources: "the stamp statistic holds none" },
+          },
+        ]);
+        expect((await statisticsOf(pool)).proven).toBe("{t}");
+      } finally {
+        await pool.end();
+        await db.drop();
+      }
+    }, 120_000);
+
+    it("analyzes nothing and warns once per table for a role that does not own the tables, when they hold no statistics", async () => {
+      const db = await createTestDatabase();
+      const pool = new pg.Pool({ connectionString: db.databaseUrl, max: 2 });
+      const role = `stigmer_reader_${randomBytes(6).toString("hex")}`;
+      const password = randomBytes(12).toString("hex");
+      try {
+        const first = await PostgresStore.open(db.databaseUrl);
+        await first.close();
+        await seed(pool, SMALL);
+        // Every privilege the server uses, and no table's ownership. CREATE
+        // on the schema is for the runner's `CREATE TABLE IF NOT EXISTS` of
+        // its ledger, which Postgres checks before it finds the table.
+        await pool.query(`CREATE ROLE ${role} LOGIN PASSWORD '${password}'`);
+        await pool.query(`GRANT USAGE, CREATE ON SCHEMA public TO ${role}`);
+        await pool.query(
+          `GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO ${role}`,
+        );
+        await pool.query(
+          `GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${role}`,
+        );
+        const url = new URL(db.databaseUrl);
+        url.username = role;
+        url.password = password;
+
+        const opened = recordingLogger();
+        const store = await PostgresStore.open(url.toString(), opened.logger);
+        await store.close();
+
+        expect(
+          opened.info.filter(
+            (line) => line.message === "list statistics gathered",
+          ),
+        ).toEqual([]);
+        expect(
+          opened.warn
+            .filter((line) => line.message.startsWith("list statistics missing"))
+            .map((line) => line.fields),
+        ).toEqual([{ table: "resource_list_keys" }, { table: "resources" }]);
+        expect(await statisticsOf(pool)).toMatchObject({
+          resources: 0,
+          keys: 0,
+        });
+      } finally {
+        await pool.end();
+        await db.drop();
+        const admin = new pg.Client({
+          connectionString: testDatabaseAdminUrl(),
+        });
+        await admin.connect();
+        try {
+          await admin.query(`DROP ROLE IF EXISTS ${role}`);
+        } finally {
+          await admin.end();
+        }
+      }
+    }, 120_000);
+  },
+);
