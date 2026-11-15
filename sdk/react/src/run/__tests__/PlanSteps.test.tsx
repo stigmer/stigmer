@@ -101,7 +101,7 @@ describe("PlanSteps", () => {
     expect(within(itemLine("Fix it")).getByRole("img", { name: "Stopped" }).className).toContain("stg:border-muted-foreground");
   });
 
-  it("sets the item in hand and its steps on the running band, and quiets done and to-do items", () => {
+  it("sets the item in hand's line on the running band, and quiets done and to-do items", () => {
     render(
       <PlanSteps
         working
@@ -114,9 +114,10 @@ describe("PlanSteps", () => {
         )}
       />,
     );
-    // The band is the item's whole step, its steps included (the session
-    // page, S33), on the band token whose muted words the theme contract holds.
-    expect(screen.getByText("Fix it").closest("div")!.className).toContain("stg:bg-status-running-band");
+    // The band is the item's line, on the band token whose muted words the
+    // theme contract holds; its steps light their own while they run.
+    expect(itemLine("Fix it").querySelector(".stg\\:bg-status-running-band"), "the line's band").not.toBeNull();
+    expect(screen.getByText("Fix it").closest("div")!.className).not.toContain("stg:bg-status-running-band");
     expect(itemLine("Read the code").innerHTML).not.toContain("stg:bg-status-running-band");
     expect(screen.getByText("Fix it").closest("[data-step-title]")!.className).toContain("stg:font-medium");
     // Done reads quiet beside its green tick.
@@ -165,6 +166,24 @@ describe("PlanSteps", () => {
     expect(screen.queryByRole("group", { name: "1 tool call" })).toBeNull();
   });
 
+  // Only what is at work is lit (the session page, S38): a finished step
+  // under the item in hand stays clear, a running one sits on the band.
+  it("lights the item's line and its running step, never its finished one", () => {
+    render(
+      <PlanSteps
+        working
+        steps={stepsOf(
+          todos("t", [{ content: "Fix it", status: "in_progress" }]),
+          call("c1", "execute", { command: "git status" }),
+          use(R, "c2", "execute", { command: "npm test" }),
+        )}
+      />,
+    );
+    const rowOf = (words: string) => screen.getByText(words).closest('[data-cursor-target="tool-call-row"]')!;
+    expect(rowOf("Ran a command").querySelector(".stg\\:bg-status-running-band"), "the finished step").toBeNull();
+    expect(rowOf("Running a command").querySelector(".stg\\:bg-status-running-band"), "the running step").not.toBeNull();
+  });
+
   it("says an item waits for you, and leaves its waiting step to the bottom card", () => {
     render(
       <ApprovalContext.Provider value={{ onAnswer: () => undefined, submittingIds: new Set(), errorsByToolUseId: new Map() }}>
@@ -174,8 +193,8 @@ describe("PlanSteps", () => {
     const line = itemLine("Push the fix");
 
     expect(within(line).getByText("Waiting for you")).toBeTruthy();
-    // Still the item in hand, on the band with whatever runs under it.
-    expect(screen.getByText("Push the fix").closest("div")!.className).toContain("stg:bg-status-running-band");
+    // Still the item in hand: its line on the band.
+    expect(line.querySelector(".stg\\:bg-status-running-band")).not.toBeNull();
     expect(within(line).getByRole("group", { name: "1 tool call" })).toBeTruthy();
   });
 

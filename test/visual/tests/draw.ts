@@ -52,6 +52,10 @@ export async function draw(
     await page.clock.runFor(scene.elapse);
     await page.clock.resume();
     await page.clock.setFixedTime(new Date(held + scene.elapse));
+    // A running time ticks once a second: past one tick, every timer on the
+    // page shows the fixed time, so a picture or a read never catches the
+    // second before.
+    await page.waitForTimeout(1_100);
     await settled(page);
   }
   const acts = [scene.opens ?? []].flat();

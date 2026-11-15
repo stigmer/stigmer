@@ -112,10 +112,12 @@ export function ThreadCardShell({
   const chrome =
     variant === "card"
       ? cn(
-          // border-prominent (not border): a transparent card needs a line the
-          // eye actually catches — the default border token is white at 14%
-          // opacity, which vanishes on the dark thread surface.
-          "stg:rounded-lg stg:border stg:border-border-prominent stg:overflow-hidden",
+          // A step on its own takes the kit's card edge, as a card of steps
+          // has and the session page draws (`--stgm-border`, opaque in both
+          // modes), never louder than a card of them. A decision waiting on
+          // a person keeps the stronger edge beside its accent.
+          "stg:rounded-lg stg:border stg:overflow-hidden",
+          accent === null ? "stg:border-border" : "stg:border-border-prominent",
           accentChrome,
         )
       : variant === "row"
@@ -362,8 +364,14 @@ export interface ThreadCardStepProps {
    * Defaults to `"card"`.
    */
   readonly place?: "card" | "rail";
-  /** Draw the step on the running band (a plan's to-do worked on now). */
-  readonly band?: boolean;
+  /**
+   * Draw the step on the running band: `true` the whole step (a step at
+   * work, with what it opened to); `"line"` its line only, for a step whose
+   * body is other steps (a plan's to-do in hand), so only those at work are
+   * lit. On a rail the band reaches 8px past the words on each side, with
+   * rounded ends.
+   */
+  readonly band?: boolean | "line";
   /** Additional CSS class names for the grid. */
   readonly className?: string;
 }
@@ -431,10 +439,23 @@ export function ThreadCardStep({
       className={cn(
         "stg:relative stg:isolate stg:grid stg:grid-cols-[1.25rem_minmax(0,1fr)_auto] stg:gap-x-2 stg:text-sm",
         place === "card" ? "stg:px-3 stg:py-2" : "stg:py-1",
-        band && "stg:bg-status-running-band",
+        band === true && "stg:bg-status-running-band",
+        band === true && place === "rail" && "stg:-mx-2 stg:rounded-md stg:px-2",
         className,
       )}
     >
+      {band === "line" && (
+        // The band behind the line alone, in the toggle's area: the body's
+        // steps light their own.
+        <span
+          aria-hidden="true"
+          className={cn(
+            "stg:pointer-events-none stg:absolute stg:col-span-full stg:row-start-1 stg:row-end-2 stg:bg-status-running-band",
+            place === "card" ? "stg:-inset-x-3 stg:-top-2" : "stg:inset-x-0 stg:-top-1",
+            place === "card" ? (hasBody ? "stg:-bottom-1" : "stg:-bottom-2") : hasBody ? "stg:-bottom-0.5" : "stg:-bottom-1",
+          )}
+        />
+      )}
       {toggle !== null && gesture.kind === "open" && toggle}
       {toggle !== null && gesture.kind === "expand" && (
         // The Tooltip wraps the toggle whether or not a hint is set, so the

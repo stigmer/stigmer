@@ -13,8 +13,8 @@
 // Quiet, as the session page draws it (S33, S46): every item on the step's
 // own layout, a finished item's tick in the ready hue and its words muted,
 // what is still to do muted, and only the item worked on now at medium
-// weight, on the running band with the steps it is taking. An item's steps
-// hang in its words' column off a rail, nothing between them. Black and
+// weight, its line on the running band, as are its steps while they run. An
+// item's steps hang in its words' column off a rail, nothing between them. Black and
 // white but for status.
 
 import { useId } from "react";
@@ -122,12 +122,12 @@ function PlanItemRow({
   const live = status === "in_progress" && working;
   const [open, toggle] = useAutoDisclosure(live && calls.length > 0, { initialOpen: live && calls.length > 0 });
   const mark = <PlanMark status={status} live={live} stoppedTone={stoppedTone} />;
-  // The item in hand sits on a band of the running hue, the drawing's one
-  // tint in the plan, with the steps it is taking: the band token keeps
-  // their muted second lines readable on it (theme contract). Waiting, it
-  // keeps the band, as a waiting step is drawn (the session page, S48): it
-  // is still the item in hand, and its steps may still be at work under it.
-  const band = live;
+  // The item in hand's line sits on the running band, the drawing's tint
+  // for what is at work: the band token keeps its muted second line
+  // readable (theme contract). Its steps light their own while they run, so
+  // a finished step under it stays clear. Waiting, it keeps the band, as a
+  // waiting step is drawn (the session page, S48).
+  const band = live ? ("line" as const) : false;
   const words = (
     <span
       className={cn(
