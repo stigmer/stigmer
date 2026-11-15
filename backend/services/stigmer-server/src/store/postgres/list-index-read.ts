@@ -35,8 +35,16 @@ export function provenReadSql(
   // a key's (a marked row has no key rows), and the only guard for the
   // read with neither, stated once so no shape can miss it. It changes no
   // plan (measured: each read plans as it did without it).
+  //
+  // The stamp check is written `IS TRUE` so the planner estimates it from
+  // the statistic schema v2 keeps for it (`resources_list_proven`,
+  // migrations.ts): `IS TRUE` is estimated from its argument expression's
+  // statistics, while a bare `a = b` (and `= true`, folded to it) is
+  // estimated per column, at 0.5%, and a read of a busy kind then sorts
+  // the kind instead of walking its index (stigmer/stigmer#3166). The same
+  // truth: NULL is not true either way.
   const where = [
-    `r.list_indexed_at = r.updated_at`,
+    `(r.list_indexed_at = r.updated_at) IS TRUE`,
     `r.list_index_revision = $2`,
     `r.list_created_at IS NOT NULL`,
   ];
