@@ -579,7 +579,9 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         ).toEqual([]);
         expect(
           opened.warn
-            .filter((line) => line.message.startsWith("list statistics missing"))
+            .filter((line) =>
+              line.message.startsWith("list statistics missing"),
+            )
             .map((line) => line.fields),
         ).toEqual([{ table: "resource_list_keys" }, { table: "resources" }]);
         expect(await statisticsOf(pool)).toMatchObject({
