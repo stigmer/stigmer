@@ -29,17 +29,31 @@ const here = dirname(fileURLToPath(import.meta.url));
 
 /** The reader as a page runs it: its source without types or comments, and its stamp. */
 export async function designReader() {
-  const source = readFileSync(join(here, "..", "tests", "design-read.ts"), "utf8");
+  const source = readFileSync(
+    join(here, "..", "tests", "design-read.ts"),
+    "utf8",
+  );
   const { outputText } = ts.transpileModule(source, {
-    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, removeComments: true },
+    compilerOptions: {
+      target: ts.ScriptTarget.ES2022,
+      module: ts.ModuleKind.ESNext,
+      removeComments: true,
+    },
   });
-  const reader = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
+  const reader = await import(
+    `data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`
+  );
   const body = `window.stigmerReadPage = ${reader.readPage.toString()};\n`;
   const stamp = createHash("sha256").update(body).digest("hex").slice(0, 12);
-  return { stamp, script: `// stigmer's design reader (test/visual/scripts/print-design-reader.mjs), stamp ${stamp}\nwindow.stigmerReaderStamp = "${stamp}";\n${body}` };
+  return {
+    stamp,
+    script: `// stigmer's design reader (test/visual/scripts/print-design-reader.mjs), stamp ${stamp}\nwindow.stigmerReaderStamp = "${stamp}";\n${body}`,
+  };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const { stamp, script } = await designReader();
-  process.stdout.write(process.argv.includes("--stamp") ? `${stamp}\n` : script);
+  process.stdout.write(
+    process.argv.includes("--stamp") ? `${stamp}\n` : script,
+  );
 }
