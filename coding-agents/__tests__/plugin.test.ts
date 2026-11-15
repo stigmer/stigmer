@@ -1,11 +1,13 @@
 // The coding-agent plugin as each tool reads it (coding-agents/plugin, built
 // by scripts/build.mjs into dist/plugin): one plugin named `stigmer` under
 // the Claude Code, Cursor and Codex manifests, each stamped with the
-// package's version; its guide (skills/stigmer/SKILL.md) and the bundled
+// package's version (a release's is stamped at publish, where
+// scripts/publish-libs.test.mjs proves it); its guide (skills/stigmer/SKILL.md) and the bundled
 // `stigmer mcp-server` read with no warning by `@stigmer/plugin-package`,
 // which knows all three dialects; each tool's marketplace file offering that
 // one plugin at the repository's root; and dist/index.js exporting the guide
-// without its frontmatter, as `stigmer coding-agent` prints it. The build's
+// without its frontmatter, as `stigmer coding-agent` prints it, and no
+// version of its own. The build's
 // own pack check (npm keeps every staged file, dot-folders included) runs in
 // beforeAll, so a file npm would drop fails this suite. The guide's last
 // step names a console address, so the page it names must exist.
@@ -96,14 +98,11 @@ describe("the pack check", () => {
 
 describe("the guide", () => {
   it("is exported without its frontmatter, as stigmer coding-agent prints it", async () => {
-    const { GUIDE, VERSION, PLUGIN_REPOSITORY } = (await import(join(root, "dist", "index.js"))) as {
-      GUIDE: string;
-      VERSION: string;
-      PLUGIN_REPOSITORY: string;
-    };
+    const exported = (await import(join(root, "dist", "index.js"))) as Record<string, unknown>;
+    expect(Object.keys(exported).sort()).toEqual(["GUIDE", "PLUGIN_REPOSITORY"]);
+    const { GUIDE, PLUGIN_REPOSITORY } = exported as { GUIDE: string; PLUGIN_REPOSITORY: string };
     expect(GUIDE.startsWith("# Set up Stigmer for this project\n")).toBe(true);
     expect(GUIDE).not.toMatch(/^name: stigmer$/m);
-    expect(VERSION).toBe(version);
     expect(PLUGIN_REPOSITORY).toBe("stigmer/coding-agent-plugin");
   });
 

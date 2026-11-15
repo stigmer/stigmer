@@ -25,9 +25,11 @@ one is for the coding agent on a person's laptop.
 
 `npm run build` (`scripts/build.mjs`) copies `plugin/` to `dist/plugin/`,
 stamps each manifest's `version` with the package's, writes `dist/index.js`
-(`GUIDE`, `VERSION`, `PLUGIN_REPOSITORY`), and fails if `npm pack` would leave
-a staged file out. The release train publishes the package with the other
-libraries, before the CLI that depends on it (`scripts/publish-libs.mjs`).
+(`GUIDE`, `PLUGIN_REPOSITORY`), and fails if `npm pack` would leave a staged
+file out. The release train publishes the package with the other libraries,
+before the CLI that depends on it (`scripts/publish-libs.mjs`), which stamps
+the release's version into the three manifests as into `package.json` and
+refuses to publish one still at `0.0.0-dev`.
 
 `reconcile-coding-agent-plugin.yaml` then makes the public repository
 `stigmer/coding-agent-plugin` equal to the npm `latest` package's

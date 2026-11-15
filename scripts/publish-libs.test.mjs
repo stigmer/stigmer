@@ -7,7 +7,10 @@
 // which would silently break the `mcp-server-stigmer` executable that `npx`
 // (and the patched CLI launcher) rely on; and it once published every test,
 // fixture and test helper under src/ while every source map named a path
-// one level outside the installed package.
+// one level outside the installed package; and every published coding-agent
+// plugin once said it was 0.0.0-dev, because the build stamped the
+// workspace's version into its manifests and only dist/package.json got the
+// release's (stigmer/stigmer#3144).
 //
 // It also pins which registry a run is tied to: only an NPM_TOKEN run (the
 // release lane, npmjs.com) writes a registry into .npmrc. The dev lane sets no
@@ -15,14 +18,17 @@
 // so an npmjs.com line there would be a second, wrong statement of it.
 
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
+import { build as buildCodingAgentPlugin } from "../coding-agents/scripts/build.mjs";
 import {
   PACKAGES,
+  PLUGIN_MANIFESTS,
+  WORKSPACE_VERSION,
   assertStagedDist,
   distPackageJsonOf,
   generateDistPackageJson,
@@ -31,8 +37,10 @@ import {
   packageClosure,
   resolvePackageTag,
   rewriteBinPaths,
+  isPluginManifestPath,
   rewriteMapSources,
   stageSources,
+  stampPluginManifests,
   tokenNpmrc,
 } from "./publish-libs.mjs";
 
@@ -480,6 +488,141 @@ test("assertStagedDist refuses a test-side file and a map source not in the tarb
         err.message.includes("test-side file: __tests__/client.test.js") &&
         err.message.includes("map source not in the tarball: index.js.map -> ../src/index.ts"),
     );
+  } finally {
+    rmSync(pkgDir, { recursive: true, force: true });
+  }
+});
+
+const manifest = (version) => `${JSON.stringify({ name: "stigmer", version }, null, 2)}\n`;
+
+test("isPluginManifestPath names the four manifest locations at any depth, and nothing else", () => {
+  for (const location of PLUGIN_MANIFESTS) {
+    assert.equal(isPluginManifestPath(location), true, location);
+    assert.equal(isPluginManifestPath(`plugin/${location}`), true, location);
+    assert.equal(isPluginManifestPath(`a\\b\\${location.replaceAll("/", "\\")}`), true, location);
+  }
+  for (const other of ["package.json", ".claude-plugin/marketplace.json", "myplugin.json", ".claude-plugin/plugin.jsonc"]) {
+    assert.equal(isPluginManifestPath(other), false, other);
+  }
+});
+
+test("stampPluginManifests stamps the workspace version at any depth and leaves a plugin's own version byte for byte", () => {
+  const ownVersion = '{"name":"vendored","version":"1.2.0"}';
+  const pkgDir = syntheticPackage({
+    "dist/plugin/.claude-plugin/plugin.json": manifest(WORKSPACE_VERSION),
+    "dist/plugin/.cursor-plugin/plugin.json": manifest(WORKSPACE_VERSION),
+    "dist/plugin/.codex-plugin/plugin.json": manifest(WORKSPACE_VERSION),
+    "dist/vendored/plugin.json": ownVersion,
+    // Not a manifest location: a marketplace file is never stamped.
+    "dist/plugin/.claude-plugin/marketplace.json": manifest(WORKSPACE_VERSION),
+    // Not JSON: the plugin reader reports it; staging leaves it alone.
+    "dist/broken/.claude-plugin/plugin.json": "{",
+  });
+  const distDir = join(pkgDir, "dist");
+  try {
+    assert.deepEqual(stampPluginManifests(distDir, "2.0.0").sort(), [
+      "plugin/.claude-plugin/plugin.json",
+      "plugin/.codex-plugin/plugin.json",
+      "plugin/.cursor-plugin/plugin.json",
+    ]);
+    for (const tool of [".claude-plugin", ".cursor-plugin", ".codex-plugin"]) {
+      assert.deepEqual(JSON.parse(readFileSync(join(distDir, "plugin", tool, "plugin.json"), "utf8")), { name: "stigmer", version: "2.0.0" });
+    }
+    assert.equal(readFileSync(join(distDir, "vendored", "plugin.json"), "utf8"), ownVersion);
+    assert.equal(readFileSync(join(distDir, "plugin", ".claude-plugin", "marketplace.json"), "utf8"), manifest(WORKSPACE_VERSION));
+    // --skip-build re-stages the same dist/: a second pass stamps nothing.
+    assert.deepEqual(stampPluginManifests(distDir, "2.0.0"), []);
+  } finally {
+    rmSync(pkgDir, { recursive: true, force: true });
+  }
+});
+
+test("stampPluginManifests stamps a dist/ staged earlier at another version again, by its source's workspace version", () => {
+  // `--version 1.0.0` then `--version 1.0.1 --skip-build`: the dist/ already
+  // says 1.0.0, and only the package's source says the manifest is its own.
+  const vendored = '{"name":"vendored","version":"1.0.0"}';
+  const pkgDir = syntheticPackage({
+    "plugin/.claude-plugin/plugin.json": manifest(WORKSPACE_VERSION),
+    "dist/plugin/.claude-plugin/plugin.json": manifest("1.0.0"),
+    // A vendored plugin whose own version is the earlier release's, by chance.
+    "vendored/.codex-plugin/plugin.json": vendored,
+    "dist/vendored/.codex-plugin/plugin.json": vendored,
+  });
+  const distDir = join(pkgDir, "dist");
+  try {
+    assert.deepEqual(stampPluginManifests(distDir, "1.0.1", pkgDir), ["plugin/.claude-plugin/plugin.json"]);
+    assert.equal(JSON.parse(readFileSync(join(distDir, "plugin", ".claude-plugin", "plugin.json"), "utf8")).version, "1.0.1");
+    assert.equal(readFileSync(join(distDir, "vendored", ".codex-plugin", "plugin.json"), "utf8"), vendored);
+  } finally {
+    rmSync(pkgDir, { recursive: true, force: true });
+  }
+});
+
+test("assertStagedDist refuses a plugin manifest still at the workspace version", () => {
+  const pkgDir = syntheticPackage({
+    "dist/index.js": "",
+    "dist/plugin/.codex-plugin/plugin.json": manifest(WORKSPACE_VERSION),
+    "dist/plugin/.claude-plugin/plugin.json": manifest("2.0.0"),
+  });
+  try {
+    assert.throws(
+      () => assertStagedDist(join(pkgDir, "dist"), "@stigmer/synthetic"),
+      (err) =>
+        err.message.includes("1 problem(s)") &&
+        err.message.includes(`plugin manifest at the workspace version ${WORKSPACE_VERSION}: plugin/.codex-plugin/plugin.json`),
+    );
+  } finally {
+    rmSync(pkgDir, { recursive: true, force: true });
+  }
+});
+
+test("assertStagedDist refuses a package's own plugin manifest at another version than its package.json", () => {
+  // A dist/ staged at 1.0.0, then re-staged at 1.0.1 without the stamp.
+  const vendored = '{"name":"vendored","version":"1.0.0"}';
+  const pkgDir = syntheticPackage({
+    "plugin/.claude-plugin/plugin.json": manifest(WORKSPACE_VERSION),
+    "dist/package.json": '{"name":"@stigmer/synthetic","version":"1.0.1"}',
+    "dist/plugin/.claude-plugin/plugin.json": manifest("1.0.0"),
+    // A vendored plugin keeps its own version, whatever the package's.
+    "vendored/.codex-plugin/plugin.json": vendored,
+    "dist/vendored/.codex-plugin/plugin.json": vendored,
+  });
+  try {
+    assert.throws(
+      () => assertStagedDist(join(pkgDir, "dist"), "@stigmer/synthetic", pkgDir),
+      (err) =>
+        err.message.includes("1 problem(s)") &&
+        err.message.includes("plugin manifest at 1.0.0, not the package's 1.0.1: plugin/.claude-plugin/plugin.json"),
+    );
+    stampPluginManifests(join(pkgDir, "dist"), "1.0.1", pkgDir);
+    assertStagedDist(join(pkgDir, "dist"), "@stigmer/synthetic", pkgDir);
+  } finally {
+    rmSync(pkgDir, { recursive: true, force: true });
+  }
+});
+
+test("the coding-agent plugin, built and staged as a release stages it, carries the release version everywhere", () => {
+  // The package's own build stamps its source version (the workspace's) into
+  // the manifests; staging must leave none of it in what is published.
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+  const pkgDir = mkdtempSync(join(tmpdir(), "publish-libs-coding-agents-"));
+  try {
+    cpSync(join(root, "coding-agents", "package.json"), join(pkgDir, "package.json"));
+    cpSync(join(root, "coding-agents", "plugin"), join(pkgDir, "plugin"), { recursive: true });
+    buildCodingAgentPlugin(pkgDir);
+    const distDir = join(pkgDir, "dist");
+    generateDistPackageJson(pkgDir, "2.0.0");
+    assert.deepEqual(stampPluginManifests(distDir, "2.0.0").sort(), [
+      "plugin/.claude-plugin/plugin.json",
+      "plugin/.codex-plugin/plugin.json",
+      "plugin/.cursor-plugin/plugin.json",
+    ]);
+    assertStagedDist(distDir, "@stigmer/coding-agent-plugin");
+    assert.equal(JSON.parse(readFileSync(join(distDir, "package.json"), "utf8")).version, "2.0.0");
+    for (const tool of [".claude-plugin", ".cursor-plugin", ".codex-plugin"]) {
+      assert.equal(JSON.parse(readFileSync(join(distDir, "plugin", tool, "plugin.json"), "utf8")).version, "2.0.0", tool);
+    }
+    assert.doesNotMatch(readFileSync(join(distDir, "index.js"), "utf8"), new RegExp(WORKSPACE_VERSION.replaceAll(".", "\\.")));
   } finally {
     rmSync(pkgDir, { recursive: true, force: true });
   }

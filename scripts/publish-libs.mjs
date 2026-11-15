@@ -52,10 +52,13 @@
  * its runtime sources in dist/src/ with the test side left out. tsc writes
  * every source map relative to the repository layout (`../src/x.ts` from
  * dist/), and publishing from dist/ puts that one level outside the installed
- * package, so the maps are rewritten to name the staged copy. Before anything
- * is packed or sent, the staged dist/ must hold no test-side file and every
- * map source it names must resolve inside it; a package that fails either
- * check stops the run.
+ * package, so the maps are rewritten to name the staged copy. A plugin
+ * manifest a package builds from its own sources (the coding-agent plugin's)
+ * carries the workspace version until staging stamps the release's into it,
+ * as into dist/package.json. Before anything is packed or sent, the staged
+ * dist/ must hold no test-side file, every map source it names must resolve
+ * inside it, and no plugin manifest may still carry the workspace version; a
+ * package that fails any check stops the run.
  */
 
 import { execSync } from "node:child_process";
@@ -357,6 +360,62 @@ export function distPackageJsonOf(srcPkg, version) {
   return distPkg;
 }
 
+/** The version every workspace package.json carries until a publish stamps the real one. */
+export const WORKSPACE_VERSION = "0.0.0-dev";
+
+/**
+ * The manifest locations that make a directory an Agent Plugins package, the
+ * four the reader knows (`backend/libs/ts/plugin-package/src/messages.ts`,
+ * `MANIFEST_LOCATIONS`; a root script imports no workspace build, so the
+ * list is restated here and named at its source).
+ */
+export const PLUGIN_MANIFESTS = ["plugin.json", ".claude-plugin/plugin.json", ".cursor-plugin/plugin.json", ".codex-plugin/plugin.json"];
+
+/** Whether a dist-relative path (either separator) is a plugin manifest at any depth. */
+export function isPluginManifestPath(relPath) {
+  const path = relPath.replaceAll("\\", "/");
+  return PLUGIN_MANIFESTS.some((location) => path === location || path.endsWith(`/${location}`));
+}
+
+/** A staged plugin manifest's parsed JSON, or `undefined` when it is not a JSON object (the plugin reader's concern, not this one's). */
+function readManifest(path) {
+  try {
+    const json = JSON.parse(readFileSync(path, "utf8"));
+    return json !== null && typeof json === "object" && !Array.isArray(json) ? json : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Stamp the release version into every plugin manifest in a staged dist/ that
+ * is the package's own: one that carries the workspace version, or whose
+ * source copy at the same path under the package does (the coding-agent
+ * plugin's build copies plugin/ to dist/plugin/, so a dist/ staged earlier
+ * at another version, then re-staged with --skip-build, is stamped again). A
+ * package that ships a plugin built from its own sources
+ * (`@stigmer/coding-agent-plugin`) is so published at the release's version,
+ * exactly as its dist/package.json is, and every tool that installs the
+ * plugin reports the release it came from. A manifest with a version of its
+ * own, in dist/ and in its source (the catalogue's vendored plugins), is left
+ * byte for byte. Returns the dist-relative paths stamped.
+ */
+export function stampPluginManifests(distDir, version, pkgDir = dirname(distDir)) {
+  const stamped = [];
+  for (const rel of listFiles(distDir)) {
+    if (!isPluginManifestPath(rel)) continue;
+    const path = join(distDir, rel);
+    const manifest = readManifest(path);
+    if (manifest === undefined || manifest.version === version) continue;
+    const ours =
+      manifest.version === WORKSPACE_VERSION || readManifest(join(pkgDir, rel))?.version === WORKSPACE_VERSION;
+    if (!ours) continue;
+    writeFileSync(path, `${JSON.stringify({ ...manifest, version }, null, 2)}\n`);
+    stamped.push(rel);
+  }
+  return stamped;
+}
+
 /**
  * The markers the workspace uses for files that exist only to test a package:
  * a `__tests__`, `__test-utils__` or `__fixtures__` directory anywhere on the
@@ -460,15 +519,31 @@ export function rewriteMapSources(distDir, pkgDir) {
 }
 
 /**
- * Refuse a staged dist/ that would publish a test-side file or a map whose
- * source is not in the tarball. Runs last, on exactly what `npm pack` and
- * `npm publish` read, so whatever put the file there (the source stage, a
- * build config that compiles tests) is caught the same way.
+ * Refuse a staged dist/ that would publish a test-side file, a map whose
+ * source is not in the tarball, or a plugin manifest of the package's own
+ * (one at the workspace version in its source) at any version but the one
+ * dist/package.json publishes. Runs last, on exactly what `npm pack` and `npm publish` read, so
+ * whatever put the file there (the source stage, a build config that
+ * compiles tests, a build that stamps its own version) is caught the same way.
  */
-export function assertStagedDist(distDir, name) {
+export function assertStagedDist(distDir, name, pkgDir = dirname(distDir)) {
   const problems = [];
+  // The version the tarball publishes at; absent only in a dist/ no publish staged.
+  const published = readManifest(join(distDir, "package.json"))?.version;
   for (const rel of listFiles(distDir)) {
     if (isTestSidePath(rel)) problems.push(`test-side file: ${rel}`);
+    if (isPluginManifestPath(rel)) {
+      const staged = readManifest(join(distDir, rel))?.version;
+      if (staged === WORKSPACE_VERSION) {
+        problems.push(`plugin manifest at the workspace version ${WORKSPACE_VERSION}: ${rel}`);
+      } else if (
+        published !== undefined &&
+        staged !== published &&
+        readManifest(join(pkgDir, rel))?.version === WORKSPACE_VERSION
+      ) {
+        problems.push(`plugin manifest at ${staged}, not the package's ${published}: ${rel}`);
+      }
+    }
     if (!rel.endsWith(".map")) continue;
     const mapPath = join(distDir, rel);
     const map = JSON.parse(readFileSync(mapPath, "utf8"));
@@ -640,6 +715,10 @@ async function main() {
 
       const distPkgPath = generateDistPackageJson(pkgDir, version);
       console.log(`  Generated ${distPkgPath}`);
+      const stamped = stampPluginManifests(distDir, version, pkgDir);
+      if (stamped.length > 0) {
+        console.log(`  Stamped ${version} into ${stamped.length} plugin manifest(s): ${stamped.join(", ")}`);
+      }
       if (!packDir && pkgTag !== tag) {
         console.log(`  dist-tag: ${pkgTag} (pinned below the run default "${tag}")`);
       }

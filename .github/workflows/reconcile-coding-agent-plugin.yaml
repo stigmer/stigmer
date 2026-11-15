@@ -1,4 +1,7 @@
 name: reconcile-coding-agent-plugin
+# The version in a release run's title, so `gh run list` finds a release's
+# reconcile by it (a workflow_run's branch is main, not the tag).
+run-name: reconcile-coding-agent-plugin ${{ github.event.workflow_run.head_branch || github.event_name }}
 
 # Keeps stigmer/coding-agent-plugin, the repository Claude Code, Codex and
 # Cursor install Stigmer's plugin for coding agents from, equal to the npm
@@ -8,13 +11,37 @@ name: reconcile-coding-agent-plugin
 # person installs is always the one released with the CLI they install, never
 # `main` ahead of it.
 #
+# Triggers:
+#   - workflow_run, when release.npm-libs completes successfully for a v* tag
+#     push (the whole release run, its smokes included, so up to a couple of
+#     hours after the tag): the repository follows the release then, waiting
+#     first for npm `latest` to answer with the tag's version or a newer one
+#     (a read just after a publish can lag). A prerelease never moves
+#     `latest`, so its run does nothing;
+#   - daily, and by dispatch: a re-run after a red, a release whose run went
+#     red after it published, and the standing check.
+#
 # Unlike the Homebrew tap, nothing here installs dependencies at the target
 # version, so there is no age window: a run after a release takes it at once.
 #
-# The job is idempotent: it is a no-op when the repository's tree already is
-# the package's plugin.
+# The reconcile is idempotent: it is a no-op when the repository's tree
+# already is the package's plugin. It refuses a package whose three manifests
+# do not carry the package's own version, so a plugin that would tell every
+# tool the wrong release never reaches the repository. After every reconcile,
+# the plugin is installed from the repository as a person installs it, in
+# Claude Code and in Codex (test/install/coding-agent-plugin-install.mjs), and
+# each must report that version: a tool that stops accepting the plugin's
+# format is caught here before a person meets it.
 
-on:
+# workflow_run is safe here: the reconcile job admits only a successful
+# release run of a v* tag push, reads nothing from the triggering run but its
+# tag name (passed through env and compared with npm's answer, never
+# executed), and the install job checks out main with persist-credentials off.
+on: # zizmor: ignore[dangerous-triggers]
+  workflow_run:
+    workflows:
+      - "release.npm-libs"
+    types: [completed]
   schedule:
     # Daily at 08:41 UTC (off the top of the hour to avoid scheduler congestion).
     - cron: '41 8 * * *'
@@ -29,7 +56,15 @@ concurrency:
 
 jobs:
   reconcile:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       startsWith(github.event.workflow_run.head_branch, 'v'))
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      version: ${{ steps.reconcile.outputs.version }}
     steps:
       - name: Checkout coding-agent-plugin
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -50,12 +85,43 @@ jobs:
           node-version: '20'
 
       - name: Reconcile the repository to npm latest
+        id: reconcile
         working-directory: plugin
+        env:
+          # The release's tag on a workflow_run (v0.2.0), empty otherwise.
+          RELEASE_TAG: ${{ github.event.workflow_run.head_branch }}
         run: |
           set -euo pipefail
           PKG="@stigmer/coding-agent-plugin"
+          if [ -n "$RELEASE_TAG" ]; then
+            EXPECTED="${RELEASE_TAG#v}"
+            # A prerelease publishes under `next` and never moves `latest`
+            # (scripts/publish-libs.mjs), so it has nothing to reconcile.
+            case "$EXPECTED" in
+              *-*) echo "$RELEASE_TAG is a prerelease; npm latest does not move, so there is nothing to do."; exit 0 ;;
+            esac
+            # Whether stable version $1 is at least $2 (latest is never a prerelease).
+            at_least() {
+              node -e '
+                const [a, b] = process.argv.slice(1).map((v) => v.split(".").map(Number));
+                process.exit((a[0] - b[0] || a[1] - b[1] || a[2] - b[2]) >= 0 ? 0 : 1);
+              ' "$1" "$2"
+            }
+            # A release just published: wait (up to 10 minutes) until npm's
+            # latest is its version or a newer one (a later release, or this
+            # run re-run after one), so this run never copies the one before.
+            TARGET=""
+            for _ in $(seq 1 40); do
+              TARGET=$(npm view "$PKG" dist-tags.latest --prefer-online 2>/dev/null || true)
+              if [ -n "$TARGET" ] && at_least "$TARGET" "$EXPECTED"; then break; fi
+              sleep 15
+            done
+            if [ -z "$TARGET" ] || ! at_least "$TARGET" "$EXPECTED"; then
+              echo "ERROR: after 10 minutes npm latest of $PKG is '${TARGET}', not the release's ${EXPECTED} or newer"
+              exit 1
+            fi
           # Until a release publishes the package, there is nothing to copy.
-          if ! TARGET=$(npm view "$PKG" dist-tags.latest 2>/dev/null) || [ -z "$TARGET" ]; then
+          elif ! TARGET=$(npm view "$PKG" dist-tags.latest 2>/dev/null) || [ -z "$TARGET" ]; then
             echo "$PKG is not on npm yet; nothing to do until a release publishes it."
             exit 0
           fi
@@ -65,10 +131,26 @@ jobs:
           mkdir -p "$RUNNER_TEMP/pkg"
           (cd "$RUNNER_TEMP/pkg" && npm pack "$PKG@$TARGET" --silent >/dev/null && tar -xzf ./*.tgz)
           SOURCE="$RUNNER_TEMP/pkg/package/dist/plugin"
-          if [ ! -f "$SOURCE/.claude-plugin/plugin.json" ]; then
-            echo "ERROR: $PKG@$TARGET carries no dist/plugin/.claude-plugin/plugin.json"
-            exit 1
-          fi
+
+          # Every tool reports the plugin's version from its own manifest, so
+          # each must carry the package's version (scripts/publish-libs.mjs
+          # stamps them at publish).
+          node - "$SOURCE" "$TARGET" <<'EOF'
+          const { existsSync, readFileSync } = require("node:fs");
+          const [source, version] = process.argv.slice(2);
+          const wrong = [".claude-plugin/plugin.json", ".cursor-plugin/plugin.json", ".codex-plugin/plugin.json"].flatMap((manifest) => {
+            const path = `${source}/${manifest}`;
+            if (!existsSync(path)) return [`${manifest}: missing`];
+            const found = JSON.parse(readFileSync(path, "utf8")).version;
+            return found === version ? [] : [`${manifest}: version ${found}`];
+          });
+          if (wrong.length > 0) {
+            console.error(`ERROR: the published plugin at ${version} would install as another version:\n  ${wrong.join("\n  ")}`);
+            process.exit(1);
+          }
+          EOF
+
+          echo "version=$TARGET" >> "$GITHUB_OUTPUT"
 
           # The tree becomes the package's plugin exactly: every tracked file
           # goes, then the package's files come in, dot-folders included.
@@ -84,21 +166,55 @@ jobs:
           git commit -qm "Update the plugin to ${TARGET}"
           git push
 
-  # Scheduled runs are unattended; manual dispatches are watched.
+  install:
+    name: Install from the repository in Claude Code and Codex
+    needs: reconcile
+    if: needs.reconcile.outputs.version != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+
+      # The coding agents a person installs the plugin into, from npm's public
+      # registry by name, as a person installs them (no lockfile, so zizmor's
+      # adhoc-packages is waived here). Pinned to exact versions, the ones
+      # whose plugin commands were measured; raise them by hand.
+      - name: Install Claude Code and Codex
+        run: npm install -g --registry=https://registry.npmjs.org/ @anthropic-ai/claude-code@2.1.325 @openai/codex@0.161.0 # zizmor: ignore[adhoc-packages]
+
+      - name: Install the plugin from stigmer/coding-agent-plugin
+        env:
+          VERSION: ${{ needs.reconcile.outputs.version }}
+        run: |
+          echo "### stigmer/coding-agent-plugin at ${VERSION}, installed in Claude Code 2.1.325 and Codex 0.161.0" >> "$GITHUB_STEP_SUMMARY"
+          node test/install/coding-agent-plugin-install.mjs --version="$VERSION" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  # Scheduled and release runs are unattended; manual dispatches are watched.
   # Shared file-or-comment mechanics live in notify-failure.yaml.
   notify-failure:
     name: File Coding-Agent Plugin Reconcile Failure Issue
-    needs: reconcile
-    if: failure() && github.event_name == 'schedule'
+    needs: [reconcile, install]
+    if: failure() && github.event_name != 'workflow_dispatch'
     permissions:
       issues: write
     uses: ./.github/workflows/notify-failure.yaml
     with:
       label: reconcile-coding-agent-plugin-failure
-      title: "reconcile-coding-agent-plugin: the plugin repository's daily reconciliation is failing"
+      title: "reconcile-coding-agent-plugin: the plugin repository's reconciliation or install check is failing"
       body-context: >-
         This job replaces stigmer/coding-agent-plugin's tree with the npm
-        latest of @stigmer/coding-agent-plugin's dist/plugin/; while it is red,
-        people who install the plugin get an older guide than their CLI.
-        Usual suspects: a removed deploy key (CODING_AGENT_PLUGIN_DEPLOY_KEY), or a release
-        that published the package without its plugin folder.
+        latest of @stigmer/coding-agent-plugin's dist/plugin/, then installs
+        the plugin from that repository in Claude Code and Codex; while it is
+        red, people who install the plugin may get an older guide than their
+        CLI, or no plugin at all. Usual suspects: a removed deploy key
+        (CODING_AGENT_PLUGIN_DEPLOY_KEY), a release that published the
+        package without its plugin folder or with manifests at another
+        version, or a tool version that changed its plugin format.
