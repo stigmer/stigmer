@@ -376,6 +376,12 @@ const SESSION_SCENES = [
     id: "session-shell-steps",
     title: "Session: every shell step: output, a described command, exit 1, running, in the background, and an ask",
     widths: ["desktop"],
+    // The turn's last steps start at 2m 16.5s (the background command's
+    // status) and 3m 50s: drawn 10s past the scenario clock and this much
+    // after it, the turn stands at 4m 20.75s, so the background command
+    // reads 2m 04s, the suite 30s and the turn 4m 20s, as the session page
+    // draws.
+    elapse: 160_750,
     opens: ["Ran a command npm test -- billing/invoice"],
   },
   {

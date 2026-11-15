@@ -80,9 +80,9 @@ export const ToolRunGroup = memo(function ToolRunGroup({
             {label}
           </span>
         }
-        // At work in a card of steps it sits on the running band; on a rail
-        // the band is the to-do's or the helper's.
-        band={isRunning && outer.rows !== "rail"}
+        // At work it sits on the running band, as a step at work does; in a
+        // helper the helper's band holds it.
+        band={isRunning && !outer.inHelper}
         bodySpan="rail"
         body={
           expanded ? (

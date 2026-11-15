@@ -684,7 +684,7 @@ describe("ToolCallItem disclosure", () => {
     const { container, rerender } = render(<ToolCallItem toolUse={tc} />);
     let row = container.querySelector('[data-cursor-target="tool-call-row"]')!;
     expect(row.className).toContain("stg:rounded-lg");
-    expect(row.className).toContain("stg:border-border-prominent");
+    expect(row.className).toContain("stg:border-border");
 
     rerender(<ToolCallItem toolUse={tc} bordered={false} />);
     row = container.querySelector('[data-cursor-target="tool-call-row"]')!;
@@ -731,7 +731,7 @@ describe("ToolCallItem density tier", () => {
     for (const tc of cases) {
       const { container, unmount } = render(<ToolCallItem toolUse={tc} />);
       expect(rowRoot(container).className, `${tc.name} should stay a card`).toContain(
-        "stg:border-border-prominent",
+        "stg:rounded-lg",
       );
       unmount();
     }
@@ -745,7 +745,7 @@ describe("ToolCallItem density tier", () => {
       result: '{"status":"error","message":"permission denied"}',
     });
     const { container } = render(<ToolCallItem toolUse={failed} />);
-    expect(rowRoot(container).className).toContain("stg:border-border-prominent");
+    expect(rowRoot(container).className).toContain("stg:rounded-lg");
   });
 
   it("escalates a quiet row to a card while it waits — a decision surface is never frameless", () => {
@@ -799,13 +799,21 @@ describe("ToolCallItem density tier", () => {
     expect(container.querySelector(".stg\\:bg-status-running-band")).toBeNull();
   });
 
-  it("sets a step waiting on someone else on the band; on a rail a step at work stays clear", () => {
+  it("sets a step waiting on someone else on the band, and a running one on a to-do's rail; in a helper it stays clear", () => {
     const waiting = toolUse({ name: "write_file", input: { path: "src/billing/rounding.ts", content: "x" }, state: "waiting" });
     const { container, rerender } = render(<ToolCallItem toolUse={waiting} />);
     expect(container.querySelector(".stg\\:bg-status-running-band")).not.toBeNull();
 
-    // Under a to-do or a helper the band is theirs: the step's own row is clear.
+    // On a to-do's rail it lights its own row, rounded past its words.
     const running = toolUse({ name: "Bash", input: { command: "sleep 5" }, state: "running" });
+    rerender(
+      <StepPlaceContext.Provider value={{ rows: "rail", inHelper: false }}>
+        <ToolCallItem toolUse={running} />
+      </StepPlaceContext.Provider>,
+    );
+    expect(container.querySelector(".stg\\:bg-status-running-band")?.className).toContain("stg:rounded-md");
+
+    // Inside a helper the helper's band holds it: its own row is clear.
     rerender(
       <StepPlaceContext.Provider value={{ rows: "rail", inHelper: true }}>
         <ToolCallItem toolUse={running} />

@@ -26,7 +26,9 @@ describe("ThreadCardShell chrome", () => {
     );
     const root = () =>
       container.querySelector('[data-cursor-target="row"]') as HTMLElement;
-    expect(root().className).toContain("stg:border-border-prominent");
+    // The kit's card edge, as a card of steps has: never the louder one.
+    expect(root().className).toContain("stg:border-border");
+    expect(root().className).not.toContain("stg:border-border-prominent");
 
     rerender(
       <ThreadCardShell cursorTarget="row" variant="row">
@@ -34,7 +36,7 @@ describe("ThreadCardShell chrome", () => {
       </ThreadCardShell>,
     );
     expect(root().className).toContain("stg:border-b");
-    expect(root().className).not.toContain("stg:border-border-prominent");
+    expect(root().className).not.toContain("stg:rounded-lg");
 
     rerender(
       <ThreadCardShell cursorTarget="row" variant="quiet">
@@ -42,7 +44,7 @@ describe("ThreadCardShell chrome", () => {
       </ThreadCardShell>,
     );
     // The quiet tier is an unboxed line: no card border, no divider.
-    expect(root().className).not.toContain("stg:border-border-prominent");
+    expect(root().className).not.toContain("stg:border ");
     expect(root().className).not.toContain("stg:border-b");
     expect(root().className).not.toContain("stg:rounded-lg");
   });

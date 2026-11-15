@@ -448,10 +448,10 @@ export const ToolCallItem = memo(function ToolCallItem({
         bodySpan={isSubagent ? "rail" : "words"}
         bodyCursorTarget="tool-preview"
         // The step at work sits on the running band, as the drawing's live
-        // step does, with what it opened to; on a rail (a to-do's or a
-        // helper's steps) it is clear, the band being the to-do's or the
-        // helper's.
-        band={live && stepPlace === "card"}
+        // step does, with what it opened to: in a card of steps, or on a
+        // to-do's rail, so only what runs is lit. A helper's own steps stay
+        // clear: the helper's band holds them.
+        band={live && !place.inHelper}
       />
     </ThreadCardShell>
     );

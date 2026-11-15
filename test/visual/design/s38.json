@@ -330,8 +330,7 @@
       ],
       "sample": {
         "word Last 5 of 214 lines · Show all": "the scene's command printed 7 lines (\"Last 5 of 7 lines · Show all\")",
-        "word Working · 4m 20s": "the scene waits for an answer (\"Waiting for you · 1m 30s\")",
-        "word Running in the background · 2m 04s": "the scene's command starts after the scene's clock, so its line reads \"Running in the background\" with no time"
+        "word Working · 4m 20s": "the scene waits for an answer (\"Waiting for you · 4m 20s\")"
       },
       "ruled": {},
       "pending": {}

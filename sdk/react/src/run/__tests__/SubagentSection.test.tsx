@@ -92,7 +92,7 @@ describe("SubagentSection as a step", () => {
     const { container } = render(
       <SubagentSection thread={thread({ state: "running", input: "Look in billing", items: [message("m1", "Looking."), inner()] })} subject="Find it" />,
     );
-    expect(container.querySelector('[data-cursor-target="subagent-row"]')?.className).toContain("stg:border-border-prominent");
+    expect(container.querySelector('[data-cursor-target="subagent-row"]')?.className).toContain("stg:rounded-lg");
     const classes = Array.from(container.querySelectorAll("[class]")).flatMap((el) => (el.getAttribute("class") ?? "").split(" "));
     expect(classes.filter((c) => /\/\d+$/.test(c)), "no opacity modifiers").toEqual([]);
     const body = container.querySelector("[data-step-body]")!;
