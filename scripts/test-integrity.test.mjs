@@ -662,6 +662,12 @@ it("reaching a service is a value use of its entry point; types, strings and an 
   assert.deepEqual(services(`env = await TestWorkflowEnvironment.createTimeSkipping();`), ["temporal"]);
   assert.deepEqual(services(`import { TestWorkflowEnvironment as Env } from "@temporalio/testing"; await Env.createLocal();`), ["temporal"]);
   assert.deepEqual(services(`const store = open(); await store.createLocal(); await createLocal();`), []);
+  // The repositories' own start, by name or alias, as the Postgres helpers are.
+  assert.deepEqual(services(`import { spawnTemporal } from "./temporal.js"; const t = await spawnTemporal();`), ["temporal"]);
+  assert.deepEqual(services(`import { spawnTemporal as boot } from "@stigmer/test-support/temporal"; await boot();`), ["temporal"]);
+  assert.deepEqual(services(`export async function spawnTemporal() { return boot(); }`), []);
+  assert.deepEqual(services(`import type { spawnTemporal } from "./temporal.js"; type S = typeof spawnTemporal;`), []);
+  assert.deepEqual(services(`const why = "a suite that calls spawnTemporal() reaches Temporal";`), []);
   assert.deepEqual(services(`import * as testing from "@temporalio/testing"; await testing.TestWorkflowEnvironment.createLocal();`), ["temporal"]);
   // A module, as every test file is: in a script a top-level `await (...)` parses as a call.
   assert.deepEqual(services(`import { it } from "vitest";\nconst env = await (await import("@temporalio/testing")).TestWorkflowEnvironment.createTimeSkipping();`), ["temporal"]);
@@ -719,6 +725,17 @@ it("a service reached through a test helper must be named, and a named service m
   assert.deepEqual(layout({ ...cache, "pkg/src/sharing/__tests__/gate.test.ts": counts }), ["layout-service-unnamed pkg/src/sharing/__tests__/gate.test.ts redis"]);
   assert.deepEqual(layout({ ...cache, "pkg/src/sharing/__tests__/gate.redis.test.ts": counts }), []);
   assert.deepEqual(layout({ "pkg/src/sharing/__tests__/gate.redis.test.ts": `it("a", () => {});` }), ["layout-service-unreached pkg/src/sharing/__tests__/gate.redis.test.ts redis"]);
+  // A suite on the repositories' own Temporal start, through a helper beside the port that defines it.
+  const temporal = {
+    "pkg/src/__test-utils__/temporal-dev.ts": `export async function spawnTemporal() { return { hostPort: "127.0.0.1:7233" }; }`,
+    "pkg/src/__test-utils__/temporal-env.ts": `import { spawnTemporal } from "./temporal-dev.js"; export const start = async () => (await spawnTemporal()).hostPort;`,
+  };
+  const starts = `import { start } from "../../__test-utils__/temporal-env.js"; it("a", async () => { await start(); });`;
+  assert.deepEqual(layout({ ...temporal, "pkg/src/billing/__tests__/sweep.temporal.test.ts": starts }), []);
+  assert.deepEqual(layout({ ...temporal, "pkg/src/billing/__tests__/sweep.test.ts": starts }), ["layout-service-unnamed pkg/src/billing/__tests__/sweep.test.ts temporal"]);
+  // The port's own unit test imports the module that defines the start, which never calls it.
+  const port = `import { bootTemporal } from "../__test-utils__/temporal-dev.js"; it("a", () => { bootTemporal; });`;
+  assert.deepEqual(layout({ ...temporal, "pkg/src/__tests__/temporal-dev.test.ts": port }), []);
 });
 
 it("composed, conformance, load and live files, and the suites' own trees, may use any service unnamed", () => {

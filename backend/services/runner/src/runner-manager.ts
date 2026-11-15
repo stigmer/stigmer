@@ -351,7 +351,7 @@ async function buildStigmerRunnerManager(
   // A cloud server that mints runner tokens but returns no key predates key
   // management — payloads then rest plaintext in cloud Temporal history, which
   // deserves a diagnosable warning rather than silence.
-  const payloadCodecs = await createPayloadCodecs(config, bootstrap.payloadEncryption);
+  const payloadCodecs = await createPayloadCodecs(bootstrap.payloadEncryption);
   if (
     !bootstrap.payloadEncryption &&
     bootstrap.runnerAccessToken &&

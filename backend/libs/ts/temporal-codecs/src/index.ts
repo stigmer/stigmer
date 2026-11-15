@@ -11,10 +11,13 @@
  * same on both ends of a run, which is why all three live in one library
  * instead of per-consumer copies that could fork.
  *
- * This is the package's ONLY public boundary. Codec order at the consumer
- * is a correctness property: install [encryption, claimcheck] so encode
- * encrypts before relocating (object storage only ever sees ciphertext)
- * and decode restores the blob before decrypting.
+ * This is the package's ONLY public boundary. The one codec is payload
+ * encryption. Codec order at the consumer is a correctness property: Temporal
+ * encodes in array order and decodes in reverse, so a codec that ever moves
+ * payloads into another store goes after encryption, and that store only
+ * ever sees ciphertext. The claim-check offload codec was removed in
+ * stigmer#992: a codec never knows the run a payload belongs to, and large
+ * run content is offloaded by the runner where the run is known.
  *
  * Dependency policy: @temporalio/common and @temporalio/proto are pinned
  * exact and identical to the runner's pins, bumped in lockstep with it —
@@ -44,8 +47,3 @@ export type {
   TemporalConnectionConfig,
   TemporalTls,
 } from "./connection/config.js";
-
-export { ClaimcheckPayloadCodec } from "./claimcheck/payload-codec.js";
-export { loadClaimcheckConfig } from "./claimcheck/config.js";
-export type { ClaimcheckConfig } from "./claimcheck/config.js";
-export type { ClaimcheckStorage } from "./claimcheck/storage.js";

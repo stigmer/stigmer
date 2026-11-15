@@ -75,6 +75,8 @@ import {
 import { resolve, dirname, join, relative, sep, isAbsolute } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { publishOnce } from "./lib/publish-once.mjs";
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
 
@@ -748,10 +750,7 @@ async function main() {
         continue;
       }
 
-      let publishCmd = `npm publish ${distDir} --access public --tag ${pkgTag}`;
-      if (dryRun) publishCmd += " --dry-run";
-
-      run(publishCmd);
+      publishOnce(distDir, { tag: pkgTag, dryRun, cwd: root });
       console.log("");
     }
 

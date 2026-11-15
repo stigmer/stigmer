@@ -599,7 +599,7 @@ describe("createArtifactStorage", () => {
     expect(() => createArtifactStorage(cfg)).toThrow("STIGMER_TOKEN");
   });
 
-  it("throws for the deliberate 'none' posture — resolveUsable degrades it, claimcheck fail-hards", async () => {
+  it("throws for the deliberate 'none' posture — construction fails hard, resolveUsable degrades it", async () => {
     const cfg: ArtifactStorageConfig = {
       type: "none",
       localPath: "/tmp/artifacts",

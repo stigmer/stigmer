@@ -47,7 +47,9 @@
  *      (scripts/lib/registry-lag.mjs), and the smoke runs again on the
  *      wait's schedule until the wait's own deadline (`retryConsumerSmoke`).
  *      Any other failure stops the publish at once.
- *   6. `npm publish --access public --tag <tag>`.
+ *   6. `npm publish --access public --tag <tag>`, through
+ *      `scripts/lib/publish-once.mjs`: a version already on the registry with
+ *      the same contents is skipped, so a stopped release run can be rerun.
  *
  * The dist-tag follows publish-libs.mjs: an explicit `--tag` wins (the dev
  * pipeline routes every package to `dev`); otherwise a pre-release version
@@ -99,6 +101,7 @@ import {
 import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { publishOnce } from "./lib/publish-once.mjs";
 import { REGISTRY_LAG_EXIT } from "./lib/registry-lag.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
@@ -575,9 +578,7 @@ async function main() {
     }
 
     console.log("\n=== Publish ===");
-    const publishArgs = ["publish", "--access", "public", "--tag", tag];
-    if (dryRun) publishArgs.push("--dry-run");
-    run("npm", publishArgs, packageDir);
+    publishOnce(packageDir, { tag, dryRun, cwd: packageDir });
     console.log(
       `\n=== Done: ${manifest.name}@${version} (${tag}${dryRun ? ", dry-run" : ""}) ===\n`,
     );

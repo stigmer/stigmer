@@ -1,11 +1,9 @@
 /**
  * Unit tests for the payload-encryption codec.
  *
- * Covers the codec in isolation, its composition with the claim-check
- * codec (order is load-bearing: encrypt before relocate, so object
- * storage only ever sees ciphertext), the config loader's fail-fast
- * contract, and the committed conformance fixture that pins the envelope
- * format every reader must match.
+ * Covers the codec in isolation, the config loader's fail-fast contract,
+ * and the committed conformance fixture that pins the envelope format
+ * every reader must match.
  */
 
 import { describe, it, expect, afterEach } from "vitest";
@@ -17,8 +15,6 @@ import type { Payload } from "@temporalio/common";
 import { EncryptionPayloadCodec } from "../encryption/payload-codec.js";
 import { loadPayloadEncryptionConfig } from "../encryption/config.js";
 import type { PayloadEncryptionConfig } from "../encryption/config.js";
-import { ClaimcheckPayloadCodec } from "../claimcheck/payload-codec.js";
-import { makeInMemoryClaimcheckStorage } from "../__test-utils__/fake-claimcheck-storage.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -208,36 +204,6 @@ describe("EncryptionPayloadCodec", () => {
       });
       expect(lookups).toEqual([]);
     });
-  });
-});
-
-describe("composition with claim-check (encrypt, then relocate)", () => {
-  it("stores only ciphertext in object storage and round-trips exactly", async () => {
-    const { storage, blobs } = makeInMemoryClaimcheckStorage();
-    const encryption = new EncryptionPayloadCodec(makeKeyConfig());
-    const claimcheck = new ClaimcheckPayloadCodec(storage, {
-      enabled: true,
-      thresholdBytes: 128,
-      compressionEnabled: false,
-      keyPrefix: "claimcheck/",
-    });
-
-    const secret = "very-large-and-very-secret-".repeat(32);
-    const original = makeJsonPayload({ secret });
-
-    // Temporal applies codec arrays in order on encode, reverse on decode.
-    const [encrypted] = await encryption.encode([original]);
-    const [relocated] = await claimcheck.encode([encrypted]);
-    expect(metadataString(relocated, "encoding")).toBe("binary/claimcheck");
-
-    expect(blobs.size).toBe(1);
-    const blob: Buffer = blobs.values().next().value!;
-    expect(blob.includes("very-large-and-very-secret-")).toBe(false);
-
-    const [restored] = await claimcheck.decode([relocated]);
-    const [decrypted] = await encryption.decode([restored]);
-    expect(metadataString(decrypted, "encoding")).toBe("json/plain");
-    expect(Buffer.from(decrypted.data!)).toEqual(original.data);
   });
 });
 
