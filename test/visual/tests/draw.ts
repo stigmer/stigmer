@@ -54,8 +54,15 @@ export async function draw(
     await page.clock.setFixedTime(new Date(held + scene.elapse));
     await settled(page);
   }
-  for (const act of [scene.opens ?? []].flat()) {
+  const acts = [scene.opens ?? []].flat();
+  for (const act of acts) {
     await perform(page, act);
+    await settled(page);
+  }
+  // The pointer leaves what it pressed, as a reader's hand does: a picture
+  // shows the part at rest, never the hover shade of the last click.
+  if (acts.length > 0) {
+    await page.mouse.move(0, 0);
     await settled(page);
   }
   if (options.whole === true && scene.whole === true) await growWhole(page, size);

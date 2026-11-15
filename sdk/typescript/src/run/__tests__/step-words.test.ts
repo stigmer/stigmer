@@ -58,6 +58,9 @@ describe("stepPhrase", () => {
   it("names a search's pattern and the folder it searched, and says a search by name found files", () => {
     expect(stepPhrase(call("grep", { pattern: "round(", path: "src/billing/" })).text).toBe("Searched for round( in src/billing");
     expect(stepPhrase(call("Grep", { pattern: "round(" }, "running")).text).toBe("Searching for round(");
+    // At work it has no counts yet: the folder is its second line (the session page, S43).
+    expect(stepPhrase(call("grep", { pattern: "round(", path: "src/billing/" }, "running"))).toMatchObject({ text: "Searching for round(", folder: "src/billing" });
+    expect(stepPhrase(call("grep", { pattern: "round(", path: "src/billing/" })).folder).toBe("");
     expect(stepPhrase(call("grep", { path: "src" })).text).toBe("Searched");
     expect(stepPhrase(call("glob", { pattern: "**/*.test.ts" })).text).toBe("Found files matching **/*.test.ts");
     expect(stepPhrase(call("Glob", { pattern: "*.md" }, "running")).text).toBe("Finding files matching *.md");

@@ -178,7 +178,7 @@ function threadEvents(taskId: string, state: "running" | "completed", reply: str
       value: { id: `${taskId}.sent`, toSessionThreadId: taskId, content: [{ type: "text", text: "Find where invoices are rounded" }] },
     }),
     samples.agentMessageEvent("Searching the billing module.", { threadId: taskId, id: `${taskId}.m0`, processedAt: sampleInstant(startMs + 1_000) }),
-    samples.toolUseEvent("grep", { pattern: "round(" }, { threadId: taskId, id: `${taskId}.grep`, processedAt: sampleInstant(startMs + 2_000) }),
+    samples.toolUseEvent("grep", { pattern: "round(", path: "src/billing" }, { threadId: taskId, id: `${taskId}.grep`, processedAt: sampleInstant(startMs + 2_000) }),
   ];
   if (state === "completed") {
     events.push(

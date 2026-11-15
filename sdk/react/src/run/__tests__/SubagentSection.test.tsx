@@ -103,6 +103,22 @@ describe("SubagentSection as a step", () => {
   });
 });
 
+describe("SubagentSection on the running band", () => {
+  it("sets a working helper bright on the band, its steps under it, and a finished one clear and quiet", () => {
+    const { container, rerender } = render(
+      <SubagentSection thread={thread({ state: "running", agentName: "researcher", items: [inner("running")] })} subject="Find the rounding code" />,
+    );
+    const band = container.querySelector(".stg\\:bg-status-running-band");
+    expect(band, "the helper's row on the band").not.toBeNull();
+    expect(band!.querySelector('[data-step-body]'), "its steps inside the band").not.toBeNull();
+    expect(container.querySelectorAll(".stg\\:bg-status-running-band")).toHaveLength(1);
+    expect(screen.getByText("Find the rounding code", { exact: false }).className).toContain("stg:text-foreground");
+
+    rerender(<SubagentSection thread={thread({ state: "completed", agentName: "researcher", items: [inner()] })} subject="Find the rounding code" />);
+    expect(container.querySelector(".stg\\:bg-status-running-band")).toBeNull();
+  });
+});
+
 describe("SubagentSection auto-disclosure", () => {
   it("auto-opens while the subagent is running", () => {
     const { container } = render(<SubagentSection thread={thread({ state: "running", items: [inner("running")] })} />);

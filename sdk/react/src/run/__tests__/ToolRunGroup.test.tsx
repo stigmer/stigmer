@@ -121,7 +121,11 @@ describe("ToolRunGroup", () => {
       />,
     );
     expect(chipExpanded(container)).toBe(true);
-    expect(container.querySelector(".stgm-shimmer-label")?.textContent).toBe("Read 2 files");
+    // At work, it reads bright on the running band, as the drawing's live
+    // step does; the sweep is the quiet lines', not a step's.
+    expect(container.querySelector(".stgm-shimmer-label")).toBeNull();
+    expect(screen.getByText("Read 2 files").className).toContain("stg:text-foreground");
+    expect(container.querySelector(".stg\\:bg-status-running-band")).not.toBeNull();
   });
 
   it("is a quiet unboxed step whose opened calls sit on a rail under its words, undivided", () => {

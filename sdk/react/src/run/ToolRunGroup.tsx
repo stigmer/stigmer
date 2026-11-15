@@ -2,7 +2,6 @@
 
 import { memo, useMemo } from "react";
 import type { ToolUse } from "@stigmer/client";
-import { cn } from "@stigmer/design-tokens";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
 import { ToolCallItem } from "./ToolCallItem.js";
@@ -57,11 +56,11 @@ export const ToolRunGroup = memo(function ToolRunGroup({
   useRenderTracer("ToolRunGroup", { category, count: toolUses.length });
 
   const status = deriveAggregateStatus(toolUses);
-  const isShimmering = status === "running";
+  const isRunning = status === "running";
   // Reads are not asked about by default, but a hook can ask about any
   // call: a waiting one inside the fold keeps it open, mirroring
   // SubagentSection.
-  const [expanded, handleToggle] = useAutoDisclosure(isShimmering || status === "waiting");
+  const [expanded, handleToggle] = useAutoDisclosure(isRunning || status === "waiting");
   const outer = useStepPlace();
   const rail = useMemo(() => ({ rows: "rail", inHelper: outer.inHelper }) as const, [outer.inHelper]);
 
@@ -73,15 +72,17 @@ export const ToolRunGroup = memo(function ToolRunGroup({
         gesture={{ kind: "expand", expanded, onToggle: handleToggle, label }}
         place={outer.rows === "rail" ? "rail" : "card"}
         mark={<RunMark status={status} />}
-        titleClassName={isShimmering || status === "failed" ? "stg:font-medium" : undefined}
+        titleClassName={isRunning || status === "failed" ? "stg:font-medium" : undefined}
         title={
-          // A running fold carries the ambient-liveness sweep on its label
-          // (stigmer#277); the shimmer class owns `color`, so it replaces the
-          // static color utility rather than fighting it. Done, it goes quiet.
-          <span className={cn(isShimmering ? "stgm-shimmer-label" : status === "failed" ? "stg:text-foreground" : "stg:text-muted-foreground")}>
+          // A running fold reads bright, as a step at work does; done, it
+          // goes quiet.
+          <span className={isRunning || status === "failed" ? "stg:text-foreground" : "stg:text-muted-foreground"}>
             {label}
           </span>
         }
+        // At work in a card of steps it sits on the running band; on a rail
+        // the band is the to-do's or the helper's.
+        band={isRunning && outer.rows !== "rail"}
         bodySpan="rail"
         body={
           expanded ? (

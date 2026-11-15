@@ -124,9 +124,10 @@ function PlanItemRow({
   const mark = <PlanMark status={status} live={live} stoppedTone={stoppedTone} />;
   // The item in hand sits on a band of the running hue, the drawing's one
   // tint in the plan, with the steps it is taking: the band token keeps
-  // their muted second lines readable on it (theme contract). Not while it
-  // waits: its line says whom it waits on.
-  const band = live && !waiting;
+  // their muted second lines readable on it (theme contract). Waiting, it
+  // keeps the band, as a waiting step is drawn (the session page, S48): it
+  // is still the item in hand, and its steps may still be at work under it.
+  const band = live;
   const words = (
     <span
       className={cn(

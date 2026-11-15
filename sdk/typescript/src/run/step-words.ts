@@ -29,10 +29,10 @@ export type StepTense = "present" | "past" | "failed" | "stopped";
 
 /** A step's words: the line, how it stands, and what it names beside the line. */
 export interface StepPhrase {
-  /** The line: "Edited invoice.ts", "Searching for round( in src/billing", "Couldn't read notes.md". */
+  /** The line: "Edited invoice.ts", "Searched for round( in src/billing", "Couldn't read notes.md". */
   readonly text: string;
   readonly tense: StepTense;
-  /** The folder of the file the line names ("src/billing"); "" when it names none or the file sits at the root. */
+  /** The folder of the file the line names, or where a search at work looks ("src/billing"); "" when it names none or the file sits at the root. */
   readonly folder: string;
   /** The connected app an MCP call belongs to; "" for a built-in tool. */
   readonly app: string;
@@ -293,8 +293,12 @@ function stepPhraseByTense(tool: ToolUse): StepPhrase {
   const target = targetOf(tool);
   const text = phraseOf(KIND_WORDS[kind][form], target);
   if (kind === "search") {
-    const where = textAt(tool, "path");
-    return { text: target !== "" && where !== "" ? `${text} in ${short(trimSeparators(where))}` : text, tense, folder: "", app };
+    const where = target !== "" ? short(trimSeparators(textAt(tool, "path"))) : "";
+    // At work, a search has no counts yet: where it looks is its second line,
+    // as a file step's folder is ("Searching for round(", then "src/billing").
+    // Done, its counts take the second line and the folder joins its words.
+    if (form === "present") return { text, tense, folder: where, app };
+    return { text: where !== "" ? `${text} in ${where}` : text, tense, folder: "", app };
   }
   const isFile = kind === "file_read" || kind === "file_write" || kind === "file_edit" || kind === "file_delete";
   return { text, tense, folder: isFile && target !== "" ? short(folderOf(pathOf(tool))) : "", app };

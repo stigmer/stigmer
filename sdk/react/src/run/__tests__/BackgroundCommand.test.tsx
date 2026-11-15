@@ -55,7 +55,7 @@ describe("a background command's row", () => {
     try {
       const { container } = render(<ToolCallItem toolUse={backgroundStart({ liveOutput: "ready on :3000\n" })} />);
       expect(container.querySelector('[data-cursor-target="background-command-status"]')?.textContent).toBe("Running in the background · 2m 05s");
-      expect(rowOf(container).querySelector(".stgm-shimmer-label"), "the running sweep").not.toBeNull();
+      expect(rowOf(container).querySelector(".stg\\:bg-status-running-band"), "on the running band").not.toBeNull();
       // Closed by default: a command left running is not the step in hand
       // (the session page, S55); a click opens it to what it printed.
       expect(container.textContent).not.toContain("ready on :3000");
@@ -96,7 +96,7 @@ describe("a background command's row", () => {
     const header = rowOf(container).firstElementChild as HTMLElement;
     expect(header.textContent).toContain("exit 1");
     expect(header.textContent).toContain("npm run dev");
-    expect(rowOf(container).querySelector(".stgm-shimmer-label"), "no running sweep once it ended").toBeNull();
+    expect(rowOf(container).querySelector(".stg\\:bg-status-running-band"), "off the band once it ended").toBeNull();
     // Closed once it ended, what it printed one click away.
     const toggle = rowOf(container).querySelector('[data-cursor-target="thread-card-toggle"]')!;
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
