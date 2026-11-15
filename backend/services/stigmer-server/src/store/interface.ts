@@ -29,6 +29,7 @@ import type {
   ListIndexDeclaration,
   ListIndexQuery,
   ListIndexRow,
+  ListIndexSweep,
 } from "./list-index.js";
 import type {
   PermissionChange,
@@ -821,7 +822,9 @@ export interface Store {
    * another revision of the declaration — is evaluated from its bytes with
    * the declaration, and repaired by a compare-and-set on those bytes so a
    * newer write is never overwritten. An unproven row that cannot be
-   * decoded is skipped and logged, as the list lanes skip one.
+   * decoded is skipped and logged, as the list lanes skip one; a caller
+   * that must account for every row of the kind, such as a deletion that
+   * must not leave a person's data behind, reads queryResourcesForSweep.
    *
    * Throws when `declaration` is not the one this store was opened with,
    * or on a limit that is not a positive integer.
@@ -830,6 +833,20 @@ export interface Store {
     declaration: ListIndexDeclaration<K>,
     query: ListIndexQuery<K>,
   ): Promise<ListIndexRow[]>;
+
+  /**
+   * queryResources' read for a sweep: the same rows, plus the ids of every
+   * row of the declared kind whose bytes do not decode (stigmer/stigmer#2774).
+   * Such a row has no facts, so it cannot be matched against the query:
+   * `undecodable` is kind-wide, whatever the query's predicates, cursor or
+   * limit, and the caller decides which of those ids it answers for. One
+   * read answers both, and each such row is still logged as queryResources
+   * logs it. Throws as queryResources does.
+   */
+  queryResourcesForSweep<K extends string>(
+    declaration: ListIndexDeclaration<K>,
+    query: ListIndexQuery<K>,
+  ): Promise<ListIndexSweep>;
 
   /**
    * Removes a resource; NO error if it does not exist. Answers whether a row

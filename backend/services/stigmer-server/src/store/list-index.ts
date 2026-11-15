@@ -432,6 +432,24 @@ export interface ListIndexRow {
   readonly cursor: ListIndexCursor;
 }
 
+/**
+ * A sweep's read (Store.queryResourcesForSweep): the rows a list would
+ * answer, plus the ids of the kind's rows the store could not read. A row
+ * whose bytes do not decode has no facts, so it can be neither matched
+ * against a query nor placed in the order; a caller that must account for
+ * every row of the kind, such as a deletion that must not leave a person's
+ * data behind, judges these ids itself.
+ */
+export interface ListIndexSweep {
+  /** Exactly what queryResources answers for the same query. */
+  readonly rows: ListIndexRow[];
+  /**
+   * Every unproven row of the declared kind whose bytes do not decode,
+   * sorted by id, whatever the query's predicates, cursor or limit.
+   */
+  readonly undecodable: readonly string[];
+}
+
 /** Byte order, the order both drivers sort text in (Postgres `COLLATE "C"`, sqlite BINARY). */
 function compareBytes(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;

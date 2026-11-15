@@ -802,14 +802,16 @@ export { fillReferenceNames } from "./pipeline/interceptors/resource-references.
 // turned on (stigmer/stigmer#1169): a client branches on the reason, not
 // the copy.
 export { API_KEY_CREATED_BEFORE_SIGN_IN } from "./domain/apikey/verifier.js";
-// The list index's read shapes, which `Store.queryResources` speaks
-// (store/list-index.ts). Declaring an index stays internal: the list is
-// the composition root's (boot/list-indexes.ts), one per server.
+// The list index's read shapes, which `Store.queryResources` and
+// `Store.queryResourcesForSweep` speak (store/list-index.ts). Declaring an
+// index stays internal: the list is the composition root's
+// (boot/list-indexes.ts), one per server.
 export type {
   ListIndexCursor,
   ListIndexDeclaration,
   ListIndexQuery,
   ListIndexRow,
+  ListIndexSweep,
 } from "./store/list-index.js";
 // The page loop every paged lane runs (pipeline/steps/list-page.ts), over a
 // row source: an extension that keeps its own table pages its list by the

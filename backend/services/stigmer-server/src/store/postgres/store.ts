@@ -90,6 +90,7 @@ import type {
   ListIndexFacts,
   ListIndexQuery,
   ListIndexRow,
+  ListIndexSweep,
 } from "../list-index.js";
 import { NOOP_STORE_LOGGER } from "../logger.js";
 import { newBoundedPool } from "./pool.js";
@@ -544,18 +545,24 @@ export class PostgresStore implements Store {
     declaration: ListIndexDeclaration<K>,
     query: ListIndexQuery<K>,
   ): Promise<ListIndexRow[]> {
+    return (await this.queryResourcesForSweep(declaration, query)).rows;
+  }
+
+  async queryResourcesForSweep<K extends string>(
+    declaration: ListIndexDeclaration<K>,
+    query: ListIndexQuery<K>,
+  ): Promise<ListIndexSweep> {
     this.listIndexes.require(declaration);
     assertListIndexLimit(query.limit);
-    if (query.anyKey !== undefined && query.anyKey.length === 0) {
-      return [];
-    }
     const kindName = apiResourceKindName(declaration.kind);
 
     // A key read is driven from the key table, ordered by that index's own
     // columns, so the plan is one index range whatever the planner's
     // statistics say (a freshly written table has none); several keys are
     // one such read each, merged below. Without a key the organization
-    // index is the range.
+    // index is the range; an empty key list matches no proven row, but
+    // the unproven rows are still judged, so a sweep hears of a damaged
+    // one.
     const provenRows: ListIndexRow[] = [];
     const reads =
       query.anyKey === undefined
@@ -583,11 +590,14 @@ export class PostgresStore implements Store {
       declaration.revision,
     ]);
     const unprovenRows: ListIndexRow[] = [];
+    const undecodable: string[] = [];
     for (const row of oneRowPerId(
       unproven.rows as Array<{ id: string; data: Uint8Array }>,
     )) {
       const facts = await this.deriveAndRepair(declaration, row.id, row.data);
-      if (facts !== undefined && matchesListIndexQuery(row.id, facts, query)) {
+      if (facts === undefined) {
+        undecodable.push(row.id);
+      } else if (matchesListIndexQuery(row.id, facts, query)) {
         unprovenRows.push({
           id: row.id,
           data: row.data,
@@ -595,7 +605,10 @@ export class PostgresStore implements Store {
         });
       }
     }
-    return mergeListIndexRows(provenRows, unprovenRows, query.limit);
+    return {
+      rows: mergeListIndexRows(provenRows, unprovenRows, query.limit),
+      undecodable: undecodable.sort(),
+    };
   }
 
   async deleteResource(
