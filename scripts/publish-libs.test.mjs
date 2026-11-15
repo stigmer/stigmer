@@ -303,7 +303,7 @@ test("isTestSidePath names the workspace's test markers and nothing a consumer i
     "__tests__/zip-structure.test.ts",
     "workspace/__tests__/a11y/.gitignore",
     "__tests__/fixtures/encrypted-payload-fixture.json",
-    "__test-utils__/fake-claimcheck-storage.ts",
+    "__test-utils__/fake-artifact-storage.ts",
     "marketplace/__fixtures__/cursor-marketplace.ts",
     "node.test.ts",
     "tools/format.test.tsx",

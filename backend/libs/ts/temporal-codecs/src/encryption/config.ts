@@ -13,9 +13,8 @@
  *      replay work across runner restarts (every boot re-fetches the SAME
  *      key).
  *
- * Encryption is enabled iff a key is present from either source — the same
- * enabled-iff-configured pattern as the claim-check codec. A malformed key
- * fails the boot rather than silently running plaintext: an operator who set
+ * Encryption is enabled iff a key is present from either source. A malformed
+ * key fails the boot rather than silently running plaintext: an operator who set
  * the key (or a server that minted one) intended history to be encrypted.
  *
  * Key rotation: payloads carry the id of the key that encrypted them.
