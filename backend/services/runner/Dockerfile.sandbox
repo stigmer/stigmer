@@ -150,6 +150,18 @@ WORKDIR /workspace
 
 CMD ["/bin/bash"]
 
+# What each published stage is, on its registry page. Every published stage
+# sets its own description, so an image never shows its parent stage's words,
+# and declares it after its RUN lines, so the label never touches a layer's
+# cache. The release lanes read these defaults (scripts/lib/image-description.mjs)
+# and write each as the index annotation GHCR shows for a multi-platform image.
+# Published as ghcr.io/stigmer/runner-base.
+ARG IMAGE_DESCRIPTION="The default base of Stigmer's sandbox image: the tools an agent's shell uses, with no runner"
+LABEL org.opencontainers.image.source="https://github.com/stigmer/stigmer" \
+      org.opencontainers.image.vendor="Stigmer" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.description="${IMAGE_DESCRIPTION}"
+
 # ---------- The @stigmer/* file: dependencies, built ----------
 FROM node-runtime AS libs
 
@@ -291,6 +303,13 @@ RUN release="${RUNNER_LAYER_RELEASE}" && \
 # a base image Stigmer did not build.
 FROM scratch AS runner-layer
 
+# Published as ghcr.io/stigmer/runner-layer (see base for the description).
+ARG IMAGE_DESCRIPTION="Stigmer's runner as a layer to add to a base image of your own"
+LABEL org.opencontainers.image.source="https://github.com/stigmer/stigmer" \
+      org.opencontainers.image.vendor="Stigmer" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.description="${IMAGE_DESCRIPTION}"
+
 COPY --from=node-runtime /usr/local/bin/node /runner/bin/node
 COPY --from=builder /build/slim/engines/ /runner/engines/
 COPY --from=builder /build/slim/start /runner/bin/start
@@ -311,6 +330,10 @@ COPY --from=builder /build/slim/start /runner/bin/start
 COPY --from=builder /build/slim/node_modules/ /runner/dist/node_modules/
 COPY --from=builder /build/slim/dist/ /runner/dist/
 COPY --from=builder /build/slim/RELEASE /runner/RELEASE
+
+# Published as ghcr.io/stigmer/runner (see base for the description).
+ARG IMAGE_DESCRIPTION="Stigmer's sandbox image: a runner, the process that runs your agents, with the tools an agent's shell uses"
+LABEL org.opencontainers.image.description="${IMAGE_DESCRIPTION}"
 
 # ---------- Compose runner (the self-host stack's runner) ----------
 # The sandbox stage plus the stigmer CLI. Why the CLI: in the OSS/local
@@ -377,3 +400,7 @@ ENV HOME=/data
 # whose test pins this line to it): the layer's start script, which checks
 # the image and execs the runner's own Node.
 CMD ["/runner/bin/start", "/runner/dist/main.js"]
+
+# Published as ghcr.io/stigmer/stigmer-runner (see base for the description).
+ARG IMAGE_DESCRIPTION="Stigmer's runner for the self-host stack: runs your agents beside stigmer-server, with the stigmer CLI"
+LABEL org.opencontainers.image.description="${IMAGE_DESCRIPTION}"

@@ -13,7 +13,10 @@
  * manifest, README opening, chart, image label, root help and the Homebrew
  * formula) are hand-written in their own formats, so they are held to the
  * sentence's core, the part every fitted form keeps, and every public
- * package's description to carrying no retired phrase.
+ * package's description to carrying no retired phrase. Every image Stigmer
+ * publishes says what it is on its registry page, in words of its own, and
+ * every tracked Dockerfile is one of them or named as not published, so a new
+ * image cannot ship with a blank page.
  *
  * The examples a developer reads (the docs, the reference sources, the
  * consoles, the MCP server and the SDK READMEs) are held to the current job
@@ -25,7 +28,9 @@ import { readFileSync, readdirSync } from "node:fs";
 import { extname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { parse as parseYaml } from "yaml";
 import { DESC as HOMEBREW_DESC } from "../../scripts/homebrew-formula.mjs";
+import { imageDescription } from "../../scripts/lib/image-description.mjs";
 import { POSITIONING } from "../positioning";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
@@ -255,6 +260,101 @@ test("no package, entry point or README description tells a retired story", () =
     }
   }
   assert.deepEqual(retired, [], WHERE_THE_WORDS_CHANGE);
+});
+
+/** The step env that states the Enterprise image's words once, for its label and its index annotation. */
+function enterpriseImageDescription(): string | undefined {
+  const lane = parseYaml(read(".github/workflows/release.npm-libs.yaml")) as {
+    jobs: Record<string, { steps?: Array<{ env?: Record<string, unknown> }> }>;
+  };
+  const words = (lane.jobs["publish-enterprise-image"]?.steps ?? [])
+    .map((step) => step.env?.IMAGE_DESCRIPTION)
+    .find((value): value is string => typeof value === "string");
+  return words;
+}
+
+/**
+ * Every image Stigmer publishes, by the Dockerfile and stage it is built from
+ * and the build arguments its lane passes. A registry page shows these words
+ * (the lanes write them as the index annotation GHCR reads, from the same
+ * label: scripts/lib/image-description.mjs), so each must say what its image
+ * is. Only the images that are a way to run Stigmer (the server, Enterprise
+ * and the all-in-one) carry the one sentence's core; the server's is held by
+ * ENTRY_POINTS above, and the runners and the MCP server describe their job.
+ */
+const PUBLISHED_IMAGES: ReadonlyArray<{
+  image: string;
+  dockerfile: string;
+  target?: string;
+  buildArgs?: () => Record<string, string>;
+}> = [
+  { image: "ghcr.io/stigmer/stigmer-server", dockerfile: "backend/services/stigmer-server/Dockerfile" },
+  {
+    image: "ghcr.io/stigmer/stigmer-server-ee",
+    dockerfile: "backend/services/stigmer-server/Dockerfile",
+    buildArgs: () => ({ IMAGE_DESCRIPTION: enterpriseImageDescription() ?? "" }),
+  },
+  { image: "ghcr.io/stigmer/stigmer", dockerfile: "deploy/all-in-one/Dockerfile" },
+  { image: "ghcr.io/stigmer/mcp-server-stigmer", dockerfile: "mcp-server/Dockerfile" },
+  { image: "ghcr.io/stigmer/runner", dockerfile: "backend/services/runner/Dockerfile.sandbox", target: "sandbox" },
+  {
+    image: "ghcr.io/stigmer/stigmer-runner",
+    dockerfile: "backend/services/runner/Dockerfile.sandbox",
+    target: "compose-runner",
+  },
+  { image: "ghcr.io/stigmer/runner-base", dockerfile: "backend/services/runner/Dockerfile.sandbox", target: "base" },
+  {
+    image: "ghcr.io/stigmer/runner-layer",
+    dockerfile: "backend/services/runner/Dockerfile.sandbox",
+    target: "runner-layer",
+  },
+];
+
+/** Tracked Dockerfiles no lane publishes, each with the reason. */
+const NOT_PUBLISHED: ReadonlyMap<string, string> = new Map([
+  ["deploy/runner-layer/Dockerfile", "operators build it, joining runner-layer onto a base image of their own"],
+  ["client-apps/web/Dockerfile", "no release lane builds or pushes it"],
+]);
+
+test("every image Stigmer publishes says what it is on its registry page", () => {
+  const problems: string[] = [];
+  for (const { image, dockerfile, target, buildArgs } of PUBLISHED_IMAGES) {
+    const description = imageDescription(read(dockerfile), { target, buildArgs: buildArgs?.() });
+    if (description === undefined || description.trim() === "") {
+      problems.push(`${image} (${dockerfile}${target ? ` --target ${target}` : ""}): no org.opencontainers.image.description`);
+      continue;
+    }
+    for (const phrase of RETIRED_PHRASES) {
+      if (carries(description, phrase)) problems.push(`${image}: "${phrase}"`);
+    }
+  }
+  const descriptions = PUBLISHED_IMAGES.map(({ dockerfile, target, buildArgs }) =>
+    imageDescription(read(dockerfile), { target, buildArgs: buildArgs?.() }),
+  );
+  if (new Set(descriptions).size !== descriptions.length) {
+    problems.push("two published images show the same words; each says what its own image is");
+  }
+  if (enterpriseImageDescription() === undefined) {
+    problems.push("release.npm-libs.yaml publish-enterprise-image states no IMAGE_DESCRIPTION in a step's env");
+  }
+  assert.deepEqual(problems, [], WHERE_THE_WORDS_CHANGE);
+});
+
+test("every tracked Dockerfile is a published image or named as not published", () => {
+  const tracked = execFileSync("git", ["ls-files", "-z", "--", ":(glob)**/Dockerfile*"], { cwd: ROOT, encoding: "utf8" })
+    .split("\0")
+    .filter((path) => path !== "" && !path.endsWith(".dockerignore"));
+  const known = new Set([...PUBLISHED_IMAGES.map(({ dockerfile }) => dockerfile), ...NOT_PUBLISHED.keys()]);
+  assert.deepEqual(
+    tracked.filter((path) => !known.has(path)),
+    [],
+    "a new Dockerfile joins PUBLISHED_IMAGES with its description, or NOT_PUBLISHED with the reason",
+  );
+  assert.deepEqual(
+    [...known].filter((path) => !tracked.includes(path)),
+    [],
+    "a Dockerfile listed here is no longer tracked",
+  );
 });
 
 /** Where the site and the console keep their text sources. */

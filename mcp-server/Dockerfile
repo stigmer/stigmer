@@ -13,6 +13,11 @@
 #     --build-arg MCP_SERVER_VERSION=<release, e.g. 0.1.4> -t mcp-server-stigmer .
 FROM node:22-alpine
 
+# What the image is, on its registry page: the release lane reads this default
+# and writes it as the index annotation GHCR shows for a multi-platform image
+# (scripts/lib/image-description.mjs), so the words live here once.
+ARG IMAGE_DESCRIPTION="Stigmer's MCP server: the Stigmer API as tools for an MCP client, over stdio (the default) or HTTP"
+LABEL org.opencontainers.image.description="${IMAGE_DESCRIPTION}"
 LABEL org.opencontainers.image.source="https://github.com/stigmer/stigmer"
 LABEL org.opencontainers.image.vendor="Stigmer"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
@@ -70,11 +75,21 @@ RUN case "${MCP_SERVER_VERSION}" in *[!0-9A-Za-z.-]*) false ;; esac && \
 # Run as the non-root user shipped with the node:alpine base.
 USER node
 
-# Default HTTP port (overridable via STIGMER_MCP_HTTP_PORT).
+# The default HTTP port, used only when STIGMER_MCP_TRANSPORT is http or both
+# (overridable via STIGMER_MCP_HTTP_PORT). The default transport, stdio,
+# listens on no port.
 EXPOSE 8080
 
-# Health check for container orchestrators.
+# Health check for container orchestrators, by transport. Under stdio (the
+# default, matched case-insensitively as the server reads it) nothing listens
+# on a port, and Docker runs a check only while the process runs, so the
+# check passes: a running stdio server is the only honest signal there is.
+# Under http or both it probes /health on the configured port; an empty
+# variable means its default, as the server's config reads it.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-    CMD wget -qO- http://localhost:8080/health || exit 1
+    CMD case "$(printf '%s' "${STIGMER_MCP_TRANSPORT:-stdio}" | tr '[:upper:]' '[:lower:]')" in \
+        stdio) exit 0 ;; \
+    esac; \
+    wget -qO- "http://localhost:${STIGMER_MCP_HTTP_PORT:-8080}/health" || exit 1
 
 ENTRYPOINT ["mcp-server-stigmer"]

@@ -215,7 +215,10 @@ jobs:
           DEV_VERSION: ${{ inputs.dev_version }}
         run: |
           if [ "$ARCH" = "amd64" ]; then
-            OUTPUT=(--tag "$IMAGE:$STAGE" --push)
+            # The words GHCR shows on the package page: the index annotation, read
+            # from the Dockerfile's description label (scripts/lib/image-description.mjs).
+            IMAGE_DESCRIPTION="$(node scripts/lib/image-description.mjs --file backend/services/runner/Dockerfile.sandbox --target sandbox)"
+            OUTPUT=(--tag "$IMAGE:$STAGE" --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" --push)
           else
             OUTPUT=(--output type=cacheonly)
           fi
@@ -288,7 +291,15 @@ jobs:
         env:
           IMAGE: ${{ steps.tags.outputs.image }}
           STAGE: ${{ steps.tags.outputs.stage }}
-        run: docker buildx imagetools create --tag "$IMAGE:latest" "$IMAGE:$STAGE"
+        run: |
+          # A new index keeps the words its source carries (GHCR shows the index
+          # annotation as the package description); a source with none is refused.
+          SOURCE="$IMAGE:$STAGE"
+          IMAGE_DESCRIPTION="$(docker buildx imagetools inspect "$SOURCE" --format '{{ index .Manifest.Annotations "org.opencontainers.image.description" }}')"
+          [ -n "$IMAGE_DESCRIPTION" ] || { echo "$SOURCE carries no org.opencontainers.image.description annotation; refusing to write an index without one" >&2; exit 1; }
+          docker buildx imagetools create \
+            --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" \
+            --tag "$IMAGE:latest" "$SOURCE"
 
       - name: Promote the tested version image
         # Only a smoke-tested build of a v* tag or a dev build gets here: the
@@ -305,7 +316,14 @@ jobs:
           if [ "$MOVES_PROD" = "true" ]; then
             TAGS+=(--tag "$IMAGE:prod")
           fi
-          docker buildx imagetools create "${TAGS[@]}" "$IMAGE:$STAGE"
+          # A new index keeps the words its source carries (GHCR shows the index
+          # annotation as the package description); a source with none is refused.
+          SOURCE="$IMAGE:$STAGE"
+          IMAGE_DESCRIPTION="$(docker buildx imagetools inspect "$SOURCE" --format '{{ index .Manifest.Annotations "org.opencontainers.image.description" }}')"
+          [ -n "$IMAGE_DESCRIPTION" ] || { echo "$SOURCE carries no org.opencontainers.image.description annotation; refusing to write an index without one" >&2; exit 1; }
+          docker buildx imagetools create \
+            --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" \
+            "${TAGS[@]}" "$SOURCE"
 
       # The runner layer carries the same release as the sandbox image; the
       # base builds no runner, so it takes none. Not for a dev build, which
@@ -325,6 +343,9 @@ jobs:
             if [ "$target" = runner-layer ] && [ -n "$LAYER_RELEASE" ]; then
               RELEASE=(--build-arg "RUNNER_LAYER_RELEASE=$LAYER_RELEASE")
             fi
+            # The words GHCR shows on the package page: the index annotation, read
+            # from the Dockerfile's description label (scripts/lib/image-description.mjs).
+            IMAGE_DESCRIPTION="$(node scripts/lib/image-description.mjs --file backend/services/runner/Dockerfile.sandbox --target "$target")"
             docker buildx build \
               --platform "linux/$ARCH" \
               --target "$target" \
@@ -332,6 +353,7 @@ jobs:
               --cache-from "type=registry,ref=$CACHE_REF" \
               --file backend/services/runner/Dockerfile.sandbox \
               --tag "ghcr.io/$OWNER/runner-${target#runner-}:$STAGE-$ARCH" \
+              --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" \
               --push \
               .
           done
@@ -450,8 +472,15 @@ jobs:
         run: |
           for image in runner-base runner-layer; do
             ref="ghcr.io/$OWNER/$image"
-            docker buildx imagetools create --tag "$ref:$STAGE" \
-              "$ref:$STAGE-amd64" "$ref:$STAGE-arm64"
+            # A new index keeps the words its source carries (GHCR shows the index
+            # annotation as the package description); a source with none is refused.
+            SOURCE="$ref:$STAGE-amd64"
+            IMAGE_DESCRIPTION="$(docker buildx imagetools inspect "$SOURCE" --format '{{ index .Manifest.Annotations "org.opencontainers.image.description" }}')"
+            [ -n "$IMAGE_DESCRIPTION" ] || { echo "$SOURCE carries no org.opencontainers.image.description annotation; refusing to write an index without one" >&2; exit 1; }
+            docker buildx imagetools create \
+              --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" \
+              --tag "$ref:$STAGE" \
+              "$SOURCE" "$ref:$STAGE-arm64"
             TAGS=()
             if [ "$MOVES_LATEST" = "true" ]; then
               TAGS+=(--tag "$ref:latest")
@@ -459,8 +488,11 @@ jobs:
             if [ -n "$VERSION_TAG" ]; then
               TAGS+=(--tag "$ref:$VERSION_TAG")
             fi
+            # The moves carry the words the merged index was just given.
             if [ "${#TAGS[@]}" -gt 0 ]; then
-              docker buildx imagetools create "${TAGS[@]}" "$ref:$STAGE"
+              docker buildx imagetools create \
+                --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" \
+                "${TAGS[@]}" "$ref:$STAGE"
             fi
             docker buildx imagetools inspect "$ref:$STAGE"
           done

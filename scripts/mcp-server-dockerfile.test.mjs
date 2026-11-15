@@ -1,6 +1,7 @@
 // The MCP server image installs the exact release its build names, and no
-// other. Run via `node --test scripts/mcp-server-dockerfile.test.mjs` (wired
-// into root `npm test`).
+// other, and reports its health honestly in every transport. Run via
+// `node --test scripts/mcp-server-dockerfile.test.mjs` (wired into root
+// `npm test`).
 //
 // mcp-server/Dockerfile installs @stigmer/mcp-server from npm at the version
 // in MCP_SERVER_VERSION. A default there goes stale and quietly installs an
@@ -10,11 +11,19 @@
 // X.Y.Z or X.Y.Z-<pre>. No lane builds this image on a pull request, so this
 // test runs the guard's own shell, cut from the Dockerfile, against good and
 // bad versions, and checks the release lane still passes the version.
+//
+// The image's default transport is stdio, where nothing listens on a port, so
+// a health check that always probes HTTP calls every stdio container
+// unhealthy. The HEALTHCHECK's shell is run the same way: with a stub `wget`
+// on PATH that records the URL it was asked for, under every transport the
+// server accepts, so a stdio container is healthy without a probe and an HTTP
+// one is probed on the port it was configured with.
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
@@ -107,4 +116,96 @@ test("the release lane passes the version it published", () => {
     RELEASE_LANE,
     /--file mcp-server\/Dockerfile[\s\S]*--build-arg MCP_SERVER_VERSION="\$NPM_VERSION"/,
   );
+});
+
+/** The shell Docker runs for the image's HEALTHCHECK (`CMD <string>` runs under `/bin/sh -c`). */
+function healthCheck() {
+  const check = instructions(DOCKERFILE).find((line) =>
+    line.startsWith("HEALTHCHECK "),
+  );
+  assert.ok(check, "mcp-server/Dockerfile has no HEALTHCHECK");
+  const cmd = check.indexOf(" CMD ");
+  assert.ok(cmd > 0, "the HEALTHCHECK has no CMD");
+  const shell = check.slice(cmd + " CMD ".length).trim();
+  assert.ok(!shell.startsWith("["), "the HEALTHCHECK CMD must be a shell string");
+  return shell;
+}
+
+/**
+ * Runs the health check with the given environment and a stub `wget` that
+ * appends its arguments to a log and exits with `wgetStatus`. Returns the
+ * check's exit status and the wget calls it made.
+ */
+function runHealthCheck(env, wgetStatus = 0) {
+  const dir = mkdtempSync(join(tmpdir(), "mcp-healthcheck-"));
+  try {
+    const log = join(dir, "wget.log");
+    const stub = join(dir, "wget");
+    writeFileSync(
+      stub,
+      `#!/bin/sh\nprintf '%s\\n' "$*" >> "${log}"\nexit ${wgetStatus}\n`,
+    );
+    chmodSync(stub, 0o755);
+    const result = spawnSync("/bin/sh", ["-c", healthCheck()], {
+      env: { PATH: `${dir}:${process.env.PATH}`, ...env },
+      encoding: "utf8",
+    });
+    let calls = [];
+    try {
+      calls = readFileSync(log, "utf8").split("\n").filter(Boolean);
+    } catch {
+      calls = [];
+    }
+    return { status: result.status, calls, stderr: result.stderr };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+for (const [name, env] of [
+  ["unset", {}],
+  ["empty", { STIGMER_MCP_TRANSPORT: "" }],
+  ["stdio", { STIGMER_MCP_TRANSPORT: "stdio" }],
+  ["STDIO", { STIGMER_MCP_TRANSPORT: "STDIO" }],
+]) {
+  test(`the health check passes without probing when the transport is ${name}`, () => {
+    // wget would fail if it were called: nothing listens under stdio.
+    const result = runHealthCheck(env, 1);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.calls, []);
+  });
+}
+
+for (const transport of ["http", "both", "HTTP"]) {
+  test(`the health check probes /health on the default port when the transport is ${transport}`, () => {
+    const result = runHealthCheck({ STIGMER_MCP_TRANSPORT: transport });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.calls.length, 1);
+    assert.match(result.calls[0], /http:\/\/localhost:8080\/health(\s|$)/);
+  });
+}
+
+test("the health check probes the configured STIGMER_MCP_HTTP_PORT", () => {
+  const result = runHealthCheck({
+    STIGMER_MCP_TRANSPORT: "http",
+    STIGMER_MCP_HTTP_PORT: "9090",
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.calls.length, 1);
+  assert.match(result.calls[0], /http:\/\/localhost:9090\/health(\s|$)/);
+});
+
+test("the health check treats an empty STIGMER_MCP_HTTP_PORT as the default", () => {
+  const result = runHealthCheck({
+    STIGMER_MCP_TRANSPORT: "http",
+    STIGMER_MCP_HTTP_PORT: "",
+  });
+  assert.equal(result.calls.length, 1);
+  assert.match(result.calls[0], /http:\/\/localhost:8080\/health(\s|$)/);
+});
+
+test("the health check fails when the HTTP probe fails", () => {
+  const result = runHealthCheck({ STIGMER_MCP_TRANSPORT: "both" }, 4);
+  assert.equal(result.status, 1);
+  assert.equal(result.calls.length, 1);
 });
