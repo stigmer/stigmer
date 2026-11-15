@@ -59,7 +59,7 @@ identical in both editions by construction.
 
 | Library | Purpose |
 |---------|---------|
-| `temporal-codecs` | Temporal payload codecs (AES-256-GCM encryption + claim-check), shared by the server and the runner |
+| `temporal-codecs` | Temporal plumbing (AES-256-GCM payload encryption, connection settings, activity names), shared by the server and the runner |
 | `zip-structure` | Policy-free structural ZIP parsing (skill artifacts), shared by the server and the runner |
 | `plugin-package` | Reads an Agent Plugins package (open format plus the Cursor, Claude Code and Codex dialects) into what Stigmer would install; shared by the CLI's offline validation and the server's plugin install |
 

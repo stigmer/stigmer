@@ -1214,7 +1214,7 @@ rows:
     caller: primary
     needs: [workflow-execution]
     note: >-
-      Debris: the lane has no caller. CLAIMCHECK_ENABLED is set in no sandbox manifest, and the runner's claimcheck codec presigns through the ARTIFACTS lane with a claimcheck/ key prefix that lane rejects (stigmer#992). The composition does not carry it.
+      Debris: the lane has no caller. The runner carries no claim-check codec since stigmer#992 removed it (a codec never knows the execution a payload belongs to, and the runner offloads large run content under the execution's own artifacts instead). The composition does not carry the lane.
   - id: proxy.claimcheck.key-rules
     surface: proxy
     lane: >-

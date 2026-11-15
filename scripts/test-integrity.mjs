@@ -93,7 +93,8 @@
  *     service's entry point (a call of `testDatabaseAdminUrl` or
  *     `createTestDatabase`, a `gateDependency` call for its variable, a
  *     `createLocal()` or `createTimeSkipping()` that starts a Temporal test
- *     server), in the file or in a test helper it
+ *     server, or a call of the repositories' own Temporal start,
+ *     `spawnTemporal`), in the file or in a test helper it
  *     imports, followed through relative imports; a type-only import or a
  *     mention in a string reaches nothing. Reaching is judged per module, not
  *     per imported name: importing anything from a helper that reaches a
@@ -280,6 +281,18 @@ const POSTGRES_CALLS = new Set(["testDatabaseAdminUrl", "createTestDatabase"]);
  */
 const TEMPORAL_CALLS = new Set(["createLocal", "createTimeSkipping"]);
 const TEMPORAL_ENVIRONMENT = "TestWorkflowEnvironment";
+/**
+ * The repositories' own Temporal start (test/support's `spawnTemporal`, and a
+ * port of it elsewhere): it runs the `temporal` CLI and owns the process,
+ * because the SDK's `createLocal()` gives the server a fixed five seconds to
+ * answer and leaves it running when that fails. A suite that starts Temporal
+ * this way and connects with `createFromExistingServer()` reaches it as surely
+ * as one that calls `createLocal()`. Matched like the Postgres helpers: by
+ * call name, or an alias bound to it. Its inner layers (`bootTemporal`,
+ * `bootTemporalAttempt`) are not entry points: only the port-loss harness
+ * under test/conformance calls them, and that tree may use any service.
+ */
+const TEMPORAL_START_CALLS = new Set(["spawnTemporal"]);
 const TEMPORAL_TESTING = "@temporalio/testing";
 
 // ─── Parsing one file ───────────────────────────────────────────────────
@@ -699,7 +712,7 @@ export function scanModule(ts, path, text) {
   const specifiers = [];
   // Local names bound to an entry point: `import { createTestDatabase as make }`,
   // `const { TestWorkflowEnvironment: TWE } = await import("@temporalio/testing")`.
-  const local = new Map([...POSTGRES_CALLS, "gateDependency", TEMPORAL_ENVIRONMENT].map((name) => [name, name]));
+  const local = new Map([...POSTGRES_CALLS, ...TEMPORAL_START_CALLS, "gateDependency", TEMPORAL_ENVIRONMENT].map((name) => [name, name]));
   // Names bound to the package itself: `import * as testing from "@temporalio/testing"`,
   // `import testing from "@temporalio/testing"`, `const testing = await import("@temporalio/testing")`.
   // A test file is a module (it imports its runner), so a top-level `await (...)` parses as an await.
@@ -743,6 +756,7 @@ export function scanModule(ts, path, text) {
         const named = ts.isIdentifier(node.expression) ? node.expression.text : ts.isPropertyAccessExpression(node.expression) ? node.expression.name.text : undefined;
         const callee = named && ts.isIdentifier(node.expression) ? local.get(named) ?? named : named;
         if (callee && POSTGRES_CALLS.has(callee)) services.add("postgres");
+        if (callee && TEMPORAL_START_CALLS.has(callee)) services.add("temporal");
         // The receiver is a name bound to TestWorkflowEnvironment, or a member of
         // that name (`testing.TestWorkflowEnvironment`, `(await import(...)).TestWorkflowEnvironment`).
         // A member counts only on the package itself: a namespace bound to it, or an inline import of it.

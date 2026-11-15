@@ -42,8 +42,7 @@ export interface ArtifactStorage {
   presignedDownloadUrl?(key: string): Promise<string>;
   /**
    * Read an artifact's raw bytes by key — the inverse of {@link upload} and the
-   * single read path for all runner read-back (CAS reconcile, claimcheck
-   * decode).
+   * single read path for all runner read-back (CAS reconcile).
    *
    * Returns the exact stored bytes, or throws a descriptive, key-scoped `Error`
    * when the object is missing or the transport fails. Per-backend semantics:
@@ -61,8 +60,9 @@ export interface ArtifactStorage {
  * local path resolves to, but chosen deliberately (ARTIFACT_STORAGE_TYPE=none)
  * instead of reached by failure. The e2e file-gate stack boots with it, and
  * an operator can use it to force gate-everything behavior. It is only valid
- * where an absent store is: claimcheck (fail-hard by contract) refuses it at
- * construction.
+ * where an absent store is: {@link createArtifactStorage} refuses it at
+ * construction, and {@link resolveUsableArtifactStorage} turns that refusal
+ * into the absent store.
  */
 export type ArtifactStorageType = "local" | "proxy" | "none";
 
@@ -139,7 +139,7 @@ export interface ProxyArtifactStorageOptions extends RetryOptions {
   readonly requestTimeoutMs?: number;
   /**
    * Bound for the presigned R2 PUT/GET, which move whole artifact payloads
-   * (claim-check offloads, tool outputs, file-review captures — MB scale).
+   * (tool outputs, file-review captures — MB scale).
    * Deliberately wider than requestTimeoutMs so a legitimate slow transfer
    * is never aborted by a bound sized for JSON round-trips. Default 120 s.
    */
@@ -385,11 +385,10 @@ export function loadArtifactStorageConfig(config: Config): ArtifactStorageConfig
 
 export function createArtifactStorage(cfg: ArtifactStorageConfig): ArtifactStorage {
   if (cfg.type === "none") {
-    // Deliberate no-store posture. Throwing keeps both consumers honest:
-    // resolveUsableArtifactStorage catches and degrades to the deny-gate
-    // (the intent of "none"), while claimcheck's direct fail-hard call
-    // surfaces the config contradiction at boot instead of silently
-    // dropping Temporal payloads.
+    // Deliberate no-store posture. Construction fails hard, so a caller can
+    // never hold a store that silently drops writes;
+    // resolveUsableArtifactStorage catches the throw and degrades to the
+    // deny-gate (the intent of "none").
     throw new Error("ARTIFACT_STORAGE_TYPE=none: artifact storage deliberately disabled");
   }
   if (cfg.type === "proxy") {
@@ -457,9 +456,10 @@ async function isLocalPathWritable(basePath: string): Promise<boolean> {
  * still applies).
  * This is the fail-safe: without a store, nothing secret can be persisted.
  *
- * NOTE: this resolver is for the capture/offload path only. Claimcheck (Temporal
- * payload offload) MUST have storage and has no deny-gate to fall back to, so it
- * deliberately keeps calling {@link createArtifactStorage} directly (fail-hard).
+ * NOTE: {@link createArtifactStorage} is the fail-hard constructor beneath this
+ * resolver: it throws on "none" and on a broken config, and this resolver turns
+ * either into the absent store. Every runner caller reaches the constructor
+ * through this resolver; none needs storage without a deny-gate to fall back to.
  */
 export async function resolveUsableArtifactStorage(
   cfg: ArtifactStorageConfig,

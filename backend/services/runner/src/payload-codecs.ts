@@ -3,32 +3,32 @@
  * the standalone runner (runner.ts) and the runner manager
  * (runner-manager.ts) so the two entrypoints cannot drift.
  *
- * Codec order is a correctness property, not a style choice. Temporal
- * applies codecs in array order on encode and in reverse on decode, so
- * with [encryption, claimcheck]:
+ * The chain is payload encryption alone, or nothing. Large run content is not
+ * a codec's job: a codec never knows which execution a payload belongs to, so
+ * it cannot write under the execution's artifact prefix (the only keys the
+ * hosted artifacts lane accepts), and the server decodes runner results with
+ * the encryption codec alone. Oversized tool outputs and file bodies are
+ * offloaded before they reach Temporal, by shared/status-offload.ts, which has
+ * the execution in hand (stigmer#992 removed the claim-check codec this file
+ * once built).
  *
- *   encode: encrypt → claim-check   (payloads the claim-check codec
- *           relocates to object storage are already ciphertext)
- *   decode: claim-check → decrypt   (restore the blob, then decrypt)
+ * Codec order is a correctness property. Temporal applies codecs in array
+ * order on encode and in reverse on decode, so a codec added here goes after
+ * encryption: whatever it hands to another store is then already ciphertext.
  */
 
 import type { BootstrapKeyMaterial } from "@stigmer/temporal-codecs";
 import type { PayloadCodec } from "@temporalio/common";
-import type { Config } from "./config.js";
 import { getRunnerSecret } from "./shared/runner-credential-store.js";
 
 export async function createPayloadCodecs(
-  config: Config,
   bootstrapKeys?: BootstrapKeyMaterial,
 ): Promise<PayloadCodec[] | undefined> {
   const codecs: PayloadCodec[] = [];
 
-  const {
-    loadPayloadEncryptionConfig,
-    EncryptionPayloadCodec,
-    loadClaimcheckConfig,
-    ClaimcheckPayloadCodec,
-  } = await import("@stigmer/temporal-codecs");
+  const { loadPayloadEncryptionConfig, EncryptionPayloadCodec } = await import(
+    "@stigmer/temporal-codecs"
+  );
   // Env-configured keys win outright; server-managed (bootstrap) keys apply
   // only when the env is silent — see the lib's encryption/config.ts for the
   // rationale. Key VALUES resolve through getRunnerSecret (the #508 boot
@@ -44,21 +44,6 @@ export async function createPayloadCodecs(
         (encryptionConfig.secondary
           ? `, secondary_key_id=${encryptionConfig.secondary.keyId})`
           : ")"),
-    );
-  }
-
-  const claimcheckConfig = loadClaimcheckConfig();
-  if (claimcheckConfig.enabled) {
-    const { loadArtifactStorageConfig, createArtifactStorage } = await import(
-      "./shared/artifact-storage.js"
-    );
-    const storageConfig = loadArtifactStorageConfig(config);
-    const storage = createArtifactStorage(storageConfig);
-    codecs.push(new ClaimcheckPayloadCodec(storage, claimcheckConfig));
-    console.log(
-      `[runner] Claimcheck enabled (threshold=${claimcheckConfig.thresholdBytes}B, ` +
-        `compression=${claimcheckConfig.compressionEnabled}, ` +
-        `storage=${storageConfig.type})`,
     );
   }
 
