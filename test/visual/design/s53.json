@@ -239,9 +239,7 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {
-        "word The agent hasn't started yet. Your message is kept; try again to look once more.": "The not-started scene draws its strip once it loads (stigmer#3176)"
-      }
+      "pending": {}
     }
   ]
 }
