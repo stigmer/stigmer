@@ -2,8 +2,10 @@
 // every built screen to, so each file must say something the spec can
 // check: every drawing built by scenes the catalogue draws at a width it
 // draws them at, or a reason none does yet; every judged fact (sample,
-// ruled, pending) one the drawing has, judged once; and the import that
-// writes them keeps those judgements when the drawing is exported again.
+// ruled, pending) one the drawing has, judged once; every file read by the
+// reader the repository prints now (its stamp), so the page and the test
+// read alike; and the import that writes them keeps those judgements when
+// the drawing is exported again.
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -14,6 +16,7 @@ import { SCENES } from "../catalog.ts";
 
 const DESIGN = fileURLToPath(new URL("../../design/", import.meta.url));
 const IMPORT = fileURLToPath(new URL("../../scripts/import-design-facts.mjs", import.meta.url));
+const PRINT = fileURLToPath(new URL("../../scripts/print-design-reader.mjs", import.meta.url));
 
 interface Drawing {
   readonly caption: string;
@@ -28,6 +31,8 @@ interface Drawing {
 
 interface ScreenFacts {
   readonly screen: string;
+  /** The stamp of the reader the page read its drawings with. */
+  readonly reader?: string;
   readonly replacedBy?: string;
   readonly drawings: readonly Drawing[];
 }
@@ -65,6 +70,17 @@ describe("the drawings' facts", () => {
     }
   });
 
+  it("were read by the reader the repository prints now", () => {
+    const printed = spawnSync(process.execPath, [PRINT, "--stamp"], { encoding: "utf8" });
+    expect(printed.status, printed.stderr).toBe(0);
+    const stamp = printed.stdout.trim();
+    expect(stamp).toMatch(/^[0-9a-f]{12}$/);
+    // A file whose stamp is not this one was exported with another reader:
+    // export its page again with the printed script embedded (design/README.md).
+    const stale = FILES.filter((file) => read(file).replacedBy === undefined && read(file).reader !== stamp);
+    expect(stale, `facts files not read by reader ${stamp}`).toEqual([]);
+  });
+
   it.each(FILES)("%s judges only facts its drawings have, each once, each with a reason", (name) => {
     for (const drawing of read(name).drawings) {
       const keys = factKeys(drawing);
@@ -88,6 +104,7 @@ describe("importing a design's export", () => {
       drawing: 0,
       caption: "A screen",
       narrow: false,
+      reader: "0123456789ab",
       blocks: words.map((text) => ({ text, type: [14, 20, 400] })),
       buttons: [{ name: "Run again", height: 24 }],
     });
@@ -106,6 +123,7 @@ describe("importing a design's export", () => {
     expect(run().status).toBe(0);
     const second = JSON.parse(readFileSync(join(into, "s99.json"), "utf8"));
     expect(second.source).toBe("a page, version 1");
+    expect(second.reader).toBe("0123456789ab");
     expect(second.drawings[0]).toMatchObject({
       built: [{ scene: "session-busy", width: "desktop" }],
       words: [{ text: "Second words" }],
