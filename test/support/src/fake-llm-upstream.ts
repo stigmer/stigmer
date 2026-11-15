@@ -78,6 +78,12 @@ export interface FakeLlmUpstreamOptions {
   /** Answer an unscripted request with a canned text turn instead of a 500. */
   readonly defaultReply?: boolean;
   /**
+   * The canned turn's words, DEFAULT_REPLY_TEXT when unset. A journey whose
+   * reader is a coding agent sets words an agent would answer, so the agent
+   * does not read "no real model was called" as its runner lacking a key.
+   */
+  readonly defaultReplyText?: string;
+  /**
    * Answer an unscripted request with a non-retryable 400
    * invalid_request_error carrying this message, instead of a 500. Excludes
    * defaultReply.
@@ -128,6 +134,7 @@ export class FakeLlmUpstream {
   private captured: CapturedUpstreamRequest[] = [];
   private consumed = 0;
   private readonly defaultReply: boolean;
+  private readonly defaultReplyText: string;
   private readonly defaultError: { readonly message: string } | undefined;
   private readonly host: string;
 
@@ -136,6 +143,7 @@ export class FakeLlmUpstream {
       throw new Error("FakeLlmUpstream: defaultReply and defaultError exclude each other");
     }
     this.defaultReply = options.defaultReply ?? false;
+    this.defaultReplyText = options.defaultReplyText ?? DEFAULT_REPLY_TEXT;
     this.defaultError = options.defaultError;
     this.host = options.host ?? "127.0.0.1";
   }
@@ -235,7 +243,7 @@ export class FakeLlmUpstream {
       scripted ??
       (this.defaultError !== undefined
         ? defaultErrorFor(provider, this.defaultError.message)
-        : defaultReplyFor(provider, requestModel(rawBody)));
+        : defaultReplyFor(provider, requestModel(rawBody), this.defaultReplyText));
 
     const wantsStream = isStreamingRequest(rawBody);
     switch (next.kind) {
@@ -288,12 +296,12 @@ export class FakeLlmUpstream {
 
 // The canned turn default-reply mode answers with, in the provider's shape and
 // carrying the request's model so the caller's own model routing sees itself.
-function defaultReplyFor(provider: "anthropic" | "openai", model: string | undefined): UpstreamScript {
+function defaultReplyFor(provider: "anthropic" | "openai", model: string | undefined, text: string): UpstreamScript {
   if (provider === "anthropic") {
-    const body = anthropicText(DEFAULT_REPLY_TEXT);
+    const body = anthropicText(text);
     return { kind: "anthropic", body: model === undefined ? body : { ...body, model } };
   }
-  const body = openAiText(DEFAULT_REPLY_TEXT);
+  const body = openAiText(text);
   return { kind: "openai", body: model === undefined ? body : { ...body, model } };
 }
 

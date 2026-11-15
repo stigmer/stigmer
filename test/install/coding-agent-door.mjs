@@ -17,7 +17,8 @@
  *     client (so `stigmer auth login` finds it), with Temporal and a runner
  *     whose model is test/support's fake (lib/fake-model.mjs): the agent's
  *     first run saves a scripted file, and every later turn (the chat in the
- *     app) gets the fake's default reply;
+ *     app) gets the default reply in the words the example agent would use
+ *     (DOOR_REPLY), not the shared fake's "no real model was called";
  *   - the CLI from this checkout (the published one with `--published`)
  *     behind a `stigmer` on PATH that runs it with
  *     a scratch HOME (its config lives under HOME, with no other override)
@@ -41,7 +42,7 @@
  * STIGMER_API_KEY and no line of the stream shows it; the token route and
  * the chat are in the app, the route reading the app's own session; and a
  * browser signs in through the app's stand-in, opens the page, sends a
- * message and gets the fake's reply in the chat. Without `--published`, the
+ * message and gets DOOR_REPLY in the chat. Without `--published`, the
  * app's Stigmer packages are the ones packed from this checkout (the
  * registry's may predate the handover), installed before the browser step.
  *
@@ -99,8 +100,8 @@ import { spawnRunner } from "../support/src/runner-process.ts";
 import { spawnServer } from "../support/src/server-process.ts";
 import { spawnTemporal } from "../support/src/temporal.ts";
 import { tsServerEntryPath } from "../support/src/ts-build.ts";
-import { NPM_REGISTRY, USAGE, fetchPagePrompt, npmRegistryFlags, parseDoorArgs, stopProcessGroup } from "./lib/coding-agent-door.mjs";
-import { FAKE_MODEL_REPLY_TEXT, fakeModelEnv, isTitleCall, startFakeModel } from "./lib/fake-model.mjs";
+import { NPM_REGISTRY, USAGE, fetchPagePrompt, npmRegistryFlags, parseDoorArgs, runnerLogNotes, stopProcessGroup, streamDigest } from "./lib/coding-agent-door.mjs";
+import { fakeModelEnv, isTitleCall, startFakeModel } from "./lib/fake-model.mjs";
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 const cliEntry = join(repoRoot, "client-apps", "cli", "src", "cli", "stigmer.ts");
@@ -112,6 +113,8 @@ export const PROMPT =
   "Set up Stigmer for this project. Install its command line (`npm install -g @stigmer/cli`, or `brew install stigmer/tap/stigmer`), run `stigmer coding-agent`, and follow what it prints.";
 const ANSWER = "Yes, go ahead with what you suggest. I'm happy with your choices; keep going until the chat is on the page.";
 const DOOR_FILE = "door-report.md";
+/** Every unscripted turn's answer: what the example agent says of its invoice, as a real model would word it. */
+const DOOR_REPLY = "I checked invoice-4471 against po-2210: every line matches its purchase order except line 3, which bills 40 units where 36 were ordered.";
 
 const FOLLOWER = `
 const [url] = process.argv.slice(2);
@@ -239,7 +242,7 @@ export function GET(request: NextRequest) {
   execFileSync("git", ["-c", "user.name=door", "-c", "user.email=door@stigmer.test", "commit", "-qm", "Ledgerly"], { cwd: dir });
 }
 
-/** The model's script: the first run saves a file; every other turn gets the default reply. */
+/** The model's script: the first run saves a file; every other turn gets the default reply (DOOR_REPLY). */
 function scriptFirstRun(fake) {
   fake.enqueue({ kind: "anthropic", body: anthropicText("First run"), matches: isTitleCall });
   const turn = (request) => !isTitleCall(request);
@@ -283,6 +286,20 @@ function runClaude(appDir, env, sessionId, message, first, streamPath, signal, b
     "Bash(ls *)",
     "Bash(cat *)",
     "Bash(mkdir *)",
+    // What a person setting up their app approves without a second look,
+    // and a coding agent chains onto the commands above (`which stigmer ||
+    // echo …`, `stigmer run … ; echo "exit=$?"`, `| head`, a curl of the
+    // app's own route): refused, the step's command was dropped with them,
+    // and whether the agent ran it again was chance (stigmer/stigmer#3160).
+    "Bash(echo *)",
+    "Bash(which *)",
+    "Bash(node *)",
+    "Bash(brew *)",
+    "Bash(head *)",
+    "Bash(tail *)",
+    "Bash(grep *)",
+    "Bash(wc *)",
+    "Bash(curl *)",
     "Read",
     "Write",
     "Edit",
@@ -436,12 +453,18 @@ async function main() {
   // Stopped by hand (Ctrl-C, a kill), the run still tears its stack down.
   const stop = new AbortController();
   for (const signal of ["SIGINT", "SIGTERM"]) process.once(signal, () => stop.abort(new Error(`stopped by ${signal}`)));
-  const fake = await startFakeModel();
+  // The coding agent reads the runs' replies. The shared fake's words ("no
+  // real model was called") read to it as a runner without a model key, and
+  // it stopped before the chat, a stop a person on a real server never meets
+  // (stigmer/stigmer#3160); so every later turn answers as the example agent
+  // would, and the browser waits for those words.
+  const fake = await startFakeModel({ replyText: DOOR_REPLY });
   const issuer = await startLocalOidcIssuer({ audience: AUDIENCE });
   const temporal = await spawnTemporal();
   let server;
   let runner;
   let app;
+  let passed = false;
   try {
     server = await spawnServer(process.execPath, {
       args: [tsServerEntryPath()],
@@ -453,6 +476,9 @@ async function main() {
             STIGMER_OIDC_AUDIENCE: AUDIENCE,
             STIGMER_OIDC_NATIVE_CLIENT_ID: NATIVE_CLIENT,
           },
+      // Kept with the stream (--keep, and a failed walk's digest names them):
+      // a run's side of a failure exists nowhere else after teardown.
+      logFile: join(scratch, "server.log"),
     });
     runner = await spawnRunner({
       entryPath: runnerEntryPath(),
@@ -461,6 +487,7 @@ async function main() {
       registryOrigin: server.baseUrl,
       artifactDir: server.artifactBaseDir,
       env: fakeModelEnv(fake),
+      logFile: join(scratch, "runner.log"),
     });
     log(`a server that ${args.local ? "trusts every caller" : "signs its callers in"} is serving on ${server.baseUrl}, its runner on the fake model`);
     scriptFirstRun(fake);
@@ -565,13 +592,21 @@ async function main() {
       await box.waitFor({ timeout: 60_000 });
       await box.fill("Hello, can you check this month's invoices?");
       await box.press("Enter");
-      await page.getByText(FAKE_MODEL_REPLY_TEXT).first().waitFor({ timeout: 120_000 });
+      await page.getByText(fake.replyText).first().waitFor({ timeout: 120_000 });
       log("the app's page signed Dana in through its own sign-in, and the chat answered");
     } finally {
       await browser.close();
     }
     log("passed");
+    passed = true;
   } finally {
+    if (!passed && existsSync(streamPath)) {
+      for (const line of streamDigest(readFileSync(streamPath, "utf8"))) log(line);
+    }
+    const runnerLog = join(scratch, "runner.log");
+    if (!passed && existsSync(runnerLog)) {
+      for (const line of runnerLogNotes(readFileSync(runnerLog, "utf8"))) log(`runner: ${line}`);
+    }
     // Next keeps writing .next/ after SIGTERM: the folder is removed only
     // once the whole group has exited.
     await stopProcessGroup(app);

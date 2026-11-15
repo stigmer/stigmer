@@ -18,6 +18,13 @@
  * keeps writing `.next/` after SIGTERM, and a removal racing it fails with
  * ENOTEMPTY after the walk has passed (stigmer/stigmer#3154).
  *
+ * A walk that fails prints a digest of the coding agent's stream
+ * (streamDigest): every tool call Claude Code refused, and the last calls it
+ * made; and the runner's lines of note (runnerLogNotes). The scratch folder
+ * holding the stream and the server's and runner's logs is removed after the
+ * run, so without them a red in CI says only which check failed, not what
+ * the coding agent or the run did.
+ *
  * Plain node, no dependencies, like its neighbours.
  */
 
@@ -247,4 +254,61 @@ export async function stopProcessGroup(child, { graceMs = 10_000, pollMs = 50 } 
   }
   if (await waitGone(5_000)) return "killed";
   throw new Error(`process group ${pid} still has members after SIGKILL`);
+}
+
+/** One line of a digest: whitespace folded, at most `max` characters. */
+function oneLine(text, max = 240) {
+  const line = String(text).replace(/\s+/g, " ").trim();
+  return line.length > max ? `${line.slice(0, max - 1)}…` : line;
+}
+
+/**
+ * A failed walk's account of what the coding agent did, from its stream-json:
+ * each tool call Claude Code refused (a result saying it "requires approval"),
+ * with the call and the refusal, then the last `last` calls. Pure.
+ */
+export function streamDigest(streamText, { last = 12 } = {}) {
+  const calls = new Map();
+  const order = [];
+  const refused = [];
+  for (const raw of streamText.split("\n")) {
+    let event;
+    try {
+      event = JSON.parse(raw);
+    } catch {
+      continue;
+    }
+    const content = event?.message?.content;
+    if (!Array.isArray(content)) continue;
+    for (const part of content) {
+      if (part?.type === "tool_use") {
+        const call = `${part.name} ${typeof part.input?.command === "string" ? part.input.command : JSON.stringify(part.input ?? {})}`;
+        calls.set(part.id, call);
+        order.push(call);
+      } else if (part?.type === "tool_result") {
+        const text = typeof part.content === "string" ? part.content : JSON.stringify(part.content ?? "");
+        if (/requires approval/.test(text)) refused.push(`refused: ${oneLine(calls.get(part.tool_use_id) ?? "(unknown call)")} -> ${oneLine(text, 160)}`);
+      }
+    }
+  }
+  return [
+    `the coding agent made ${order.length} tool call(s), ${refused.length} refused`,
+    ...refused,
+    ...order.slice(-last).map((call, i, shown) => `call ${order.length - shown.length + i + 1}: ${oneLine(call)}`),
+  ];
+}
+
+/**
+ * A failed walk's lines of note from the runner's log: its warnings, errors
+ * and anything about outputs or uploads, the last `last` of them, without
+ * Node's experimental-feature notices and the model registry's retries,
+ * which every walk prints. Pure.
+ */
+export function runnerLogNotes(logText, { last = 20 } = {}) {
+  const notes = logText
+    .split("\n")
+    .filter((line) => /\b(warn|warning|error|failed|output|outputs|upload)\b/i.test(line))
+    .filter((line) => !/ExperimentalWarning|--trace-warnings|model registry|No workflows registered/.test(line))
+    .map((line) => oneLine(line));
+  return notes.slice(-last);
 }
