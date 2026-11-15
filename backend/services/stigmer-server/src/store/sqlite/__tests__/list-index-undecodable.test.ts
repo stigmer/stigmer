@@ -157,4 +157,50 @@ describe("a list-indexed row that does not decode", () => {
       await store.close();
     }
   });
+
+  it("is warned about when its mark cannot be written, judged again, and marked on the next read", async () => {
+    const logger = recordingLogger();
+    const store = SqliteStore.open(dbPath, logger, { listIndexes: [sessions] });
+    try {
+      writeDamaged(["ses_3"]);
+      const db = new DatabaseSync(dbPath);
+      try {
+        db.exec(
+          `CREATE TRIGGER refuse_list_stamp BEFORE UPDATE OF list_indexed_at ON resources
+           BEGIN SELECT RAISE(ABORT, 'refused by the test'); END`,
+        );
+        logger.lines.length = 0;
+        expect(
+          (await store.queryResourcesForSweep(sessions, {})).undecodable,
+        ).toEqual(["ses_3"]);
+      } finally {
+        db.exec(`DROP TRIGGER refuse_list_stamp`);
+        db.close();
+      }
+      expect(logger.lines).toEqual([
+        {
+          level: "warn",
+          message: "list index: marking a row that does not decode failed",
+          fields: {
+            kind: "session",
+            id: "ses_3",
+            error: expect.stringContaining("refused by the test"),
+          },
+        },
+      ]);
+
+      logger.lines.length = 0;
+      expect(
+        (await store.queryResourcesForSweep(sessions, {})).undecodable,
+      ).toEqual(["ses_3"]);
+      expect(
+        logger.lines.map((line) => line.message),
+        "the next read marks it",
+      ).toEqual([
+        "list index: a row does not decode; marked, lists skip it until it is rewritten",
+      ]);
+    } finally {
+      await store.close();
+    }
+  });
 });

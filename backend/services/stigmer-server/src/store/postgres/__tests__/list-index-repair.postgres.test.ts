@@ -262,5 +262,60 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         await again.close();
       }
     });
+
+    it("warns when a mark cannot be written, leaves the row to be judged again, and marks it on the next read", async () => {
+      await hooks.query(`TRUNCATE resources, resource_list_keys`);
+      const logger = recordingLogger();
+      const store = await PostgresStore.open(db.databaseUrl, logger, {
+        listIndexes: [sessions],
+      });
+      try {
+        await hooks.query(
+          `INSERT INTO resources (kind, id, data, updated_at) VALUES ('session', 'ses_3', $1, now())`,
+          [GARBAGE],
+        );
+        await hooks.query(
+          `CREATE FUNCTION refuse_list_stamp() RETURNS trigger LANGUAGE plpgsql AS
+             $$ BEGIN RAISE EXCEPTION 'refused by the test'; END $$`,
+        );
+        await hooks.query(
+          `CREATE TRIGGER refuse_list_stamp BEFORE UPDATE OF list_indexed_at ON resources
+             FOR EACH ROW EXECUTE FUNCTION refuse_list_stamp()`,
+        );
+        logger.lines.length = 0;
+        try {
+          expect(
+            (await store.queryResourcesForSweep(sessions, {})).undecodable,
+          ).toEqual(["ses_3"]);
+        } finally {
+          await hooks.query(`DROP TRIGGER refuse_list_stamp ON resources`);
+          await hooks.query(`DROP FUNCTION refuse_list_stamp()`);
+        }
+        expect(logger.lines).toEqual([
+          {
+            level: "warn",
+            message: "list index: marking a row that does not decode failed",
+            fields: {
+              kind: "session",
+              id: "ses_3",
+              error: "refused by the test",
+            },
+          },
+        ]);
+
+        logger.lines.length = 0;
+        expect(
+          (await store.queryResourcesForSweep(sessions, {})).undecodable,
+        ).toEqual(["ses_3"]);
+        expect(
+          logger.lines.map((line) => line.message),
+          "the next read marks it",
+        ).toEqual([
+          "list index: a row does not decode; marked, lists skip it until it is rewritten",
+        ]);
+      } finally {
+        await store.close();
+      }
+    });
   },
 );
