@@ -184,6 +184,7 @@ CREATE INDEX idx_resources_list_created ON public.resources USING btree (kind, l
 CREATE INDEX idx_resources_list_org ON public.resources USING btree (kind, list_org, list_created_at, id COLLATE "C");
 CREATE INDEX idx_resources_list_revision ON public.resources USING btree (kind, list_index_revision);
 CREATE INDEX idx_resources_list_unproven ON public.resources USING btree (kind, id) WHERE (list_indexed_at IS DISTINCT FROM updated_at);
+CREATE STATISTICS public.resources_list_proven ON (list_indexed_at = updated_at) FROM resources;
 
 CREATE TABLE public.routine_fires (
   routine_id text NOT NULL,
