@@ -32,7 +32,9 @@
  * wrote the row — a row written the way a binary that does not know the
  * index writes it is read from its bytes and repaired, the reconciliation
  * at open leaves nothing unproven, a row written under another revision
- * of a declaration is re-derived, and an undecodable one is skipped; and
+ * of a declaration is re-derived, and an undecodable one is marked once,
+ * read by no list and named to every sweep until a rewrite, a new
+ * revision or the next open re-judges it; and
  * the create-only insert and the reporting delete with the permission
  * history they can append (../permission-history.ts): one winner of
  * concurrent inserts, one entry per row change read from the row itself,
@@ -129,6 +131,17 @@ export interface StoreContractFixture {
    * the old pod writes while a roll overlaps it with the new one.
    */
   writeAsOlderBinary(
+    kind: ApiResourceKind,
+    id: string,
+    data: Uint8Array,
+  ): Promise<void>;
+  /**
+   * Replaces a stored row's bytes and nothing else, its `updated_at` and
+   * list stamp kept: a repair made outside the store that does not reset
+   * the stamp, which the store does not support and sees only at its next
+   * open (README.md, "The list index").
+   */
+  writeBytesKeepingStamp(
     kind: ApiResourceKind,
     id: string,
     data: Uint8Array,
@@ -2657,6 +2670,162 @@ export function describeStoreContract(
       ).toEqual(["ses_good"]);
     });
 
+    it("judges a row that does not decode once: marked, it leaves the unproven set and no read shape returns it", async () => {
+      await save(session("ses_good", "acme", 1, { agentId: "agt_1" }));
+      await fx.writeAsOlderBinary(
+        SESSION,
+        "ses_garbage",
+        new Uint8Array([0xff, 0xff, 0xff]),
+      );
+      expect(await fx.countUnproven(SESSION, 1)).toBe(1);
+
+      expect(
+        ids(await fx.store.queryResources(CONTRACT_SESSION_INDEX, {})),
+      ).toEqual(["ses_good"]);
+      expect(
+        await fx.countUnproven(SESSION, 1),
+        "proven to have no facts under this revision, so no list re-reads it",
+      ).toBe(0);
+
+      for (const query of [
+        {},
+        { org: "acme" },
+        { withoutKeys: ["agent" as const] },
+        { withoutKeys: ["channel" as const] },
+        { createdAtOrAfter: "" },
+        { anyKey: [{ name: "agent" as const, value: "agt_1" }] },
+        { limit: 1 },
+      ]) {
+        const sweep = await fx.store.queryResourcesForSweep(
+          CONTRACT_SESSION_INDEX,
+          query,
+        );
+        expect(ids(sweep.rows), JSON.stringify(query)).not.toContain(
+          "ses_garbage",
+        );
+        expect(
+          sweep.undecodable,
+          `a sweep still names it: ${JSON.stringify(query)}`,
+        ).toEqual(["ses_garbage"]);
+      }
+      expect(await fx.countUnproven(SESSION, 1)).toBe(0);
+    });
+
+    it("lists a marked row again once it is rewritten with good bytes, by the store or by an older binary", async () => {
+      const garbage = new Uint8Array([0xff, 0xff, 0xff]);
+      await fx.writeAsOlderBinary(SESSION, "ses_store", garbage);
+      await fx.writeAsOlderBinary(SESSION, "ses_older", garbage);
+      expect(
+        ids(await fx.store.queryResources(CONTRACT_SESSION_INDEX, {})),
+      ).toEqual([]);
+      expect(await fx.countUnproven(SESSION, 1)).toBe(0);
+
+      await save(session("ses_store", "acme", 2, { agentId: "agt_1" }));
+      await fx.writeAsOlderBinary(
+        SESSION,
+        "ses_older",
+        toBinary(
+          SessionSchema,
+          session("ses_older", "acme", 1, { agentId: "agt_1" }),
+        ),
+      );
+
+      const sweep = await fx.store.queryResourcesForSweep(
+        CONTRACT_SESSION_INDEX,
+        { org: "acme" },
+      );
+      expect(ids(sweep.rows)).toEqual(["ses_store", "ses_older"]);
+      expect(sweep.undecodable).toEqual([]);
+      expect(
+        ids(
+          await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
+            anyKey: [{ name: "agent", value: "agt_1" }],
+          }),
+        ),
+        "its keys are written with its facts",
+      ).toEqual(["ses_store", "ses_older"]);
+    });
+
+    it("re-judges a marked row under another revision of the declaration", async () => {
+      await fx.writeAsOlderBinary(
+        SESSION,
+        "ses_garbage",
+        new Uint8Array([0xff, 0xff, 0xff]),
+      );
+      await fx.store.queryResources(CONTRACT_SESSION_INDEX, {});
+      expect(await fx.countUnproven(SESSION, 1)).toBe(0);
+
+      const revised = declareListIndex({
+        ...CONTRACT_SESSION_INDEX,
+        revision: 2,
+      });
+      expect(
+        await fx.countUnproven(SESSION, 2),
+        "marked under revision 1 only",
+      ).toBe(1);
+      const other = await fx.openAnother({ listIndexes: [revised] });
+      expect(
+        await fx.countUnproven(SESSION, 2),
+        "the reconciliation at open judged it under revision 2",
+      ).toBe(0);
+      const sweep = await other.queryResourcesForSweep(revised, {});
+      expect(sweep.rows).toEqual([]);
+      expect(sweep.undecodable).toEqual(["ses_garbage"]);
+    });
+
+    it("re-judges every marked row at open, so a repair that kept the stamp is seen at the next start", async () => {
+      await save(session("ses_good", "acme", 1));
+      await fx.writeAsOlderBinary(
+        SESSION,
+        "ses_damaged",
+        new Uint8Array([0xff, 0xff, 0xff]),
+      );
+      await fx.store.queryResources(CONTRACT_SESSION_INDEX, {});
+      await fx.writeBytesKeepingStamp(
+        SESSION,
+        "ses_damaged",
+        toBinary(
+          SessionSchema,
+          session("ses_damaged", "acme", 2, { agentId: "agt_1" }),
+        ),
+      );
+      expect(
+        ids(await fx.store.queryResources(CONTRACT_SESSION_INDEX, {})),
+        "the mark holds until the stamp moves or the store opens",
+      ).toEqual(["ses_good"]);
+
+      const other = await fx.openAnother(CONTRACT_STORE_OPTIONS);
+      const sweep = await other.queryResourcesForSweep(
+        CONTRACT_SESSION_INDEX,
+        { org: "acme" },
+      );
+      expect(ids(sweep.rows)).toEqual(["ses_damaged", "ses_good"]);
+      expect(sweep.undecodable).toEqual([]);
+      expect(
+        ids(
+          await other.queryResources(CONTRACT_SESSION_INDEX, {
+            anyKey: [{ name: "agent", value: "agt_1" }],
+          }),
+        ),
+      ).toEqual(["ses_damaged"]);
+    });
+
+    it("keeps a marked row marked at open while its bytes still do not decode", async () => {
+      await fx.writeAsOlderBinary(
+        SESSION,
+        "ses_garbage",
+        new Uint8Array([0xff, 0xff, 0xff]),
+      );
+      await fx.store.queryResources(CONTRACT_SESSION_INDEX, {});
+      await fx.openAnother(CONTRACT_STORE_OPTIONS);
+      expect(await fx.countUnproven(SESSION, 1)).toBe(0);
+      expect(
+        (
+          await fx.store.queryResourcesForSweep(CONTRACT_SESSION_INDEX, {})
+        ).undecodable,
+      ).toEqual(["ses_garbage"]);
+    });
+
     it("names to a sweep every row of the kind it could not read, whatever the query", async () => {
       const garbage = new Uint8Array([0xff, 0xff, 0xff]);
       await save(session("ses_proven", "acme", 1, { agentId: "agt_1" }));
@@ -2707,8 +2876,8 @@ export function describeStoreContract(
       }
       expect(
         await fx.countUnproven(SESSION, 1),
-        "a damaged row stays unproven; the decodable one was repaired",
-      ).toBe(2);
+        "the decodable row was repaired and the damaged ones marked",
+      ).toBe(0);
     });
 
     it("leaves nothing unproven once a store has opened", async () => {

@@ -221,6 +221,49 @@ function oneRowPerId<T extends { readonly id: string }>(
 /** How many unproven rows the reconciliation at open decodes per statement. */
 const RECONCILE_BATCH = 500;
 
+/**
+ * The ids of a kind's rows stamped current with no facts, and the
+ * revision each was stamped under (postgres/store.ts's twin): the rows
+ * marked because their bytes do not decode, plus any stamped under
+ * another revision, which the caller drops. One range of the created
+ * index, named, with the revision checked by the caller (measured, with
+ * no statistics and after ANALYZE: `SEARCH resources USING INDEX
+ * idx_resources_list_created (kind=? AND list_created_at=?)`). Parameter:
+ * kind.
+ */
+const FACTLESS_ROWS_SQL = `
+  SELECT id, list_index_revision AS revision
+  FROM resources INDEXED BY idx_resources_list_created
+  WHERE kind = ? AND list_created_at IS NULL AND list_indexed_at = updated_at`;
+
+/**
+ * FACTLESS_ROWS_SQL in id batches with the bytes, for the reconciliation
+ * at open, in the created index's own id order. Parameters: kind, the
+ * last id read, the batch size.
+ */
+const FACTLESS_ROWS_BATCH_SQL = `
+  SELECT id, data, list_index_revision AS revision
+  FROM resources INDEXED BY idx_resources_list_created
+  WHERE kind = ? AND list_created_at IS NULL AND list_indexed_at = updated_at
+    AND id > ?
+  ORDER BY id LIMIT ?`;
+
+/** How many ids the reconciliation's line about rows that do not decode names. */
+const UNDECODABLE_IDS_LOGGED = 10;
+
+/** What a read logs once, when it marks a row that does not decode. */
+const MARKED_ONE_MESSAGE =
+  "list index: a row does not decode; marked, lists skip it until it is rewritten";
+
+/** What the reconciliation at open logs once per kind with rows that do not decode. */
+const MARKED_AT_OPEN_MESSAGE =
+  "list index: rows do not decode; lists skip them until they are rewritten";
+
+/** What one row's bytes told a read (postgres/store.ts's twin). */
+type RowJudgement =
+  | { readonly decoded: true; readonly facts: ListIndexFacts }
+  | { readonly decoded: false; readonly marked: boolean };
+
 export class SqliteStore implements Store {
   readonly bootstrapState: BootstrapStateStore;
   readonly resourceNames: ResourceNameStore;
@@ -524,13 +567,25 @@ export class SqliteStore implements Store {
     declaration: ListIndexDeclaration<K>,
     query: ListIndexQuery<K>,
   ): Promise<ListIndexRow[]> {
-    return (await this.queryResourcesForSweep(declaration, query)).rows;
+    return this.readListIndex(declaration, query, false).rows;
   }
 
   async queryResourcesForSweep<K extends string>(
     declaration: ListIndexDeclaration<K>,
     query: ListIndexQuery<K>,
   ): Promise<ListIndexSweep> {
+    return this.readListIndex(declaration, query, true);
+  }
+
+  /**
+   * Both list reads (postgres/store.ts's twin); `undecodable` is complete
+   * only for a sweep, which alone reads the kind's marked rows.
+   */
+  private readListIndex<K extends string>(
+    declaration: ListIndexDeclaration<K>,
+    query: ListIndexQuery<K>,
+    sweep: boolean,
+  ): ListIndexSweep {
     this.listIndexes.require(declaration);
     assertListIndexLimit(query.limit);
     const db = this.open();
@@ -572,22 +627,35 @@ export class SqliteStore implements Store {
       }>,
     );
     const unprovenRows: ListIndexRow[] = [];
-    const undecodable: string[] = [];
+    const undecodable = new Set<string>();
     for (const row of unproven) {
-      const facts = this.deriveAndRepair(declaration, row.id, row.data);
-      if (facts === undefined) {
-        undecodable.push(row.id);
-      } else if (matchesListIndexQuery(row.id, facts, query)) {
+      const judged = this.deriveAndRepair(declaration, row.id, row.data);
+      if (!judged.decoded) {
+        undecodable.add(row.id);
+        if (judged.marked) {
+          this.logger.warn(MARKED_ONE_MESSAGE, { kind: kindName, id: row.id });
+        }
+      } else if (matchesListIndexQuery(row.id, judged.facts, query)) {
         unprovenRows.push({
           id: row.id,
           data: row.data,
-          cursor: { createdAt: facts.createdAt, id: row.id },
+          cursor: { createdAt: judged.facts.createdAt, id: row.id },
         });
+      }
+    }
+    if (sweep) {
+      for (const row of db.prepare(FACTLESS_ROWS_SQL).all(kindName) as Array<{
+        id: string;
+        revision: number | null;
+      }>) {
+        if (row.revision === declaration.revision) {
+          undecodable.add(row.id);
+        }
       }
     }
     return {
       rows: mergeListIndexRows(proven, unprovenRows, query.limit),
-      undecodable: undecodable.sort(),
+      undecodable: [...undecodable].sort(),
     };
   }
 
@@ -986,56 +1054,78 @@ export class SqliteStore implements Store {
   // ---------------------------------------------------------------------------
 
   /**
-   * An unproven row's facts, derived from its bytes, and the row repaired
-   * when those bytes are still the stored ones. Undefined when the bytes
-   * do not decode; the row stays unproven and is skipped.
+   * An unproven row judged from its bytes and the judgement written back
+   * (recordJudgement); logs nothing about bytes that do not decode, which
+   * the caller logs (postgres/store.ts's twin).
    */
   private deriveAndRepair(
     declaration: ListIndexDeclaration,
     id: string,
     data: Uint8Array,
-  ): ListIndexFacts | undefined {
-    const kindName = apiResourceKindName(declaration.kind);
+  ): RowJudgement {
     const facts = factsOfBytes(declaration, data);
-    if (facts === undefined) {
-      this.logger.warn(
-        "list index: an unproven row does not decode, skipping",
-        {
-          kind: kindName,
-          id,
-        },
-      );
-      return undefined;
-    }
+    const recorded = this.recordJudgement(declaration, id, data, facts);
+    return facts === undefined
+      ? { decoded: false, marked: recorded }
+      : { decoded: true, facts };
+  }
+
+  /**
+   * Writes a row's judgement while its bytes are still the ones judged:
+   * facts repair it; no facts mark it proven factless under the
+   * declaration's revision (list-index.ts), with NULL facts and no key
+   * rows (postgres/store.ts's twin). True when the write landed.
+   */
+  private recordJudgement(
+    declaration: ListIndexDeclaration,
+    id: string,
+    data: Uint8Array,
+    facts: ListIndexFacts | undefined,
+  ): boolean {
+    const kindName = apiResourceKindName(declaration.kind);
     const db = this.open();
     db.exec("BEGIN");
     try {
-      const repaired = db
+      const written = db
         .prepare(
           `UPDATE resources SET list_org = ?, list_created_at = ?,
              list_index_revision = ?, list_indexed_at = updated_at
            WHERE kind = ? AND id = ? AND data = ?`,
         )
-        .run(facts.org, facts.createdAt, facts.revision, kindName, id, data);
-      if (Number(repaired.changes) === 1) {
+        .run(
+          facts?.org ?? null,
+          facts?.createdAt ?? null,
+          declaration.revision,
+          kindName,
+          id,
+          data,
+        );
+      const landed = Number(written.changes) === 1;
+      if (landed && facts === undefined) {
+        db.prepare(
+          `DELETE FROM resource_list_keys WHERE kind = ? AND id = ?`,
+        ).run(kindName, id);
+      } else if (landed && facts !== undefined) {
         replaceListKeys(db, kindName, id, facts);
       }
       db.exec("COMMIT");
+      return landed;
     } catch (error) {
       db.exec("ROLLBACK");
-      this.logger.warn("list index: repairing a row failed", {
-        kind: kindName,
-        id,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      this.logger.warn(
+        facts === undefined
+          ? "list index: marking a row that does not decode failed"
+          : "list index: repairing a row failed",
+        {
+          kind: kindName,
+          id,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
+      return false;
     }
-    return facts;
   }
 
-  /**
-   * Derives every unproven row of each declared kind and stamps every other
-   * kind's unstamped rows, so the unproven set is empty once open returns.
-   */
   /**
    * Derives the gates of every session event stamped with another revision
    * than the declaration's (postgres/store.ts's twin), in batches by
@@ -1086,13 +1176,47 @@ export class SqliteStore implements Store {
     }
   }
 
+  /**
+   * Re-judges every row of each declared kind marked as not decoding,
+   * derives every unproven row, and stamps every other kind's unstamped
+   * rows, so the unproven set is empty once open returns; the rows that
+   * still do not decode are logged once per kind (postgres/store.ts's
+   * twin).
+   */
   private reconcileListIndexes(): void {
     const db = this.open();
     const declarations = this.listIndexes.declarations();
     for (const declaration of declarations) {
       const kindName = apiResourceKindName(declaration.kind);
-      let after = "";
+      const undecodable: string[] = [];
       let derived = 0;
+      for (let after = ""; ; ) {
+        const rows = db
+          .prepare(FACTLESS_ROWS_BATCH_SQL)
+          .all(kindName, after, RECONCILE_BATCH) as Array<{
+          id: string;
+          data: Uint8Array;
+          revision: number | null;
+        }>;
+        for (const row of rows) {
+          after = row.id;
+          if (row.revision !== declaration.revision) {
+            continue;
+          }
+          // A row that still does not decode keeps its mark, unwritten.
+          const facts = factsOfBytes(declaration, row.data);
+          if (facts === undefined) {
+            undecodable.push(row.id);
+          } else {
+            this.recordJudgement(declaration, row.id, row.data, facts);
+            derived += 1;
+          }
+        }
+        if (rows.length < RECONCILE_BATCH) {
+          break;
+        }
+      }
+      let after = "";
       for (;;) {
         // Duplicates from overlapping arms sit side by side in id order and
         // the next batch starts after the last id, so none is repaired twice
@@ -1111,16 +1235,23 @@ export class SqliteStore implements Store {
           data: Uint8Array;
         }>;
         for (const row of oneRowPerId(rows)) {
-          if (
-            this.deriveAndRepair(declaration, row.id, row.data) !== undefined
-          ) {
+          if (this.deriveAndRepair(declaration, row.id, row.data).decoded) {
             derived += 1;
+          } else {
+            undecodable.push(row.id);
           }
           after = row.id;
         }
         if (rows.length < RECONCILE_BATCH) {
           break;
         }
+      }
+      if (undecodable.length > 0) {
+        this.logger.warn(MARKED_AT_OPEN_MESSAGE, {
+          kind: kindName,
+          rows: undecodable.length,
+          ids: undecodable.sort().slice(0, UNDECODABLE_IDS_LOGGED),
+        });
       }
       if (derived > 0) {
         this.logger.info("list index reconciled", {
@@ -1917,7 +2048,16 @@ function provenReadSql(
     );
     params.push(kindName, key.name, key.value);
   }
-  where.push(`r.list_indexed_at = r.updated_at`, `r.list_index_revision = ?`);
+  // A row marked as not decoding is stamped proven with no facts
+  // (list-index.ts); no read shape returns it (postgres/store.ts's twin).
+  // For the read without an organization or key it is the created index's
+  // range bound (measured: `idx_resources_list_created (kind=? AND
+  // list_created_at>?)`, with no statistics and after ANALYZE).
+  where.push(
+    `r.list_indexed_at = r.updated_at`,
+    `r.list_index_revision = ?`,
+    `r.list_created_at IS NOT NULL`,
+  );
   params.push(revision);
   if (query.org !== undefined && query.org !== "") {
     where.push(`r.list_org = ?`);

@@ -821,10 +821,13 @@ export interface Store {
    * one written by a binary that does not know the index, or under
    * another revision of the declaration — is evaluated from its bytes with
    * the declaration, and repaired by a compare-and-set on those bytes so a
-   * newer write is never overwritten. An unproven row that cannot be
-   * decoded is skipped and logged, as the list lanes skip one; a caller
-   * that must account for every row of the kind, such as a deletion that
-   * must not leave a person's data behind, reads queryResourcesForSweep.
+   * newer write is never overwritten. A row whose bytes cannot be decoded
+   * is skipped, as the list lanes skip one: the first read that finds it
+   * marks it proven factless (list-index.ts) and logs it once, and no list
+   * reads it again until it is rewritten, its declaration's revision
+   * changes, or the store opens again; a caller that must account for
+   * every row of the kind, such as a deletion that must not leave a
+   * person's data behind, reads queryResourcesForSweep.
    *
    * Throws when `declaration` is not the one this store was opened with,
    * or on a limit that is not a positive integer.
@@ -839,9 +842,9 @@ export interface Store {
    * row of the declared kind whose bytes do not decode (stigmer/stigmer#2774).
    * Such a row has no facts, so it cannot be matched against the query:
    * `undecodable` is kind-wide, whatever the query's predicates, cursor or
-   * limit, and the caller decides which of those ids it answers for. One
-   * read answers both, and each such row is still logged as queryResources
-   * logs it. Throws as queryResources does.
+   * limit, and the caller decides which of those ids it answers for: the
+   * rows marked as not decoding and any still unproven that do not.
+   * Throws as queryResources does.
    */
   queryResourcesForSweep<K extends string>(
     declaration: ListIndexDeclaration<K>,

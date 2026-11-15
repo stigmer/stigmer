@@ -78,6 +78,13 @@ describe("sqlite store contract", () => {
             .run(apiResourceKindName(kind), id, data),
         );
       },
+      async writeBytesKeepingStamp(kind, id, data) {
+        withConnection((db) =>
+          db
+            .prepare(`UPDATE resources SET data = ? WHERE kind = ? AND id = ?`)
+            .run(data, apiResourceKindName(kind), id),
+        );
+      },
       async countUnproven(kind, revision) {
         return withConnection((db) => {
           const revisionArm =
