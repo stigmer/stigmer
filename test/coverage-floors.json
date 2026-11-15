@@ -27,8 +27,8 @@
     },
     "backend/libs/ts/session-log": {
       "lines": 100,
-      "branches": 94.7,
-      "cases": 200
+      "branches": 94.8,
+      "cases": 202
     },
     "backend/libs/ts/temporal-codecs": {
       "lines": 97.3,
@@ -47,43 +47,43 @@
     },
     "backend/services/runner": {
       "lines": 96.9,
-      "branches": 91.5,
-      "cases": 6258
+      "branches": 91.7,
+      "cases": 6346
     },
     "backend/services/stigmer-server": {
       "lines": 96.9,
-      "branches": 86.5,
-      "cases": 8622
+      "branches": 86.7,
+      "cases": 8838
     },
     "client-apps/cli": {
-      "lines": 90.7,
-      "branches": 82.5,
-      "cases": 2265
+      "lines": 93.3,
+      "branches": 84.5,
+      "cases": 2581
     },
     "client-apps/desktop": {
-      "lines": 89.8,
-      "branches": 76.5,
-      "cases": 372
+      "lines": 90.9,
+      "branches": 77.2,
+      "cases": 389
     },
     "client-apps/web": {
-      "lines": 78.9,
-      "branches": 67.4,
-      "cases": 385
+      "lines": 82.9,
+      "branches": 70.9,
+      "cases": 447
+    },
+    "coding-agents": {
+      "lines": 100,
+      "branches": 87.5,
+      "cases": 11
     },
     "ee/server": {
       "lines": 97,
-      "branches": 81.3,
-      "cases": 818
+      "branches": 81.4,
+      "cases": 823
     },
     "mcp-server": {
       "lines": 92.6,
       "branches": 79.8,
       "cases": 201
-    },
-    "coding-agents": {
-      "lines": 100,
-      "branches": 87.5,
-      "cases": 9
     },
     "plugins": {
       "lines": 72.3,
@@ -96,19 +96,19 @@
       "cases": 34
     },
     "sdk/ink": {
-      "lines": 97,
-      "branches": 90.6,
-      "cases": 409
+      "lines": 97.3,
+      "branches": 90.8,
+      "cases": 416
     },
     "sdk/react": {
-      "lines": 89.8,
-      "branches": 81.6,
-      "cases": 5319
+      "lines": 91.2,
+      "branches": 83.3,
+      "cases": 5850
     },
     "sdk/react-core": {
-      "lines": 82.2,
-      "branches": 66.1,
-      "cases": 399
+      "lines": 82.5,
+      "branches": 66.9,
+      "cases": 408
     },
     "sdk/theme": {
       "lines": 96.1,
@@ -116,19 +116,19 @@
       "cases": 45
     },
     "sdk/typescript": {
-      "lines": 92.1,
-      "branches": 86.4,
-      "cases": 770
+      "lines": 93,
+      "branches": 87.9,
+      "cases": 866
     },
     "site": {
       "lines": 82,
       "branches": 75.6,
-      "cases": 553
+      "cases": 555
     },
     "test/conformance": {
       "lines": 84.6,
-      "branches": 83.5,
-      "cases": 639
+      "branches": 83.6,
+      "cases": 641
     },
     "tools/codegen": {
       "lines": 90.6,
