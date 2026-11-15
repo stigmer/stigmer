@@ -13,6 +13,11 @@
  * scope elsewhere (a private registry), and a read that inherits it reports
  * the wrong registry's packages.
  *
+ * The walk's app (`next dev`, started detached in its own process group) is
+ * stopped with stopProcessGroup before the scratch folder is removed: Next
+ * keeps writing `.next/` after SIGTERM, and a removal racing it fails with
+ * ENOTEMPTY after the walk has passed (stigmer/stigmer#3154).
+ *
  * Plain node, no dependencies, like its neighbours.
  */
 
@@ -201,4 +206,45 @@ export async function fetchPagePrompt({ page = PROMPT_PAGE, fetchImpl = fetch } 
   }
   if (response.status !== 200) throw new Error(`the prompt's page ${page} answered HTTP ${response.status}, not 200`);
   return promptFromPage(await response.text(), { page });
+}
+
+/** Whether any process of the group led by `pid` is still alive (signal 0 probes without signalling). */
+function groupAlive(pid) {
+  try {
+    process.kill(-pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Stop a detached child's whole process group and wait until no member is
+ * left: SIGTERM, then SIGKILL after `graceMs`. Resolves to how it ended
+ * ("gone" when nothing was running, "terminated", or "killed"); a folder the
+ * group wrote into is safe to remove once it resolves.
+ */
+export async function stopProcessGroup(child, { graceMs = 10_000, pollMs = 50 } = {}) {
+  const pid = child?.pid;
+  if (pid === undefined || !groupAlive(pid)) return "gone";
+  const waitGone = async (ms) => {
+    for (const end = Date.now() + ms; Date.now() < end; ) {
+      if (!groupAlive(pid)) return true;
+      await new Promise((resolve) => setTimeout(resolve, pollMs));
+    }
+    return !groupAlive(pid);
+  };
+  try {
+    process.kill(-pid, "SIGTERM");
+  } catch {
+    return "gone";
+  }
+  if (await waitGone(graceMs)) return "terminated";
+  try {
+    process.kill(-pid, "SIGKILL");
+  } catch {
+    return "terminated";
+  }
+  if (await waitGone(5_000)) return "killed";
+  throw new Error(`process group ${pid} still has members after SIGKILL`);
 }

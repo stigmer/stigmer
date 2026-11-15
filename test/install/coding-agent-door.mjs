@@ -99,7 +99,7 @@ import { spawnRunner } from "../support/src/runner-process.ts";
 import { spawnServer } from "../support/src/server-process.ts";
 import { spawnTemporal } from "../support/src/temporal.ts";
 import { tsServerEntryPath } from "../support/src/ts-build.ts";
-import { NPM_REGISTRY, USAGE, fetchPagePrompt, npmRegistryFlags, parseDoorArgs } from "./lib/coding-agent-door.mjs";
+import { NPM_REGISTRY, USAGE, fetchPagePrompt, npmRegistryFlags, parseDoorArgs, stopProcessGroup } from "./lib/coding-agent-door.mjs";
 import { FAKE_MODEL_REPLY_TEXT, fakeModelEnv, isTitleCall, startFakeModel } from "./lib/fake-model.mjs";
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
@@ -572,13 +572,9 @@ async function main() {
     }
     log("passed");
   } finally {
-    if (app?.pid !== undefined) {
-      try {
-        process.kill(-app.pid, "SIGTERM");
-      } catch {
-        /* already gone */
-      }
-    }
+    // Next keeps writing .next/ after SIGTERM: the folder is removed only
+    // once the whole group has exited.
+    await stopProcessGroup(app);
     await runner?.stop();
     await server?.stop();
     await temporal.stop();
