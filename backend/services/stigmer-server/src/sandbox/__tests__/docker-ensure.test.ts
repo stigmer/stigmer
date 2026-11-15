@@ -70,6 +70,14 @@ if [ "$1" = "cp" ] && [ "$2" = "-" ] && [ -f "$FAKE_DOCKER_DIR/copy-in-fails" ];
   echo "Error: copy failed" >&2
   exit 1
 fi
+if [ "$1" = "start" ] && [ -f "$FAKE_DOCKER_DIR/start-fails" ]; then
+  echo "Error: cannot start" >&2
+  exit 1
+fi
+if [ "$1" = "rm" ] && [ -f "$FAKE_DOCKER_DIR/state" ] && [ "$(cat "$FAKE_DOCKER_DIR/state")" = "absent" ]; then
+  echo "Error: No such container: $3" >&2
+  exit 1
+fi
 if [ "$1" = "rename" ] && [ -f "$FAKE_DOCKER_DIR/config-after" ]; then
   cp "$FAKE_DOCKER_DIR/config-after" "$FAKE_DOCKER_DIR/config"
 fi
@@ -344,6 +352,22 @@ describe("a container started under another configuration (stigmer#1843)", () =>
     }
   });
 
+  it("a failed recreate whose restart fails too: the recreate's failure is the one reported", async () => {
+    setState("running", jwtExpiringIn(3600), { image: "ghcr.io/stigmer/runner:old" });
+    writeFileSync(path.join(dir, "copy-out-fails"), "");
+    writeFileSync(path.join(dir, "start-fails"), "");
+    try {
+      const { logger } = capturingLogger();
+      await expect(
+        newDockerSandboxProvisioner({ config: CONFIG, logger }).ensureSessionSandbox("ses_ensure", IDLE),
+      ).rejects.toThrow(/no such path/);
+      expect(calls().at(-1)).toBe(`start ${name}`);
+    } finally {
+      rmSync(path.join(dir, "copy-out-fails"), { force: true });
+      rmSync(path.join(dir, "start-fails"), { force: true });
+    }
+  });
+
   it("running on another image with the runner idle: stopped, then recreated carrying its files", async () => {
     setState("running", jwtExpiringIn(3600), { image: "ghcr.io/stigmer/runner:old" });
     const { logger, infos } = capturingLogger();
@@ -447,6 +471,26 @@ describe("a container started under another configuration (stigmer#1843)", () =>
     });
 
     expect(calls()).toContain(`rename ${name}-fresh ${name}`);
+  });
+});
+
+describe("docker driver teardown", () => {
+  const name = sandboxBaseName("session", "ses_ensure");
+
+  it("removes the container, a missing one is success, and it waits its turn behind an ensure of the same container", async () => {
+    setState("stopped");
+    const { logger } = capturingLogger();
+    const driver = newDockerSandboxProvisioner({ config: CONFIG, logger });
+    await Promise.all([
+      driver.ensureSessionSandbox("ses_ensure", ENV),
+      driver.deprovisionSessionSandbox("ses_ensure"),
+    ]);
+    const made = calls();
+    expect(made.indexOf(`rm --force ${name}`)).toBeGreaterThan(made.indexOf(`start ${name}`));
+
+    setState("absent");
+    await driver.deprovisionSessionSandbox("ses_ensure");
+    expect(calls()).toEqual([`rm --force ${name}`]);
   });
 });
 

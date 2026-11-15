@@ -693,6 +693,50 @@ describe("a running sandbox started under another configuration (stigmer#1843)",
     expect(h.substrate.actors.get(ACTOR)?.state).toBe("running");
   });
 
+  it("a current template gone again after it was prepared again: an ordinary failure, not one whose files cannot be carried", async () => {
+    const h = harness();
+    await h.driver.internals.keeper.ready();
+    h.substrate.put({
+      name: ACTOR,
+      state: "suspended",
+      template: "stigmer-runner-old",
+    });
+    const move = h.substrate.moveActor.bind(h.substrate);
+    h.substrate.moveActor = async (actor, template) => {
+      // Retired by another server every time, before the move lands.
+      h.substrate.templates.delete(template);
+      return move(actor, template);
+    };
+    const ensured = h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
+    await expect(ensured).rejects.toThrow(/was gone again/);
+    await expect(ensured).rejects.not.toBeInstanceOf(SandboxNotCarriedError);
+  });
+
+  it("a refused move of a sandbox that changed meanwhile: the walk reads it again and moves it", async () => {
+    const h = harness();
+    await h.driver.internals.keeper.ready();
+    h.substrate.put({
+      name: ACTOR,
+      state: "suspended",
+      template: "stigmer-runner-old",
+    });
+    const move = h.substrate.moveActor.bind(h.substrate);
+    let moves = 0;
+    h.substrate.moveActor = async (actor, template) => {
+      moves += 1;
+      if (moves === 1) {
+        // Another server wrote the actor between this one's read and its move.
+        h.substrate.actors.get(actor.name)!.version += 1n;
+        return "refused";
+      }
+      return move(actor, template);
+    };
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
+    expect(moves).toBe(2);
+    expect(h.substrate.actors.get(ACTOR)?.template).toBe(h.driver.internals.keeper.name);
+    expect(h.substrate.actors.get(ACTOR)?.state).toBe("running");
+  });
+
   it("a refused move of a sandbox that is being deleted meanwhile: an ordinary failure, not one whose files cannot be carried", async () => {
     const h = harness();
     await h.driver.internals.keeper.ready();
