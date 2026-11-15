@@ -386,11 +386,9 @@ function numbered(events: readonly SessionEvent[]): SessionEvent[] {
 // Resource factories
 // ---------------------------------------------------------------------------
 
-/** `e` with its event's `processedAt` set to `at`, every other field as it was. */
+/** `e` with its event's `processedAt` set to `at`, every other field as it was (every event a turn is built from carries one). */
 function stampedAt(e: SessionEvent, at: string): SessionEvent {
-  const value = e.event.value;
-  if (value === undefined || !("processedAt" in value)) return e;
-  return { ...e, event: { ...e.event, value: { ...value, processedAt: at } } } as SessionEvent;
+  return { ...e, event: { ...e.event, value: { ...e.event.value, processedAt: at } } } as SessionEvent;
 }
 
 /**
