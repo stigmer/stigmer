@@ -33,7 +33,8 @@ refuses to publish one still at `0.0.0-dev`.
 
 `reconcile-coding-agent-plugin.yaml` then makes the public repository
 `stigmer/coding-agent-plugin` equal to the npm `latest` package's
-`dist/plugin/`, the way `reconcile-homebrew.yaml` keeps the tap. People install
+`plugin/` folder (this build's `dist/plugin/`; the package is published from
+`dist/`), the way `reconcile-homebrew.yaml` keeps the tap. People install
 from that repository; the install lines are on the docs page.
 
 ## Tests

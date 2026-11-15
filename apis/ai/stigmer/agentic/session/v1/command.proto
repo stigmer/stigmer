@@ -237,8 +237,10 @@ service SessionCommandController {
   // or paused); interrupt the session or wait for it to finish first.
   //
   // @internal
-  // Requires can_delete on the session (owner-only — sessions are personal
-  // resources, so org admins have no implicit delete access).
+  // Requires can_delete on the session: its owner's, since sessions are
+  // personal resources and org admins have no implicit delete access. The
+  // one exception is a lane session (session.fga, `lane_org`), which its
+  // organization's admins may also delete.
   rpc delete(SessionId) returns (Session) {
     option (ai.stigmer.commons.rpc.config).resource_kind = session;
     option (ai.stigmer.commons.rpc.config).permission = can_delete;

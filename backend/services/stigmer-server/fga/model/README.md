@@ -22,7 +22,7 @@ Each has its own visibility:
 | Tier | Default Visibility | Supports Child Orgs | Inheritance |
 |------|-------------------|-------------------|-------------|
 | **Blueprint** | Org members | Yes (`child_org_viewer`) | — |
-| **Session** | Owner only, widened by explicit grants or the channel or routine that runs it | No | — |
+| **Session** | Owner only, widened by explicit grants, the channel, routine or eval run that runs it, or, for a lane session, its organization's admins | No | — |
 | **Run** | Whatever its session answers | No | From session |
 
 ## The Visibility Spectrum
@@ -56,12 +56,12 @@ Agent (blueprint) → Session (personal) → Run
 ```
 
 - **An agent's audience is not its conversations' audience.** An org-visible agent lets every member read and run it; each member's conversation with it stays private to that member.
-- **Sessions** are personal: the owner sees one, and nobody else does until an explicit grant shares it. A participant reads the conversation and sends messages (`can_create_run_in: participant`); a viewer only reads it (owner ⊆ participant ⊆ viewer, the `channel` ladder). A session started by a channel is also visible to whoever can view that channel (`viewer from channel`), and one a routine's fire started to the routine's owner, Participants and Viewers (`viewer from routine`; not its organization's admins, who manage a routine but do not read the owner's conversations). The agent a session names is not a relation: the server asks `can_execute` on it when a session names or changes it, and on every turn.
+- **Sessions** are personal: the owner sees one, and nobody else does until an explicit grant shares it. A participant reads the conversation and sends messages (`can_create_run_in: participant`); a viewer only reads it (owner ⊆ participant ⊆ viewer, the `channel` ladder). A session started by a channel is also visible to whoever can view that channel (`viewer from channel`), and one a routine's fire started to the routine's owner, Participants and Viewers (`viewer from routine`; not its organization's admins, who manage a routine but do not read the owner's conversations). A lane session, one a system lane account owns that nothing else can remove while its organization lives (in the hosted edition, a chat-link visitor's conversation), carries a `lane_org` link to its organization, whose admins view and delete it (`admin from lane_org` in `can_view` and `can_delete`) but never add a turn, stop a run or reach its access list. The agent a session names is not a relation: the server asks `can_execute` on it when a session names or changes it, and on every turn.
 - **Runs** hold nothing of their own. A run answers exactly what its session answers, so sharing a session shares its whole history, past turns included, with zero per-run tuples.
 
 ## What the model deliberately cannot say: the runtime lanes' blueprint reads
 
-Guest and channel sessions (and, in the hosted edition, a routine's) run as per-org system accounts that hold exactly `organization#guest` (`can_create_session`, `can_create_run_in`) and are no agent's viewer, by design: a viewer tuple for the guest account on an agent with a chat link would let every guest token in the org read that agent's full blueprint (see `channel.fga`). Yet the runner serving such a session must read the session's agent. The model answers `deny`, and the hosted edition's composition refines that denial app-level: its blueprint-read admission admits a session-scoped sandbox credential to exactly its session's graph while the surface that created the session (the channel, the routine) is still serving the agent, each surface answering through a port its own domain owns. The routine lane's port reads the `session#routine` link this model composes for observability, so that link is load-bearing for a routine's run. This is the read-side twin of the run-gate lane admission (`src/authorizer/lane-admission.ts`); the chain's order lives in `src/authorizer/cloud-authorizer.ts`. An assertion suite cannot pin it — it is not a tuple — so `src/authorizer/__tests__/blueprint-read-admission.openfga.test.ts` runs the composed chain against this model on a real engine instead.
+Guest and channel sessions (and, in the hosted edition, an eval run's tries) run as per-org system accounts that hold exactly `organization#guest` (`can_create_session`, `can_create_run_in`) and are no agent's viewer, by design: a viewer tuple for the guest account on an agent with a chat link would let every guest token in the org read that agent's full blueprint (see `channel.fga`). Yet the runner serving such a session must read the session's agent. The model answers `deny`, and the hosted edition's composition refines that denial app-level: its blueprint-read admission admits a session-scoped sandbox credential to exactly its session's graph while the surface that created the session (the chat link, the channel, the eval run) is still serving the agent, each surface answering through a port its own domain owns. A routine's fire is no lane: it acts as the routine's owner, whose reads the model answers as it answers their own. This is the read-side twin of the run-gate lane admission (`src/authorizer/lane-admission.ts`); the chain's order lives in `src/authorizer/cloud-authorizer.ts`. An assertion suite cannot pin it — it is not a tuple — so `src/authorizer/__tests__/blueprint-read-admission.openfga.test.ts` runs the composed chain against this model on a real engine instead.
 
 ## Access Patterns
 
@@ -83,6 +83,8 @@ Owner-only access. Org admins explicitly excluded (personal conversations):
 define owner: [identity_account] and affiliated from organization
 define viewer: ([identity_account] and affiliated from organization) or owner
 ```
+
+The one exception is a lane session (`lane_org`, above): a conversation its organization's system lane owns is the organization's to view and delete, and still nobody's to add a turn to but its owner.
 
 Resources: `session`
 
@@ -244,7 +246,7 @@ run:turn-7#session@session:chat-123
 
 Whoever can view the session views the run, and nobody else:
 ```
-can_view → can_view from session:chat-123 → owner (bob), a viewer grant, or the session's channel or routine
+can_view → can_view from session:chat-123 → owner (bob), a viewer grant, the session's channel, routine or eval run, or its lane organization's admins
 ```
 
 ### Team (Shared With as One)

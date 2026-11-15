@@ -18,7 +18,8 @@
  *
  * Then the pack check: npm decides what a tarball carries by rules of its own
  * (dot-folders are kept, but a `.gitignore` or `.npmrc` would not be), and the
- * reconcile lane copies the published tarball's dist/plugin/ as the plugin
+ * reconcile lane copies the published tarball's plugin/ (this build's
+ * dist/plugin/, since the package is published from dist/) as the plugin
  * repository's tree, so npm itself is asked (`npm pack --dry-run --json`) and
  * any staged file it would leave out fails the build by name.
  */

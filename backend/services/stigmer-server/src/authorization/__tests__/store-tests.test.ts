@@ -63,6 +63,7 @@ const DOCUMENTS = [
   "federation-issuer-administration.fga.yaml",
   "file-access.fga.yaml",
   "invitation-administration.fga.yaml",
+  "lane-session-administration.fga.yaml",
   "license-issuer.fga.yaml",
   "memory-subject-only.fga.yaml",
   "oauth-app-administration.fga.yaml",

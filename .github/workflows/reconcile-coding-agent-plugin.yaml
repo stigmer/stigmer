@@ -5,8 +5,9 @@ run-name: reconcile-coding-agent-plugin ${{ github.event.workflow_run.head_branc
 
 # Keeps stigmer/coding-agent-plugin, the repository Claude Code, Codex and
 # Cursor install Stigmer's plugin for coding agents from, equal to the npm
-# `latest` of @stigmer/coding-agent-plugin: the package's dist/plugin/ is the
-# repository's whole tree. The package is built from coding-agents/ and
+# `latest` of @stigmer/coding-agent-plugin: the package's plugin/ folder (the
+# build's dist/plugin/; publish-libs.mjs publishes dist/ as the package root)
+# is the repository's whole tree. The package is built from coding-agents/ and
 # published by the release train at the CLI's own version, so the plugin a
 # person installs is always the one released with the CLI they install, never
 # `main` ahead of it.
@@ -130,7 +131,7 @@ jobs:
           # The published tarball, as every installer of the release reads it.
           mkdir -p "$RUNNER_TEMP/pkg"
           (cd "$RUNNER_TEMP/pkg" && npm pack "$PKG@$TARGET" --silent >/dev/null && tar -xzf ./*.tgz)
-          SOURCE="$RUNNER_TEMP/pkg/package/dist/plugin"
+          SOURCE="$RUNNER_TEMP/pkg/package/plugin"
 
           # Every tool reports the plugin's version from its own manifest, so
           # each must carry the package's version (scripts/publish-libs.mjs
@@ -211,7 +212,7 @@ jobs:
       title: "reconcile-coding-agent-plugin: the plugin repository's reconciliation or install check is failing"
       body-context: >-
         This job replaces stigmer/coding-agent-plugin's tree with the npm
-        latest of @stigmer/coding-agent-plugin's dist/plugin/, then installs
+        latest of @stigmer/coding-agent-plugin's plugin/ folder, then installs
         the plugin from that repository in Claude Code and Codex; while it is
         red, people who install the plugin may get an older guide than their
         CLI, or no plugin at all. Usual suspects: a removed deploy key
