@@ -3,25 +3,36 @@
  * asked of the planner itself: `EXPLAIN (FORMAT JSON)` of the exact
  * statement the driver runs, with its parameters bound the way the driver
  * binds them (node-postgres plans each unnamed statement with its values).
- * The store's promise (../../README.md, the list index) is that every read
- * shape names or forces its index, because a freshly written table has no
- * planner statistics; this file is where that promise is proven, for the
- * read with neither an organization nor a key above all, which planned on
- * the revision index and sorted the whole kind (stigmer/stigmer#3166).
+ * The store's promise (../../README.md, the list index): on Postgres every
+ * list read is one range of its index, planned from statistics the store
+ * keeps. This file is where that promise is proven (stigmer/stigmer#3166).
  *
- * Each shape is its own database: an ANALYZE cannot be taken back, and
- * autovacuum is switched off on the two list tables before seeding, so its
- * launcher cannot gather statistics mid-test and turn the "no statistics"
- * case into the other one. Rows are seeded by SQL as proven rows (facts
- * current under the declaration's revision, key rows beside them), the
- * driver test owning its SQL as list-index-repair.postgres.test.ts does;
- * seeding this volume through the store would make it a load test.
+ * The rule: every read below, at every shape below, is one backward range
+ * of its index on the table that drives it (the key read's driving table is
+ * the key table; its rows are then fetched by primary key), with no Sort
+ * node, and a page after the first carries its cursor in that range's
+ * index condition, so it starts where the last page ended. No read is
+ * exempt; a later plan that needs an exemption has to argue for it here.
  *
- * The assertions name node types and indexes, never costs or row
- * estimates, which differ by machine. Plans differ by Postgres major; every
- * lane runs Postgres 16, and a major that plans differently fails here by
- * name. With statistics, the planner's own choice is asserted only at the
- * shapes production holds (README, the list index).
+ * Each shape is its own database, walked through the states a real one
+ * passes through:
+ *   1. a first open runs the migrations, and its statistics step analyzes
+ *      empty tables, which leaves no column statistics behind;
+ *   2. the test closes it, switches autovacuum off on the two list tables
+ *      (so its launcher cannot gather statistics mid-test), and seeds the
+ *      rows by SQL, as a restore or a bulk load writes them;
+ *   3. a second open finds the statistics missing and gathers them: the
+ *      step under test (store.ts, `gatherListStatistics`);
+ *   4. each read is explained.
+ * Rows are seeded as proven rows (facts current under the declaration's
+ * revision, key rows beside them), the driver test owning its SQL as
+ * list-index-repair.postgres.test.ts does; seeding this volume through the
+ * store would make it a load test.
+ *
+ * The assertions name node types, indexes and the cursor's clause, never
+ * costs or row estimates, which differ by machine. Plans differ by Postgres
+ * major; every lane runs Postgres 16, and a major that plans differently
+ * fails here by name.
  *
  * Gated on TEST_DATABASE_URL (support.ts).
  */
@@ -29,6 +40,7 @@ import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { ListIndexQuery } from "../../list-index.js";
+import type { StoreLogger } from "../../logger.js";
 import { provenReadSql } from "../list-index-read.js";
 import { PostgresStore } from "../store.js";
 import {
@@ -59,32 +71,55 @@ function instant(seconds: number): string {
   return `${iso.slice(0, 19)}.000000000Z`;
 }
 
+/**
+ * The listed kind's row `g` as seed() writes it: id `org_` and g padded to
+ * eight digits, created 2g seconds in, organization `org_<g % 10>`, and,
+ * when g is a multiple of three, a parent key `org_parent_<g % 7>`.
+ */
+function cursorAt(g: number): { createdAt: string; id: string } {
+  return {
+    createdAt: instant(g * 2),
+    id: `org_${String(g).padStart(8, "0")}`,
+  };
+}
+
+/** The first listed row at or past the middle of the kind that `matches` holds for. */
+function middle(shape: Shape, matches: (g: number) => boolean): number {
+  for (let g = Math.ceil(shape.listed / 2); g <= shape.listed; g += 1) {
+    if (matches(g)) {
+      return g;
+    }
+  }
+  throw new Error(`no listed row past the middle matches, shape ${shape.name}`);
+}
+
 interface Shape {
   readonly name: string;
   readonly listed: number;
   readonly other: number;
-  /** Whether the planner's choice with statistics is this file's to assert (README, the list index). */
-  readonly analyzedAsserted: boolean;
 }
 
+/** Sized like production: the organizations kind, busy kinds, and the issue's own. */
 const SHAPES: readonly Shape[] = [
   {
-    name: "the issue's: 3,003 of the listed kind among 5,003 rows",
-    listed: 3_003,
-    other: 2_000,
-    analyzedAsserted: false,
-  },
-  {
-    name: "organizations as production holds them: 300 among 30,300 rows",
+    name: "organizations as production holds them: 300 among 100,300 rows",
     listed: 300,
-    other: 30_000,
-    analyzedAsserted: true,
+    other: 100_000,
   },
   {
-    name: "a busy kind past the LIMIT crossover: 20,000 among 22,000 rows",
+    name: "a busy kind among a large table: 50,000 among 100,000 rows",
+    listed: 50_000,
+    other: 50_000,
+  },
+  {
+    name: "a kind that is most of a small table: 20,000 among 22,000 rows",
     listed: 20_000,
     other: 2_000,
-    analyzedAsserted: true,
+  },
+  {
+    name: "the issue's: 3,003 among 5,003 rows",
+    listed: 3_003,
+    other: 2_000,
   },
 ];
 
@@ -94,52 +129,108 @@ interface Read {
   readonly key: { readonly name: string; readonly value: string } | undefined;
   /** How the read must reach the table that drives it. */
   readonly drives: { readonly relation: string; readonly index: string };
+  /** A page after the first: its cursor must be the range's start. */
+  readonly deep: boolean;
+}
+
+const PARENT_KEY = { name: "parent_org", value: "org_parent_1" } as const;
+
+/** Whether row g carries {@link PARENT_KEY} (g a multiple of three, g % 7 = 1). */
+function hasParentKey(g: number): boolean {
+  return g % 3 === 0 && g % 7 === 1;
 }
 
 /** Every proven read shape a lane sends, each with the index it must walk. */
-const READS: readonly Read[] = [
-  {
-    name: "a list page with neither an organization nor a key (listMine on one person's server)",
-    query: { limit: LIST_PAGE },
-    key: undefined,
-    drives: { relation: "resources", index: "idx_resources_list_created" },
-  },
-  {
-    name: "the funnel's page: no organization, no key, rows without a parent, in a window",
-    query: {
-      withoutKeys: ["parent_org"],
-      createdAtOrAfter: instant(0),
-      after: { createdAt: instant(10_000_000), id: "" },
-      limit: FUNNEL_PAGE,
+function readsOf(shape: Shape): readonly Read[] {
+  const unscoped = {
+    relation: "resources",
+    index: "idx_resources_list_created",
+  };
+  const organization = {
+    relation: "resources",
+    index: "idx_resources_list_org",
+  };
+  const byKey = {
+    relation: "resource_list_keys",
+    index: "idx_resource_list_keys_lookup",
+  };
+  return [
+    {
+      name: "a page with neither an organization nor a key (listMine on one person's server)",
+      query: { limit: LIST_PAGE },
+      key: undefined,
+      drives: unscoped,
+      deep: false,
     },
-    key: undefined,
-    drives: { relation: "resources", index: "idx_resources_list_created" },
-  },
-  {
-    name: "one organization's page",
-    query: { org: "org_3", limit: LIST_PAGE },
-    key: undefined,
-    drives: { relation: "resources", index: "idx_resources_list_org" },
-  },
-  {
-    name: "one key's page",
-    query: {
-      anyKey: [{ name: "parent_org", value: "org_parent_1" }],
-      limit: LIST_PAGE,
+    {
+      name: "a later page with neither an organization nor a key",
+      query: {
+        after: cursorAt(middle(shape, () => true)),
+        limit: LIST_PAGE,
+      },
+      key: undefined,
+      drives: unscoped,
+      deep: true,
     },
-    key: { name: "parent_org", value: "org_parent_1" },
-    drives: {
-      relation: "resource_list_keys",
-      index: "idx_resource_list_keys_lookup",
+    {
+      name: "one organization's page",
+      query: { org: "org_3", limit: LIST_PAGE },
+      key: undefined,
+      drives: organization,
+      deep: false,
     },
-  },
-];
+    {
+      name: "a later page of one organization",
+      query: {
+        org: "org_3",
+        after: cursorAt(middle(shape, (g) => g % 10 === 3)),
+        limit: LIST_PAGE,
+      },
+      key: undefined,
+      drives: organization,
+      deep: true,
+    },
+    {
+      name: "one key's page",
+      query: { anyKey: [PARENT_KEY], limit: LIST_PAGE },
+      key: PARENT_KEY,
+      drives: byKey,
+      deep: false,
+    },
+    {
+      name: "a later page of one key",
+      query: {
+        anyKey: [PARENT_KEY],
+        after: cursorAt(middle(shape, hasParentKey)),
+        limit: LIST_PAGE,
+      },
+      key: PARENT_KEY,
+      drives: byKey,
+      deep: true,
+    },
+    {
+      name: "the funnel's page: no organization, no key, rows without a parent, in a window",
+      query: {
+        withoutKeys: ["parent_org"],
+        createdAtOrAfter: instant(0),
+        after: { createdAt: instant(10_000_000), id: "" },
+        limit: FUNNEL_PAGE,
+      },
+      key: undefined,
+      drives: unscoped,
+      // Its cursor is the window's end, past every row; its start is not a
+      // range bound yet (stigmer/stigmer#3179), so only the walk is judged.
+      deep: false,
+    },
+  ];
+}
 
 interface PlanNode {
   readonly "Node Type": string;
   readonly "Relation Name"?: string;
   readonly "Index Name"?: string;
   readonly "Scan Direction"?: string;
+  readonly "Index Cond"?: string;
   readonly Plans?: readonly PlanNode[];
 }
 
@@ -157,58 +248,84 @@ function describeNode(node: PlanNode): string {
   return `${node["Node Type"]}${direction}${index}${relation}`;
 }
 
-/** The plan's outline, depth first, for the assertion's message and the PR. */
+/** The plan's outline, depth first, with each index condition, for the assertion's message and the PR. */
 function outline(node: PlanNode, depth = 0): string[] {
+  const cond =
+    node["Index Cond"] === undefined ? "" : `  [${node["Index Cond"]}]`;
   return [
-    `${"  ".repeat(depth)}${describeNode(node)}`,
+    `${"  ".repeat(depth)}${describeNode(node)}${cond}`,
     ...(node.Plans ?? []).flatMap((child) => outline(child, depth + 1)),
   ];
 }
 
-const INDEX_SCANS = new Set(["Index Scan", "Index Only Scan"]);
 const SORTS = new Set(["Sort", "Incremental Sort"]);
 
-/**
- * What the read must be: the driving table reached by one backward walk of
- * its index, in the order the read asks for, so no node sorts.
- */
-function judge(
-  plan: PlanNode,
-  read: Read,
-): {
+/** The cursor as Postgres prints a row comparison in an index condition. */
+const CURSOR_IN_RANGE = /ROW\([^)]*created_at[^)]*\) < ROW\(/;
+
+interface Judged {
+  /** Every node that reads the driving table. */
   drivenBy: string[];
+  /** For the key read: how it reaches the resources table (the index of each scan of it). */
+  fetchedBy: string[];
   sorts: string[];
-} {
+  /** Whether the driving scan starts at the cursor (deep pages only). */
+  cursorInRange: boolean | undefined;
+}
+
+/**
+ * What the read is: the nodes that reach its driving table, those that
+ * fetch the rows a key read names, any sort, and whether a later page's
+ * cursor is the start of the driving range.
+ */
+function judge(plan: PlanNode, read: Read): Judged {
   const nodes = nodesOf(plan);
+  const driving = nodes.filter(
+    (node) => node["Relation Name"] === read.drives.relation,
+  );
   return {
-    drivenBy: nodes
-      .filter((node) => node["Relation Name"] === read.drives.relation)
-      .map(describeNode),
+    drivenBy: driving.map(describeNode).map(asIndexScan),
+    fetchedBy: read.key === undefined ? [] : reachedBy(nodes, "resources"),
     sorts: nodes
       .filter((node) => SORTS.has(node["Node Type"]))
       .map(describeNode),
+    cursorInRange: read.deep
+      ? driving.some((node) => CURSOR_IN_RANGE.test(node["Index Cond"] ?? ""))
+      : undefined,
   };
 }
 
-function expected(read: Read): { drivenBy: string[]; sorts: string[] } {
+/**
+ * The index each scan of `relation` goes through, or the scan's type when
+ * it uses none. A bitmap heap scan goes through its bitmap index scans:
+ * for one row by primary key it is as good as an index scan of it.
+ */
+function reachedBy(nodes: readonly PlanNode[], relation: string): string[] {
+  return nodes
+    .filter((node) => node["Relation Name"] === relation)
+    .flatMap((node) => {
+      if (node["Node Type"] === "Bitmap Heap Scan") {
+        return nodesOf(node)
+          .filter((child) => child["Node Type"] === "Bitmap Index Scan")
+          .map((child) => child["Index Name"] ?? "Bitmap Index Scan");
+      }
+      return [node["Index Name"] ?? node["Node Type"]];
+    });
+}
+
+/** An index-only walk answers as well as an index scan; the table is not read for it. */
+function asIndexScan(line: string): string {
+  return line.replace(/^Index Only Scan /, "Index Scan ");
+}
+
+function expected(read: Read): Judged {
   return {
     drivenBy: [
       `Index Scan Backward using ${read.drives.index} on ${read.drives.relation}`,
     ],
+    fetchedBy: read.key === undefined ? [] : ["resources_pkey"],
     sorts: [],
-  };
-}
-
-/** An index-only walk answers as well as an index scan; the table is not read for it. */
-function normalized(judged: { drivenBy: string[]; sorts: string[] }): {
-  drivenBy: string[];
-  sorts: string[];
-} {
-  return {
-    drivenBy: judged.drivenBy.map((line) =>
-      line.replace(/^Index Only Scan /, "Index Scan "),
-    ),
-    sorts: judged.sorts,
+    cursorInRange: read.deep ? true : undefined,
   };
 }
 
@@ -263,13 +380,56 @@ async function explain(pool: pg.Pool, read: Read): Promise<PlanNode> {
   return document.Plan;
 }
 
-async function statisticsRows(pool: pg.Pool): Promise<number> {
+/** What the planner has to plan the list reads from. */
+interface Statistics {
+  /** Column statistics rows (pg_stats) for each list table. */
+  readonly resources: number;
+  readonly keys: number;
+  /** The stamp statistic's most common values, or null while it holds none. */
+  readonly proven: string | null;
+}
+
+async function statisticsOf(pool: pg.Pool): Promise<Statistics> {
   const result = await pool.query(
-    `SELECT count(*) AS n FROM pg_stats
-     WHERE schemaname = current_schema()
-       AND tablename IN ('resources', 'resource_list_keys')`,
+    `SELECT
+       (SELECT count(*) FROM pg_stats
+         WHERE schemaname = current_schema() AND tablename = 'resources') AS resources,
+       (SELECT count(*) FROM pg_stats
+         WHERE schemaname = current_schema() AND tablename = 'resource_list_keys') AS keys,
+       (SELECT most_common_vals::text FROM pg_stats_ext_exprs
+         WHERE schemaname = current_schema() AND statistics_name = 'resources_list_proven') AS proven`,
   );
-  return Number((result.rows[0] as { n: string }).n);
+  const row = result.rows[0] as {
+    resources: string;
+    keys: string;
+    proven: string | null;
+  };
+  return {
+    resources: Number(row.resources),
+    keys: Number(row.keys),
+    proven: row.proven,
+  };
+}
+
+/** A store logger that keeps every info line, so a case can read what the open said. */
+function recordingLogger(): {
+  logger: StoreLogger;
+  info: Array<{ message: string; fields: Record<string, unknown> | undefined }>;
+} {
+  const info: Array<{
+    message: string;
+    fields: Record<string, unknown> | undefined;
+  }> = [];
+  return {
+    info,
+    logger: {
+      debug() {},
+      info(message, fields) {
+        info.push({ message, fields });
+      },
+      warn() {},
+    },
+  };
 }
 
 for (const shape of SHAPES) {
@@ -278,60 +438,53 @@ for (const shape of SHAPES) {
     () => {
       let db: TestDatabase;
       let pool: pg.Pool;
+      let beforeOpen: Statistics;
+      let afterOpen: Statistics;
+      let opened: ReturnType<typeof recordingLogger>;
 
       beforeAll(async () => {
         db = await createTestDatabase();
         // The real migrations build the schema the driver reads.
-        const store = await PostgresStore.open(db.databaseUrl);
-        await store.close();
+        const first = await PostgresStore.open(db.databaseUrl);
+        await first.close();
         pool = new pg.Pool({ connectionString: db.databaseUrl, max: 2 });
         await seed(pool, shape);
-      });
+        beforeOpen = await statisticsOf(pool);
+        opened = recordingLogger();
+        const second = await PostgresStore.open(db.databaseUrl, opened.logger);
+        await second.close();
+        afterOpen = await statisticsOf(pool);
+      }, 120_000);
 
       afterAll(async () => {
-        await pool.end();
-        await db.drop();
+        await pool?.end();
+        await db?.drop();
       });
 
-      describe("with no statistics", () => {
-        it("has none: the case a freshly written or restored table is in", async () => {
-          expect(await statisticsRows(pool)).toBe(0);
-        });
-
-        for (const read of READS) {
-          it(`walks the index: ${read.name}`, async () => {
-            const plan = await explain(pool, read);
-            expect(
-              normalized(judge(plan, read)),
-              outline(plan).join("\n"),
-            ).toEqual(expected(read));
-          });
-        }
+      it("gathers the statistics the reads plan from when the store opens on a table that has none", () => {
+        expect(beforeOpen).toMatchObject({ resources: 0, keys: 0 });
+        expect(afterOpen.resources).toBeGreaterThan(0);
+        expect(afterOpen.keys).toBeGreaterThan(0);
+        // Every seeded row is proven: the stamp check is true for all of them.
+        expect(afterOpen.proven).toBe("{t}");
+        const gathered = opened.info.filter(
+          (line) => line.message === "list statistics gathered",
+        );
+        expect(gathered).toHaveLength(1);
+        expect(Object.keys(gathered[0]?.fields ?? {}).sort()).toEqual([
+          "resource_list_keys",
+          "resources",
+        ]);
       });
 
-      describe("after ANALYZE", () => {
-        beforeAll(async () => {
-          // Both tables: the key read is judged with statistics too.
-          await pool.query("ANALYZE");
-        });
-
-        it("has them", async () => {
-          expect(await statisticsRows(pool)).toBeGreaterThan(0);
-        });
-
-        for (const read of READS) {
-          it.runIf(shape.analyzedAsserted)(
-            `walks the index: ${read.name}`,
-            async () => {
-              const plan = await explain(pool, read);
-              expect(
-                normalized(judge(plan, read)),
-                outline(plan).join("\n"),
-              ).toEqual(expected(read));
-            },
+      for (const read of readsOf(shape)) {
+        it(`is one backward range of its index: ${read.name}`, async () => {
+          const plan = await explain(pool, read);
+          expect(judge(plan, read), outline(plan).join("\n")).toEqual(
+            expected(read),
           );
-        }
-      });
+        });
+      }
     },
   );
 }
