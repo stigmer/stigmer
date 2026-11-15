@@ -628,6 +628,47 @@ test("the coding-agent plugin, built and staged as a release stages it, carries 
   }
 });
 
+/**
+ * Where reconcile-coding-agent-plugin.yaml reads the plugin inside the
+ * unpacked npm tarball, as a path under the tarball's `package/` root.
+ */
+function reconcileSourceInPackage(workflowText) {
+  const line = workflowText.split("\n").find((l) => /^\s*SOURCE="\$RUNNER_TEMP\/pkg\/package\//.test(l));
+  if (line === undefined) throw new Error("reconcile-coding-agent-plugin.yaml sets no SOURCE under the unpacked package");
+  return line.trim().replace(/^SOURCE="\$RUNNER_TEMP\/pkg\/package\//, "").replace(/"$/, "");
+}
+
+test("the plugin repository's reconcile reads the folder the published package keeps its plugin in (stigmer/stigmer#3177)", () => {
+  // The staged dist/ is what npm publishes as the tarball's package/ root,
+  // so the workflow's path under package/ must hold the three manifests at
+  // the release version there.
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+  const workflow = readFileSync(join(root, ".github", "workflows", "reconcile-coding-agent-plugin.yaml"), "utf8");
+  const source = reconcileSourceInPackage(workflow);
+  const pkgDir = mkdtempSync(join(tmpdir(), "publish-libs-reconcile-"));
+  try {
+    cpSync(join(root, "coding-agents", "package.json"), join(pkgDir, "package.json"));
+    cpSync(join(root, "coding-agents", "plugin"), join(pkgDir, "plugin"), { recursive: true });
+    buildCodingAgentPlugin(pkgDir);
+    const distDir = join(pkgDir, "dist");
+    generateDistPackageJson(pkgDir, "2.0.0");
+    stampPluginManifests(distDir, "2.0.0");
+    for (const tool of [".claude-plugin", ".cursor-plugin", ".codex-plugin"]) {
+      const manifest = join(distDir, source, tool, "plugin.json");
+      assert.ok(existsSync(manifest), `${source}/${tool}/plugin.json is not in the published package`);
+      assert.equal(JSON.parse(readFileSync(manifest, "utf8")).version, "2.0.0", tool);
+    }
+  } finally {
+    rmSync(pkgDir, { recursive: true, force: true });
+  }
+});
+
+test("reconcileSourceInPackage reads the path under package/ and refuses a workflow without one", () => {
+  assert.equal(reconcileSourceInPackage('          SOURCE="$RUNNER_TEMP/pkg/package/plugin"\n'), "plugin");
+  assert.equal(reconcileSourceInPackage('          SOURCE="$RUNNER_TEMP/pkg/package/dist/plugin"\n'), "dist/plugin");
+  assert.throws(() => reconcileSourceInPackage("name: x\n"), /no SOURCE/);
+});
+
 test("only an NPM_TOKEN run writes a registry into .npmrc, by reference to the token", () => {
   assert.equal(tokenNpmrc({}), undefined);
   assert.equal(tokenNpmrc({ NPM_TOKEN: "" }), undefined);
