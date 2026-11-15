@@ -99,6 +99,13 @@ driver runs at open derives every unproven row, so the unproven set is empty in
 steady state and reads stay one index range. Every read shape names or forces
 its index, because a freshly written table has no planner statistics.
 
+The exception is a row whose bytes do not decode (damaged, or written by a
+binary whose message this one cannot read): it has no facts, so it stays
+unproven, a list skips it and the store logs it by kind and id on each read. A
+caller that must account for every row of a kind, such as a deletion that must
+not leave a person's data behind, reads `Store.queryResourcesForSweep`, which
+answers the same rows plus the ids of every such row of the kind.
+
 ## Writes that build on a read
 
 No write stores a copy of a row it read earlier, because anything written in

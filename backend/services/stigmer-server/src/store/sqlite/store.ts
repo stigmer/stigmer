@@ -91,6 +91,7 @@ import type {
   ListIndexFacts,
   ListIndexQuery,
   ListIndexRow,
+  ListIndexSweep,
 } from "../list-index.js";
 import { NOOP_STORE_LOGGER } from "../logger.js";
 import {
@@ -523,17 +524,23 @@ export class SqliteStore implements Store {
     declaration: ListIndexDeclaration<K>,
     query: ListIndexQuery<K>,
   ): Promise<ListIndexRow[]> {
+    return (await this.queryResourcesForSweep(declaration, query)).rows;
+  }
+
+  async queryResourcesForSweep<K extends string>(
+    declaration: ListIndexDeclaration<K>,
+    query: ListIndexQuery<K>,
+  ): Promise<ListIndexSweep> {
     this.listIndexes.require(declaration);
     assertListIndexLimit(query.limit);
-    if (query.anyKey !== undefined && query.anyKey.length === 0) {
-      return [];
-    }
     const db = this.open();
     const kindName = apiResourceKindName(declaration.kind);
 
     // A key read is driven from the key table (CROSS JOIN fixes sqlite's
     // join order), so only the rows the key names are ever read; several
     // keys are one such read each, merged below (postgres/store.ts's twin).
+    // An empty key list matches no proven row, but the unproven rows are
+    // still judged, so a sweep hears of a damaged one.
     const reads =
       query.anyKey === undefined
         ? [provenReadSql(kindName, declaration.revision, query, undefined)]
@@ -565,9 +572,12 @@ export class SqliteStore implements Store {
       }>,
     );
     const unprovenRows: ListIndexRow[] = [];
+    const undecodable: string[] = [];
     for (const row of unproven) {
       const facts = this.deriveAndRepair(declaration, row.id, row.data);
-      if (facts !== undefined && matchesListIndexQuery(row.id, facts, query)) {
+      if (facts === undefined) {
+        undecodable.push(row.id);
+      } else if (matchesListIndexQuery(row.id, facts, query)) {
         unprovenRows.push({
           id: row.id,
           data: row.data,
@@ -575,7 +585,10 @@ export class SqliteStore implements Store {
         });
       }
     }
-    return mergeListIndexRows(proven, unprovenRows, query.limit);
+    return {
+      rows: mergeListIndexRows(proven, unprovenRows, query.limit),
+      undecodable: undecodable.sort(),
+    };
   }
 
   async deleteResource(

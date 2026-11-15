@@ -183,13 +183,13 @@ describe("deleting an account deletes the person's My vaults", () => {
     const person = await newAccount();
     const sealed = await myVaultWithSecret(person, "acme");
 
-    const queryResources = server.store.queryResources.bind(server.store);
-    vi.spyOn(server.store, "queryResources").mockImplementation(((declaration, request) => {
+    const queryResourcesForSweep = server.store.queryResourcesForSweep.bind(server.store);
+    vi.spyOn(server.store, "queryResourcesForSweep").mockImplementation(((declaration, request) => {
       if (declaration === vaultListIndex) {
         return Promise.reject(new Error("vault index unavailable"));
       }
-      return queryResources(declaration, request);
-    }) as Store["queryResources"]);
+      return queryResourcesForSweep(declaration, request);
+    }) as Store["queryResourcesForSweep"]);
 
     const failure = await command.delete({ value: person }).then(
       () => undefined,

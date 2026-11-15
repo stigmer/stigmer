@@ -2,11 +2,14 @@
  * What the vault domain's tests share: a real SQLite store opened with the
  * server's list indexes, a secret facade whose sealed values are
  * recognisable and whose destroys are recorded, the vault service over
- * both, and row seeds for shared vaults and My vaults.
+ * both, row seeds for shared vaults and My vaults, and a raw write that
+ * plants a row as an older binary writes it, so the real store meets a row
+ * it cannot read.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { DatabaseSync } from "node:sqlite";
 
 import { create } from "@bufbuild/protobuf";
 
@@ -22,6 +25,7 @@ import { SecretService } from "../../../encryption/encryption.js";
 import type { EncryptionScope } from "../../../encryption/encryption.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
+import { apiResourceKindName } from "../../../store/proto-fields.js";
 
 import { myVaultSlugOf } from "../constants.js";
 import { newVaultService } from "../service.js";
@@ -56,14 +60,29 @@ export interface VaultRig {
   readonly codec: RecordingCodec;
   readonly secrets: SecretService;
   readonly vaults: VaultService;
+  /**
+   * Writes a vault row exactly as a binary that does not know the list
+   * index writes it (store-contract.ts `writeAsOlderBinary`, the SQLite
+   * driver's statement from before the index): the row's facts become
+   * unproven, so bytes that do not decode stay unread, as a damaged row
+   * does in production, and good bytes are repaired by the next read.
+   */
+  writeVaultAsOlderBinary(id: string, data: Uint8Array): void;
+  /**
+   * Overwrites a vault row's bytes and nothing else, as damage in place
+   * does: its list facts still read as proven, so the store's read hands
+   * the bytes out without decoding them.
+   */
+  damageVaultInPlace(id: string, data: Uint8Array): void;
   close(): void;
 }
 
 /** A fresh store, facade and vault service; `close` removes the store. */
 export function openVaultRig(): VaultRig {
   const dir = mkdtempSync(path.join(tmpdir(), "vault-test-"));
+  const dbPath = path.join(dir, "stigmer.db");
   const store = namingSaves(
-    SqliteStore.open(path.join(dir, "stigmer.db"), undefined, {
+    SqliteStore.open(dbPath, undefined, {
       listIndexes: LIST_INDEXES,
     }),
   );
@@ -85,6 +104,28 @@ export function openVaultRig(): VaultRig {
     codec,
     secrets,
     vaults,
+    writeVaultAsOlderBinary(id, data) {
+      const db = new DatabaseSync(dbPath);
+      try {
+        db.prepare(
+          `INSERT OR REPLACE INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, datetime('now'))`,
+        ).run(apiResourceKindName(ApiResourceKind.vault), id, data);
+      } finally {
+        db.close();
+      }
+    },
+    damageVaultInPlace(id, data) {
+      const db = new DatabaseSync(dbPath);
+      try {
+        db.prepare(`UPDATE resources SET data = ? WHERE kind = ? AND id = ?`).run(
+          data,
+          apiResourceKindName(ApiResourceKind.vault),
+          id,
+        );
+      } finally {
+        db.close();
+      }
+    },
     close: () => rmSync(dir, { recursive: true, force: true }),
   };
 }

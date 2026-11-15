@@ -2657,6 +2657,60 @@ export function describeStoreContract(
       ).toEqual(["ses_good"]);
     });
 
+    it("names to a sweep every row of the kind it could not read, whatever the query", async () => {
+      const garbage = new Uint8Array([0xff, 0xff, 0xff]);
+      await save(session("ses_proven", "acme", 1, { agentId: "agt_1" }));
+      await fx.writeAsOlderBinary(
+        SESSION,
+        "ses_older",
+        toBinary(
+          SessionSchema,
+          session("ses_older", "acme", 2, { agentId: "agt_1" }),
+        ),
+      );
+      await fx.writeAsOlderBinary(SESSION, "ses_garbage_b", garbage);
+      await fx.writeAsOlderBinary(SESSION, "ses_garbage_a", garbage);
+
+      const sweep = await fx.store.queryResourcesForSweep(
+        CONTRACT_SESSION_INDEX,
+        { org: "acme" },
+      );
+      expect(ids(sweep.rows)).toEqual(["ses_older", "ses_proven"]);
+      expect(sweep.undecodable, "sorted by id").toEqual([
+        "ses_garbage_a",
+        "ses_garbage_b",
+      ]);
+      expect(
+        ids(
+          await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
+            org: "acme",
+          }),
+        ),
+        "a list reads the same rows and is told nothing",
+      ).toEqual(["ses_older", "ses_proven"]);
+
+      for (const query of [
+        { org: "other" },
+        { anyKey: [{ name: "agent" as const, value: "agt_none" }] },
+        { anyKey: [] },
+        { org: "acme", limit: 1, after: sweep.rows[1]!.cursor },
+      ]) {
+        const narrow = await fx.store.queryResourcesForSweep(
+          CONTRACT_SESSION_INDEX,
+          query,
+        );
+        expect(narrow.rows, JSON.stringify(query)).toEqual([]);
+        expect(
+          narrow.undecodable,
+          "a row with no facts cannot be matched, so it is named to every query",
+        ).toEqual(["ses_garbage_a", "ses_garbage_b"]);
+      }
+      expect(
+        await fx.countUnproven(SESSION, 1),
+        "a damaged row stays unproven; the decodable one was repaired",
+      ).toBe(2);
+    });
+
     it("leaves nothing unproven once a store has opened", async () => {
       await fx.writeAsOlderBinary(
         SESSION,

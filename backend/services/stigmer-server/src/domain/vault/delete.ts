@@ -8,9 +8,20 @@
  * that would save into it.
  *
  * A vault is never search-indexed, so there is no index entry to remove.
+ *
+ * The two person sweeps (a departure, an account's deletion) read the
+ * person's rows with Store.queryResourcesForSweep, which also names the
+ * vault rows the store could not decode (stigmer/stigmer#2774). A list
+ * skips such a row; a sweep that skipped it would report the person's
+ * vaults gone while their sealed values stayed behind, recoverable by
+ * whoever repaired the row. Deleting the row by id instead would orphan
+ * those values, since their backing state is found only by reading the
+ * row, so a sweep that may own a damaged row refuses before deleting
+ * anything, and is retried once the row is repaired.
  */
 import { create, fromBinary } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
+import type { ConnectError } from "@connectrpc/connect";
 
 import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
@@ -155,8 +166,16 @@ export async function releaseVaultNames(
  * The rows are found as deleteAllMyVaultsOf finds them, by the person
  * they belong to, here within the one organization: a My vault whose
  * claim is missing or held by another row goes with its sealed values
- * too. A row that does not decode fails the departure before any vault
- * is deleted.
+ * too.
+ *
+ * A row that does not decode has no organization or person to match, so
+ * the person's name claim in this organization ties one to them: when it
+ * names a row the store could not read, the departure fails before any
+ * vault is deleted, and the revoke it is a step of fails with it
+ * (grant/departure.ts). A damaged row the claim does not name is not
+ * known to be theirs, so another member's departure, or theirs from
+ * another organization, is never held up by it; the store logs that row
+ * by kind and id.
  */
 export async function deleteMyVaultOf(
   deps: VaultDeleteDeps & { readonly vaults: VaultService },
@@ -164,11 +183,20 @@ export async function deleteMyVaultOf(
   person: string,
   caller: CallerIdentity,
 ): Promise<boolean> {
-  const rows = await deps.store.queryResources(vaultListIndex, {
+  const sweep = await deps.store.queryResourcesForSweep(vaultListIndex, {
     org: orgId,
     anyKey: [{ name: "person", value: person }],
   });
-  const vaults = rows.map(decodeMyVaultRow);
+  if (sweep.undecodable.length > 0) {
+    const claim = await deps.store.resourceNames.resolve(
+      { kind: MY_VAULT_NAME_KIND, org: orgId, name: person },
+      new Date().toISOString(),
+    );
+    if (claim !== undefined && sweep.undecodable.includes(claim.id)) {
+      throw undecodableMyVault(claim.id);
+    }
+  }
+  const vaults = sweep.rows.map(decodeMyVaultRow);
   for (const vault of vaults) {
     await deleteLoadedVault(deps, vault, caller);
   }
@@ -215,34 +243,63 @@ type DeleteInput = typeof VaultCommandController.method.delete.input;
  * is missing or held by another row is deleted with its sealed values
  * too.
  *
- * A row that does not decode fails the whole call before any vault is
- * deleted, so the account's deletion fails and is retried once the row
- * is repaired. Deleting that row by id instead would orphan its sealed
- * values: their backing state is found only by reading the row.
+ * A vault row that does not decode, anywhere on the server, fails the
+ * whole call before any vault is deleted, so the account's deletion
+ * fails and is retried once the row is repaired (identityaccount/
+ * controller.ts runs this before the account row goes). Such a row has
+ * no person to match, and no read ties it to one across organizations
+ * (the name store resolves a claim within one organization), so any
+ * damaged vault row may be this person's. That row may as well be another
+ * person's or another organization's, so its id goes to the log, not to
+ * the caller.
  */
 export async function deleteAllMyVaultsOf(
   deps: VaultDeleteDeps & { readonly vaults: VaultService },
   person: string,
   caller: CallerIdentity,
 ): Promise<number> {
-  const rows = await deps.store.queryResources(vaultListIndex, {
+  const sweep = await deps.store.queryResourcesForSweep(vaultListIndex, {
     anyKey: [{ name: "person", value: person }],
   });
-  const vaults = rows.map(decodeMyVaultRow);
+  if (sweep.undecodable.length > 0) {
+    deps.logger.error(
+      "an account's My vaults are not deleted: a vault row does not decode",
+      { person, vaultIds: sweep.undecodable },
+    );
+    throw internalError(undefined, UNDECODABLE_VAULT_BLOCKS_ACCOUNT);
+  }
+  const vaults = sweep.rows.map(decodeMyVaultRow);
   for (const vault of vaults) {
     await deleteLoadedVault(deps, vault, caller);
   }
   return vaults.length;
 }
 
-/** A person's My vault row, decoded; one that does not decode refuses the deletion it is part of. */
+/**
+ * The refusal of an account's deletion while a vault row does not decode:
+ * the row is not known to be the person's, so the copy names none.
+ */
+export const UNDECODABLE_VAULT_BLOCKS_ACCOUNT =
+  "a vault does not decode: its sealed values cannot be destroyed, so no My vault of this person is deleted until it is repaired";
+
+/**
+ * A row the sweep answered, decoded. The store's read decoded an unproven
+ * row already; a proven row's bytes changed in place under its facts
+ * (damage that left its write stamp) still reach here, and refuse the
+ * deletion as an unproven one does.
+ */
 function decodeMyVaultRow(row: ListIndexRow): Vault {
   try {
     return fromBinary(VaultSchema, row.data);
   } catch (error) {
-    throw internalError(
-      error,
-      `vault ${row.id} does not decode: its sealed values cannot be destroyed, so no My vault of its person is deleted`,
-    );
+    throw undecodableMyVault(row.id, error);
   }
+}
+
+/** The refusal of a person sweep that meets that person's vault row it cannot read. */
+function undecodableMyVault(id: string, cause?: unknown): ConnectError {
+  return internalError(
+    cause,
+    `vault ${id} does not decode: its sealed values cannot be destroyed, so no My vault of its person is deleted`,
+  );
 }
