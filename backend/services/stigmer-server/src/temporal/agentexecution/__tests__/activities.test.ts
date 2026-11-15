@@ -20,7 +20,10 @@
  *     the log shows a person decided close nothing; a store fault reading
  *     the previous turn fails the activity;
  *   - EnsureSessionSandbox runs the request's ensure with the caller's
- *     facts from the input and answers its word; on `no_room` it tells the
+ *     facts from the input, saying the runner is idle (it runs right
+ *     before the workflow invokes the runner, so a driver may restart a
+ *     sandbox started under another configuration, stigmer#1843), and
+ *     answers its word, `not_carried` included; on `no_room` it tells the
  *     session's liveness streams how long the turn has waited, and on
  *     another answer after a wait it sends a liveness without the wait; a
  *     turn that never waited sends nothing; a run since deleted is
@@ -65,7 +68,7 @@ import {
   ROUTING_SESSION,
 } from "../../../domain/run/temporal/config.js";
 import { SESSION_EVENT_LIVENESS_TYPE } from "../../../domain/session/events/broker.js";
-import { SandboxNoRoomError, type SandboxFacts, type SandboxProvisioner } from "../../../sandbox/provisioner.js";
+import { SandboxNoRoomError, SandboxNotCarriedError, type SandboxFacts, type SandboxProvisioner } from "../../../sandbox/provisioner.js";
 import type { EnsureSessionSandboxInput } from "../sandbox-wait.js";
 import type { RunnerCredentialProvider } from "../../../runnerauth/runner-credential-provider.js";
 import { WITHOUT_SANDBOX } from "./activity-deps.js";
@@ -535,7 +538,7 @@ describe("EnsureSessionSandbox activity", () => {
   };
 
   /** A provisioner whose ensure answers each call in turn: room, no room, or a promise the test settles. */
-  function scriptedProvisioner(answers: Array<"ready" | "no_room" | Promise<void>>) {
+  function scriptedProvisioner(answers: Array<"ready" | "no_room" | "not_carried" | Promise<void>>) {
     const facts: SandboxFacts[] = [];
     const provisioner: SandboxProvisioner = {
       ensureSessionSandbox: async (_id, given) => {
@@ -543,6 +546,9 @@ describe("EnsureSessionSandbox activity", () => {
         const answer = answers.shift() ?? "ready";
         if (answer === "no_room") {
           throw new SandboxNoRoomError("no free Substrate worker for sandbox s: none");
+        }
+        if (answer === "not_carried") {
+          throw new SandboxNotCarriedError("Substrate refused to move sandbox s to the current template");
         }
         if (answer !== "ready") {
           await answer;
@@ -612,8 +618,14 @@ describe("EnsureSessionSandbox activity", () => {
     const { ensure, sent } = await sandboxFixture(provisioner, () => undefined);
     expect(await ensure({ execution_id: "run_wait", caller_class: "user", routine_id: "rtn_1", caller_identity_id: "ida_1" })).toBe("ready");
     expect(facts).toHaveLength(1);
-    expect(facts[0]).toMatchObject({ taskQueue: "session:ses_wait", callerClass: "user", routineId: "rtn_1" });
+    expect(facts[0]).toMatchObject({ taskQueue: "session:ses_wait", callerClass: "user", routineId: "rtn_1", runnerIdle: true });
     expect(sent()).toEqual([]);
+  });
+
+  it("answers not_carried for a sandbox whose files cannot be carried to this server's runner", async () => {
+    const { provisioner } = scriptedProvisioner(["not_carried"]);
+    const { ensure } = await sandboxFixture(provisioner, () => undefined);
+    expect(await ensure({ execution_id: "run_wait", caller_class: "user" })).toBe("not_carried");
   });
 
   it("on no_room tells the streams how long the turn has waited, then clears it once room comes", async () => {

@@ -30,6 +30,17 @@
  * provisioning failure. The built-in `local-process`, `docker` and
  * `agent-sandbox` drivers never throw it.
  *
+ * "Not carried" is part of the contract too. A sandbox started under
+ * another configuration (another runner image, or another server
+ * release) is moved to this server's when nothing runs in it: at a wake,
+ * and, when the caller says the runner is idle (SandboxFacts.runnerIdle),
+ * by restarting a running one, keeping its files (stigmer#1843). A driver
+ * that cannot carry the files over (Substrate refuses a move whose volumes
+ * differ) throws SandboxNotCarriedError rather than run the old runner
+ * under this server: the turn ends at once with a person's line
+ * (temporal/agentexecution/sandbox-wait.ts). `isSandboxNotCarried` reads
+ * the cause chain as `isSandboxNoRoom` does.
+ *
  * The probe is ensure-time LIVE-STATE inspection, never a boot-readiness
  * wait: the verified cloud design has NO readiness
  * probes — a sandbox that never polls its queue surfaces as the
@@ -113,6 +124,22 @@ export interface SandboxFacts {
    * it asks is never handed one: the server refuses the conversation first.
    */
   readonly environment?: EnvironmentFacts;
+  /**
+   * True when the caller invokes the runner next, with none of the
+   * session's runner work in flight: the agent-execution workflow's own
+   * ensure, which runs before every runner invocation of a turn
+   * (temporal/agentexecution/sandbox-wait.ts). A driver may then restart a
+   * RUNNING sandbox started under another configuration to move it to
+   * this one, keeping its files (module header, stigmer#1843). Absent for
+   * every other ensure (the request's and the recover chain's, which race
+   * the workflow's first runner activity, and during a rolling update
+   * another release's): a running sandbox is then never restarted. The one
+   * runner activity a turn does not wait for, the session's title, may be
+   * cut by such a restart; it is best-effort, so a title is lost at worst.
+   * A fact, never policy; optional because forgetting it is the safe
+   * reading.
+   */
+  readonly runnerIdle?: boolean;
 }
 
 /**
@@ -176,9 +203,32 @@ export class SandboxNoRoomError extends Error {
 
 /** Whether `error`, or any error in its `cause` chain, is SandboxNoRoomError (module header). */
 export function isSandboxNoRoom(error: unknown): boolean {
+  return causeChainHas(error, (e) => e instanceof SandboxNoRoomError);
+}
+
+/**
+ * The sandbox was started under another configuration and its files
+ * cannot be carried to this one, so it is not woken on its old runner
+ * (module header). Thrown by `ensureSessionSandbox`; the message names the
+ * sandbox and both configurations, for the log, never for the person.
+ */
+export class SandboxNotCarriedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SandboxNotCarriedError";
+  }
+}
+
+/** Whether `error`, or any error in its `cause` chain, is SandboxNotCarriedError (module header). */
+export function isSandboxNotCarried(error: unknown): boolean {
+  return causeChainHas(error, (e) => e instanceof SandboxNotCarriedError);
+}
+
+/** Whether `error` or any error in its `cause` chain is one `is` names; a cycle ends the walk. */
+function causeChainHas(error: unknown, is: (e: Error) => boolean): boolean {
   const seen = new Set<unknown>();
   for (let e: unknown = error; e instanceof Error && !seen.has(e); e = e.cause) {
-    if (e instanceof SandboxNoRoomError) {
+    if (is(e)) {
       return true;
     }
     seen.add(e);
@@ -219,8 +269,11 @@ export interface SandboxProvisioner {
    * Ensure-as-state-machine for a session sandbox: absent → provision;
    * stopped → start; running → fast path. Idempotent; safe to invoke on
    * every execution create/recover for the session, and again while a
-   * turn waits for room. Throws SandboxNoRoomError when the fleet has no
-   * room for it now (module header).
+   * turn waits for room. A sandbox started under another configuration is
+   * moved to this one at a wake, and while running only when
+   * `facts.runnerIdle` says so. Throws SandboxNoRoomError when the fleet
+   * has no room for it now, and SandboxNotCarriedError when its files
+   * cannot be carried to this configuration (module header).
    */
   ensureSessionSandbox(sessionId: string, facts: SandboxFacts): Promise<void>;
   /** Tears down the session sandbox; missing is success (idempotent). */

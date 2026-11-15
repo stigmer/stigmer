@@ -14,7 +14,9 @@
  *   - a Secret that exists is replaced whole;
  *   - a list asks by label selector and follows the API server's pages;
  *   - the view reads a Sandbox's uid, mode (unset is Running), deletion
- *     and creation time.
+ *     and creation time, its runner container's image and release, and
+ *     whether its status says the pod is gone: Suspended, and the
+ *     Suspended condition True at the object's generation (stigmer#1843).
  */
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -124,6 +126,8 @@ describe("the Sandbox calls", () => {
       name: "sbx-ses-1",
       uid: "uid-1",
       operatingMode: "Suspended",
+      runner: undefined,
+      podGone: false,
       deleting: false,
       labels: {},
       claims: [],
@@ -329,10 +333,61 @@ describe("the view of a Sandbox", () => {
       name: "n",
       uid: "u",
       operatingMode: "Running",
+      runner: undefined,
+      podGone: false,
       deleting: true,
       labels: { a: "b" },
       claims: [],
     });
+  });
+
+  it("reads the runner container's image and release from the pod template, the release empty when unset (stigmer#1843)", () => {
+    const view = (env: unknown) =>
+      agentSandboxViewOf({
+        metadata: { name: "n", uid: "u" },
+        spec: {
+          podTemplate: {
+            spec: {
+              containers: [
+                { name: "sidecar", image: "other" },
+                { name: "runner", image: "ghcr.io/stigmer/runner:v3.42.0", env },
+              ],
+            },
+          },
+        },
+      }).runner;
+    expect(view([{ name: "STIGMER_SERVER_RELEASE", value: "3.42.0" }])).toEqual({
+      image: "ghcr.io/stigmer/runner:v3.42.0",
+      release: "3.42.0",
+    });
+    expect(view([{ name: "MODE", value: "local" }])).toEqual({
+      image: "ghcr.io/stigmer/runner:v3.42.0",
+      release: "",
+    });
+    expect(view(undefined)?.release).toBe("");
+  });
+
+  it("reads the pod as gone only when Suspended and the Suspended condition is True for this generation (stigmer#1843)", () => {
+    const gone = (
+      operatingMode: string,
+      condition: Record<string, unknown> | undefined,
+      generation: number | null = 4,
+    ) =>
+      agentSandboxViewOf({
+        metadata: { name: "n", uid: "u", ...(generation === null ? {} : { generation }) },
+        spec: { operatingMode },
+        status: { conditions: condition === undefined ? [] : [{ type: "Ready", status: "False" }, condition] },
+      }).podGone;
+    const terminated = { type: "Suspended", status: "True", reason: "PodTerminated", observedGeneration: 4 };
+    expect(gone("Suspended", terminated)).toBe(true);
+    // Still terminating, not yet observed at this generation, or a stale condition left from an earlier sleep.
+    expect(gone("Suspended", { ...terminated, status: "False", reason: "PodTerminating" })).toBe(false);
+    expect(gone("Suspended", { ...terminated, observedGeneration: 3 })).toBe(false);
+    expect(gone("Suspended", { ...terminated, observedGeneration: undefined })).toBe(false);
+    expect(gone("Running", terminated)).toBe(false);
+    expect(gone("Suspended", undefined)).toBe(false);
+    // An object that carries no generation is read by the condition alone.
+    expect(gone("Suspended", { ...terminated, observedGeneration: undefined }, null)).toBe(true);
   });
 
   it("reads the names of its claim templates, skipping one with no name", () => {

@@ -32,6 +32,12 @@
  *     queue nobody polls. Behind its own `patched()` id and the same
  *     conditions; the cloud HITL and pause histories recorded before it
  *     replay as recorded.
+ *   - A sandbox that cannot be carried: an ask answered `not_carried` (the
+ *     sandbox was started under another configuration and its files cannot
+ *     be moved to this server's runner, stigmer#1843) ends the turn at once
+ *     as `failed` / `internal` with a person's sentence, before any runner
+ *     work. Behind its own `patched()` id, so a turn that went on to the
+ *     runner on that answer before the end existed replays as recorded.
  *   - Harness dispatch, one exhaustive switch: STIGMER/UNSPECIFIED and
  *     CLAUDE → the deterministic-state flow (EnsureThread once, thread
  *     stable across re-invocations; the engine derives its own state from
@@ -150,11 +156,13 @@ import {
 } from "../runner-result.js";
 import {
   DEFAULT_SANDBOX_WAIT_SECONDS,
+  SANDBOX_NOT_CARRIED_PATCH_ID,
   SANDBOX_REENSURE_PATCH_ID,
   SANDBOX_WAIT_PATCH_ID,
   SANDBOX_WAIT_STOP_CAUSE,
   SANDBOX_WAIT_STOP_KIND,
   SANDBOX_WAITING_PHASE_TEXT,
+  SandboxNotCarried,
   SandboxWaitRanOut,
   sandboxWaitBackoffMs,
   type EnsureSessionSandboxInput,
@@ -748,6 +756,13 @@ async function askForRoom(
 
   for (;;) {
     const outcome = await ensureTurnSandbox(input, callerClass, since);
+    if (outcome === "not_carried" && patched(SANDBOX_NOT_CARRIED_PATCH_ID)) {
+      log.info("A run's sandbox cannot be carried to this server's runner; ending the turn", {
+        executionId,
+        sessionId: input.session_id,
+      });
+      throw new SandboxNotCarried();
+    }
     if (outcome !== "no_room") {
       if (since !== undefined) {
         log.info("A run's wait for a sandbox ended", {
@@ -1003,10 +1018,11 @@ async function runWithPauseAndRecovery(
       continue;
     }
 
-    if (attempt.error instanceof SandboxWaitRanOut) {
-      // A resumed turn's wait for room ran out (askBeforeCarryingOn): it
-      // ends as the first ask's does, its own kind and sentence, never
-      // wrapped as the runner activity's failure.
+    if (attempt.error instanceof SandboxWaitRanOut || attempt.error instanceof SandboxNotCarried) {
+      // A resumed turn's wait for room ran out, or its sandbox cannot be
+      // carried (askBeforeCarryingOn): it ends as the first ask's does,
+      // its own cause and sentence, never wrapped as the runner
+      // activity's failure.
       throw attempt.error;
     }
 
@@ -1282,6 +1298,25 @@ async function updateStatusOnFailure(
           error: originalError.message,
           stopCause: SANDBOX_WAIT_STOP_CAUSE,
           stopDetail: { kind: SANDBOX_WAIT_STOP_KIND },
+        }),
+      ),
+    );
+    log.info("Updated execution status to FAILED", { executionId });
+    return;
+  }
+
+  if (originalError instanceof SandboxNotCarried) {
+    // The sandbox's files could not be carried to this server's runner:
+    // the person's sentence, as the platform's fault (../sandbox-wait.ts).
+    await failurePathActivities[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME](
+      executionId,
+      toJson(
+        RunStatusSchema,
+        create(RunStatusSchema, {
+          phase: RunPhase.RUN_FAILED,
+          error: originalError.message,
+          stopCause: "failed",
+          stopDetail: { kind: "internal" },
         }),
       ),
     );

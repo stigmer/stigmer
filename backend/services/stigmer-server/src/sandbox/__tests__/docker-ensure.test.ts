@@ -6,8 +6,18 @@
  * original env while its baked token is good, and recreated with the
  * fresh token once that token has expired: its workspace and home carried
  * over as tar streams into a container created fresh from the runner image
- * beside it, then swapped in, so no variable the driver no longer sets
- * survives, and a failed copy leaves the old container as it was. An
+ * beside it, copied in without `--archive` so each file keeps the owner its
+ * tar header names, the agent user's included (`--archive` would chown
+ * them all to the container's user, and refuses a `--user 0:0` container
+ * outright: stigmer#3155), then swapped in, so no variable the driver no longer sets
+ * survives, and a failed copy leaves the old container as it was. A
+ * container made under another configuration (another image, or another
+ * baked server release; a development server's none compares equal) is
+ * recreated the same way: a stopped one instead of started, a running one
+ * stopped first, and only when the ensure says the runner is idle; one on
+ * this configuration, or an ensure that does not say so, is left as it is
+ * (stigmer#1843). Two ensures of one container (the request's and the
+ * workflow's run at once) take turns, so a recreate never runs twice. An
  * absent one is created (a connect sandbox on its
  * own queue), with the operator's runner
  * secrets beside the token, never on the command line. The real CLI and
@@ -49,19 +59,33 @@ let originalPath: string | undefined;
 /** The fake CLI: answers `inspect` from the state file, records every call. */
 const FAKE_DOCKER = `#!/bin/sh
 echo "$*" >> "$FAKE_DOCKER_DIR/calls.log"
-if [ "$1" = "cp" ] && [ "$2" != "--archive" ] && [ -f "$FAKE_DOCKER_DIR/copy-out-fails" ]; then
+if [ "$1" = "cp" ] && [ "$2" != "-" ] && [ -f "$FAKE_DOCKER_DIR/copy-out-fails" ]; then
   echo "Error: no such path" >&2
   exit 1
 fi
 if [ "$1" = "rm" ] && [ -f "$FAKE_DOCKER_DIR/copy-in-fails" ]; then
   case "$3" in *-fresh) echo "Error: removal failed" >&2; exit 1;; esac
 fi
-if [ "$1" = "cp" ] && [ "$2" = "--archive" ] && [ -f "$FAKE_DOCKER_DIR/copy-in-fails" ]; then
+if [ "$1" = "cp" ] && [ "$2" = "-" ] && [ -f "$FAKE_DOCKER_DIR/copy-in-fails" ]; then
   echo "Error: copy failed" >&2
   exit 1
 fi
-if [ "$1" = "inspect" ] && [ "$3" = "{{json .Config.Env}}" ]; then
-  cat "$FAKE_DOCKER_DIR/env"
+if [ "$1" = "start" ] && [ -f "$FAKE_DOCKER_DIR/start-fails" ]; then
+  echo "Error: cannot start" >&2
+  exit 1
+fi
+if [ "$1" = "rm" ] && [ -f "$FAKE_DOCKER_DIR/state" ] && [ "$(cat "$FAKE_DOCKER_DIR/state")" = "absent" ]; then
+  echo "Error: No such container: $3" >&2
+  exit 1
+fi
+if [ "$1" = "rename" ] && [ -f "$FAKE_DOCKER_DIR/config-after" ]; then
+  cp "$FAKE_DOCKER_DIR/config-after" "$FAKE_DOCKER_DIR/config"
+fi
+if [ "$1" = "start" ] && [ -f "$FAKE_DOCKER_DIR/config-after" ]; then
+  echo running > "$FAKE_DOCKER_DIR/state"
+fi
+if [ "$1" = "inspect" ] && [ "$3" = "{{json .Config}}" ]; then
+  cat "$FAKE_DOCKER_DIR/config"
   exit 0
 fi
 if [ "$1" = "inspect" ]; then
@@ -76,10 +100,37 @@ fi
 echo ok
 `;
 
-function setState(state: "absent" | "stopped" | "running", bakedToken = jwtExpiringIn(3600)): void {
+/** What the container was created with: its image and, when its server was a release, that release. */
+interface Baked {
+  readonly image?: string;
+  readonly release?: string;
+}
+
+function setState(
+  state: "absent" | "stopped" | "running",
+  bakedToken = jwtExpiringIn(3600),
+  baked: Baked = {},
+): void {
   writeFileSync(path.join(dir, "state"), state);
-  writeFileSync(path.join(dir, "env"), JSON.stringify(["PATH=/usr/bin", `STIGMER_TOKEN=${bakedToken}`]));
+  const env = ["PATH=/usr/bin", `STIGMER_TOKEN=${bakedToken}`];
+  if (baked.release !== undefined) env.push(`STIGMER_SERVER_RELEASE=${baked.release}`);
+  writeFileSync(
+    path.join(dir, "config"),
+    JSON.stringify({ Image: baked.image ?? CONFIG.runnerImage, Env: env }),
+  );
   writeFileSync(path.join(dir, "calls.log"), "");
+  rmSync(path.join(dir, "config-after"), { force: true });
+}
+
+/**
+ * Makes the fake CLI's container follow a recreate: the swapped-in one
+ * carries `baked`, and a start leaves it running.
+ */
+function recreatesTo(baked: Baked): void {
+  writeFileSync(
+    path.join(dir, "config-after"),
+    JSON.stringify({ Image: baked.image ?? CONFIG.runnerImage, Env: ["PATH=/usr/bin"] }),
+  );
 }
 
 /** A token-shaped string whose `exp` is `seconds` from now (the driver reads, never verifies, it). */
@@ -144,7 +195,7 @@ describe("docker driver ensure", () => {
 
     expect(calls()).toEqual([
       `inspect --format {{.State.Running}} ${name}`,
-      `inspect --format {{json .Config.Env}} ${name}`,
+      `inspect --format {{json .Config}} ${name}`,
       `start ${name}`,
     ]);
     expect(infos).toEqual([
@@ -161,7 +212,7 @@ describe("docker driver ensure", () => {
     const fresh = `${name}-fresh`;
     expect(made.slice(0, 4)).toEqual([
       `inspect --format {{.State.Running}} ${name}`,
-      `inspect --format {{json .Config.Env}} ${name}`,
+      `inspect --format {{json .Config}} ${name}`,
       `cp ${name}:/workspace -`,
       `cp ${name}:/root -`,
     ]);
@@ -171,8 +222,8 @@ describe("docker driver ensure", () => {
     expect(made[4]).toMatch(/ --env STIGMER_TOKEN( |$)/);
     expect(made[4]).not.toContain("STIGMER_TEMPORAL_");
     expect(made.slice(5)).toEqual([
-      `cp --archive - ${fresh}:/`,
-      `cp --archive - ${fresh}:/`,
+      `cp - ${fresh}:/`,
+      `cp - ${fresh}:/`,
       `rm --force ${name}`,
       `rename ${fresh} ${name}`,
       `start ${name}`,
@@ -256,6 +307,190 @@ describe("docker driver ensure", () => {
     expect(made.join("\n")).not.toContain("sk-ensure");
     expect(made[1]).toContain("--env ANTHROPIC_BASE_URL=http://model.example:18555");
     expect(made.some((c) => c.startsWith("start "))).toBe(false);
+  });
+});
+
+describe("a container started under another configuration (stigmer#1843)", () => {
+  const name = sandboxBaseName("session", "ses_ensure");
+  /** The facts of the workflow's ensure, right before it invokes the runner. */
+  const IDLE: SandboxFacts = { ...ENV, runnerIdle: true };
+  const RELEASED: SandboxDriverConfig = { ...CONFIG, serverRelease: "3.42.0" };
+
+  /** The calls of a recreate that carries the files, after `before`. */
+  function expectRecreated(made: string[], before: string[]): void {
+    const fresh = `${name}-fresh`;
+    expect(made.slice(0, before.length + 2)).toEqual([
+      ...before,
+      `cp ${name}:/workspace -`,
+      `cp ${name}:/root -`,
+    ]);
+    const create = made[before.length + 2];
+    expect(create?.startsWith(`create --name ${fresh} `)).toBe(true);
+    expect(create).toContain(` ${CONFIG.runnerImage} `);
+    expect(made.slice(before.length + 3)).toEqual([
+      `cp - ${fresh}:/`,
+      `cp - ${fresh}:/`,
+      `rm --force ${name}`,
+      `rename ${fresh} ${name}`,
+      `start ${name}`,
+    ]);
+  }
+
+  it("running on another image with the runner idle, its recreate failing: started again as it was, the failure reported", async () => {
+    setState("running", jwtExpiringIn(3600), { image: "ghcr.io/stigmer/runner:old" });
+    writeFileSync(path.join(dir, "copy-out-fails"), "");
+    try {
+      const { logger } = capturingLogger();
+      await expect(
+        newDockerSandboxProvisioner({ config: CONFIG, logger }).ensureSessionSandbox("ses_ensure", IDLE),
+      ).rejects.toThrow(/no such path/);
+      const made = calls();
+      expect(made).toContain(`stop ${name}`);
+      expect(made.at(-1), "a container that served turns is never left stopped").toBe(`start ${name}`);
+    } finally {
+      rmSync(path.join(dir, "copy-out-fails"), { force: true });
+    }
+  });
+
+  it("a failed recreate whose restart fails too: the recreate's failure is the one reported", async () => {
+    setState("running", jwtExpiringIn(3600), { image: "ghcr.io/stigmer/runner:old" });
+    writeFileSync(path.join(dir, "copy-out-fails"), "");
+    writeFileSync(path.join(dir, "start-fails"), "");
+    try {
+      const { logger } = capturingLogger();
+      await expect(
+        newDockerSandboxProvisioner({ config: CONFIG, logger }).ensureSessionSandbox("ses_ensure", IDLE),
+      ).rejects.toThrow(/no such path/);
+      expect(calls().at(-1)).toBe(`start ${name}`);
+    } finally {
+      rmSync(path.join(dir, "copy-out-fails"), { force: true });
+      rmSync(path.join(dir, "start-fails"), { force: true });
+    }
+  });
+
+  it("running on another image with the runner idle: stopped, then recreated carrying its files", async () => {
+    setState("running", jwtExpiringIn(3600), { image: "ghcr.io/stigmer/runner:old" });
+    const { logger, infos } = capturingLogger();
+    await newDockerSandboxProvisioner({ config: CONFIG, logger }).ensureSessionSandbox("ses_ensure", IDLE);
+
+    expectRecreated(calls(), [
+      `inspect --format {{.State.Running}} ${name}`,
+      `inspect --format {{json .Config}} ${name}`,
+      `stop ${name}`,
+    ]);
+    expect(infos).toEqual([
+      [
+        "Docker sandbox started under another configuration; recreated on this server's runner with its files",
+        {
+          scope: "session",
+          id: "ses_ensure",
+          container: name,
+          fromImage: "ghcr.io/stigmer/runner:old",
+          fromRelease: "",
+          toImage: CONFIG.runnerImage,
+          toRelease: "",
+        },
+      ],
+    ]);
+  });
+
+  it("running under another release with the runner idle: recreated, though its image reference is the same", async () => {
+    setState("running", jwtExpiringIn(3600), { release: "3.41.0" });
+    const { logger } = capturingLogger();
+    await newDockerSandboxProvisioner({ config: RELEASED, logger }).ensureSessionSandbox("ses_ensure", IDLE);
+
+    expectRecreated(calls(), [
+      `inspect --format {{.State.Running}} ${name}`,
+      `inspect --format {{json .Config}} ${name}`,
+      `stop ${name}`,
+    ]);
+  });
+
+  it("running on this configuration with the runner idle: the fast path after one read", async () => {
+    setState("running", jwtExpiringIn(3600), { release: "3.42.0" });
+    const { logger, infos } = capturingLogger();
+    await newDockerSandboxProvisioner({ config: RELEASED, logger }).ensureSessionSandbox("ses_ensure", IDLE);
+
+    expect(calls()).toEqual([
+      `inspect --format {{.State.Running}} ${name}`,
+      `inspect --format {{json .Config}} ${name}`,
+    ]);
+    expect(infos).toEqual([]);
+  });
+
+  it("running on another image without the runner idle (the request's ensure): never touched", async () => {
+    setState("running", jwtExpiringIn(3600), { image: "ghcr.io/stigmer/runner:old" });
+    const { logger } = capturingLogger();
+    await newDockerSandboxProvisioner({ config: CONFIG, logger }).ensureSessionSandbox("ses_ensure", ENV);
+
+    expect(calls()).toEqual([`inspect --format {{.State.Running}} ${name}`]);
+  });
+
+  it("a development server compares the image alone: a container with no release stamp on the same image starts as it is", async () => {
+    setState("stopped");
+    const { logger } = capturingLogger();
+    await newDockerSandboxProvisioner({ config: CONFIG, logger }).ensureSessionSandbox("ses_ensure", ENV);
+
+    expect(calls().at(-1)).toBe(`start ${name}`);
+  });
+
+  it("stopped on another image, its token still good: recreated carrying its files, not started as it is", async () => {
+    setState("stopped", jwtExpiringIn(3600), { image: "ghcr.io/stigmer/runner:old" });
+    const { logger } = capturingLogger();
+    await newDockerSandboxProvisioner({ config: CONFIG, logger }).ensureSessionSandbox("ses_ensure", ENV);
+
+    expectRecreated(calls(), [
+      `inspect --format {{.State.Running}} ${name}`,
+      `inspect --format {{json .Config}} ${name}`,
+    ]);
+  });
+
+  it("the request's and the workflow's ensures at once: one recreate, the second ensure finding the swapped-in container", async () => {
+    setState("stopped", jwtExpiringIn(3600), { image: "ghcr.io/stigmer/runner:old" });
+    recreatesTo({});
+    const { logger } = capturingLogger();
+    const driver = newDockerSandboxProvisioner({ config: CONFIG, logger });
+    await Promise.all([
+      driver.ensureSessionSandbox("ses_ensure", IDLE),
+      driver.ensureSessionSandbox("ses_ensure", ENV),
+    ]);
+
+    const made = calls();
+    expect(made.filter((call) => call.startsWith("create ")), "one recreate, never a second over the first").toHaveLength(1);
+    expect(made.filter((call) => call === `rm --force ${name}`)).toHaveLength(1);
+    // The second ensure reads the container only after the first has swapped it in.
+    expect(made.lastIndexOf(`inspect --format {{.State.Running}} ${name}`)).toBeGreaterThan(made.indexOf(`rename ${name}-fresh ${name}`));
+  });
+
+  it("stopped under another release with no token minted now: recreated all the same", async () => {
+    setState("stopped", "", { release: "3.41.0" });
+    const { logger } = capturingLogger();
+    await newDockerSandboxProvisioner({ config: RELEASED, logger }).ensureSessionSandbox("ses_ensure", {
+      ...ENV,
+      stigmerToken: "",
+    });
+
+    expect(calls()).toContain(`rename ${name}-fresh ${name}`);
+  });
+});
+
+describe("docker driver teardown", () => {
+  const name = sandboxBaseName("session", "ses_ensure");
+
+  it("removes the container, a missing one is success, and it waits its turn behind an ensure of the same container", async () => {
+    setState("stopped");
+    const { logger } = capturingLogger();
+    const driver = newDockerSandboxProvisioner({ config: CONFIG, logger });
+    await Promise.all([
+      driver.ensureSessionSandbox("ses_ensure", ENV),
+      driver.deprovisionSessionSandbox("ses_ensure"),
+    ]);
+    const made = calls();
+    expect(made.indexOf(`rm --force ${name}`)).toBeGreaterThan(made.indexOf(`start ${name}`));
+
+    setState("absent");
+    await driver.deprovisionSessionSandbox("ses_ensure");
+    expect(calls()).toEqual([`rm --force ${name}`]);
   });
 });
 

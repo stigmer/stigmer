@@ -59,6 +59,10 @@
  *     not registered), goes on to the runner; a LOCAL target, and an
  *     input without the caller's class, never ask. These waits are short
  *     real seconds (the asks are 5 s apart), on the same local server;
+ *   - a sandbox whose files cannot be carried to this server's runner
+ *     (the ensure answers `not_carried`, stigmer#1843) ends the turn at
+ *     once, before its first runner activity or before a resumed one, as
+ *     failed / internal with the person's line, running nothing more;
  *   - a turn asks for its sandbox again before every runner invocation
  *     after its first, since a parked turn's sandbox may have gone to
  *     sleep (stigmer#3122): after an approval (IN_PROGRESS written
@@ -103,6 +107,7 @@ import {
   SIGNAL_RESUME,
   START_QUEUED_TURN_ACTIVITY_NAME,
 } from "../names.js";
+import { SANDBOX_NOT_CARRIED_COPY } from "../sandbox-wait.js";
 import type { InvokeAgentExecutionWorkflowInput } from "../workflow-input.js";
 
 const TASK_QUEUE = "invoke-workflow-test";
@@ -1063,6 +1068,21 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
       expect(script.executeCalls).toHaveLength(1);
     }, 60_000);
 
+    it("ends at once, running nothing, when the sandbox's files cannot be carried: failed / internal with the person's line", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.sandboxAnswers = ["not_carried"];
+
+      await expect((await startWorkflow(cloud())).result()).rejects.toThrow(/Workflow execution failed/);
+
+      expect(script.sandboxCalls, "one ask: a refused move is no wait").toHaveLength(1);
+      expect(script.executeCalls).toEqual([]);
+      const failed = persisted(RunPhase.RUN_FAILED);
+      expect(failed).toHaveLength(1);
+      expect(failed[0]!.status.stopCause).toBe("failed");
+      expect(failed[0]!.status.stopDetail?.kind).toBe("internal");
+      expect(failed[0]!.status.error).toBe(SANDBOX_NOT_CARRIED_COPY);
+      expect(script.queuedTurnCalls, "the session's queue still moves").toEqual(["ses_1"]);
+    }, 60_000);
+
     it("goes on to the runner when the ensure fails or cannot run at all", async (testCtx) => {    if (!envReady) return testCtx.skip();
       script.executeBehaviors = [async () => slimResult(RunPhase.RUN_COMPLETED), async () => slimResult(RunPhase.RUN_COMPLETED)];
 
@@ -1172,6 +1192,23 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
       expect(script.persistedStatuses[waitingAt]!.status.setupProgress?.currentPhase).toBe("Waiting for a sandbox");
       expect(seen.slice(waitingAt + 1), "working again once room comes").toContain(RunPhase.RUN_IN_PROGRESS);
       expect(script.executeCalls).toHaveLength(2);
+    }, 60_000);
+
+    it("a resumed turn whose sandbox cannot be carried ends as failed / internal with the person's line, re-invoking nothing", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.sandboxAnswers = ["ready", "not_carried"];
+      script.executeBehaviors = [async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL)];
+      script.openGateCounts = [1];
+
+      const handle = await startWorkflow(cloud());
+      await waitForPersistedPhase(RunPhase.RUN_WAITING_FOR_APPROVAL);
+      await handle.signal(SIGNAL_APPROVAL_GATE_RESOLVED);
+      await expect(handle.result()).rejects.toThrow(/Workflow execution failed/);
+
+      expect(script.executeCalls, "nothing re-invoked").toHaveLength(1);
+      const failed = script.persistedStatuses.filter((entry) => entry.status.phase === RunPhase.RUN_FAILED);
+      expect(failed.at(-1)!.status.stopCause).toBe("failed");
+      expect(failed.at(-1)!.status.stopDetail?.kind).toBe("internal");
+      expect(failed.at(-1)!.status.error).toBe(SANDBOX_NOT_CARRIED_COPY);
     }, 60_000);
 
     it("a full pool that never frees ends the resumed turn as no_sandbox_room", async (testCtx) => {    if (!envReady) return testCtx.skip();

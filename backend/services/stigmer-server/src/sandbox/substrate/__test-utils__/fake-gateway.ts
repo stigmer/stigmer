@@ -189,7 +189,9 @@ export class FakeSubstrate implements SubstrateGateway {
   ): Promise<"moved" | "refused"> {
     this.enter("moveActor", actor.name);
     const stored = this.need(actor.name);
-    if (this.refuseMoves || stored.state !== "suspended")
+    // Substrate answers FAILED_PRECONDITION for a missing target template
+    // and an actor not asleep, as for volumes that differ.
+    if (this.refuseMoves || stored.state !== "suspended" || !this.templates.has(template))
       return "refused";
     stored.template = template;
     stored.version += 1n;

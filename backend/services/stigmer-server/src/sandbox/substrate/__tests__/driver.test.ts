@@ -6,14 +6,24 @@
  *     egress policy written, resumed, attached by one push carrying the
  *     queue and exactly the secrets (never a plain setting);
  *   - the ensure's log line names the path it took from the first settled
- *     state it found (created, suspended, running, crashed), never
+ *     state it found (created, suspended, running, moved, crashed), never
  *     the arm it ended in, so a created sandbox is not counted as a wake
  *     from storage; a state in transition names nothing;
- *   - suspended → moved to the current template only when that template is
- *     ready, its policy repaired when missing, resumed, pushed: every wake
- *     is a fresh runner (the template keeps no memory, template.ts);
- *   - running → pushed only; crashed → reverted first; deleting → refused,
- *     and so is a state the driver has no word for;
+ *   - suspended → on another template, the current one waited for (as a
+ *     create does) and the actor moved to it, a move Substrate refuses
+ *     thrown as SandboxNotCarriedError with the actor left asleep and
+ *     unpushed (stigmer#1843), but only once a fresh read shows the
+ *     current template there and the actor still asleep: a template
+ *     another server retired is prepared again and the move tried once
+ *     more, and an actor being deleted fails as any ensure does; its policy repaired when missing, resumed,
+ *     pushed: every wake is a fresh runner (the template keeps no memory,
+ *     template.ts);
+ *   - running → pushed only; on another template and only with the runner
+ *     idle (the workflow's ensure), suspended, moved, woken and pushed, its
+ *     volumes kept, the move logged from and to; a refused move there
+ *     refuses too; `maintain` still leaves a refused sleeping sandbox on its
+ *     own template without failing; crashed → reverted first; deleting →
+ *     refused, and so is a state the driver has no word for;
  *   - ABORTED → re-read, whether contention or a crash; no free worker →
  *     thrown at once;
  *   - a running runner refusing rotated secrets keeps running;
@@ -61,7 +71,9 @@ import { createLogger, type LogEntry } from "../../../boot/logger.js";
 import { sandboxBaseName } from "../../naming.js";
 import { runnerEnvironmentOf } from "../../environment.js";
 import {
+  isSandboxNotCarried,
   SandboxNoRoomError,
+  SandboxNotCarriedError,
   type EnvironmentFacts,
   type SandboxDriverConfig,
   type SandboxFacts,
@@ -217,19 +229,22 @@ describe("ensure, from each state", () => {
     expect(h.router.pushes).toHaveLength(1);
   });
 
-  it("SUSPENDED on an older template: wakes on it at once while the current template is not ready", async () => {
+  it("SUSPENDED on an older template: waits for the current template while it is being prepared, then moves to it (stigmer#1843)", async () => {
     const h = harness();
+    h.substrate.goldenPolls = 2;
     h.substrate.put({
       name: ACTOR,
       state: "suspended",
       template: "stigmer-runner-old",
     });
     await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
-    expect(h.substrate.calls).not.toContain(`moveActor ${ACTOR}`);
-    expect(h.substrate.calls.some((c) => c.startsWith("createTemplate"))).toBe(
-      false,
+    const calls = h.substrate.calls;
+    const template = h.driver.internals.keeper.name;
+    expect(calls).toContain(`createTemplate ${template}`);
+    expect(calls.lastIndexOf(`getTemplate ${template}`)).toBeLessThan(
+      calls.indexOf(`moveActor ${ACTOR}`),
     );
-    expect(h.substrate.actors.get(ACTOR)?.template).toBe("stigmer-runner-old");
+    expect(h.substrate.actors.get(ACTOR)?.template).toBe(template);
     expect(h.substrate.actors.get(ACTOR)?.state).toBe("running");
   });
 
@@ -251,7 +266,7 @@ describe("ensure, from each state", () => {
     );
   });
 
-  it("SUSPENDED: keeps its own template when Substrate refuses the move", async () => {
+  it("SUSPENDED: refused, never woken on its own template, when Substrate refuses the move (stigmer#1843)", async () => {
     const h = harness();
     await h.driver.internals.keeper.ready();
     h.substrate.refuseMoves = true;
@@ -260,9 +275,14 @@ describe("ensure, from each state", () => {
       state: "suspended",
       template: "stigmer-runner-old",
     });
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
+    const ensured = h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
+    await expect(ensured).rejects.toBeInstanceOf(SandboxNotCarriedError);
+    await expect(ensured).rejects.toThrow(/stigmer-runner-old/);
+    expect(isSandboxNotCarried(await ensured.catch((e: unknown) => e))).toBe(true);
+    expect(h.substrate.calls).not.toContain(`resumeActor ${ACTOR}`);
     expect(h.substrate.actors.get(ACTOR)?.template).toBe("stigmer-runner-old");
-    expect(h.substrate.actors.get(ACTOR)?.state).toBe("running");
+    expect(h.substrate.actors.get(ACTOR)?.state).toBe("suspended");
+    expect(h.router.pushes).toEqual([]);
   });
 
   it("SUSPENDED without a policy (its creator died before writing it): the policy is written before the wake", async () => {
@@ -561,6 +581,223 @@ describe("the ensure's log line names the path it took", () => {
       return getActor(name);
     };
     expect(await armOf(h, ensured)).toBe("suspended");
+  });
+});
+
+describe("a running sandbox started under another configuration (stigmer#1843)", () => {
+  /** The facts of the workflow's ensure, right before it invokes the runner. */
+  const idle: SandboxFacts = { ...facts, runnerIdle: true };
+
+  it("with the runner idle: suspended, moved to the current template, woken and pushed, its files kept", async () => {
+    const h = harness();
+    await h.driver.internals.keeper.ready();
+    h.substrate.put({
+      name: ACTOR,
+      state: "running",
+      template: "stigmer-runner-old",
+    });
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, idle);
+    const calls = h.substrate.calls;
+    const suspend = calls.indexOf(`suspendActor ${ACTOR}`);
+    const move = calls.indexOf(`moveActor ${ACTOR}`);
+    const resume = calls.indexOf(`resumeActor ${ACTOR}`);
+    expect(suspend).toBeGreaterThan(-1);
+    expect(suspend).toBeLessThan(move);
+    expect(move).toBeLessThan(resume);
+    // A suspend keeps the volumes: nothing is deleted or created again.
+    expect(calls).not.toContain(`deleteActor ${ACTOR}`);
+    expect(calls).not.toContain(`createActor ${ACTOR}`);
+    expect(h.substrate.suspensions).toEqual([{ name: ACTOR, durable: false }]);
+    expect(h.substrate.actors.get(ACTOR)?.template).toBe(
+      h.driver.internals.keeper.name,
+    );
+    expect(h.substrate.actors.get(ACTOR)?.state).toBe("running");
+    expect(h.router.pushes).toHaveLength(1);
+  });
+
+  it("with the runner idle, while the current template is being prepared: waits for it before the move", async () => {
+    const h = harness();
+    h.substrate.goldenPolls = 2;
+    h.substrate.put({
+      name: ACTOR,
+      state: "running",
+      template: "stigmer-runner-old",
+    });
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, idle);
+    expect(h.substrate.actors.get(ACTOR)?.template).toBe(
+      h.driver.internals.keeper.name,
+    );
+    expect(h.substrate.actors.get(ACTOR)?.state).toBe("running");
+  });
+
+  it("without the runner idle (the request's and the recover's ensure): pushed only, never restarted", async () => {
+    const h = harness();
+    await h.driver.internals.keeper.ready();
+    h.substrate.put({
+      name: ACTOR,
+      state: "running",
+      template: "stigmer-runner-old",
+    });
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
+    expect(h.substrate.calls).not.toContain(`suspendActor ${ACTOR}`);
+    expect(h.substrate.actors.get(ACTOR)?.template).toBe("stigmer-runner-old");
+    expect(h.router.pushes).toHaveLength(1);
+  });
+
+  it("on the current template: pushed only, even with the runner idle", async () => {
+    const h = harness();
+    await h.driver.internals.keeper.ready();
+    h.substrate.put({
+      name: ACTOR,
+      state: "running",
+      template: h.driver.internals.keeper.name,
+    });
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, idle);
+    expect(h.substrate.calls).not.toContain(`suspendActor ${ACTOR}`);
+    expect(h.router.pushes).toHaveLength(1);
+  });
+
+  it("a move Substrate refuses: refused with the typed error, the sandbox left asleep on its own template", async () => {
+    const h = harness();
+    await h.driver.internals.keeper.ready();
+    h.substrate.refuseMoves = true;
+    h.substrate.put({
+      name: ACTOR,
+      state: "running",
+      template: "stigmer-runner-old",
+    });
+    await expect(
+      h.driver.provisioner.ensureSessionSandbox(SESSION, idle),
+    ).rejects.toBeInstanceOf(SandboxNotCarriedError);
+    expect(h.substrate.calls).not.toContain(`resumeActor ${ACTOR}`);
+    expect(h.substrate.actors.get(ACTOR)?.template).toBe("stigmer-runner-old");
+  });
+
+  it("a refused move whose current template another server retired: the template prepared again and the move tried once more, never refused", async () => {
+    const h = harness();
+    await h.driver.internals.keeper.ready();
+    const template = h.driver.internals.keeper.name;
+    h.substrate.put({
+      name: ACTOR,
+      state: "suspended",
+      template: "stigmer-runner-old",
+    });
+    // Another server's retireTemplates deleted it: no actor used it yet.
+    h.substrate.templates.delete(template);
+    const before = h.substrate.calls.length;
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
+    const calls = h.substrate.calls.slice(before);
+    expect(calls.filter((c) => c === `moveActor ${ACTOR}`)).toHaveLength(2);
+    expect(calls.filter((c) => c === `createTemplate ${template}`), "prepared again once").toHaveLength(1);
+    expect(h.substrate.actors.get(ACTOR)?.template).toBe(template);
+    expect(h.substrate.actors.get(ACTOR)?.state).toBe("running");
+  });
+
+  it("a current template gone again after it was prepared again: an ordinary failure, not one whose files cannot be carried", async () => {
+    const h = harness();
+    await h.driver.internals.keeper.ready();
+    h.substrate.put({
+      name: ACTOR,
+      state: "suspended",
+      template: "stigmer-runner-old",
+    });
+    const move = h.substrate.moveActor.bind(h.substrate);
+    h.substrate.moveActor = async (actor, template) => {
+      // Retired by another server every time, before the move lands.
+      h.substrate.templates.delete(template);
+      return move(actor, template);
+    };
+    const ensured = h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
+    await expect(ensured).rejects.toThrow(/was gone again/);
+    await expect(ensured).rejects.not.toBeInstanceOf(SandboxNotCarriedError);
+  });
+
+  it("a refused move of a sandbox that changed meanwhile: the walk reads it again and moves it", async () => {
+    const h = harness();
+    await h.driver.internals.keeper.ready();
+    h.substrate.put({
+      name: ACTOR,
+      state: "suspended",
+      template: "stigmer-runner-old",
+    });
+    const move = h.substrate.moveActor.bind(h.substrate);
+    let moves = 0;
+    h.substrate.moveActor = async (actor, template) => {
+      moves += 1;
+      if (moves === 1) {
+        // Another server wrote the actor between this one's read and its move.
+        h.substrate.actors.get(actor.name)!.version += 1n;
+        return "refused";
+      }
+      return move(actor, template);
+    };
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
+    expect(moves).toBe(2);
+    expect(h.substrate.actors.get(ACTOR)?.template).toBe(h.driver.internals.keeper.name);
+    expect(h.substrate.actors.get(ACTOR)?.state).toBe("running");
+  });
+
+  it("a refused move of a sandbox that is being deleted meanwhile: an ordinary failure, not one whose files cannot be carried", async () => {
+    const h = harness();
+    await h.driver.internals.keeper.ready();
+    h.substrate.put({
+      name: ACTOR,
+      state: "suspended",
+      template: "stigmer-runner-old",
+    });
+    const move = h.substrate.moveActor.bind(h.substrate);
+    h.substrate.moveActor = async (actor, template) => {
+      h.substrate.actors.get(actor.name)!.state = "deleting";
+      return move(actor, template);
+    };
+    const ensured = h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
+    await expect(ensured).rejects.toThrow(/being deleted/);
+    await expect(ensured).rejects.not.toBeInstanceOf(SandboxNotCarriedError);
+  });
+
+  it("logs the move with where it came from and went to, and names the path `moved`", async () => {
+    const entries: LogEntry[] = [];
+    const logger = createLogger({
+      level: "info",
+      pretty: false,
+      write: () => {},
+      sink: (entry) => entries.push(entry),
+    });
+    const h = harness(undefined, undefined, logger);
+    await h.driver.internals.keeper.ready();
+    h.substrate.put({
+      name: ACTOR,
+      state: "running",
+      template: "stigmer-runner-old",
+    });
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, idle);
+    const restart = entries.find(
+      (entry) =>
+        entry.message ===
+        "Substrate sandbox started under another configuration; restarting it on the current template",
+    );
+    expect(restart?.fields).toMatchObject({
+      actor: ACTOR,
+      from: "stigmer-runner-old",
+      to: h.driver.internals.keeper.name,
+    });
+    const ensured = entries.filter((entry) => entry.message === "Substrate sandbox ensured");
+    expect(ensured.map((entry) => entry.fields?.["arm"])).toEqual(["moved"]);
+  });
+
+  it("maintain still leaves a sleeping sandbox whose move is refused on its own template, without throwing", async () => {
+    const h = harness();
+    await h.driver.lifecycle.prepare();
+    h.substrate.refuseMoves = true;
+    h.substrate.put({
+      name: ACTOR,
+      state: "suspended",
+      template: "stigmer-runner-old",
+    });
+    const result = await h.driver.lifecycle.maintain(await h.driver.lifecycle.list());
+    expect(result.moved).toBe(0);
+    expect(result.failed).toEqual([]);
+    expect(h.substrate.actors.get(ACTOR)?.template).toBe("stigmer-runner-old");
   });
 });
 

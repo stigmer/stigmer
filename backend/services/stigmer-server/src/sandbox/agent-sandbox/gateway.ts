@@ -39,6 +39,8 @@ import {
 } from "@kubernetes/client-node";
 import type { V1Secret } from "@kubernetes/client-node";
 
+import { SERVER_RELEASE_ENV } from "../runner-launch.js";
+import { RUNNER_CONTAINER_NAME } from "./manifest.js";
 import {
   AGENT_SANDBOX_GROUP,
   AGENT_SANDBOX_PLURAL,
@@ -111,11 +113,17 @@ export function agentSandboxViewOf(object: unknown): AgentSandboxView {
   if (typeof name !== "string" || typeof uid !== "string") {
     throw new Error("a Sandbox from the cluster carries no name or uid");
   }
+  // The resource defaults an unset mode to Running.
+  const operatingMode =
+    spec.operatingMode === "Suspended" ? "Suspended" : "Running";
   return {
     name,
     uid,
-    // The resource defaults an unset mode to Running.
-    operatingMode: spec.operatingMode === "Suspended" ? "Suspended" : "Running",
+    operatingMode,
+    runner: runnerOf(spec.podTemplate),
+    podGone:
+      operatingMode === "Suspended" &&
+      podTerminated(record(object).status, metadata.generation),
     deleting: typeof metadata.deletionTimestamp === "string",
     createdAt:
       typeof metadata.creationTimestamp === "string"
@@ -124,6 +132,40 @@ export function agentSandboxViewOf(object: unknown): AgentSandboxView {
     labels: stringRecord(metadata.labels),
     claims: claimNamesOf(spec.volumeClaimTemplates),
   };
+}
+
+/** The runner container's image and release in a pod template (resource.ts, AgentSandboxView.runner). */
+function runnerOf(
+  podTemplate: unknown,
+): { readonly image: string; readonly release: string } | undefined {
+  const containers = record(record(podTemplate).spec).containers;
+  const runner = (Array.isArray(containers) ? containers : [])
+    .map(record)
+    .find((container) => container.name === RUNNER_CONTAINER_NAME);
+  if (runner === undefined) return undefined;
+  const release = (Array.isArray(runner.env) ? runner.env : [])
+    .map(record)
+    .find((entry) => entry.name === SERVER_RELEASE_ENV)?.value;
+  return {
+    image: typeof runner.image === "string" ? runner.image : "",
+    release: typeof release === "string" ? release : "",
+  };
+}
+
+/**
+ * Whether the status's Suspended condition says the pod is gone, observed
+ * at `generation` or later (resource.ts header); an object without a
+ * generation is read by the condition alone.
+ */
+function podTerminated(status: unknown, generation: unknown): boolean {
+  const conditions = record(status).conditions;
+  const suspended = (Array.isArray(conditions) ? conditions : [])
+    .map(record)
+    .find((condition) => condition.type === "Suspended");
+  if (suspended?.status !== "True") return false;
+  if (typeof generation !== "number") return true;
+  const observed = suspended.observedGeneration;
+  return typeof observed === "number" && observed >= generation;
 }
 
 function claimNamesOf(value: unknown): string[] {

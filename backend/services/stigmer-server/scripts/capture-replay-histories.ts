@@ -371,6 +371,38 @@ async function main(): Promise<void> {
     },
   );
 
+  // 12. A CLOUD turn whose ensure answered `not_carried` (a sandbox whose
+  //     files cannot be carried to the server's runner, stigmer#1843) on
+  //     the workflow before that answer ended the turn: an activity worker
+  //     of the newer release answered it during a rolling update, and the
+  //     turn went on to the runner and completed. Recorded from the
+  //     workflow before the end existed, so such a turn keeps its recorded
+  //     path.
+  executeBehaviors = [async () => slim("RUN_COMPLETED")];
+  gateCounts = [];
+  sandboxAnswers = ["not_carried"];
+  await capture(
+    "sandbox-not-carried-went-on",
+    CLOUD_INPUT,
+    async (handle) => {
+      await handle.result();
+    },
+  );
+
+  // 13. The same answer past the third patch marker: the turn ends at
+  //     once as failed / internal with the person's sentence, before any
+  //     runner work, and the session's queue still moves.
+  executeBehaviors = [];
+  gateCounts = [];
+  sandboxAnswers = ["not_carried"];
+  await capture(
+    "sandbox-not-carried",
+    CLOUD_INPUT,
+    async (handle) => {
+      await handle.result().catch(() => undefined);
+    },
+  );
+
   worker.shutdown();
   await runPromise.catch(() => {});
   await env.teardown();

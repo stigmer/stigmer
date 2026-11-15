@@ -13,6 +13,15 @@
  * the Sandbox, so deleting it removes them. The claim templates are
  * immutable after creation; the pod template may change, and a change takes
  * effect at the next pod the controller creates.
+ *
+ * The status reports a suspension's progress in its `Suspended` condition:
+ * True, reason `PodTerminated`, once the pod is gone, and False while it is
+ * still terminating, each stamped with the generation it observed. The
+ * controller leaves the condition behind after a wake, so it counts only
+ * under `Suspended` and only when observed at the object's current
+ * generation (api/v1beta1/sandbox_types.go, `SandboxConditionSuspended`;
+ * controllers/sandbox_controller.go, `computeSuspendedCondition`, at
+ * v1.0.5).
  */
 import type {
   V1PersistentVolumeClaimSpec,
@@ -61,6 +70,19 @@ export interface AgentSandboxView {
   /** The object's uid, which the Secret's owner reference names. */
   readonly uid: string;
   readonly operatingMode: AgentSandboxOperatingMode;
+  /**
+   * The runner container of spec.podTemplate: its image and the server
+   * release it was given (SERVER_RELEASE_ENV, "" when unset); undefined
+   * when the template has no runner container.
+   */
+  readonly runner:
+    | { readonly image: string; readonly release: string }
+    | undefined;
+  /**
+   * Suspended, and the status says its pod is gone for this generation
+   * (the module header); false in every other case.
+   */
+  readonly podGone: boolean;
   /** The Sandbox has a deletion timestamp: it is going away. */
   readonly deleting: boolean;
   /** When the API server made it; undefined when the object does not say. */

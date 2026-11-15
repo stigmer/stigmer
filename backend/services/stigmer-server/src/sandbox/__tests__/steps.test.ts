@@ -15,10 +15,17 @@
  *     creator stamp that names nobody mints nothing (tokenless, fail
  *     closed). Under the trusted-local posture (no accounts port) the
  *     caller, the one operator, is minted for;
- *   - the ensure answers in one word (ready, no_room, skipped, failed),
- *     and the fleet's "no room" (SandboxNoRoomError) is not a failure:
- *     nothing is stamped, so a turn that waits and then starts carries no
- *     false root cause.
+ *   - the ensure answers in one word (ready, no_room, not_carried,
+ *     skipped, failed), and the fleet's "no room" (SandboxNoRoomError) is
+ *     not a failure: nothing is stamped, so a turn that waits and then
+ *     starts carries no false root cause;
+ *   - a sandbox whose files cannot be carried to this server's runner
+ *     (SandboxNotCarriedError, through a wrapping driver's cause too)
+ *     answers not_carried and pre-stamps the person's line itself, never
+ *     the driver's words (stigmer#1843);
+ *   - only a caller that says the runner is idle (the workflow's ensure,
+ *     right before it invokes the runner) hands `runnerIdle` to the
+ *     driver: the request's and the recover's ensures never do.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -51,9 +58,11 @@ import { SqliteStore } from "../../store/sqlite/store.js";
 import type { SandboxLane } from "../lane.js";
 import {
   SandboxNoRoomError,
+  SandboxNotCarriedError,
   type SandboxFacts,
   type SandboxProvisioner,
 } from "../provisioner.js";
+import { SANDBOX_NOT_CARRIED_COPY } from "../../temporal/agentexecution/sandbox-wait.js";
 import {
   deprovisionSessionSandboxBestEffort,
   ensureSessionSandboxForExecution,
@@ -604,7 +613,12 @@ describe("what an ensure came to", () => {
     return execution;
   }
 
-  function ensureWith(provisioner: SandboxProvisioner, execution: Run, enabled = true) {
+  function ensureWith(
+    provisioner: SandboxProvisioner,
+    execution: Run,
+    enabled = true,
+    options?: { readonly runnerIdle?: boolean },
+  ) {
     return ensureSessionSandboxForExecution(
       {
         store,
@@ -615,6 +629,7 @@ describe("what an ensure came to", () => {
       },
       execution,
       TEST_CALLER,
+      options,
     );
   }
 
@@ -647,6 +662,32 @@ describe("what an ensure came to", () => {
     const execution = await seeded("wrapped", ExecutionTarget.CLOUD);
     expect(await ensureWith(fakeProvisioner({ ensureError: wrapped }), execution)).toBe("no_room");
     expect((await store.getResource(ApiResourceKind.run, "axr_wrapped", RunSchema)).status?.error ?? "").toBe("");
+  });
+
+  it("answers not_carried for a sandbox whose files cannot be carried, pre-stamping the person's line, never the driver's words (stigmer#1843)", async () => {
+    const execution = await seeded("old", ExecutionTarget.CLOUD);
+    const refused = new SandboxNotCarriedError(
+      "Substrate refused to move sandbox sbx-ses-1 from template stigmer-runner-old to stigmer-runner-new (its volumes differ)",
+    );
+    expect(await ensureWith(fakeProvisioner({ ensureError: refused }), execution)).toBe("not_carried");
+    expect((await store.getResource(ApiResourceKind.run, "axr_old", RunSchema)).status?.error).toBe(
+      SANDBOX_NOT_CARRIED_COPY,
+    );
+  });
+
+  it("reads not_carried through a wrapping driver's cause", async () => {
+    const wrapped = new Error("Failed to wake session sandbox for ses_old2", {
+      cause: new SandboxNotCarriedError("refused"),
+    });
+    const execution = await seeded("old2", ExecutionTarget.CLOUD);
+    expect(await ensureWith(fakeProvisioner({ ensureError: wrapped }), execution)).toBe("not_carried");
+  });
+
+  it("hands runnerIdle to the driver only when its caller says the runner is idle", async () => {
+    const provisioner = fakeProvisioner();
+    await ensureWith(provisioner, await seeded("idle", ExecutionTarget.CLOUD), true, { runnerIdle: true });
+    await ensureWith(provisioner, await seeded("busy", ExecutionTarget.CLOUD));
+    expect(provisioner.ensured.map((call) => call.facts.runnerIdle)).toEqual([true, undefined]);
   });
 });
 
