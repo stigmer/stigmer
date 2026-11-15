@@ -6,7 +6,6 @@
     "type-off-scale h1 \"Settings\": 32px is no step's size": "On the scale where its screen is designed and rebuilt"
   },
   "access-service-account-first-key": {
-    "browser-margin p \"The key speaks for ci-deploy, not for you: it works only in \": bottom margin 12px is the browser's own": "The session's frame: every paragraph and heading the kit draws sets its own margin (a lint rule holds it)",
     "type-off-scale h1 \"Settings\": 32px is no step's size": "On the scale where its screen is designed and rebuilt"
   },
   "access-service-account-key-revealed": {
@@ -72,12 +71,10 @@
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
   "channel-app-new": {
-    "browser-margin p \"2. Paste the app's credentials\": bottom margin 12px is the browser's own": "The session's frame: every paragraph and heading the kit draws sets its own margin (a lint rule holds it)",
     "type-off-scale h1 \"Settings\": 32px is no step's size": "On the scale where its screen is designed and rebuilt",
     "type-off-scale pre \"display_information: name: Acme Books description: Chat with\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
   "channel-app-setup": {
-    "browser-margin p \"Credentials\": bottom margin 12px is the browser's own": "The session's frame: every paragraph and heading the kit draws sets its own margin (a lint rule holds it)",
     "type-off-scale h1 \"Settings\": 32px is no step's size": "On the scale where its screen is designed and rebuilt",
     "type-off-scale pre \"display_information: name: Acme Books description: Chat with\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
@@ -210,21 +207,9 @@
   "launcher-ready": {
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
-  "models-hub-connected": {
-    "browser-margin h2 \"Providers\": bottom margin 12px is the browser's own": "The session's frame: every paragraph and heading the kit draws sets its own margin (a lint rule holds it)"
-  },
   "models-hub-local": {
-    "browser-margin h2 \"Providers\": bottom margin 12px is the browser's own": "The session's frame: every paragraph and heading the kit draws sets its own margin (a lint rule holds it)",
     "type-off-scale pre \"export OPENAI_API_KEY=<your key> stigmer down && stigmer up\": 12px on 19.5px lines, its step pairs 16px": "The console's parts: the shared parts and their pages on the scale",
     "type-off-scale pre \"stigmer setup stigmer down && stigmer up\": 12px on 19.5px lines, its step pairs 16px": "The console's parts: the shared parts and their pages on the scale"
-  },
-  "models-hub-member": {
-    "browser-margin h2 \"Providers\": bottom margin 12px is the browser's own": "The session's frame: every paragraph and heading the kit draws sets its own margin (a lint rule holds it)"
-  },
-  "models-hub-none": {
-    "browser-margin h2 \"Providers\": bottom margin 12px is the browser's own": "The session's frame: every paragraph and heading the kit draws sets its own margin (a lint rule holds it)",
-    "browser-margin p \"Paste an Anthropic API key, and every member of Acme Corp ca\": bottom margin 12px is the browser's own": "The session's frame: every paragraph and heading the kit draws sets its own margin (a lint rule holds it)",
-    "browser-margin p \"Paste an OpenAI API key, and every member of Acme Corp can r\": bottom margin 12px is the browser's own": "The session's frame: every paragraph and heading the kit draws sets its own margin (a lint rule holds it)"
   },
   "parts": {
     "type-off-scale h1 \"The console's shared parts\": 32px is no step's size": "The console's parts: the shared parts and their pages on the scale"
@@ -812,9 +797,6 @@
     "type-off-scale th \"Amount\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale th \"Date\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale th \"Memo\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt"
-  },
-  "story-keys": {
-    "browser-margin h2 \"Providers\": bottom margin 12px is the browser's own": "The session's frame: every paragraph and heading the kit draws sets its own margin (a lint rule holds it)"
   },
   "story-own-computer": {
     "spacing-off-scale td \"(10,106.30)\": paddingBottom 9px": "On the scale where its screen is designed and rebuilt",

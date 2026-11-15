@@ -1,7 +1,8 @@
 {
   "screen": "S21",
   "title": "Agent hours used up",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "Agent hours used up",
@@ -110,12 +111,12 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "button Export transcript": "The drawing frames the first refused message as a session page (a header, the message kept in the composer); the launcher has no header and keeps the message in its field: for his look",
-        "word Fix invoice rounding": "The drawing frames the first refused message as a session page (a header, the message kept in the composer); the launcher has no header and keeps the message in its field: for his look",
-        "word New session": "The drawing frames the first refused message as a session page (a header, the message kept in the composer); the launcher has no header and keeps the message in its field: for his look"
-      }
+      "ruled": {
+        "word Fix invoice rounding": "The owner ruled on 2026-11-14 that a refused first message stays in the launcher (no session page, no header), so the drawing's session frame is not built",
+        "word New session": "The owner ruled on 2026-11-14 that a refused first message stays in the launcher (no session page, no header), so the drawing's session frame is not built",
+        "button Export transcript": "The owner ruled on 2026-11-14 that a refused first message stays in the launcher (no session page, no header), so the drawing's session frame is not built"
+      },
+      "pending": {}
     }
   ]
 }

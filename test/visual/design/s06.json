@@ -1,7 +1,8 @@
 {
   "screen": "S06",
   "title": "A customer's user",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "A customer's user",
@@ -26,7 +27,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -224,9 +225,7 @@
         "word PASS src/billing/invoice.test.ts PASS src/billing/credit-note.test.ts": "the scene's command prints \"PASS src/billing/invoice.test.ts (12 tests)\" then \"RUNS src/billing/credit-note.test.ts\""
       },
       "ruled": {},
-      "pending": {
-        "type Working · 1m 30s": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export"
-      }
+      "pending": {}
     }
   ]
 }

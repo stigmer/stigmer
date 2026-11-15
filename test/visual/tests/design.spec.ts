@@ -12,9 +12,11 @@
 // - word: some built block's words hold the drawn words, in their case and
 //   as whole words ("find the rounding code" is not "Find the rounding
 //   code", and "30s" is not held by "1m 30s");
-// - type: the built block whose words are exactly the drawn words has the
+// - type: a built block whose words are exactly the drawn words has the
 //   drawn size, line height and weight (checked only where such a block
 //   exists; a word that fails is already reported);
+// - quotes: a curly quote or apostrophe and its plain form are one glyph to
+//   the comparison, since which one sets a word is typesetting;
 // - button: a built button has the drawn name and height, to a pixel.
 //
 // A fact the drawing invents (a time, a name the scene's data differs in)
@@ -75,6 +77,8 @@ interface ScreenFacts {
   readonly screen: string;
   readonly title: string;
   readonly source: string;
+  /** The stamp of the reader the page read its drawings with (`scripts/print-design-reader.mjs`). */
+  readonly reader?: string;
   /** A later look's screen that replaced this one; its drawings are not built. */
   readonly replacedBy?: string;
   readonly drawings: readonly Drawing[];
@@ -94,9 +98,13 @@ function sceneOf(id: string): Scene {
   return scene;
 }
 
-/** Collapses a text the way the readers do. */
+/**
+ * Collapses a text the way the readers do, and folds typographic quotes and
+ * apostrophes to their plain forms: words are facts, and which quote glyph
+ * sets them is typesetting ("don't" and "don’t" are one word).
+ */
 function collapse(text: string): string {
-  return text.replace(/\s+/g, " ").trim();
+  return text.replace(/\s+/g, " ").trim().replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"');
 }
 
 /** Collapses a text and folds its case, for a button's name, whose capital a sentence may differ in. */
@@ -160,12 +168,16 @@ function failingFacts(drawing: Drawing, readings: readonly Reading[]): Map<strin
   for (const word of drawing.words) {
     const want = collapse(word.text);
     if (!blocks.some((block) => holdsWords(collapse(block.text), want))) failing.set(`word ${word.text}`, "no built block holds these words");
-    const exact = blocks.find((block) => collapse(block.text) === want);
-    if (exact === undefined) continue;
+    // A screen may show the same words twice at two types (a file's name in
+    // its card and in the panel's header): any exact block with the drawn
+    // type holds it.
+    const exact = blocks.filter((block) => collapse(block.text) === want);
+    if (exact.length === 0) continue;
     const [size, leading, weight] = word.type;
-    const [builtSize, builtLeading, builtWeight] = exact.type;
-    if (Math.abs(size - builtSize) > 0.5 || Math.abs(leading - builtLeading) > 0.5 || weight !== builtWeight) {
-      failing.set(`type ${word.text}`, `built ${builtSize}/${builtLeading} weight ${builtWeight}, drawn ${size}/${leading} weight ${weight}`);
+    const drawn = (block: Reading["blocks"][number]): boolean => Math.abs(size - block.type[0]) <= 0.5 && Math.abs(leading - block.type[1]) <= 0.5 && weight === block.type[2];
+    if (!exact.some(drawn)) {
+      const found = [...new Set(exact.map((block) => `${block.type[0]}/${block.type[1]} weight ${block.type[2]}`))].join(", ");
+      failing.set(`type ${word.text}`, `built ${found}, drawn ${size}/${leading} weight ${weight}`);
     }
   }
   for (const button of drawing.buttons) {
@@ -230,5 +242,62 @@ test.describe("every scene keeps the kit's layout rules", () => {
 
   test("every scene with listed layout breaks is in the catalogue", () => {
     expect(Object.keys(LAYOUT_PENDING).filter((id) => !SCENES.some((scene) => scene.id === id))).toEqual([]);
+  });
+});
+
+// The reading rules, on small fixture pages: what each rule reads, so a
+// change to the readers is seen here before it moves a facts file. Both
+// the built scenes and the design pages' drawings are read with these
+// (the pages embed the script `scripts/print-design-reader.mjs` prints).
+test.describe("the readers read a page as a reader sees it", () => {
+  const typeOf = (reading: Reading, text: string): readonly number[] | undefined => reading.blocks.find((block) => block.text === text)?.type;
+
+  test("words that sit in one element read that element's type, not their line's", async ({ page }) => {
+    await page.setContent(`<div style="display:flex;font:12px/16px sans-serif;font-weight:400"><span style="display:inline-block"><span style="display:inline-flex;font-weight:500">Done</span></span><span>Started 2m ago</span></div>`);
+    const reading = await page.evaluate(readPage, "body");
+    expect(typeOf(reading, "Done")).toEqual([12, 16, 500]);
+  });
+
+  test("a space between two elements is kept", async ({ page }) => {
+    await page.setContent(`<p>Started by routine <span>Nightly billing check</span></p><p><span>Changing 2</span> <span>files</span></p>`);
+    const texts = (await page.evaluate(readPage, "body")).blocks.map((block) => block.text);
+    expect(texts).toEqual(["Started by routine Nightly billing check", "Changing 2 files"]);
+  });
+
+  test("an inline box ends a word, but not before a full stop", async ({ page }) => {
+    await page.setContent(`<p><span style="display:inline-flex;margin-right:4px">Plan</span>Plan how invoices should round.</p><p>Run <code style="display:inline-block">npm test</code>.</p>`);
+    const texts = (await page.evaluate(readPage, "body")).blocks.map((block) => block.text);
+    expect(texts).toEqual(["Plan Plan how invoices should round.", "Run npm test."]);
+  });
+
+  test("a design page names its own notes and its buttons", async ({ page }) => {
+    await page.setContent(`<div id="drawing"><p class="callout">A note about the drawing</p><div style="display:flex;gap:8px"><span class="icon-btn" title="Hide panel"><svg></svg><span>2</span></span><span class="btn">Run again</span></div><p>The drawing's words</p></div>`);
+    const reading = await page.evaluate(readPage, { root: "#drawing", skip: ".callout", buttons: ".btn, .icon-btn" });
+    expect(reading.blocks.map((block) => block.text)).toEqual(["Run again", "The drawing's words"]);
+    expect(reading.buttons.map((button) => button.name)).toEqual(["Hide panel", "Run again"]);
+  });
+
+  test("a paragraph spaced by its parent's kit class keeps no browser margin", async ({ page }) => {
+    await page.setContent(`<div class="stg:space-y-3"><p style="font:12px/16px sans-serif;margin:0 0 12px">One</p><p style="font:12px/16px sans-serif;margin:0">Two</p></div>`);
+    const breaks = await page.evaluate(auditLayout, "body");
+    expect(breaks.filter((one) => one.rule === "browser-margin")).toEqual([]);
+  });
+});
+
+test.describe("a drawn fact holds as a reader would judge it", () => {
+  const drawing = (words: Drawing["words"]): Drawing => ({ caption: "", narrow: false, built: [], words, buttons: [], sample: {}, ruled: {}, pending: {} });
+
+  test("a curly and a straight quote are the same word", () => {
+    const failing = failingFacts(drawing([{ text: "You're reading this. Continue sends “Continue”.", type: [14, 20, 400] }]), [
+      { blocks: [{ text: "You’re reading this. Continue sends \"Continue\".", type: [14, 20, 400] }], buttons: [] },
+    ]);
+    expect([...failing.keys()]).toEqual([]);
+  });
+
+  test("words drawn at two weights hold when any exact block has the drawn type", () => {
+    const failing = failingFacts(drawing([{ text: "invoice-audit.md", type: [14, 20, 600] }]), [
+      { blocks: [{ text: "invoice-audit.md", type: [14, 20, 500] }, { text: "invoice-audit.md", type: [14, 20, 600] }], buttons: [] },
+    ]);
+    expect([...failing.keys()]).toEqual([]);
   });
 });

@@ -1,7 +1,8 @@
 {
   "screen": "P02",
   "title": "Page header and frame",
-  "source": "the Console parts page, version 5",
+  "source": "the Console parts page, version 6",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "Page header and frame",
@@ -62,23 +63,7 @@
           ]
         },
         {
-          "text": "acme · Created Jul 20, 2026 · Updated Jul 20, 2026",
-          "type": [
-            14,
-            20,
-            400
-          ]
-        },
-        {
-          "text": "Widelists, settings, the dashboard, the marketplace, models",
-          "type": [
-            14,
-            20,
-            400
-          ]
-        },
-        {
-          "text": "1024 (max-w-5xl)",
+          "text": "acme",
           "type": [
             12,
             16,
@@ -86,15 +71,15 @@
           ]
         },
         {
-          "text": "Readingone column: a form, a detail page, the session",
+          "text": "Created Jul 20, 2026",
           "type": [
-            14,
-            20,
+            12,
+            16,
             400
           ]
         },
         {
-          "text": "768 (max-w-3xl)",
+          "text": "Updated Jul 20, 2026",
           "type": [
             12,
             16,
@@ -119,13 +104,11 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "word 1024 (max-w-5xl)": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word 768 (max-w-3xl)": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
         "word Active": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Readingone column: a form, a detail page, the session": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word Widelists, settings, the dashboard, the marketplace, models": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word acme · Created Jul 20, 2026 · Updated Jul 20, 2026": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word daily-variance-report": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene"
+        "word daily-variance-report": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word acme": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Created Jul 20, 2026": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Updated Jul 20, 2026": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene"
       }
     },
     {
@@ -179,10 +162,18 @@
           ]
         },
         {
-          "text": "acme · Created Jul 20, 2026",
+          "text": "acme",
           "type": [
-            14,
-            20,
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Created Jul 20, 2026",
+          "type": [
+            12,
+            16,
             400
           ]
         }
@@ -204,8 +195,9 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "word acme · Created Jul 20, 2026": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
-        "word daily-variance-report": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene"
+        "word daily-variance-report": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word acme": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Created Jul 20, 2026": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene"
       }
     }
   ]

@@ -1,7 +1,8 @@
 {
   "screen": "S48",
   "title": "A teammate's view",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "The waiting step says who decides; nothing floats above the composer.",
@@ -26,7 +27,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -124,9 +125,7 @@
         "word 12s": "the scene's waiting step started with its turn"
       },
       "ruled": {},
-      "pending": {
-        "type Waiting for an answer · 1m 30s": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export"
-      }
+      "pending": {}
     }
   ]
 }

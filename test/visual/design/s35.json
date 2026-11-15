@@ -1,7 +1,8 @@
 {
   "screen": "S35",
   "title": "A tool from a connected app",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "A tool from a connected app",
@@ -26,7 +27,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -78,14 +79,6 @@
           ]
         },
         {
-          "text": "I",
-          "type": [
-            11,
-            16,
-            600
-          ]
-        },
-        {
           "text": "“credit note rounding” · No open issues match.",
           "type": [
             12,
@@ -107,14 +100,6 @@
             14,
             20,
             400
-          ]
-        },
-        {
-          "text": "I",
-          "type": [
-            11,
-            16,
-            600
           ]
         },
         {
@@ -258,10 +243,7 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {
-        "type Done": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
-        "word I": "The drawing is redrawn: the app's initial is a mark hidden from assistive technology (the slug after it names the app), which the reader skips; the drawing draws it as text, redrawn hidden at the next export"
-      }
+      "pending": {}
     }
   ]
 }

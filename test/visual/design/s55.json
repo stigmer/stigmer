@@ -1,7 +1,8 @@
 {
   "screen": "S55",
   "title": "A command in the background",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "One line says how it stands; Stop is a quiet button; the output sits in the step without its own frame.",
@@ -26,7 +27,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -74,7 +75,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {

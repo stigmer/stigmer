@@ -1,7 +1,8 @@
 {
   "screen": "S44",
   "title": "Files changing",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "While the turn works: one strip above the composer, the counts beside the words.",
@@ -26,7 +27,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -158,7 +159,7 @@
           ]
         },
         {
-          "text": "Changing 2 files +10−5",
+          "text": "Changing 2 files +10 −5",
           "type": [
             14,
             20,
@@ -228,10 +229,7 @@
         "word PASS src/billing/invoice.test.ts PASS src/billing/credit-note.test.ts": "the scene's command prints \"PASS src/billing/invoice.test.ts (12 tests)\" then \"RUNS src/billing/credit-note.test.ts\""
       },
       "ruled": {},
-      "pending": {
-        "type Working · 1m 30s": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
-        "word Changing 2 files +10−5": "The next change: the strips as cards"
-      }
+      "pending": {}
     },
     {
       "caption": "Opened: the same rows the Changed group draws when the turn ends, so the files read as one thing moving from changing to changed.",
@@ -252,7 +250,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -384,7 +382,7 @@
           ]
         },
         {
-          "text": "Changing 2 files +10−5",
+          "text": "Changing 2 files +10 −5",
           "type": [
             14,
             20,

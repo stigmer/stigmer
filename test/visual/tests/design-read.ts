@@ -1,9 +1,11 @@
 // What a picture says, read from its page: each block's own words with
 // their type, each button's name and height, and what breaks the kit's
 // layout rules. The design facts test (design.spec.ts) reads a built scene
-// with these; the session design page's exporter reads each drawing with
-// the same rules (`test/visual/design/README.md`), so a drawn fact and a
-// built fact are read alike.
+// with these, and every design page reads its drawings with `readPage`
+// itself: the page embeds the script `scripts/print-design-reader.mjs`
+// prints from this file, and each facts file carries that script's stamp
+// (`test/visual/design/README.md`). So a drawn fact and a built fact are
+// read by one function, and a change here asks for a fresh export.
 //
 // Each reader runs inside the page (`page.evaluate`), so it is one
 // self-contained function: it closes over nothing and calls only what it
@@ -28,16 +30,33 @@ export interface Reading {
   readonly buttons: readonly Button[];
 }
 
+/** Where a reading looks, and what in it is not the picture. */
+export interface ReadOptions {
+  /** The element to read under, by selector (the page's body when none matches). */
+  readonly root: string;
+  /** The page's own notes inside the root (a design page's measurements, captions and frames), left out as not part of the picture. */
+  readonly skip?: string;
+  /** What is a button: the kit's buttons by default; a design page names its drawing's button classes. */
+  readonly buttons?: string;
+}
+
 /**
- * Reads every block's own words and every button under `selector` (the
- * page's body when none matches). Hidden text (not rendered, transparent
- * until a hover reveals it, or visually hidden one pixel square for a
- * screen reader) is skipped: the facts are what a reader sees. Whitespace is collapsed, so a line break in the
- * source never differs from a space.
+ * Reads every block's own words and every button under the root (the
+ * page's body when none matches): `target` is the root's selector, or the
+ * options a design page reads its drawing with. Hidden text (not rendered,
+ * transparent until a hover reveals it, visually hidden one pixel square
+ * for a screen reader, or hidden from assistive technology) is skipped: the
+ * facts are what a reader sees. Whitespace is collapsed, so a line break in
+ * the source never differs from a space, and a space between two elements
+ * is kept ("Started by routine" and the routine's name).
  */
-export function readPage(selector: string): Reading {
-  const root = document.querySelector(selector) ?? document.body;
+export function readPage(target: string | ReadOptions): Reading {
+  const options: ReadOptions = typeof target === "string" ? { root: target } : target;
+  const root = document.querySelector(options.root) ?? document.body;
+  const skipped = `script, style, svg, [aria-hidden='true']${options.skip === undefined ? "" : `, ${options.skip}`}`;
   const collapse = (text: string): string => text.replace(/\s+/g, " ").trim();
+  const wordEnd = /[\p{L}\p{N}]$/u;
+  const wordStart = /^[\p{L}\p{N}]/u;
   const shown = (element: Element): boolean => {
     for (let at: Element | null = element; at !== null && at !== root.parentElement; at = at.parentElement) {
       const style = getComputedStyle(at);
@@ -73,24 +92,56 @@ export function readPage(selector: string): Reading {
     }
     return block;
   };
-  const own = new Map<Element, { text: string; item: Element }[]>();
+  // The inline box (inline-block, inline-flex, inline-grid) a text sits in,
+  // inside its block: a chip's word and the word after it are two words,
+  // as its padding draws them ("Plan" and "Plan how…"), where a box's last
+  // word and a full stop after it are not.
+  const boxOf = (element: Element, block: Element): Element => {
+    for (let at: Element = element; at !== block && at.parentElement !== null; at = at.parentElement) {
+      if (/^inline-/.test(getComputedStyle(at).display)) return at;
+    }
+    return block;
+  };
+  // The element whose type a block's words are set in: the innermost one
+  // holding every word (a pill in its line reads as the pill, not as the
+  // line around it), or the block where its words sit in several.
+  const typeOf = (block: Element, from: readonly Element[]): Element => {
+    let at: Element = from[0] ?? block;
+    while (at !== block && !from.every((one) => at.contains(one))) at = at.parentElement ?? block;
+    return at;
+  };
+  interface Part {
+    readonly text: string;
+    readonly item: Element;
+    readonly box: Element;
+    readonly from: Element;
+  }
+  const own = new Map<Element, Part[]>();
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
     const parent = node.parentElement;
-    if (parent === null || (node.textContent ?? "").trim() === "") continue;
-    if (parent.closest("script, style, svg, [aria-hidden='true']") !== null || !shown(parent)) continue;
+    if (parent === null || (node.textContent ?? "") === "") continue;
+    if (parent.closest(skipped) !== null || !shown(parent)) continue;
     const block = blockOf(parent);
-    own.set(block, [...(own.get(block) ?? []), { text: node.textContent ?? "", item: itemOf(parent, block) }]);
+    const part: Part = { text: node.textContent ?? "", item: itemOf(parent, block), box: boxOf(parent, block), from: parent };
+    own.set(block, [...(own.get(block) ?? []), part]);
   }
   // A field's placeholder is words a reader sees where nothing is typed.
   for (const field of root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input[placeholder], textarea[placeholder]")) {
-    if (field.value === "" && shown(field)) own.set(field, [{ text: field.placeholder, item: field }]);
+    if (field.value === "" && shown(field)) own.set(field, [{ text: field.placeholder, item: field, box: field, from: field }]);
   }
   const blocks: Block[] = [];
   for (const [block, parts] of own) {
-    const text = collapse(parts.map((part, i) => (i > 0 && part.item !== parts[i - 1]!.item ? ` ${part.text}` : part.text)).join(""));
+    let joined = "";
+    parts.forEach((part, i) => {
+      const before = parts[i - 1];
+      if (before !== undefined && part.item !== before.item) joined += " ";
+      else if (before !== undefined && part.box !== before.box && wordEnd.test(joined) && wordStart.test(part.text)) joined += " ";
+      joined += part.text;
+    });
+    const text = collapse(joined);
     if (!/\p{L}/u.test(text)) continue;
-    const style = getComputedStyle(block);
+    const style = getComputedStyle(typeOf(block, parts.filter((part) => part.text.trim() !== "").map((part) => part.from)));
     const size = Number.parseFloat(style.fontSize);
     const leading = style.lineHeight === "normal" ? Math.round(size * 1.2) : Number.parseFloat(style.lineHeight);
     blocks.push({ text, type: [size, Math.round(leading * 100) / 100, Number.parseInt(style.fontWeight, 10)] });
@@ -99,9 +150,11 @@ export function readPage(selector: string): Reading {
   // A link drawn as the kit's button (`LinkButton`: an anchor with the
   // button's classes) is a button to the reader, as the drawing draws it.
   const kitButtonLink = 'a[class~="stg:inline-flex"][class~="stg:rounded-lg"][class~="stg:border"][class~="stg:font-medium"]';
-  for (const button of root.querySelectorAll(`button, [role='button'], a[data-button], .btn, ${kitButtonLink}`)) {
-    if (!shown(button)) continue;
-    const name = collapse(button.getAttribute("aria-label") ?? (button as HTMLElement).innerText ?? "");
+  for (const button of root.querySelectorAll(options.buttons ?? `button, [role='button'], a[data-button], .btn, ${kitButtonLink}`)) {
+    if (button.closest(options.skip ?? ":not(*)") !== null || !shown(button)) continue;
+    // Its name as assistive technology hears it: a label, else a title
+    // (an icon's tooltip), else its words.
+    const name = collapse(button.getAttribute("aria-label") ?? button.getAttribute("title") ?? (button as HTMLElement).innerText ?? "");
     if (name === "") continue;
     buttons.push({ name, height: Math.round(button.getBoundingClientRect().height) });
   }
@@ -121,7 +174,7 @@ export interface LayoutBreak {
  * - `type-off-scale`: a block's text size with a line height its step does
  *   not pair with, or a size no step has;
  * - `browser-margin`: a paragraph or heading keeping the browser's own
- *   margin (the host page's, where no kit class set one);
+ *   margin (the host page's, where no kit class on it or its parent set one);
  * - `spacing-off-scale`: a padding or a gap that is not a whole number of
  *   half spacing units (2px), the steps the kit's classes take, or the
  *   one-pixel hairline.
@@ -160,7 +213,11 @@ export function auditLayout(selector: string): LayoutBreak[] {
     // A paragraph's or heading's margin is the browser's when it measures
     // the browser's default and no kit class names a margin on it.
     const em = browserMargin[element.tagName];
-    const kitMargin = /(^|\s)stg:(?:[\w-]+:)*-?m[ytb]?-/.test(typeof element.className === "string" ? element.className : "");
+    // A parent's `stg:space-y-*` sets its children's margins too, and the
+    // kit's base rule takes theirs away (`sdk/react/src/styles.css`), so a
+    // margin there is the kit's even where it measures the browser's.
+    const classOf = (at: Element | null): string => (at !== null && typeof at.className === "string" ? at.className : "");
+    const kitMargin = /(^|\s)stg:(?:[\w-]+:)*-?m[ytb]?-/.test(classOf(element)) || /(^|\s)stg:(?:[\w-]+:)*space-y-/.test(classOf(element.parentElement));
     if (em !== undefined && !kitMargin) {
       const expected = Math.round(px(style.fontSize) * em * 100) / 100;
       for (const side of ["marginTop", "marginBottom"] as const) {

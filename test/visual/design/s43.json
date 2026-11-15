@@ -1,7 +1,8 @@
 {
   "screen": "S43",
   "title": "A helper at work",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "A helper reads as a step: what it's doing, its name as a tag, its time. Open while it runs, its own steps nested.",
@@ -26,7 +27,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -148,13 +149,10 @@
         "word 2 matches": "the scene's helper is running one search, with no folder",
         "word 38s": "the scene's helper started with its turn (\"1m 30s\")",
         "word Reading credit-note.ts": "the scene's helper is running one search, with no folder",
-        "word Searched for round( in src/billing": "the scene's helper is running one search, with no folder",
-        "word src/billing": "the scene's helper is running one search, with no folder"
+        "word Searched for round( in src/billing": "the scene's helper is running one search, with no folder"
       },
       "ruled": {},
-      "pending": {
-        "type Working · 1m 30s": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export"
-      }
+      "pending": {}
     }
   ]
 }

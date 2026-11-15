@@ -1,7 +1,8 @@
 {
   "screen": "S19",
   "title": "Opening the session",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "Opening the session",
@@ -73,10 +74,10 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "button Configure agent, tools, and skills": "The screens still in their old look: the opening draws the column and a closed composer"
-      }
+      "ruled": {
+        "button Configure agent, tools, and skills": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included"
+      },
+      "pending": {}
     }
   ]
 }

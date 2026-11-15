@@ -15,7 +15,8 @@
  * (`built`) or why none does yet (`unbuilt`), and the facts a person has
  * judged (`sample`: data the drawing invents, such as a time; `ruled`: a
  * difference the owner ruled; `pending`: a known failure and the change
- * that fixes it). A drawing new to a file gets `built: []` and an
+ * that fixes it). The export's own `reader` stamp, the reader the page read
+ * with, replaces the file's. A drawing new to a file gets `built: []` and an
  * `unbuilt` reason to fill in, which the spec refuses until it is.
  *
  * Usage: node test/visual/scripts/import-design-facts.mjs <design-facts.json> <source>
@@ -46,6 +47,10 @@ export function merge(existing, screen, drawings, source) {
     screen: screen.screen,
     title: screen.title,
     source,
+    // The stamp of the reader the page read its drawings with
+    // (`print-design-reader.mjs`); an export without one leaves the file
+    // without one, which the facts' unit test refuses.
+    ...(screen.reader === undefined ? {} : { reader: screen.reader }),
     ...(existing?.replacedBy === undefined ? {} : { replacedBy: existing.replacedBy }),
     // A screen a later look replaced keeps no drawings: nothing builds it.
     drawings: (existing?.replacedBy === undefined ? drawings : []).map((drawing) => {

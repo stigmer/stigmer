@@ -1,7 +1,8 @@
 {
   "screen": "S34",
   "title": "How it got there, opened",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "How it got there, opened",
@@ -26,7 +27,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -150,7 +151,7 @@
           ]
         },
         {
-          "text": "+1−1 · src/billing",
+          "text": "+1 −1 · src/billing",
           "type": [
             12,
             16,
@@ -281,14 +282,11 @@
         }
       ],
       "sample": {
-        "word Started by routine Nightly billing check": "the scene's turn was started by a person, not a routine",
         "word return lines.reduce((sum, line) => sum + roundCents(lineTotal(line)), 0);": "the scene's edit rounds with round(), not roundCents()/roundHalfEven()",
         "word return roundHalfEven(lines.reduce((sum, line) => sum + lineTotal(line), 0));": "the scene's edit rounds with round(), not roundCents()/roundHalfEven()"
       },
       "ruled": {},
-      "pending": {
-        "type Done": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export"
-      }
+      "pending": {}
     }
   ]
 }

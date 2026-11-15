@@ -1,7 +1,8 @@
 {
   "screen": "P01",
   "title": "Buttons",
-  "source": "the Console parts page, version 5",
+  "source": "the Console parts page, version 6",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "Buttons",
@@ -170,7 +171,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -314,9 +315,7 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {
-        "type Change role": "The drawing draws Change role at two sizes and the reader matches the first; redrawn with distinct labels at the next export"
-      }
+      "pending": {}
     }
   ]
 }

@@ -1,7 +1,8 @@
 {
   "screen": "S49",
   "title": "The side panel: Pull requests and Usage",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "Pull requests (today \"Changes\", which now means a turn's local edits): the repository, its state, the branch with Copy, the pull request.",
@@ -26,7 +27,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -164,7 +165,7 @@
           "height": 32
         },
         {
-          "name": "Show panel",
+          "name": "Hide panel",
           "height": 32
         },
         {
@@ -202,18 +203,16 @@
       ],
       "sample": {},
       "ruled": {
+        "type Reply…": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
+        "word Agent": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
+        "type Claude Sonnet 4.6": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
         "button Agent": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
-        "button Attach files": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
         "button Claude Sonnet 4.6": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
         "button Workspace": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
-        "type Claude Sonnet 4.6": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
-        "type Reply…": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
-        "word Agent": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included"
+        "button Attach files": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included"
       },
       "pending": {
-        "button Show panel": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "button Undo invoice.ts": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "type Done": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export"
+        "button Undo invoice.ts": "The scene's turn carries its file review, with each edit's line counts, and its usage is estimated"
       }
     },
     {
@@ -235,7 +234,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -341,7 +340,7 @@
           "height": 32
         },
         {
-          "name": "Show panel",
+          "name": "Hide panel",
           "height": 32
         },
         {
@@ -400,7 +399,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -538,7 +537,7 @@
           "height": 32
         },
         {
-          "name": "Show panel",
+          "name": "Hide panel",
           "height": 32
         },
         {
@@ -567,26 +566,23 @@
         }
       ],
       "sample": {
-        "word 1 min 14 s working · about $0.42": "the usage scene's own figures, turns and model differ from the drawing's",
-        "word 1m 14s": "the usage scene's own figures, turns and model differ from the drawing's",
-        "word 7 model calls · 1 min 14 s": "the usage scene's own figures, turns and model differ from the drawing's",
         "word Agent": "the usage scene's own figures, turns and model differ from the drawing's",
+        "word 1 min 14 s working · about $0.42": "the usage scene's own figures, turns and model differ from the drawing's",
         "word Audit last month's invoices…": "the usage scene's own figures, turns and model differ from the drawing's",
+        "word 7 model calls · 1 min 14 s": "the usage scene's own figures, turns and model differ from the drawing's",
         "word Claude Sonnet 4.5": "the usage scene's own figures, turns and model differ from the drawing's",
         "word Input 36,904 · output 4,306": "the usage scene's own figures, turns and model differ from the drawing's"
       },
       "ruled": {
+        "type Reply…": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
+        "type Claude Sonnet 4.6": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
         "button Agent": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
-        "button Attach files": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
         "button Claude Sonnet 4.6": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
         "button Workspace": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
-        "type Claude Sonnet 4.6": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
-        "type Reply…": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included"
+        "button Attach files": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included"
       },
       "pending": {
-        "button Show panel": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "type Done": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
-        "word Estimated": "The next change: the session-usage scene answers the usage report"
+        "word Estimated": "The scene's turn carries its file review, with each edit's line counts, and its usage is estimated"
       }
     },
     {
@@ -608,7 +604,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -690,7 +686,7 @@
           "height": 32
         },
         {
-          "name": "Show panel",
+          "name": "Hide panel",
           "height": 32
         },
         {

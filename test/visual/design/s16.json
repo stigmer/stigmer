@@ -1,7 +1,8 @@
 {
   "screen": "S16",
   "title": "Reconnecting",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "replacedBy": "S53",
   "drawings": []
 }

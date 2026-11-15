@@ -1,7 +1,8 @@
 {
   "screen": "S18",
   "title": "A slow turn",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "A slow turn",
@@ -26,7 +27,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -160,8 +161,8 @@
         {
           "text": "This is taking longer than usual. It keeps going if you leave; the session will be here when it's done.",
           "type": [
-            12,
-            16,
+            14,
+            20,
             400
           ]
         },
@@ -225,15 +226,13 @@
         }
       ],
       "sample": {
-        "word PASS src/billing/invoice.test.ts PASS src/billing/credit-note.test.ts": "the scene's command prints \"PASS src/billing/invoice.test.ts (12 tests)\" then \"RUNS src/billing/credit-note.test.ts\""
+        "word PASS src/billing/invoice.test.ts PASS src/billing/credit-note.test.ts": "the scene's command prints \"PASS src/billing/invoice.test.ts (12 tests)\" then \"RUNS src/billing/credit-note.test.ts\"",
+        "word Working · 12m 40s": "The scene's slow turn reads Working · 2m 41s, and its steps their own times",
+        "word 6m 12s": "The scene's slow turn reads Working · 2m 41s, and its steps their own times",
+        "word 5m 54s": "The scene's slow turn reads Working · 2m 41s, and its steps their own times"
       },
       "ruled": {},
-      "pending": {
-        "word 5m 54s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word 6m 12s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word This is taking longer than usual. It keeps going if you leave; the session will be here when it's done.": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Working · 12m 40s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows"
-      }
+      "pending": {}
     }
   ]
 }

@@ -1,7 +1,8 @@
 {
   "screen": "S36",
   "title": "Twenty files made",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "Twenty files made",
@@ -26,7 +27,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -334,13 +335,10 @@
       ],
       "sample": {
         "word 5m 48s": "the scene's turn differs in its counts and times",
-        "word How it got there: read 22 files, edited 3 files, wrote 20 files, ran 2 commands": "the scene's turn differs in its counts and times",
-        "word Started by routine Nightly billing check": "the scene's turn was started by a person, not a routine"
+        "word How it got there: read 22 files, edited 3 files, wrote 20 files, ran 2 commands": "the scene's turn differs in its counts and times"
       },
       "ruled": {},
-      "pending": {
-        "type Done": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export"
-      }
+      "pending": {}
     }
   ]
 }

@@ -1,7 +1,8 @@
 {
   "screen": "S38",
   "title": "Every shell step",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "Every shell step",
@@ -26,7 +27,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -94,7 +95,7 @@
           ]
         },
         {
-          "text": "Run the whole billing suiteexit 1",
+          "text": "Run the whole billing suite exit 1",
           "type": [
             14,
             20,
@@ -202,7 +203,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
