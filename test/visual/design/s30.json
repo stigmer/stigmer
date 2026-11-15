@@ -1,7 +1,8 @@
 {
   "screen": "S30",
   "title": "Set up wrong",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "Set up wrong",
@@ -26,7 +27,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -54,7 +55,7 @@
           ]
         },
         {
-          "text": "Its tool list is empty: it names the plugin billing-tools, which isn't installed in this organization. Install it or change the agent, then Run again.",
+          "text": "Its tool list is empty: it names the plugin billing-tools, which isn't installed in this organization. Change the agent, then Run again.",
           "type": [
             14,
             20,
@@ -152,12 +153,11 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Its tool list is empty: it names the plugin billing-tools, which isn't installed in this organization. Change the agent, then Run again.": "The scene's ending is a tools list naming a tool the turn has not got: \"Billing fixer's tools list names no tool this turn has: [linear:create_issue]. Fix the list or remove it; an empty list means every tool. Change the agent, then Run again.\""
+      },
       "ruled": {},
-      "pending": {
-        "type Didn't finish": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
-        "word Its tool list is empty: it names the plugin billing-tools, which isn't installed in this organization. Install it or change the agent, then Run again.": "Endings: the ending's words name the button and the status page"
-      }
+      "pending": {}
     }
   ]
 }

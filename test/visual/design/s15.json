@@ -1,7 +1,8 @@
 {
   "screen": "S15",
   "title": "The message didn't send",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "The message didn't send",
@@ -27,7 +28,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -134,8 +135,7 @@
         }
       ],
       "sample": {
-        "word 12s": "The drawing's sample turn (its time and pill); the scene's finished turn is the samples'",
-        "type Done": "The drawing's sample turn (its time and pill); the scene's finished turn is the samples'"
+        "word 12s": "The drawing's sample turn (its time and pill); the scene's finished turn is the samples'"
       },
       "ruled": {},
       "pending": {}

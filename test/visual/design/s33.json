@@ -1,7 +1,8 @@
 {
   "screen": "S33",
   "title": "Steps opened",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "Steps opened",
@@ -26,7 +27,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -166,7 +167,7 @@
           ]
         },
         {
-          "text": "+1−1 · src/billing",
+          "text": "+1 −1 · src/billing",
           "type": [
             12,
             16,
@@ -383,9 +384,7 @@
         "word return roundHalfEven(lines.reduce((sum, line) => sum + lineTotal(line), 0));": "the scene leaves the edit closed; its diff opens on a click"
       },
       "ruled": {},
-      "pending": {
-        "type Working · 1m 30s": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export"
-      }
+      "pending": {}
     }
   ]
 }

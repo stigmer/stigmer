@@ -1,7 +1,8 @@
 {
   "screen": "S50",
   "title": "A file, opened",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "The preview window: name, kind and size, then the acts, quiet, with Delete last.",
@@ -147,7 +148,7 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "button Close": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows"
+        "button Close": "The file window's Close at the notice acts' 28px"
       }
     },
     {
@@ -173,7 +174,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -375,7 +376,7 @@
           "height": 32
         },
         {
-          "name": "Show panel",
+          "name": "Hide panel",
           "height": 32
         },
         {
@@ -422,14 +423,10 @@
         "button Claude Sonnet 4.6": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
         "button Workspace": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
         "type Claude Sonnet 4.6": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
-        "type Reply…": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included"
+        "type Reply…": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
+        "word Agent": "The owner ruled on 2026-11-15 that with the panel open the composer leaves out its Agent menu"
       },
-      "pending": {
-        "button Show panel": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "type Done": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
-        "type invoice-audit.md": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Agent": "The next change, at the owner's look: with the panel open the composer leaves out its Agent menu (the composer as built); the reader's whole-word, case rule (whole words, in their case) no longer takes \"agent\" in \"Saved by the agent\" for it; his call at the short look"
-      }
+      "pending": {}
     }
   ]
 }

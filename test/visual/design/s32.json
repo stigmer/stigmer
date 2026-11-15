@@ -1,7 +1,8 @@
 {
   "screen": "S32",
   "title": "Stopped by Stigmer",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "Stopped by Stigmer",
@@ -26,7 +27,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -206,9 +207,7 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {
-        "type Stopped by Stigmer": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export"
-      }
+      "pending": {}
     }
   ]
 }

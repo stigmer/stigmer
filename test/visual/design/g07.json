@@ -1,7 +1,8 @@
 {
   "screen": "G07",
   "title": "Routine history",
-  "source": "the Console parts page, version 5",
+  "source": "the Console parts page, version 6",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "Routine history",
@@ -38,10 +39,26 @@
           ]
         },
         {
-          "text": "acme · Created Jul 20, 2026 · Updated Jul 20, 2026",
+          "text": "acme",
           "type": [
-            14,
-            20,
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Created Jul 20, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 20, 2026",
+          "type": [
+            12,
+            16,
             400
           ]
         },
@@ -120,9 +137,9 @@
         {
           "text": "Started",
           "type": [
-            14,
-            20,
-            400
+            12,
+            16,
+            500
           ]
         },
         {
@@ -152,8 +169,8 @@
         {
           "text": "run_000000…000001",
           "type": [
-            14,
-            20,
+            12,
+            16,
             400
           ]
         }
@@ -171,9 +188,7 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "type Started": "The console's parts: the part at its drawn size and weight",
-        "word acme · Created Jul 20, 2026 · Updated Jul 20, 2026": "The console's parts: the page says and offers what its drawing does",
-        "word run_000000…000001": "The console's parts: the page says and offers what its drawing does"
+        "word run_000000…000001": "When its page is redesigned: a fire's run id shortened in the middle"
       }
     }
   ]

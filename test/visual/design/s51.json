@@ -1,7 +1,8 @@
 {
   "screen": "S51",
   "title": "Compacted, and memories recalled",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "Recalled memories as a quiet line that opens to them; a compaction as a hairline marker in the steps, like the agent-version marker.",
@@ -26,7 +27,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -174,7 +175,7 @@
           ]
         },
         {
-          "text": "+4−2 · src/billing",
+          "text": "+4 −2 · src/billing",
           "type": [
             12,
             16,
@@ -255,11 +256,10 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "button Undo credit-note.ts": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "type Done": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
-        "word +4−2 · src/billing": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word 3 steps · 34s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word 36s": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows"
+        "button Undo credit-note.ts": "The scene's turn carries its file review, with each edit's line counts, and its usage is estimated",
+        "word 3 steps · 34s": "The scene's turn takes its real span, so its times read as drawn",
+        "word 36s": "The scene's turn takes its real span, so its times read as drawn",
+        "word +4 −2 · src/billing": "The scene's turn carries its file review, with each edit's line counts, and its usage is estimated"
       }
     }
   ]

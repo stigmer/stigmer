@@ -1,7 +1,8 @@
 {
   "screen": "S53",
   "title": "The strips above the composer",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "Every strip, stacked to compare.",
@@ -34,7 +35,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -126,7 +127,7 @@
           ]
         },
         {
-          "text": "Changing 2 files +10−5",
+          "text": "Changing 2 files +10 −5",
           "type": [
             14,
             20,
@@ -219,17 +220,15 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "button Dismiss": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "button Try again": "Endings: a notice's acts at xs, with their icons",
-        "type Working · 1m 30s": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
-        "word Changing 2 files +10−5": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Couldn't attach plan.md. The agent follows the plan from the conversation instead.": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Dismiss": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Reconnecting… The agent keeps working; what it did meanwhile appears when the connection is back.": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word The agent hasn't started yet. Your message is kept; try again to look once more.": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word This is taking longer than usual. It keeps going if you leave; the session will be here when it's done.": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows",
-        "word Try again": "Endings: a notice's acts at xs, with their icons",
-        "word You're reading this conversation. Only its members can reply.": "Still to match after the frame and the steps: listed on the Compare view for his look and the fix that follows"
+        "button Dismiss": "The strips the drawing stacks are built by scenes this file does not name yet, and the plan-attach strip by a scene still to add",
+        "button Try again": "The strips the drawing stacks are built by scenes this file does not name yet, and the plan-attach strip by a scene still to add",
+        "word Couldn't attach plan.md. The agent follows the plan from the conversation instead.": "The strips the drawing stacks are built by scenes this file does not name yet, and the plan-attach strip by a scene still to add",
+        "word Dismiss": "The strips the drawing stacks are built by scenes this file does not name yet, and the plan-attach strip by a scene still to add",
+        "word Reconnecting… The agent keeps working; what it did meanwhile appears when the connection is back.": "The strips the drawing stacks are built by scenes this file does not name yet, and the plan-attach strip by a scene still to add",
+        "word The agent hasn't started yet. Your message is kept; try again to look once more.": "The strips the drawing stacks are built by scenes this file does not name yet, and the plan-attach strip by a scene still to add",
+        "word Try again": "The strips the drawing stacks are built by scenes this file does not name yet, and the plan-attach strip by a scene still to add",
+        "word You're reading this conversation. Only its members can reply.": "The strips the drawing stacks are built by scenes this file does not name yet, and the plan-attach strip by a scene still to add",
+        "word Changing 2 files +10 −5": "The strips the drawing stacks are built by scenes this file does not name yet, and the plan-attach strip by a scene still to add"
       }
     }
   ]

@@ -1,7 +1,8 @@
 {
   "screen": "S13",
   "title": "Stopped by you",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "Stopped by you",
@@ -26,7 +27,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -206,10 +207,7 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {
-        "type Stopped by you": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
-        "word What it finished is kept: 2 of 5 to-dos are done. Continue sends “Continue” as your next message, and it carries on from here.": "Endings: the ending turn as drawn"
-      }
+      "pending": {}
     }
   ]
 }

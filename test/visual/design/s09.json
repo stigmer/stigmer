@@ -1,7 +1,8 @@
 {
   "screen": "S09",
   "title": "The session didn't load",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "The session didn't load",
@@ -46,9 +47,7 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {
-        "word This session didn't open": "The screens still in their old look: this screen is still its pre-redesign self"
-      }
+      "pending": {}
     }
   ]
 }

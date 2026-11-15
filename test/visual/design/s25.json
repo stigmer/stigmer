@@ -1,7 +1,8 @@
 {
   "screen": "S25",
   "title": "Model not available",
-  "source": "the session page, version 10",
+  "source": "the session page, version 13",
+  "reader": "bf8cb5c94919",
   "drawings": [
     {
       "caption": "Model not available",
@@ -26,7 +27,7 @@
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -158,7 +159,7 @@
           ]
         },
         {
-          "text": "Fast $$ ✓",
+          "text": "Fast $$",
           "type": [
             12,
             16,
@@ -293,21 +294,17 @@
         }
       ],
       "sample": {},
-      "ruled": {
-        "type Claude Sonnet 4.6": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included"
-      },
+      "ruled": {},
       "pending": {
-        "button Stigmer": "Endings: the ending turn as drawn",
-        "type Best for most tasks": "Endings: the ending turn as drawn",
-        "type Didn't finish": "The facts reader: a pill's weight is read from its line on the drawing and from the pill itself when built; both read the text's own element at the next export",
-        "type Extended reasoning; uses more output tokens": "Endings: the ending turn as drawn",
-        "type Fast $$": "Endings: the ending turn as drawn",
-        "type Fastest $": "Endings: the ending turn as drawn",
-        "type Frontier agentic coding": "Endings: the ending turn as drawn",
-        "type OpenAI's general model": "Endings: the ending turn as drawn",
-        "type Powerful $$$": "Endings: the ending turn as drawn",
-        "type Quick responses, lower cost": "Endings: the ending turn as drawn",
-        "word Fast $$ ✓": "Endings: the ending turn as drawn"
+        "button Stigmer": "The model picker sets its descriptions and badges at 12/16, and names its harness button with the word it shows",
+        "type Best for most tasks": "The model picker sets its descriptions and badges at 12/16, and names its harness button with the word it shows",
+        "type Extended reasoning; uses more output tokens": "The model picker sets its descriptions and badges at 12/16, and names its harness button with the word it shows",
+        "type Fast $$": "The model picker sets its descriptions and badges at 12/16, and names its harness button with the word it shows",
+        "type Fastest $": "The model picker sets its descriptions and badges at 12/16, and names its harness button with the word it shows",
+        "type Frontier agentic coding": "The model picker sets its descriptions and badges at 12/16, and names its harness button with the word it shows",
+        "type OpenAI's general model": "The model picker sets its descriptions and badges at 12/16, and names its harness button with the word it shows",
+        "type Powerful $$$": "The model picker sets its descriptions and badges at 12/16, and names its harness button with the word it shows",
+        "type Quick responses, lower cost": "The model picker sets its descriptions and badges at 12/16, and names its harness button with the word it shows"
       }
     }
   ]
