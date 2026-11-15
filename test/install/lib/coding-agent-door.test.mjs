@@ -3,15 +3,21 @@
 // served HTML exactly as a person copies it, a page without it (or with two)
 // is refused rather than replaced by this checkout's copy, the flags refuse a
 // published walk with no version and a version without one, and every npm
-// read names both registries. The page sample is the code block stigmer.ai
+// read names both registries; and the app's process group is gone before the
+// scratch folder is removed, with the race that turned a passed walk red
+// (stigmer/stigmer#3154) forced by a group that keeps writing after SIGTERM.
+// The page sample is the code block stigmer.ai
 // served for docs/getting-started/coding-agent.mdx, cut to the block and the
 // prose beside it.
 
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 
-import { NPM_REGISTRY, fetchPagePrompt, npmRegistryFlags, parseDoorArgs, promptFromPage, withoutTags } from "./coding-agent-door.mjs";
+import { NPM_REGISTRY, fetchPagePrompt, npmRegistryFlags, parseDoorArgs, promptFromPage, stopProcessGroup, withoutTags } from "./coding-agent-door.mjs";
 
 const SERVED = `<figure dir="ltr" class="my-4 bg-fd-card rounded-xl shiki relative border"><div class="flex text-fd-muted-foreground items-center gap-2 h-9.5 border-b px-4"><figcaption class="flex-1 truncate">Paste into your coding agent</figcaption></div><div class="text-[13px] py-3.5 overflow-auto max-h-[600px] fd-scroll-container"><pre class="min-w-full w-max *:flex *:flex-col"><code><span class="line"><span>Set up Stigmer for this project. Install its command line</span></span>
 <span class="line"><span>(\`npm install -g @stigmer/cli\`, or \`brew install stigmer/tap/stigmer\`),</span></span>
@@ -114,4 +120,69 @@ test("withoutTags removes tags until none is left, a tag formed by removing anot
     assert.doesNotMatch(withoutTags(crafted), /<[^>]*>/, crafted);
   }
   assert.equal(withoutTags("plain words"), "plain words");
+});
+
+/**
+ * A detached process group shaped like `npx next dev`: a leader and a child,
+ * each writing a new folder into `dir` every 2 ms, and on SIGTERM going on
+ * writing for `afterTermMs` before exiting (Next flushes `.next/` as it
+ * stops). With `ignoreTerm`, SIGTERM is ignored.
+ */
+const WRITER = `
+const { mkdirSync, writeFileSync } = require("node:fs");
+const { spawn } = require("node:child_process");
+const { join } = require("node:path");
+const [dir, tag, afterTermMs, ignoreTerm] = process.argv.slice(2);
+let n = 0;
+setInterval(() => { const d = join(dir, tag + "-" + n++); mkdirSync(d); writeFileSync(join(d, "f"), "x"); }, 2);
+process.on("SIGTERM", () => { if (ignoreTerm !== "1") setTimeout(() => process.exit(0), Number(afterTermMs)); });
+if (tag === "leader") spawn(process.execPath, [__filename, dir, "child", afterTermMs, ignoreTerm], { stdio: "ignore" });
+`;
+
+function writerGroup(dir, { afterTermMs = 400, ignoreTerm = false } = {}) {
+  const script = `${dir}-writer.cjs`;
+  writeFileSync(script, WRITER);
+  return spawn(process.execPath, [script, dir, "leader", String(afterTermMs), ignoreTerm ? "1" : "0"], { detached: true, stdio: "ignore" });
+}
+
+async function untilWritten(dir, prefix) {
+  for (let i = 0; i < 200; i++) {
+    if (readdirSync(dir).some((name) => name.startsWith(prefix))) return;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error(`no ${prefix} folder appeared in ${dir}`);
+}
+
+test("stopProcessGroup waits out a group that writes after SIGTERM, so the folder it wrote into removes cleanly", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "door-teardown-"));
+  const group = writerGroup(dir);
+  try {
+    await untilWritten(dir, "leader-");
+    await untilWritten(dir, "child-");
+    assert.equal(await stopProcessGroup(group), "terminated");
+    rmSync(dir, { recursive: true, force: true });
+    assert.equal(existsSync(dir), false);
+  } finally {
+    try {
+      process.kill(-group.pid, "SIGKILL");
+    } catch {
+      /* already gone */
+    }
+    rmSync(dir, { recursive: true, force: true, maxRetries: 10 });
+    rmSync(`${dir}-writer.cjs`, { force: true });
+  }
+});
+
+test("stopProcessGroup kills a group that ignores SIGTERM after its grace, and reports a group already gone", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "door-teardown-"));
+  const group = writerGroup(dir, { ignoreTerm: true });
+  try {
+    await untilWritten(dir, "child-");
+    assert.equal(await stopProcessGroup(group, { graceMs: 300 }), "killed");
+    assert.equal(await stopProcessGroup(group), "gone");
+    assert.equal(await stopProcessGroup(undefined), "gone");
+  } finally {
+    rmSync(dir, { recursive: true, force: true, maxRetries: 10 });
+    rmSync(`${dir}-writer.cjs`, { force: true });
+  }
 });
