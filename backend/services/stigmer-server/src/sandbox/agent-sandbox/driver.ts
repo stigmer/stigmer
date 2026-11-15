@@ -29,6 +29,20 @@
  *     longer than that after its session's last ensure. The idle sweep
  *     (sweep.ts) suspends a session's sandbox long before that, so only a
  *     session busy for longer, with no new turn to ensure it, reaches it.
+ *     One exception (stigmer#1843): a Sandbox whose runner container was
+ *     made under another configuration (another runner image, or another
+ *     server release; a development server sets none, so there only the
+ *     image counts), when the caller says the runner is idle
+ *     (SandboxFacts.runnerIdle, the workflow's ensure right before it
+ *     invokes the runner). It is put to sleep, the ensure waits until its
+ *     status says the pod is gone (resource.ts), and it is woken as a
+ *     Suspended one is, with this server's template, on the same claims.
+ *     A template patch alone would wait for the next pod, and deleting the
+ *     pod needs rights on pods this driver does not hold
+ *     (docs/guides/self-hosting/runners.mdx). A pod that outlasts the wait
+ *     (bounded as a deletion's is, below) is woken all the same: its next
+ *     pod runs the current template. "Another" has no direction: a
+ *     rollback moves a sandbox back, its files kept.
  *   - being deleted: wait, bounded by the turn's ScheduleToStart window,
  *     until it is gone (with its pod and claim: gateway.ts deletes in the
  *     foreground), then create it.
@@ -73,8 +87,12 @@ import type { AgentSandboxView } from "./resource.js";
 const DELETION_POLL_MS = 2_000;
 const DELETION_POLLS = 150;
 
-/** The path an ensure took, logged so a wake is told apart from a create. */
-type EnsureArm = "created" | "suspended" | "running";
+/**
+ * The path an ensure took, logged so a wake is told apart from a create;
+ * `moved` is a running Sandbox put to sleep and woken on this server's
+ * template (module header).
+ */
+type EnsureArm = "created" | "suspended" | "running" | "moved";
 
 export interface AgentSandboxDriverLogger {
   info: (msg: string, fields?: Record<string, unknown>) => void;
@@ -181,6 +199,10 @@ export function newAgentSandboxDriverOverGateway(
       await gateway.applySecret(
         buildAgentSandboxSecret(scope, id, facts.stigmerToken, config, sandbox),
       );
+      if (arm === "running" && facts.runnerIdle === true && startedElsewhere(sandbox)) {
+        await stopPod(sandbox);
+        arm = "moved";
+      }
       if (arm !== "running") {
         await gateway.patchSandbox(name, {
           operatingMode: "Running",
@@ -196,6 +218,48 @@ export function newAgentSandboxDriverOverGateway(
         taskQueue: facts.taskQueue,
       });
     });
+  }
+
+  /** Whether a Sandbox's runner was made under another configuration than this server's (module header). */
+  function startedElsewhere(sandbox: AgentSandboxView): boolean {
+    return (
+      sandbox.runner === undefined ||
+      sandbox.runner.image !== config.runnerImage ||
+      sandbox.runner.release !== config.serverRelease
+    );
+  }
+
+  /**
+   * Puts a running Sandbox to sleep and waits until its status says the
+   * pod is gone, or the wait's bound (module header); the caller wakes it.
+   */
+  async function stopPod(sandbox: AgentSandboxView): Promise<void> {
+    const name = sandbox.name;
+    logger.info(
+      "agent-sandbox sandbox started under another configuration; restarting it on this server's template",
+      {
+        sandbox: name,
+        fromImage: sandbox.runner?.image ?? "",
+        fromRelease: sandbox.runner?.release ?? "",
+        toImage: config.runnerImage,
+        toRelease: config.serverRelease,
+      },
+    );
+    await gateway.patchSandbox(name, { operatingMode: "Suspended" });
+    for (let poll = 0; poll < DELETION_POLLS; poll += 1) {
+      const fresh = await gateway.getSandbox(name);
+      if (fresh === undefined || fresh.deleting) {
+        throw new Error(
+          `agent-sandbox Sandbox '${name}' was deleted while its pod stopped for a restart on this server's template`,
+        );
+      }
+      if (fresh.podGone) return;
+      await sleep(DELETION_POLL_MS);
+    }
+    logger.info(
+      "agent-sandbox sandbox still had its pod after the wait; waking it with this server's template, which its next pod runs",
+      { sandbox: name, waitedSeconds: (DELETION_POLL_MS * DELETION_POLLS) / 1000 },
+    );
   }
 
   async function deprovision(scope: SandboxScope, id: string): Promise<void> {

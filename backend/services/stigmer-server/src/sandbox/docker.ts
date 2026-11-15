@@ -20,13 +20,26 @@
  * instead, carrying its filesystem and nothing else: no volume backs the
  * workspace, so `/workspace` and the runner's home are copied out of it
  * as tar streams (`docker cp <c>:<dir> -`, whose headers keep each file's
- * owner, the agent user's included) into a container created fresh from the
- * runner image under a temporary name. Only then is the old container
+ * owner, the agent user's included) into a container created fresh from
+ * the runner image under a temporary name, copied in without `--archive`,
+ * which would chown every file to the container's user and refuses a
+ * `--user 0:0` container outright (stigmer#3155). Only then is the old container
  * removed and the new one renamed and started. A fresh container takes
  * the environment this ensure gives it and no other: a variable the
  * driver no longer sets (a removed runner secret, a cleared Environment)
  * does not survive, as it would through an image. A failure before the
  * swap leaves the old container as it was.
+ *
+ * A container started under another configuration is recreated the same
+ * way (stigmer#1843): one whose image is not this server's runner image,
+ * or whose baked STIGMER_SERVER_RELEASE is not this server's release (a
+ * development server sets none, so there only the image counts). A
+ * stopped one is recreated instead of started; a running one only when
+ * the caller says the runner is idle (SandboxFacts.runnerIdle, the
+ * workflow's ensure right before it invokes the runner), and is stopped
+ * first, so the copy is of files nothing is writing. Every other ensure
+ * of a running container stays the fast path, without a read. "Another"
+ * has no direction: a rollback moves a container back, its files kept.
  *
  * Deliberate divergences from the cloud manifest, named:
  *
@@ -238,10 +251,28 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
     const name = sandboxBaseName(scope, id);
     const state = await inspectState(name);
     if (state === "running") {
-      return; // The fast path.
+      if (facts.runnerIdle !== true) {
+        return; // The fast path.
+      }
+      const baked = await inspectBaked(name);
+      if (!startedElsewhere(baked)) {
+        return;
+      }
+      // Nothing runs in it: stop it, then carry its files to a container
+      // of this configuration (the module header).
+      await docker(["stop", name]);
+      await recreateCarryingFiles(scope, id, facts, name);
+      logMoved(scope, id, name, baked);
+      return;
     }
     if (state === "stopped") {
-      if (facts.stigmerToken === "" || !(await bakedTokenExpired(name))) {
+      const baked = await inspectBaked(name);
+      if (startedElsewhere(baked)) {
+        await recreateCarryingFiles(scope, id, facts, name);
+        logMoved(scope, id, name, baked);
+        return;
+      }
+      if (facts.stigmerToken === "" || !tokenExpired(baked.env)) {
         // The scale-up arm: the container keeps its original env, its
         // token still good.
         await docker(["start", name]);
@@ -294,7 +325,9 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
       );
       try {
         for (const dir of CARRIED_DIRS) {
-          await dockerFromFile(["cp", "--archive", "-", `${fresh}:/`], path.join(carry, `${carriedName(dir)}.tar`));
+          // No --archive: it chowns every file to the container's user,
+          // and refuses a `--user 0:0` container outright (stigmer#3155).
+          await dockerFromFile(["cp", "-", `${fresh}:/`], path.join(carry, `${carriedName(dir)}.tar`));
         }
       } catch (error) {
         await docker(["rm", "--force", fresh]).catch(() => undefined);
@@ -308,14 +341,34 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
     }
   }
 
-  /** Whether a stopped container's own STIGMER_TOKEN is within EXPIRY_MARGIN_MS of its `exp`. */
-  async function bakedTokenExpired(name: string): Promise<boolean> {
-    const env = JSON.parse(await docker(["inspect", "--format", "{{json .Config.Env}}", name])) as unknown;
-    const entry = Array.isArray(env)
-      ? env.find((item): item is string => typeof item === "string" && item.startsWith("STIGMER_TOKEN="))
-      : undefined;
-    const exp = entry === undefined ? undefined : tokenExpiryMs(entry.slice("STIGMER_TOKEN=".length));
-    return exp !== undefined && exp - Date.now() < EXPIRY_MARGIN_MS;
+  /** What a container was created with: its image and environment, in one read. */
+  async function inspectBaked(name: string): Promise<BakedContainer> {
+    const baked = JSON.parse(await docker(["inspect", "--format", "{{json .Config}}", name])) as unknown;
+    const fields = typeof baked === "object" && baked !== null ? (baked as { Image?: unknown; Env?: unknown }) : {};
+    return {
+      image: typeof fields.Image === "string" ? fields.Image : "",
+      env: Array.isArray(fields.Env) ? fields.Env.filter((item): item is string => typeof item === "string") : [],
+    };
+  }
+
+  /** Whether a container was created under another configuration than this server's (module header). */
+  function startedElsewhere(baked: BakedContainer): boolean {
+    return baked.image !== config.runnerImage || bakedValue(baked.env, SERVER_RELEASE_ENV) !== config.serverRelease;
+  }
+
+  function logMoved(scope: SandboxScope, id: string, name: string, baked: BakedContainer): void {
+    logger.info(
+      "Docker sandbox started under another configuration; recreated on this server's runner with its files",
+      {
+        scope,
+        id,
+        container: name,
+        fromImage: baked.image,
+        fromRelease: bakedValue(baked.env, SERVER_RELEASE_ENV),
+        toImage: config.runnerImage,
+        toRelease: config.serverRelease,
+      },
+    );
   }
 
   async function deprovision(scope: SandboxScope, id: string): Promise<void> {
@@ -350,6 +403,25 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
   };
   return provisioner;
 };
+
+/** A container's own `.Config`: the image it was created from and its environment. */
+interface BakedContainer {
+  readonly image: string;
+  readonly env: readonly string[];
+}
+
+/** A baked variable's value, "" when the container was created without it. */
+function bakedValue(env: readonly string[], name: string): string {
+  const entry = env.find((item) => item.startsWith(`${name}=`));
+  return entry === undefined ? "" : entry.slice(name.length + 1);
+}
+
+/** Whether a container's own STIGMER_TOKEN is within EXPIRY_MARGIN_MS of its `exp`. */
+function tokenExpired(env: readonly string[]): boolean {
+  const token = bakedValue(env, "STIGMER_TOKEN");
+  const exp = token === "" ? undefined : tokenExpiryMs(token);
+  return exp !== undefined && exp - Date.now() < EXPIRY_MARGIN_MS;
+}
 
 /**
  * How close to its expiry a stopped container's token may be and still be

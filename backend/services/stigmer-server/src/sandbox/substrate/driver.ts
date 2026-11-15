@@ -22,12 +22,24 @@
  *
  *   - absent: wait for the template (template.ts), create the actor from
  *     it; a created actor is suspended.
- *   - suspended: move it to the current template when it is on an older
- *     one and the current one is ready (a running actor is never
- *     disturbed); make its egress policy this configuration's (below);
- *     resume; push.
+ *   - suspended: when it is on another template than the current one,
+ *     wait for the current one, as a create does, and move it there; a
+ *     move Substrate refuses (its volumes differ) throws
+ *     SandboxNotCarriedError and leaves it asleep, rather than wake this
+ *     server's turn on another release's runner (stigmer#1843). Then make
+ *     its egress policy this configuration's (below); resume; push.
  *   - running: push; the waiter keeps its runner and takes the fresh token
- *     for a restart.
+ *     for a restart. On another template than the current one, and only
+ *     when the caller says the runner is idle (SandboxFacts.runnerIdle,
+ *     the workflow's ensure right before it invokes the runner), suspend
+ *     it first and go on as for a suspended one: a suspend keeps its
+ *     volumes, and the wake starts the current template's runner. A
+ *     template is named by its content, the server's release among it
+ *     (template.ts), so "another template" is "started under another
+ *     configuration", in either direction: during a rolling update or a
+ *     rollback a sandbox may move back and forth between turns, its files
+ *     kept each time. Substrate's templates carry no release a server
+ *     could read, so there is no "only forward".
  *   - crashed: revert, then from the state that leaves.
  *   - resuming, suspending, reverting: wait for it to settle.
  *   - deleting: refused.
@@ -36,8 +48,9 @@
  * first settled state it found, never the arm it ended in, because the
  * wake budgets are measured per path: `created` (absent, created, then
  * woken), `suspended` (woken from its node or from storage), `running`
- * (pushed only), `crashed` (reverted, then brought up). A state in
- * transition that the ensure waits out names nothing.
+ * (pushed only), `moved` (running under another configuration, suspended
+ * and woken on the current template), `crashed` (reverted, then brought
+ * up). A state in transition that the ensure waits out names nothing.
  *
  * Any call answering ABORTED (another operation holds the actor, or it
  * crashed while resuming) sends the ensure back to reading the actor; no
@@ -138,6 +151,7 @@ import {
 import { RUNNER_SECRET_NAMES } from "../runner-secret-names.js";
 import {
   SandboxNoRoomError,
+  SandboxNotCarriedError,
   type SandboxDriverConfig,
   type SandboxFacts,
   type SandboxProbeState,
@@ -213,7 +227,7 @@ export interface SubstrateSuspendGuard extends SubstrateSleepGuard {
 export type SubstrateSleepOutcome = "done" | "skipped" | "thawed";
 
 /** The paths an ensure takes, named by the state it first acts on (module header). */
-type EnsurePath = "created" | "suspended" | "running" | "crashed";
+type EnsurePath = "created" | "suspended" | "running" | "moved" | "crashed";
 
 /**
  * A sandbox an act failed on this pass, as listed when the act was tried.
@@ -507,18 +521,14 @@ export function newSubstrateSandboxDriverOverGateway(
     );
   }
 
-  /** Moves a SUSPENDED actor to the current template when it is ready; logs a refusal once; true when it moved. */
+  /**
+   * Moves a SUSPENDED actor to the current template when it is ready, for
+   * the sweep's upkeep; logs a refusal once; true when it moved. A refused
+   * sandbox stays on its own template until a turn's ensure refuses it.
+   */
   async function moveToCurrent(actor: SubstrateActorView): Promise<boolean> {
     if (actor.template === keeper.name || !keeper.readyNow()) return false;
-    const moved = await gateway.moveActor(actor, keeper.name);
-    if (moved === "moved") {
-      logger.info("Substrate sandbox moved to the current template", {
-        actor: actor.name,
-        from: actor.template,
-        to: keeper.name,
-      });
-      return true;
-    }
+    if ((await move(actor)) === "moved") return true;
     if (!refusedMoves.has(actor.name)) {
       refusedMoves.add(actor.name);
       logger.warn(
@@ -527,6 +537,33 @@ export function newSubstrateSandboxDriverOverGateway(
       );
     }
     return false;
+  }
+
+  /** One move to the current template, logged when it lands. */
+  async function move(actor: SubstrateActorView): Promise<"moved" | "refused"> {
+    const moved = await gateway.moveActor(actor, keeper.name);
+    if (moved === "moved") {
+      logger.info("Substrate sandbox moved to the current template", {
+        actor: actor.name,
+        from: actor.template,
+        to: keeper.name,
+      });
+    }
+    return moved;
+  }
+
+  /**
+   * The ensure's move of a SUSPENDED actor on another template (module
+   * header): waits for the current template, as a create does, then moves
+   * it; a refusal throws, so it is never woken on its own template.
+   */
+  async function carryToCurrent(actor: SubstrateActorView): Promise<void> {
+    if (actor.template === keeper.name) return;
+    await keeper.ready();
+    if ((await move(actor)) === "moved") return;
+    throw new SandboxNotCarriedError(
+      `Substrate refused to move sandbox ${actor.name} from template ${actor.template} to the current template ${keeper.name} (its volumes differ), so it is not woken on another configuration's runner`,
+    );
   }
 
   async function settle(name: string): Promise<SubstrateActorView | undefined> {
@@ -597,7 +634,7 @@ export function newSubstrateSandboxDriverOverGateway(
               // A wake starts a fresh waiter, so this push is its first: a
               // refusal means another push won it (attach).
               path ??= "suspended";
-              await moveToCurrent(actor);
+              await carryToCurrent(actor);
               await reconcileEgress(name, facts, true);
               startedHere.add(name);
               await gateway.resumeActor(name);
@@ -606,6 +643,18 @@ export function newSubstrateSandboxDriverOverGateway(
               return;
             }
             case "running": {
+              if (facts.runnerIdle === true && actor.template !== keeper.name) {
+                // Started under another configuration, and nothing runs in
+                // it: put it to sleep, keeping its volumes, and wake it on
+                // the current template from the state that leaves.
+                path ??= "moved";
+                logger.info(
+                  "Substrate sandbox started under another configuration; restarting it on the current template",
+                  { scope, id, actor: name, from: actor.template, to: keeper.name },
+                );
+                await gateway.suspendActor(name);
+                continue;
+              }
               path ??= "running";
               await reconcileEgress(name, facts);
               await attach(scope, name, facts);

@@ -2,18 +2,22 @@
  * Pins the pure parts of a turn's wait for a sandbox (../sandbox-wait.ts):
  * the asks are 5 s apart at first and never more than 15 s apart, so a turn
  * takes room within 15 s of it appearing; a wait that ran out carries the
- * person's sentence with the limit in their units; and the wire constants
- * (the patch id, the kind, the phase text) are the bytes histories and
- * clients read.
+ * person's sentence with the limit in their units; a sandbox that cannot
+ * be carried to the server's runner ends the turn with its own sentence
+ * (stigmer#1843); and the wire constants (the patch ids, the kind, the
+ * phase text) are the bytes histories and clients read.
  */
 import { describe, expect, it } from "vitest";
 
 import {
   DEFAULT_SANDBOX_WAIT_SECONDS,
+  SANDBOX_NOT_CARRIED_COPY,
+  SANDBOX_NOT_CARRIED_PATCH_ID,
   SANDBOX_WAIT_PATCH_ID,
   SANDBOX_WAIT_STOP_CAUSE,
   SANDBOX_WAIT_STOP_KIND,
   SANDBOX_WAITING_PHASE_TEXT,
+  SandboxNotCarried,
   SandboxWaitRanOut,
   sandboxWaitBackoffMs,
   sandboxWaitRanOutCopy,
@@ -44,8 +48,18 @@ describe("the wait for a sandbox with room", () => {
     expect(ranOut.message).toBe(sandboxWaitRanOutCopy(120));
   });
 
+  it("carries the person's sentence for a sandbox that cannot be carried, saying what happened and what to do", () => {
+    const refused = new SandboxNotCarried();
+    expect(refused.name).toBe("SandboxNotCarried");
+    expect(refused.message).toBe(SANDBOX_NOT_CARRIED_COPY);
+    expect(SANDBOX_NOT_CARRIED_COPY).toBe(
+      "This conversation's sandbox was started by an earlier Stigmer release and its files can't be moved to this one. Start a new conversation to continue.",
+    );
+  });
+
   it("keeps the bytes histories and clients read", () => {
     expect(SANDBOX_WAIT_PATCH_ID).toBe("ensure-sandbox-in-workflow");
+    expect(SANDBOX_NOT_CARRIED_PATCH_ID).toBe("end-turn-on-sandbox-not-carried");
     expect([SANDBOX_WAIT_STOP_CAUSE, SANDBOX_WAIT_STOP_KIND]).toEqual(["infrastructure", "no_sandbox_room"]);
     expect(SANDBOX_WAITING_PHASE_TEXT).toBe("Waiting for a sandbox");
     expect(DEFAULT_SANDBOX_WAIT_SECONDS).toBe(900);

@@ -81,7 +81,8 @@ import {
   type AgentSandboxVolumeClaimTemplate,
 } from "./resource.js";
 
-const RUNNER_CONTAINER_NAME = "runner";
+/** The runner's container in the pod template; the gateway reads its image and release back. */
+export const RUNNER_CONTAINER_NAME = "runner";
 /** The volume (and claim template) name, and where the runner sees it. */
 const WORKSPACE_VOLUME = "workspace";
 const WORKSPACE_MOUNT_PATH = "/workspace";

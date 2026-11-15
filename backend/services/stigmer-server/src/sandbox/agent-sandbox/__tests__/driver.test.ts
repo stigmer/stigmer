@@ -6,7 +6,13 @@
  *     it) is written and one patch sets Running with the pod template;
  *   - Suspended: the wake writes a fresh token and the CURRENT pod
  *     template, so a sandbox woken after an upgrade runs the new image;
- *   - Running: only the Secret's token is rewritten, nothing restarts;
+ *   - Running: only the Secret's token is rewritten, nothing restarts,
+ *     unless its runner was made under another image or release and the
+ *     ensure says the runner is idle (stigmer#1843): then it is patched
+ *     Suspended, read until its status says the pod is gone (or the
+ *     wait's bound, after which it is woken all the same), and woken with
+ *     the current template on the same claims; a Sandbox deleted during
+ *     that wait fails the ensure;
  *   - a Sandbox being deleted is waited out, then created again; one that
  *     never goes fails loudly;
  *   - a Sandbox another server created between the read and the create is
@@ -176,7 +182,7 @@ describe("the ensure", () => {
     expect(cluster.calls).toEqual([`get:${name}`, `secret:${name}-env`]);
     expect(
       imageOf(cluster),
-      "a running sandbox is never moved to a new template",
+      "a running sandbox is never moved by an ensure that may not restart it",
     ).toBe("ghcr.io/stigmer/runner:v3.41.0");
     expect(cluster.secrets.get(`${name}-env`)?.stringData).toEqual({
       STIGMER_TOKEN: "tok-3",
@@ -361,6 +367,96 @@ describe("the ensure", () => {
       `get:${name}`,
       `secret:${name}-env`,
     ]);
+  });
+});
+
+describe("a running Sandbox started under another configuration (stigmer#1843)", () => {
+  /** The facts of the workflow's ensure, right before it invokes the runner. */
+  const idle: SandboxFacts = { ...facts, runnerIdle: true };
+
+  function seedRunning(
+    cluster: FakeAgentSandboxCluster,
+    made: SandboxDriverConfig,
+  ): void {
+    cluster.seed(buildAgentSandbox("session", "ses_1", facts, made), "Running");
+  }
+
+  it("on another image with the runner idle: put to sleep, its pod waited out, then woken with the current template", async () => {
+    const cluster = new FakeAgentSandboxCluster();
+    cluster.podStopReads = 3;
+    seedRunning(cluster, { ...config, runnerImage: "ghcr.io/stigmer/runner:v3.41.0" });
+    const logged: Array<Record<string, unknown>> = [];
+    await driverOver(cluster, { logged }).ensureSessionSandbox("ses_1", idle);
+    expect(cluster.calls).toEqual([
+      `get:${name}`,
+      `secret:${name}-env`,
+      `patch:${name}:Suspended`,
+      // Three reads with the pod still there, the fourth with it gone.
+      `get:${name}`,
+      `get:${name}`,
+      `get:${name}`,
+      `get:${name}`,
+      `patch:${name}:Running+template`,
+    ]);
+    expect(imageOf(cluster)).toBe(config.runnerImage);
+    expect(cluster.sandboxes.get(name)?.operatingMode).toBe("Running");
+    // The claims stay: the Sandbox is never deleted or created again.
+    expect(cluster.calls.some((call) => call.startsWith("delete:") || call.startsWith("create:"))).toBe(false);
+    expect(logged).toContainEqual(
+      expect.objectContaining({
+        sandbox: name,
+        fromImage: "ghcr.io/stigmer/runner:v3.41.0",
+        fromRelease: "",
+        toImage: config.runnerImage,
+        toRelease: "",
+      }),
+    );
+    expect(logged).toContainEqual(expect.objectContaining({ arm: "moved" }));
+  });
+
+  it("under another release with the runner idle: restarted, though its image is the same", async () => {
+    const cluster = new FakeAgentSandboxCluster();
+    seedRunning(cluster, { ...config, serverRelease: "3.41.0" });
+    await driverOver(cluster, {
+      config: { ...config, serverRelease: "3.42.0" },
+    }).ensureSessionSandbox("ses_1", idle);
+    expect(cluster.calls).toContain(`patch:${name}:Suspended`);
+    expect(cluster.calls.at(-1)).toBe(`patch:${name}:Running+template`);
+  });
+
+  it("on this configuration with the runner idle: rewrites the token and nothing else", async () => {
+    const cluster = new FakeAgentSandboxCluster();
+    seedRunning(cluster, config);
+    await driverOver(cluster).ensureSessionSandbox("ses_1", idle);
+    expect(cluster.calls).toEqual([`get:${name}`, `secret:${name}-env`]);
+  });
+
+  it("a pod that outlasts the wait: woken with the current template all the same, which its next pod runs", async () => {
+    const cluster = new FakeAgentSandboxCluster();
+    cluster.podStopReads = Number.POSITIVE_INFINITY;
+    seedRunning(cluster, { ...config, runnerImage: "ghcr.io/stigmer/runner:v3.41.0" });
+    const logged: Array<Record<string, unknown>> = [];
+    await driverOver(cluster, { logged }).ensureSessionSandbox("ses_1", idle);
+    expect(cluster.calls.filter((call) => call === `get:${name}`)).toHaveLength(151);
+    expect(cluster.calls.at(-1)).toBe(`patch:${name}:Running+template`);
+    expect(imageOf(cluster)).toBe(config.runnerImage);
+    expect(logged).toContainEqual(
+      expect.objectContaining({ sandbox: name, waitedSeconds: 300 }),
+    );
+  });
+
+  it("a Sandbox deleted while its pod was awaited: the ensure fails rather than wake nothing", async () => {
+    const cluster = new FakeAgentSandboxCluster();
+    cluster.podStopReads = 2;
+    seedRunning(cluster, { ...config, runnerImage: "ghcr.io/stigmer/runner:v3.41.0" });
+    const patch = cluster.patchSandbox.bind(cluster);
+    cluster.patchSandbox = async (sandbox, change) => {
+      await patch(sandbox, change);
+      if (change.operatingMode === "Suspended") cluster.sandboxes.delete(sandbox);
+    };
+    await expect(
+      driverOver(cluster).ensureSessionSandbox("ses_1", idle),
+    ).rejects.toThrow(/was deleted while its pod stopped/);
   });
 });
 

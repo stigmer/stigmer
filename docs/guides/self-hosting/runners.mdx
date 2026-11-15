@@ -227,6 +227,17 @@ image's own command is a shell; the container drivers set the runner's command
 themselves. To run Agents in an image of your own instead, see
 [Bring your own base image](#bring-your-own-base-image).
 
+**After an upgrade.** A sandbox started by another release of the server, or
+from another runner image, moves to the server's current runner at its Session's
+next message, keeping its files. One that is asleep moves as it wakes. One that
+is awake is restarted just before that message's turn starts, so that one turn
+waits for a restart. A rollback moves sandboxes back the same way. With the
+`substrate` driver, a sandbox whose files Substrate can't move to the new
+runner's template (a release that changed the sandbox's disk layout) is never
+woken on its old runner: the message ends at once with a line saying the
+conversation's sandbox is from an earlier release, and the person starts a new
+conversation.
+
 **On Kubernetes, through agent-sandbox.** The `agent-sandbox` driver hands each
 sandbox to Kubernetes SIG Apps' agent-sandbox, which you install in the cluster
 once. Its core manifest is enough; the driver uses only the `Sandbox` resource
@@ -244,9 +255,11 @@ Agent's own state: its conversation, its platform files, its pending approvals),
 and a Secret with the runner's token and secrets. Deleting the `Sandbox` deletes
 the rest. A pod lost to a node, or deleted by hand, comes back with its files
 and its conversation. When a stopped sandbox starts again, it runs the server's
-current runner image and settings, not the ones it was created with. A `Sandbox`
-made by a server from before the home claim keeps the Agent's state on its pod,
-so a sleep loses the conversation, until the Session's sandbox is made again.
+current runner image and settings, not the ones it was created with; an awake
+one made under another release or image is put to sleep and woken that way at
+its Session's next message, without any rights on pods. A `Sandbox` made by a
+server from before the home claim keeps the Agent's state on its pod, so a sleep
+loses the conversation, until the Session's sandbox is made again.
 
 Both claims are made before a Session's first pod, so on a cluster with several
 zones the default class must bind a claim where its pod lands
@@ -381,9 +394,10 @@ releases (below). Development builds of the server or the layer name no release
 and are never refused; a released server over a development layer starts it with
 a warning. A release's build also moves the layer's `latest` tag, which names
 that release until the next development build replaces it. The check runs when a
-sandbox starts, so a sandbox started before the upgrade keeps its runner until
-it is replaced. The layer is one image layer, about 78 MB compressed, so each
-node pulls it once per release, while your base's layers stay cached.
+sandbox starts; a sandbox started before the upgrade moves to the new image at
+its Session's next message ([A runner per Session](#a-runner-per-session)). The
+layer is one image layer, about 78 MB compressed, so each node pulls it once per
+release, while your base's layers stay cached.
 
 **What the base image needs.** The runner refuses to start on an image that
 can't run it, and says why. The requirements:
@@ -618,8 +632,9 @@ delete or suspend the sandboxes that hold it.
 
 Every Session's actor comes from one template the server creates and names by
 its content, so a new runner image or setting makes a new template. Sleeping
-Sessions move to it when they next wake, and the server deletes old templates
-nothing uses any more.
+Sessions move to it when they next wake, an awake one at its next message, and
+the server deletes old templates nothing uses any more. A first wake after an
+upgrade waits for the new template to be prepared.
 
 What the driver needs:
 

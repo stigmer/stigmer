@@ -41,7 +41,11 @@ describe("invoke-agent-execution replay determinism", () => {
     // more were recorded from those scenarios' driving on the workflow
     // before the ask existed (cloud-hitl-approval, cloud-pause-resume), so
     // a CLOUD turn in flight across that change keeps its recorded path.
-    expect(historyFiles.length).toBeGreaterThanOrEqual(13);
+    // And a CLOUD turn whose ensure answered `not_carried` (stigmer#1843):
+    // ended past the third marker (sandbox-not-carried), and gone on to the
+    // runner on the workflow before that end existed
+    // (sandbox-not-carried-went-on).
+    expect(historyFiles.length).toBeGreaterThanOrEqual(15);
   });
 
   it("replays every committed history deterministically", async () => {

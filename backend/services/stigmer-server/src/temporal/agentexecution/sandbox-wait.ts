@@ -29,11 +29,22 @@
  *   phase text read by every client of the Run); a client that knows the
  *   kind words the ending itself.
  *
+ * A sandbox started under another configuration whose files cannot be
+ * carried to this server's runner (sandbox/provisioner.ts,
+ * SandboxNotCarriedError; stigmer#1843) answers `not_carried`, and the
+ * turn ends at once, before any runner work, with
+ * `SANDBOX_NOT_CARRIED_COPY` under stop cause `failed` and kind
+ * `internal`, the platform's fault: no new kind for an ending this rare.
+ * Behind its own `patched()` id: an activity worker of a newer release
+ * may answer `not_carried` to a workflow that went on to the runner
+ * before the end existed, and that history must replay as recorded.
+ *
  * WORKFLOW-BUNDLE SAFE: imported by the workflow, so nothing here imports a
  * node built-in or a host module.
  *
  * Pinned by __tests__/sandbox-wait.test.ts and, in the workflow, by
- * invoke-workflow.temporal.test.ts and the sandbox-waited replay history.
+ * invoke-workflow.temporal.test.ts and the sandbox-waited,
+ * sandbox-not-carried and sandbox-not-carried-went-on replay histories.
  */
 
 /**
@@ -48,6 +59,19 @@ export const SANDBOX_WAIT_PATCH_ID = "ensure-sandbox-in-workflow";
  * the patched path records it.
  */
 export const SANDBOX_REENSURE_PATCH_ID = "ensure-sandbox-on-resume";
+
+/**
+ * The `patched()` id that gates ending the turn on `not_carried` (module
+ * header). Wire constant: a history that took the patched path records it.
+ */
+export const SANDBOX_NOT_CARRIED_PATCH_ID = "end-turn-on-sandbox-not-carried";
+
+/**
+ * The person's sentence for a turn whose sandbox could not be carried to
+ * this server's runner (status.error): what happened and what to do.
+ */
+export const SANDBOX_NOT_CARRIED_COPY =
+  "This conversation's sandbox was started by an earlier Stigmer release and its files can't be moved to this one. Start a new conversation to continue.";
 
 /** How long a turn waits for room when the server sets no other limit: 15 minutes. */
 export const DEFAULT_SANDBOX_WAIT_SECONDS = 900;
@@ -75,11 +99,17 @@ export function sandboxWaitBackoffMs(attempt: number): number {
 
 /**
  * What one ask for the turn's sandbox came to (sandbox/steps.ts
- * `ensureSessionSandboxForExecution`): `ready`, `no_room`, `skipped`
- * (nothing to ensure) or `failed` (logged and pre-stamped). Wire words: the
- * EnsureSessionSandbox activity returns them.
+ * `ensureSessionSandboxForExecution`): `ready`, `no_room`, `not_carried`
+ * (its files cannot be carried to this server's runner: module header),
+ * `skipped` (nothing to ensure) or `failed` (logged and pre-stamped). Wire
+ * words: the EnsureSessionSandbox activity returns them.
  */
-export type SandboxEnsureOutcome = "ready" | "no_room" | "skipped" | "failed";
+export type SandboxEnsureOutcome =
+  | "ready"
+  | "no_room"
+  | "not_carried"
+  | "skipped"
+  | "failed";
 
 /**
  * The EnsureSessionSandbox activity's input: the run, and the facts about
@@ -113,6 +143,18 @@ export class SandboxWaitRanOut extends Error {
   ) {
     super(sandboxWaitRanOutCopy(limitSeconds));
     this.name = "SandboxWaitRanOut";
+  }
+}
+
+/**
+ * The turn's sandbox cannot be carried to this server's runner (module
+ * header). Thrown inside the workflow and read by its failure write; never
+ * crosses a payload.
+ */
+export class SandboxNotCarried extends Error {
+  constructor() {
+    super(SANDBOX_NOT_CARRIED_COPY);
+    this.name = "SandboxNotCarried";
   }
 }
 

@@ -20,7 +20,20 @@
  *     ensure stays beside it for now: a second ensure of an awake sandbox
  *     only rotates the token its runner would restart with, and a run
  *     created while an older server still runs the workflow's tasks during
- *     a rolling update is woken by the request's.
+ *     a rolling update is woken by the request's. Only the workflow's
+ *     ensure says the runner is idle (SandboxFacts.runnerIdle), so only it
+ *     may restart a running sandbox started under another configuration;
+ *     the request's and the recover chain's race the turn's first runner
+ *     activity and, during a rolling update, run on either release
+ *     (stigmer#1843).
+ *   - A sandbox whose files cannot be carried to this server's runner
+ *     (SandboxNotCarriedError, provisioner.ts `isSandboxNotCarried`)
+ *     answers `not_carried` and pre-stamps the person's sentence
+ *     (temporal/agentexecution/sandbox-wait.ts SANDBOX_NOT_CARRIED_COPY),
+ *     never the driver's words, which name templates. The workflow ends
+ *     the turn on it at once and writes the same sentence; the stamp is
+ *     for a workflow of a release before that end, whose turn then times
+ *     out.
  *   - DeprovisionSessionSandbox (session delete): best-effort teardown,
  *     ERROR-logged on failure, never fails the delete.
  *
@@ -76,8 +89,11 @@ import {
 } from "../temporal/agentexecution/dispatch.js";
 import type { Store } from "../store/interface.js";
 import { mintSandboxToken, type SandboxLane } from "./lane.js";
-import { isSandboxNoRoom } from "./provisioner.js";
-import type { SandboxEnsureOutcome } from "../temporal/agentexecution/sandbox-wait.js";
+import { isSandboxNoRoom, isSandboxNotCarried } from "./provisioner.js";
+import {
+  SANDBOX_NOT_CARRIED_COPY,
+  type SandboxEnsureOutcome,
+} from "../temporal/agentexecution/sandbox-wait.js";
 import { sessionIdOf } from "../domain/run/target.js";
 import { sessionEnvironmentFacts } from "../domain/run/environment-admission.js";
 
@@ -157,12 +173,15 @@ export function newEnsureSessionSandboxStep(
  * `internal` for the server's own calls.
  *
  * Returns what the ensure came to (SandboxEnsureOutcome): the request's
- * steps ignore it, and the workflow's activity waits on `no_room`.
+ * steps ignore it, and the workflow's activity waits on `no_room` and ends
+ * the turn on `not_carried`. `options.runnerIdle` is the workflow's
+ * activity's alone (module header).
  */
 export async function ensureSessionSandboxForExecution(
   deps: EnsureSessionSandboxDeps,
   execution: Run,
   caller: SandboxCaller,
+  options?: { readonly runnerIdle?: boolean },
 ): Promise<SandboxEnsureOutcome> {
   if (!deps.lane.enabled) {
     return "skipped";
@@ -215,6 +234,7 @@ export async function ensureSessionSandboxForExecution(
       executionId,
       ...(caller.routineId !== undefined ? { routineId: caller.routineId } : {}),
       ...(environment !== undefined ? { environment } : {}),
+      ...(options?.runnerIdle === true ? { runnerIdle: true } : {}),
     });
     return "ready";
   } catch (error) {
@@ -226,6 +246,17 @@ export async function ensureSessionSandboxForExecution(
         error: error instanceof Error ? error.message : String(error),
       });
       return "no_room";
+    }
+    if (isSandboxNotCarried(error)) {
+      // Not run on its old runner (module header): the turn ends with the
+      // person's sentence, stamped here for a workflow that does not end it.
+      deps.logger.warn("The session's sandbox cannot be carried to this server's runner", {
+        executionId,
+        sessionId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      await stampProvisioningFailure(deps.store, deps.logger, executionId, SANDBOX_NOT_CARRIED_COPY, "");
+      return "not_carried";
     }
     // Non-critical: never fail the launch — but never silent either
     // (module header). The real error goes to the log; the sanitized
@@ -277,10 +308,10 @@ async function stampProvisioningFailure(
   logger: Logger,
   executionId: string,
   cause: unknown,
+  prefix = SANDBOX_PROVISIONING_FAILED_PREFIX,
 ): Promise<void> {
   const message =
-    SANDBOX_PROVISIONING_FAILED_PREFIX +
-    (cause instanceof Error ? cause.message : String(cause));
+    prefix + (cause instanceof Error ? cause.message : String(cause));
   try {
     await store.updateResource(
       ApiResourceKind.run,

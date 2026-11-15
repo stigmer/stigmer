@@ -8,9 +8,14 @@
  * of reads, after which it is gone, as the garbage collector would leave it.
  * A list matches label selectors of `key=value` pairs, as the API server's
  * equality selectors do, and every Sandbox has a creation time a test sets.
+ * A Sandbox patched Suspended reports its pod gone (its status's Suspended
+ * condition) after `podStopReads` reads, as the controller would once the
+ * pod has stopped; `Infinity` keeps the pod forever. A view reads the
+ * runner container's image and release from the pod template it holds.
  */
 import type { V1Secret } from "@kubernetes/client-node";
 
+import { SERVER_RELEASE_ENV } from "../../runner-launch.js";
 import type { AgentSandboxChange, AgentSandboxGateway } from "../gateway.js";
 import type {
   AgentSandboxOperatingMode,
@@ -26,6 +31,8 @@ export interface FakeSandbox {
   podTemplate: AgentSandboxPodTemplate;
   /** Reads left while it is being deleted; undefined when it is not. */
   deletingReads: number | undefined;
+  /** Reads left before a Suspended Sandbox's status reports its pod gone; 0 once it does. */
+  podStopReads: number;
   createdAt: Date;
 }
 
@@ -37,6 +44,8 @@ export class FakeAgentSandboxCluster implements AgentSandboxGateway {
   clock: () => Date = () => new Date(0);
   /** A Sandbox another server creates between this one's read and create. */
   createdElsewhere: AgentSandboxResource | undefined;
+  /** How many reads a Sandbox patched Suspended keeps its pod for (class header). */
+  podStopReads = 0;
   private nextUid = 1;
 
   /** Puts a Sandbox in the cluster as if an earlier ensure had made it. */
@@ -50,6 +59,7 @@ export class FakeAgentSandboxCluster implements AgentSandboxGateway {
       operatingMode,
       podTemplate: resource.spec.podTemplate,
       deletingReads: undefined,
+      podStopReads: 0,
       createdAt: this.clock(),
     };
     this.sandboxes.set(resource.metadata.name, sandbox);
@@ -57,10 +67,19 @@ export class FakeAgentSandboxCluster implements AgentSandboxGateway {
   }
 
   private view(name: string, sandbox: FakeSandbox): AgentSandboxView {
+    const runner = sandbox.podTemplate.spec.containers.find((container) => container.name === "runner");
     return {
       name,
       uid: sandbox.uid,
       operatingMode: sandbox.operatingMode,
+      runner:
+        runner === undefined
+          ? undefined
+          : {
+              image: runner.image ?? "",
+              release: runner.env?.find((entry) => entry.name === SERVER_RELEASE_ENV)?.value ?? "",
+            },
+      podGone: sandbox.operatingMode === "Suspended" && sandbox.podStopReads === 0,
       deleting: sandbox.deletingReads !== undefined,
       createdAt: sandbox.createdAt,
       labels: sandbox.resource.metadata.labels,
@@ -79,7 +98,9 @@ export class FakeAgentSandboxCluster implements AgentSandboxGateway {
       }
       sandbox.deletingReads -= 1;
     }
-    return this.view(name, sandbox);
+    const view = this.view(name, sandbox);
+    if (sandbox.operatingMode === "Suspended" && sandbox.podStopReads > 0) sandbox.podStopReads -= 1;
+    return view;
   }
 
   async listSandboxes(labelSelector: string): Promise<AgentSandboxView[]> {
@@ -119,6 +140,9 @@ export class FakeAgentSandboxCluster implements AgentSandboxGateway {
     );
     const sandbox = this.sandboxes.get(name);
     if (sandbox === undefined) throw new Error(`no Sandbox '${name}'`);
+    if (change.operatingMode === "Suspended" && sandbox.operatingMode === "Running") {
+      sandbox.podStopReads = this.podStopReads;
+    }
     sandbox.operatingMode = change.operatingMode;
     if (change.podTemplate !== undefined)
       sandbox.podTemplate = change.podTemplate;

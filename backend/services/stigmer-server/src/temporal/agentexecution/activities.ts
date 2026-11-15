@@ -311,6 +311,10 @@ export function createAgentExecutionActivities(
             callerClass: input.caller_class,
             ...(input.routine_id !== undefined ? { routineId: input.routine_id } : {}),
           },
+          // The workflow asks right before it invokes the runner, with none
+          // of the turn's runner work in flight, so a driver may restart a
+          // sandbox started under another configuration (stigmer#1843).
+          { runnerIdle: true },
         );
       } finally {
         clearInterval(beat);
