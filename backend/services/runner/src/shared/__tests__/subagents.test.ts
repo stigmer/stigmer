@@ -82,7 +82,7 @@ describe("subagentModel", () => {
       new Response(
         JSON.stringify({
           models: [
-            { id: "claude-sonnet-4-5", provider: "anthropic", harness: "stigmer" },
+            { id: "claude-sonnet-4-6", provider: "anthropic", harness: "stigmer" },
             { id: "claude-opus-5", provider: "anthropic", harness: "claude" },
           ],
         }),
@@ -97,12 +97,12 @@ describe("subagentModel", () => {
   });
 
   it("answers a listed id chosen for this engine", async () => {
-    expect(await subagentModel("claude-sonnet-4-5", Harness.STIGMER, Harness.STIGMER)).toBe("claude-sonnet-4-5");
+    expect(await subagentModel("claude-sonnet-4-6", Harness.STIGMER, Harness.STIGMER)).toBe("claude-sonnet-4-6");
   });
 
   it("reads Claude's own section, never the Stigmer harness's", async () => {
     expect(await subagentModel("claude-opus-5", Harness.CLAUDE, Harness.CLAUDE)).toBe("claude-opus-5");
-    expect(await subagentModel("claude-sonnet-4-5", Harness.CLAUDE, Harness.CLAUDE), "listed only for Stigmer").toBeUndefined();
+    expect(await subagentModel("claude-sonnet-4-6", Harness.CLAUDE, Harness.CLAUDE), "listed only for Stigmer").toBeUndefined();
     expect(await subagentModel("claude-opus-5", Harness.STIGMER, Harness.CLAUDE)).toBeUndefined();
   });
 
@@ -111,12 +111,12 @@ describe("subagentModel", () => {
   });
 
   it("counts an unspecified engine as the Stigmer one", async () => {
-    expect(await subagentModel("claude-sonnet-4-5", Harness.STIGMER, Harness.UNSPECIFIED)).toBe("claude-sonnet-4-5");
+    expect(await subagentModel("claude-sonnet-4-6", Harness.STIGMER, Harness.UNSPECIFIED)).toBe("claude-sonnet-4-6");
     expect(await subagentModel("claude-opus-5", Harness.CLAUDE, Harness.UNSPECIFIED)).toBeUndefined();
   });
 
   it("runs the turn's model when the choice was made for another engine", async () => {
-    expect(await subagentModel("claude-sonnet-4-5", Harness.CLAUDE, Harness.STIGMER)).toBeUndefined();
+    expect(await subagentModel("claude-sonnet-4-6", Harness.CLAUDE, Harness.STIGMER)).toBeUndefined();
     expect(await subagentModel("claude-opus-5", Harness.STIGMER, Harness.CLAUDE)).toBeUndefined();
   });
 
@@ -130,7 +130,7 @@ describe("subagentModel", () => {
   });
 
   it("counts a plugin agent's model, which names no engine, on whichever engine lists it", async () => {
-    expect(await subagentModel("claude-sonnet-4-5", Harness.STIGMER)).toBe("claude-sonnet-4-5");
+    expect(await subagentModel("claude-sonnet-4-6", Harness.STIGMER)).toBe("claude-sonnet-4-6");
     expect(await subagentModel("claude-opus-5", Harness.CLAUDE)).toBe("claude-opus-5");
   });
 
@@ -139,7 +139,7 @@ describe("subagentModel", () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("network error"));
     vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    expect(await subagentModel("claude-sonnet-4-5", Harness.STIGMER, Harness.STIGMER)).toBeUndefined();
+    expect(await subagentModel("claude-sonnet-4-6", Harness.STIGMER, Harness.STIGMER)).toBeUndefined();
   });
 });
 

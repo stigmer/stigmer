@@ -29,7 +29,7 @@ import { HumanMessage, AIMessage, AIMessageChunk } from "@langchain/core/message
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
 /** Dated pre-4.6 id in Vertex's `@date` form (see llm-backend.ts translation). */
-const VERTEX_MODEL_ID = "claude-sonnet-4-5@20250929";
+const VERTEX_MODEL_ID = "claude-haiku-4-5@20251001";
 const PROJECT_ID = "test-project";
 const REGION = "asia-south1";
 

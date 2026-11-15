@@ -43,6 +43,6 @@ Environment
 
 Run settings
   Harness:   claude
-  Model:     claude-sonnet-4-5
+  Model:     claude-sonnet-4-6
   Thinking:  enabled
   Cost cap:  $2 per message

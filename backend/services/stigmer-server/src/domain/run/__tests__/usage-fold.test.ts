@@ -49,7 +49,7 @@ const STIGMER_USAGE: MessageInitShape<typeof StreamingUsageSummarySchema> = {
   cacheWriteTokens: 2_000n,
   totalTokens: 19_642n,
   turnCount: 3,
-  model: "claude-sonnet-4-5",
+  model: "claude-sonnet-4-6",
 };
 
 /** A Claude run's report: input 44,920 of which 41,800 cache read, and the runner's input + output total. */
@@ -94,7 +94,7 @@ function makeRun(
 
 function meterRow(overrides: Partial<MeteredUsageRow>): MeteredUsageRow {
   return {
-    model: "claude-sonnet-4-5",
+    model: "claude-sonnet-4-6",
     provider: "anthropic",
     harness: "stigmer",
     providerKeySource: ProviderKeySource.ORGANIZATION,
@@ -113,7 +113,7 @@ describe("a run counted from its runner's report", () => {
   it("Stigmer: input less both cache buckets, the runner's total, no provider", () => {
     const [row] = runnerReportRows(makeRun("r1", { usage: STIGMER_USAGE }), Harness.STIGMER);
     expect(row).toEqual({
-      model: "claude-sonnet-4-5",
+      model: "claude-sonnet-4-6",
       provider: "",
       harness: "stigmer",
       providerKeySource: ProviderKeySource.UNSPECIFIED,
@@ -167,7 +167,7 @@ describe("a run counted from its runner's report", () => {
     expect(aggregate.totalTokens).toBe(19_642n);
     expect(aggregate.inputTokens).toBe(1_432n);
     expect(aggregate.llmCallCount).toBe(0);
-    expect(aggregate.primaryModel).toBe("claude-sonnet-4-5");
+    expect(aggregate.primaryModel).toBe("claude-sonnet-4-6");
     expect(aggregate.primaryProvider).toBe("");
     expect(aggregate.servedBy.map((s) => [s.providerKeySource, s.totalTokens, s.llmCallCount])).toEqual([
       [ProviderKeySource.UNSPECIFIED, 19_642n, 0],
@@ -221,13 +221,13 @@ describe("a run counted from the meter", () => {
     );
     const models = modelBreakdownOf([counted]);
     expect(models.map((m) => [m.model, m.provider, m.totalTokens, m.callCount])).toEqual([
-      ["claude-sonnet-4-5", "anthropic", 1_700n, 3],
+      ["claude-sonnet-4-6", "anthropic", 1_700n, 3],
       ["claude-haiku-4-5", "anthropic", 150n, 2],
     ]);
     const aggregate = aggregateOf([counted]);
     expect(aggregate.totalTokens).toBe(1_850n);
     expect(aggregate.llmCallCount).toBe(5);
-    expect(aggregate.primaryModel).toBe("claude-sonnet-4-5");
+    expect(aggregate.primaryModel).toBe("claude-sonnet-4-6");
     expect(aggregate.primaryProvider).toBe("anthropic");
     expect(aggregate.servedBy.map((s) => [s.providerKeySource, s.totalTokens, s.llmCallCount])).toEqual([
       [ProviderKeySource.ORGANIZATION, 1_850n, 5],
@@ -286,10 +286,10 @@ describe("folding several runs", () => {
   it("per-run rows carry total tokens and whether they are estimated", () => {
     const rows = all.map((counted, index) => runSummaryOf(counted, index));
     expect(rows.map((r) => [r.runId, r.totalTokens, r.isEstimated, r.primaryModel, r.subAgentCount])).toEqual([
-      ["m1", 500n, false, "claude-sonnet-4-5", 0],
+      ["m1", 500n, false, "claude-sonnet-4-6", 0],
       ["e1", 46_965n, true, "claude-opus-4-8", 1],
       ["z1", 0n, false, "", 2],
-      ["n1", 19_642n, true, "claude-sonnet-4-5", 3],
+      ["n1", 19_642n, true, "claude-sonnet-4-6", 3],
     ]);
     expect(rows[1]?.inputTokens).toBe(3_120n);
     expect(rows[1]?.cacheReadInputTokens).toBe(41_800n);

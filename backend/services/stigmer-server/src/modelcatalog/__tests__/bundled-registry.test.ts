@@ -14,6 +14,12 @@
  *
  * The rows the Stigmer harness alone reads (`tokenCounterMethod`,
  * `summarization`, its own runtime's compaction) are not mirrored.
+ *
+ * It also holds the models the provider has retired out of the bundle. A
+ * retirement can reach this file before it reaches the public registry, and a
+ * refresh would then bring the dead model back into every offline server's
+ * picker; `RETIRED` names each such model with its reason, and a refresh that
+ * lists one fails here.
  */
 import { readFileSync } from "node:fs";
 
@@ -30,6 +36,15 @@ interface Row {
 
 /** The fields a Claude row carries from its Stigmer twin. */
 const MIRRORED = ["apiModelId", "displayName", "shortDescription", "speedTier", "provider", "costTier", "featured", "pricing", "pricingVariants", "contextWindowTokens", "maxOutputTokens", "capabilities"] as const;
+
+/**
+ * Models the provider has retired, kept out of the bundle even while the public
+ * registry still lists them. An entry leaves once the public registry has
+ * dropped the model too.
+ */
+const RETIRED: Readonly<Record<string, string>> = {
+  "claude-sonnet-4.5": "Anthropic retires Claude Sonnet 4.5 on 2026-11-30 (stigmer#3147)",
+};
 
 /** The fields only the Stigmer harness's runtime reads. */
 const STIGMER_ONLY = ["tokenCounterMethod", "summarization"] as const;
@@ -63,6 +78,13 @@ describe("the bundled model registry", () => {
     const rows = rowsOf(bundledModelRegistryDocument());
     expect(rows.some((row) => row.harness === "claude"), "the Claude section is present").toBe(true);
     expect(mirrorFindings(rows)).toEqual([]);
+  });
+
+  it("lists no model the provider has retired", () => {
+    const listed = rowsOf(bundledModelRegistryDocument())
+      .filter((row) => RETIRED[row.id] !== undefined)
+      .map((row) => `${row.harness} row ${row.id}: ${RETIRED[row.id]}`);
+    expect(listed).toEqual([]);
   });
 
   it("names each drift: a missing twin, a changed price, a Stigmer-only field", () => {

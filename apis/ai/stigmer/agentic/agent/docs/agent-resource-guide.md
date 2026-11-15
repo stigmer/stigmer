@@ -186,7 +186,7 @@ Which vaults a run reads: the My vault of the person sending the turn when the c
 spec:
   harness: HARNESS_STIGMER
   run_config:
-    model_name: claude-sonnet-4.5
+    model_name: claude-sonnet-4.6
     thinking_mode: THINKING_MODE_ENABLED
     max_cost_usd: 2
 ```

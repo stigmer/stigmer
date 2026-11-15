@@ -86,7 +86,7 @@ function activityUnderTest() {
     stigmerBackendEndpoint: "http://localhost:0",
     stigmerTokenRef: { current: null },
     proxyEndpoint: null,
-    primaryModel: "claude-sonnet-4.5",
+    primaryModel: "claude-sonnet-4.6",
   } as unknown as Config;
   const { GenerateSessionSubject } =
     createGenerateSessionSubjectActivities(config);

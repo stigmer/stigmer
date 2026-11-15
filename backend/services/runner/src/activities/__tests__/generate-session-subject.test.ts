@@ -111,7 +111,7 @@ function fakeClient(behavior: ClientBehavior = {}) {
 const OPTIONS: GenerateSessionSubjectOptions = {
   proxyEndpoint: null,
   stigmerToken: null,
-  primaryModel: "claude-sonnet-4.5",
+  primaryModel: "claude-sonnet-4.6",
 };
 
 function mockLlmReturning(content: unknown): void {

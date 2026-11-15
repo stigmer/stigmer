@@ -74,7 +74,7 @@ describe("frontmatter fields", () => {
       cursorPlugin({
         agents: [
           { file: "fast", frontmatter: { model: "fast" } },
-          { file: "sonnet", frontmatter: { model: "claude-sonnet-4-5" } },
+          { file: "sonnet", frontmatter: { model: "claude-sonnet-4-6" } },
           { file: "inherit", frontmatter: { model: "inherit" } },
           { file: "grok", frontmatter: { model: "grok-4.6[effort=xhigh]" } },
           { file: "none", frontmatter: {} },

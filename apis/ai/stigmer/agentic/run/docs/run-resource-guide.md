@@ -105,7 +105,7 @@ Defined in `ai/stigmer/agentic/run/v1/invocation.proto`. The same message is a m
 
 | Field | Type | Description |
 |---|---|---|
-| `model_name` | `string` | The model, by its Model Registry id on the harness that runs it. Example: `"claude-sonnet-4.5"`. |
+| `model_name` | `string` | The model, by its Model Registry id on the harness that runs it. Example: `"claude-sonnet-4.6"`. |
 | `max_cost_usd` | `double` | Stop the message once its estimated cost reaches this many US dollars; the work done so far is kept and the turn ends `TERMINATED`. Per message: a follow-up or a resume after an approval starts a fresh count. |
 | `max_tool_rounds` | `int32` | Stop after this many model-to-tools rounds (clamped to 10–1000). Stigmer harness only; subagent rounds are not counted. |
 | `service_tier` | `ServiceTier` | `SERVICE_TIER_STANDARD` (the default when no layer sets it) or `SERVICE_TIER_FAST`, valid only for a model with a fast pricing tier on its harness. |
@@ -190,7 +190,7 @@ What the agent saved in its outputs folder comes back as Files, listed by their 
 stigmer run my-agent -m "Your message here"
 
 # Choose the model for this message
-stigmer run my-agent -m "Your message" --model claude-sonnet-4.5
+stigmer run my-agent -m "Your message" --model claude-sonnet-4.6
 
 # Attach input files
 stigmer run my-agent -m "Process this config" --attach ./config.yaml

@@ -59,7 +59,7 @@ Ask for a specific model for this message. It replaces the agent's default model
 **CLI:**
 
 ```bash
-stigmer run my-agent -m "Analyze this ledger" --model claude-sonnet-4.5
+stigmer run my-agent -m "Analyze this ledger" --model claude-sonnet-4.6
 ```
 
 **YAML:**
@@ -73,7 +73,7 @@ spec:
       slug: my-agent
   message: "Analyze this ledger"
   run_config:
-    model_name: "claude-sonnet-4.5"
+    model_name: "claude-sonnet-4.6"
 ```
 
 **Adjust the agent's model without replacing it** — a message may set thinking or the speed tier alone, and they apply to the model the agent's defaults chose:
@@ -264,7 +264,7 @@ spec:
     Report any conflicts or warnings.
 
   run_config:
-    model_name: "claude-sonnet-4.5"
+    model_name: "claude-sonnet-4.6"
     thinking_mode: THINKING_MODE_ENABLED
     max_cost_usd: 3.00
 

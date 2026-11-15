@@ -18,5 +18,5 @@ Usage
   Tokens:  18.4k (12.4k in, 6.0k out)
 
 Run settings
-  Model:       claude-sonnet-4-5
+  Model:       claude-sonnet-4-6
   Speed tier:  standard

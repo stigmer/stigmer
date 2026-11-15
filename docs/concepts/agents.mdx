@@ -260,12 +260,12 @@ spec:
   tools: [Read, Grep, Glob]
   harness: HARNESS_STIGMER
   run_config:
-    model_name: claude-sonnet-4.5
+    model_name: claude-sonnet-4.6
     thinking_mode: THINKING_MODE_ENABLED
     max_cost_usd: 2
 ```
 
-Every message to this Agent runs on Claude Sonnet 4.5 with thinking on, and
+Every message to this Agent runs on Claude Sonnet 4.6 with thinking on, and
 stops once its estimated cost reaches $2, keeping the work done so far. The next
 message starts a fresh count.
 

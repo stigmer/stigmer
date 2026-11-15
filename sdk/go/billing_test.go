@@ -133,7 +133,7 @@ func TestBillingRetireModelPricingBaseline_MapsKey(t *testing.T) {
 	client := &BillingClient{command: fake}
 
 	if _, err := client.RetireModelPricingBaseline(context.Background(), &RetireModelPricingBaselineParams{
-		ModelID:      "claude-sonnet-4.5",
+		ModelID:      "claude-sonnet-4.6",
 		Provider:     "anthropic",
 		Harness:      "stigmer",
 		RevisionNote: "deprecated upstream",
@@ -142,7 +142,7 @@ func TestBillingRetireModelPricingBaseline_MapsKey(t *testing.T) {
 	}
 
 	in := fake.retireIn
-	if in.GetModelId() != "claude-sonnet-4.5" || in.GetProvider() != "anthropic" || in.GetHarness() != "stigmer" {
+	if in.GetModelId() != "claude-sonnet-4.6" || in.GetProvider() != "anthropic" || in.GetHarness() != "stigmer" {
 		t.Errorf("key = (%q, %q, %q)", in.GetModelId(), in.GetProvider(), in.GetHarness())
 	}
 	if in.GetRevisionNote() != "deprecated upstream" {

@@ -7,12 +7,9 @@
  * (`backend/services/stigmer-server/src/modelcatalog/data/model-registry.json`),
  * copied as fixtures: the runner's tests cite the bundle and never read it.
  * Each row's real window was read from Anthropic's Models API
- * (`max_input_tokens`) on 2026-10-23. Two disagreements are pinned on
- * purpose: the bundle states 200,000 for Sonnet 4.6 and Opus 4.6, which take
- * a million, and the library states a million for Sonnet 4.5, which takes
- * 200,000 without the long-context beta the runner does not send. The
- * library wins both (the module header); Sonnet 4.5's overflow is caught by
- * deepagents' emergency summarization at the cost of one refused call.
+ * (`max_input_tokens`) on 2026-10-23. One disagreement is pinned on purpose:
+ * the bundle states 200,000 for Sonnet 4.6 and Opus 4.6, which take a
+ * million. The library wins (the module header).
  */
 
 import { describe, expect, it } from "vitest";
@@ -32,7 +29,6 @@ const BUNDLE_ROWS: ReadonlyArray<{ apiModelId: string; catalog: number; library:
   { apiModelId: "claude-opus-4-6", catalog: 200_000, library: 1_000_000 },
   { apiModelId: "claude-opus-4-7", catalog: 1_000_000, library: 1_000_000 },
   { apiModelId: "claude-opus-4-8", catalog: 1_000_000, library: 1_000_000 },
-  { apiModelId: "claude-sonnet-4-5-20250929", catalog: 200_000, library: 1_000_000 },
   { apiModelId: "claude-sonnet-4-6", catalog: 200_000, library: 1_000_000 },
   { apiModelId: "claude-sonnet-5", catalog: 1_000_000, library: 1_000_000 },
 ];

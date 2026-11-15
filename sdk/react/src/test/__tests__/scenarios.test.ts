@@ -137,7 +137,7 @@ describe("the scenario catalogue", () => {
 
   it("reports usage only on the completed and finished turns, and empty usage elsewhere", () => {
     expect(onlyTurn("completed").status?.phase).toBe("completed");
-    expect(usageOf(scenarios.completed)).toMatchObject({ hasUsage: true, totalTokens: 18_432, llmCallCount: 3, primaryModel: "claude-sonnet-4-5" });
+    expect(usageOf(scenarios.completed)).toMatchObject({ hasUsage: true, totalTokens: 18_432, llmCallCount: 3, primaryModel: "claude-sonnet-4-6" });
     expect(usageOf(scenarios.finished)).toMatchObject({ hasUsage: true, totalTokens: 41_210, llmCallCount: 7, workingSeconds: 74 });
     for (const name of SCENARIO_NAMES.filter((n) => n !== "completed" && n !== "finished")) {
       expect(scenarios[name].usage, name).toBeUndefined();

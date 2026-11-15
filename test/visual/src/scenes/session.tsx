@@ -681,13 +681,13 @@ export function sessionUsageScene(): Drawing {
   return sessionDrawing(finished, { inspector: true }, {
     usage: {
       runCount: 2,
-      totalUsage: { inputTokens: 52_400n, outputTokens: 9_810n, totalTokens: 62_210n, cacheReadInputTokens: 18_200n, workingSeconds: 112n, llmCallCount: 11, primaryModel: "claude-sonnet-4-5", primaryProvider: "anthropic" },
+      totalUsage: { inputTokens: 52_400n, outputTokens: 9_810n, totalTokens: 62_210n, cacheReadInputTokens: 18_200n, workingSeconds: 112n, llmCallCount: 11, primaryModel: "claude-sonnet-4-6", primaryProvider: "anthropic" },
       runs: [
         { runId: "run_00000000000000000000000090", primaryModel: "claude-haiku-4-5", inputTokens: 16_100n, outputTokens: 4_900n, totalTokens: 21_000n, workingSeconds: 38n },
-        { runId, primaryModel: "claude-sonnet-4-5", inputTokens: 36_300n, outputTokens: 4_910n, totalTokens: 41_210n, workingSeconds: 74n },
+        { runId, primaryModel: "claude-sonnet-4-6", inputTokens: 36_300n, outputTokens: 4_910n, totalTokens: 41_210n, workingSeconds: 74n },
       ],
       modelBreakdown: [
-        { model: "claude-sonnet-4-5", provider: "anthropic", inputTokens: 36_300n, outputTokens: 4_910n, totalTokens: 41_210n, callCount: 7 },
+        { model: "claude-sonnet-4-6", provider: "anthropic", inputTokens: 36_300n, outputTokens: 4_910n, totalTokens: 41_210n, callCount: 7 },
         { model: "claude-haiku-4-5", provider: "anthropic", inputTokens: 16_100n, outputTokens: 4_900n, totalTokens: 21_000n, callCount: 4 },
       ],
     },

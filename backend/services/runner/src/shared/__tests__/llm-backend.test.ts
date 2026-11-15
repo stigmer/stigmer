@@ -23,7 +23,6 @@ describe("toVertexModelId", () => {
   // dated, 4.6-generation and later are dateless canonical ids.
   it.each([
     // Pre-4.6 snapshot ids: the trailing date separator becomes `@`.
-    ["claude-sonnet-4-5-20250929", "claude-sonnet-4-5@20250929"],
     ["claude-haiku-4-5-20251001", "claude-haiku-4-5@20251001"],
     ["claude-opus-4-5-20251101", "claude-opus-4-5@20251101"],
 
@@ -38,10 +37,10 @@ describe("toVertexModelId", () => {
     ["claude-fable-5", "claude-fable-5"],
 
     // Already in Vertex form: translating twice is a no-op.
-    ["claude-sonnet-4-5@20250929", "claude-sonnet-4-5@20250929"],
+    ["claude-haiku-4-5@20251001", "claude-haiku-4-5@20251001"],
 
     // Bedrock-shaped ids never match the trailing-date pattern.
-    ["anthropic.claude-sonnet-4-5-20250929-v1:0", "anthropic.claude-sonnet-4-5-20250929-v1:0"],
+    ["anthropic.claude-haiku-4-5-20251001-v1:0", "anthropic.claude-haiku-4-5-20251001-v1:0"],
 
     // Version segments are not dates; nothing to rewrite.
     ["claude-3-5-sonnet", "claude-3-5-sonnet"],
@@ -340,9 +339,8 @@ describe("parseBedrockModelMap", () => {
 describe("toBedrockModelId", () => {
   // Layer 3 alone: the deterministic rule, verified against AWS's model
   // catalog for the registry's dated ids (the model card lists
-  // anthropic.claude-sonnet-4-5-20250929-v1:0 for claude-sonnet-4-5).
+  // anthropic.claude-haiku-4-5-20251001-v1:0 for claude-haiku-4-5).
   it.each([
-    ["claude-sonnet-4-5-20250929", "anthropic.claude-sonnet-4-5-20250929-v1:0"],
     ["claude-haiku-4-5-20251001", "anthropic.claude-haiku-4-5-20251001-v1:0"],
     ["claude-opus-4-5-20251101", "anthropic.claude-opus-4-5-20251101-v1:0"],
     ["claude-sonnet-4-6", "anthropic.claude-sonnet-4-6-v1:0"],
@@ -399,7 +397,6 @@ describe("toFoundryDeploymentName", () => {
   // (reseparated with `@`), Foundry drops it.
   it.each([
     // Pre-4.6 snapshot ids: the trailing date is stripped.
-    ["claude-sonnet-4-5-20250929", "claude-sonnet-4-5"],
     ["claude-haiku-4-5-20251001", "claude-haiku-4-5"],
     ["claude-opus-4-5-20251101", "claude-opus-4-5"],
 
@@ -413,7 +410,7 @@ describe("toFoundryDeploymentName", () => {
     ["claude-fable-5", "claude-fable-5"],
 
     // Translating twice is a no-op: a stripped id has no date to strip.
-    ["claude-sonnet-4-5", "claude-sonnet-4-5"],
+    ["claude-haiku-4-5", "claude-haiku-4-5"],
 
     // Version segments are not dates; nothing to strip.
     ["claude-3-5-sonnet", "claude-3-5-sonnet"],
@@ -424,10 +421,10 @@ describe("toFoundryDeploymentName", () => {
 
   it("consults the operator map FIRST, bypassing the strip-date rule", () => {
     expect(
-      toFoundryDeploymentName("claude-sonnet-4-5-20250929", {
-        STIGMER_FOUNDRY_DEPLOYMENT_MAP: "claude-sonnet-4-5-20250929=my-sonnet-deployment",
+      toFoundryDeploymentName("claude-haiku-4-5-20251001", {
+        STIGMER_FOUNDRY_DEPLOYMENT_MAP: "claude-haiku-4-5-20251001=my-haiku-deployment",
       }),
-    ).toBe("my-sonnet-deployment");
+    ).toBe("my-haiku-deployment");
   });
 
   it("applies the rule to models the map does not cover", () => {

@@ -171,34 +171,6 @@
       "thinkingRequired" : false
     }
   }, {
-    "id" : "claude-sonnet-4.5",
-    "apiModelId" : "claude-sonnet-4-5-20250929",
-    "displayName" : "Claude Sonnet 4.5",
-    "shortDescription" : "Reliable all-purpose model",
-    "speedTier" : "fast",
-    "provider" : "anthropic",
-    "harness" : "claude",
-    "costTier" : "standard",
-    "featured" : false,
-    "pricing" : {
-      "inputPricePerMillion" : 3.0,
-      "outputPricePerMillion" : 15.0,
-      "cacheWritePricePerMillion" : 3.75,
-      "cacheReadPricePerMillion" : 0.3,
-      "source" : "anthropic_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
-    },
-    "contextWindowTokens" : 200000,
-    "maxOutputTokens" : 64000,
-    "capabilities" : {
-      "toolUse" : true,
-      "vision" : true,
-      "streaming" : true,
-      "thinking" : true,
-      "adaptiveThinking" : false,
-      "thinkingRequired" : false
-    }
-  }, {
     "id" : "claude-sonnet-4.6",
     "apiModelId" : "claude-sonnet-4-6",
     "displayName" : "Claude Sonnet 4.6",
@@ -460,40 +432,6 @@
       "streaming" : true,
       "thinking" : false,
       "adaptiveThinking" : true,
-      "thinkingRequired" : false
-    }
-  }, {
-    "id" : "claude-sonnet-4.5",
-    "apiModelId" : "claude-sonnet-4-5-20250929",
-    "displayName" : "Claude Sonnet 4.5",
-    "shortDescription" : "Reliable all-purpose model",
-    "speedTier" : "fast",
-    "provider" : "anthropic",
-    "harness" : "stigmer",
-    "costTier" : "standard",
-    "featured" : false,
-    "pricing" : {
-      "inputPricePerMillion" : 3.0,
-      "outputPricePerMillion" : 15.0,
-      "cacheWritePricePerMillion" : 3.75,
-      "cacheReadPricePerMillion" : 0.3,
-      "source" : "anthropic_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
-    },
-    "contextWindowTokens" : 200000,
-    "maxOutputTokens" : 64000,
-    "tokenCounterMethod" : "anthropic_native",
-    "summarization" : {
-      "triggerThreshold" : 180000,
-      "targetTokens" : 160000,
-      "maxSummaryTokens" : 2000
-    },
-    "capabilities" : {
-      "toolUse" : true,
-      "vision" : true,
-      "streaming" : true,
-      "thinking" : true,
-      "adaptiveThinking" : false,
       "thinkingRequired" : false
     }
   }, {

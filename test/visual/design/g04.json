@@ -328,7 +328,9 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Claude Sonnet 4.5": "the scene's catalog lists Claude Opus 4.5 in its place; Sonnet 4.5 retired 2026-11-30"
+      },
       "ruled": {},
       "pending": {
         "type Claude Agent": "The console's parts: the part at its drawn size and weight",

@@ -51,7 +51,7 @@ const TURN_KEY = "turn-key-model-lanes";
 
 const REGISTRY = {
   models: [
-    { id: "claude-sonnet-4.5", apiModelId: "claude-sonnet-4-5-20250929", provider: "anthropic", harness: "stigmer", costTier: "standard", capabilities: {}, pricing: { inputPricePerMillion: 3, outputPricePerMillion: 15 } },
+    { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic", harness: "stigmer", costTier: "economy", capabilities: {}, pricing: { inputPricePerMillion: 1, outputPricePerMillion: 5 } },
     { id: "gpt-4.1", apiModelId: "gpt-4.1", provider: "openai", harness: "stigmer", costTier: "standard", capabilities: {}, pricing: { inputPricePerMillion: 2, outputPricePerMillion: 8 } },
   ],
 };
@@ -63,7 +63,7 @@ const ANTHROPIC_ANSWER = {
     id: "msg_1",
     type: "message",
     role: "assistant",
-    model: "claude-sonnet-4-5-20250929",
+    model: "claude-haiku-4-5-20251001",
     content: [{ type: "text", text: "from the provider" }],
     stop_reason: "end_turn",
     stop_sequence: null,
@@ -160,9 +160,9 @@ describe("a model client with no credential, through its lane", () => {
     Object.assign(process.env, { ANTHROPIC_BASE_URL: upstream.url, ANTHROPIC_API_KEY: "sk-operator" });
     upstream.answer = ANTHROPIC_ANSWER;
 
-    expect(await ask("claude-sonnet-4.5")).toBe("from the provider");
+    expect(await ask("claude-haiku-4.5")).toBe("from the provider");
     expect(upstream.last.path).toBe("/v1/messages");
-    expect(JSON.parse(upstream.last.body).model, "the registry's id, resolved by the client").toBe("claude-sonnet-4-5-20250929");
+    expect(JSON.parse(upstream.last.body).model, "the registry's id, resolved by the client").toBe("claude-haiku-4-5-20251001");
     expectRelayedWithOperatorCredential("x-api-key", "sk-operator");
   });
 
@@ -184,8 +184,8 @@ describe("a model client with no credential, through its lane", () => {
     });
     upstream.answer = ANTHROPIC_ANSWER;
 
-    expect(await ask("claude-sonnet-4.5")).toBe("from the provider");
-    expect(upstream.last.path, "the Bedrock id the client translated").toBe("/model/anthropic.claude-sonnet-4-5-20250929-v1:0/invoke");
+    expect(await ask("claude-haiku-4.5")).toBe("from the provider");
+    expect(upstream.last.path, "the Bedrock id the client translated").toBe("/model/anthropic.claude-haiku-4-5-20251001-v1:0/invoke");
     expect(JSON.parse(upstream.last.body).anthropic_version).toBe("bedrock-2023-05-31");
     expectRelayedWithOperatorCredential("authorization", "Bearer bedrock-bearer");
   });
@@ -194,8 +194,8 @@ describe("a model client with no credential, through its lane", () => {
     Object.assign(process.env, { STIGMER_ANTHROPIC_BACKEND: "vertex", CLOUD_ML_REGION: "us-east5", ANTHROPIC_VERTEX_BASE_URL: upstream.url });
     upstream.answer = ANTHROPIC_ANSWER;
 
-    expect(await ask("claude-sonnet-4.5")).toBe("from the provider");
-    expect(upstream.last.path).toBe("/projects/real-project/locations/us-east5/publishers/anthropic/models/claude-sonnet-4-5@20250929:rawPredict");
+    expect(await ask("claude-haiku-4.5")).toBe("from the provider");
+    expect(upstream.last.path).toBe("/projects/real-project/locations/us-east5/publishers/anthropic/models/claude-haiku-4-5@20251001:rawPredict");
     expectRelayedWithOperatorCredential("authorization", "Bearer google-token");
   });
 
@@ -207,9 +207,9 @@ describe("a model client with no credential, through its lane", () => {
     });
     upstream.answer = ANTHROPIC_ANSWER;
 
-    expect(await ask("claude-sonnet-4.5")).toBe("from the provider");
+    expect(await ask("claude-haiku-4.5")).toBe("from the provider");
     expect(upstream.last.path).toBe("/anthropic/v1/messages");
-    expect(JSON.parse(upstream.last.body).model, "the deployment name the client derived").toBe("claude-sonnet-4-5");
+    expect(JSON.parse(upstream.last.body).model, "the deployment name the client derived").toBe("claude-haiku-4-5");
     expectRelayedWithOperatorCredential("x-api-key", "foundry-key");
   });
 
@@ -218,7 +218,7 @@ describe("a model client with no credential, through its lane", () => {
     Object.assign(process.env, { ANTHROPIC_BASE_URL: upstream.url, ANTHROPIC_API_KEY: "sk-operator" });
     upstream.answer = ANTHROPIC_ANSWER;
 
-    expect(await ask("claude-sonnet-4.5")).toBe("from the provider");
+    expect(await ask("claude-haiku-4.5")).toBe("from the provider");
     expect(upstream.last.headers["x-api-key"]).toBe("sk-operator");
     expect(upstream.last.headers["accept-encoding"], "no relay in between").not.toBe("identity");
   });

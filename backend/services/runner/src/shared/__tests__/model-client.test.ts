@@ -394,16 +394,16 @@ describe("buildChatModel", () => {
 
     it("holds the canonical-id invariant: translated id on the wire, canonical id returned", async () => {
       mockRegistryResponse([
-        { id: "claude-sonnet-4.5", apiModelId: "claude-sonnet-4-5-20250929", provider: "anthropic" },
+        { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic" },
       ]);
 
-      const { apiModelId } = await buildChatModel({ modelName: "claude-sonnet-4.5" });
+      const { apiModelId } = await buildChatModel({ modelName: "claude-haiku-4.5" });
 
       // Pricing and usage metrics key on the canonical id; only the
       // constructor (the wire) sees the Vertex `@date` form.
-      expect(apiModelId).toBe("claude-sonnet-4-5-20250929");
+      expect(apiModelId).toBe("claude-haiku-4-5-20251001");
       const args = lastAnthropicArgs();
-      expect(args.model).toBe("claude-sonnet-4-5@20250929");
+      expect(args.model).toBe("claude-haiku-4-5@20251001");
       expect(typeof args.createClient).toBe("function");
     });
 
@@ -539,11 +539,11 @@ describe("buildChatModel", () => {
       process.env.STIGMER_ANTHROPIC_BACKEND = "vertex";
       process.env.CLOUD_ML_REGION = "asia-south1";
       mockRegistryResponse([
-        { id: "claude-sonnet-4.5", apiModelId: "claude-sonnet-4-5-20250929", provider: "anthropic" },
+        { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic" },
       ]);
 
       await buildChatModel({
-        modelName: "claude-sonnet-4.5",
+        modelName: "claude-haiku-4.5",
         thinking: { type: "enabled", budget_tokens: 16000 },
         serviceTier: ServiceTier.STANDARD,
       });

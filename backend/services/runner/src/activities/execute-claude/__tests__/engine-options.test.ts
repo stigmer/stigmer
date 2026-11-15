@@ -54,7 +54,7 @@ function inputs(overrides: Partial<EngineOptionsInputs> = {}): EngineOptionsInpu
     skills: [],
     agents: {},
     systemAppend: "the append",
-    model: "claude-sonnet-4-5",
+    model: "claude-sonnet-4-6",
     thinking: { type: "disabled" },
     hooks,
     canUseTool,

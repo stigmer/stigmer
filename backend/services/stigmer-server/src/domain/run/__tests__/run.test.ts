@@ -975,7 +975,7 @@ describe("usage reports over the wire", () => {
             cacheReadTokens: 15_000n,
             cacheWriteTokens: 2_000n,
             totalTokens: 19_642n,
-            model: "claude-sonnet-4-5",
+            model: "claude-sonnet-4-6",
           },
         }),
       ),

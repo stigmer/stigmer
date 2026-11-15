@@ -91,12 +91,12 @@ describe("buildChatModel bedrock adapter", () => {
 
   it("drives the mocked client through the real createClient path with the invariants intact", async () => {
     const { model, apiModelId } = await buildChatModel({
-      modelName: "claude-sonnet-4-5-20250929",
+      modelName: "claude-haiku-4-5-20251001",
       maxTokens: 1024,
     });
 
     // Canonical id returned; the client is not constructed yet (lazy factory).
-    expect(apiModelId).toBe("claude-sonnet-4-5-20250929");
+    expect(apiModelId).toBe("claude-haiku-4-5-20251001");
     expect(bedrockCtorArgs).toHaveLength(0);
 
     const result = await model.invoke([new HumanMessage("Weather in Chennai?")]);
@@ -109,7 +109,7 @@ describe("buildChatModel bedrock adapter", () => {
     // The wire carries the Bedrock-translated id; billing already got the
     // canonical one above.
     expect(createRequests).toHaveLength(1);
-    expect(createRequests[0].model).toBe("anthropic.claude-sonnet-4-5-20250929-v1:0");
+    expect(createRequests[0].model).toBe("anthropic.claude-haiku-4-5-20251001-v1:0");
     expect(createRequests[0].max_tokens).toBe(1024);
 
     // Response and usage flow back through LangChain untouched.
@@ -157,18 +157,18 @@ describe("buildChatModel bedrock adapter", () => {
     // the public API or vertex, whatever that is at the installed LangChain
     // version (16384 for 4.5/4.6-generation ids at 1.4.0).
     const canonicalDefault = new ChatAnthropic({
-      model: "claude-sonnet-4-5-20250929",
+      model: "claude-haiku-4-5-20251001",
       apiKey: "probe",
     }).maxTokens;
     const bedrockFallback = new ChatAnthropic({
-      model: "anthropic.claude-sonnet-4-5-20250929-v1:0",
+      model: "anthropic.claude-haiku-4-5-20251001-v1:0",
       apiKey: "probe",
     }).maxTokens;
     // The landmine this guards against: if these ever agree, the injection
     // is redundant (but still correct) — the pin below is what matters.
     expect(bedrockFallback).not.toBe(canonicalDefault);
 
-    const { model } = await buildChatModel({ modelName: "claude-sonnet-4-5-20250929" });
+    const { model } = await buildChatModel({ modelName: "claude-haiku-4-5-20251001" });
     await model.invoke([new HumanMessage("hi")]);
 
     expect(createRequests.at(-1)?.max_tokens).toBe(canonicalDefault);
