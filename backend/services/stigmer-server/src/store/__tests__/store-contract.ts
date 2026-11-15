@@ -32,7 +32,9 @@
  * wrote the row — a row written the way a binary that does not know the
  * index writes it is read from its bytes and repaired, the reconciliation
  * at open leaves nothing unproven, a row written under another revision
- * of a declaration is re-derived, and an undecodable one is skipped; and
+ * of a declaration is re-derived, and an undecodable one is marked once,
+ * read by no list and named to every sweep until a rewrite, a new
+ * revision or the next open re-judges it; and
  * the create-only insert and the reporting delete with the permission
  * history they can append (../permission-history.ts): one winner of
  * concurrent inserts, one entry per row change read from the row itself,

@@ -28,6 +28,18 @@
  * interface.ts states the contract). Exactness is therefore the store's
  * guarantee, independent of timing.
  *
+ * A row whose bytes do not decode under its declaration has no facts. The
+ * first read that finds it unproven marks it PROVEN FACTLESS: stamped
+ * current under the declaration's revision with NULL facts and no key
+ * rows, by the repair's own compare-and-set, so a newer write always wins
+ * (stigmer/stigmer#3152). No list reads it again; a sweep
+ * (`queryResourcesForSweep`) still names it. A derived row's facts are
+ * never NULL (`listIndexFactsOf` answers the empty value for every
+ * absence), so NULL facts mean exactly this. The mark is keyed to that
+ * version of the row under that revision: a rewrite moves the stamp, a new
+ * revision makes it unproven, and the reconciliation at open re-judges
+ * every marked row, so a binary that can read it picks it back up.
+ *
  * The order is one for every indexed read: newest first on the audit's
  * `spec_audit.created_at`, ties broken by id, both compared as bytes. The
  * instant is fixed-width UTC text so the drivers sort it as text and this

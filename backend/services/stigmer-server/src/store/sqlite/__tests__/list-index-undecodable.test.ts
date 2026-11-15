@@ -127,8 +127,13 @@ describe("a list-indexed row that does not decode", () => {
   });
 
   it("names at most ten ids in the line at open, with the whole count", async () => {
-    const ids = Array.from({ length: 12 }, (_, i) => `ses_${String(i).padStart(2, "0")}`);
-    const first = SqliteStore.open(dbPath, undefined, { listIndexes: [sessions] });
+    const ids = Array.from(
+      { length: 12 },
+      (_, i) => `ses_${String(i).padStart(2, "0")}`,
+    );
+    const first = SqliteStore.open(dbPath, undefined, {
+      listIndexes: [sessions],
+    });
     await first.close();
     writeDamaged(ids);
 
@@ -145,7 +150,9 @@ describe("a list-indexed row that does not decode", () => {
       ]);
       logger.lines.length = 0;
       await store.queryResources(sessions, {});
-      expect(logger.lines, "the open marked them; no list warns again").toEqual([]);
+      expect(logger.lines, "the open marked them; no list warns again").toEqual(
+        [],
+      );
     } finally {
       await store.close();
     }

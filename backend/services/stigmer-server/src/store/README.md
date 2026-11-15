@@ -100,11 +100,20 @@ steady state and reads stay one index range. Every read shape names or forces
 its index, because a freshly written table has no planner statistics.
 
 The exception is a row whose bytes do not decode (damaged, or written by a
-binary whose message this one cannot read): it has no facts, so it stays
-unproven, a list skips it and the store logs it by kind and id on each read. A
+binary whose message this one cannot read): it has no facts. The first read
+that finds it marks it proven factless (NULL facts, no key rows, stamped current
+under the declaration's revision) by the same compare-and-set as a repair, and
+logs it once by kind and id; at each open the reconciliation re-judges every
+marked row, repairs those that now decode, and logs the rest once per kind, with
+a count and up to 10 ids. No list reads a marked row; a rewrite through the
+store or a new revision of the declaration brings it back to be judged. A
 caller that must account for every row of a kind, such as a deletion that must
 not leave a person's data behind, reads `Store.queryResourcesForSweep`, which
 answers the same rows plus the ids of every such row of the kind.
+
+A repair made outside the store (a hand-written SQL update of `data`) must also
+reset the row's stamp (`list_indexed_at = NULL`); one that keeps it leaves the
+row's old facts, or its mark, in place until the next open.
 
 ## Writes that build on a read
 

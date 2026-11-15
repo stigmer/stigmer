@@ -247,9 +247,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         listIndexes: [sessions],
       });
       try {
-        expect(
-          reopened.lines.filter((line) => line.level === "warn"),
-        ).toEqual([
+        expect(reopened.lines.filter((line) => line.level === "warn")).toEqual([
           {
             level: "warn",
             message:
