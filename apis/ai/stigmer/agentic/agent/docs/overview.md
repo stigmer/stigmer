@@ -33,6 +33,6 @@ spec:
   disallowed_tools: [mcp__plugin_ledger_ledger__post_adjustment]
   harness: HARNESS_STIGMER
   run_config:
-    model_name: claude-sonnet-4.5
+    model_name: claude-sonnet-4.6
     max_cost_usd: 2
 ```

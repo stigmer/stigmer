@@ -83,7 +83,7 @@ export const agent: Agent = create(AgentSchema, {
     },
     harness: Harness.CLAUDE,
     runConfig: {
-      modelName: "claude-sonnet-4-5",
+      modelName: "claude-sonnet-4-6",
       thinkingMode: ThinkingMode.ENABLED,
       maxCostUsd: 2,
     },
@@ -175,8 +175,8 @@ export const failedRun: Run = create(RunSchema, {
     completedAt: at(-17.75),
     error: "the model provider refused the request: overloaded",
     stopCause: "model_error",
-    streamingUsage: { inputTokens: 12_400n, outputTokens: 6_000n, totalTokens: 18_400n, model: "claude-sonnet-4-5" },
-    runConfig: { modelName: "claude-sonnet-4-5", serviceTier: ServiceTier.STANDARD },
+    streamingUsage: { inputTokens: 12_400n, outputTokens: 6_000n, totalTokens: 18_400n, model: "claude-sonnet-4-6" },
+    runConfig: { modelName: "claude-sonnet-4-6", serviceTier: ServiceTier.STANDARD },
   },
 });
 

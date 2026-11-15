@@ -61,7 +61,7 @@ export const MODEL_REGISTRY = {
     model("stigmer", "claude-haiku-4.5", "Claude Haiku 4.5", "Quick responses, lower cost", "fastest", "economy", true, { thinking: true }),
     model("stigmer", "claude-sonnet-4.6", "Claude Sonnet 4.6", "Best for most tasks", "fast", "standard", true, { adaptiveThinking: true }),
     model("stigmer", "claude-opus-4.8", "Claude Opus 4.8", "Frontier agentic coding", "slow", "premium", true, { adaptiveThinking: true }),
-    model("stigmer", "claude-sonnet-4.5", "Claude Sonnet 4.5", "Reliable all-purpose model", "fast", "standard", false, { thinking: true }),
+    model("stigmer", "claude-opus-4.5", "Claude Opus 4.5", "Advanced reasoning, previous gen", "slow", "premium", false, { thinking: true }),
     model("stigmer", "gpt-5.2", "GPT-5.2", "OpenAI's general model", "fast", "standard", true, { thinking: true }, "openai"),
     model("claude", "claude-haiku-4.5", "Claude Haiku 4.5", "Quick responses, lower cost", "fastest", "economy", true, { thinking: true }),
     model("claude", "claude-sonnet-4.6", "Claude Sonnet 4.6", "Best for most tasks", "fast", "standard", true, { adaptiveThinking: true }),
@@ -259,7 +259,7 @@ const PRICES: Readonly<Record<string, readonly [number, number]>> = {
   "claude-haiku-4.5": [1, 5],
   "claude-sonnet-4.6": [3, 15],
   "claude-opus-4.8": [5, 25],
-  "claude-sonnet-4.5": [3, 15],
+  "claude-opus-4.5": [5, 25],
   "gpt-5.2": [1.75, 14],
 };
 

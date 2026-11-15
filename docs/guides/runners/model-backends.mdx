@@ -262,14 +262,14 @@ You never configure backend model ids for the common case. The runner translates
 each canonical model id on the wire — usage metrics and pricing always report
 the canonical id:
 
-- **Vertex**: `claude-sonnet-4-5-20250929` becomes `claude-sonnet-4-5@20250929`;
+- **Vertex**: `claude-haiku-4-5-20251001` becomes `claude-haiku-4-5@20251001`;
   dateless ids like `claude-sonnet-4-6` are identical on both.
-- **Bedrock**: `claude-sonnet-4-5-20250929` becomes
-  `anthropic.claude-sonnet-4-5-20250929-v1:0`, prefixed with
+- **Bedrock**: `claude-haiku-4-5-20251001` becomes
+  `anthropic.claude-haiku-4-5-20251001-v1:0`, prefixed with
   `STIGMER_BEDROCK_INFERENCE_PREFIX` when set (e.g.
-  `us.anthropic.claude-sonnet-4-5-20250929-v1:0`).
+  `us.anthropic.claude-haiku-4-5-20251001-v1:0`).
 - **Foundry**: routes by _deployment name_, and default deployment names are the
-  dateless model ids — `claude-sonnet-4-5-20250929` becomes `claude-sonnet-4-5`;
+  dateless model ids — `claude-haiku-4-5-20251001` becomes `claude-haiku-4-5`;
   dateless ids pass through unchanged.
 
 When a Bedrock id can't be derived this way (AWS occasionally versions ids on

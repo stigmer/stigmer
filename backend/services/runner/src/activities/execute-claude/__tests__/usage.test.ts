@@ -22,8 +22,8 @@ import { ClaudeUsage } from "../usage.js";
 import type { ModelPricing } from "../../../shared/model-pricing.js";
 
 const PRICING: ModelPricing = {
-  model: "claude-sonnet-4-5",
-  displayName: "Claude Sonnet 4.5",
+  model: "claude-sonnet-4-6",
+  displayName: "Claude Sonnet 4.6",
   costTier: "standard",
   inputPricePerMillion: 3,
   outputPricePerMillion: 15,
@@ -65,7 +65,7 @@ function stop(parent: string | null = null): SDKPartialAssistantMessage {
 
 describe("ClaudeUsage", () => {
   it("reports one priced call when its stop arrives, from its start's counts and its last delta's output", () => {
-    const usage = new ClaudeUsage(PRICING, "claude-sonnet-4-5");
+    const usage = new ClaudeUsage(PRICING, "claude-sonnet-4-6");
     expect(usage.observe(start({ input: 1000, cacheWrite: 2000, cacheRead: 4000, output: 1 }))).toBeUndefined();
     expect(usage.observe(delta(50))).toBeUndefined();
     expect(usage.observe(delta(300))).toBeUndefined();
@@ -76,7 +76,7 @@ describe("ClaudeUsage", () => {
       cacheReadTokens: 4000,
       cacheWriteTokens: 2000,
       estimatedCostUsd: (1000 * 3 + 300 * 15 + 2000 * 3.75 + 4000 * 0.3) / 1_000_000,
-      model: "claude-sonnet-4-5",
+      model: "claude-sonnet-4-6",
     });
   });
 
@@ -137,7 +137,7 @@ describe("ClaudeUsage", () => {
   });
 
   it("reports a sub-agent's call once by its message id, its input and cache buckets, priced at the turn's model", () => {
-    const usage = new ClaudeUsage(PRICING, "claude-sonnet-4-5");
+    const usage = new ClaudeUsage(PRICING, "claude-sonnet-4-6");
     const call = subagentMessage("msg_sub_1", { input: 100, cacheWrite: 20, cacheRead: 300 });
     expect(usage.observe(call)).toEqual({
       inputTokens: 420,
@@ -145,7 +145,7 @@ describe("ClaudeUsage", () => {
       cacheReadTokens: 300,
       cacheWriteTokens: 20,
       estimatedCostUsd: (100 * 3 + 20 * 3.75 + 300 * 0.3) / 1_000_000,
-      model: "claude-sonnet-4-5",
+      model: "claude-sonnet-4-6",
     });
     expect(usage.observe(subagentMessage("msg_sub_1", { input: 100, cacheWrite: 20, cacheRead: 300 })), "the same call's next block").toBeUndefined();
     expect(usage.observe({ ...subagentMessage("msg_main", { input: 5, cacheWrite: 0, cacheRead: 0 }), parent_tool_use_id: null } as SDKMessage), "the main loop's whole messages are the stream's").toBeUndefined();

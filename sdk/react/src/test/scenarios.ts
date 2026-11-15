@@ -563,7 +563,7 @@ function build(name: ScenarioName): Scenario {
           tools: [{ name: "edit_file", input: { path: "src/billing/invoice.ts" }, result: "1 edit applied" }],
           reply: "Fixed: invoices now round once, at the total.",
         }),
-        { usage: { totalTokens: 18_432, llmCallCount: 3, model: "claude-sonnet-4-5", workingSeconds: 42 } },
+        { usage: { totalTokens: 18_432, llmCallCount: 3, model: "claude-sonnet-4-6", workingSeconds: 42 } },
       );
     case "markdown":
       return loaded(name, "a long reply in markdown: a heading, lists, code and a table", samples.turnEvents({ message, reply: MARKDOWN_REPLY }));
@@ -580,7 +580,7 @@ function build(name: ScenarioName): Scenario {
         "a finished session a routine started: an edit, two files returned and the answer, with usage",
         finishedEvents(),
         {
-          usage: { totalTokens: 41_210, llmCallCount: 7, model: "claude-sonnet-4-5", workingSeconds: 74 },
+          usage: { totalTokens: 41_210, llmCallCount: 7, model: "claude-sonnet-4-6", workingSeconds: 74 },
           files: FINISHED_FILES,
           session: routineSession(),
           estimatedCostUsd: 0.42,

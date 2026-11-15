@@ -512,7 +512,7 @@ export function preflightLlmBackends(
 
 /**
  * Matches a registry `apiModelId` that ends in a pre-4.6 snapshot date
- * (`-YYYYMMDD`), e.g. "claude-sonnet-4-5-20250929".
+ * (`-YYYYMMDD`), e.g. "claude-haiku-4-5-20251001".
  */
 const TRAILING_SNAPSHOT_DATE = /-(\d{8})$/;
 
@@ -523,7 +523,7 @@ const TRAILING_SNAPSHOT_DATE = /-(\d{8})$/;
  * differently (platform.claude.com "Model IDs and versions"):
  *
  * - Pre-4.6 models carry a snapshot date, and Vertex separates it with `@`
- *   instead of `-`: "claude-sonnet-4-5-20250929" -> "claude-sonnet-4-5@20250929".
+ *   instead of `-`: "claude-haiku-4-5-20251001" -> "claude-haiku-4-5@20251001".
  * - 4.6-generation and later ids are dateless AND canonical on every
  *   platform: "claude-sonnet-4-6" is used verbatim on Vertex. Appending a
  *   date to them 404s — a real bug shipped by other integrations (Dify
@@ -559,7 +559,7 @@ export function toVertexModelId(apiModelId: string): string {
  *    that into "set ${BEDROCK_INFERENCE_PREFIX_ENV}".
  * 3. Deterministic rule: `anthropic.{canonical}-v1:0` — verified against
  *    AWS's model catalog for the registry's dated ids (e.g.
- *    claude-sonnet-4-5-20250929 -> anthropic.claude-sonnet-4-5-20250929-v1:0).
+ *    claude-haiku-4-5-20251001 -> anthropic.claude-haiku-4-5-20251001-v1:0).
  *
  * Like the Vertex translation, the result is wire detail only: it rides in
  * the request URL and must never escape the adapter into usage metrics or
@@ -594,7 +594,7 @@ export function toBedrockModelId(
  *    hatch for those custom names.
  * 2. Deterministic rule: strip a trailing `-YYYYMMDD` snapshot date —
  *    Foundry's DEFAULT deployment names are the dateless Claude ids
- *    (claude-sonnet-4-5-20250929 -> claude-sonnet-4-5; dateless ids pass
+ *    (claude-haiku-4-5-20251001 -> claude-haiku-4-5; dateless ids pass
  *    through unchanged). Verified against Anthropic's published Foundry
  *    model table: every Stigmer-catalog id maps onto a real default
  *    deployment name. Note this is the INVERSE of toVertexModelId, which

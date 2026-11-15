@@ -87,12 +87,12 @@ describe("buildChatModel vertex adapter", () => {
 
   it("drives the mocked client through the real createClient path with the invariants intact", async () => {
     const { model, apiModelId } = await buildChatModel({
-      modelName: "claude-sonnet-4-5-20250929",
+      modelName: "claude-haiku-4-5-20251001",
       maxTokens: 1024,
     });
 
     // Canonical id returned; the client is not constructed yet (lazy factory).
-    expect(apiModelId).toBe("claude-sonnet-4-5-20250929");
+    expect(apiModelId).toBe("claude-haiku-4-5-20251001");
     expect(vertexCtorArgs).toHaveLength(0);
 
     const result = await model.invoke([new HumanMessage("Weather in Chennai?")]);
@@ -105,7 +105,7 @@ describe("buildChatModel vertex adapter", () => {
     // The wire carries the Vertex-translated id; billing already got the
     // canonical one above.
     expect(createRequests).toHaveLength(1);
-    expect(createRequests[0].model).toBe("claude-sonnet-4-5@20250929");
+    expect(createRequests[0].model).toBe("claude-haiku-4-5@20251001");
     expect(createRequests[0].max_tokens).toBe(1024);
 
     // Response and usage flow back through LangChain untouched.
@@ -127,7 +127,6 @@ describe("buildChatModel vertex adapter", () => {
     // at 1.5.5); a future bump that diverges the two forms fails here instead
     // of silently capping vertex deployments differently from public ones.
     for (const canonical of [
-      "claude-sonnet-4-5-20250929",
       "claude-haiku-4-5-20251001",
       "claude-sonnet-4-6",
     ]) {
@@ -151,7 +150,7 @@ describe("buildChatModel vertex adapter", () => {
     // improvement — those deployments' summarization budgets would change),
     // or stops resolving canonical ids, this fails and the behavior gets
     // re-decided consciously instead of shifting silently.
-    for (const dated of ["claude-sonnet-4-5-20250929", "claude-haiku-4-5-20251001"]) {
+    for (const dated of ["claude-haiku-4-5-20251001", "claude-opus-4-5-20251101"]) {
       const publicModel = new ChatAnthropic({ model: dated, apiKey: "probe" });
       const vertexModel = new ChatAnthropic({ model: toVertexModelId(dated), apiKey: "probe" });
       expect(publicModel.profile.maxInputTokens, dated).toBeGreaterThan(0);

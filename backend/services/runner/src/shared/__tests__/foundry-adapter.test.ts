@@ -123,12 +123,12 @@ describe("buildChatModel foundry adapter", () => {
 
   it("drives the mocked client through the real createClient path with the invariants intact", async () => {
     const { model, apiModelId } = await buildChatModel({
-      modelName: "claude-sonnet-4-5-20250929",
+      modelName: "claude-haiku-4-5-20251001",
       maxTokens: 1024,
     });
 
     // Canonical id returned; the client is not constructed yet (lazy factory).
-    expect(apiModelId).toBe("claude-sonnet-4-5-20250929");
+    expect(apiModelId).toBe("claude-haiku-4-5-20251001");
     expect(foundryCtorArgs).toHaveLength(0);
 
     const result = await model.invoke([new HumanMessage("Weather in Chennai?")]);
@@ -141,7 +141,7 @@ describe("buildChatModel foundry adapter", () => {
     // The wire carries the deployment name (date stripped); billing already
     // got the canonical id above.
     expect(createRequests).toHaveLength(1);
-    expect(createRequests[0].model).toBe("claude-sonnet-4-5");
+    expect(createRequests[0].model).toBe("claude-haiku-4-5");
     expect(createRequests[0].max_tokens).toBe(1024);
 
     // Response and usage flow back through LangChain untouched.
@@ -222,16 +222,16 @@ describe("buildChatModel foundry adapter", () => {
     // the two forms, this fails and the adapter needs bedrock's
     // canonical-probe injection.
     const canonicalDefault = new ChatAnthropic({
-      model: "claude-sonnet-4-5-20250929",
+      model: "claude-haiku-4-5-20251001",
       apiKey: "probe",
     }).maxTokens;
     const deploymentDefault = new ChatAnthropic({
-      model: "claude-sonnet-4-5",
+      model: "claude-haiku-4-5",
       apiKey: "probe",
     }).maxTokens;
     expect(deploymentDefault).toBe(canonicalDefault);
 
-    const { model } = await buildChatModel({ modelName: "claude-sonnet-4-5-20250929" });
+    const { model } = await buildChatModel({ modelName: "claude-haiku-4-5-20251001" });
     await model.invoke([new HumanMessage("hi")]);
 
     expect(createRequests.at(-1)?.max_tokens).toBe(canonicalDefault);

@@ -58,7 +58,7 @@ const RUNNER_TOKEN = "runner-control-plane-token";
 const EXECUTION = "run_live";
 const SESSION = "ses-live";
 const THREAD = `thread-${SESSION}`;
-const BODY = JSON.stringify({ model: "claude-sonnet-4-5", stream: true, messages: [{ role: "user", content: "hi" }] });
+const BODY = JSON.stringify({ model: "claude-sonnet-4-6", stream: true, messages: [{ role: "user", content: "hi" }] });
 
 const upstream = new FakeUpstream();
 const saved = new Map<string, string | undefined>();
@@ -373,9 +373,9 @@ describe("terminate: a runner that calls its providers itself", () => {
 
   it("vertex: the runner's Google token, and the runner's project in place of the host's placeholder", async () => {
     setEnv({ CLOUD_ML_REGION: "us-east5", ANTHROPIC_VERTEX_BASE_URL: upstream.url, ANTHROPIC_VERTEX_PROJECT_ID: undefined });
-    await call(proxy, "/v1/proxy/llm/vertex/projects/stigmer-lane/locations/us-east5/publishers/anthropic/models/claude-sonnet-4-5@20250929:streamRawPredict", { headers: asHost });
+    await call(proxy, "/v1/proxy/llm/vertex/projects/stigmer-lane/locations/us-east5/publishers/anthropic/models/claude-haiku-4-5@20251001:streamRawPredict", { headers: asHost });
 
-    expect(upstream.last.path).toBe("/projects/real-project/locations/us-east5/publishers/anthropic/models/claude-sonnet-4-5@20250929:streamRawPredict");
+    expect(upstream.last.path).toBe("/projects/real-project/locations/us-east5/publishers/anthropic/models/claude-haiku-4-5@20251001:streamRawPredict");
     expect(upstream.last.headers.authorization).toBe("Bearer google-token");
     expectNoHostCredential(upstream.last.headers);
   });

@@ -129,7 +129,7 @@ const STIGMER_USAGE: MessageInitShape<typeof StreamingUsageSummarySchema> = {
   cacheWriteTokens: 2_000n,
   totalTokens: 19_642n,
   turnCount: 3,
-  model: "claude-sonnet-4-5",
+  model: "claude-sonnet-4-6",
 };
 
 /** A Claude run's report: input 44,920 including 41,800 cache read, the runner's input + output total. */
@@ -188,7 +188,7 @@ async function seedSession(id: string, org: string, harness: Harness): Promise<v
 
 function meterRow(overrides: Partial<MeteredUsageRow>): MeteredUsageRow {
   return {
-    model: "claude-sonnet-4-5",
+    model: "claude-sonnet-4-6",
     provider: "anthropic",
     harness: "stigmer",
     providerKeySource: ProviderKeySource.ORGANIZATION,
@@ -244,7 +244,7 @@ describe("a run counted from its runner's report", () => {
     expect(report.aggregate?.servedBy.map((s) => [s.providerKeySource, s.totalTokens])).toEqual([
       [ProviderKeySource.UNSPECIFIED, 19_642n],
     ]);
-    expect(report.modelBreakdown.map((m) => [m.model, m.totalTokens])).toEqual([["claude-sonnet-4-5", 19_642n]]);
+    expect(report.modelBreakdown.map((m) => [m.model, m.totalTokens])).toEqual([["claude-sonnet-4-6", 19_642n]]);
   });
 
   it("a Claude session's run is counted by the Stigmer harness's rule: input less the cache, the runner's total", async () => {
@@ -396,8 +396,8 @@ describe("a run counted from the meter", () => {
     ]);
     expect(report.isEstimated).toBe(true);
     expect(report.modelBreakdown.map((m) => [m.model, m.provider, m.totalTokens, m.callCount])).toEqual([
-      ["claude-sonnet-4-5", "", 19_642n, 0],
-      ["claude-sonnet-4-5", "anthropic", 1_700n, 4],
+      ["claude-sonnet-4-6", "", 19_642n, 0],
+      ["claude-sonnet-4-6", "anthropic", 1_700n, 4],
       ["claude-haiku-4-5", "anthropic", 150n, 2],
     ]);
     expect(report.totalUsage?.servedBy.map((s) => [s.providerKeySource, s.totalTokens, s.llmCallCount])).toEqual([

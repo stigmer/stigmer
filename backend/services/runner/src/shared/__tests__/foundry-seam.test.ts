@@ -41,9 +41,9 @@ import { HumanMessage, AIMessage, AIMessageChunk } from "@langchain/core/message
 /**
  * Foundry's default deployment names are the DATELESS Claude ids — this is
  * a dated registry id after the strip-date translation in llm-backend.ts
- * (claude-sonnet-4-5-20250929 -> claude-sonnet-4-5).
+ * (claude-haiku-4-5-20251001 -> claude-haiku-4-5).
  */
-const FOUNDRY_DEPLOYMENT = "claude-sonnet-4-5";
+const FOUNDRY_DEPLOYMENT = "claude-haiku-4-5";
 const RESOURCE = "seam-test-resource";
 const API_KEY = "foundry-seam-test-key";
 

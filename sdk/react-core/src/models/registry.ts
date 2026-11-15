@@ -69,7 +69,7 @@ export const DISABLED_PROVIDERS: ReadonlySet<Provider> = new Set([
  * ```
  */
 export interface ModelInfo {
-  /** Unique model identifier sent to the backend (e.g. `"claude-sonnet-4.5"`). */
+  /** Unique model identifier sent to the backend (e.g. `"claude-sonnet-4.6"`). */
   readonly modelId: string;
   /** LLM provider that serves this model. */
   readonly provider: Provider;

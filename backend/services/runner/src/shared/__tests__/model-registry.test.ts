@@ -127,12 +127,12 @@ describe("getDefaultModel", () => {
 
   it("falls back to non-featured standard+stigmer when no featured model", async () => {
     mockRegistryResponse([
-      { id: "claude-sonnet-4.5", apiModelId: "claude-sonnet-4-5-20250929", provider: "anthropic", costTier: "standard", harness: "stigmer" },
+      { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic", costTier: "standard", harness: "stigmer" },
       { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "stigmer" },
     ]);
 
     const result = await getDefaultModel("stigmer");
-    expect(result).toBe("claude-sonnet-4-5-20250929");
+    expect(result).toBe("claude-sonnet-4-6");
   });
 
   it("returns hardcoded fallback when registry is empty", async () => {

@@ -342,7 +342,7 @@ describe("planPluginStatus — the agents' judgements", () => {
         subAgents: [
           agent({ name: "a", modelHint: { raw: "sonnet", alias: "sonnet" } }),
           agent({ name: "b", modelHint: { raw: "inherit", alias: "inherit" } }),
-          agent({ name: "c", modelHint: { raw: " claude-sonnet-4-5 ", alias: "sonnet" } }),
+          agent({ name: "c", modelHint: { raw: " claude-sonnet-4-6 ", alias: "sonnet" } }),
           agent({ name: "f", modelHint: { raw: "grok-4.6", alias: "unknown" } }),
           agent({ name: "d" }),
           agent({ name: "e", modelHint: { raw: "Fast", alias: "fast" } }),
@@ -353,7 +353,7 @@ describe("planPluginStatus — the agents' judgements", () => {
       ["a", "sonnet"],
       ["b", "inherit"],
       // A full model id is stored trimmed: a turn runs it where the engine lists it.
-      ["c", "claude-sonnet-4-5"],
+      ["c", "claude-sonnet-4-6"],
       ["f", "grok-4.6"],
       ["d", ""],
       ["e", "Fast"],

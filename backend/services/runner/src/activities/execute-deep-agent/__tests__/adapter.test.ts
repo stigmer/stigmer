@@ -37,7 +37,7 @@ const CONFIG: Config = {
   checkpointerType: "memory",
   checkpointerProxyEndpoint: null,
   artifactProxyEndpoint: null,
-  primaryModel: "anthropic/claude-sonnet-4-5",
+  primaryModel: "anthropic/claude-sonnet-4-6",
   cursorStreamStallTimeoutMs: 180_000,
   openOperationMaxMs: 3_600_000,
   livenessIntervalMs: 30_000,

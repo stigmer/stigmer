@@ -31,7 +31,7 @@ import { HumanMessage, AIMessage, AIMessageChunk } from "@langchain/core/message
  * Bedrock's id form for a dated pre-4.6 Claude: `anthropic.` vendor prefix
  * and `-v1:0` version suffix (see llm-backend.ts translation).
  */
-const BEDROCK_MODEL_ID = "anthropic.claude-sonnet-4-5-20250929-v1:0";
+const BEDROCK_MODEL_ID = "anthropic.claude-haiku-4-5-20251001-v1:0";
 const REGION = "asia-south1";
 const ACCESS_KEY = "AKIA-SEAM-TEST";
 const SECRET_KEY = "seam-test-secret";

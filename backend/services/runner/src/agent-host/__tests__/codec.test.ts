@@ -189,7 +189,7 @@ describe("the turn input across the pipe", () => {
       instructions: "Help.",
       tools: ["Read"],
       disallowedTools: ["Bash"],
-      model: "claude-sonnet-4-5",
+      model: "claude-sonnet-4-6",
     };
     const blueprint = {
       ...input.blueprint,
@@ -248,7 +248,7 @@ describe("the turn input across the pipe", () => {
       name: "release-notes",
       description: "Writes release notes",
       instructions: "You write release notes.",
-      model: "claude-sonnet-4-5",
+      model: "claude-sonnet-4-6",
       toolScope,
       servers: [{ slug: "plugin_changelog_api", connectionType: "http", url: "https://changelog.example/mcp", home: { kind: "plugin", pluginId: "plg_changelog", plugin: "changelog", server: "api" } }],
       skills: [{ name: "changelog:changelog", description: "Write a changelog", path: "/c" }],
@@ -266,7 +266,7 @@ describe("the turn input across the pipe", () => {
       name: "release-notes",
       description: "Writes release notes",
       instructions: "You write release notes.",
-      model: "claude-sonnet-4-5",
+      model: "claude-sonnet-4-6",
       servers: subagent.servers,
       skills: subagent.skills,
       values: { NOTES_TOKEN: "notes" },

@@ -12,7 +12,7 @@
 
  ✻ Worked for 1m 14s
 
- 41.2k tokens · 7 calls · claude-sonnet-4-5
+ 41.2k tokens · 7 calls · claude-sonnet-4-6
  Agent mode — full tool access
 
  ❯ Reply...

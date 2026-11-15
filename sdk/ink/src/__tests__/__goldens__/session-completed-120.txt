@@ -8,7 +8,7 @@
  Agent
  Fixed: invoices now round once, at the total.
 
- 18.4k tokens · 3 calls · claude-sonnet-4-5
+ 18.4k tokens · 3 calls · claude-sonnet-4-6
  Agent mode — full tool access
 
  ❯ Reply...

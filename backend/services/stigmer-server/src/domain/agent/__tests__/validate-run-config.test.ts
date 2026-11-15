@@ -64,7 +64,7 @@ const local = newValidateAgentRunConfigStep(
           capabilities: { adaptiveThinking: true },
         },
         { id: "claude-plain", harness: "claude" },
-        { id: "claude-sonnet-4.5", harness: "claude", capabilities: { thinking: true } },
+        { id: "claude-sonnet-5", harness: "claude", capabilities: { adaptiveThinking: true } },
       ],
     }),
   ),
@@ -140,7 +140,7 @@ describe("ValidateAgentRunConfig: what is refused", () => {
     );
     expect(err.rawMessage).toContain("spec.run_config.model_name");
     expect(err.rawMessage).toContain("claude harness");
-    expect(err.rawMessage).toContain("did you mean 'claude-sonnet-4.5'");
+    expect(err.rawMessage).toContain("did you mean 'claude-sonnet-5'");
   });
 
   it("FAST with no model", () => {

@@ -44,7 +44,7 @@ spec:
   tools: [Read, mcp__plugin_ledger_ledger__get_ledger]
   harness: HARNESS_STIGMER
   run_config:
-    model_name: claude-sonnet-4.5
+    model_name: claude-sonnet-4.6
 ```
 
 Then list it in the agent that hands work to it:

@@ -286,7 +286,7 @@ describe("resolveBlueprint: plugins", () => {
           metadata: { id: "plg_review", name: "review", slug: "review", org: "acme" },
           status: {
             agents: [
-              { name: "security", description: "Finds holes.", instructions: "Look.", tools: ["Read"], disallowedTools: ["Bash"], skills: ["owasp"], model: "claude-sonnet-4-5" },
+              { name: "security", description: "Finds holes.", instructions: "Look.", tools: ["Read"], disallowedTools: ["Bash"], skills: ["owasp"], model: "claude-sonnet-4-6" },
               { name: "quick", description: "Quick looks.", instructions: "Glance." },
             ],
           },
@@ -304,7 +304,7 @@ describe("resolveBlueprint: plugins", () => {
         instructions: "Look.",
         tools: ["Read"],
         disallowedTools: ["Bash"],
-        model: "claude-sonnet-4-5",
+        model: "claude-sonnet-4-6",
       },
       { name: "review:quick", description: "Quick looks.", instructions: "Glance.", tools: [], disallowedTools: [], model: "" },
     ]);
