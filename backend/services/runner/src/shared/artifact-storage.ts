@@ -458,8 +458,8 @@ async function isLocalPathWritable(basePath: string): Promise<boolean> {
  *
  * NOTE: {@link createArtifactStorage} is the fail-hard constructor beneath this
  * resolver: it throws on "none" and on a broken config, and this resolver turns
- * either into the absent store. A caller that must have storage, with no
- * deny-gate to fall back to, calls the constructor directly instead.
+ * either into the absent store. Every runner caller reaches the constructor
+ * through this resolver; none needs storage without a deny-gate to fall back to.
  */
 export async function resolveUsableArtifactStorage(
   cfg: ArtifactStorageConfig,
