@@ -16,9 +16,10 @@
  *     entry that signs its callers in through it and announces a native
  *     client (so `stigmer auth login` finds it), with Temporal and a runner
  *     whose model is test/support's fake (lib/fake-model.mjs): the agent's
- *     first run saves a scripted file, and every later turn (the chat in the
- *     app) gets the default reply in the words the example agent would use
- *     (DOOR_REPLY), not the shared fake's "no real model was called";
+ *     first run saves the invoice example's true answer as the file its
+ *     instructions name, and every later turn (the chat in the app) answers
+ *     in the same words (lib/coding-agent-door.mjs, DOOR_REPORT and
+ *     DOOR_REPLY), not the shared fake's "no real model was called";
  *   - the CLI from this checkout (the published one with `--published`)
  *     behind a `stigmer` on PATH that runs it with
  *     a scratch HOME (its config lives under HOME, with no other override)
@@ -100,7 +101,7 @@ import { spawnRunner } from "../support/src/runner-process.ts";
 import { spawnServer } from "../support/src/server-process.ts";
 import { spawnTemporal } from "../support/src/temporal.ts";
 import { tsServerEntryPath } from "../support/src/ts-build.ts";
-import { NPM_REGISTRY, USAGE, fetchPagePrompt, npmRegistryFlags, parseDoorArgs, runnerLogNotes, stopProcessGroup, streamDigest } from "./lib/coding-agent-door.mjs";
+import { DOOR_FILE, DOOR_REPLY, DOOR_REPORT, NPM_REGISTRY, USAGE, fetchPagePrompt, npmRegistryFlags, parseDoorArgs, runnerLogNotes, stopProcessGroup, streamDigest } from "./lib/coding-agent-door.mjs";
 import { fakeModelEnv, isTitleCall, startFakeModel } from "./lib/fake-model.mjs";
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
@@ -112,9 +113,6 @@ const NATIVE_CLIENT = "stigmer-door";
 export const PROMPT =
   "Set up Stigmer for this project. Install its command line (`npm install -g @stigmer/cli`, or `brew install stigmer/tap/stigmer`), run `stigmer coding-agent`, and follow what it prints.";
 const ANSWER = "Yes, go ahead with what you suggest. I'm happy with your choices; keep going until the chat is on the page.";
-const DOOR_FILE = "door-report.md";
-/** Every unscripted turn's answer: what the example agent says of its invoice, as a real model would word it. */
-const DOOR_REPLY = "I checked invoice-4471 against po-2210: every line matches its purchase order except line 3, which bills 40 units where 36 were ordered.";
 
 const FOLLOWER = `
 const [url] = process.argv.slice(2);
@@ -242,7 +240,7 @@ export function GET(request: NextRequest) {
   execFileSync("git", ["-c", "user.name=door", "-c", "user.email=door@stigmer.test", "commit", "-qm", "Ledgerly"], { cwd: dir });
 }
 
-/** The model's script: the first run saves a file; every other turn gets the default reply (DOOR_REPLY). */
+/** The model's script: the first run saves the example's answer (DOOR_REPORT); every turn after it answers DOOR_REPLY. */
 function scriptFirstRun(fake) {
   fake.enqueue({ kind: "anthropic", body: anthropicText("First run"), matches: isTitleCall });
   const turn = (request) => !isTitleCall(request);
@@ -251,10 +249,10 @@ function scriptFirstRun(fake) {
     matches: turn,
     body: anthropicToolUse("toolu_door", "write_file", {
       file_path: `/.stigmer/outputs/${DOOR_FILE}`,
-      content: "# The agent's report\n\nEvery line matched its purchase order but one: line 3, 40 units billed, 36 ordered.\n",
+      content: DOOR_REPORT,
     }),
   });
-  fake.enqueue({ kind: "anthropic", body: anthropicText(`Saved ${DOOR_FILE}.`), matches: turn });
+  fake.enqueue({ kind: "anthropic", body: anthropicText(DOOR_REPLY), matches: turn });
 }
 
 /**
@@ -288,11 +286,13 @@ function runClaude(appDir, env, sessionId, message, first, streamPath, signal, b
     "Bash(mkdir *)",
     // What a person setting up their app approves without a second look,
     // and a coding agent chains onto the commands above (`which stigmer ||
-    // echo …`, `stigmer run … ; echo "exit=$?"`, `| head`, a curl of the
-    // app's own route): refused, the step's command was dropped with them,
-    // and whether the agent ran it again was chance (stigmer/stigmer#3160).
+    // echo …`, `command -v stigmer`, `stigmer run … ; echo "exit=$?"`,
+    // `| head`, a curl of the app's own route): refused, the step's command
+    // was dropped with them, and whether the agent ran it again was chance
+    // (stigmer/stigmer#3160).
     "Bash(echo *)",
     "Bash(which *)",
+    "Bash(command *)",
     "Bash(node *)",
     "Bash(brew *)",
     "Bash(head *)",
