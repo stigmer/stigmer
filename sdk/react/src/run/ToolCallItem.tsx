@@ -2,7 +2,6 @@
 
 import { memo, type ReactNode } from "react";
 import { failureWords, formatElapsed, isBackgroundRunning, searchCountWords, stepPhrase, type ToolUse } from "@stigmer/client";
-import { cn } from "@stigmer/design-tokens";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
 import { useIsTextTruncated } from "../internal/useIsTextTruncated.js";
@@ -172,6 +171,9 @@ export const ToolCallItem = memo(function ToolCallItem({
   // saying whom it waits on.
   const waitingWords = useWaitingWords();
   const waitsOnSomeoneElse = status === "waiting" && approval == null;
+  // A step at work now: a call running or waiting on someone else, or a
+  // helper still working (its mark follows the helper, so its band does).
+  const live = isSubagent ? thread.state === "running" : isRunning || waitsOnSomeoneElse;
 
   // A failed command stays open: its output is the content the person needs
   // next.
@@ -316,10 +318,12 @@ export const ToolCallItem = memo(function ToolCallItem({
 
   const titleWords = (
     <>
-      {/* While the call runs, the line carries the ambient-liveness sweep
-          (stigmer#277); the shimmer class owns `color`, so it replaces
-          (never joins) the static color utility. */}
-      <span className={cn(isRunning || waitsOnSomeoneElse ? "stgm-shimmer-label" : failed ? "stg:text-foreground" : "stg:text-muted-foreground")}>
+      {/* A step at work reads bright, as a failed one does: the drawing's
+          live step (the session page, S38 and S48) sets its words at the
+          foreground on the running band, the spinner saying it moves. The
+          liveness sweep stays on the quiet lines (Thinking, the turn's
+          status line). A finished step's words go quiet. */}
+      <span className={live || failed ? "stg:text-foreground" : "stg:text-muted-foreground"}>
         {linkedFile && primaryArg ? (
           <>
             {verb}{" "}
@@ -436,13 +440,18 @@ export const ToolCallItem = memo(function ToolCallItem({
         title={titleWords}
         // A step at work, waiting on someone or failed is news: its line at
         // medium weight; a finished one quiet.
-        titleClassName={isRunning || waitsOnSomeoneElse || failed ? "stg:font-medium" : undefined}
+        titleClassName={live || failed ? "stg:font-medium" : undefined}
         detail={detail}
         detailRef={detailRef}
         trail={trail}
         body={shown}
         bodySpan={isSubagent ? "rail" : "words"}
         bodyCursorTarget="tool-preview"
+        // The step at work sits on the running band, as the drawing's live
+        // step does, with what it opened to; on a rail (a to-do's or a
+        // helper's steps) it is clear, the band being the to-do's or the
+        // helper's.
+        band={live && stepPlace === "card"}
       />
     </ThreadCardShell>
     );

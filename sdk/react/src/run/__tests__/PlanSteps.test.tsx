@@ -174,6 +174,8 @@ describe("PlanSteps", () => {
     const line = itemLine("Push the fix");
 
     expect(within(line).getByText("Waiting for you")).toBeTruthy();
+    // Still the item in hand, on the band with whatever runs under it.
+    expect(screen.getByText("Push the fix").closest("div")!.className).toContain("stg:bg-status-running-band");
     expect(within(line).getByRole("group", { name: "1 tool call" })).toBeTruthy();
   });
 

@@ -23,6 +23,7 @@ import type { FileReviewSet, ToolUse } from "@stigmer/client";
 import { ToolCallItem } from "../ToolCallItem";
 import { ApprovalContext, type ApprovalContextValue } from "../ApprovalContext";
 import { registerToolPresenter } from "../tool-presenter";
+import { StepPlaceContext } from "../step-place";
 import { FileReviewContext } from "@stigmer/react-core";
 import { reviewFile, reviewSet, thread, toolUse, TOOL_STARTED_AT } from "./__fixtures__/fold-values";
 import { tagClasses } from "../../internal/surface/Tag";
@@ -275,7 +276,7 @@ describe("ToolCallItem disclosure", () => {
         toolUse={toolUse({ name: "execute", input: { command: "npm test" }, state: "running", liveOutput: "PASS parser\n" })}
       />,
     );
-    expect(rowHeader(container).querySelector(".stgm-shimmer-label")?.textContent).toBe("Running a command");
+    expect(rowHeader(container).textContent).toContain("Running a command");
     expect(isExpanded(container)).toBe(true);
     expect(container.querySelector('[data-cursor-target="terminal-live-output"]')?.textContent).toContain("PASS parser");
   });
@@ -775,14 +776,18 @@ describe("ToolCallItem density tier", () => {
     expect(container.querySelector(".stg\\:animate-spin")).not.toBeNull();
   });
 
-  it("sweeps the running label with the ambient-liveness shimmer, settled labels stay static", () => {
+  // The drawing's live step (the session page, S38, S43, S48, S55): on the
+  // running band, its words bright at medium weight; finished, clear and quiet.
+  it("sets a step at work bright on the running band; a finished one clear and quiet", () => {
     const running = toolUse({
       name: "Bash",
       input: { command: "sleep 5" },
       state: "running",
     });
     const { container, rerender } = render(<ToolCallItem toolUse={running} />);
-    expect(container.querySelector(".stgm-shimmer-label")?.textContent).toBe("Running a command");
+    expect(container.querySelector(".stgm-shimmer-label")).toBeNull();
+    expect(screen.getByText("Running a command").className).toContain("stg:text-foreground");
+    expect(container.querySelector(".stg\\:bg-status-running-band")).not.toBeNull();
 
     const settled = toolUse({
       name: "Bash",
@@ -790,7 +795,24 @@ describe("ToolCallItem density tier", () => {
       result: "done",
     });
     rerender(<ToolCallItem toolUse={settled} />);
-    expect(container.querySelector(".stgm-shimmer-label")).toBeNull();
+    expect(screen.getByText("Ran a command").className).toContain("stg:text-muted-foreground");
+    expect(container.querySelector(".stg\\:bg-status-running-band")).toBeNull();
+  });
+
+  it("sets a step waiting on someone else on the band; on a rail a step at work stays clear", () => {
+    const waiting = toolUse({ name: "write_file", input: { path: "src/billing/rounding.ts", content: "x" }, state: "waiting" });
+    const { container, rerender } = render(<ToolCallItem toolUse={waiting} />);
+    expect(container.querySelector(".stg\\:bg-status-running-band")).not.toBeNull();
+
+    // Under a to-do or a helper the band is theirs: the step's own row is clear.
+    const running = toolUse({ name: "Bash", input: { command: "sleep 5" }, state: "running" });
+    rerender(
+      <StepPlaceContext.Provider value={{ rows: "rail", inHelper: true }}>
+        <ToolCallItem toolUse={running} />
+      </StepPlaceContext.Provider>,
+    );
+    expect(container.querySelector(".stg\\:bg-status-running-band")).toBeNull();
+    expect(screen.getByText("Running a command").className).toContain("stg:text-foreground");
   });
 
   it("holds a quiet row's disclosed body under its words, in the step's one box", () => {

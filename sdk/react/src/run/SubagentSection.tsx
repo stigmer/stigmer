@@ -178,10 +178,9 @@ function HelperStep({ thread, displayLabel, startedAt, duration, toolUses, error
           titleClassName={isRunning || thread.state === "failed" ? "stg:font-medium" : undefined}
           title={
             <>
-              {/* While it works the line carries the step rows' liveness
-                  sweep; the shimmer class owns `color`, so it replaces the
-                  static one. Done, its words go quiet. */}
-              <span className={cn(isRunning ? "stgm-shimmer-label" : thread.state === "failed" ? "stg:text-foreground" : "stg:text-muted-foreground")}>
+              {/* While it works its words read bright on the running band,
+                  as a step at work does; done, they go quiet. */}
+              <span className={isRunning || thread.state === "failed" ? "stg:text-foreground" : "stg:text-muted-foreground"}>
                 {tag !== null ? `${displayLabel} ` : displayLabel}
               </span>
               {tag !== null && (
@@ -200,6 +199,7 @@ function HelperStep({ thread, displayLabel, startedAt, duration, toolUses, error
           }
           bodySpan="rail"
           bodyCursorTarget="subagent-body"
+          band={isRunning}
           body={expanded && shows ? <HelperBody toolUses={toolUses} error={error} /> : undefined}
         />
       </ThreadCardShell>
