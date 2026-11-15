@@ -198,7 +198,7 @@ services:
         echo "temporal-namespace: the default namespace is registered"
 
   stigmer-server:
-    image: ghcr.io/stigmer/stigmer-server:${STIGMER_VERSION:-v0.1.3}
+    image: ghcr.io/stigmer/stigmer-server:${STIGMER_VERSION:-v0.2.0}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -281,7 +281,7 @@ services:
     # runner's depends_on gates on it.
 
   stigmer-runner:
-    image: ghcr.io/stigmer/stigmer-runner:${STIGMER_VERSION:-v0.1.3}
+    image: ghcr.io/stigmer/stigmer-runner:${STIGMER_VERSION:-v0.2.0}
     restart: unless-stopped
     depends_on:
       stigmer-server:
