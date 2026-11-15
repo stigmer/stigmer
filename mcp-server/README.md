@@ -130,6 +130,15 @@ npx -y -p @stigmer/mcp-server mcp-server-stigmer
 In `http` mode the server also exposes `GET /health` (unauthenticated
 liveness) and `GET /ready` (liveness and a working backend hop).
 
+### Docker image
+
+The published image, `ghcr.io/stigmer/mcp-server-stigmer`, runs the same
+package and reads the same variables; stdio stays its default, so a desktop
+client runs it as `docker run -i --rm ghcr.io/stigmer/mcp-server-stigmer`. Its
+health check follows the transport. Under `stdio` nothing listens on a port, so
+a running container is healthy. Under `http` or `both` the check requests
+`/health` on `STIGMER_MCP_HTTP_PORT` (default `8080`).
+
 ### Embedding
 
 Run the whole server in-process, as the `stigmer` CLI does:
