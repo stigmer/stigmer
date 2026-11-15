@@ -87,10 +87,27 @@ export function build(root) {
     ].join("\n"),
   );
 
-  const packed = JSON.parse(execFileSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], { cwd: root, encoding: "utf8" }));
+  const [npm, prefix] = npmCommand();
+  const packed = JSON.parse(execFileSync(npm, [...prefix, "pack", "--dry-run", "--json", "--ignore-scripts"], { cwd: root, encoding: "utf8" }));
   const missing = packOmissions(filesUnder(dist).map((path) => relative(root, path)), packed[0].files.map((file) => file.path));
   if (missing.length > 0) throw new Error(`npm would leave out of the tarball: ${missing.join(", ")}`);
   return { files: filesUnder(dist).length, version };
+}
+
+/**
+ * How to invoke the npm that is running this build. Under an npm script
+ * (`npm run build`, which is how every lane and `make` reach this file) npm
+ * sets `npm_execpath` to its own entry module, so running it through the
+ * current Node binary is the same on every platform. A bare `npm` is kept only
+ * for a hand run outside npm: on Windows the bare name is `npm.cmd`, which
+ * `execFileSync` cannot spawn without a shell, and that is how v0.2.0's desktop
+ * release failed on Windows (stigmer/stigmer#3174; `plugins/scripts/stage-content.mjs`
+ * met it first, #1194). Pure.
+ */
+export function npmCommand(env = process.env, execPath = process.execPath) {
+  const execpath = env.npm_execpath;
+  if (execpath !== undefined && execpath.length > 0) return [execPath, [execpath]];
+  return ["npm", []];
 }
 
 /** The staged files a tarball listing lacks. Pure. */

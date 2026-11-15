@@ -18,7 +18,7 @@ import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { inMemoryPluginFiles, readMarketplace, readPluginPackage } from "@stigmer/plugin-package";
 import { beforeAll, describe, expect, it } from "vitest";
-import { build, packOmissions } from "../scripts/build.mjs";
+import { build, npmCommand, packOmissions } from "../scripts/build.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const built = join(root, "dist", "plugin");
@@ -128,5 +128,19 @@ describe("the guide", () => {
     expect(path).toBe("/settings/bring-others-in");
     const page = join(root, "..", "client-apps", "web", "src", "app", ...(path ?? "").split("/").filter(Boolean), "page.tsx");
     expect(statSync(page).isFile()).toBe(true);
+  });
+});
+
+describe("npmCommand", () => {
+  it("runs the npm that runs the build through this Node, so Windows never spawns a bare npm (stigmer/stigmer#3174)", () => {
+    expect(npmCommand({ npm_execpath: "C:\\npm\\bin\\npm-cli.js" }, "C:\\node\\node.exe")).toEqual([
+      "C:\\node\\node.exe",
+      ["C:\\npm\\bin\\npm-cli.js"],
+    ]);
+  });
+
+  it("falls back to a bare npm only outside an npm script", () => {
+    expect(npmCommand({}, "/usr/bin/node")).toEqual(["npm", []]);
+    expect(npmCommand({ npm_execpath: "" }, "/usr/bin/node")).toEqual(["npm", []]);
   });
 });
