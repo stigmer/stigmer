@@ -213,11 +213,12 @@ jobs:
           VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
           if [[ "$VERSION" == *-* ]]; then NPM_TAG="next"; else NPM_TAG="latest"; fi
           # Platform packages first so the meta package's optionalDependencies
-          # resolve the moment it lands.
+          # resolve the moment it lands. publish-once skips a version already
+          # on npm with the same contents, so a stopped run can be rerun (#3168).
           for pkg in dist-slim-pkgs/runner-slim-*; do
-            (cd "$pkg" && npm publish --access public --tag "$NPM_TAG")
+            node "$GITHUB_WORKSPACE/scripts/lib/publish-once.mjs" "$pkg" --tag "$NPM_TAG"
           done
-          cd dist-slim-pkgs/runner-slim && npm publish --access public --tag "$NPM_TAG"
+          node "$GITHUB_WORKSPACE/scripts/lib/publish-once.mjs" dist-slim-pkgs/runner-slim --tag "$NPM_TAG"
 
   # @stigmer/server as a LIBRARY: the composable server — composeServer,
   # the extension registry, the driver seams — that a composition such as the
@@ -506,11 +507,12 @@ jobs:
           VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
           if [[ "$VERSION" == *-* ]]; then NPM_TAG="next"; else NPM_TAG="latest"; fi
           # Platform packages first so the meta package's optionalDependencies
-          # resolve the moment it lands.
+          # resolve the moment it lands. publish-once skips a version already
+          # on npm with the same contents, so a stopped run can be rerun (#3168).
           for pkg in dist-slim-pkgs/server-slim-*; do
-            (cd "$pkg" && npm publish --access public --tag "$NPM_TAG")
+            node "$GITHUB_WORKSPACE/scripts/lib/publish-once.mjs" "$pkg" --tag "$NPM_TAG"
           done
-          cd dist-slim-pkgs/server-slim && npm publish --access public --tag "$NPM_TAG"
+          node "$GITHUB_WORKSPACE/scripts/lib/publish-once.mjs" dist-slim-pkgs/server-slim --tag "$NPM_TAG"
 
   # ══ The official server Docker image ══
   # Push → prove → promote: the version tag is pushed first, both-arch
