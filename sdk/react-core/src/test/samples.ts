@@ -283,6 +283,14 @@ export interface TurnOverrides {
   readonly reply?: string;
   /** The turn's phase (`stigmer.run.status`). Defaults to `completed`. */
   readonly phase?: TurnPhase;
+  /**
+   * How long the turn took, in milliseconds. When set, its events are
+   * spread evenly from {@link SAMPLE_INSTANT} to that span after it, the
+   * person's message first and the last event at its end, so a finished
+   * turn reads its time ("42s") and its steps theirs. Unset, every event
+   * is stamped at {@link SAMPLE_INSTANT}.
+   */
+  readonly durationMs?: number;
 }
 
 export interface SkillOverrides {
@@ -377,6 +385,11 @@ function numbered(events: readonly SessionEvent[]): SessionEvent[] {
 // ---------------------------------------------------------------------------
 // Resource factories
 // ---------------------------------------------------------------------------
+
+/** `e` with its event's `processedAt` set to `at`, every other field as it was (every event a turn is built from carries one). */
+function stampedAt(e: SessionEvent, at: string): SessionEvent {
+  return { ...e, event: { ...e.event, value: { ...e.event.value, processedAt: at } } } as SessionEvent;
+}
 
 /**
  * Sample data factories for building demo fixtures.
@@ -750,7 +763,10 @@ export const samples = {
     const reply = o?.reply ?? SAMPLE_REPLY;
     if (reply !== "") events.push(samples.agentMessageEvent(reply, { runId }));
     if (phase !== "running") events.push(samples.runStatusEvent(phase, { runId }));
-    return events;
+    const span = o?.durationMs;
+    if (span === undefined || events.length < 2) return events;
+    const step = span / (events.length - 1);
+    return events.map((e, index) => stampedAt(e, sampleInstant(Math.round(index * step))));
   },
 
   /** A session's events folded (`foldSession`), numbered in order. */

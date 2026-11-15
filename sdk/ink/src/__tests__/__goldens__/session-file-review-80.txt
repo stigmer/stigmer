@@ -3,9 +3,13 @@
  You
  Invoices are off by a cent. Can you fix the rounding?
 
+  ✓ ▶ 3 tool calls
+
  Agent
  Invoices now round once, at the total. I added a rounding helper and used it in
   invoice.ts.
+
+ ✻ Worked for 42s
 
 ╭──────────────────────────────────────────────────────────────────────────────╮
 │                                                                              │

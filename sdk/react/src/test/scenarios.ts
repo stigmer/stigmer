@@ -490,7 +490,8 @@ function build(name: ScenarioName): Scenario {
       return loaded(
         name,
         "every sandbox is busy, and the turn has waited 1m 20s for one",
-        [samples.userMessageEvent(message), samples.runStatusEvent("pending")],
+        // Sent ten seconds after the sample instant, so at the clock the turn's age (1m 20s) is its wait.
+        [samples.userMessageEvent(message, { processedAt: sampleInstant(10_000) }), samples.runStatusEvent("pending", { processedAt: sampleInstant(10_000) })],
         { liveness: SANDBOX_WAIT_LIVENESS, setupPhase: "Waiting for a sandbox" },
       );
     case "thinking":
@@ -526,12 +527,21 @@ function build(name: ScenarioName): Scenario {
         ...askEvents("write_file", { path: "src/billing/rounding.ts" }, '{"path":"src/billing/rounding.ts"}'),
         samples.runStatusEvent("waiting"),
       ]);
-    case "file-review":
-      return loaded(name, "the turn ended with two file edits, each one it can undo", [
-        ...samples.turnEvents({ message, phase: "running", reply: "Invoices now round once, at the total. I added a rounding helper and used it in invoice.ts." }),
-        reviewEvent(),
-        samples.runStatusEvent("completed"),
-      ]);
+    case "file-review": {
+      // The turn read the invoice, edited it and wrote the helper over 42s;
+      // its review set lands before it ends.
+      const turn = samples.turnEvents({
+        message,
+        tools: [
+          { name: "read_file", input: { path: "src/billing/invoice.ts" }, result: "export function lineTotal(line: Line): Cents {" },
+          { name: "edit_file", input: { path: "src/billing/invoice.ts" }, result: "1 edit applied" },
+          { name: "write_file", input: { path: "src/billing/rounding.ts" }, result: "Wrote 30 lines" },
+        ],
+        reply: "Invoices now round once, at the total. I added a rounding helper and used it in invoice.ts.",
+        durationMs: 42_000,
+      });
+      return loaded(name, "the turn ended with two file edits, each one it can undo", [...turn.slice(0, -1), reviewEvent(), turn.at(-1)!]);
+    }
     case "subagent-running": {
       const taskId = `${RUN_ID}.tc-task`;
       return loaded(name, "a subagent is working", [

@@ -1,19 +1,4 @@
 {
-  "access-oauth-app-new": {
-    "type-off-scale h1 \"Settings\": 32px is no step's size": "On the scale where its screen is designed and rebuilt"
-  },
-  "access-service-account-detail": {
-    "type-off-scale h1 \"Settings\": 32px is no step's size": "On the scale where its screen is designed and rebuilt"
-  },
-  "access-service-account-first-key": {
-    "type-off-scale h1 \"Settings\": 32px is no step's size": "On the scale where its screen is designed and rebuilt"
-  },
-  "access-service-account-key-revealed": {
-    "type-off-scale h1 \"Settings\": 32px is no step's size": "On the scale where its screen is designed and rebuilt"
-  },
-  "access-service-account-new": {
-    "type-off-scale h1 \"Settings\": 32px is no step's size": "On the scale where its screen is designed and rebuilt"
-  },
   "agent-in-app": {
     "type-off-scale pre \"\"use client\"; // The agent's chat, for the person signed in \": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale pre \"// Your app's Stigmer token route. GET /api/stigmer-token an\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
@@ -55,27 +40,13 @@
   "agent-profile-viewer": {
     "type-off-scale span \"3\": 11px on 11px lines, its step pairs 16px": "The console's parts: the shared parts and their pages on the scale"
   },
-  "bring-others-in": {
-    "type-off-scale h1 \"Settings\": 32px is no step's size": "On the scale where its screen is designed and rebuilt"
-  },
-  "bring-others-in-joined": {
-    "type-off-scale h1 \"Settings\": 32px is no step's size": "On the scale where its screen is designed and rebuilt"
-  },
-  "bring-others-in-link": {
-    "type-off-scale h1 \"Settings\": 32px is no step's size": "On the scale where its screen is designed and rebuilt"
-  },
-  "bring-others-in-local": {
-    "type-off-scale h1 \"Settings\": 32px is no step's size": "On the scale where its screen is designed and rebuilt"
-  },
   "channel-add": {
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
   "channel-app-new": {
-    "type-off-scale h1 \"Settings\": 32px is no step's size": "On the scale where its screen is designed and rebuilt",
     "type-off-scale pre \"display_information: name: Acme Books description: Chat with\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
   "channel-app-setup": {
-    "type-off-scale h1 \"Settings\": 32px is no step's size": "On the scale where its screen is designed and rebuilt",
     "type-off-scale pre \"display_information: name: Acme Books description: Chat with\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
   "channel-chat-link": {
@@ -103,15 +74,6 @@
   },
   "environment-run-settings": {
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
-  },
-  "from-hooks": {
-    "browser-margin p \"Fixed: invoices now round once, at the total.\": bottom margin 16px is the browser's own": "The session's frame: every paragraph and heading the kit draws sets its own margin (a lint rule holds it)",
-    "browser-margin p \"Fixed: invoices now round once, at the total.\": top margin 16px is the browser's own": "The session's frame: every paragraph and heading the kit draws sets its own margin (a lint rule holds it)",
-    "browser-margin p \"Invoices are off by a cent. Can you fix the rounding?\": bottom margin 16px is the browser's own": "The session's frame: every paragraph and heading the kit draws sets its own margin (a lint rule holds it)",
-    "browser-margin p \"Invoices are off by a cent. Can you fix the rounding?\": top margin 16px is the browser's own": "The session's frame: every paragraph and heading the kit draws sets its own margin (a lint rule holds it)",
-    "browser-margin p \"edit_file src/billing/invoice.ts · done\": bottom margin 13px is the browser's own": "The session's frame: every paragraph and heading the kit draws sets its own margin (a lint rule holds it)",
-    "browser-margin p \"edit_file src/billing/invoice.ts · done\": top margin 13px is the browser's own": "The session's frame: every paragraph and heading the kit draws sets its own margin (a lint rule holds it)",
-    "type-off-scale p \"edit_file src/billing/invoice.ts · done\": 13px is no step's size": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "help": {
     "type-off-scale a \"Conversations\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
@@ -210,9 +172,6 @@
   "models-hub-local": {
     "type-off-scale pre \"export OPENAI_API_KEY=<your key> stigmer down && stigmer up\": 12px on 19.5px lines, its step pairs 16px": "The console's parts: the shared parts and their pages on the scale",
     "type-off-scale pre \"stigmer setup stigmer down && stigmer up\": 12px on 19.5px lines, its step pairs 16px": "The console's parts: the shared parts and their pages on the scale"
-  },
-  "parts": {
-    "type-off-scale h1 \"The console's shared parts\": 32px is no step's size": "The console's parts: the shared parts and their pages on the scale"
   },
   "routine-history": {
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The console's parts: the shared parts and their pages on the scale"
@@ -343,6 +302,10 @@
   "session-mcp": {
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
+  "session-plan-attach-failed": {
+    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
+    "type-off-scale textarea: 12px on 19.5px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
+  },
   "session-plan-build": {
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
@@ -377,42 +340,6 @@
   },
   "session-waiting-for-sandbox": {
     "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "settings-api-keys": {
-    "type-off-scale h1 \"Settings\": 32px is no step's size": "The console's parts: the shared parts and their pages on the scale"
-  },
-  "settings-billing": {
-    "type-off-scale h1 \"Settings\": 32px is no step's size": "The console's parts: the shared parts and their pages on the scale"
-  },
-  "settings-landing": {
-    "type-off-scale h1 \"Settings\": 32px is no step's size": "The console's parts: the shared parts and their pages on the scale"
-  },
-  "settings-loading": {
-    "type-off-scale h1 \"Settings\": 32px is no step's size": "The console's parts: the shared parts and their pages on the scale"
-  },
-  "settings-members": {
-    "type-off-scale h1 \"Settings\": 32px is no step's size": "The console's parts: the shared parts and their pages on the scale"
-  },
-  "settings-model-catalog": {
-    "type-off-scale h1 \"Settings\": 32px is no step's size": "The console's parts: the shared parts and their pages on the scale"
-  },
-  "settings-service-accounts-denied": {
-    "type-off-scale h1 \"Settings\": 32px is no step's size": "The console's parts: the shared parts and their pages on the scale"
-  },
-  "settings-teams-oss": {
-    "type-off-scale h1 \"Settings\": 32px is no step's size": "The console's parts: the shared parts and their pages on the scale"
-  },
-  "settings-usage": {
-    "type-off-scale h1 \"Settings\": 32px is no step's size": "The console's parts: the shared parts and their pages on the scale"
-  },
-  "settings-vaults": {
-    "type-off-scale h1 \"Settings\": 32px is no step's size": "The console's parts: the shared parts and their pages on the scale"
-  },
-  "settings-vaults-failed": {
-    "type-off-scale h1 \"Settings\": 32px is no step's size": "The console's parts: the shared parts and their pages on the scale"
-  },
-  "settings-vaults-open": {
-    "type-off-scale h1 \"Settings\": 32px is no step's size": "The console's parts: the shared parts and their pages on the scale"
   },
   "story-embed": {
     "type-off-scale div \"Help with your books\": 24px on 36px lines, its step pairs 32px": "On the scale where its screen is designed and rebuilt",

@@ -157,9 +157,7 @@
         "word Plan Plan how invoices should round. Don't change anything yet.": "The scene draws the attachments' turn alone; the Plan-mode message is S46's and S47's"
       },
       "ruled": {},
-      "pending": {
-        "word 8s": "The scene's turn takes its real span, so its times read as drawn"
-      }
+      "pending": {}
     }
   ]
 }

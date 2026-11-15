@@ -141,8 +141,12 @@ html {
 }
 
 /* A heading the console gives assistive technology only, as its layouts'
-   `sr-only` does: the settings layout's "Settings". */
+   `sr-only` does: the settings layout's "Settings". Its type is the
+   kit's body step, as the console's base styles set a heading's: the
+   browser's own heading size is on no step of the scale. */
 .gallery-visually-hidden {
+  font-size: 14px;
+  line-height: 20px;
   position: absolute;
   width: 1px;
   height: 1px;

@@ -19,6 +19,26 @@
         {
           "scene": "session-slow",
           "width": "desktop"
+        },
+        {
+          "scene": "session-reconnecting",
+          "width": "desktop"
+        },
+        {
+          "scene": "session-not-started",
+          "width": "desktop"
+        },
+        {
+          "scene": "session-file-progress",
+          "width": "desktop"
+        },
+        {
+          "scene": "session-observer",
+          "width": "desktop"
+        },
+        {
+          "scene": "session-plan-attach-failed",
+          "width": "desktop"
         }
       ],
       "words": [
@@ -220,15 +240,7 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "button Dismiss": "The strips the drawing stacks are built by scenes this file does not name yet, and the plan-attach strip by a scene still to add",
-        "button Try again": "The strips the drawing stacks are built by scenes this file does not name yet, and the plan-attach strip by a scene still to add",
-        "word Couldn't attach plan.md. The agent follows the plan from the conversation instead.": "The strips the drawing stacks are built by scenes this file does not name yet, and the plan-attach strip by a scene still to add",
-        "word Dismiss": "The strips the drawing stacks are built by scenes this file does not name yet, and the plan-attach strip by a scene still to add",
-        "word Reconnecting… The agent keeps working; what it did meanwhile appears when the connection is back.": "The strips the drawing stacks are built by scenes this file does not name yet, and the plan-attach strip by a scene still to add",
-        "word The agent hasn't started yet. Your message is kept; try again to look once more.": "The strips the drawing stacks are built by scenes this file does not name yet, and the plan-attach strip by a scene still to add",
-        "word Try again": "The strips the drawing stacks are built by scenes this file does not name yet, and the plan-attach strip by a scene still to add",
-        "word You're reading this conversation. Only its members can reply.": "The strips the drawing stacks are built by scenes this file does not name yet, and the plan-attach strip by a scene still to add",
-        "word Changing 2 files +10 −5": "The strips the drawing stacks are built by scenes this file does not name yet, and the plan-attach strip by a scene still to add"
+        "word The agent hasn't started yet. Your message is kept; try again to look once more.": "The not-started scene draws its strip once it loads (stigmer#3176)"
       }
     }
   ]

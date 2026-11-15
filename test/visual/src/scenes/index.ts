@@ -172,6 +172,8 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "session-file-progress": () => sessionFileProgressScene(),
   "session-file-review": () => sessionScene("file-review", { inspector: true }),
   "session-plan-build": () => sessionPlanBuildScene(),
+  // The same finished plan; the scene serves no file upload, so the edited copy's upload is refused.
+  "session-plan-attach-failed": () => sessionPlanBuildScene(),
   "session-file-undone": () => sessionFileUndoneScene(),
   "session-plan-writing": () => sessionPlanWritingScene(),
   "session-compacted": () => sessionCompactedScene(),
