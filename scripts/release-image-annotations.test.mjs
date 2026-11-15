@@ -188,6 +188,26 @@ test("every step that writes an image gives its index the description GHCR shows
   }
 });
 
+test("every job that pushes a build sets up a buildx builder before it", () => {
+  // The default docker driver pushes a single manifest, which has no index to
+  // carry the annotation, and the build refuses an `index:` annotation there.
+  const problems = [];
+  const workflows = join(ROOT, ".github/workflows");
+  for (const file of readdirSync(workflows).filter((f) => /\.ya?ml$/.test(f)).sort()) {
+    const doc = parse(readFileSync(join(workflows, file), "utf8"));
+    for (const [job, body] of Object.entries(doc?.jobs ?? {})) {
+      let builder = false;
+      for (const step of body.steps ?? []) {
+        if (/^docker\/setup-buildx-action@/.test(String(step.uses ?? ""))) builder = true;
+        const text = typeof step.run === "string" ? shell(step.run) : "";
+        const pushedBuild = /--push\b/.test(text) && /\bdocker\s+buildx\s+build\b/.test(text);
+        if (pushedBuild && !builder) problems.push(`${file} ${job} step "${step.name}"`);
+      }
+    }
+  }
+  assert.deepEqual(problems, []);
+});
+
 test("every Dockerfile and stage a lane reads its description from has one", () => {
   const seen = new Set();
   for (const { step } of everyStep()) {
