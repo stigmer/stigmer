@@ -10,6 +10,21 @@ on:
         description: 'Version number (e.g., 1.0.0)'
         required: true
         type: string
+      accept_published_from:
+        description: >-
+          Resuming a stopped release only: the full commit id it published
+          from. A version already on npm from exactly that commit is kept even
+          when this run's rebuild differs (server-slim's console never
+          rebuilds byte for byte). Empty: anything on npm that differs is
+          refused (scripts/lib/publish-once.mjs).
+        required: false
+        default: ''
+        type: string
+
+# Read by scripts/lib/publish-once.mjs in every publish step. A tag push has
+# no inputs, so a tagged run never keeps differing contents.
+env:
+  PUBLISH_ONCE_ACCEPT_FROM: ${{ github.event.inputs.accept_published_from }}
 
 permissions:
   contents: read
