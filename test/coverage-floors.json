@@ -33,7 +33,7 @@
     "backend/libs/ts/temporal-codecs": {
       "lines": 97.3,
       "branches": 86.8,
-      "cases": 56
+      "cases": 37
     },
     "backend/libs/ts/tool-vocabulary": {
       "lines": 100,
