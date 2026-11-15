@@ -555,14 +555,41 @@ export function newSubstrateSandboxDriverOverGateway(
   /**
    * The ensure's move of a SUSPENDED actor on another template (module
    * header): waits for the current template, as a create does, then moves
-   * it; a refusal throws, so it is never woken on its own template.
+   * it, so it is never woken on its own template. Substrate answers every
+   * precondition it refuses the same way (gateway.ts), so a refusal is
+   * read again before it is believed: a current template another server
+   * retired is prepared again and the move tried once more, as a create
+   * does; an actor no longer asleep at the version read sends the walk
+   * back to reading it (ABORTED), or fails as being deleted. Only a
+   * refusal with the template there and the actor still asleep is files
+   * that cannot be carried.
    */
   async function carryToCurrent(actor: SubstrateActorView): Promise<void> {
     if (actor.template === keeper.name) return;
-    await keeper.ready();
-    if ((await move(actor)) === "moved") return;
+    for (let attempt = 0; ; attempt += 1) {
+      await keeper.ready();
+      if ((await move(actor)) === "moved") return;
+      if ((await gateway.getTemplate(keeper.name)) !== undefined) break;
+      if (attempt > 0) {
+        throw new Error(
+          `the current template ${keeper.name} was gone again when sandbox ${actor.name} moved to it`,
+        );
+      }
+      keeper.invalidate();
+      logger.warn("The current template was gone when a sandbox moved to it; preparing it again", {
+        actor: actor.name,
+        template: keeper.name,
+      });
+    }
+    const fresh = await gateway.getActor(actor.name);
+    if (fresh === undefined || fresh.state === "deleting") {
+      throw new Error(`sandbox ${actor.name} is being deleted`);
+    }
+    if (fresh.state !== "suspended" || fresh.version !== actor.version) {
+      throw new SubstrateAbortedError(`sandbox ${actor.name} changed while it moved`);
+    }
     throw new SandboxNotCarriedError(
-      `Substrate refused to move sandbox ${actor.name} from template ${actor.template} to the current template ${keeper.name} (its volumes differ), so it is not woken on another configuration's runner`,
+      `Substrate refused to move sandbox ${actor.name} from template ${actor.template} to the current template ${keeper.name}, which exists, while it was asleep: its files cannot be carried, so it is not woken on another configuration's runner`,
     );
   }
 

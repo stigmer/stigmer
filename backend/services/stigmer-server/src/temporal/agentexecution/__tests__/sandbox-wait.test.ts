@@ -53,7 +53,7 @@ describe("the wait for a sandbox with room", () => {
     expect(refused.name).toBe("SandboxNotCarried");
     expect(refused.message).toBe(SANDBOX_NOT_CARRIED_COPY);
     expect(SANDBOX_NOT_CARRIED_COPY).toBe(
-      "This conversation's sandbox was started by an earlier Stigmer release and its files can't be moved to this one. Start a new conversation to continue.",
+      "This conversation's sandbox was started by another Stigmer release and its files can't be moved to this one. Start a new conversation to continue.",
     );
   });
 

@@ -14,6 +14,13 @@
  * (stigmer#2720), so on an arm64 host pull it with
  * `--platform linux/amd64` first.
  *
+ * A second case moves a container made from another image reference (a
+ * local tag of the same image, so nothing is pulled) to the configured
+ * image the way a server upgrade does (stigmer#1843): its files come over,
+ * an agent-owned file keeping its owner and mode in the `--user 0:0`
+ * container the driver creates (stigmer#3155). It reads the files with
+ * `docker cp`, so it holds whether the runner is still up or has exited.
+ *
  * It needs a Docker daemon and fails without one, never skips: the live
  * config runs only when asked to.
  */
@@ -24,7 +31,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { createLogger } from "../../boot/logger.js";
 import { newDockerSandboxProvisioner } from "../docker.js";
 import { sandboxBaseName } from "../naming.js";
-import type { SandboxDriverConfig } from "../provisioner.js";
+import type { SandboxDriverConfig, SandboxFacts } from "../provisioner.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -45,6 +52,55 @@ function requireDockerDaemon(): void {
 }
 
 requireDockerDaemon();
+
+/** One regular file of a tar stream. */
+interface TarFile {
+  readonly name: string;
+  readonly uid: number;
+  readonly gid: number;
+  readonly mode: number;
+  readonly body: string;
+}
+
+/** A ustar stream of `files`, with the owners and modes given (no tar binary's own defaults). */
+function tarOf(files: readonly TarFile[]): Buffer {
+  const blocks: Buffer[] = [];
+  for (const file of files) {
+    const body = Buffer.from(file.body);
+    const header = Buffer.alloc(512);
+    const octal = (value: number, width: number, at: number) =>
+      header.write(`${value.toString(8).padStart(width - 1, "0")}\0`, at, "latin1");
+    header.write(file.name, 0, "latin1");
+    octal(file.mode, 8, 100);
+    octal(file.uid, 8, 108);
+    octal(file.gid, 8, 116);
+    octal(body.length, 12, 124);
+    octal(Math.floor(Date.now() / 1000), 12, 136);
+    header.write("        ", 148, "latin1");
+    header.write("0", 156, "latin1");
+    header.write("ustar\0", 257, "latin1");
+    header.write("00", 263, "latin1");
+    let sum = 0;
+    for (const byte of header) sum += byte;
+    header.write(`${sum.toString(8).padStart(6, "0")}\0 `, 148, "latin1");
+    blocks.push(header, body, Buffer.alloc((512 - (body.length % 512)) % 512));
+  }
+  blocks.push(Buffer.alloc(1024));
+  return Buffer.concat(blocks);
+}
+
+/** The first file of a tar stream: its owner, mode and contents. */
+function firstFileOf(tar: Buffer): Omit<TarFile, "name"> {
+  const field = (at: number, width: number) =>
+    Number.parseInt(tar.subarray(at, at + width).toString("latin1").replace(/\0.*$/s, "").trim(), 8);
+  const size = field(124, 12);
+  return {
+    uid: field(108, 8),
+    gid: field(116, 8),
+    mode: field(100, 8) & 0o7777,
+    body: tar.subarray(512, 512 + size).toString("utf8"),
+  };
+}
 
 describe("docker driver against a Docker daemon", () => {
   const config: SandboxDriverConfig = {
@@ -124,5 +180,78 @@ describe("docker driver against a Docker daemon", () => {
     expect(await driver.probe("session", sessionId)).toBe("absent");
     // Idempotent teardown.
     await driver.deprovisionSessionSandbox(sessionId);
+  });
+});
+
+describe("docker driver moving a container to another image (stigmer#1843)", () => {
+  const sessionId = `ses_docker_move_${Date.now()}`;
+  const containerName = sandboxBaseName("session", sessionId);
+  // A local tag of the configured image stands in for the earlier release's.
+  const earlierImage = `stigmer-live-earlier-runner:${Date.now()}`;
+  const config: SandboxDriverConfig = {
+    backendEndpoint: "http://host.docker.internal:7234",
+    mcpPublicEndpoint: "",
+    temporalNamespace: "default",
+    runnerImage:
+      process.env["STIGMER_SANDBOX_RUNNER_IMAGE"] ??
+      "ghcr.io/stigmer/runner:latest",
+    runnerCommand: "unused-by-this-driver",
+    kubernetesNamespace: "unused-by-this-driver",
+    runnerEnv: {},
+    runnerSecretEnv: {},
+    serverRelease: "",
+  };
+  const facts: SandboxFacts = {
+    taskQueue: `session:${sessionId}`,
+    stigmerToken: "",
+    callerClass: "user",
+    executionId: "aex_test",
+  };
+  const current = newDockerSandboxProvisioner({ config, logger: silentLogger });
+
+  afterAll(async () => {
+    await current.deprovisionSessionSandbox(sessionId);
+    execFileSync("docker", ["rmi", earlierImage], { stdio: "pipe" });
+  });
+
+  function docker(args: string[], input?: Buffer): Buffer {
+    return execFileSync("docker", args, { stdio: "pipe", ...(input !== undefined ? { input } : {}) });
+  }
+
+  it("recreates it from the configured image with its files, an agent-owned file keeping its owner and mode", async () => {
+    docker(["tag", config.runnerImage, earlierImage]);
+    const earlier = newDockerSandboxProvisioner({
+      config: { ...config, runnerImage: earlierImage },
+      logger: silentLogger,
+    });
+    await earlier.ensureSessionSandbox(sessionId, facts);
+    docker(
+      ["cp", "-", `${containerName}:/`],
+      tarOf([
+        { name: "workspace/carried.txt", uid: 1500, gid: 1500, mode: 0o640, body: "the agent's file" },
+        { name: "root/carried.txt", uid: 0, gid: 0, mode: 0o600, body: "the runner's file" },
+      ]),
+    );
+    const before = docker(["inspect", "--format", "{{.Id}}", containerName]).toString().trim();
+
+    // The workflow's ensure, right before it would invoke the runner.
+    await current.ensureSessionSandbox(sessionId, { ...facts, runnerIdle: true });
+
+    expect(docker(["inspect", "--format", "{{.Id}}", containerName]).toString().trim()).not.toBe(before);
+    expect(docker(["inspect", "--format", "{{.Config.Image}}", containerName]).toString().trim()).toBe(
+      config.runnerImage,
+    );
+    expect(firstFileOf(docker(["cp", `${containerName}:/workspace/carried.txt`, "-"]))).toEqual({
+      uid: 1500,
+      gid: 1500,
+      mode: 0o640,
+      body: "the agent's file",
+    });
+    expect(firstFileOf(docker(["cp", `${containerName}:/root/carried.txt`, "-"])).body).toBe("the runner's file");
+
+    // On the configured image now: the next such ensure leaves it as it is.
+    const moved = docker(["inspect", "--format", "{{.Id}}", containerName]).toString().trim();
+    await current.ensureSessionSandbox(sessionId, { ...facts, runnerIdle: true });
+    expect(docker(["inspect", "--format", "{{.Id}}", containerName]).toString().trim()).toBe(moved);
   });
 });

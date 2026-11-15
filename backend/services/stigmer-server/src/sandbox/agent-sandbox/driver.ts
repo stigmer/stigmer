@@ -253,7 +253,9 @@ export function newAgentSandboxDriverOverGateway(
           `agent-sandbox Sandbox '${name}' was deleted while its pod stopped for a restart on this server's template`,
         );
       }
-      if (fresh.podGone) return;
+      // Gone, or woken meanwhile by another server's ensure: the caller's
+      // wake writes this server's template either way.
+      if (fresh.podGone || fresh.operatingMode !== "Suspended") return;
       await sleep(DELETION_POLL_MS);
     }
     logger.info(

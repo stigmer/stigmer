@@ -37,9 +37,15 @@
  * stopped one is recreated instead of started; a running one only when
  * the caller says the runner is idle (SandboxFacts.runnerIdle, the
  * workflow's ensure right before it invokes the runner), and is stopped
- * first, so the copy is of files nothing is writing. Every other ensure
+ * first, so the copy is of files nothing is writing, and started again as
+ * it was when its recreate fails before the swap. Every other ensure
  * of a running container stays the fast path, without a read. "Another"
  * has no direction: a rollback moves a container back, its files kept.
+ *
+ * Every ensure and teardown of one container runs through one in-process
+ * queue, as the other drivers' do: the request's ensure and the workflow's
+ * run at once by design (steps.ts), and two recreates of one container
+ * would race over its temporary name and remove each other's result.
  *
  * Deliberate divergences from the cloud manifest, named:
  *
@@ -243,12 +249,34 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
     }
   }
 
-  async function ensure(
+  const queues = new Map<string, Promise<unknown>>();
+  /** Runs `body` alone among this driver's operations on the container `name` (module header). */
+  function serialize<T>(name: string, body: () => Promise<T>): Promise<T> {
+    const previous = queues.get(name) ?? Promise.resolve();
+    const next = previous.then(body, body);
+    const settled = next.catch(() => undefined);
+    queues.set(name, settled);
+    void settled.then(() => {
+      if (queues.get(name) === settled) queues.delete(name);
+    });
+    return next;
+  }
+
+  function ensure(
     scope: SandboxScope,
     id: string,
     facts: SandboxFacts,
   ): Promise<void> {
     const name = sandboxBaseName(scope, id);
+    return serialize(name, () => ensureAlone(scope, id, facts, name));
+  }
+
+  async function ensureAlone(
+    scope: SandboxScope,
+    id: string,
+    facts: SandboxFacts,
+    name: string,
+  ): Promise<void> {
     const state = await inspectState(name);
     if (state === "running") {
       if (facts.runnerIdle !== true) {
@@ -259,9 +287,16 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
         return;
       }
       // Nothing runs in it: stop it, then carry its files to a container
-      // of this configuration (the module header).
+      // of this configuration (the module header). A recreate that fails
+      // before its swap leaves the old container, which is started again
+      // as it was rather than left stopped.
       await docker(["stop", name]);
-      await recreateCarryingFiles(scope, id, facts, name);
+      try {
+        await recreateCarryingFiles(scope, id, facts, name);
+      } catch (error) {
+        await docker(["start", name]).catch(() => undefined);
+        throw error;
+      }
       logMoved(scope, id, name, baked);
       return;
     }
@@ -371,8 +406,12 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
     );
   }
 
-  async function deprovision(scope: SandboxScope, id: string): Promise<void> {
+  function deprovision(scope: SandboxScope, id: string): Promise<void> {
     const name = sandboxBaseName(scope, id);
+    return serialize(name, () => deprovisionAlone(scope, id, name));
+  }
+
+  async function deprovisionAlone(scope: SandboxScope, id: string, name: string): Promise<void> {
     try {
       await docker(["rm", "--force", name]);
       logger.info("Docker sandbox deprovisioned", {

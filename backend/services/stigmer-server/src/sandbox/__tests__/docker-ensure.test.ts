@@ -16,7 +16,9 @@
  * recreated the same way: a stopped one instead of started, a running one
  * stopped first, and only when the ensure says the runner is idle; one on
  * this configuration, or an ensure that does not say so, is left as it is
- * (stigmer#1843). An absent one is created (a connect sandbox on its
+ * (stigmer#1843). Two ensures of one container (the request's and the
+ * workflow's run at once) take turns, so a recreate never runs twice. An
+ * absent one is created (a connect sandbox on its
  * own queue), with the operator's runner
  * secrets beside the token, never on the command line. The real CLI and
  * image are the live test's (docker.live.test.ts).
@@ -68,6 +70,12 @@ if [ "$1" = "cp" ] && [ "$2" = "-" ] && [ -f "$FAKE_DOCKER_DIR/copy-in-fails" ];
   echo "Error: copy failed" >&2
   exit 1
 fi
+if [ "$1" = "rename" ] && [ -f "$FAKE_DOCKER_DIR/config-after" ]; then
+  cp "$FAKE_DOCKER_DIR/config-after" "$FAKE_DOCKER_DIR/config"
+fi
+if [ "$1" = "start" ] && [ -f "$FAKE_DOCKER_DIR/config-after" ]; then
+  echo running > "$FAKE_DOCKER_DIR/state"
+fi
 if [ "$1" = "inspect" ] && [ "$3" = "{{json .Config}}" ]; then
   cat "$FAKE_DOCKER_DIR/config"
   exit 0
@@ -103,6 +111,18 @@ function setState(
     JSON.stringify({ Image: baked.image ?? CONFIG.runnerImage, Env: env }),
   );
   writeFileSync(path.join(dir, "calls.log"), "");
+  rmSync(path.join(dir, "config-after"), { force: true });
+}
+
+/**
+ * Makes the fake CLI's container follow a recreate: the swapped-in one
+ * carries `baked`, and a start leaves it running.
+ */
+function recreatesTo(baked: Baked): void {
+  writeFileSync(
+    path.join(dir, "config-after"),
+    JSON.stringify({ Image: baked.image ?? CONFIG.runnerImage, Env: ["PATH=/usr/bin"] }),
+  );
 }
 
 /** A token-shaped string whose `exp` is `seconds` from now (the driver reads, never verifies, it). */
@@ -308,6 +328,22 @@ describe("a container started under another configuration (stigmer#1843)", () =>
     ]);
   }
 
+  it("running on another image with the runner idle, its recreate failing: started again as it was, the failure reported", async () => {
+    setState("running", jwtExpiringIn(3600), { image: "ghcr.io/stigmer/runner:old" });
+    writeFileSync(path.join(dir, "copy-out-fails"), "");
+    try {
+      const { logger } = capturingLogger();
+      await expect(
+        newDockerSandboxProvisioner({ config: CONFIG, logger }).ensureSessionSandbox("ses_ensure", IDLE),
+      ).rejects.toThrow(/no such path/);
+      const made = calls();
+      expect(made).toContain(`stop ${name}`);
+      expect(made.at(-1), "a container that served turns is never left stopped").toBe(`start ${name}`);
+    } finally {
+      rmSync(path.join(dir, "copy-out-fails"), { force: true });
+    }
+  });
+
   it("running on another image with the runner idle: stopped, then recreated carrying its files", async () => {
     setState("running", jwtExpiringIn(3600), { image: "ghcr.io/stigmer/runner:old" });
     const { logger, infos } = capturingLogger();
@@ -383,6 +419,23 @@ describe("a container started under another configuration (stigmer#1843)", () =>
       `inspect --format {{.State.Running}} ${name}`,
       `inspect --format {{json .Config}} ${name}`,
     ]);
+  });
+
+  it("the request's and the workflow's ensures at once: one recreate, the second ensure finding the swapped-in container", async () => {
+    setState("stopped", jwtExpiringIn(3600), { image: "ghcr.io/stigmer/runner:old" });
+    recreatesTo({});
+    const { logger } = capturingLogger();
+    const driver = newDockerSandboxProvisioner({ config: CONFIG, logger });
+    await Promise.all([
+      driver.ensureSessionSandbox("ses_ensure", IDLE),
+      driver.ensureSessionSandbox("ses_ensure", ENV),
+    ]);
+
+    const made = calls();
+    expect(made.filter((call) => call.startsWith("create ")), "one recreate, never a second over the first").toHaveLength(1);
+    expect(made.filter((call) => call === `rm --force ${name}`)).toHaveLength(1);
+    // The second ensure reads the container only after the first has swapped it in.
+    expect(made.lastIndexOf(`inspect --format {{.State.Running}} ${name}`)).toBeGreaterThan(made.indexOf(`rename ${name}-fresh ${name}`));
   });
 
   it("stopped under another release with no token minted now: recreated all the same", async () => {

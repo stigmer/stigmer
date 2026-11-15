@@ -235,7 +235,7 @@ waits for a restart. A rollback moves sandboxes back the same way. With the
 `substrate` driver, a sandbox whose files Substrate can't move to the new
 runner's template (a release that changed the sandbox's disk layout) is never
 woken on its old runner: the message ends at once with a line saying the
-conversation's sandbox is from an earlier release, and the person starts a new
+conversation's sandbox is from another release, and the person starts a new
 conversation.
 
 **On Kubernetes, through agent-sandbox.** The `agent-sandbox` driver hands each

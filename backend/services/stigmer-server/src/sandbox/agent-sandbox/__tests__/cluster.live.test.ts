@@ -24,6 +24,12 @@
  *     goes, both claims stay Bound) and the wake that follows, which brings
  *     the runner back to the queue with the fresh token the wake wrote
  *     before its pod started;
+ *   - a running Sandbox whose pod template names an earlier server release
+ *     (patched into the template, which leaves its pod running as it is)
+ *     is moved by an ensure that says the runner is idle (stigmer#1843):
+ *     put to sleep, its pod awaited by the real controller's Suspended
+ *     condition well inside the driver's bound, and woken on a new pod
+ *     with this server's template and the same files;
  *   - deprovision leaves no Sandbox, pod, claims or Secret behind.
  *
  * It needs everything it is given and fails without it, never skips: the
@@ -44,7 +50,7 @@ import type {
   SandboxDriverConfig,
   SessionActivityReader,
 } from "../../provisioner.js";
-import { AGENT_HOME } from "../../runner-launch.js";
+import { AGENT_HOME, SERVER_RELEASE_ENV } from "../../runner-launch.js";
 import { newAgentSandboxDriverOverGateway } from "../driver.js";
 import { newAgentSandboxClientGateway } from "../gateway.js";
 import {
@@ -209,6 +215,8 @@ describe("the agent-sandbox driver on a live cluster", () => {
   /** The uid owning a path in the runner's container. */
   const ownerOf = (path: string) =>
     kubectl("exec", name, "-c", "runner", "--", "stat", "-c", "%u", path).trim();
+  const podUid = () =>
+    kubectl("get", "pod", name, "--ignore-not-found", "-o", "jsonpath={.metadata.uid}");
   const podPhase = () =>
     kubectl(
       "get",
@@ -306,6 +314,41 @@ describe("the agent-sandbox driver on a live cluster", () => {
     await until("the woken runner to poll its queue", () =>
       polledSince(taskQueue, woken),
     );
+
+    // A server upgrade, as the cluster sees it: the Sandbox's template names
+    // an earlier release while its pod keeps running as it is.
+    kubectl(
+      "patch",
+      "sandbox",
+      name,
+      "--type",
+      "json",
+      "-p",
+      JSON.stringify([
+        {
+          op: "add",
+          path: "/spec/podTemplate/spec/containers/0/env/-",
+          value: { name: SERVER_RELEASE_ENV, value: "0.0.1" },
+        },
+      ]),
+    );
+    const earlierPod = podUid();
+    expect((await gateway.getSandbox(name))?.runner?.release).toBe("0.0.1");
+    const moving = Date.now();
+    await driver.ensureSessionSandbox(sessionId, {
+      ...env,
+      stigmerToken: "tok-live-3",
+      runnerIdle: true,
+    });
+    expect(
+      Date.now() - moving,
+      "the driver read the pod's end from the controller's Suspended condition, not its 300 s bound",
+    ).toBeLessThan(240_000);
+    expect((await gateway.getSandbox(name))?.runner?.release, "this server's template, which names no release").toBe("");
+    await until("the moved pod to run", () => podPhase() === "Running" && podUid() !== earlierPod);
+    expect(kubectl("exec", name, "-c", "runner", "--", "cat", "/workspace/live-proof").trim()).toBe("kept");
+    expect(kubectl("exec", name, "-c", "runner", "--", "cat", `${AGENT_HOME}/live-proof`).trim()).toBe("kept");
+    expect(tokenInPod()).toBe("tok-live-3");
 
     await driver.deprovisionSessionSandbox(sessionId);
     await until("the Sandbox, pod, claims and Secret to go", () =>

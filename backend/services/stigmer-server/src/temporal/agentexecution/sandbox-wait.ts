@@ -71,7 +71,7 @@ export const SANDBOX_NOT_CARRIED_PATCH_ID = "end-turn-on-sandbox-not-carried";
  * this server's runner (status.error): what happened and what to do.
  */
 export const SANDBOX_NOT_CARRIED_COPY =
-  "This conversation's sandbox was started by an earlier Stigmer release and its files can't be moved to this one. Start a new conversation to continue.";
+  "This conversation's sandbox was started by another Stigmer release and its files can't be moved to this one. Start a new conversation to continue.";
 
 /** How long a turn waits for room when the server sets no other limit: 15 minutes. */
 export const DEFAULT_SANDBOX_WAIT_SECONDS = 900;

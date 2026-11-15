@@ -90,7 +90,7 @@ A turn that runs in a provisioned sandbox (a session whose execution target is `
 
 Only a driver whose fleet can be full says it has no room (the `substrate` driver); with any other, a turn starts as before.
 
-A sandbox started by an earlier release of the server is moved to the current runner, with its files, before the turn's runner starts. When its files can't be moved (the `substrate` driver, after a release that changed the sandbox's disk layout), the turn ends at once, `RUN_FAILED` with stop cause `failed` and stop detail `internal`, and an error that says the conversation's sandbox is from an earlier release and to start a new conversation.
+A sandbox started by another release of the server is moved to the current runner, with its files, before the turn's runner starts. When its files can't be moved (the `substrate` driver, after a release that changed the sandbox's disk layout), the turn ends at once, `RUN_FAILED` with stop cause `failed` and stop detail `internal`, and an error that says the conversation's sandbox is from another release and to start a new conversation.
 
 ### A turn outlives its runner
 
