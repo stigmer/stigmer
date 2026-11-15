@@ -218,7 +218,7 @@ export function PlanEditor({
           rows={28}
           className={cn(
             "stg:w-full stg:flex-1 stg:resize-y stg:rounded-md stg:border stg:border-border stg:bg-card stg:p-3",
-            "stg:font-mono stg:text-xs stg:leading-relaxed stg:text-foreground",
+            "stg:font-mono stg:text-xs stg:text-foreground",
             "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         />

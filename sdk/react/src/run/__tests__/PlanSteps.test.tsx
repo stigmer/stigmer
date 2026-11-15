@@ -101,6 +101,15 @@ describe("PlanSteps", () => {
     expect(within(itemLine("Fix it")).getByRole("img", { name: "Stopped" }).className).toContain("stg:border-muted-foreground");
   });
 
+  it("sets the item a failed ending stopped on at the medium weight, as its drawing does, and one stopped any other way at the regular", () => {
+    const steps = stepsOf(todos("t", [{ content: "Fix it", status: "in_progress" }]));
+    const medium = () => screen.getByText("Fix it").closest("[class*='stg:font-medium']");
+    const { rerender } = render(<PlanSteps working={false} steps={steps} stoppedTone="failed" />);
+    expect(medium()).not.toBeNull();
+    rerender(<PlanSteps working={false} steps={steps} />);
+    expect(medium()).toBeNull();
+  });
+
   it("sets the item in hand's line on the running band, and quiets done and to-do items", () => {
     render(
       <PlanSteps

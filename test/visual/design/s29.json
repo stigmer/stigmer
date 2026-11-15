@@ -1,7 +1,7 @@
 {
   "screen": "S29",
   "title": "Stalled",
-  "source": "the session page, version 13",
+  "source": "the session page, version 14",
   "reader": "bf8cb5c94919",
   "drawings": [
     {
@@ -219,9 +219,7 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {
-        "type Apply the same rule to credit notes": "A to-do a failed ending stopped keeps the drawn weight"
-      }
+      "pending": {}
     }
   ]
 }

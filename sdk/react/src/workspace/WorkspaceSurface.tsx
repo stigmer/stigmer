@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { CountBadge } from "../internal/surface/CountBadge.js";
 import type { DisplayFileChange } from "@stigmer/client";
 import { ResizableSplit } from "../internal/ResizableSplit.js";
 import {
@@ -446,12 +447,9 @@ function ActivityRail({
               >
                 {item.icon}
                 {showBadge && (
-                  <span
-                    aria-hidden="true"
-                    className="stg:absolute stg:-right-0.5 stg:-top-0.5 stg:inline-flex stg:min-w-[0.875rem] stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-1 stg:py-px stg:text-2xs stg:font-medium stg:leading-none stg:text-primary-foreground"
-                  >
+                  <CountBadge aria-hidden="true" className="stg:absolute stg:-right-1 stg:-top-1">
                     {item.badge}
-                  </span>
+                  </CountBadge>
                 )}
               </TooltipTrigger>
               <TooltipContent side="right">{item.label}</TooltipContent>

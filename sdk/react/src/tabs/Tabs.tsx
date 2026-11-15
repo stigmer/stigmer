@@ -2,6 +2,7 @@
 
 import { useCallback, useId, useRef, type KeyboardEvent, type ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { CountBadge } from "../internal/surface/CountBadge.js";
 
 export interface TabItem {
   /** Unique identifier for the tab, used as the `activeTab` value. */
@@ -159,17 +160,9 @@ export function Tabs({
               {tab.icon}
               {tab.label}
               {tab.badge != null && tab.badge > 0 && (
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    "stg:inline-flex stg:min-w-[1.25rem] stg:items-center stg:justify-center stg:rounded-full stg:px-1 stg:py-px stg:text-2xs stg:font-medium stg:leading-none",
-                    isActive
-                      ? "stg:bg-primary-subtle stg:text-primary"
-                      : "stg:bg-muted stg:text-muted-foreground",
-                  )}
-                >
+                <CountBadge aria-hidden="true" tone={isActive ? "primary-subtle" : "muted"} className="stg:min-w-5">
                   {tab.badgeIsLowerBound ? `${tab.badge}+` : tab.badge}
-                </span>
+                </CountBadge>
               )}
               {isActive && (
                 <span

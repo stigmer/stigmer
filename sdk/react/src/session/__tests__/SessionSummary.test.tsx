@@ -71,6 +71,16 @@ function renderSummary(
 }
 
 describe("SessionSummary", () => {
+  it("keeps the dot before the facts out of the flow, in a row that clips its leading edge, so a wrapped line never starts with a dot (#3164)", async () => {
+    renderSummary(client(async () => NIGHTLY));
+    const dot = (await screen.findByText("Nightly billing check", { selector: "span" })).closest("span.stg\\:relative")!.querySelector("[aria-hidden='true']")!;
+    expect(dot.textContent).toBe("·");
+    expect(dot.className).toContain("stg:absolute");
+    const row = dot.closest("div")!;
+    expect(row.className).toContain("stg:-ms-5");
+    expect(row.parentElement!.className).toContain("stg:overflow-hidden");
+  });
+
   it("KIT-09 opens a finished conversation on what was asked, what started it, how it ended, its time, what came out and its estimated cost", async () => {
     const stigmer = client(async () => NIGHTLY);
     renderSummary(stigmer, { routineHref: (routine) => `/library/routines/demo/${routine.metadata?.slug}` });

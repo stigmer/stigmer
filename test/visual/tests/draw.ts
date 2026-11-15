@@ -14,6 +14,15 @@ import type { Locator, Page } from "@playwright/test";
 import { SCENARIO_CLOCK } from "@stigmer/react-sdk/test";
 import { sceneUrl, type Act, type Mode, type Scene } from "../src/catalog.ts";
 
+/** The shortest step an `elapse` runs the page's clock in. */
+const ELAPSE_STEP_MS = 1_000;
+
+/** The most steps an `elapse` takes: a long one runs in longer steps, so it fits a test's time. */
+const ELAPSE_STEPS = 25;
+
+/** The real time given between two steps, for the requests a step's timers open to be answered. */
+const ELAPSE_SETTLE_MS = 50;
+
 /** How a caller wants a scene drawn beyond its catalogue entry. */
 export interface DrawOptions {
   /** Grow the viewport until nothing scrolls, for a scene the catalogue pictures whole. */
@@ -49,7 +58,15 @@ export async function draw(
     // on its own).
     const held = Date.parse(SCENARIO_CLOCK) + 10_000;
     await page.clock.pauseAt(new Date(held));
-    await page.clock.runFor(scene.elapse);
+    // In steps of a second or more (at most ELAPSE_STEPS of them), with the page's own requests answered between
+    // them: a timer the run fires can open a real request (a silent
+    // follow's reconnect), whose own timer must then start inside the run
+    // (#3176). One jump would end before that request opened.
+    const step = Math.max(ELAPSE_STEP_MS, Math.ceil(scene.elapse / ELAPSE_STEPS));
+    for (let ran = 0; ran < scene.elapse; ran += step) {
+      await page.clock.runFor(Math.min(step, scene.elapse - ran));
+      await page.waitForTimeout(ELAPSE_SETTLE_MS);
+    }
     await page.clock.resume();
     await page.clock.setFixedTime(new Date(held + scene.elapse));
     // A running time ticks once a second: past one tick, every timer on the

@@ -335,7 +335,6 @@
       "ruled": {},
       "pending": {
         "type Claude Agent": "When its page is redesigned: the harness's name at the drawn 14/20, weight 500",
-        "type Needs an Anthropic key": "The models hub's lines, link and code block on the type scale",
         "type Platform default (Claude Sonnet 4.6)": "When its page is redesigned: a form field's words at the drawn 14/20",
         "type Stigmer": "When its page is redesigned: the harness's name at the drawn 14/20, weight 500",
         "type Paste an Anthropic API key, and every member of Acme Corp can run these models. Anthropic bills Acme Corp directly.": "When its page is redesigned: the provider's line at the drawn 14/20",

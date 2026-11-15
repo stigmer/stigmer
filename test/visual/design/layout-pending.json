@@ -3,45 +3,23 @@
     "type-off-scale pre \"\"use client\"; // The agent's chat, for the person signed in \": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale pre \"// Your app's Stigmer token route. GET /api/stigmer-token an\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale pre \"npm install @stigmer/client @stigmer/react-sdk @stigmer/apis\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale pre \"npm install @stigmer/client\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale span \"3\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
+    "type-off-scale pre \"npm install @stigmer/client\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
   "agent-in-app-done": {
     "type-off-scale pre \"\"use client\"; // The agent's chat, for the person signed in \": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale pre \"// Your app's Stigmer token route. GET /api/stigmer-token an\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale pre \"npm install @stigmer/client @stigmer/react-sdk @stigmer/apis\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale pre \"npm install @stigmer/client\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale span \"3\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
+    "type-off-scale pre \"npm install @stigmer/client\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
   "agent-in-app-local": {
     "type-off-scale pre \"\"use client\"; // Development only. This Stigmer runs on your\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale pre \"npm install @stigmer/client @stigmer/react-sdk @stigmer/apis\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale span \"3\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
+    "type-off-scale pre \"npm install @stigmer/client @stigmer/react-sdk @stigmer/apis\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
   "agent-in-app-member": {
     "type-off-scale pre \"\"use client\"; // The agent's chat, for the person signed in \": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale pre \"// Your app's Stigmer token route. GET /api/stigmer-token an\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale pre \"npm install @stigmer/client @stigmer/react-sdk @stigmer/apis\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale pre \"npm install @stigmer/client\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale span \"3\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
-  },
-  "agent-make-it-yours": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
-  },
-  "agent-make-it-yours-member": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
-  },
-  "agent-profile-owner": {
-    "type-off-scale span \"3\": 11px on 11px lines, its step pairs 16px": "The console's parts: the shared parts and their pages on the scale"
-  },
-  "agent-profile-variance-reporter": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The console's parts: the shared parts and their pages on the scale"
-  },
-  "agent-profile-viewer": {
-    "type-off-scale span \"3\": 11px on 11px lines, its step pairs 16px": "The console's parts: the shared parts and their pages on the scale"
-  },
-  "channel-add": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
+    "type-off-scale pre \"npm install @stigmer/client\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
   "channel-app-new": {
     "type-off-scale pre \"display_information: name: Acme Books description: Chat with\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
@@ -49,31 +27,12 @@
   "channel-app-setup": {
     "type-off-scale pre \"display_information: name: Acme Books description: Chat with\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
-  "channel-chat-link": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
-  },
   "channel-chat-link-embed": {
-    "type-off-scale pre \"<script src=\"https://app.stigmer.ai/embed.js\" async></script\": 12px on 19.5px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
-  },
-  "channel-connect-slack": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
-  },
-  "channel-connect-whatsapp": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
-  },
-  "channel-list": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
-  },
-  "environment-agent": {
-    "type-off-scale span \"3\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
+    "type-off-scale pre \"<script src=\"https://app.stigmer.ai/embed.js\" async></script\": 12px on 19.5px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
   "environment-new": {
     "spacing-off-scale fieldset \"Network Unrestricted The sandbox may reach any website. Limi\": paddingTop 5.6px": "On the scale where its screen is designed and rebuilt",
     "spacing-off-scale fieldset \"Packages Installed before the first turn of every conversati\": paddingTop 5.6px": "On the scale where its screen is designed and rebuilt"
-  },
-  "environment-run-settings": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
   "help": {
     "type-off-scale a \"Conversations\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
@@ -107,9 +66,6 @@
     "type-off-scale p \"Rather hand it to Claude Code, Cursor or Codex? Let your cod\": 12px on 20px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale p \"Say what it should do for your users, in a sentence or two.\": 12px on 20px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
-  "launcher-connect-local": {
-    "type-off-scale pre \"stigmer setup stigmer down && stigmer up\": 12px on 19.5px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
-  },
   "launcher-describe-own": {
     "type-off-scale dd \"A contract\": 12px on 20px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale dd \"A drafted reply for each, ready to review\": 12px on 20px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
@@ -128,17 +84,13 @@
     "type-off-scale p \"Variance Reporter is made. Its sample ledger is attached.\": 12px on 20px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
   "launcher-example-ready": {
-    "type-off-scale p \"Variance Reporter is made. Its sample ledger is attached.\": 12px on 20px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale span \"2\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
+    "type-off-scale p \"Variance Reporter is made. Its sample ledger is attached.\": 12px on 20px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
   "launcher-example-rejected": {
     "type-off-scale p \"Variance Reporter is made. Its sample ledger is attached.\": 12px on 20px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
   "launcher-example-unchecked": {
-    "type-off-scale p \"Variance Reporter is made. Its sample ledger is attached.\": 12px on 20px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale span \"2\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
+    "type-off-scale p \"Variance Reporter is made. Its sample ledger is attached.\": 12px on 20px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
   "launcher-first-question": {
     "type-off-scale dd \"A contract\": 12px on 20px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
@@ -153,193 +105,6 @@
     "type-off-scale dt \"They give\": 12px on 20px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale p \"Rather hand it to Claude Code, Cursor or Codex? Let your cod\": 12px on 20px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale p \"Say what it should do for your users, in a sentence or two.\": 12px on 20px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
-  },
-  "launcher-hours-used": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
-  },
-  "launcher-key-missing": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
-  },
-  "launcher-next-line": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
-  },
-  "launcher-own-file": {
-    "type-off-scale span \"2\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
-  },
-  "launcher-ready": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
-  },
-  "models-hub-local": {
-    "type-off-scale pre \"export OPENAI_API_KEY=<your key> stigmer down && stigmer up\": 12px on 19.5px lines, its step pairs 16px": "The console's parts: the shared parts and their pages on the scale",
-    "type-off-scale pre \"stigmer setup stigmer down && stigmer up\": 12px on 19.5px lines, its step pairs 16px": "The console's parts: the shared parts and their pages on the scale"
-  },
-  "routine-history": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The console's parts: the shared parts and their pages on the scale"
-  },
-  "session-agent-version": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-approval": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-attachments": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-auto-approve": {
-    "type-off-scale span \"2\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-busy": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-compacted": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-agent-setup": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-app-sign-in": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-app-unreachable": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-cost-cap": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-generic-failed": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-generic-model": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-internal": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-key-missing": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-key-rejected": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-key-rejected-member": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-model-unavailable": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-no-sandbox-room": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-operation-limit": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-out-of-credit": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-overloaded": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-platform-stop": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-rate-limited": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-request-rejected": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-runner-lost": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-stalled": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-tool-call-limit": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-unreachable": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-user-stop": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-fail-workspace-busy": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-failed": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-file-progress": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-file-review": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-file-steps": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-file-undone": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-finished": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-first-job-next": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-helper": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-how-opened": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-inspector": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-many-files": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-mcp": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-plan-attach-failed": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
-    "type-off-scale textarea: 12px on 19.5px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-plan-build": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-plan-writing": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-pull-requests": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
-    "type-off-scale span \"2\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-reconnecting": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The panel button's count: its 11px number on its 16px badge reads as 11px lines; the badge is drawn on the scale where the panel button is rebuilt"
-  },
-  "session-send-failed": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
-  },
-  "session-shell-steps": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-slow": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-steps-opened": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-thinking": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-usage": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt",
-    "type-off-scale span \"2\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
-  },
-  "session-waiting-for-sandbox": {
-    "type-off-scale span \"1\": 11px on 11px lines, its step pairs 16px": "The session's changes: each part drawn on the scale where it is rebuilt"
   },
   "story-embed": {
     "type-off-scale div \"Help with your books\": 24px on 36px lines, its step pairs 32px": "On the scale where its screen is designed and rebuilt",

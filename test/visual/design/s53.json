@@ -1,7 +1,7 @@
 {
   "screen": "S53",
   "title": "The strips above the composer",
-  "source": "the session page, version 13",
+  "source": "the session page, version 14",
   "reader": "bf8cb5c94919",
   "drawings": [
     {
@@ -239,9 +239,7 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {
-        "word The agent hasn't started yet. Your message is kept; try again to look once more.": "The not-started scene draws its strip once it loads (stigmer#3176)"
-      }
+      "pending": {}
     }
   ]
 }

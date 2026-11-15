@@ -1,7 +1,7 @@
 {
   "screen": "S45",
   "title": "A turn's changes, with Undo",
-  "source": "the session page, version 13",
+  "source": "the session page, version 14",
   "reader": "bf8cb5c94919",
   "drawings": [
     {
@@ -119,7 +119,7 @@
           ]
         },
         {
-          "text": "How it got there: read invoice.ts, edited invoice.ts, wrote rounding.ts",
+          "text": "How it got there: read 1 file, edited invoice.ts, wrote 1 file",
           "type": [
             14,
             20,
@@ -210,9 +210,7 @@
         "word 40s": "The scene's steps take their real span inside its 42s turn"
       },
       "ruled": {},
-      "pending": {
-        "word How it got there: read invoice.ts, edited invoice.ts, wrote rounding.ts": "How it got there names a lone read or write by its file, as it names a lone edit, and the scene's turn reads before it edits"
-      }
+      "pending": {}
     },
     {
       "caption": "After an Undo and a failed Undo, with a binary file left as it is. “Undone” is neutral (a choice, not a failure); the header counts what still stands.",
@@ -361,7 +359,7 @@
           ]
         },
         {
-          "text": "How it got there: read invoice.ts, edited invoice.ts, wrote rounding.ts",
+          "text": "How it got there: read 1 file, edited invoice.ts, wrote 1 file",
           "type": [
             14,
             20,
@@ -444,9 +442,7 @@
         "word 40s": "The scene's steps take their real span inside its 42s turn"
       },
       "ruled": {},
-      "pending": {
-        "word How it got there: read invoice.ts, edited invoice.ts, wrote rounding.ts": "How it got there names a lone read or write by its file, as it names a lone edit, and the scene's turn reads before it edits"
-      }
+      "pending": {}
     },
     {
       "caption": "An older turn has no Undo: only the newest turn's files can still be undone. The next message keeps the rest, as the server already does.",
@@ -772,7 +768,7 @@
           ]
         },
         {
-          "text": "How it got there: read invoice.ts, edited invoice.ts, wrote rounding.ts",
+          "text": "How it got there: read 1 file, edited invoice.ts, wrote 1 file",
           "type": [
             14,
             20,
@@ -853,9 +849,7 @@
         "type Claude Sonnet 4.6": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
         "type Reply…": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included"
       },
-      "pending": {
-        "word How it got there: read invoice.ts, edited invoice.ts, wrote rounding.ts": "How it got there names a lone read or write by its file, as it names a lone edit, and the scene's turn reads before it edits"
-      }
+      "pending": {}
     }
   ]
 }

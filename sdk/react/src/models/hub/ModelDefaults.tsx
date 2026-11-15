@@ -181,7 +181,7 @@ function DefaultRow({
       <p
         id={statusId}
         className={cn(
-          "stg:text-2xs",
+          "stg:text-xs",
           readiness?.availability.state === "missing" ? "stg:text-foreground" : "stg:text-muted-foreground",
         )}
       >

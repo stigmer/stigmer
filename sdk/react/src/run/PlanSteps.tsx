@@ -153,7 +153,9 @@ function PlanItemRow({
         gesture={calls.length === 0 ? { kind: "none" } : { kind: "expand", expanded: open, onToggle: toggle, label: item.todo.content }}
         mark={mark}
         title={words}
-        titleClassName={live ? "stg:font-medium" : undefined}
+        // The live to-do, and the one a failed ending stopped, read at the
+        // medium weight; one stopped any other way rests at the regular.
+        titleClassName={live || (status === "in_progress" && !working && stoppedTone === "failed") ? "stg:font-medium" : undefined}
         detail={detail}
         band={band}
         bodySpan="rail"
