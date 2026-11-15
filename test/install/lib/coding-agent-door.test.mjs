@@ -17,7 +17,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { NPM_REGISTRY, fetchPagePrompt, npmRegistryFlags, parseDoorArgs, promptFromPage, runnerLogNotes, stopProcessGroup, streamDigest, withoutTags } from "./coding-agent-door.mjs";
+import { DOOR_FILE, DOOR_REPLY, DOOR_REPORT, NPM_REGISTRY, fetchPagePrompt, npmRegistryFlags, parseDoorArgs, promptFromPage, runnerLogNotes, stopProcessGroup, streamDigest, withoutTags } from "./coding-agent-door.mjs";
 
 const SERVED = `<figure dir="ltr" class="my-4 bg-fd-card rounded-xl shiki relative border"><div class="flex text-fd-muted-foreground items-center gap-2 h-9.5 border-b px-4"><figcaption class="flex-1 truncate">Paste into your coding agent</figcaption></div><div class="text-[13px] py-3.5 overflow-auto max-h-[600px] fd-scroll-container"><pre class="min-w-full w-max *:flex *:flex-col"><code><span class="line"><span>Set up Stigmer for this project. Install its command line</span></span>
 <span class="line"><span>(\`npm install -g @stigmer/cli\`, or \`brew install stigmer/tap/stigmer\`),</span></span>
@@ -229,4 +229,40 @@ test("a failed walk's runner notes keep its warnings, errors and output lines, w
   ]);
   assert.deepEqual(runnerLogNotes(log, { last: 1 }), ["ExecuteDeepAgent failed (actionable): execution=run_1, error=boom"]);
   assert.deepEqual(runnerLogNotes(""), []);
+});
+
+/** The invoice example's lines, by SKU, from one of its sample CSVs. */
+function linesOf(name) {
+  const [, ...rows] = readFileSync(new URL(`../../../examples/invoice-match/${name}`, import.meta.url), "utf8").trim().split("\n");
+  return new Map(rows.map((row) => {
+    const [sku, , quantity, price] = row.split(",");
+    return [sku, { quantity: Number(quantity), price: Number(price) }];
+  }));
+}
+
+test("the walk's fake gives the invoice example's true answer, in the file its instructions name", () => {
+  const instructions = readFileSync(new URL("../../../examples/invoice-match/invoice-matcher.yaml", import.meta.url), "utf8");
+  assert.match(instructions, new RegExp(`Save the result as ${DOOR_FILE.replace(".", "\\.")}`));
+  // The agent's rule, recomputed from the samples: what the invoice charges beyond what the order agreed.
+  const invoice = linesOf("invoice-4471.csv");
+  const order = linesOf("po-2210.csv");
+  const atStake = [...new Set([...invoice.keys(), ...order.keys()])]
+    .map((sku) => {
+      const billed = invoice.get(sku);
+      const agreed = order.get(sku);
+      const charged = billed === undefined ? 0 : billed.quantity * billed.price;
+      const owed = billed === undefined || agreed === undefined ? 0 : Math.min(billed.quantity, agreed.quantity) * agreed.price;
+      return { sku, amount: charged - owed, differs: JSON.stringify(billed) !== JSON.stringify(agreed) };
+    })
+    .filter((line) => line.differs)
+    .sort((a, b) => b.amount - a.amount);
+  const rows = DOOR_REPORT.split("\n").filter((line) => /^\| [A-Z]{3}-\d+ \|/.test(line));
+  assert.deepEqual(
+    rows.map((row) => { const cells = row.split("|").map((cell) => cell.trim()); return { sku: cells[1], amount: Number(cells[4]) }; }),
+    atStake.map(({ sku, amount }) => ({ sku, amount })),
+  );
+  const total = atStake.reduce((sum, line) => sum + line.amount, 0).toFixed(2);
+  assert.match(DOOR_REPORT, new RegExp(`^Total at stake: ${total}$`, "m"));
+  for (const { sku } of atStake) assert.match(DOOR_REPLY, new RegExp(sku));
+  assert.match(DOOR_REPLY, new RegExp(total.replace(".", "\\.")));
 });

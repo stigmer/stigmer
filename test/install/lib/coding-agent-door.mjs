@@ -312,3 +312,29 @@ export function runnerLogNotes(logText, { last = 20 } = {}) {
     .map((line) => oneLine(line));
   return notes.slice(-last);
 }
+
+/**
+ * What the walk's fake model has the example agent do, for the example a
+ * coding agent picks for the walk's invoices app (examples/invoice-match):
+ * its first run saves the file the agent's instructions name, holding the
+ * true answer for the example's own samples, and every later turn answers
+ * in the same words. A coding agent reads both and checks them against the
+ * samples: an answer that is wrong, or that reads as no model's, stops it
+ * before the chat, as it should for a person (stigmer/stigmer#3160). The
+ * suite recomputes the answer from the samples.
+ */
+export const DOOR_FILE = "mismatches.md";
+export const DOOR_REPORT = [
+  "Total at stake: 940.00",
+  "",
+  "| SKU | Order | Invoice | At stake |",
+  "|---|---|---|---|",
+  "| SRV-01 | not ordered | 1 × 450.00 | 450.00 |",
+  "| CHR-310 | 12 × 210.00 | 12 × 235.00 | 300.00 |",
+  "| DSK-121 | 10 × 95.00 | 12 × 95.00 | 190.00 |",
+  "",
+].join("\n");
+export const DOOR_REPLY =
+  "I checked invoice-4471 against po-2210 and saved mismatches.md: 940.00 is at stake on three lines. " +
+  "SRV-01 (assembly and delivery, 450.00) was never ordered; CHR-310 is billed at 235.00 against the agreed 210.00, 300.00 over; " +
+  "and DSK-121 bills 12 desk tops where 10 were ordered, 190.00 over.";
