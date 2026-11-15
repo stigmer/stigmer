@@ -1,7 +1,7 @@
 {
   "screen": "S50",
   "title": "A file, opened",
-  "source": "the session page, version 13",
+  "source": "the session page, version 14",
   "reader": "bf8cb5c94919",
   "drawings": [
     {
@@ -147,9 +147,7 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {
-        "button Close": "The file window's Close at the notice acts' 28px"
-      }
+      "pending": {}
     },
     {
       "caption": "The panel's file tab draws the same frame.",

@@ -304,7 +304,7 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "button More actions": "A row's overflow menu at 28px",
+        "button More actions": "When its page is redesigned: a list row's overflow menu, which no list draws yet",
         "type daily-variance-report": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
         "word 1d ago": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
         "word 1m 14s": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",

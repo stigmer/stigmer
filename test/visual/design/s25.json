@@ -1,7 +1,7 @@
 {
   "screen": "S25",
   "title": "Model not available",
-  "source": "the session page, version 13",
+  "source": "the session page, version 14",
   "reader": "bf8cb5c94919",
   "drawings": [
     {
@@ -295,17 +295,7 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {
-        "button Stigmer": "The model picker sets its descriptions and badges at 12/16, and names its harness button with the word it shows",
-        "type Best for most tasks": "The model picker sets its descriptions and badges at 12/16, and names its harness button with the word it shows",
-        "type Extended reasoning; uses more output tokens": "The model picker sets its descriptions and badges at 12/16, and names its harness button with the word it shows",
-        "type Fast $$": "The model picker sets its descriptions and badges at 12/16, and names its harness button with the word it shows",
-        "type Fastest $": "The model picker sets its descriptions and badges at 12/16, and names its harness button with the word it shows",
-        "type Frontier agentic coding": "The model picker sets its descriptions and badges at 12/16, and names its harness button with the word it shows",
-        "type OpenAI's general model": "The model picker sets its descriptions and badges at 12/16, and names its harness button with the word it shows",
-        "type Powerful $$$": "The model picker sets its descriptions and badges at 12/16, and names its harness button with the word it shows",
-        "type Quick responses, lower cost": "The model picker sets its descriptions and badges at 12/16, and names its harness button with the word it shows"
-      }
+      "pending": {}
     }
   ]
 }
