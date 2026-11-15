@@ -313,6 +313,22 @@ export const POSTGRES_MIGRATIONS: ReadonlyArray<PostgresSchemaMigration> = [
       `CREATE INDEX idx_file_blob_refs_org ON file_blob_refs (org)`,
     ],
   },
+  {
+    version: 2,
+    statements: [
+      // The planner's statistic for the list reads' stamp check (a row's
+      // list facts are current when list_indexed_at equals updated_at,
+      // list-index-read.ts). Postgres keeps none for a comparison of two
+      // columns and guesses it matches 0.5% of rows, so a read of a busy
+      // kind sorted the whole kind rather than walk its index
+      // (stigmer/stigmer#3166). The read states the check as
+      // `(list_indexed_at = updated_at) IS TRUE`, the form this statistic
+      // answers. Catalogue only: no rewrite, no index build; the next
+      // ANALYZE fills it, and the store gathers one at open when it is
+      // empty (store.ts, gatherListStatistics). Needs the table's owner.
+      `CREATE STATISTICS resources_list_proven ON ((list_indexed_at = updated_at)) FROM resources`,
+    ],
+  },
 ];
 
 /** The newest version this build knows. */

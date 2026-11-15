@@ -74,6 +74,12 @@ The practice, for every step after 0.1.0:
    is read: "schema version N is newer than this server supports". A
    database from before the 0.1.0 baseline meets the same refusal.
 
+A step runs as the server's database role, which must own the chain's tables:
+a step that alters a table, or adds an index or a statistics object to it,
+needs its owner. A database restored under another owner opens until such a
+step arrives, then refuses it until its tables' owner is fixed; the release
+notes of a release whose step needs it say so.
+
 A known limit: each step runs in one transaction, so a step cannot build an
 index concurrently (`CREATE INDEX CONCURRENTLY` refuses a transaction block),
 and a step that indexes or backfills a large existing table holds its lock
@@ -96,8 +102,24 @@ roll overlaps it with the new one, or under another revision of the declaration
 — is evaluated from its bytes and repaired by a compare-and-set on those bytes.
 The migrations that add the index are schema only; the reconciliation each
 driver runs at open derives every unproven row, so the unproven set is empty in
-steady state and reads stay one index range. Every read shape names or forces
-its index, because a freshly written table has no planner statistics.
+steady state and reads stay one index range.
+
+Every read is one range of its index, and a page after the first starts at its
+cursor (a row comparison, so the index search starts there). On SQLite each
+read names its index or needs no statistics, and the driver gathers none, so
+its plans do not move with the data. Postgres has no index hints: it plans
+from statistics, and the store keeps the ones these reads need. Schema v2 adds
+a statistic for the stamp check (a comparison of two columns, which Postgres
+otherwise guesses matches almost nothing), and the read states the check in
+the form that statistic answers. At open the store analyzes the list tables
+when they or that statistic hold none (a restored database, the first open
+after v2) or when the reconciliation just wrote facts; for a table its role
+does not own it logs a warning instead. Each driver's plan test
+(`postgres/__tests__/list-index-plans.postgres.test.ts`,
+`sqlite/__tests__/list-index-plans.test.ts`) asks the planner how every read
+plans and is where this is proven, on Postgres at four production-like table
+shapes. One case no store can force: a table that grew large with autovacuum
+switched off and was never analyzed after the store last opened.
 
 The exception is a row whose bytes do not decode (damaged, or written by a
 binary whose message this one cannot read): it has no facts. The first read

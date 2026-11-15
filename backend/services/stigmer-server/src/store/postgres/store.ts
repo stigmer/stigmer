@@ -92,6 +92,7 @@ import type {
   ListIndexRow,
   ListIndexSweep,
 } from "../list-index.js";
+import { provenReadSql } from "./list-index-read.js";
 import { NOOP_STORE_LOGGER } from "../logger.js";
 import { newBoundedPool } from "./pool.js";
 import type { BoundedPool, PoolStats } from "./pool.js";
@@ -257,6 +258,42 @@ const MARKED_ONE_MESSAGE =
 const MARKED_AT_OPEN_MESSAGE =
   "list index: rows do not decode; lists skip them until they are rewritten";
 
+/** The tables the list reads plan over; fixed names, never input. */
+const LIST_TABLES = ["resources", "resource_list_keys"] as const;
+
+/**
+ * Whether the planner has what the list reads need, per list table: column
+ * statistics, and for `resources` data in the stamp statistic schema v2
+ * added (`resources_list_proven`, migrations.ts). `pg_stats`, not
+ * `pg_class.reltuples`: an index built on a loaded table, as a restore
+ * builds them, sets the row count and gathers no statistics. The stamp
+ * statistic is listed from its creation with every value NULL, so it holds
+ * data once an ANALYZE has set its null fraction. Only the
+ * table's owner sees the expression statistic and may ANALYZE, so the
+ * owner check rides along. Parameter: the statistic's name.
+ */
+const LIST_STATISTICS_SQL = `
+  SELECT c.relname AS name,
+         pg_has_role(c.relowner, 'USAGE') AS owned,
+         EXISTS (SELECT 1 FROM pg_stats s
+                  WHERE s.schemaname = n.nspname AND s.tablename = c.relname) AS has_columns,
+         EXISTS (SELECT 1 FROM pg_stats_ext_exprs e
+                  WHERE e.schemaname = n.nspname AND e.tablename = c.relname
+                    AND e.statistics_name = $1 AND e.null_frac IS NOT NULL) AS has_stamp
+    FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+   WHERE c.oid IN ('resources'::regclass, 'resource_list_keys'::regclass)
+   ORDER BY c.relname COLLATE "C"`;
+
+/** The stamp statistic's name (schema v2). */
+const LIST_STAMP_STATISTIC = "resources_list_proven";
+
+/** What the store logs when it gathers the list tables' statistics at open. */
+const LIST_STATISTICS_GATHERED_MESSAGE = "list statistics gathered";
+
+/** What the store logs at open for a list table it cannot analyze and that has no statistics. */
+const LIST_STATISTICS_MISSING_MESSAGE =
+  "list statistics missing on a table this role does not own; list reads may sort until its owner runs ANALYZE on it";
+
 /**
  * What one row's bytes told a read: its facts, or that they do not
  * decode and whether this read's mark landed (it does not when a newer
@@ -333,7 +370,8 @@ export class PostgresStore implements Store {
    * Connects to databaseUrl, runs migrations (advisory-locked, so
    * concurrent boots serialize), reconciles the list index (derives the
    * facts of every unproven row of a declared kind; compare-and-set, so
-   * replicas opening together cannot conflict), and returns the ready
+   * replicas opening together cannot conflict), gathers the planner
+   * statistics the list reads plan from when they are missing, and returns the ready
    * store. Any failure here is a loud boot throw — never a degraded server
    * (the same posture as SqliteStore.open; the composition root does not
    * catch it).
@@ -374,7 +412,8 @@ export class PostgresStore implements Store {
 
     const store = new PostgresStore(pool, logger, listIndexes, options.sessionEventGates);
     try {
-      await store.reconcileListIndexes();
+      const listFactsWritten = await store.reconcileListIndexes();
+      await store.gatherListStatistics(listFactsWritten);
       await store.reconcileSessionEventGates();
     } catch (error) {
       await store.close();
@@ -1272,9 +1311,11 @@ export class PostgresStore implements Store {
    * id-keyed batches, and stamps every other kind's unstamped rows (they
    * carry no facts), so the unproven set is empty when the server starts
    * serving. Reads stay exact without it; it keeps them cheap. The rows
-   * that still do not decode are logged once per kind.
+   * that still do not decode are logged once per kind. Answers whether it
+   * wrote any row's list facts or stamp, so the statistics step refreshes
+   * what changed under the planner.
    */
-  private async reconcileListIndexes(): Promise<void> {
+  private async reconcileListIndexes(): Promise<boolean> {
     const declarations = this.listIndexes.declarations();
     let reconciled = false;
     for (const declaration of declarations) {
@@ -1353,16 +1394,74 @@ export class PostgresStore implements Store {
         reconciled = true;
       }
     }
-    if (reconciled) {
-      // Every derived row's list columns changed at once; the planner's
-      // statistics for them are refreshed before the first read plans.
-      await this.open().query(`ANALYZE resources, resource_list_keys`);
-    }
-    await this.open().query(
+    const stamped = await this.open().query(
       `UPDATE resources SET list_indexed_at = updated_at
        WHERE list_indexed_at IS DISTINCT FROM updated_at AND NOT (kind = ANY($1::text[]))`,
       [declarations.map((d) => apiResourceKindName(d.kind))],
     );
+    return reconciled || (stamped.rowCount ?? 0) > 0;
+  }
+
+  /**
+   * Gives the planner what the list reads plan from before the first one
+   * plans. Postgres has no index hints: a list read is one range of its
+   * index only when the planner's statistics say a page is near (the
+   * store README, the list index). Without them it guesses few rows match
+   * and sorts the kind instead. Autovacuum gathers them only once a tenth
+   * of a table has changed, which on a large, stable table can be days, so
+   * a restored database, the first open after schema v2 added the stamp
+   * statistic, and one whose list facts this open just wrote are each
+   * analyzed here, the tables that need it in one statement, with one line
+   * saying why. A table that has its statistics costs one catalogue read.
+   * An empty table never keeps any, so a new database asks again at every
+   * open and analyzes nothing of size.
+   *
+   * Only a table this role owns is analyzed: Postgres skips any other
+   * with a warning, and hides the stamp statistic from a role that does
+   * not own the table, so a non-owner would ask, be refused and warn at
+   * every open. For a table it does not own and that has no statistics at
+   * all, the store says so once per open, for its operator to analyze.
+   */
+  private async gatherListStatistics(listFactsWritten: boolean): Promise<void> {
+    const result = await this.open().query(LIST_STATISTICS_SQL, [
+      LIST_STAMP_STATISTIC,
+    ]);
+    const tables = result.rows as Array<{
+      name: string;
+      owned: boolean;
+      has_columns: boolean;
+      has_stamp: boolean;
+    }>;
+    const reasons: Record<string, string> = {};
+    for (const table of tables) {
+      if (!table.owned) {
+        if (!table.has_columns) {
+          this.logger.warn(LIST_STATISTICS_MISSING_MESSAGE, {
+            table: table.name,
+          });
+        }
+        continue;
+      }
+      const why: string[] = [];
+      if (!table.has_columns) {
+        why.push("no column statistics");
+      }
+      if (table.name === "resources" && !table.has_stamp) {
+        why.push("the stamp statistic holds none");
+      }
+      if (listFactsWritten) {
+        why.push("list facts were written at open");
+      }
+      if (why.length > 0) {
+        reasons[table.name] = why.join("; ");
+      }
+    }
+    const analyzed = LIST_TABLES.filter((name) => name in reasons);
+    if (analyzed.length === 0) {
+      return;
+    }
+    await this.open().query(`ANALYZE ${analyzed.join(", ")}`);
+    this.logger.info(LIST_STATISTICS_GATHERED_MESSAGE, reasons);
   }
 
   // ---------------------------------------------------------------------------
@@ -2825,86 +2924,6 @@ async function replaceListKeys(
     `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ${tuples.join(", ")}`,
     params,
   );
-}
-
-/**
- * One proven read of `queryResources`: through one key's index range when
- * `key` is given (the key table drives, its copied creation instant is the
- * order), else through the organization index. Only rows whose facts are
- * proven current are returned; the unproven arm answers for the rest.
- */
-function provenReadSql(
-  kindName: string,
-  revision: number,
-  query: ListIndexQuery,
-  key: { readonly name: string; readonly value: string } | undefined,
-): { sql: string; params: unknown[] } {
-  const params: unknown[] = [kindName, revision];
-  const param = (value: unknown): string => {
-    params.push(value);
-    return `$${params.length}`;
-  };
-  const created = key === undefined ? "r.list_created_at" : "k.created_at";
-  const id = key === undefined ? `r.id COLLATE "C"` : `k.id COLLATE "C"`;
-  // A row marked as not decoding is stamped proven with no facts
-  // (list-index.ts); no read shape returns it. It is redundant for an
-  // organization's read (a derived row's organization is never NULL) and
-  // a key's (a marked row has no key rows), and the only guard for the
-  // read with neither, stated once so no shape can miss it. It changes no
-  // plan (measured: each read plans as it did without it).
-  const where = [
-    `r.list_indexed_at = r.updated_at`,
-    `r.list_index_revision = $2`,
-    `r.list_created_at IS NOT NULL`,
-  ];
-  let from = `resources r`;
-  if (key === undefined) {
-    where.unshift(`r.kind = $1`);
-  } else {
-    // The row behind each key is fetched by primary key and nothing else:
-    // `OFFSET 0` keeps the subquery from being flattened, so a planner
-    // without statistics cannot reach it through the revision index
-    // instead (measured: a scan of the kind per key row).
-    from = `resource_list_keys k CROSS JOIN LATERAL (
-        SELECT id, data, updated_at, list_indexed_at, list_index_revision, list_org,
-          list_created_at
-        FROM resources WHERE kind = k.kind AND id = k.id OFFSET 0
-      ) r`;
-    where.unshift(
-      `k.kind = $1`,
-      `k.key = ${param(key.name)}`,
-      `k.value = ${param(key.value)}`,
-    );
-  }
-  if (query.org !== undefined && query.org !== "") {
-    where.push(`r.list_org = ${param(query.org)}`);
-  }
-  if (query.withoutKeys !== undefined && query.withoutKeys.length > 0) {
-    // Answered by the key table's primary key (kind, id, key).
-    where.push(
-      `NOT EXISTS (SELECT 1 FROM resource_list_keys w
-         WHERE w.kind = $1 AND w.id = r.id AND w.key = ANY(${param([...query.withoutKeys])}::text[]))`,
-    );
-  }
-  if (query.createdAtOrAfter !== undefined) {
-    where.push(
-      `(${created} >= ${param(query.createdAtOrAfter)} OR ${created} = '')`,
-    );
-  }
-  if (query.after !== undefined) {
-    const afterCreated = param(query.after.createdAt);
-    const afterId = param(query.after.id);
-    where.push(
-      `(${created} < ${afterCreated} OR (${created} = ${afterCreated} AND ${id} < ${afterId}))`,
-    );
-  }
-  const limit = query.limit === undefined ? "" : ` LIMIT ${param(query.limit)}`;
-  return {
-    sql: `SELECT r.id, r.data, ${created} AS created_at FROM ${from}
-          WHERE ${where.join(" AND ")}
-          ORDER BY ${created} DESC, ${id} DESC${limit}`,
-    params,
-  };
 }
 
 /** An audit row as the audit reads select it; node-postgres returns BIGSERIAL as text. */
