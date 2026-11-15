@@ -116,7 +116,6 @@ export function checkInstalls({ source, version }) {
 }
 
 const isMain = process.argv[1] !== undefined && fileURLToPath(import.meta.url) === resolve(process.argv[1]);
-/* v8 ignore start -- @preserve: the command line's entry, run by the reconcile lane; the suite calls the pure parts */
 if (isMain) {
   try {
     const options = parseArgs(process.argv.slice(2));
@@ -127,4 +126,3 @@ if (isMain) {
     process.exit(1);
   }
 }
-/* v8 ignore stop */

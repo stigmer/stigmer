@@ -520,17 +520,29 @@ export function rewriteMapSources(distDir, pkgDir) {
 
 /**
  * Refuse a staged dist/ that would publish a test-side file, a map whose
- * source is not in the tarball, or a plugin manifest still at the workspace
- * version. Runs last, on exactly what `npm pack` and `npm publish` read, so
+ * source is not in the tarball, or a plugin manifest of the package's own
+ * (one at the workspace version in its source) at any version but the one
+ * dist/package.json publishes. Runs last, on exactly what `npm pack` and `npm publish` read, so
  * whatever put the file there (the source stage, a build config that
  * compiles tests, a build that stamps its own version) is caught the same way.
  */
-export function assertStagedDist(distDir, name) {
+export function assertStagedDist(distDir, name, pkgDir = dirname(distDir)) {
   const problems = [];
+  // The version the tarball publishes at; absent only in a dist/ no publish staged.
+  const published = readManifest(join(distDir, "package.json"))?.version;
   for (const rel of listFiles(distDir)) {
     if (isTestSidePath(rel)) problems.push(`test-side file: ${rel}`);
-    if (isPluginManifestPath(rel) && readManifest(join(distDir, rel))?.version === WORKSPACE_VERSION) {
-      problems.push(`plugin manifest at the workspace version ${WORKSPACE_VERSION}: ${rel}`);
+    if (isPluginManifestPath(rel)) {
+      const staged = readManifest(join(distDir, rel))?.version;
+      if (staged === WORKSPACE_VERSION) {
+        problems.push(`plugin manifest at the workspace version ${WORKSPACE_VERSION}: ${rel}`);
+      } else if (
+        published !== undefined &&
+        staged !== published &&
+        readManifest(join(pkgDir, rel))?.version === WORKSPACE_VERSION
+      ) {
+        problems.push(`plugin manifest at ${staged}, not the package's ${published}: ${rel}`);
+      }
     }
     if (!rel.endsWith(".map")) continue;
     const mapPath = join(distDir, rel);

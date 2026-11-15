@@ -13,10 +13,13 @@ run-name: reconcile-coding-agent-plugin ${{ github.event.workflow_run.head_branc
 #
 # Triggers:
 #   - workflow_run, when release.npm-libs completes successfully for a v* tag
-#     push: the repository follows the release within minutes, waiting first
-#     for npm `latest` to answer with the tag's version (a read just after a
-#     publish can lag);
-#   - daily, and by dispatch: a re-run after a red, and the standing check.
+#     push (the whole release run, its smokes included, so up to a couple of
+#     hours after the tag): the repository follows the release then, waiting
+#     first for npm `latest` to answer with the tag's version or a newer one
+#     (a read just after a publish can lag). A prerelease never moves
+#     `latest`, so its run does nothing;
+#   - daily, and by dispatch: a re-run after a red, a release whose run went
+#     red after it published, and the standing check.
 #
 # Unlike the Homebrew tap, nothing here installs dependencies at the target
 # version, so there is no age window: a run after a release takes it at once.

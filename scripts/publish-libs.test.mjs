@@ -576,6 +576,31 @@ test("assertStagedDist refuses a plugin manifest still at the workspace version"
   }
 });
 
+test("assertStagedDist refuses a package's own plugin manifest at another version than its package.json", () => {
+  // A dist/ staged at 1.0.0, then re-staged at 1.0.1 without the stamp.
+  const vendored = '{"name":"vendored","version":"1.0.0"}';
+  const pkgDir = syntheticPackage({
+    "plugin/.claude-plugin/plugin.json": manifest(WORKSPACE_VERSION),
+    "dist/package.json": '{"name":"@stigmer/synthetic","version":"1.0.1"}',
+    "dist/plugin/.claude-plugin/plugin.json": manifest("1.0.0"),
+    // A vendored plugin keeps its own version, whatever the package's.
+    "vendored/.codex-plugin/plugin.json": vendored,
+    "dist/vendored/.codex-plugin/plugin.json": vendored,
+  });
+  try {
+    assert.throws(
+      () => assertStagedDist(join(pkgDir, "dist"), "@stigmer/synthetic", pkgDir),
+      (err) =>
+        err.message.includes("1 problem(s)") &&
+        err.message.includes("plugin manifest at 1.0.0, not the package's 1.0.1: plugin/.claude-plugin/plugin.json"),
+    );
+    stampPluginManifests(join(pkgDir, "dist"), "1.0.1", pkgDir);
+    assertStagedDist(join(pkgDir, "dist"), "@stigmer/synthetic", pkgDir);
+  } finally {
+    rmSync(pkgDir, { recursive: true, force: true });
+  }
+});
+
 test("the coding-agent plugin, built and staged as a release stages it, carries the release version everywhere", () => {
   // The package's own build stamps its source version (the workspace's) into
   // the manifests; staging must leave none of it in what is published.
