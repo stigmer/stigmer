@@ -196,7 +196,7 @@ export async function deleteMyVaultOf(
       throw undecodableMyVault(claim.id);
     }
   }
-  const vaults = sweep.rows.map(decodeSweptRow);
+  const vaults = sweep.rows.map(decodeMyVaultRow);
   for (const vault of vaults) {
     await deleteLoadedVault(deps, vault, caller);
   }
@@ -249,7 +249,9 @@ type DeleteInput = typeof VaultCommandController.method.delete.input;
  * controller.ts runs this before the account row goes). Such a row has
  * no person to match, and no read ties it to one across organizations
  * (the name store resolves a claim within one organization), so any
- * damaged vault row may be this person's.
+ * damaged vault row may be this person's. That row may as well be another
+ * person's or another organization's, so its id goes to the log, not to
+ * the caller.
  */
 export async function deleteAllMyVaultsOf(
   deps: VaultDeleteDeps & { readonly vaults: VaultService },
@@ -259,11 +261,14 @@ export async function deleteAllMyVaultsOf(
   const sweep = await deps.store.queryResourcesForSweep(vaultListIndex, {
     anyKey: [{ name: "person", value: person }],
   });
-  const damaged = sweep.undecodable[0];
-  if (damaged !== undefined) {
-    throw undecodableMyVault(damaged);
+  if (sweep.undecodable.length > 0) {
+    deps.logger.error(
+      "an account's My vaults are not deleted: a vault row does not decode",
+      { person, vaultIds: sweep.undecodable },
+    );
+    throw internalError(undefined, UNDECODABLE_VAULT_BLOCKS_ACCOUNT);
   }
-  const vaults = sweep.rows.map(decodeSweptRow);
+  const vaults = sweep.rows.map(decodeMyVaultRow);
   for (const vault of vaults) {
     await deleteLoadedVault(deps, vault, caller);
   }
@@ -271,18 +276,30 @@ export async function deleteAllMyVaultsOf(
 }
 
 /**
- * A row the sweep answered, decoded. The store decoded it already (when it
- * was written, or when the read derived its facts), and a row it could not
- * decode is in `undecodable`, never here.
+ * The refusal of an account's deletion while a vault row does not decode:
+ * the row is not known to be the person's, so the copy names none.
  */
-function decodeSweptRow(row: ListIndexRow): Vault {
-  return fromBinary(VaultSchema, row.data);
+export const UNDECODABLE_VAULT_BLOCKS_ACCOUNT =
+  "a vault does not decode: its sealed values cannot be destroyed, so no My vault of this person is deleted until it is repaired";
+
+/**
+ * A row the sweep answered, decoded. The store's read decoded an unproven
+ * row already; a proven row's bytes changed in place under its facts
+ * (damage that left its write stamp) still reach here, and refuse the
+ * deletion as an unproven one does.
+ */
+function decodeMyVaultRow(row: ListIndexRow): Vault {
+  try {
+    return fromBinary(VaultSchema, row.data);
+  } catch (error) {
+    throw undecodableMyVault(row.id, error);
+  }
 }
 
-/** The refusal of a person sweep that meets a vault row it cannot read. */
-function undecodableMyVault(id: string): ConnectError {
+/** The refusal of a person sweep that meets that person's vault row it cannot read. */
+function undecodableMyVault(id: string, cause?: unknown): ConnectError {
   return internalError(
-    undefined,
+    cause,
     `vault ${id} does not decode: its sealed values cannot be destroyed, so no My vault of its person is deleted`,
   );
 }

@@ -9,9 +9,11 @@
  *
  * And a vault row the real store cannot decode, planted as an older binary
  * writes one (stigmer/stigmer#2774): it fails an account's deletion before
- * any vault goes, whoever's it is, and the retry after the repair deletes
- * them all; it fails a departure when the person's own claim names it, and
- * no other departure.
+ * any vault goes, whoever's it is, with its id in the log and not on the
+ * wire, and the retry after the repair deletes them all; it fails a
+ * departure when the person's own claim names it, and no other departure.
+ * A row of the person's damaged in place, its facts still proven, fails
+ * the deletion naming the vault.
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -27,6 +29,7 @@ import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js"
 import type { Store } from "../../../store/interface.js";
 
 import {
+  UNDECODABLE_VAULT_BLOCKS_ACCOUNT,
   deleteAllMyVaultsOf,
   deleteMyVaultOf,
   newDeleteVaultConnectLinksStep,
@@ -184,7 +187,7 @@ describe("deleteAllMyVaultsOf over a row that does not decode", () => {
 
     const failure = await refusal(deleteAllMyVaultsOf(deps(), "ida_ana", system));
     expect(failure.code).toBe(Code.Internal);
-    expect(failure.rawMessage).toContain(broken);
+    expect(failure.rawMessage).toBe(UNDECODABLE_VAULT_BLOCKS_ACCOUNT);
     // Nothing went: the readable vault and every sealed value wait for the retry.
     expect((await rig.vaults.findMine("acme", "ida_ana"))?.metadata?.id).toBe(acme);
     expect(rig.codec.deleted).toEqual([]);
@@ -198,14 +201,38 @@ describe("deleteAllMyVaultsOf over a row that does not decode", () => {
 
   it("fails while any vault row is damaged, since no read ties a damaged row to a person", async () => {
     await myVault("acme", ana);
-    const repair = await damage(await myVault("acme", ben));
+    const bens = await myVault("acme", ben);
+    const repair = await damage(bens);
+    const logged: Array<Record<string, unknown> | undefined> = [];
+    const logger = {
+      ...silentLogger,
+      error: (_message: string, fields?: Record<string, unknown>) => {
+        logged.push(fields);
+      },
+    };
 
-    const failure = await refusal(deleteAllMyVaultsOf(deps(), "ida_ana", system));
+    const failure = await refusal(deleteAllMyVaultsOf({ ...deps(), logger }, "ida_ana", system));
     expect(failure.code).toBe(Code.Internal);
+    expect(failure.rawMessage, "another person's vault id never reaches the caller").not.toContain(bens);
+    expect(logged, "the operator's log names it").toEqual([{ person: "ida_ana", vaultIds: [bens] }]);
     expect(rig.codec.deleted).toEqual([]);
 
     repair();
     expect(await deleteAllMyVaultsOf(deps(), "ida_ana", system)).toBe(1);
+  });
+});
+
+describe("a My vault row damaged in place, its list facts still proven", () => {
+  it("fails the person's deletion with the vault's id before any vault goes", async () => {
+    const acme = await myVault("acme", ana);
+    const broken = await myVault("globex", ana);
+    rig.damageVaultInPlace(broken, garbage);
+
+    const failure = await refusal(deleteAllMyVaultsOf(deps(), "ida_ana", system));
+    expect(failure.code).toBe(Code.Internal);
+    expect(failure.rawMessage).toContain(broken);
+    expect((await rig.vaults.findMine("acme", "ida_ana"))?.metadata?.id).toBe(acme);
+    expect(rig.codec.deleted).toEqual([]);
   });
 });
 

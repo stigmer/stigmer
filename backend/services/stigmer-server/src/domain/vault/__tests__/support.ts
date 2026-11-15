@@ -68,6 +68,12 @@ export interface VaultRig {
    * does in production, and good bytes are repaired by the next read.
    */
   writeVaultAsOlderBinary(id: string, data: Uint8Array): void;
+  /**
+   * Overwrites a vault row's bytes and nothing else, as damage in place
+   * does: its list facts still read as proven, so the store's read hands
+   * the bytes out without decoding them.
+   */
+  damageVaultInPlace(id: string, data: Uint8Array): void;
   close(): void;
 }
 
@@ -104,6 +110,18 @@ export function openVaultRig(): VaultRig {
         db.prepare(
           `INSERT OR REPLACE INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, datetime('now'))`,
         ).run(apiResourceKindName(ApiResourceKind.vault), id, data);
+      } finally {
+        db.close();
+      }
+    },
+    damageVaultInPlace(id, data) {
+      const db = new DatabaseSync(dbPath);
+      try {
+        db.prepare(`UPDATE resources SET data = ? WHERE kind = ? AND id = ?`).run(
+          data,
+          apiResourceKindName(ApiResourceKind.vault),
+          id,
+        );
       } finally {
         db.close();
       }
