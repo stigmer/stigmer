@@ -25,7 +25,14 @@ export function provenReadSql(
   const created = key === undefined ? "r.list_created_at" : "k.created_at";
   const id = key === undefined ? "r.id" : "k.id";
   const where: string[] = [];
-  let from = `resources AS r`;
+  // Each arm names its index, as the unproven reads do (store.ts): with no
+  // statistics, a row-value cursor alone moves the organization read onto
+  // the created index, filtering the organization row by row (measured).
+  // `INDEXED BY` fails the statement rather than fall back to a scan.
+  let from =
+    query.org !== undefined && query.org !== ""
+      ? `resources AS r INDEXED BY idx_resources_list_org`
+      : `resources AS r INDEXED BY idx_resources_list_created`;
   if (key === undefined) {
     where.push(`r.kind = ?`);
     params.push(kindName);
@@ -68,8 +75,11 @@ export function provenReadSql(
     params.push(query.createdAtOrAfter);
   }
   if (query.after !== undefined) {
-    where.push(`(${created} < ? OR (${created} = ? AND ${id} < ?))`);
-    params.push(query.after.createdAt, query.after.createdAt, query.after.id);
+    // A row value, so the cursor is in the index search: with the OR it
+    // replaced, a later page re-read every page before it. Element by
+    // element the same truth.
+    where.push(`(${created}, ${id}) < (?, ?)`);
+    params.push(query.after.createdAt, query.after.id);
   }
   let limit = "";
   if (query.limit !== undefined) {

@@ -83,10 +83,13 @@ export function provenReadSql(
     );
   }
   if (query.after !== undefined) {
-    const afterCreated = param(query.after.createdAt);
-    const afterId = param(query.after.id);
+    // A row comparison, so the cursor is where the index walk starts: an
+    // ordered scan cannot start at an OR, and with one a later page re-read
+    // every page before it. Element by element it is the OR it replaced
+    // (created before, or the same instant and an id before), under the
+    // index's own collation for the id.
     where.push(
-      `(${created} < ${afterCreated} OR (${created} = ${afterCreated} AND ${id} < ${afterId}))`,
+      `(${created}, ${id}) < (${param(query.after.createdAt)}, ${param(query.after.id)})`,
     );
   }
   const limit = query.limit === undefined ? "" : ` LIMIT ${param(query.limit)}`;

@@ -261,7 +261,7 @@ function outline(node: PlanNode, depth = 0): string[] {
 const SORTS = new Set(["Sort", "Incremental Sort"]);
 
 /** The cursor as Postgres prints a row comparison in an index condition. */
-const CURSOR_IN_RANGE = /ROW\([^)]*created_at[^)]*\) < ROW\(/;
+const CURSOR_IN_RANGE = /ROW\((list_)?created_at, .*\) < ROW\(/;
 
 interface Judged {
   /** Every node that reads the driving table. */
