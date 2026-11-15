@@ -564,12 +564,16 @@ jobs:
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
+          # The words GHCR shows on the package page: the index annotation, read
+          # from the Dockerfile's description label (scripts/lib/image-description.mjs).
+          IMAGE_DESCRIPTION="$(node scripts/lib/image-description.mjs --file backend/services/stigmer-server/Dockerfile)"
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
             --file backend/services/stigmer-server/Dockerfile \
             --build-arg IMAGE_VERSION="v${VERSION}" \
             --build-arg IMAGE_REVISION="${{ github.sha }}" \
             --tag "ghcr.io/${{ github.repository_owner }}/stigmer-server:v${VERSION}" \
+            --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" \
             --push \
             backend/services/stigmer-server
 
@@ -663,9 +667,15 @@ jobs:
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
+          # A new index keeps the words its source carries (GHCR shows the index
+          # annotation as the package description); a source with none is refused.
+          SOURCE="ghcr.io/${{ github.repository_owner }}/stigmer-server:v${VERSION}"
+          IMAGE_DESCRIPTION="$(docker buildx imagetools inspect "$SOURCE" --format '{{ index .Manifest.Annotations "org.opencontainers.image.description" }}')"
+          [ -n "$IMAGE_DESCRIPTION" ] || { echo "$SOURCE carries no org.opencontainers.image.description annotation; refusing to write an index without one" >&2; exit 1; }
           docker buildx imagetools create \
+            --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" \
             --tag "ghcr.io/${{ github.repository_owner }}/stigmer-server:latest" \
-            "ghcr.io/${{ github.repository_owner }}/stigmer-server:v${VERSION}"
+            "$SOURCE"
 
   # ══ The Stigmer Enterprise server image ══
   # ghcr.io/stigmer/stigmer-server-ee: the server image's Dockerfile over a
@@ -800,10 +810,13 @@ jobs:
       # The server's Dockerfile, the context ee/server (its
       # Dockerfile.dockerignore sends only the two trees). The labels are
       # the ones ee/server/scripts/smoke-image.mjs requires, so a drift here
-      # fails the smokes below before `latest` moves.
+      # fails the smokes below before `latest` moves. The description is
+      # stated once, here, and is both the label and the index annotation
+      # GHCR shows on the package page.
       - name: Build and push the image (version tag only)
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
+          IMAGE_DESCRIPTION: "Stigmer Enterprise: the Stigmer control plane with many organizations, federation with other platforms, teams and invitations, turned on by a license key; unified gRPC/Connect/REST port with the bundled web console"
         run: |
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
@@ -811,9 +824,10 @@ jobs:
             --build-arg IMAGE_VERSION="v${VERSION}" \
             --build-arg IMAGE_REVISION="${{ github.sha }}" \
             --build-arg IMAGE_TITLE="stigmer-server-ee" \
-            --build-arg IMAGE_DESCRIPTION="Stigmer Enterprise: the Stigmer control plane with many organizations, federation with other platforms, teams and invitations, turned on by a license key; unified gRPC/Connect/REST port with the bundled web console" \
+            --build-arg IMAGE_DESCRIPTION="${IMAGE_DESCRIPTION}" \
             --build-arg IMAGE_LICENSES="LicenseRef-Stigmer-Enterprise AND Apache-2.0" \
             --tag "ghcr.io/${{ github.repository_owner }}/stigmer-server-ee:v${VERSION}" \
+            --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" \
             --push \
             ee/server
 
@@ -902,9 +916,15 @@ jobs:
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
+          # A new index keeps the words its source carries (GHCR shows the index
+          # annotation as the package description); a source with none is refused.
+          SOURCE="ghcr.io/${{ github.repository_owner }}/stigmer-server-ee:v${VERSION}"
+          IMAGE_DESCRIPTION="$(docker buildx imagetools inspect "$SOURCE" --format '{{ index .Manifest.Annotations "org.opencontainers.image.description" }}')"
+          [ -n "$IMAGE_DESCRIPTION" ] || { echo "$SOURCE carries no org.opencontainers.image.description annotation; refusing to write an index without one" >&2; exit 1; }
           docker buildx imagetools create \
+            --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" \
             --tag "ghcr.io/${{ github.repository_owner }}/stigmer-server-ee:latest" \
-            "ghcr.io/${{ github.repository_owner }}/stigmer-server-ee:v${VERSION}"
+            "$SOURCE"
 
   # ══ The compose-runner image ══
   # The self-host stack's runner: Dockerfile.sandbox's `compose-runner`
@@ -960,6 +980,9 @@ jobs:
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
+          # The words GHCR shows on the package page: the index annotation, read
+          # from the Dockerfile's description label (scripts/lib/image-description.mjs).
+          IMAGE_DESCRIPTION="$(node scripts/lib/image-description.mjs --file backend/services/runner/Dockerfile.sandbox --target compose-runner)"
           docker buildx build \
             --platform linux/amd64 \
             --target compose-runner \
@@ -967,6 +990,7 @@ jobs:
             --build-arg RUNNER_LAYER_RELEASE="${VERSION}" \
             --file backend/services/runner/Dockerfile.sandbox \
             --tag "ghcr.io/${{ github.repository_owner }}/stigmer-runner:v${VERSION}-amd64" \
+            --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" \
             --push \
             .
 
@@ -1006,6 +1030,9 @@ jobs:
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
+          # The words GHCR shows on the package page: the index annotation, read
+          # from the Dockerfile's description label (scripts/lib/image-description.mjs).
+          IMAGE_DESCRIPTION="$(node scripts/lib/image-description.mjs --file backend/services/runner/Dockerfile.sandbox --target compose-runner)"
           docker buildx build \
             --platform linux/arm64 \
             --target compose-runner \
@@ -1013,6 +1040,7 @@ jobs:
             --build-arg RUNNER_LAYER_RELEASE="${VERSION}" \
             --file backend/services/runner/Dockerfile.sandbox \
             --tag "ghcr.io/${{ github.repository_owner }}/stigmer-runner:v${VERSION}-arm64" \
+            --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" \
             --push \
             .
 
@@ -1034,9 +1062,15 @@ jobs:
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
+          # A new index keeps the words its source carries (GHCR shows the index
+          # annotation as the package description); a source with none is refused.
+          SOURCE="ghcr.io/${{ github.repository_owner }}/stigmer-runner:v${VERSION}-amd64"
+          IMAGE_DESCRIPTION="$(docker buildx imagetools inspect "$SOURCE" --format '{{ index .Manifest.Annotations "org.opencontainers.image.description" }}')"
+          [ -n "$IMAGE_DESCRIPTION" ] || { echo "$SOURCE carries no org.opencontainers.image.description annotation; refusing to write an index without one" >&2; exit 1; }
           docker buildx imagetools create \
+            --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" \
             --tag "ghcr.io/${{ github.repository_owner }}/stigmer-runner:v${VERSION}" \
-            "ghcr.io/${{ github.repository_owner }}/stigmer-runner:v${VERSION}-amd64" \
+            "$SOURCE" \
             "ghcr.io/${{ github.repository_owner }}/stigmer-runner:v${VERSION}-arm64"
       # (Package visibility: see the note on publish-server-image.)
 
@@ -1180,9 +1214,15 @@ jobs:
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
+          # A new index keeps the words its source carries (GHCR shows the index
+          # annotation as the package description); a source with none is refused.
+          SOURCE="ghcr.io/${{ github.repository_owner }}/stigmer-runner:v${VERSION}"
+          IMAGE_DESCRIPTION="$(docker buildx imagetools inspect "$SOURCE" --format '{{ index .Manifest.Annotations "org.opencontainers.image.description" }}')"
+          [ -n "$IMAGE_DESCRIPTION" ] || { echo "$SOURCE carries no org.opencontainers.image.description annotation; refusing to write an index without one" >&2; exit 1; }
           docker buildx imagetools create \
+            --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" \
             --tag "ghcr.io/${{ github.repository_owner }}/stigmer-runner:latest" \
-            "ghcr.io/${{ github.repository_owner }}/stigmer-runner:v${VERSION}"
+            "$SOURCE"
 
   # ---------------------------------------------------------------------------
   # The all-in-one evaluation image: ghcr.io/<owner>/stigmer. A pre-warmed
@@ -1273,6 +1313,13 @@ jobs:
           name: all-in-one-stage-amd64
           path: deploy/all-in-one/stage
 
+      # A buildx builder, as the stigmer-runner per-arch jobs have: the
+      # default docker driver pushes a single manifest, which has no index
+      # to carry the description annotation, and its merge would then be a
+      # Docker manifest list, a format that cannot carry one either.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
@@ -1284,11 +1331,15 @@ jobs:
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
+          # The words GHCR shows on the package page: the index annotation, read
+          # from the Dockerfile's description label (scripts/lib/image-description.mjs).
+          IMAGE_DESCRIPTION="$(node scripts/lib/image-description.mjs --file deploy/all-in-one/Dockerfile)"
           docker buildx build \
             --platform linux/amd64 \
             --build-arg STIGMER_VERSION="${VERSION}" \
             --build-arg IMAGE_REVISION="${{ github.sha }}" \
             --tag "ghcr.io/${{ github.repository_owner }}/stigmer:v${VERSION}-amd64" \
+            --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" \
             --push \
             deploy/all-in-one
 
@@ -1311,6 +1362,13 @@ jobs:
           name: all-in-one-stage-arm64
           path: deploy/all-in-one/stage
 
+      # A buildx builder, as the stigmer-runner per-arch jobs have: the
+      # default docker driver pushes a single manifest, which has no index
+      # to carry the description annotation, and its merge would then be a
+      # Docker manifest list, a format that cannot carry one either.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
@@ -1322,11 +1380,15 @@ jobs:
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
+          # The words GHCR shows on the package page: the index annotation, read
+          # from the Dockerfile's description label (scripts/lib/image-description.mjs).
+          IMAGE_DESCRIPTION="$(node scripts/lib/image-description.mjs --file deploy/all-in-one/Dockerfile)"
           docker buildx build \
             --platform linux/arm64 \
             --build-arg STIGMER_VERSION="${VERSION}" \
             --build-arg IMAGE_REVISION="${{ github.sha }}" \
             --tag "ghcr.io/${{ github.repository_owner }}/stigmer:v${VERSION}-arm64" \
+            --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" \
             --push \
             deploy/all-in-one
 
@@ -1351,9 +1413,15 @@ jobs:
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
+          # A new index keeps the words its source carries (GHCR shows the index
+          # annotation as the package description); a source with none is refused.
+          SOURCE="ghcr.io/${{ github.repository_owner }}/stigmer:v${VERSION}-amd64"
+          IMAGE_DESCRIPTION="$(docker buildx imagetools inspect "$SOURCE" --format '{{ index .Manifest.Annotations "org.opencontainers.image.description" }}')"
+          [ -n "$IMAGE_DESCRIPTION" ] || { echo "$SOURCE carries no org.opencontainers.image.description annotation; refusing to write an index without one" >&2; exit 1; }
           docker buildx imagetools create \
+            --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" \
             --tag "ghcr.io/${{ github.repository_owner }}/stigmer:v${VERSION}" \
-            "ghcr.io/${{ github.repository_owner }}/stigmer:v${VERSION}-amd64" \
+            "$SOURCE" \
             "ghcr.io/${{ github.repository_owner }}/stigmer:v${VERSION}-arm64"
 
   smoke-all-in-one-amd64:
@@ -1481,9 +1549,15 @@ jobs:
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
+          # A new index keeps the words its source carries (GHCR shows the index
+          # annotation as the package description); a source with none is refused.
+          SOURCE="ghcr.io/${{ github.repository_owner }}/stigmer:v${VERSION}"
+          IMAGE_DESCRIPTION="$(docker buildx imagetools inspect "$SOURCE" --format '{{ index .Manifest.Annotations "org.opencontainers.image.description" }}')"
+          [ -n "$IMAGE_DESCRIPTION" ] || { echo "$SOURCE carries no org.opencontainers.image.description annotation; refusing to write an index without one" >&2; exit 1; }
           docker buildx imagetools create \
+            --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" \
             --tag "ghcr.io/${{ github.repository_owner }}/stigmer:latest" \
-            "ghcr.io/${{ github.repository_owner }}/stigmer:v${VERSION}"
+            "$SOURCE"
 
   # The compose pin (docker-compose.yml's STIGMER_VERSION default and the
   # .env.example doc line) is NOT bumped here. Every automated route to
