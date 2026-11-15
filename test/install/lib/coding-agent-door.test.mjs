@@ -17,7 +17,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { NPM_REGISTRY, fetchPagePrompt, npmRegistryFlags, parseDoorArgs, promptFromPage, stopProcessGroup, withoutTags } from "./coding-agent-door.mjs";
+import { NPM_REGISTRY, fetchPagePrompt, npmRegistryFlags, parseDoorArgs, promptFromPage, runnerLogNotes, stopProcessGroup, streamDigest, withoutTags } from "./coding-agent-door.mjs";
 
 const SERVED = `<figure dir="ltr" class="my-4 bg-fd-card rounded-xl shiki relative border"><div class="flex text-fd-muted-foreground items-center gap-2 h-9.5 border-b px-4"><figcaption class="flex-1 truncate">Paste into your coding agent</figcaption></div><div class="text-[13px] py-3.5 overflow-auto max-h-[600px] fd-scroll-container"><pre class="min-w-full w-max *:flex *:flex-col"><code><span class="line"><span>Set up Stigmer for this project. Install its command line</span></span>
 <span class="line"><span>(\`npm install -g @stigmer/cli\`, or \`brew install stigmer/tap/stigmer\`),</span></span>
@@ -185,4 +185,48 @@ test("stopProcessGroup kills a group that ignores SIGTERM after its grace, and r
     rmSync(dir, { recursive: true, force: true, maxRetries: 10 });
     rmSync(`${dir}-writer.cjs`, { force: true });
   }
+});
+
+/** Stream-json lines in Claude Code 2.1.325's shape, from the walk's kept stream, cut to the parts the digest reads. */
+const STREAM = [
+  { type: "system", subtype: "init" },
+  { type: "assistant", message: { content: [{ type: "tool_use", id: "t1", name: "Bash", input: { command: "stigmer auth whoami 2>&1; echo \"--- exit $?\"" } }] } },
+  { type: "user", message: { content: [{ type: "tool_result", tool_use_id: "t1", content: "This Bash command contains multiple operations. The following part requires approval: echo \"--- exit $?\"" }] } },
+  { type: "assistant", message: { content: [{ type: "text", text: "Signed in." }, { type: "tool_use", id: "t2", name: "Read", input: { file_path: "stigmer/a.yaml" } }] } },
+  { type: "user", message: { content: [{ type: "tool_result", tool_use_id: "t2", content: [{ type: "text", text: "name: a" }] }] } },
+  { type: "user", message: "a plain string message" },
+]
+  .map((event) => JSON.stringify(event))
+  .concat(["not json"])
+  .join("\n");
+
+test("a failed walk's digest names each refused call with its refusal, then the last calls", () => {
+  assert.deepEqual(streamDigest(STREAM), [
+    "the coding agent made 2 tool call(s), 1 refused",
+    'refused: Bash stigmer auth whoami 2>&1; echo "--- exit $?" -> This Bash command contains multiple operations. The following part requires approval: echo "--- exit $?"',
+    'call 1: Bash stigmer auth whoami 2>&1; echo "--- exit $?"',
+    'call 2: Read {"file_path":"stigmer/a.yaml"}',
+  ]);
+  assert.deepEqual(streamDigest(STREAM, { last: 1 }).slice(-1), ['call 2: Read {"file_path":"stigmer/a.yaml"}']);
+  assert.deepEqual(streamDigest(""), ["the coding agent made 0 tool call(s), 0 refused"]);
+  const long = streamDigest(JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", id: "x", name: "Bash", input: { command: "a".repeat(500) } }] } }));
+  assert.equal(long[1].length, "call 1: ".length + 240);
+});
+
+test("a failed walk's runner notes keep its warnings, errors and output lines, without every walk's noise", () => {
+  const log = [
+    "(node:5676) ExperimentalWarning: SQLite is an experimental feature and might change at any time",
+    "(Use `node --trace-warnings ...` to show where the warning was created)",
+    "2026-11-15T09:18:23.206Z [WARN] No workflows registered, not polling for workflow tasks",
+    "Failed to fetch model registry from http://localhost:7234/v1/proxy/model-registry: Error: network down.",
+    '{"stigmer_timing":"execution_setup","execution_id":"run_1"}',
+    "[outputs] skipped door-report.md: upload refused (413)",
+    "ExecuteDeepAgent failed (actionable): execution=run_1, error=boom",
+  ].join("\n");
+  assert.deepEqual(runnerLogNotes(log), [
+    "[outputs] skipped door-report.md: upload refused (413)",
+    "ExecuteDeepAgent failed (actionable): execution=run_1, error=boom",
+  ]);
+  assert.deepEqual(runnerLogNotes(log, { last: 1 }), ["ExecuteDeepAgent failed (actionable): execution=run_1, error=boom"]);
+  assert.deepEqual(runnerLogNotes(""), []);
 });

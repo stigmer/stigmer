@@ -109,7 +109,10 @@ export function parseFakeModelArg(arg) {
 
 /**
  * Start the fake on `host` (loopback by default; `0.0.0.0` when a container
- * reaches it through the host gateway) and an ephemeral port. Resolves
+ * reaches it through the host gateway) and an ephemeral port; `replyText` is
+ * the default reply's words (the shared fake's, which say plainly that no
+ * real model answered, unless a journey's reader needs an answer's words).
+ * Resolves
  * `{ url, port, replyText, requests, anthropicKeys, enqueue, close }`: `url`
  * is the loopback address, `requests()` the number of model calls answered so
  * far, `anthropicKeys()` the key each Anthropic call carried, and
@@ -117,16 +120,16 @@ export function parseFakeModelArg(arg) {
  * UpstreamScript) ahead of the mode's default, for a journey whose agent
  * must do something a canned reply cannot, such as save a file.
  */
-export async function startFakeModel({ host = "127.0.0.1", mode = "reply" } = {}) {
+export async function startFakeModel({ host = "127.0.0.1", mode = "reply", replyText = FAKE_MODEL_REPLY_TEXT } = {}) {
   if (!MODES.has(mode)) throw new Error(`fake model: unknown mode ${JSON.stringify(mode)} (reply | error)`);
   const fake = new FakeLlmUpstream(
-    mode === "reply" ? { host, defaultReply: true } : { host, defaultError: { message: FAKE_MODEL_ERROR_MESSAGE } },
+    mode === "reply" ? { host, defaultReply: true, defaultReplyText: replyText } : { host, defaultError: { message: FAKE_MODEL_ERROR_MESSAGE } },
   );
   await fake.start();
   return {
     url: fake.url(),
     port: fake.port(),
-    replyText: FAKE_MODEL_REPLY_TEXT,
+    replyText,
     requests: () => fake.requests().filter((request) => request.provider !== "unknown").length,
     /** The key each Anthropic model call carried (`x-api-key`), in order: which key reached the runner. */
     anthropicKeys: () => fake.requests().filter((request) => request.provider === "anthropic").map((request) => request.headers["x-api-key"] ?? ""),

@@ -57,6 +57,16 @@ describe("FakeLlmUpstream in the install journeys' modes", () => {
     expect(modelCalls(upstream)).toBe(1);
   });
 
+  it("answers with the words it is given, on either provider's path", async () => {
+    const upstream = await started({ defaultReply: true, defaultReplyText: "Line 3 does not match." });
+    const anthropic = (await (await post(upstream, "/v1/messages", { model: "m", max_tokens: 16, messages: [] })).json()) as { content: unknown };
+    expect(anthropic.content).toEqual([{ type: "text", text: "Line 3 does not match." }]);
+    const openai = (await (await post(upstream, "/v1/chat/completions", { model: "m", messages: [] })).json()) as {
+      choices: { message: { content: string } }[];
+    };
+    expect(openai.choices[0]?.message.content).toBe("Line 3 does not match.");
+  });
+
   it("streams the same turn as Anthropic's SSE event sequence", async () => {
     const upstream = await started({ defaultReply: true });
     const response = await post(upstream, "/v1/messages", { model: "claude-sonnet-4-6", stream: true, messages: [] });
