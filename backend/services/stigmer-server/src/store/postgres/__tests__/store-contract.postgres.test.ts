@@ -122,6 +122,12 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             [apiResourceKindName(kind), id, Buffer.from(data)],
           );
         },
+        async writeBytesKeepingStamp(kind, id, data) {
+          await hooks.query(
+            `UPDATE resources SET data = $3 WHERE kind = $1 AND id = $2`,
+            [apiResourceKindName(kind), id, Buffer.from(data)],
+          );
+        },
         async countUnproven(kind, revision) {
           const revisionArm =
             revision === undefined
