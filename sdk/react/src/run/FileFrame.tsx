@@ -145,7 +145,7 @@ export function FileFrame({
           />
         </div>
 
-        {onClose && <IconButton label="Close preview" icon={<CloseIcon />} onClick={onClose} />}
+        {onClose && <IconButton size="xs" label="Close preview" icon={<CloseIcon />} onClick={onClose} />}
       </div>
 
       <FileBody

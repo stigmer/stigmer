@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/design-tokens";
+import { CountBadge } from "../internal/surface/CountBadge.js";
 import { Popover } from "@base-ui/react/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useStigmerPortalContainer } from "../portal-container.js";
@@ -110,9 +111,9 @@ export function ConfigureMenu({
             <span className="stg:relative">
               {trigger?.icon ?? <ConfigureIcon />}
               {totalCount > 0 && (
-                <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-2xs stg:font-medium stg:leading-none stg:text-primary-foreground">
+                <CountBadge size="sm" className="stg:absolute stg:-right-1.5 stg:-top-1.5">
                   {totalCount}
-                </span>
+                </CountBadge>
               )}
               {hasWarning && totalCount === 0 && (
                 <span

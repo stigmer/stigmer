@@ -123,6 +123,21 @@ describe("thinkingSelectable and thinkingLocked", () => {
 });
 
 describe("ModelSelector — thinking switch", () => {
+  it("names the harness button with the word it shows, so a spoken command finds it (WCAG 2.5.3)", async () => {
+    renderSelector();
+    await openPopover("Claude Sonnet 5");
+    const harness = screen.getByRole("button", { name: /^Harness:/ });
+    expect(harness.getAttribute("aria-label")).toContain(harness.textContent!.trim());
+  });
+
+  it("sets the switch's line at the xs step, on the type scale", async () => {
+    renderSelector();
+    await openPopover("Claude Sonnet 5");
+    const line = screen.getByRole("switch", { name: "Thinking" }).closest("div")!.parentElement!.querySelector("span.stg\\:text-muted-foreground");
+    expect(line?.className).toContain("stg:text-xs");
+    expect(line?.className).not.toContain("stg:text-2xs");
+  });
+
   it("renders the switch for a Stigmer-harness model that declares a thinking form, and toggles it", async () => {
     const { onThinkingModeChange } = renderSelector();
     await openPopover("Claude Sonnet 5");

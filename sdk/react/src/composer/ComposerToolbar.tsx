@@ -2,6 +2,7 @@
 
 import { useId, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { CountBadge } from "../internal/surface/CountBadge.js";
 import {
   TooltipProvider,
 } from "../internal/tooltip.js";
@@ -225,9 +226,9 @@ export function ComposerToolbar({
                         <span className="stg:relative">
                           <WorkspaceIcon />
                           {workspaceCount > 0 && (
-                            <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-2xs stg:font-medium stg:leading-none stg:text-primary-foreground">
+                            <CountBadge size="sm" className="stg:absolute stg:-right-1.5 stg:-top-1.5">
                               {workspaceCount}
-                            </span>
+                            </CountBadge>
                           )}
                         </span>
                       }
@@ -251,9 +252,9 @@ export function ComposerToolbar({
                         <span className="stg:relative">
                           <PaperclipIcon />
                           {fileCount > 0 && (
-                            <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-2xs stg:font-medium stg:leading-none stg:text-primary-foreground">
+                            <CountBadge size="sm" className="stg:absolute stg:-right-1.5 stg:-top-1.5">
                               {fileCount}
-                            </span>
+                            </CountBadge>
                           )}
                         </span>
                       }

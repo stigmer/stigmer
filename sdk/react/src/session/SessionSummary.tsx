@@ -133,26 +133,33 @@ export function SessionSummary({ session, turns, runs, files, showCost, routineH
         <h1 className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-lg stg:font-semibold">{asked}</h1>
         {actions != null && <div className="stg:-my-1 stg:flex stg:shrink-0 stg:items-center stg:gap-2">{actions}</div>}
       </div>
-      <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-x-2 stg:gap-y-1 stg:text-xs stg:text-muted-foreground">
+      {/* Each item after the pill keeps a 20px gap before it, with its dot
+          in that gap, out of the flow. The row is shifted into the clipped
+          edge by that gap, so an item that wraps to start a line has its
+          dot cut off: a line never starts with a dot (#3164). */}
+      <div className="stg:overflow-hidden">
+      <div className="stg:-ms-5 stg:flex stg:flex-wrap stg:items-center stg:gap-y-1 stg:text-xs stg:text-muted-foreground">
         {status !== undefined && (
+          <span className="stg:ms-5 stg:inline-flex">
           <StatusBadge
             phase={status.phase}
             label={
               status.timed && progress !== undefined && progress.elapsedMs >= 1000 ? `${status.label} · ${formatElapsed(progress.elapsedMs)}` : status.label
             }
           />
+          </span>
         )}
         {/* The dot and the facts after it wrap together, so a dot never ends
             the pill's line alone. */}
         {working ? (
           howFar !== undefined && (
-            <span className="stg:inline-flex stg:min-w-0 stg:gap-x-2">
+            <span className="stg:relative stg:ms-5 stg:min-w-0">
               {status !== undefined && <Separator />}
               <span>{howFar}</span>
             </span>
           )
         ) : (
-          <span className="stg:inline-flex stg:min-w-0 stg:gap-x-2">
+          <span className="stg:relative stg:ms-5 stg:min-w-0">
             {status !== undefined && <Separator />}
             <span>
               {origin}
@@ -162,11 +169,16 @@ export function SessionSummary({ session, turns, runs, files, showCost, routineH
           </span>
         )}
       </div>
+      </div>
     </header>
   );
 }
 
-/** The dot between the pill and the facts after it, as between the facts themselves; a sibling, so the facts keep their own text. */
+/** The dot between the pill and the facts after it, as between the facts themselves: in the gap before them, out of the flow, so the facts keep their own text and a wrapped line starts at its words. */
 function Separator() {
-  return <span aria-hidden="true">·</span>;
+  return (
+    <span aria-hidden="true" className="stg:absolute stg:-start-3">
+      ·
+    </span>
+  );
 }

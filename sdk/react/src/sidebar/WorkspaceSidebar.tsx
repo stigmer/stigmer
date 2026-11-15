@@ -1,5 +1,6 @@
 "use client";
 
+import { CountBadge } from "../internal/surface/CountBadge.js";
 import { memo, useMemo, type ReactNode } from "react";
 import {
   Plus,
@@ -303,12 +304,9 @@ function PrimaryNavRow({
 function WantsHumanBadge({ count }: { readonly count: number }) {
   return (
     <span className="stg:ml-auto stg:flex stg:shrink-0 stg:items-center">
-      <span
-        aria-hidden="true"
-        className="stg:bg-sidebar-primary stg:text-sidebar-primary-foreground stg:rounded-full stg:px-1.5 stg:py-0.5 stg:text-2xs stg:leading-none stg:font-semibold stg:tabular-nums"
-      >
+      <CountBadge aria-hidden="true" tone="sidebar" className="stg:px-1.5">
         {count > 99 ? "99+" : count}
-      </span>
+      </CountBadge>
       <span className="stg:sr-only">
         {count === 1
           ? "1 conversation needs a human"

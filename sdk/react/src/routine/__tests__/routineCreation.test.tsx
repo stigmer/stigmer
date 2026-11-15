@@ -476,7 +476,7 @@ describe("RoutineForm", () => {
     // Nothing pinned yet: the trigger shows the placeholder. The picker
     // browses the Stigmer harness first; switch it to Claude to list the model.
     fireEvent.click(screen.getByRole("button", { name: /Platform default/ }));
-    fireEvent.click(await screen.findByRole("button", { name: "Select harness" }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Harness:/ }));
     fireEvent.click(await screen.findByRole("option", { name: "Claude Agent" }));
     fireEvent.click(
       await screen.findByRole("option", { name: /Claude Sonnet 4\.6/ }),

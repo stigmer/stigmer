@@ -56,7 +56,7 @@ test.describe("A conversation on Claude (deterministic mock LLM)", () => {
     // The model picker names the engine; its harness menu offers Claude.
     await composer.getByRole("button", { name: /Stigmer/ }).click();
     const picker = page.getByRole("dialog", { name: "Model selector" });
-    await picker.getByRole("button", { name: "Select harness" }).click();
+    await picker.getByRole("button", { name: /^Harness:/ }).click();
     await picker.getByRole("listbox", { name: "Available harnesses" }).getByRole("option", { name: "Claude Agent" }).click();
     await page.keyboard.press("Escape");
     await expect(composer.getByRole("button", { name: /Claude/ }).first()).toBeVisible();

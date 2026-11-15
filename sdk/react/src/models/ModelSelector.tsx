@@ -556,7 +556,7 @@ export function ModelSelector({
                 type="button"
                 aria-haspopup="listbox"
                 aria-expanded={harnessOpen}
-                aria-label="Select harness"
+                aria-label={`Harness: ${HARNESS_META[activeHarness].label}`}
                 disabled={isHarnessLocked}
                 className={cn(
                   "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:border-border",
@@ -644,7 +644,7 @@ export function ModelSelector({
               <div className="stg:flex stg:items-center stg:justify-between stg:border-b stg:border-border stg:px-3 stg:py-2">
                 <div className="stg:flex stg:flex-col">
                   <span className="stg:text-xs stg:text-foreground">Thinking</span>
-                  <span className="stg:text-2xs stg:text-muted-foreground">
+                  <span className="stg:text-xs stg:text-muted-foreground">
                     {thinkingIsLocked
                       ? "This model always reasons before it answers"
                       : "Extended reasoning; uses more output tokens"}
@@ -844,7 +844,7 @@ function ModelRow({
         {/* A marked row says what it needs on its own line below, in the
             badge's place, so the model's name keeps the popover's width. */}
         {needs === undefined && (
-          <span className="stg:shrink-0 stg:text-2xs stg:text-muted-foreground">
+          <span className="stg:shrink-0 stg:text-xs stg:text-muted-foreground">
             {showSpeedBadge
               ? `${SPEED_TIER_LABEL[model.speedTier]} ${COST_TIER_LABEL[model.costTier]}`
               : COST_TIER_LABEL[model.costTier]}
@@ -862,7 +862,7 @@ function ModelRow({
       )}
 
       {showDescription && model.shortDescription && (
-        <span className="stg:mt-0.5 stg:block stg:text-left stg:text-2xs stg:text-muted-foreground">
+        <span className="stg:mt-0.5 stg:block stg:text-left stg:text-xs stg:text-muted-foreground">
           {model.shortDescription}
         </span>
       )}

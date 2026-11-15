@@ -5,6 +5,7 @@
 
 import { useEffect, useRef } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { CountBadge } from "../internal/surface/CountBadge.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { iconButtonClasses } from "../button/buttonClasses.js";
 
@@ -69,12 +70,9 @@ export function PanelChip({ isOpen, onToggle, badgeCount }: PanelChipProps) {
       >
         <PanelIcon open={isOpen} />
         {showCount && (
-          <span
-            aria-label={`${badgeCount} new items`}
-            className="stg:absolute stg:-top-1 stg:-right-1 stg:inline-flex stg:h-4 stg:min-w-4 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-1 stg:text-2xs stg:font-medium stg:text-primary-foreground"
-          >
+          <CountBadge aria-label={`${badgeCount} new items`} className="stg:absolute stg:-top-1 stg:-right-1">
             {badgeCount}
-          </span>
+          </CountBadge>
         )}
       </TooltipTrigger>
       <TooltipContent side="top">
