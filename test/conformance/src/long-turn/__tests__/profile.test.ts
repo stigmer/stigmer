@@ -101,18 +101,20 @@ describe("the profiles", () => {
 
 describe("the step shells", () => {
   function run(command: string): string {
-    return execFileSync("sh", ["-c", command], { encoding: "utf8" });
+    // A synchronous case blocks vitest's timer, so a shell that never exits is bounded here, not by the case's limit.
+    return execFileSync("sh", ["-c", command], { encoding: "utf8", timeout: 10_000 });
   }
 
+  // Five real shells, limited to 15 s: on a loaded CI runner their start-up alone has taken seconds.
   it("a silent, a streamed and a bulk step mark their start and end, and print what they promise", () => {
     const files = stepFiles();
     expect(run(shellCommandOf({ kind: "silent", id: "s", seconds: 0 }, files))).toBe("");
-    const streamed = run(shellCommandOf({ kind: "streamed", id: "t", seconds: 2, everySeconds: 1, bytesPerLine: 40 }, files));
+    const streamed = run(shellCommandOf({ kind: "streamed", id: "t", seconds: 0.4, everySeconds: 0.2, bytesPerLine: 40 }, files));
     expect(streamed.split("\n").filter((l) => l.startsWith("line ")).map((l) => l.length)).toEqual([27, 27]);
-    expect(run(shellCommandOf({ kind: "streamed", id: "u", seconds: 1, everySeconds: 1, bytesPerLine: 10 }, files))).toBe("line 1\n");
+    expect(run(shellCommandOf({ kind: "streamed", id: "u", seconds: 0.2, everySeconds: 0.2, bytesPerLine: 10 }, files))).toBe("line 1\n");
     expect(run(shellCommandOf({ kind: "bulk", id: "b", bytes: 1_000 }, files)).trim()).toHaveLength(1_000);
     expect(stepProgressOf(readFileSync(files.markers, "utf8"))).toEqual({ started: ["s", "t", "u", "b"], ended: ["s", "t", "u", "b"], open: undefined });
-  });
+  }, 15_000);
 
   it("a chained step prints its bytes and then a fresh key, which the next step records in its start marker", () => {
     const files = stepFiles();
