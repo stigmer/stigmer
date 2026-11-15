@@ -389,20 +389,27 @@ function readManifest(path) {
 
 /**
  * Stamp the release version into every plugin manifest in a staged dist/ that
- * carries the workspace version: a package that ships a plugin built from its
- * own sources (`@stigmer/coding-agent-plugin`) is published at the release's
- * version, exactly as its dist/package.json is, so every tool that installs
- * the plugin reports the release it came from. A manifest with a version of
- * its own (the catalogue's vendored plugins) is left byte for byte. Returns
- * the dist-relative paths stamped.
+ * is the package's own: one that carries the workspace version, or whose
+ * source copy at the same path under the package does (the coding-agent
+ * plugin's build copies plugin/ to dist/plugin/, so a dist/ staged earlier
+ * at another version, then re-staged with --skip-build, is stamped again). A
+ * package that ships a plugin built from its own sources
+ * (`@stigmer/coding-agent-plugin`) is so published at the release's version,
+ * exactly as its dist/package.json is, and every tool that installs the
+ * plugin reports the release it came from. A manifest with a version of its
+ * own, in dist/ and in its source (the catalogue's vendored plugins), is left
+ * byte for byte. Returns the dist-relative paths stamped.
  */
-export function stampPluginManifests(distDir, version) {
+export function stampPluginManifests(distDir, version, pkgDir = dirname(distDir)) {
   const stamped = [];
   for (const rel of listFiles(distDir)) {
     if (!isPluginManifestPath(rel)) continue;
     const path = join(distDir, rel);
     const manifest = readManifest(path);
-    if (manifest?.version !== WORKSPACE_VERSION) continue;
+    if (manifest === undefined || manifest.version === version) continue;
+    const ours =
+      manifest.version === WORKSPACE_VERSION || readManifest(join(pkgDir, rel))?.version === WORKSPACE_VERSION;
+    if (!ours) continue;
     writeFileSync(path, `${JSON.stringify({ ...manifest, version }, null, 2)}\n`);
     stamped.push(rel);
   }
@@ -696,7 +703,7 @@ async function main() {
 
       const distPkgPath = generateDistPackageJson(pkgDir, version);
       console.log(`  Generated ${distPkgPath}`);
-      const stamped = stampPluginManifests(distDir, version);
+      const stamped = stampPluginManifests(distDir, version, pkgDir);
       if (stamped.length > 0) {
         console.log(`  Stamped ${version} into ${stamped.length} plugin manifest(s): ${stamped.join(", ")}`);
       }

@@ -91,16 +91,30 @@ jobs:
           set -euo pipefail
           PKG="@stigmer/coding-agent-plugin"
           if [ -n "$RELEASE_TAG" ]; then
-            # A release just published: wait (up to 10 minutes) until npm's
-            # latest is its version, so this run never copies the one before.
             EXPECTED="${RELEASE_TAG#v}"
+            # A prerelease publishes under `next` and never moves `latest`
+            # (scripts/publish-libs.mjs), so it has nothing to reconcile.
+            case "$EXPECTED" in
+              *-*) echo "$RELEASE_TAG is a prerelease; npm latest does not move, so there is nothing to do."; exit 0 ;;
+            esac
+            # Whether stable version $1 is at least $2 (latest is never a prerelease).
+            at_least() {
+              node -e '
+                const [a, b] = process.argv.slice(1).map((v) => v.split(".").map(Number));
+                process.exit((a[0] - b[0] || a[1] - b[1] || a[2] - b[2]) >= 0 ? 0 : 1);
+              ' "$1" "$2"
+            }
+            # A release just published: wait (up to 10 minutes) until npm's
+            # latest is its version or a newer one (a later release, or this
+            # run re-run after one), so this run never copies the one before.
+            TARGET=""
             for _ in $(seq 1 40); do
               TARGET=$(npm view "$PKG" dist-tags.latest --prefer-online 2>/dev/null || true)
-              [ "$TARGET" = "$EXPECTED" ] && break
+              if [ -n "$TARGET" ] && at_least "$TARGET" "$EXPECTED"; then break; fi
               sleep 15
             done
-            if [ "$TARGET" != "$EXPECTED" ]; then
-              echo "ERROR: after 10 minutes npm latest of $PKG is '${TARGET}', not the release's ${EXPECTED}"
+            if [ -z "$TARGET" ] || ! at_least "$TARGET" "$EXPECTED"; then
+              echo "ERROR: after 10 minutes npm latest of $PKG is '${TARGET}', not the release's ${EXPECTED} or newer"
               exit 1
             fi
           # Until a release publishes the package, there is nothing to copy.

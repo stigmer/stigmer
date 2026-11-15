@@ -537,6 +537,27 @@ test("stampPluginManifests stamps the workspace version at any depth and leaves 
   }
 });
 
+test("stampPluginManifests stamps a dist/ staged earlier at another version again, by its source's workspace version", () => {
+  // `--version 1.0.0` then `--version 1.0.1 --skip-build`: the dist/ already
+  // says 1.0.0, and only the package's source says the manifest is its own.
+  const vendored = '{"name":"vendored","version":"1.0.0"}';
+  const pkgDir = syntheticPackage({
+    "plugin/.claude-plugin/plugin.json": manifest(WORKSPACE_VERSION),
+    "dist/plugin/.claude-plugin/plugin.json": manifest("1.0.0"),
+    // A vendored plugin whose own version is the earlier release's, by chance.
+    "vendored/.codex-plugin/plugin.json": vendored,
+    "dist/vendored/.codex-plugin/plugin.json": vendored,
+  });
+  const distDir = join(pkgDir, "dist");
+  try {
+    assert.deepEqual(stampPluginManifests(distDir, "1.0.1", pkgDir), ["plugin/.claude-plugin/plugin.json"]);
+    assert.equal(JSON.parse(readFileSync(join(distDir, "plugin", ".claude-plugin", "plugin.json"), "utf8")).version, "1.0.1");
+    assert.equal(readFileSync(join(distDir, "vendored", ".codex-plugin", "plugin.json"), "utf8"), vendored);
+  } finally {
+    rmSync(pkgDir, { recursive: true, force: true });
+  }
+});
+
 test("assertStagedDist refuses a plugin manifest still at the workspace version", () => {
   const pkgDir = syntheticPackage({
     "dist/index.js": "",
