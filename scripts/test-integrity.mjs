@@ -288,7 +288,9 @@ const TEMPORAL_ENVIRONMENT = "TestWorkflowEnvironment";
  * answer and leaves it running when that fails. A suite that starts Temporal
  * this way and connects with `createFromExistingServer()` reaches it as surely
  * as one that calls `createLocal()`. Matched like the Postgres helpers: by
- * call name, or an alias bound to it.
+ * call name, or an alias bound to it. Its inner layers (`bootTemporal`,
+ * `bootTemporalAttempt`) are not entry points: only the port-loss harness
+ * under test/conformance calls them, and that tree may use any service.
  */
 const TEMPORAL_START_CALLS = new Set(["spawnTemporal"]);
 const TEMPORAL_TESTING = "@temporalio/testing";
