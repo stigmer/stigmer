@@ -17,6 +17,7 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 const page = vi.hoisted(() => ({
   // The server's answer to "may this person create an agent here?".
   canCreate: { allowed: true, isLoading: false },
+  canCreateSkill: { allowed: true, isLoading: false },
   props: {} as Record<string, Record<string, unknown>[]>,
 }));
 
@@ -45,6 +46,8 @@ vi.mock("@stigmer/react-sdk", () => {
     useBreadcrumbOverride: () => ({ setLabel: noop }),
     useActiveOrgId: () => "org_acme",
     useCanCreateAgent: () => page.canCreate,
+    useCanCreateSkill: () => page.canCreateSkill,
+    SkillCreationDenied: () => <p>only admins upload skills</p>,
     AgentCreationDenied: () => <p>only admins create agents</p>,
     useActiveOrgSlug: () => "acme",
     // The person's organizations: the active one and a second one, so a
@@ -97,6 +100,7 @@ const SHARED = { org: "org_shared", slug: "made" };
 
 beforeEach(() => {
   page.canCreate = { allowed: true, isLoading: false };
+  page.canCreateSkill = { allowed: true, isLoading: false };
   page.props = {};
 });
 
@@ -149,6 +153,13 @@ describe("desktop SkillNewPage — organizations", () => {
     renderPage(SkillNewPage);
     act(() => last<{ onCancel: () => void }>("SkillUploader").onCancel());
     expect(location()).toBe("/library/skills");
+  });
+
+  it("tells a member who uploads skills instead of offering the upload", () => {
+    page.canCreateSkill = { allowed: false, isLoading: false };
+    renderPage(SkillNewPage);
+
+    expect(screen.getByText("only admins upload skills")).toBeTruthy();
   });
 });
 
