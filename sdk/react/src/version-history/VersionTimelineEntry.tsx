@@ -74,7 +74,7 @@ export function VersionTimelineEntry({
         onClick={onSelect}
         onKeyDown={handleKeyDown}
         tabIndex={0}
-        aria-selected={isSelected}
+        aria-pressed={isSelected}
         className={cn(
           "stg:mb-4 stg:flex stg:min-w-0 stg:flex-1 stg:flex-col stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-2 stg:text-left stg:transition-colors",
           "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",

@@ -93,9 +93,6 @@ export type SceneId =
   | "environment-detail-member"
   | "skill-upload-chosen"
   | "skill-upload-refused"
-  | "plugin-upload-chosen"
-  | "plugin-upload-refused"
-  | "plugin-upload-installed"
   | "agent-profile-manage-access"
   | "agent-profile-viewer"
   | "agent-profile-variance-reporter"
@@ -726,24 +723,6 @@ const LIBRARY_NEW_SCENES = [
     title: "Upload skill: a .zip that isn't a skill, refused with the reason",
     widths: ["desktop"],
     opens: [{ see: "SKILL.md" }],
-  },
-  {
-    id: "plugin-upload-chosen",
-    title: "Upload a plugin: a package chosen, what it brings shown before the install",
-    widths: ["desktop", "narrow"],
-    opens: [{ see: "ledger-tools" }],
-  },
-  {
-    id: "plugin-upload-refused",
-    title: "Upload a plugin: a .zip with no manifest, refused with the reason",
-    widths: ["desktop"],
-    opens: [{ see: "manifest" }],
-  },
-  {
-    id: "plugin-upload-installed",
-    title: "Upload a plugin: a version of a plugin already installed",
-    widths: ["desktop"],
-    opens: [{ see: "linear" }],
   },
 ] as const satisfies readonly { readonly id: SceneId; readonly title: string; readonly widths: readonly WidthName[]; readonly opens?: readonly Act[] }[];
 

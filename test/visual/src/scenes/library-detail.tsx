@@ -2,11 +2,11 @@
 // scene draws: an agent page while it loads, when its read fails and when
 // the agent isn't there; a plugin's page, its Remove asked first and its
 // Evals; an environment's page, its network being changed and a member's
-// read-only view; and the upload pages after a package is chosen, refused
-// or already installed.
+// read-only view; and the skill upload page after a package is chosen
+// or refused.
 //
 // A gallery act presses and types, it can't drop a file, so the upload
-// scenes hand the page's own file input a .zip built here, as a person's
+// scene hands the page's own file input a .zip built here, as a person's
 // drop would, once the page is drawn.
 import { useEffect, type ReactElement } from "react";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
@@ -24,7 +24,7 @@ import { DATA_SCIENCE } from "../docs-fixtures.ts";
 import { ACCOUNT, LEDGER_AGENT, ORGANIZATION } from "../fixtures.ts";
 import { MENU, START_SESSION } from "./agent.tsx";
 import type { Drawing } from "./drawing.ts";
-import { pluginUploadScene, skillUploadScene } from "./library.tsx";
+import { skillUploadScene } from "./library.tsx";
 
 const ORG_SLUG = ORGANIZATION.metadata?.slug ?? "";
 const ORG_ID = ORGANIZATION.metadata?.id ?? "";
@@ -155,14 +155,6 @@ const MONTH_END_CLOSE = {
   "signoff.csv": "step,owner\nreconcile,controller\n",
 };
 
-/** A plugin folder, zipped: its manifest and the one skill it brings. */
-function ledgerToolsPackage(name: string): Readonly<Record<string, string>> {
-  return {
-    ".claude-plugin/plugin.json": JSON.stringify({ name, version: "1.3.0", description: "Reads and posts to acme's general ledger." }),
-    "skills/chart-of-accounts/SKILL.md": "---\nname: chart-of-accounts\ndescription: How acme codes expenses.\n---\n\n# Chart of accounts\n",
-  };
-}
-
 /** What the upload page is handed: a skill package, a file that isn't one, or nothing. */
 export type SkillDrop = "package" | "not-a-skill";
 
@@ -179,27 +171,6 @@ export function skillUploadDropScene(drop: SkillDrop): Drawing {
         ) : (
           <DropOnce name="month-end.zip" files={{ "notes.txt": "Not a skill: there is no SKILL.md here.\n" }} />
         )}
-      </>
-    ),
-  };
-}
-
-/** What the plugin upload page is handed: a new plugin, a .zip with no manifest, or a version of a plugin already installed. */
-export type PluginDrop = "package" | "not-a-plugin" | "installed";
-
-/** The Upload a plugin page after a package is chosen, refused, or found already installed. */
-export function pluginUploadDropScene(drop: PluginDrop): Drawing {
-  const page = pluginUploadScene();
-  const files =
-    drop === "not-a-plugin"
-      ? { "README.md": "A folder with no plugin manifest.\n" }
-      : ledgerToolsPackage(drop === "installed" ? "linear" : "ledger-tools");
-  return {
-    ...page,
-    render: () => (
-      <>
-        {page.render()}
-        <DropOnce name={drop === "installed" ? "linear-1.3.0.zip" : "ledger-tools-1.3.0.zip"} files={files} />
       </>
     ),
   };

@@ -7,7 +7,7 @@ import { PRESETS, THREAD_STATES, type Preset, type SceneId, type ThreadState } f
 import { inheritedOpenAiKey, NOTHING_CONNECTED, NOTHING_ON_THE_RUNNER, ownAnthropicKey } from "../fixtures.ts";
 import { agentChatScene } from "./agent-chat.tsx";
 import { agentProfileScene } from "./agent.tsx";
-import { agentPageReadScene, environmentDetailScene, pluginDetailScene, pluginUploadDropScene, skillUploadDropScene } from "./library-detail.tsx";
+import { agentPageReadScene, environmentDetailScene, pluginDetailScene, skillUploadDropScene } from "./library-detail.tsx";
 import { fromHooksScene } from "./from-hooks.tsx";
 import { varianceReporterScene } from "./agent-pages.tsx";
 import { skillDetailScene, skillFilesScene } from "./skill.tsx";
@@ -166,9 +166,6 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "environment-detail-member": () => environmentDetailScene(true),
   "skill-upload-chosen": () => skillUploadDropScene("package"),
   "skill-upload-refused": () => skillUploadDropScene("not-a-skill"),
-  "plugin-upload-chosen": () => pluginUploadDropScene("package"),
-  "plugin-upload-refused": () => pluginUploadDropScene("not-a-plugin"),
-  "plugin-upload-installed": () => pluginUploadDropScene("installed"),
   "agent-profile-manage-access": () => agentProfileScene("owner"),
   "agent-profile-variance-reporter": varianceReporterScene,
   "agent-make-it-yours": () => agentMakeItYoursScene(true),
