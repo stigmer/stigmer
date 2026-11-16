@@ -18,7 +18,7 @@ Apply YAML and, for someone the server lets create one, Create agent.
 <TypeTable
   type={{
     createHref: { type: "string", description: "Where Create agent goes." },
-    onOpen: { type: "(resource: LibraryResourceRef) => void", description: "Opens a resource's page (a row, View details, a resource just made).", required: true },
+    onOpen: { type: "(resource: LibraryResourceRef) => void", description: "Opens a resource's page: a row, or a resource just made.", required: true },
     renderLink: { type: "RenderLink", description: "Draws a link to a console address with the host's router; a plain `<a>` when omitted.", typeDescriptionLink: "/docs/sdk/react/button#renderlink" },
   }}
 />
@@ -38,7 +38,7 @@ with New environment and Apply YAML for an admin.
 <TypeTable
   type={{
     createHref: { type: "string", description: "Where New environment goes." },
-    onOpen: { type: "(resource: LibraryResourceRef) => void", description: "Opens a resource's page (a row, View details, a resource just made).", required: true },
+    onOpen: { type: "(resource: LibraryResourceRef) => void", description: "Opens a resource's page: a row, or a resource just made.", required: true },
     renderLink: { type: "RenderLink", description: "Draws a link to a console address with the host's router; a plain `<a>` when omitted.", typeDescriptionLink: "/docs/sdk/react/button#renderlink" },
   }}
 />
@@ -87,7 +87,7 @@ with the Marketplace, an upload and Add MCP server beside it.
 <TypeTable
   type={{
     addMcpServerOnArrival: { type: "boolean", description: "Open the \"Add MCP server\" form on arrival (the Library's Add menu links here so)." },
-    onOpen: { type: "(resource: LibraryResourceRef) => void", description: "Opens a resource's page (a row, View details, a resource just made).", required: true },
+    onOpen: { type: "(resource: LibraryResourceRef) => void", description: "Opens a resource's page: a row, or a resource just made.", required: true },
     renderLink: { type: "RenderLink", description: "Draws a link to a console address with the host's router; a plain `<a>` when omitted.", typeDescriptionLink: "/docs/sdk/react/button#renderlink" },
     uploadHref: { type: "string", description: "Where Upload plugin goes." },
   }}
@@ -108,7 +108,7 @@ their status, New routine and Apply YAML.
 <TypeTable
   type={{
     createHref: { type: "string", description: "Where New routine goes." },
-    onOpen: { type: "(resource: LibraryResourceRef) => void", description: "Opens a resource's page (a row, View details, a resource just made).", required: true },
+    onOpen: { type: "(resource: LibraryResourceRef) => void", description: "Opens a resource's page: a row, or a resource just made.", required: true },
     renderLink: { type: "RenderLink", description: "Draws a link to a console address with the host's router; a plain `<a>` when omitted.", typeDescriptionLink: "/docs/sdk/react/button#renderlink" },
   }}
 />
@@ -128,7 +128,7 @@ Apply YAML and, for an admin, Upload skill.
 <TypeTable
   type={{
     createHref: { type: "string", description: "Where Upload skill goes." },
-    onOpen: { type: "(resource: LibraryResourceRef) => void", description: "Opens a resource's page (a row, View details, a resource just made).", required: true },
+    onOpen: { type: "(resource: LibraryResourceRef) => void", description: "Opens a resource's page: a row, or a resource just made.", required: true },
     renderLink: { type: "RenderLink", description: "Draws a link to a console address with the host's router; a plain `<a>` when omitted.", typeDescriptionLink: "/docs/sdk/react/button#renderlink" },
   }}
 />
@@ -185,7 +185,7 @@ The routing every Library section takes from its host.
 
 <TypeTable
   type={{
-    onOpen: { type: "(resource: LibraryResourceRef) => void", description: "Opens a resource's page (a row, View details, a resource just made).", required: true },
+    onOpen: { type: "(resource: LibraryResourceRef) => void", description: "Opens a resource's page: a row, or a resource just made.", required: true },
     renderLink: { type: "RenderLink", description: "Draws a link to a console address with the host's router; a plain `<a>` when omitted.", typeDescriptionLink: "/docs/sdk/react/button#renderlink" },
   }}
 />

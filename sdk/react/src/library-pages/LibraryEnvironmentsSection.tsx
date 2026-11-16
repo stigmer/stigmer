@@ -51,7 +51,7 @@ export function LibraryEnvironmentsSection({
 }: LibraryEnvironmentsSectionProps) {
   const org = useActiveOrgId();
   const stigmer = useStigmer();
-  const { allowed: canCreate } = useCanCreateEnvironment(org || null);
+  const { allowed: canCreate, isLoading: checkingCreate } = useCanCreateEnvironment(org || null);
   const [importOpen, setImportOpen] = useState(false);
   // Bumped after Apply YAML so the list refetches in place.
   const [refetchToken, refreshList] = useRefetchToken();
@@ -118,7 +118,8 @@ export function LibraryEnvironmentsSection({
         emptyIcon={<Box className="stg:size-10" aria-hidden="true" />}
         emptyTitle="No environments yet"
         emptyDescription={
-          canCreate
+          // The member's words only once the server has said no.
+          canCreate || checkingCreate
             ? "Create an environment to give your agents' sandboxes packages and a network policy."
             : `Admins of ${slugForOrg(org ?? "")} set up environments. Until one does, sandboxes get the server's standard packages and network.`
         }

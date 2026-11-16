@@ -106,6 +106,12 @@ describe("createRoutineColumns", () => {
     expect(screen.getByText("isc/fee-reminder")).toBeTruthy();
   });
 
+  it("says when it runs in the routine's own time zone", () => {
+    render(<>{byId.get("cron")!.cell(makeRoutine())}</>);
+
+    expect(screen.getByText(/Asia\/Kolkata/)).toBeTruthy();
+  });
+
   it("shows no countdown for a disabled routine", () => {
     const routine = makeRoutine({ enabled: false });
     render(

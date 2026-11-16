@@ -63,7 +63,7 @@ export function createRoutineColumns(
       header: "Runs",
       cell: (item) => (
         <span className="stg:text-foreground">
-          {item.spec?.cron ? describeCadence(cronToCadence(item.spec.cron)) : "By hand only"}
+          {item.spec?.cron ? describeCadence(cronToCadence(item.spec.cron), item.spec.timeZone || undefined) : "By hand only"}
         </span>
       ),
       flex: 1.5,

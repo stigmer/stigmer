@@ -20,7 +20,7 @@ export interface LibraryResourceRef {
 
 /** The routing every Library section takes from its host. */
 export interface LibrarySectionNavigation {
-  /** Opens a resource's page (a row, View details, a resource just made). */
+  /** Opens a resource's page: a row, or a resource just made. */
   readonly onOpen: (resource: LibraryResourceRef) => void;
   /** Draws a link to a console address with the host's router; a plain `<a>` when omitted. */
   readonly renderLink?: RenderLink;
