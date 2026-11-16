@@ -283,6 +283,7 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "story-embed": embedWidgetScene,
   "agent-chat-page": () => agentChatScene("finished", "page", true),
   "routine-new": routineNewScene,
+  "routine-new-agent-refused": () => routineNewScene(false),
   "routine-disabled": () => routineDetailScene("disabled"),
   "routine-history": () => routineDetailScene("history"),
   "routine-new-failed": routineNewFailedScene,

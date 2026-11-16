@@ -301,7 +301,7 @@ export function RoutineForm({
             aria-describedby={agentEditDenied ? `${baseId}-agent-error` : undefined}
             className={cn(
               fieldControlClasses({ invalid: agentEditDenied }),
-              "stg:justify-between stg:text-left",
+              "stg:flex stg:items-center stg:justify-between stg:gap-2 stg:text-left",
               "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
               "stg:disabled:pointer-events-none stg:disabled:opacity-50",
               agentRef ? "stg:text-foreground" : "stg:text-muted-foreground",
@@ -371,7 +371,7 @@ export function RoutineForm({
 
       {/* The rest is optional: what each run reads, the keys it uses, its
           sandbox, its model, its spend and its clock. */}
-      <div className="stg:space-y-5 stg:border-t stg:border-border-muted stg:pt-5">
+      <div className="stg:flex stg:flex-col stg:gap-5 stg:border-t stg:border-border-muted stg:pt-5">
         <h2 className="stg:m-0 stg:text-sm stg:font-semibold stg:text-foreground">Optional</h2>
       {/* Workspace — what each fire's fresh session operates on.
           Git sources only; the server refuses local

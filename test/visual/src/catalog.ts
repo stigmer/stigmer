@@ -567,6 +567,17 @@ const ROUTINE_SCENES = [
       { press: ROUTINE_EXAMPLE.timeZone, role: "option" },
     ],
   },
+  {
+    id: "routine-new-agent-refused",
+    title: "New routine: an Agent picked that the person may not change, said under the field, Create held",
+    widths: ["desktop"],
+    opens: [
+      { fill: ROUTINE_EXAMPLE.nameLabel, with: ROUTINE_EXAMPLE.name, exact: true },
+      { press: "Agent to run", role: "button" },
+      { press: ROUTINE_EXAMPLE.agent, role: "option" },
+      { fill: ROUTINE_EXAMPLE.messageLabel, with: ROUTINE_EXAMPLE.message, exact: true },
+    ],
+  },
   { id: "routine-disabled", title: "Routine page: the daily variance report as made, switched off, offering Enable & run now", widths: ["desktop"] },
   { id: "routine-history", title: "Routine page, History: the daily variance report's first run, started by hand", widths: ["desktop"] },
   {

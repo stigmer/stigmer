@@ -33,11 +33,12 @@ function libraryColumn(page: ReactElement): ReactElement {
 }
 
 /** The calls every routine screen makes: who is looking, their organization, the routine and its Agent. */
-function routineRoutes(enabled: boolean) {
+function routineRoutes(enabled: boolean, mayEditAgent = true) {
   return (router: ConnectRouter) => {
     router.service(OrganizationQueryController, { listMine: () => samples.organizationList([ORGANIZATION]), get: () => ORGANIZATION });
     router.service(IdentityAccountQueryController, { whoAmI: () => ACCOUNT });
-    router.service(GrantQueryController, { checkMyPermission: () => ({ isAuthorized: true }) });
+    // A person who may not change the Agent is refused a routine that runs it.
+    router.service(GrantQueryController, { checkMyPermission: () => ({ isAuthorized: mayEditAgent }) });
     router.service(AgentQueryController, {
       getByReference: () => VARIANCE_REPORTER,
       get: () => VARIANCE_REPORTER,
@@ -61,10 +62,10 @@ function routineRoutes(enabled: boolean) {
 }
 
 /** New routine, as the console's Library → Routines → New routine draws it; the scene's acts fill it. */
-export function routineNewScene(): Drawing {
+export function routineNewScene(mayEditAgent = true): Drawing {
   return {
     inOrganization: true,
-    routes: routineRoutes(false),
+    routes: routineRoutes(false, mayEditAgent),
     render: () => libraryColumn(
         <>
           <PageHeader
