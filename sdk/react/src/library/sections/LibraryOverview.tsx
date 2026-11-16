@@ -204,9 +204,11 @@ function AddResourceMenu({ onNavigate, toHref }: Required<LibraryOverviewProps>)
                       onNavigate(item.href);
                     }
                   }}
+                  // A host's own stylesheet may not reset a link's underline (the web
+                  // console's does), so the item says it draws none.
                   className={cn(
                     "stg:flex stg:w-full stg:items-center stg:gap-2.5 stg:px-3 stg:py-2 stg:text-sm",
-                    "stg:text-foreground stg:transition-colors stg:hover:bg-accent",
+                    "stg:text-foreground stg:no-underline stg:transition-colors stg:hover:bg-accent",
                   )}
                 >
                   <span className="stg:shrink-0 stg:text-muted-foreground">{item.icon}</span>
