@@ -41,7 +41,8 @@ export function SelectionCheckbox({
         if (el) el.indeterminate = indeterminate;
       }}
       onChange={(e) => onChange(e.target.checked)}
-      aria-label={ariaLabel} className={cn("stg:shrink-0", className)}
+      aria-label={ariaLabel}
+      className={cn("stg:shrink-0", className)}
     />
   );
 }

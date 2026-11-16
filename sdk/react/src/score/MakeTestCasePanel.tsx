@@ -110,7 +110,7 @@ export function MakeTestCasePanel({ runId, org }: MakeTestCasePanelProps) {
               value={evalId}
               disabled={busy}
               onChange={(event) => setChosen(event.target.value)}
- >
+            >
               {evals.map((entry) => (
                 <option key={entry.metadata?.id} value={entry.metadata?.id ?? ""}>
                   {entry.metadata?.slug}

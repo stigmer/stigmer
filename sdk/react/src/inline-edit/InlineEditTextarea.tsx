@@ -138,7 +138,9 @@ export function InlineEditTextarea({
         onKeyDown={handleKeyDown}
         disabled={isSaving}
         placeholder={placeholder}
-        rows={minRows} className="stg:w-full stg:resize-y stg:font-mono" invalid={Boolean(displayError)}
+        rows={minRows}
+        className="stg:w-full stg:resize-y stg:font-mono"
+        invalid={Boolean(displayError)}
       />
       <div className="stg:flex stg:items-center stg:justify-between">
         <span className="stg:text-2xs stg:text-muted-foreground">

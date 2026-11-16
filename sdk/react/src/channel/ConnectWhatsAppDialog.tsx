@@ -343,7 +343,8 @@ function ConnectWhatsAppDialogBody({
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  disabled={busy} className="stg:w-full"
+                  disabled={busy}
+                  className="stg:w-full"
                 />
                 <span className="stg:mt-1 stg:block stg:text-xs stg:text-muted-foreground">
                   Names the connection in Stigmer — pick something that
@@ -363,7 +364,8 @@ function ConnectWhatsAppDialogBody({
                 disabled={busy}
                 required
                 placeholder="106540352242922"
-                data-cursor-target="dialog-whatsapp-number" className={cn("stg:w-full", "stg:font-mono")}
+                data-cursor-target="dialog-whatsapp-number"
+                className={cn("stg:w-full", "stg:font-mono")}
               />
               <span className="stg:mt-1 stg:block stg:text-xs stg:text-muted-foreground">
                 From Meta&apos;s WhatsApp Manager (API Setup) — the numeric

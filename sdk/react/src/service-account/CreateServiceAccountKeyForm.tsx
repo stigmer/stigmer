@@ -114,7 +114,8 @@ export function CreateServiceAccountKeyForm({
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. github-actions"
           disabled={isCreating}
-          required className="stg:w-full"
+          required
+          className="stg:w-full"
         />
       </div>
 

@@ -224,7 +224,8 @@ function FormField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
-        required={required} className="stg:w-full"
+        required={required}
+        className="stg:w-full"
       />
       {hint && (
         <p className="stg:text-2xs stg:text-muted-foreground">{hint}</p>

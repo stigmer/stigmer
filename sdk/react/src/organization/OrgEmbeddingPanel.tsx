@@ -264,7 +264,7 @@ function EmbeddingForm({
             disabled={locked || !draft.createAccountsOnSignIn}
             aria-describedby={`${roleId}-hint`}
             className="stg:w-full"
- >
+          >
             {SIGN_IN_ROLE_OPTIONS.map((option) => (
               <option key={option.value} value={String(option.value)}>
                 {option.label}
@@ -285,7 +285,7 @@ function EmbeddingForm({
           origin.
         </p>
         <div className="stg:flex stg:items-center stg:gap-2">
-          <TextInput
+          <TextInput className="stg:flex-1"
             type="text"
             value={originInput}
             onChange={(event) => setOriginInput(event.target.value)}

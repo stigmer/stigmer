@@ -142,7 +142,8 @@ export function CreateApiKeyForm({
             placeholder="e.g. ci-deploy-key"
             disabled={isCreating}
             autoFocus
-            required className="stg:w-full"
+            required
+            className="stg:w-full"
           />
         </div>
 

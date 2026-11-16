@@ -382,7 +382,8 @@ function MemoryEditRow({
         onChange={(e) => setDraft(e.target.value)}
         rows={2}
         maxLength={500}
-        aria-label="Edit memory text" className="stg:w-full stg:resize-y"
+        aria-label="Edit memory text"
+        className="stg:w-full stg:resize-y"
       />
       <div className="stg:mt-1.5 stg:flex stg:items-center stg:justify-between">
         <span className="stg:text-2xs stg:text-muted-foreground">

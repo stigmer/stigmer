@@ -32,7 +32,9 @@ beforeAll(() => {
 
 afterEach(cleanup);
 
-vi.mock("../../../manifest/YamlEditor.js", () => ({ YamlEditor: () => <div data-testid="yaml-editor" /> }));
+vi.mock("../../../manifest/YamlEditor.js", () => ({
+  YamlEditor: () => <div data-testid="yaml-editor" />,
+}));
 vi.mock("../../../manifest/useApplyManifest.js", () => ({
   useApplyManifest: () => ({
     content: "",
@@ -56,8 +58,12 @@ describe("the parts' rarer branches", () => {
         <FieldHint>Attach a plugin to run its cases.</FieldHint>
       </>,
     );
-    expect(screen.getByText("Whose cases run").textContent).toBe("Whose cases run (optional)");
-    expect(screen.getByText("Attach a plugin to run its cases.").className).toContain("stg:text-xs");
+    expect(screen.getByText("Whose cases run").textContent).toBe(
+      "Whose cases run (optional)",
+    );
+    expect(
+      screen.getByText("Attach a plugin to run its cases.").className,
+    ).toContain("stg:text-xs");
   });
 
   it("keeps a choice card's checkbox and radio for the keyboard and a screen reader, and draws nothing of its own", () => {
@@ -81,8 +87,12 @@ describe("the parts' rarer branches", () => {
   });
 
   it("draws a frameless multi-line box inside another control's frame", () => {
-    expect(areaControlClasses({ appearance: "bare" })).toContain("stg:border-0");
-    expect(areaControlClasses({ appearance: "bare", size: "xs" })).toContain("stg:text-xs");
+    expect(areaControlClasses({ appearance: "bare" })).toContain(
+      "stg:border-0",
+    );
+    expect(areaControlClasses({ appearance: "bare", size: "xs" })).toContain(
+      "stg:text-xs",
+    );
   });
 
   function Network() {
@@ -103,17 +113,37 @@ describe("the parts' rarer branches", () => {
 
   it("moves a list's choice by click and by key, and ignores a key that moves nothing", () => {
     render(<Network />);
-    fireEvent.keyDown(screen.getByRole("radio", { name: "Any website" }), { key: "a" });
-    expect(screen.getByRole("radio", { name: "Any website" }).getAttribute("aria-checked")).toBe("true");
-    fireEvent.click(screen.getByRole("radio", { name: "Listed websites only" }));
-    expect(screen.getByRole("radio", { name: "Listed websites only" }).getAttribute("aria-checked")).toBe("true");
-    fireEvent.keyDown(screen.getByRole("radio", { name: "Listed websites only" }), { key: "ArrowDown" });
-    expect(screen.getByRole("radio", { name: "Any website" }).getAttribute("aria-checked")).toBe("true");
+    fireEvent.keyDown(screen.getByRole("radio", { name: "Any website" }), {
+      key: "a",
+    });
+    expect(
+      screen
+        .getByRole("radio", { name: "Any website" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
+    fireEvent.click(
+      screen.getByRole("radio", { name: "Listed websites only" }),
+    );
+    expect(
+      screen
+        .getByRole("radio", { name: "Listed websites only" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
+    fireEvent.keyDown(
+      screen.getByRole("radio", { name: "Listed websites only" }),
+      { key: "ArrowDown" },
+    );
+    expect(
+      screen
+        .getByRole("radio", { name: "Any website" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
   });
 
   it("says Drop it to upload while a file is over it, and goes back when it leaves", () => {
     render(<FileDrop title="Drop a skill's .zip here" onFiles={() => {}} />);
-    const zone = screen.getByText("Drop a skill's .zip here").parentElement as HTMLElement;
+    const zone = screen.getByText("Drop a skill's .zip here")
+      .parentElement as HTMLElement;
     fireEvent.dragOver(zone);
     expect(screen.getByText("Drop it to upload")).toBeDefined();
     fireEvent.dragLeave(zone);
@@ -123,7 +153,13 @@ describe("the parts' rarer branches", () => {
 
 describe("the sweep's call sites", () => {
   it("shows the agent wizard's error under its fields", () => {
-    render(<IdentityStep data={createInitialWizardData()} updateData={() => {}} validationError="Name is required" />);
+    render(
+      <IdentityStep
+        data={createInitialWizardData()}
+        updateData={() => {}}
+        validationError="Name is required"
+      />,
+    );
     expect(screen.getByRole("alert").textContent).toBe("Name is required");
   });
 
@@ -133,20 +169,77 @@ describe("the sweep's call sites", () => {
       { value: "private", label: "Private" },
     ];
     const onSave = vi.fn(async (_value: string) => true);
-    const { rerender } = render(<InlineEditSelect value="org" options={OPTIONS} onSave={onSave} />);
+    const { rerender } = render(
+      <InlineEditSelect value="org" options={OPTIONS} onSave={onSave} />,
+    );
     fireEvent.click(screen.getByRole("button"));
-    rerender(<InlineEditSelect value="org" options={OPTIONS} onSave={onSave} isSaving />);
+    rerender(
+      <InlineEditSelect
+        value="org"
+        options={OPTIONS}
+        onSave={onSave}
+        isSaving
+      />,
+    );
     expect(screen.getByText("Saving")).toBeDefined();
-    expect((screen.getByRole("radio", { name: "Private" }) as HTMLButtonElement).disabled).toBe(true);
-    rerender(<InlineEditSelect value="org" options={OPTIONS} onSave={onSave} />);
+    expect(
+      (screen.getByRole("radio", { name: "Private" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+    rerender(
+      <InlineEditSelect value="org" options={OPTIONS} onSave={onSave} />,
+    );
     fireEvent.click(screen.getByRole("radio", { name: "Private" }));
     expect(onSave).toHaveBeenCalledWith("private");
   });
 
+  it("moves only focus in the select editor when arrowing, and saves on Enter's click", () => {
+    const onSave = vi.fn(async (_value: string) => true);
+    render(
+      <InlineEditSelect
+        value="org"
+        options={[
+          { value: "org", label: "Organization" },
+          { value: "private", label: "Private" },
+          { value: "public", label: "Public" },
+        ]}
+        onSave={onSave}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button"));
+    fireEvent.keyDown(screen.getByRole("radio", { name: "Organization" }), {
+      key: "ArrowDown",
+    });
+    fireEvent.keyDown(screen.getByRole("radio", { name: "Private" }), {
+      key: "ArrowDown",
+    });
+    expect(document.activeElement).toBe(
+      screen.getByRole("radio", { name: "Public" }),
+    );
+    expect(
+      screen
+        .getByRole("radio", { name: "Organization" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
+    expect(screen.getByRole("radio", { name: "Public" }).tabIndex).toBe(0);
+    expect(onSave).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("radio", { name: "Public" }));
+    expect(onSave).toHaveBeenCalledWith("public");
+  });
+
   it("keeps the selection checkbox's half-checked state", () => {
     const onChange = vi.fn();
-    render(<SelectionCheckbox checked={false} indeterminate onChange={onChange} aria-label="Select all" />);
-    const box = screen.getByRole("checkbox", { name: "Select all" }) as HTMLInputElement;
+    render(
+      <SelectionCheckbox
+        checked={false}
+        indeterminate
+        onChange={onChange}
+        aria-label="Select all"
+      />,
+    );
+    const box = screen.getByRole("checkbox", {
+      name: "Select all",
+    }) as HTMLInputElement;
     expect(box.indeterminate).toBe(true);
     fireEvent.click(box);
     expect(onChange).toHaveBeenCalledWith(true);
@@ -164,14 +257,20 @@ describe("the sweep's call sites", () => {
         remove={() => null}
       />,
     );
-    const name = screen.getByPlaceholderText("the catalogue's own name") as HTMLInputElement;
+    const name = screen.getByPlaceholderText(
+      "the catalogue's own name",
+    ) as HTMLInputElement;
     fireEvent.change(name, { target: { value: "acme" } });
     expect(name.value).toBe("acme");
   });
 
   it("opens the system's file picker from Apply YAML's Choose a file", () => {
-    const { container } = render(<ApplyManifestDialog open onOpenChange={() => {}} org="acme" />);
-    const input = container.ownerDocument.querySelector('input[type="file"]') as HTMLInputElement;
+    const { container } = render(
+      <ApplyManifestDialog open onOpenChange={() => {}} org="acme" />,
+    );
+    const input = container.ownerDocument.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
     const click = vi.spyOn(input, "click");
     fireEvent.click(screen.getByRole("button", { name: "Choose a file" }));
     expect(click).toHaveBeenCalled();

@@ -302,8 +302,9 @@ export function CreateOAuthAppForm({
                       e.target.value as typeof tokenEndpointAuthMethod,
                     )
                   }
-                  disabled={isCreating} className="stg:w-full"
- >
+                  disabled={isCreating}
+                  className="stg:w-full"
+                >
                   <option value="unspecified">
                     Unspecified (treated as HTTP Basic)
                   </option>
@@ -336,8 +337,9 @@ export function CreateOAuthAppForm({
                       e.target.value as typeof vendorApprovalStatus,
                     )
                   }
-                  disabled={isCreating} className="stg:w-full"
- >
+                  disabled={isCreating}
+                  className="stg:w-full"
+                >
                   <option value="unspecified">Unspecified (treated as approved)</option>
                   <option value="pending">Pending</option>
                   <option value="approved">Approved</option>
@@ -435,7 +437,8 @@ function FormField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
-        required={required} className="stg:w-full"
+        required={required}
+        className="stg:w-full"
       />
       {hint && (
         <p className="stg:text-2xs stg:text-muted-foreground">{hint}</p>

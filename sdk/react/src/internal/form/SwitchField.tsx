@@ -20,7 +20,15 @@ export interface SwitchFieldProps {
 }
 
 /** A switch with its label and its line. */
-export function SwitchField({ label, hint, checked, onCheckedChange, disabled, id, className }: SwitchFieldProps) {
+export function SwitchField({
+  label,
+  hint,
+  checked,
+  onCheckedChange,
+  disabled,
+  id,
+  className,
+}: SwitchFieldProps) {
   const made = useId();
   const switchId = id ?? `${made}-switch`;
   const labelId = `${made}-label`;
@@ -36,11 +44,18 @@ export function SwitchField({ label, hint, checked, onCheckedChange, disabled, i
         aria-describedby={hint !== undefined ? hintId : undefined}
       />
       <div className="stg:flex stg:min-w-0 stg:flex-col stg:gap-1">
-        <label id={labelId} htmlFor={switchId} className="stg:text-sm stg:font-medium stg:text-foreground">
+        <label
+          id={labelId}
+          htmlFor={switchId}
+          className="stg:text-sm stg:font-medium stg:text-foreground"
+        >
           {label}
         </label>
         {hint !== undefined && (
-          <p id={hintId} className="stg:m-0 stg:text-xs stg:text-muted-foreground">
+          <p
+            id={hintId}
+            className="stg:m-0 stg:text-xs stg:text-muted-foreground"
+          >
             {hint}
           </p>
         )}

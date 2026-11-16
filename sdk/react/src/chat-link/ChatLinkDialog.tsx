@@ -48,6 +48,7 @@ import { SCROLL_REGION_FOCUS, scrollRegion } from "../internal/scroll-region.js"
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { useToolCredentialsDisclosure } from "../vault/useToolCredentialsDisclosure.js";
 import { ChoiceGroup, FIELD_LABEL_CLASSES, FieldError, TextArea, TextInput } from "../internal/form/index.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 
 /** Maximum length of each visitor message (proto: `string.max_len = 300`). */
 const MAX_MESSAGE_LENGTH = 300;
@@ -292,7 +293,7 @@ function CreateChatLinkForm({
   // A server-side (org, slug) collision pins to the slug field until the
   // slug changes — the remedy is picking another slug.
   const [collisionError, setCollisionError] = useState<string | null>(null);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<Error | null>(null);
 
   const { createChannel, isPending } = useCreateChannel();
 
@@ -359,7 +360,7 @@ function CreateChatLinkForm({
         } else {
           // Any other refusal (a permission the caller lacks, a
           // precondition the server names) — show the server's words.
-          setSubmitError(getUserMessage(err));
+          setSubmitError(err instanceof Error ? err : new Error(getUserMessage(err)));
         }
       }
     },
@@ -390,7 +391,9 @@ function CreateChatLinkForm({
           onChange={(e) => handleNameChange(e.target.value)}
           disabled={isPending}
           required
-          maxLength={63} className="stg:w-full" invalid={Boolean(nameError)}
+          maxLength={63}
+          className="stg:w-full"
+          invalid={Boolean(nameError)}
         />
         {nameError ? (
           <FieldError>
@@ -418,7 +421,9 @@ function CreateChatLinkForm({
           value={slug}
           onChange={(e) => handleSlugChange(e.target.value)}
           disabled={isPending}
-          required className="stg:w-full stg:font-mono" invalid={Boolean(slugError)}
+          required
+          className="stg:w-full stg:font-mono"
+          invalid={Boolean(slugError)}
         />
         {slugError ? (
           <FieldError>
@@ -445,11 +450,7 @@ function CreateChatLinkForm({
         </p>
       </div>
 
-      {submitError && (
-        <FieldError>
-          {submitError}
-        </FieldError>
-      )}
+      {submitError && <ErrorMessage error={submitError} title="Couldn't create the chat link." />}
 
       <div className="stg:flex stg:items-center stg:justify-end">
         <Button type="submit" disabled={!canSubmit}>
@@ -1253,7 +1254,8 @@ function OriginsEditor({
             }}
             placeholder="https://example.com"
             aria-label="Add allowed origin"
-            aria-invalid={inputError != null} className="stg:w-full stg:font-mono"
+            aria-invalid={inputError != null}
+            className="stg:w-full stg:font-mono"
           />
           {inputError && (
             <FieldError className="stg:mt-1">
@@ -1390,7 +1392,8 @@ function MessageField({
         onChange={(e) => onChange(e.target.value.slice(0, MAX_MESSAGE_LENGTH))}
         placeholder={placeholder}
         rows={2}
-        maxLength={MAX_MESSAGE_LENGTH} className="stg:w-full stg:resize-y"
+        maxLength={MAX_MESSAGE_LENGTH}
+        className="stg:w-full stg:resize-y"
       />
     </label>
   );

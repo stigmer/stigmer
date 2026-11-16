@@ -75,7 +75,12 @@ export function FormFooter({
   return (
     <div className={cn("stg:flex stg:flex-col stg:gap-3", className)}>
       {failure}
-      <div className={cn("stg:flex stg:flex-wrap stg:items-center stg:gap-2", atEnd ? "stg:justify-end" : undefined)}>
+      <div
+        className={cn(
+          "stg:flex stg:flex-wrap stg:items-center stg:gap-2",
+          atEnd ? "stg:justify-end" : undefined,
+        )}
+      >
         {atEnd ? (
           <>
             {extra}

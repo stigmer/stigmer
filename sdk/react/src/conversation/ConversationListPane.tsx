@@ -141,7 +141,7 @@ export function ConversationListPane({
                 onChange={(e) => onChannelFilterChange(e.target.value)}
                 size="xs"
                 wrapperClassName="stg:w-full"
- >
+              >
                 <option value="">All channels</option>
                 {channels.map((channel) => (
                   <option key={channel.metadata?.id} value={channel.metadata?.id}>

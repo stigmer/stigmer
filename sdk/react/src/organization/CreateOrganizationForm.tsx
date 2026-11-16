@@ -137,7 +137,9 @@ export function CreateOrganizationForm({
             disabled={isCreating}
             autoFocus
             required
-            maxLength={63} className="stg:w-full" invalid={Boolean(nameError)}
+            maxLength={63}
+            className="stg:w-full"
+            invalid={Boolean(nameError)}
           />
           {nameError ? (
             <FieldError>
@@ -165,7 +167,9 @@ export function CreateOrganizationForm({
             onChange={(e) => handleSlugChange(e.target.value)}
             placeholder="e.g. acme-corp"
             disabled={isCreating}
-            required className="stg:w-full stg:font-mono" invalid={Boolean(slugError)}
+            required
+            className="stg:w-full stg:font-mono"
+            invalid={Boolean(slugError)}
           />
           {slugError ? (
             <FieldError>
@@ -194,7 +198,8 @@ export function CreateOrganizationForm({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="What is this organization for?"
-            disabled={isCreating} className="stg:w-full"
+            disabled={isCreating}
+            className="stg:w-full"
           />
         </div>
       </div>

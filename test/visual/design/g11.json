@@ -8,7 +8,7 @@
       "caption": "The Library: As an admin, the Add menu open",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
       "words": [
         {
           "text": "Library",
@@ -205,7 +205,7 @@
       "caption": "The Library: As a member: only what a member may add",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
       "words": [
         {
           "text": "Library",
@@ -362,7 +362,7 @@
       "caption": "The Library: A count that didn't load",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
       "words": [
         {
           "text": "Library",
@@ -511,7 +511,7 @@
       "caption": "The Library: At 390 wide",
       "narrow": true,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
       "words": [
         {
           "text": "Library",

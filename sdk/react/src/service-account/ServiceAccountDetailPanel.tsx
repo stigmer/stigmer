@@ -201,7 +201,8 @@ function NameSection({
         onChange={(e) => setDraft(e.target.value)}
         disabled={isUpdating}
         autoFocus
-        required className="stg:w-full"
+        required
+        className="stg:w-full"
       />
       {error && (
         <FieldError>

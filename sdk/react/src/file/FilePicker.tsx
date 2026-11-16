@@ -138,7 +138,7 @@ export function FilePicker({ org, value, onChange, disabled = false, className }
           disabled={disabled || isLoading || available.length === 0}
           onChange={(event) => add(event.target.value)}
           className="stg:min-w-0 stg:flex-1"
- >
+        >
           <option value="" disabled>
             {isLoading
               ? "Loading files…"

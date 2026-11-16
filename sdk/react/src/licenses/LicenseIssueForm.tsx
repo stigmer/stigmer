@@ -266,7 +266,7 @@ export function LicenseIssueForm({
               value={customerId}
               onChange={(e) => setCustomerId(e.target.value)}
               disabled={isSubmitting}
- >
+            >
               <option value="">Choose a customer</option>
               {customers.map(({ customer: c, licenseCount }) => (
                 <option key={c.id} value={c.id}>

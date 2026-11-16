@@ -426,8 +426,9 @@ export function OAuthAppDetailPanel({
                   e.target.value as typeof tokenEndpointAuthMethod,
                 )
               }
-              disabled={isUpdating} className="stg:w-full"
- >
+              disabled={isUpdating}
+              className="stg:w-full"
+            >
               <option value="unspecified">
                 Unspecified (treated as HTTP Basic)
               </option>
@@ -455,8 +456,9 @@ export function OAuthAppDetailPanel({
                   e.target.value as typeof vendorApprovalStatus,
                 )
               }
-              disabled={isUpdating} className="stg:w-full"
- >
+              disabled={isUpdating}
+              className="stg:w-full"
+            >
               <option value="unspecified">Unspecified (treated as approved)</option>
               <option value="pending">Pending</option>
               <option value="approved">Approved</option>
@@ -690,7 +692,8 @@ function FieldInput({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
-        required={required} className="stg:w-full"
+        required={required}
+        className="stg:w-full"
       />
       {hint && (
         <p className="stg:text-2xs stg:text-muted-foreground">{hint}</p>

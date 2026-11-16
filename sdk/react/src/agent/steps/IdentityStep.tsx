@@ -65,11 +65,7 @@ export function IdentityStep({
         </p>
       </div>
 
-      {validationError && (
-        <FieldError>
-          {validationError}
-        </FieldError>
-      )}
+      {validationError && <FieldError>{validationError}</FieldError>}
 
       <div className="stg:grid stg:gap-4 stg:sm:grid-cols-2">
         {/* Name */}
@@ -86,7 +82,8 @@ export function IdentityStep({
             value={data.name}
             onChange={(e) => handleNameChange(e.target.value)}
             placeholder="e.g. PR Review Bot"
-            autoFocus className="stg:w-full"
+            autoFocus
+            className="stg:w-full"
           />
         </div>
 
@@ -103,7 +100,9 @@ export function IdentityStep({
             type="text"
             value={data.slug}
             onChange={(e) => handleSlugChange(e.target.value)}
-            placeholder="auto-generated" className="stg:w-full stg:font-mono" invalid={Boolean(slugError)}
+            placeholder="auto-generated"
+            className="stg:w-full stg:font-mono"
+            invalid={Boolean(slugError)}
           />
           {slugError && (
             <p className="stg:text-xs stg:text-destructive">{slugError}</p>
@@ -130,7 +129,8 @@ export function IdentityStep({
           value={data.description}
           onChange={(e) => updateData({ description: e.target.value })}
           placeholder="A brief description of what this agent does"
-          maxLength={200} className="stg:w-full"
+          maxLength={200}
+          className="stg:w-full"
         />
       </div>
 
@@ -147,7 +147,8 @@ export function IdentityStep({
           type="url"
           value={data.iconUrl}
           onChange={(e) => updateData({ iconUrl: e.target.value })}
-          placeholder="https://example.com/icon.png" className="stg:w-full"
+          placeholder="https://example.com/icon.png"
+          className="stg:w-full"
         />
       </div>
 
@@ -167,7 +168,8 @@ export function IdentityStep({
           value={data.instructions}
           onChange={(e) => updateData({ instructions: e.target.value })}
           placeholder="You are a helpful assistant that..."
-          rows={12} className="stg:w-full stg:resize-y stg:font-mono"
+          rows={12}
+          className="stg:w-full stg:resize-y stg:font-mono"
         />
       </div>
     </div>

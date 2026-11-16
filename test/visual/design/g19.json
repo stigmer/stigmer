@@ -8,7 +8,7 @@
       "caption": "A plugin: Overview",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
       "words": [
         {
           "text": "Ledger tools",
@@ -221,7 +221,7 @@
       "caption": "A plugin: Remove, asked first (the destructive confirm)",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
       "words": [
         {
           "text": "Remove Ledger tools?",
@@ -278,7 +278,7 @@
       "caption": "A plugin: Evals, none yet",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
       "words": [
         {
           "text": "Ledger tools",
@@ -399,7 +399,7 @@
       "caption": "A plugin: At 390 wide",
       "narrow": true,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
       "words": [
         {
           "text": "Ledger tools",

@@ -55,10 +55,7 @@ export function StandingContextField({
 
   return (
     <div className="stg:space-y-1">
-      <label
-        htmlFor={id}
-        className={FIELD_LABEL_CLASSES}
-      >
+      <label htmlFor={id} className={FIELD_LABEL_CLASSES}>
         Standing context
       </label>
       <TextArea
@@ -70,7 +67,10 @@ export function StandingContextField({
         disabled={disabled}
         readOnly={readOnly}
         placeholder={readOnly ? undefined : placeholder}
-        className={cn("stg:w-full stg:resize-y", readOnly && "stg:bg-muted-subtle stg:text-muted-foreground")}
+        className={cn(
+          "stg:w-full stg:resize-y",
+          readOnly && "stg:bg-muted-subtle stg:text-muted-foreground",
+        )}
       />
       {helperText && (
         <p className="stg:text-2xs stg:text-muted-foreground">{helperText}</p>

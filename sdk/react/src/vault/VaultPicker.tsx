@@ -208,8 +208,9 @@ export function VaultPicker({
           value=""
           onChange={(e) => {
             if (e.target.value) handleAdd(e.target.value);
-          }} className="stg:w-full"
- >
+          }}
+          className="stg:w-full"
+        >
           <option value="">
             {isLoading
               ? "Loading vaults..."

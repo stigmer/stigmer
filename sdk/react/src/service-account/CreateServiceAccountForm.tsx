@@ -200,7 +200,8 @@ function AccountStep({
           disabled={isCreating}
           autoFocus
           required
-          aria-describedby={`${baseId}-name-hint`} className="stg:w-full"
+          aria-describedby={`${baseId}-name-hint`}
+          className="stg:w-full"
         />
         <p
           id={`${baseId}-name-hint`}

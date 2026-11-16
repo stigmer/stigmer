@@ -202,7 +202,8 @@ export function InlineEditResourceList({
             type="text"
             value={addOrg}
             onChange={(e) => setAddOrg(e.target.value)}
-            placeholder="org" className="stg:w-24"
+            placeholder="org"
+            className="stg:w-24"
           />
           <span className="stg:text-xs stg:text-muted-foreground">/</span>
           <TextInput
@@ -220,7 +221,8 @@ export function InlineEditResourceList({
                 setShowGenericAdd(false);
                 setAddSlug("");
               }
-            }} className="stg:flex-1"
+            }}
+            className="stg:flex-1"
           />
           <IconButton
             label={`Add ${resourceLabel}`}

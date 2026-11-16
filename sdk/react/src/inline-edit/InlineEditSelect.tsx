@@ -85,6 +85,7 @@ export function InlineEditSelect({
     <div ref={containerRef} className={cn("stg:flex stg:flex-col stg:gap-1", className)}>
       <ChoiceGroup
         variant="list"
+        activation="manual"
         value={value}
         onChange={(next) => void handleSelect(next)}
         disabled={isSaving}

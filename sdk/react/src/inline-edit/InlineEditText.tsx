@@ -134,7 +134,9 @@ export function InlineEditText({
           onChange={(e) => { setDraft(e.target.value); setLocalError(null); }}
           onKeyDown={handleKeyDown}
           disabled={isSaving}
-          placeholder={placeholder} className={cn("stg:flex-1", variant === "heading" && "stg:text-lg stg:font-semibold")} invalid={Boolean(displayError)}
+          placeholder={placeholder}
+          className={cn("stg:flex-1", variant === "heading" && "stg:text-lg stg:font-semibold")}
+          invalid={Boolean(displayError)}
         />
         <IconButton
           label="Save"

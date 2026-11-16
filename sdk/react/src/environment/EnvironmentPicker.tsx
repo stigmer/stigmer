@@ -104,8 +104,9 @@ export function EnvironmentPicker({
         onChange={(event) => {
           const row = rows.find((candidate) => candidate.slug === event.target.value);
           onChange(row === undefined ? undefined : { org: row.org, slug: row.slug });
-        }} className="stg:w-full"
- >
+        }}
+        className="stg:w-full"
+      >
         <option value="">{defaultLabel}</option>
         {rows.map((row) => (
           <option key={row.slug} value={row.slug}>

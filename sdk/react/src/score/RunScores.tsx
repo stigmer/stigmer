@@ -142,7 +142,8 @@ export function RunScores({ runId, className }: RunScoresProps) {
             maxLength={RATING_COMMENT_MAX_LENGTH}
             placeholder="Add a note (optional)"
             aria-label="Note on this answer"
-            disabled={isRating} className="stg:min-w-0 stg:flex-1"
+            disabled={isRating}
+            className="stg:min-w-0 stg:flex-1"
           />
           <Button type="submit" variant="ghost" size="xs" disabled={isRating}>
             Save

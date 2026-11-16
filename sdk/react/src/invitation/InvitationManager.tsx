@@ -322,7 +322,8 @@ function CreateInvitationForm({
           placeholder="e.g. Engineering team link"
           disabled={isCreating}
           autoFocus
-          maxLength={200} className="stg:w-full"
+          maxLength={200}
+          className="stg:w-full"
         />
       </div>
 

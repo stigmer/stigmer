@@ -13,6 +13,7 @@ import { usePushSkill } from "./usePushSkill.js";
 import { useSkillDuplicateCheck } from "./useSkillDuplicateCheck.js";
 import { Button } from "../button/Button.js";
 import { FieldError, HiddenFileInput } from "../internal/form/index.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -370,9 +371,7 @@ function PreviewPhase({
       {/* Error */}
       {pushError && (
         <div className="stg:px-4 stg:py-2">
-          <FieldError>
-            {pushError.message}
-          </FieldError>
+          <ErrorMessage error={pushError} title="Couldn't upload the skill." />
         </div>
       )}
 

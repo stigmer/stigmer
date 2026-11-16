@@ -125,7 +125,9 @@ export function InlineEditImage({
           onChange={(e) => { setDraft(e.target.value); setLocalError(null); }}
           onKeyDown={handleKeyDown}
           disabled={isSaving}
-          placeholder="https://example.com/icon.png" className="stg:flex-1" invalid={Boolean(displayError)}
+          placeholder="https://example.com/icon.png"
+          className="stg:flex-1"
+          invalid={Boolean(displayError)}
         />
         <IconButton
           label="Save"

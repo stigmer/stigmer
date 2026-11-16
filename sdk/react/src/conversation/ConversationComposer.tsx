@@ -155,7 +155,8 @@ export function ConversationComposer({
           rows={1}
           placeholder="Reply as your business…"
           aria-label="Reply to the customer"
-          aria-describedby={hasAdvisory ? advisoryId : undefined} className="stg:min-h-9 stg:flex-1 stg:resize-none"
+          aria-describedby={hasAdvisory ? advisoryId : undefined}
+          className="stg:min-h-9 stg:flex-1 stg:resize-none"
         />
         {onOpenTemplatePicker && (
           <Button

@@ -8,7 +8,7 @@
       "caption": "Dialogs",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the dialogs pull request, which gives the dialog its header, body and footer",
+      "unbuilt": "built by the dialogs pull request, which gives the dialog its header, body and footer (stigmer#3210)",
       "words": [
         {
           "text": "Delete Variance reporter?",

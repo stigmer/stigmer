@@ -177,8 +177,9 @@ export function SignInSettingsSection({
             })
           }
           disabled={disabled}
-          aria-describedby={roleHintId} className="stg:w-full"
- >
+          aria-describedby={roleHintId}
+          className="stg:w-full"
+        >
           {SIGN_IN_ROLE_OPTIONS.map((opt) => (
             <option key={opt.value} value={String(opt.value)}>
               {opt.label}
@@ -211,7 +212,8 @@ export function SignInSettingsSection({
           placeholder="e.g., org_id"
           disabled={disabled}
           maxLength={256}
-          aria-describedby={claimHintId} className="stg:w-full"
+          aria-describedby={claimHintId}
+          className="stg:w-full"
         />
         <p
           id={claimHintId}

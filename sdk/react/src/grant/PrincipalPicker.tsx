@@ -297,7 +297,8 @@ export function PrincipalPicker({
           onKeyDown={handleKeyDown}
           placeholder={includeTeams ? "Search people or teams" : "Search by name or email"}
           disabled={disabled || isLoading}
-          autoFocus={autoFocus} className="stg:w-full"
+          autoFocus={autoFocus}
+          className="stg:w-full"
         />
 
         {open && (

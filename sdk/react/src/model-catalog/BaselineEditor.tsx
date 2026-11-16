@@ -465,7 +465,7 @@ export function BaselineEditor({
             value={form.harness}
             onChange={(e) => set("harness", e.target.value)}
             disabled={initial !== null || isSubmitting}
- >
+          >
             {HARNESS_OPTIONS.map((harness) => (
               <option key={harness} value={harness}>
                 {harness}
@@ -494,7 +494,7 @@ export function BaselineEditor({
             value={form.speedTier}
             onChange={(e) => set("speedTier", e.target.value)}
             disabled={isSubmitting}
- >
+          >
             <option value="fastest">fastest</option>
             <option value="fast">fast</option>
             <option value="balanced">balanced</option>
@@ -506,7 +506,7 @@ export function BaselineEditor({
             value={form.costTier}
             onChange={(e) => set("costTier", e.target.value)}
             disabled={isSubmitting}
- >
+          >
             <option value="economy">economy</option>
             <option value="standard">standard</option>
             <option value="premium">premium</option>

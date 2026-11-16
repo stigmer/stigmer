@@ -32,7 +32,8 @@ import { cadenceToCron, validateCron, type CadencePreset } from "./cadence.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { Button } from "../button/Button.js";
-import { FIELD_HINT_CLASSES, FIELD_LABEL_CLASSES, FieldError, TextArea, TextInput } from "../internal/form/index.js";
+import { FIELD_HINT_CLASSES, FIELD_LABEL_CLASSES, TextArea, TextInput } from "../internal/form/index.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -524,11 +525,7 @@ export function RoutineForm({
         </div>
       </div>
 
-      {error && (
-        <FieldError>
-          {getUserMessage(error)}
-        </FieldError>
-      )}
+      {error && <ErrorMessage error={error} title="Couldn't create the routine." />}
 
       <div className="stg:flex stg:items-center stg:gap-2">
         <Button type="submit" disabled={!canSubmit} icon={isCreating ? <SpinnerIcon size={14} /> : undefined}>

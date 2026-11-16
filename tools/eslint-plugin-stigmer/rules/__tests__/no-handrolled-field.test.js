@@ -6,7 +6,7 @@
 // passes for an unrelated reason: a hidden input carries a value, not a
 // field; the form folder draws the elements; a test builds raw elements as
 // fixtures; the kit's parts themselves are fine. It is the bar's CON-14
-// ("Every field and dialog is the kit's"), field half. Run via the root
+// ("Every field is the kit's"). Run via the root
 // `npm run test:scripts` (the `test:root` globs in package.json).
 
 const assert = require("node:assert/strict");
@@ -35,7 +35,7 @@ const field = (element) => [{ messageId: "handrolledField", data: { element } }]
 const CONFIGS = ["sdk/react/eslint.config.mjs", "client-apps/web/eslint.config.mjs", "client-apps/desktop/eslint.config.mjs"];
 const REPO = join(__dirname, "..", "..", "..", "..");
 
-describe("CON-14 every field and dialog is the kit's", () => {
+describe("CON-14 every field is the kit's", () => {
   it("the field fence is an error in the kit's and both apps' lint configs, so no new raw field lands anywhere", () => {
     for (const config of CONFIGS) {
       const text = readFileSync(join(REPO, config), "utf8");

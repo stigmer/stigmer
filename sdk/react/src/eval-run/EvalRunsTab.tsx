@@ -528,7 +528,7 @@ function RunEvalsForm({
               value={settings.comparedPluginId}
               disabled={isStarting}
               onChange={(event) => pickCompared(event.target.value)}
- >
+            >
               <option value="">No comparison</option>
               {orgPlugins.map((plugin) => (
                 <option key={plugin.id} value={plugin.id}>
@@ -830,7 +830,7 @@ function CompareEvalRuns({
         id={id}
         value={value}
         onChange={(event) => onChange(event.target.value)}
- >
+      >
         {evalRuns.map((evalRun) => (
           <option key={evalRun.metadata?.id} value={evalRun.metadata?.id ?? ""}>
             {evalRunSummary(evalRun, pluginName)}

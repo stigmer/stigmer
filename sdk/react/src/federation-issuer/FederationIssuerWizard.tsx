@@ -645,8 +645,9 @@ function FieldInput({
           id={id}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          disabled={disabled} className="stg:w-full"
- >
+          disabled={disabled}
+          className="stg:w-full"
+        >
           {options.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
@@ -661,7 +662,8 @@ function FieldInput({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
-          required={required} className="stg:w-full"
+          required={required}
+          className="stg:w-full"
         />
       )}
       {hint && (

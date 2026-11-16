@@ -144,7 +144,8 @@ export function InlineEditKeyValue({
               type="text"
               value={row.key}
               onChange={(e) => updateRow(i, { key: e.target.value })}
-              placeholder={keyLabel} className="stg:font-mono"
+              placeholder={keyLabel}
+              className="stg:font-mono"
             />
             {showValue && (
               <TextInput
@@ -152,7 +153,8 @@ export function InlineEditKeyValue({
                 type="text"
                 value={row.value}
                 onChange={(e) => updateRow(i, { value: e.target.value })}
-                placeholder={valueLabel} className="stg:font-mono"
+                placeholder={valueLabel}
+                className="stg:font-mono"
               />
             )}
             {showDescription && (

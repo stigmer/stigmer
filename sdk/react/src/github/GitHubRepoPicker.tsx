@@ -411,7 +411,7 @@ export function GitHubRepoPicker({
               value={selectedBranch}
               onChange={(e) => setSelectedBranch(e.target.value)}
               className="stg:w-full"
- >
+            >
               {branches.map((b) => (
                 <option key={b.name} value={b.name}>
                   {b.name}

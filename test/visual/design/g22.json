@@ -8,7 +8,7 @@
       "caption": "Any detail page: Loading",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
       "words": [],
       "buttons": [],
       "sample": {},
@@ -19,7 +19,7 @@
       "caption": "Any detail page: Didn't load",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
       "words": [
         {
           "text": "Couldn't load the agent.",
@@ -80,7 +80,7 @@
       "caption": "Any detail page: Not found",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
       "words": [
         {
           "text": "This agent isn't here",

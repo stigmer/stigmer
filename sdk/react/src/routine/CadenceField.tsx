@@ -88,6 +88,7 @@ export function CadenceField({
         <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-foreground">
           <label htmlFor={`${groupId}-minute`}>At minute</label>
           <TextInput
+            className="stg:w-16"
             id={`${groupId}-minute`}
             type="number"
             min={0}
@@ -182,6 +183,7 @@ export function CadenceField({
           <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-foreground">
             <label htmlFor={`${groupId}-day`}>On day</label>
             <TextInput
+              className="stg:w-16"
               id={`${groupId}-day`}
               type="number"
               min={1}
@@ -222,7 +224,9 @@ export function CadenceField({
             placeholder="e.g. 0 9 * * MON-FRI"
             value={value.cron}
             onChange={(e) => onChange({ kind: "custom", cron: e.target.value })}
-            disabled={disabled} className="stg:w-full stg:font-mono" invalid={Boolean(cronError)}
+            disabled={disabled}
+            className="stg:w-full stg:font-mono"
+            invalid={Boolean(cronError)}
           />
           {cronError ? (
             <FieldError>
@@ -268,6 +272,7 @@ function TimeInput({
     <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-foreground">
       <label htmlFor={id}>At</label>
       <TextInput
+        className="stg:w-auto"
         id={id}
         type="time"
         value={formatTime(hour, minute)}

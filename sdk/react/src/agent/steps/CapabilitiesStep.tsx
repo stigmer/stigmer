@@ -281,14 +281,16 @@ function EnvVarEditor({
                   updateEntry(index, { key: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "") })
                 }
                 placeholder="VARIABLE_NAME"
-                aria-label={`Environment variable name ${index + 1}`} className="stg:w-full stg:font-mono"
+                aria-label={`Environment variable name ${index + 1}`}
+                className="stg:w-full stg:font-mono"
               />
               <TextInput
                 type="text"
                 value={entry.description}
                 onChange={(e) => updateEntry(index, { description: e.target.value })}
                 placeholder="Description (optional)"
-                aria-label={`Description for ${entry.key || `variable ${index + 1}`}`} className="stg:w-full"
+                aria-label={`Description for ${entry.key || `variable ${index + 1}`}`}
+                className="stg:w-full"
               />
             </div>
             <IconButton

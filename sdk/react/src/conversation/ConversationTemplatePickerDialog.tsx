@@ -398,7 +398,8 @@ function TemplateFillForm({
                 type="text"
                 value={values[key] ?? ""}
                 onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
-                disabled={isSending} className="stg:w-full"
+                disabled={isSending}
+                className="stg:w-full"
               />
             </div>
           ))}

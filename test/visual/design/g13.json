@@ -8,7 +8,7 @@
       "caption": "Plugins: Full",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
       "words": [
         {
           "text": "Plugins",
@@ -165,7 +165,7 @@
       "caption": "Plugins: A row's acts, for someone who may delete it (someone who may not sees Copy ID only)",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
       "words": [
         {
           "text": "Plugins",
@@ -338,7 +338,7 @@
       "caption": "Plugins: None yet, for someone who may add one",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
       "words": [
         {
           "text": "Plugins",
@@ -443,7 +443,7 @@
       "caption": "Plugins: None yet, for a member who may not add one",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
       "words": [
         {
           "text": "Plugins",
@@ -512,7 +512,7 @@
       "caption": "Plugins: A search that matches nothing",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
       "words": [
         {
           "text": "Plugins",
@@ -605,7 +605,7 @@
       "caption": "Plugins: Didn't load",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
       "words": [
         {
           "text": "Plugins",
@@ -718,7 +718,7 @@
       "caption": "Plugins: Loading",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
       "words": [
         {
           "text": "Plugins",
@@ -791,7 +791,7 @@
       "caption": "Plugins: At 390 wide",
       "narrow": true,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
       "words": [
         {
           "text": "Plugins",

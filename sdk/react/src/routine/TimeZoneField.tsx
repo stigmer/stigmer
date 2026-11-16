@@ -130,7 +130,8 @@ export function TimeZoneField({
         // free-typed text is never submitted, only list selections.
         onBlur={close}
         onKeyDown={handleKeyDown}
-        disabled={disabled} className="stg:w-full"
+        disabled={disabled}
+        className="stg:w-full"
       />
 
       {isOpen && (

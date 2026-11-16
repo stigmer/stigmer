@@ -38,7 +38,20 @@ export interface FileDropProps {
 }
 
 /** A zone to drop a file on, with a Choose a file button for the keyboard and the picker. */
-export function FileDrop({ onFiles, title, hint, actionLabel = "Choose a file", accept, multiple, disabled, invalid, icon, className, children, ...aria }: FileDropProps) {
+export function FileDrop({
+  onFiles,
+  title,
+  hint,
+  actionLabel = "Choose a file",
+  accept,
+  multiple,
+  disabled,
+  invalid,
+  icon,
+  className,
+  children,
+  ...aria
+}: FileDropProps) {
   const input = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
 
@@ -63,17 +76,32 @@ export function FileDrop({ onFiles, title, hint, actionLabel = "Choose a file", 
       onDrop={onDrop}
       className={cn(
         "stg:flex stg:flex-col stg:items-center stg:gap-2 stg:rounded-xl stg:border stg:border-dashed stg:p-6 stg:text-center",
-        over ? "stg:border-foreground stg:bg-accent" : invalid ? "stg:border-status-failed stg:bg-faint" : "stg:border-border-strong stg:bg-faint",
+        over
+          ? "stg:border-foreground stg:bg-accent"
+          : invalid
+            ? "stg:border-status-failed stg:bg-faint"
+            : "stg:border-border-strong stg:bg-faint",
         disabled && "stg:opacity-50",
         className,
       )}
     >
-      <span aria-hidden="true" className="stg:grid stg:size-10 stg:place-items-center stg:rounded-xl stg:bg-muted stg:text-foreground">
+      <span
+        aria-hidden="true"
+        className="stg:grid stg:size-10 stg:place-items-center stg:rounded-xl stg:bg-muted stg:text-foreground"
+      >
         {icon ?? <Upload className="stg:size-5" />}
       </span>
-      <span className="stg:text-sm stg:font-medium stg:text-foreground">{over ? "Drop it to upload" : title}</span>
-      {hint !== undefined && <span className="stg:text-xs stg:text-muted-foreground">{hint}</span>}
-      <Button variant="outline" onClick={() => input.current?.click()} disabled={disabled}>
+      <span className="stg:text-sm stg:font-medium stg:text-foreground">
+        {over ? "Drop it to upload" : title}
+      </span>
+      {hint !== undefined && (
+        <span className="stg:text-xs stg:text-muted-foreground">{hint}</span>
+      )}
+      <Button
+        variant="outline"
+        onClick={() => input.current?.click()}
+        disabled={disabled}
+      >
         {actionLabel}
       </Button>
       {children}

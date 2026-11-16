@@ -168,7 +168,7 @@ function DefaultRow({
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled || isLoading}
         aria-describedby={`${descriptionId} ${statusId}`}
- >
+      >
         <option value="">Platform default{defaultModel ? ` (${defaultModel.displayName})` : ""}</option>
         {isStale && <option value={value}>{value} (unavailable)</option>}
         {models.map((model) => (
