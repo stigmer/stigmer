@@ -9,7 +9,7 @@ import { agentChatScene } from "./agent-chat.tsx";
 import { agentProfileScene } from "./agent.tsx";
 import { fromHooksScene } from "./from-hooks.tsx";
 import { varianceReporterScene } from "./agent-pages.tsx";
-import { skillDetailScene } from "./skill.tsx";
+import { skillDetailScene, skillFilesScene } from "./skill.tsx";
 import { dashboardPageScene, dashboardScene } from "./dashboard.tsx";
 import { marketplaceScene } from "./marketplace.tsx";
 import {
@@ -164,6 +164,8 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "bring-others-in-joined": () => bringOthersInScene("joined"),
   "bring-others-in-local": () => bringOthersInScene("local"),
   "skill-detail": skillDetailScene,
+  "skill-files": skillFilesScene,
+  "skill-files-script": skillFilesScene,
   "library-landing": () => libraryLandingScene("owner"),
   "library-landing-add": () => libraryLandingScene("owner"),
   "library-landing-member": () => libraryLandingScene("member"),

@@ -18,7 +18,7 @@ import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/quer
 import { IdentityAccountQueryController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
-import { RoutineDetailView, RoutineForm } from "@stigmer/react-sdk";
+import { PageHeader, RoutineDetailView, RoutineForm } from "@stigmer/react-sdk";
 import { samples } from "@stigmer/react-sdk/test";
 import type { ReactElement } from "react";
 import { firstRunHistory, VARIANCE_REPORTER, varianceRoutine } from "../docs-fixtures.ts";
@@ -65,7 +65,17 @@ export function routineNewScene(): Drawing {
   return {
     inOrganization: true,
     routes: routineRoutes(false),
-    render: () => libraryColumn(<RoutineForm org={ORG_SLUG} onCancel={() => {}} />),
+    render: () => libraryColumn(
+        <>
+          <PageHeader
+            className="stg:mb-6"
+            headingLevel={1}
+            title="New routine"
+            description="Start an agent on a schedule, by hand, or from another system."
+          />
+          <RoutineForm org={ORG_SLUG} onCancel={() => {}} />
+        </>,
+      ),
   };
 }
 
@@ -102,6 +112,16 @@ export function routineNewFailedScene(): Drawing {
         },
       });
     },
-    render: () => libraryColumn(<RoutineForm org={ORG_SLUG} onCancel={() => {}} />),
+    render: () => libraryColumn(
+        <>
+          <PageHeader
+            className="stg:mb-6"
+            headingLevel={1}
+            title="New routine"
+            description="Start an agent on a schedule, by hand, or from another system."
+          />
+          <RoutineForm org={ORG_SLUG} onCancel={() => {}} />
+        </>,
+      ),
   };
 }

@@ -12,6 +12,7 @@ import {
   useActiveOrgId,
   useBreadcrumbOverride,
   useOrgSlugForId,
+  PageHeader,
 } from "@stigmer/react-sdk";
 import type { CreationPath } from "@stigmer/react-sdk";
 import type { AgentWizardData } from "@stigmer/react-sdk";
@@ -85,9 +86,16 @@ export function AgentNewPage() {
 
   return (
     <>
+      <PageHeader
+        className="mb-6"
+        headingLevel={1}
+        title="New agent"
+        description="Start from a blank page, a template, or a file you already have."
+      />
       {state.phase === "picking" ? (
         <CreationPicker
           resourceLabel="agent"
+          showHeading={false}
           templates={AGENT_TEMPLATES}
           onSelect={handlePickerSelect}
         />

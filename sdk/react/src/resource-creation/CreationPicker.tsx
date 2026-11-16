@@ -33,6 +33,11 @@ export interface CreationPickerProps<TData> {
   /** Called when the user selects a creation path. */
   readonly onSelect: (path: CreationPath) => void;
   /** Additional CSS classes for the root container. */
+  /**
+   * Whether the picker draws its own "Create a new …" heading (default
+   * true). A host whose page header already names the page passes false.
+   */
+  readonly showHeading?: boolean;
   readonly className?: string;
 }
 
@@ -85,6 +90,7 @@ export function CreationPicker<TData>({
   resourceLabel,
   templates,
   onSelect,
+  showHeading = true,
   className,
 }: CreationPickerProps<TData>) {
   const [view, setView] = useState<PickerView>("options");
@@ -119,14 +125,16 @@ export function CreationPicker<TData>({
 
   return (
     <div className={cn("stg:flex stg:flex-col stg:gap-6", className)}>
-      <div>
-        <h2 className="stg:text-lg stg:font-semibold stg:text-foreground">
-          Create a new {resourceLabel}
-        </h2>
-        <p className="stg:mt-1 stg:text-sm stg:text-muted-foreground">
-          Choose how you'd like to get started.
-        </p>
-      </div>
+      {showHeading && (
+        <div>
+          <h2 className="stg:text-lg stg:font-semibold stg:text-foreground">
+            Create a new {resourceLabel}
+          </h2>
+          <p className="stg:mt-1 stg:text-sm stg:text-muted-foreground">
+            Choose how you'd like to get started.
+          </p>
+        </div>
+      )}
 
       <div className="stg:grid stg:grid-cols-1 stg:gap-3 stg:sm:grid-cols-3">
         {/* Start from scratch */}

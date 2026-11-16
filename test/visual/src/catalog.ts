@@ -93,6 +93,8 @@ export type SceneId =
   | "bring-others-in-joined"
   | "bring-others-in-local"
   | "skill-detail"
+  | "skill-files"
+  | "skill-files-script"
   | "marketplace-admin"
   | "marketplace-member"
   | "marketplace-no-match"
@@ -1113,6 +1115,17 @@ const LISTED: readonly Scene[] = [
     widths: ["desktop", "narrow"],
   },
   { id: "skill-detail", title: "Skill page: the skills page's variance-report, its description over its rendered body", widths: ["desktop"] },
+  {
+    id: "skill-files",
+    title: "Skill page: an uploaded package of four files in two folders, SKILL.md open",
+    widths: ["desktop", "narrow"],
+  },
+  {
+    id: "skill-files-script",
+    title: "Skill page: the same package with its script open, read as code",
+    widths: ["desktop"],
+    opens: [{ press: "variance.py", role: "treeitem", exact: true }],
+  },
   { id: "marketplace-admin", title: "Marketplace: the official catalogue, for an admin", widths: ["desktop", "narrow"] },
   { id: "marketplace-member", title: "Marketplace: the official catalogue, for a member", widths: ["desktop"] },
   {

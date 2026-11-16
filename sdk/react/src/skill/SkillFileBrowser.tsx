@@ -189,7 +189,7 @@ function FileContentViewer({
 }) {
   const isMarkdown = path.endsWith(".md");
   const [view, setView] = useState<"rendered" | "source">("rendered");
-  const lines = content.split("\n").length;
+  const lines = content.replace(/\n$/, "").split("\n").length;
 
   return (
     <>
