@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { zipSync, strToU8 } from "fflate";
 import { StigmerError, type Stigmer } from "@stigmer/client";
@@ -39,6 +39,7 @@ function renderBrowser(stigmer: Stigmer) {
 const PLACEHOLDER = "Select a file to view its contents";
 
 afterEach(() => {
+  cleanup();
   vi.clearAllMocks();
 });
 
@@ -73,6 +74,29 @@ describe("SkillFileBrowser", () => {
     expect(
       screen.queryByRole("heading", { name: "Manifest" }),
     ).toBeNull();
+  });
+
+  it("says what the package holds, picks a file from the list above the viewer, and shows Markdown as source", async () => {
+    const stigmer = makeStigmerServing({
+      "SKILL.md": strToU8("# Manifest"),
+      "references/template.md": strToU8("# Template"),
+      "scripts/validate.py": strToU8('print("validated")\n'),
+    });
+    renderBrowser(stigmer);
+    expect(await screen.findByRole("heading", { name: "Manifest" })).toBeTruthy();
+    expect(screen.getByText("3 files in 2 folders · SKILL.md is what the agent reads first")).toBeTruthy();
+
+    // The phone's way in: the file is picked from the list.
+    fireEvent.change(screen.getByRole("combobox", { name: "File" }), { target: { value: "scripts/validate.py" } });
+    expect(screen.getByText('print("validated")')).toBeTruthy();
+    expect(screen.getByText("1 line")).toBeTruthy();
+    expect(screen.queryByRole("radiogroup", { name: "How to show the file" })).toBeNull();
+
+    fireEvent.change(screen.getByRole("combobox", { name: "File" }), { target: { value: "references/template.md" } });
+    expect(screen.getByRole("heading", { name: "Template" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("radio", { name: "Source" }));
+    expect(screen.getByText("# Template")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Template" })).toBeNull();
   });
 
   it("falls back to the first file in tree order when there is no root SKILL.md", async () => {

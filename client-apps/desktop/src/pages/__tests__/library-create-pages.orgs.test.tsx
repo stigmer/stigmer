@@ -144,6 +144,12 @@ describe("desktop SkillNewPage — organizations", () => {
 
     expect(location()).toBe("/library/skills/shared-team/made");
   });
+
+  it("returns to the skill list on cancel", () => {
+    renderPage(SkillNewPage);
+    act(() => last<{ onCancel: () => void }>("SkillUploader").onCancel());
+    expect(location()).toBe("/library/skills");
+  });
 });
 
 describe("desktop PluginUploadPage — organizations", () => {
