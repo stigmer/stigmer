@@ -5,6 +5,7 @@ import { IconButton } from "../button/IconButton.js";
 import { cardClasses, cardHeaderClasses } from "../internal/surface/Card.js";
 import { Tag } from "../internal/surface/Tag.js";
 import type { ReactNode } from "react";
+import { useSectionHeadingLevel } from "./headingLevel.js";
 
 export interface SectionProps {
   readonly title: string;
@@ -32,8 +33,8 @@ export interface SectionProps {
 /**
  * Shared section layout for resource detail views.
  *
- * A card whose header bar holds the section's title (14/20, semibold, the
- * page's second heading level under the page's title), its count and its
+ * A card whose header bar holds the section's title (14/20, semibold, one
+ * heading level under the page's title, `useSectionHeadingLevel`), its count and its
  * acts (the edit icon button among them); the content sits under the bar
  * and draws its own inner spacing.
  *
@@ -50,11 +51,13 @@ export function Section({
   children,
   className,
 }: SectionProps) {
+  const level = useSectionHeadingLevel();
+  const Heading = level === 2 ? "h2" : "h3";
   return (
     <section className={cn(cardClasses({ flush: true }), className)} data-scroll-target={scrollTarget}>
       <div className={cardHeaderClasses()}>
         <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-2">
-          <h2 className="stg:m-0 stg:text-sm stg:font-semibold stg:text-foreground">{title}</h2>
+          <Heading className="stg:m-0 stg:text-sm stg:font-semibold stg:text-foreground">{title}</Heading>
           {count != null && count > 0 && <Tag>{countIsLowerBound ? `${count}+` : count}</Tag>}
         </div>
         {(headerActions || onEdit) && (

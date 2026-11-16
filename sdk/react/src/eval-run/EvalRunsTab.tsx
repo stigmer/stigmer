@@ -95,6 +95,7 @@ import { useEvalRun } from "./useEvalRun.js";
 import { useEvalRuns } from "./useEvalRuns.js";
 import { useStartEvalRun } from "./useStartEvalRun.js";
 import { Checkbox, FIELD_LABEL_CLASSES, FieldError, Select, TextArea, TextInput } from "../internal/form/index.js";
+import { SubHeading } from "../resource-detail/headingLevel.js";
 
 /** The most of the organization's plugins the compare picker lists. */
 const COMPARE_PICKER_PAGE = 100;
@@ -904,7 +905,7 @@ function CompareSectionView({
       data-digest-changed={section.digestChanged ? "true" : undefined}
       className="stg:flex stg:flex-col stg:gap-1.5"
     >
-      <h4 className="stg:flex stg:flex-wrap stg:items-baseline stg:gap-x-2 stg:text-xs">
+      <SubHeading className="stg:flex stg:flex-wrap stg:items-baseline stg:gap-x-2 stg:text-xs">
         <span className="stg:font-medium stg:text-foreground">
           {section.slug}
         </span>
@@ -922,7 +923,7 @@ function CompareSectionView({
             {section.kind} version changed: its cases may differ
           </span>
         )}
-      </h4>
+      </SubHeading>
       {[
         { label: "Before", reason: section.beforeNotRun },
         { label: "After", reason: section.afterNotRun },

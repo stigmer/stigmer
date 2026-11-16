@@ -136,7 +136,7 @@ export function CreationPicker<TData>({
         </div>
       )}
 
-      <List aria-label={`Ways to create ${resourceLabel === "agent" ? "an" : "a"} ${resourceLabel}`}>
+      <List aria-label={`Ways to create ${/^[aeiou]/i.test(resourceLabel) ? "an" : "a"} ${resourceLabel}`}>
         <OptionRow
           title="Start from scratch"
           description={`Create a blank ${resourceLabel} and configure it step by step.`}

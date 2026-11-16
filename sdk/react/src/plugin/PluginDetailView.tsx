@@ -59,6 +59,7 @@ import { usePluginVersions } from "./usePluginVersions.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { EvalRunsTab } from "../eval-run/EvalRunsTab.js";
 import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
+import { SubHeading } from "../resource-detail/headingLevel.js";
 
 const OVERVIEW_TAB: TabItem = { id: "overview", label: "Overview" };
 const EVALS_TAB: TabItem = { id: "evals", label: "Evals" };
@@ -360,7 +361,7 @@ function PluginOverview({
           )}
           {hookWarnings.length > 0 && (
             <div className="stg:border-t stg:border-border">
-              <h4 className="stg:px-3 stg:pt-2.5 stg:text-xs stg:font-medium stg:text-muted-foreground">Not run on Stigmer</h4>
+              <SubHeading className="stg:px-3 stg:pt-2.5 stg:text-xs stg:font-medium stg:text-muted-foreground">Not run on Stigmer</SubHeading>
               <WarningList warnings={hookWarnings} label="Hooks not run on Stigmer" />
             </div>
           )}
