@@ -602,7 +602,13 @@ const ROUTINE_SCENES = [
 export type LibrarySceneName = (typeof LIBRARY_SCENES)[number]["id"] extends `library-${infer Name}` ? Name : never;
 
 const LIBRARY_SCENES = [
-  { id: "library-landing", title: "Library: the landing for an owner, a count card per kind", widths: ["desktop", "narrow"] },
+  { id: "library-landing", title: "Library: the landing for an owner, a row per kind with its count", widths: ["desktop", "narrow"] },
+  {
+    id: "library-landing-add",
+    title: "Library: the landing for an owner, its Add menu open on every kind",
+    widths: ["desktop"],
+    opens: [{ press: "Add a new resource", role: "button", exact: true }],
+  },
   {
     id: "library-landing-member",
     title: "Library: the landing for a member, its Add menu open on what a member may create",
@@ -617,7 +623,7 @@ const LIBRARY_SCENES = [
     id: "library-agents-no-match",
     title: "Library, Agents: a search that matches no agent",
     widths: ["desktop"],
-    opens: [{ fill: "Search agents…", with: "ledgr" }],
+    opens: [{ fill: "Search agents", with: "ledgr" }],
   },
   { id: "library-agents-failed", title: "Library, Agents: the list could not be read", widths: ["desktop", "narrow"] },
   { id: "library-agents-loading", title: "Library, Agents: while the list is read", widths: ["desktop"] },
@@ -626,6 +632,12 @@ const LIBRARY_SCENES = [
     title: "Library, Agents: the Apply YAML dialog open",
     widths: ["desktop"],
     opens: [{ press: "Apply YAML", role: "button", exact: true }],
+  },
+  {
+    id: "library-agents-acts",
+    title: "Library, Agents: a row's acts open, for someone who may delete it",
+    widths: ["desktop"],
+    opens: [{ press: "Actions for variance-reporter", role: "button", exact: true }],
   },
   {
     id: "library-agents-delete",
@@ -638,6 +650,7 @@ const LIBRARY_SCENES = [
   },
   { id: "library-skills", title: "Library, Skills: the organization's three skills", widths: ["desktop", "narrow"] },
   { id: "library-skills-empty", title: "Library, Skills: none yet", widths: ["desktop"] },
+  { id: "library-skills-empty-member", title: "Library, Skills: none yet, for a member, told an admin uploads", widths: ["desktop"] },
   { id: "library-skills-failed", title: "Library, Skills: the list could not be read", widths: ["desktop"] },
   { id: "library-plugins", title: "Library, Plugins: the organization's two installed plugins", widths: ["desktop", "narrow"] },
   { id: "library-plugins-empty", title: "Library, Plugins: none installed, for an admin", widths: ["desktop"] },
@@ -791,9 +804,9 @@ const CHANNEL_SCENES = [
   },
   {
     id: "channel-conversations-needs-human",
-    title: "Conversations on Needs human: Northwind Books asked for a person, and the Agent escalated",
+    title: "Conversations on Needs a person: Northwind Books asked for a person, and the Agent escalated",
     widths: ["desktop"],
-    opens: [{ press: "Conversations where a human action is wanted", role: "radio" }],
+    opens: [{ press: "Conversations where a person is wanted", role: "radio" }],
   },
   {
     id: "channel-conversation-taken-over",

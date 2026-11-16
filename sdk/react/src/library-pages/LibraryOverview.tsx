@@ -221,7 +221,7 @@ function AddResourceMenu({ onNavigate, toHref }: Required<LibraryOverviewProps>)
         <ChevronDown className="stg:size-3.5" aria-hidden="true" />
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Positioner sideOffset={4} align="end">
+        <Popover.Positioner sideOffset={4} align="end" className="stg:isolate stg:z-popover">
           <Popover.Popup
             className={cn(
               "stg:z-popover stg:min-w-[10rem] stg:overflow-hidden stg:rounded-lg",

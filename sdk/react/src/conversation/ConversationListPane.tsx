@@ -44,6 +44,8 @@ export interface ConversationListPaneProps {
   readonly isLoading: boolean;
   /** Error from the list read, or `null`. */
   readonly error: Error | null;
+  /** Reads the list again: the failure's Try again (from `useConversationList`'s `refetch`). Without it, no Try again. */
+  readonly onRetry?: () => void;
   /** `true` while more conversations exist beyond what is loaded. */
   readonly hasMore: boolean;
   /** Load the next page. */
@@ -100,6 +102,7 @@ export function ConversationListPane({
   conversations,
   isLoading,
   error,
+  onRetry,
   hasMore,
   loadMore,
   isLoadingMore,
@@ -159,7 +162,7 @@ export function ConversationListPane({
         {isLoading ? (
           <ListSkeleton />
         ) : error ? (
-          <ErrorMessage error={error} title="Couldn't load the conversations." />
+          <ErrorMessage error={error} title="Couldn't load the conversations." retry={onRetry} />
         ) : conversations.length === 0 ? (
           channels.length === 0 ? (
             <EmptyState

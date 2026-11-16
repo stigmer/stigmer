@@ -147,8 +147,8 @@ export const TAKE_OVER_EXAMPLE = {
   page: "guides/channels/take-over-conversations",
   acknowledgment: "Someone from our team is looking at this and will reply here.",
   takeOverLabel: "Take over",
-  handBackLabel: "Hand back to agent",
-  filterLabel: "Needs human",
+  handBackLabel: "Hand back to the agent",
+  filterLabel: "Needs a person",
 } as const satisfies DocsExample;
 
 /**

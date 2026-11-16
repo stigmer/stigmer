@@ -381,3 +381,17 @@ describe("ConversationListPane", () => {
     expect(screen.getByText("unauthorized to list")).toBeDefined();
   });
 });
+
+describe("ConversationListPane, failed", () => {
+  afterEach(() => cleanup());
+
+  it("says the list didn't load, and Try again reads it again", async () => {
+    const user = userEvent.setup();
+    const onRetry = vi.fn();
+    render(<ConversationListPane {...baseProps()} error={new Error("the channel service did not answer")} onRetry={onRetry} />);
+
+    expect(screen.getByText("Couldn't load the conversations.")).toBeDefined();
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+});

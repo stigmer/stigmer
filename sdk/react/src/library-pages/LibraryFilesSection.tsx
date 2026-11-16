@@ -58,7 +58,7 @@ export function LibraryFilesSection({ onOpen }: LibraryFilesSectionProps) {
       // One Upload, in the page's header, which the empty list shows too: a
       // second copy in the empty state would unmount with its uploads'
       // status once the first one fills the list.
-      actions={canCreate && org ? <FileUploadButton org={org} onUploaded={refreshList} /> : undefined}
+      actions={canCreate && org ? <FileUploadButton org={org} onUploaded={refreshList} label="Upload file" /> : undefined}
     >
       <ResourceWorkbench<StigmerFile>
         refetchToken={refetchToken}

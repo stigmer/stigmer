@@ -14,7 +14,8 @@ import { LinkButton } from "../button/LinkButton.js";
 import { ApplyManifestDialog } from "../manifest/ApplyManifestDialog.js";
 import { ResourceWorkbench } from "../resource-workbench/components/ResourceWorkbench.js";
 import { EnvironmentsNotOnServerNotice } from "../environment/EnvironmentsNotOnServerNotice.js";
-import { createEnvironmentColumns, describeNetworkShort, describePackagesShort } from "../environment/environmentColumns.js";
+import { createEnvironmentColumns, describePackagesShort } from "../environment/environmentColumns.js";
+import { NetworkingType } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/spec_pb";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { IconButton } from "../button/IconButton.js";
 import { createEnvironmentListFn } from "../environment/environmentListFn.js";
@@ -22,6 +23,11 @@ import { useCanCreateEnvironment } from "../environment/useCanCreateEnvironment.
 import { useActiveOrgId } from "../organization/OrgProvider.js";
 import { LIBRARY_HREFS, type LibrarySectionNavigation } from "./navigation.js";
 import { LibraryRow, LibraryRowActions, LibrarySectionFrame, copyReference, useRefetchToken, visibilityTag } from "./LibrarySectionFrame.js";
+
+/** What an Environment's sandbox may reach, as its row's tag: the form's own words. */
+function networkTag(environment: Environment): string {
+  return environment.spec?.networking?.type === NetworkingType.limited ? "Listed websites" : "Any website";
+}
 
 /** Props for {@link LibraryEnvironmentsSection}. */
 export interface LibraryEnvironmentsSectionProps extends LibrarySectionNavigation {
@@ -98,7 +104,7 @@ export function LibraryEnvironmentsSection({
           <LibraryRow
             icon={<Box />}
             name={item.metadata?.name || item.metadata?.slug || ""}
-            tags={[describeNetworkShort(item), ...visibilityTag(item.metadata?.visibility)]}
+            tags={[networkTag(item), ...visibilityTag(item.metadata?.visibility)]}
             description={item.spec?.description || describePackagesShort(item)}
           />
         )}

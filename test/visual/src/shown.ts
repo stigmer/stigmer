@@ -339,7 +339,7 @@ export const SHOWN: readonly Shown[] = [
   {
     name: "conversations-needs-human",
     scene: "channel-conversations-needs-human",
-    title: "Conversations on Needs human: Northwind Books, its escalation banner with Take over, and the conversation as the customer's phone shows it",
+    title: "Conversations on Needs a person: Northwind Books, its escalation notice with Take over, and the conversation as the customer's phone shows it",
     // Narrow enough to show near 1:1 in the docs column; as tall as the
     // scene's workbench, which fits the whole conversation (stigmer#2911).
     viewport: { width: 1000, height: 1048 },
@@ -349,7 +349,7 @@ export const SHOWN: readonly Shown[] = [
   {
     name: "conversation-taken-over",
     scene: "channel-conversation-taken-over",
-    title: "Conversations: you have Northwind's conversation, the platform's acknowledgment sent, Hand back to agent, and a reply typed",
+    title: "Conversations: you have Northwind's conversation, the platform's acknowledgment sent, Hand back to the agent, and a reply typed",
     // As `conversations-needs-human`, taller for the messages since.
     viewport: { width: 1000, height: 1188 },
     // The workbench: x 24 to 976, y 24 to 1164.

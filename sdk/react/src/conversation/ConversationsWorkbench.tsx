@@ -334,6 +334,7 @@ export function ConversationsWorkbench({
         conversations={list.conversations}
         isLoading={list.isLoading}
         error={list.error}
+        onRetry={list.refetch}
         hasMore={list.hasMore}
         loadMore={list.loadMore}
         isLoadingMore={list.isLoadingMore}

@@ -55,7 +55,7 @@ export interface LibraryRowProps {
   readonly tags?: readonly string[];
   /** One line on what it is. */
   readonly description?: string;
-  /** When it last changed, drawn at the row's end ("2h", "Jul 12"). */
+  /** When it last changed, drawn at the row's end ("2h", "Jul 12"); nothing when absent or unset. */
   readonly changedAt?: Timestamp;
 }
 
@@ -78,7 +78,8 @@ export function LibraryRow({ icon, name, tags = [], description, changedAt }: Li
         </span>
         {description && <span className="stg:truncate stg:text-xs stg:text-muted-foreground">{description}</span>}
       </div>
-      {changedAt && (
+      {/* An item that carries no change time (seconds 0) says nothing rather than 1970. */}
+      {changedAt && changedAt.seconds > 0n && (
         <span className="stg:shrink-0 stg:text-xs stg:tabular-nums stg:text-muted-foreground">
           {formatRelativeTime(timestampDate(changedAt))}
         </span>

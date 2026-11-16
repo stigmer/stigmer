@@ -27,7 +27,7 @@ import { ChannelReceiptState, ChannelOutboundOrigin } from "@stigmer/apis/ai/sti
 import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
 import { IdentityAccountQueryController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
-import { ConversationsWorkbench, type ConversationIdentity } from "@stigmer/react-sdk";
+import { ConversationsWorkbench, PageHeader, type ConversationIdentity } from "@stigmer/react-sdk";
 import { samples, sampleDate } from "@stigmer/react-sdk/test";
 import { useState, type ReactElement } from "react";
 import { JOB, OTHERS } from "../../../../brand/job-story.ts";
@@ -145,11 +145,21 @@ export function conversationsScene(holder: Holder): Drawing {
 /** The states the take-over guide's scenes leave out: none yet, failed, nothing opened, and Northwind's opened. */
 export type ConversationsState = "empty" | "failed" | "none-selected" | "open";
 
-/** The console's Conversations page, opened on Northwind's conversation or on none, at the page's full height. */
+/**
+ * The console's Conversations page, opened on Northwind's conversation or on
+ * none, at the page's full height, under the page's header as both apps
+ * draw it.
+ */
 function StateWorkbench({ opened }: { readonly opened: boolean }): ReactElement {
   const [selected, setSelected] = useState<ConversationIdentity | null>(opened ? { channelId: CHANNEL_ID, conversationKey: "15550100142" } : null);
   return (
     <div style={{ height: WORKBENCH_HEIGHT.agent, display: "flex", flexDirection: "column" }}>
+      <PageHeader
+        className="stg:border-b stg:border-border stg:px-4 stg:py-4 stg:sm:px-6"
+        headingLevel={1}
+        title="Conversations"
+        description="Your customers' chats on Slack, WhatsApp and your chat links. Step in when one asks for a person."
+      />
       <ConversationsWorkbench org={ORGANIZATION.metadata?.slug ?? ""} selected={selected} onSelectionChange={setSelected} currentIdentityAccountId={ACCOUNT.metadata?.id} />
     </div>
   );
