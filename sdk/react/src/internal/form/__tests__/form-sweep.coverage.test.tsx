@@ -11,6 +11,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { ChoiceGroup } from "../ChoiceGroup.js";
 import { FieldHint, FieldLegend } from "../Field.js";
+import { Checkbox, Radio } from "../controls.js";
 import { areaControlClasses } from "../fieldClasses.js";
 import { FileDrop } from "../FileDrop.js";
 import { IdentityStep } from "../../../agent/steps/IdentityStep.js";
@@ -57,6 +58,26 @@ describe("the parts' rarer branches", () => {
     );
     expect(screen.getByText("Whose cases run").textContent).toBe("Whose cases run (optional)");
     expect(screen.getByText("Attach a plugin to run its cases.").className).toContain("stg:text-xs");
+  });
+
+  it("keeps a choice card's checkbox and radio for the keyboard and a screen reader, and draws nothing of its own", () => {
+    render(
+      <>
+        <label>
+          <Checkbox visuallyHidden />
+          Every day
+        </label>
+        <label>
+          <Radio visuallyHidden name="role" />
+          Member
+        </label>
+      </>,
+    );
+    const box = screen.getByRole("checkbox", { name: "Every day" });
+    const radio = screen.getByRole("radio", { name: "Member" });
+    expect(box.className).toContain("stg:sr-only");
+    expect(radio.className).toContain("stg:sr-only");
+    expect(box.parentElement?.tagName).toBe("LABEL");
   });
 
   it("draws a frameless multi-line box inside another control's frame", () => {
