@@ -188,7 +188,7 @@ vi.mock("../../file/FileUploadButton.js", () => ({
 vi.mock("../../file/LibraryFilePreview.js", () => ({
   LibraryFilePreview: (props: Props) => {
     page.props.set("LibraryFilePreview", props);
-    return null;
+    return <div>preview</div>;
   },
 }));
 vi.mock("../../file/fileColumns.js", () => ({ createFileColumns: () => [] }));
@@ -690,8 +690,8 @@ describe("LibraryFilesSection", () => {
 
     // Rows are keyed by the File's id, and closing the preview drops it.
     expect((workbench().getItemId as (f: unknown) => string)(file)).toBe("file_1");
-    page.props.delete("LibraryFilePreview");
+    expect(screen.getByText("preview")).toBeTruthy();
     act(() => (preview.onClose as () => void)());
-    expect(page.props.has("LibraryFilePreview")).toBe(false);
+    expect(screen.queryByText("preview")).toBeNull();
   });
 });

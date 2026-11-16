@@ -198,4 +198,19 @@ describe("LibraryOverview Add menu: where each item goes", () => {
 
     expect(navigated).toEqual(["/library/routines/new"]);
   });
+
+  it("writes each item's address the host's way", async () => {
+    render(<LibraryOverview onNavigate={onNavigate} toHref={(path) => `#${path}`} />);
+    fireEvent.click(screen.getByRole("button", { name: "Add a new resource" }));
+
+    expect((await screen.findByRole("menuitem", { name: "Routine" })).getAttribute("href")).toBe("#/library/routines/new");
+  });
+
+  it("leaves a modified click on an item to the browser", async () => {
+    await addMenuItems();
+
+    fireEvent.click(screen.getByRole("menuitem", { name: "Routine" }), { metaKey: true });
+
+    expect(navigated).toEqual([]);
+  });
 });

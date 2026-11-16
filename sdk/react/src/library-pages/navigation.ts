@@ -26,8 +26,9 @@ export interface LibrarySectionNavigation {
   readonly renderLink?: RenderLink;
 }
 
-/** The query parameter, and its value, that open the Plugins list's "Add MCP server" form on arrival. */
+/** The query parameter that, with {@link LIBRARY_ADD_MCP_SERVER}, opens the Plugins list's "Add MCP server" form on arrival. */
 export const LIBRARY_ADD_PARAM = "add";
+/** The value of {@link LIBRARY_ADD_PARAM} that opens the Plugins list's "Add MCP server" form on arrival. */
 export const LIBRARY_ADD_MCP_SERVER = "mcp-server";
 
 /** The console's Library addresses the sections link to. */

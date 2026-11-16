@@ -22,7 +22,7 @@ import type { LibrarySectionNavigation } from "./navigation.js";
 import { LibrarySectionFrame, useRefetchToken } from "./LibrarySectionFrame.js";
 
 /** Props for {@link LibraryFilesSection}. */
-export type LibraryFilesSectionProps = LibrarySectionNavigation;
+export type LibraryFilesSectionProps = Pick<LibrarySectionNavigation, "onOpen">;
 
 /**
  * The Library's Files page: the active organization's kept Files, with

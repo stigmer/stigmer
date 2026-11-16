@@ -7,9 +7,8 @@
 
 import { LibraryFilesSection } from "@stigmer/react-sdk/console";
 import { useLibraryOpen } from "@/domain/library/library-navigation";
-import { renderJourneyLink } from "@/domain/journey/journey-links";
 
 export function FileListPage() {
   const onOpen = useLibraryOpen();
-  return <LibraryFilesSection onOpen={onOpen} renderLink={renderJourneyLink} />;
+  return <LibraryFilesSection onOpen={onOpen} />;
 }
