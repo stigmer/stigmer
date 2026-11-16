@@ -49,7 +49,7 @@ export interface LibrarySkillsSectionProps extends LibrarySectionNavigation {
  */
 export function LibrarySkillsSection({ onOpen, renderLink, createHref = LIBRARY_HREFS.newSkill }: LibrarySkillsSectionProps) {
   const org = useActiveOrgId();
-  const { allowed: canUpload } = useCanCreateSkill(org || null);
+  const { allowed: canUpload, isLoading: checkingUpload } = useCanCreateSkill(org || null);
   const slugForOrg = useOrgSlugForId();
   const stigmer = useStigmer();
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
@@ -116,7 +116,8 @@ export function LibrarySkillsSection({ onOpen, renderLink, createHref = LIBRARY_
         emptyIcon={<Sparkles className="stg:size-10" aria-hidden="true" />}
         emptyTitle="No skills yet"
         emptyDescription={
-          canUpload
+          // The member's words only once the server has said no.
+          canUpload || checkingUpload
             ? "Upload a skill package to give your agents reusable instructions and context."
             : `Admins of ${slugForOrg(org ?? "")} upload skills. Once one does, every agent here can use it.`
         }

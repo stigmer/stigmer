@@ -430,6 +430,14 @@ describe("LibrarySkillsSection", () => {
     expect(links[0]!.getAttribute("href")).toBe("/library/skills/new");
   });
 
+  it("says who uploads only once the server has answered", () => {
+    page.canCreateSkill = { allowed: false, isLoading: true };
+    render(<LibrarySkillsSection onOpen={onOpen} />);
+
+    expect(workbench().emptyDescription).toBe("Upload a skill package to give your agents reusable instructions and context.");
+    expect(workbench().emptyAction).toBeUndefined();
+  });
+
   it("CON-01 offers a member no Upload skill, and says who uploads", () => {
     page.canCreateSkill = { allowed: false, isLoading: false };
     render(<LibrarySkillsSection onOpen={onOpen} />);

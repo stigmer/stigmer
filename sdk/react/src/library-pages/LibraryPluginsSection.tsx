@@ -99,7 +99,7 @@ export function LibraryPluginsSection({
   addMcpServerOnArrival = false,
 }: LibraryPluginsSectionProps) {
   const org = useActiveOrgId();
-  const mayInstall = useCanCreatePlugin(org || null).allowed;
+  const { allowed: mayInstall, isLoading: checkingInstall } = useCanCreatePlugin(org || null);
   const slugForOrg = useOrgSlugForId();
   const stigmer = useStigmer();
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
@@ -155,7 +155,8 @@ export function LibraryPluginsSection({
         emptyIcon={<Blocks className="stg:size-10" aria-hidden="true" />}
         emptyTitle="No plugins installed"
         emptyDescription={
-          mayInstall
+          // The member's words only once the server has said no.
+          mayInstall || checkingInstall
             ? EMPTY_FOR_ADMIN
             : `Admins of ${slugForOrg(org ?? "")} install plugins. Browse the Marketplace to see what's offered.`
         }

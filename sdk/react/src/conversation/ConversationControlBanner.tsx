@@ -54,6 +54,12 @@ export interface ConversationControlBannerProps {
  * over (the agent goes quiet) and hand back (the agent resumes, with
  * the context it missed injected on its next turn).
  *
+ * While the conversation is flagged for a person and staff can reply, this
+ * banner draws no Take over of its own: `ConversationAttentionBanner`, drawn
+ * above it by `ConversationsWorkbench`, offers it. A host that composes this
+ * banner without the attention banner draws both, or its flagged
+ * conversations offer no Take over.
+ *
  * Truth rules: state renders from the conversation row the server
  * answered — a takeover that lost its race renders the WINNER's hold,
  * because that is what happened. Failures render verbatim beside the

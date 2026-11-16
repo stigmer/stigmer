@@ -84,10 +84,14 @@ export function ConversationAttentionBanner({
       actSize="xs"
       link={{
         label: pendingCommands.has("clearAttention") ? "Dismissing…" : "Dismiss",
-        onClick: () =>
+        // A link has no disabled state: a second press while the first is in
+        // flight sends nothing.
+        onClick: () => {
+          if (pendingCommands.has("clearAttention")) return;
           void clearAttention().catch(() => {
             // Recorded in commandErrors and rendered below.
-          }),
+          });
+        },
       }}
       className={cn("stg:mx-4 stg:mt-3", className)}
     >
