@@ -527,8 +527,8 @@ function NotFoundState({ className }: { readonly className?: string }) {
     <EmptyState
       variant="first-use"
       icon={<EnvironmentIcon />}
-      title="Environment not found"
-      description="No environment with this name exists in the organization, or you may not view it."
+      title="This environment isn't here"
+      description="It may have been deleted, or it belongs to an organization you're not in."
       className={className}
     />
   );

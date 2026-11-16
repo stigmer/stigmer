@@ -1288,8 +1288,8 @@ function NotFoundState({ className }: { readonly className?: string }) {
     <EmptyState
       variant="first-use"
       icon={<AgentIcon />}
-      title="Agent not found"
-      description="This agent doesn't exist or you don't have access to it."
+      title="This agent isn't here"
+      description="It may have been deleted, or it belongs to an organization you're not in."
       className={className}
     />
   );

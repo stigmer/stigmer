@@ -347,7 +347,7 @@ describe("reading an Environment", () => {
     const s = server();
     s.read = "missing";
     render(<EnvironmentDetailView org={ORG} slug="gone" />, { wrapper: providers(s) });
-    expect(await screen.findByText("Environment not found")).toBeTruthy();
+    expect(await screen.findByText("This environment isn't here")).toBeTruthy();
   });
 
   it("shows any other failure as an error to retry", async () => {

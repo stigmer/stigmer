@@ -576,7 +576,7 @@ describe("RoutineDetailView", () => {
     client.routine.getByReference.mockResolvedValue(null);
     renderView(client);
 
-    await screen.findByText("Routine not found");
+    await screen.findByText("This routine isn't here");
   });
 
   it("keeps the caller's routine untouched when toggling (immutability)", async () => {

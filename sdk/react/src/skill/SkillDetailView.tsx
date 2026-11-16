@@ -686,8 +686,8 @@ function NotFoundState({ className }: { readonly className?: string }) {
     <EmptyState
       variant="first-use"
       icon={<SkillIcon />}
-      title="Skill not found"
-      description="This skill doesn't exist or you don't have access to it."
+      title="This skill isn't here"
+      description="It may have been deleted, or it belongs to an organization you're not in."
       className={className}
     />
   );

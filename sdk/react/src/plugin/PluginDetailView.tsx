@@ -503,7 +503,7 @@ function NotFoundState({ className }: { readonly className?: string }) {
     <EmptyState
       variant="first-use"
       icon={<PluginIcon />}
-      title="Plugin not installed"
+      title="This plugin isn't installed"
       description="No plugin with this name is installed in the organization."
       className={className}
     />

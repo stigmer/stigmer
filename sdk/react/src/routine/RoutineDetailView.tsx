@@ -1805,8 +1805,8 @@ function NotFoundState({ className }: { readonly className?: string }) {
     <EmptyState
       variant="first-use"
       icon={<RoutineIcon />}
-      title="Routine not found"
-      description="This routine doesn't exist or you don't have access to it."
+      title="This routine isn't here"
+      description="It may have been deleted, or it belongs to an organization you're not in."
       className={className}
     />
   );

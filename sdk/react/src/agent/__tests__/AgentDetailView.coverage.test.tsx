@@ -1,6 +1,6 @@
 /**
  * The agent page for an agent the server does not know: a not-found answer
- * is no failure, so the page says "Agent not found" with why, in place of
+ * is no failure, so the page says "This agent isn't here" with why, in place of
  * the agent and its acts, and offers no retry.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -27,8 +27,8 @@ describe("AgentDetailView: an agent the server does not know", () => {
       }),
     });
 
-    expect(await screen.findByText("Agent not found")).toBeTruthy();
-    expect(screen.getByText("This agent doesn't exist or you don't have access to it.")).toBeTruthy();
+    expect(await screen.findByText("This agent isn't here")).toBeTruthy();
+    expect(screen.getByText("It may have been deleted, or it belongs to an organization you're not in.")).toBeTruthy();
     expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.queryByRole("button", { name: /Try again/ })).toBeNull();
     expect(getByReference).toHaveBeenCalled();
