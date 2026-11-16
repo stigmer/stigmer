@@ -89,17 +89,18 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe.each([
-  { route: "/library/agents", Page: AgentsPage, section: "LibraryAgentsSection", kind: "agents" },
-  { route: "/library/skills", Page: SkillsPage, section: "LibrarySkillsSection", kind: "skills" },
-  { route: "/library/plugins", Page: PluginsPage, section: "LibraryPluginsSection", kind: "plugins" },
-  { route: "/library/routines", Page: RoutinesPage, section: "LibraryRoutinesSection", kind: "routines" },
-  { route: "/library/environments", Page: EnvironmentsPage, section: "LibraryEnvironmentsSection", kind: "environments" },
-  { route: "/library/files", Page: FilesPage, section: "LibraryFilesSection", kind: "skills" },
-] as const)("web $route", ({ Page, section, kind }) => {
+  { route: "/library/agents", Page: AgentsPage, section: "LibraryAgentsSection", kind: "agents", link: renderJourneyLink },
+  { route: "/library/skills", Page: SkillsPage, section: "LibrarySkillsSection", kind: "skills", link: renderJourneyLink },
+  { route: "/library/plugins", Page: PluginsPage, section: "LibraryPluginsSection", kind: "plugins", link: renderJourneyLink },
+  { route: "/library/routines", Page: RoutinesPage, section: "LibraryRoutinesSection", kind: "routines", link: renderJourneyLink },
+  { route: "/library/environments", Page: EnvironmentsPage, section: "LibraryEnvironmentsSection", kind: "environments", link: renderJourneyLink },
+  { route: "/library/files", Page: FilesPage, section: "LibraryFilesSection", kind: "skills", link: undefined },
+] as const)("web $route", ({ Page, section, kind, link }) => {
   it("serves the kit's section, linked with Next's Link", () => {
     renderInZone(Page);
 
-    expect(propsOf(section).renderLink).toBe(renderJourneyLink);
+    // The Files section draws no link, so it takes none.
+    expect(propsOf(section).renderLink).toBe(link);
   });
 
   it("opens a resource as a Library detail under its organization's slug", () => {

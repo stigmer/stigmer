@@ -73,17 +73,18 @@ beforeEach(() => {
 });
 
 describe.each([
-  { name: "AgentListPage", Page: AgentListPage, section: "LibraryAgentsSection", kind: "agents" },
-  { name: "SkillListPage", Page: SkillListPage, section: "LibrarySkillsSection", kind: "skills" },
-  { name: "PluginListPage", Page: PluginListPage, section: "LibraryPluginsSection", kind: "plugins" },
-  { name: "RoutineListPage", Page: RoutineListPage, section: "LibraryRoutinesSection", kind: "routines" },
-  { name: "EnvironmentListPage", Page: EnvironmentListPage, section: "LibraryEnvironmentsSection", kind: "environments" },
-  { name: "FileListPage", Page: FileListPage, section: "LibraryFilesSection", kind: "skills" },
-] as const)("desktop $name — organizations", ({ Page, section, kind }) => {
+  { name: "AgentListPage", Page: AgentListPage, section: "LibraryAgentsSection", kind: "agents", link: renderJourneyLink },
+  { name: "SkillListPage", Page: SkillListPage, section: "LibrarySkillsSection", kind: "skills", link: renderJourneyLink },
+  { name: "PluginListPage", Page: PluginListPage, section: "LibraryPluginsSection", kind: "plugins", link: renderJourneyLink },
+  { name: "RoutineListPage", Page: RoutineListPage, section: "LibraryRoutinesSection", kind: "routines", link: renderJourneyLink },
+  { name: "EnvironmentListPage", Page: EnvironmentListPage, section: "LibraryEnvironmentsSection", kind: "environments", link: renderJourneyLink },
+  { name: "FileListPage", Page: FileListPage, section: "LibraryFilesSection", kind: "skills", link: undefined },
+] as const)("desktop $name — organizations", ({ Page, section, kind, link }) => {
   it("renders the kit's section, linked with the router", () => {
     renderPage(Page);
 
-    expect(propsOf(section).renderLink).toBe(renderJourneyLink);
+    // The Files section draws no link, so it takes none.
+    expect(propsOf(section).renderLink).toBe(link);
   });
 
   it("opens a resource at a URL carrying its own organization's slug", () => {
