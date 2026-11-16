@@ -166,6 +166,7 @@ function ChannelRunConfigDialogBody({
         description={channelName}
         closeLabel="Close dialog"
         onClose={onClose}
+        closeDisabled={isPending}
       />
 
       <DialogBody>

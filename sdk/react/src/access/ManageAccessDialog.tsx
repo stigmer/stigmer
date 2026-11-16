@@ -165,7 +165,7 @@ function AccessSection({
   readonly children: ReactNode;
 }) {
   return (
-    <section className="stg:px-6 stg:py-4">
+    <section className="stg:py-4 stg:first:pt-0 stg:last:pb-0">
       <h3 className="stg:text-xs stg:font-medium stg:text-muted-foreground">{title}</h3>
       {description && (
         <p className="stg:mt-0.5 stg:text-2xs stg:text-muted-foreground">
