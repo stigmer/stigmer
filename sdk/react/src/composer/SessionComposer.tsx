@@ -63,6 +63,7 @@ import {
   XIcon,
 } from "./icons.js";
 import { Button } from "../button/Button.js";
+import { HiddenFileInput } from "../internal/form/index.js";
 
 /**
  * Imperative handle exposed by {@link SessionComposer} via `ref`.
@@ -2021,6 +2022,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
 
         {/* Zone 1: Textarea */}
         <div className="stg:relative">
+          {/* eslint-disable-next-line stigmer/no-handrolled-field -- the session's message box draws its own frameless look, which passed as built; the composer's frame is the field */}
           <textarea
             {...composer.textareaProps}
             onKeyDown={handleTextareaKeyDown}
@@ -2045,14 +2047,10 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
 
         {/* Hidden file input for the attach button */}
         {showAttach && (
-          <input
+          <HiddenFileInput
             ref={fileInputRef}
-            type="file"
             multiple
             onChange={handleFileInputChange}
-            className="stg:hidden"
-            aria-hidden="true"
-            tabIndex={-1}
           />
         )}
 

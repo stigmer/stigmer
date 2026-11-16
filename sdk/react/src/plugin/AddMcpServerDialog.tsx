@@ -21,11 +21,11 @@ import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { Button } from "../button/Button.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { DialogShell } from "../internal/DialogShell.js";
-import { INPUT_CLASS } from "../vault/styles.js";
 import { type HeaderRow, HeaderRowsEditor } from "./HeaderRowsEditor.js";
 import { PrepareRefusal } from "./InstallPreview.js";
 import { PluginReadRefusal } from "./sources/read.js";
 import { useAddMcpServer } from "./useAddMcpServer.js";
+import { FIELD_LABEL_CLASSES, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link AddMcpServerDialog}. */
 export interface AddMcpServerDialogProps {
@@ -121,10 +121,10 @@ function AddMcpServerForm({
       </header>
 
       <div className="stg:space-y-1">
-        <label htmlFor={`${baseId}-name`} className="stg:text-xs stg:font-medium stg:text-foreground">
+        <label htmlFor={`${baseId}-name`} className={FIELD_LABEL_CLASSES}>
           Name
         </label>
-        <input
+        <TextInput
           id={`${baseId}-name`}
           value={name}
           onChange={(event) => setName(event.target.value)}
@@ -132,16 +132,15 @@ function AddMcpServerForm({
           autoComplete="off"
           spellCheck={false}
           disabled={isAdding}
-          className={INPUT_CLASS}
         />
         <p className="stg:text-xs stg:text-muted-foreground">Lowercase letters, digits, dots and hyphens. The plugin is named after it.</p>
       </div>
 
       <div className="stg:space-y-1">
-        <label htmlFor={`${baseId}-url`} className="stg:text-xs stg:font-medium stg:text-foreground">
+        <label htmlFor={`${baseId}-url`} className={FIELD_LABEL_CLASSES}>
           URL
         </label>
-        <input
+        <TextInput
           id={`${baseId}-url`}
           type="url"
           value={url}
@@ -150,20 +149,18 @@ function AddMcpServerForm({
           autoComplete="off"
           spellCheck={false}
           disabled={isAdding}
-          className={INPUT_CLASS}
         />
       </div>
 
       <div className="stg:space-y-1">
-        <label htmlFor={`${baseId}-description`} className="stg:text-xs stg:font-medium stg:text-muted-foreground">
+        <label htmlFor={`${baseId}-description`} className={FIELD_LABEL_CLASSES}>
           Description <span className="stg:text-muted-foreground-subtle">(optional)</span>
         </label>
-        <input
+        <TextInput
           id={`${baseId}-description`}
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           disabled={isAdding}
-          className={INPUT_CLASS}
         />
       </div>
 

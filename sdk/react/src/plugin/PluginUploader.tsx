@@ -43,6 +43,7 @@ import { type PluginUploadPhase, looksLikeDroppedDotfiles, usePluginUpload } fro
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { PluginInstallDenied } from "./PluginInstallDenied.js";
 import { useCanCreatePlugin } from "./useCanCreatePlugin.js";
+import { HiddenFileInput } from "../internal/form/index.js";
 
 /** Props for {@link PluginUploader}. */
 export interface PluginUploaderProps {
@@ -160,33 +161,27 @@ function DropZonePhase({
         </p>
 
         {/* `webkitdirectory` is not in React's attribute types (a WebKit-born attribute every engine honours), so it is set on the element. */}
-        <input
+        <HiddenFileInput
           ref={(element) => {
             folderInputRef.current = element;
             element?.setAttribute("webkitdirectory", "");
           }}
-          type="file"
           multiple
           onChange={(event) => {
             const { files } = event.target;
             if (files && files.length > 0) void upload.fromFolderInput(files);
             event.target.value = "";
           }}
-          className="stg:hidden"
-          aria-hidden="true"
           data-testid="plugin-folder-input"
         />
-        <input
+        <HiddenFileInput
           ref={zipInputRef}
-          type="file"
           accept=".zip"
           onChange={(event) => {
             const file = event.target.files?.[0];
             if (file) void upload.fromZip(file);
             event.target.value = "";
           }}
-          className="stg:hidden"
-          aria-hidden="true"
           data-testid="plugin-zip-input"
         />
       </div>

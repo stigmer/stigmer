@@ -19,6 +19,7 @@ import { useUpdateMemoryContent } from "./useUpdateMemoryContent.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import { FieldError, TextArea } from "../internal/form/index.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -297,9 +298,9 @@ function MemoryRow({
             {formatStateStamp(state, stateChangedAt ? timestampDate(stateChangedAt) : undefined, now)}
           </p>
           {actionError && (
-            <p className="stg:mt-0.5 stg:text-2xs stg:text-destructive" role="alert">
+            <FieldError className="stg:mt-0.5">
               {getUserMessage(actionError)}
-            </p>
+            </FieldError>
           )}
         </div>
 
@@ -376,16 +377,12 @@ function MemoryEditRow({
       role="listitem"
       className="stg:rounded-lg stg:border stg:border-border stg:px-3 stg:py-2.5"
     >
-      <textarea
+      <TextArea
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         rows={2}
         maxLength={500}
-        aria-label="Edit memory text"
-        className={cn(
-          "stg:w-full stg:resize-y stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2 stg:py-1.5 stg:text-sm stg:text-foreground",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-        )}
+        aria-label="Edit memory text" className="stg:w-full stg:resize-y"
       />
       <div className="stg:mt-1.5 stg:flex stg:items-center stg:justify-between">
         <span className="stg:text-2xs stg:text-muted-foreground">
@@ -407,9 +404,9 @@ function MemoryEditRow({
         </div>
       </div>
       {error && (
-        <p className="stg:mt-1 stg:text-2xs stg:text-destructive" role="alert">
+        <FieldError className="stg:mt-1">
           {getUserMessage(error)}
-        </p>
+        </FieldError>
       )}
     </div>
   );

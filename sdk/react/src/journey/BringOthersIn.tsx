@@ -67,7 +67,6 @@ import { unlockingPlanName } from "../billing/plan-features.js";
 import { useEntitlements } from "../billing/useEntitlements.js";
 import { usePlans } from "../billing/usePlans.js";
 import { useServerInfo, useSingleOrg } from "../server-info.js";
-import { INPUT_CLASSES } from "../internal/form-primitives.js";
 import { cardClasses } from "../internal/surface/Card.js";
 import { List, ListRow } from "../internal/surface/List.js";
 import { Notice } from "../internal/surface/Notice.js";
@@ -76,6 +75,7 @@ import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 import { NoOrganization } from "../settings/NoOrganization.js";
 import { SettingsPage } from "../settings/SettingsPage.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
+import { FIELD_LABEL_CLASSES, FieldError, Radio, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link BringOthersIn}. */
 export interface BringOthersInProps {
@@ -373,11 +373,11 @@ function NameForm({
   };
   return (
     <form onSubmit={submit} className="stg:flex stg:flex-col stg:gap-2">
-      <label htmlFor={inputId} className="stg:text-xs stg:font-medium stg:text-foreground">
+      <label htmlFor={inputId} className={FIELD_LABEL_CLASSES}>
         Name
       </label>
       <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2">
-        <input
+        <TextInput
           id={inputId}
           type="text"
           value={draft}
@@ -385,7 +385,7 @@ function NameForm({
           onChange={(event) => setDraft(event.target.value)}
           disabled={isUpdating}
           required
-          className={cn(INPUT_CLASSES, "stg:max-w-xs stg:flex-1 stg:text-sm")}
+          className="stg:max-w-xs stg:flex-1"
         />
         <Button type="submit" size="sm" disabled={isUpdating || draft.trim() === ""}>
           {isUpdating ? "Saving…" : "Save"}
@@ -393,9 +393,9 @@ function NameForm({
         {secondary}
       </div>
       {error !== null && (
-        <p role="alert" className="stg:m-0 stg:text-xs stg:text-destructive">
+        <FieldError className="stg:m-0">
           {error}
-        </p>
+        </FieldError>
       )}
     </form>
   );
@@ -536,9 +536,9 @@ function InviteLink({ orgId, buildInviteUrl }: { readonly orgId: string; readonl
           </Button>
         </div>
         {revokeError !== null && (
-          <p role="alert" className="stg:m-0 stg:text-xs stg:text-destructive">
+          <FieldError className="stg:m-0">
             Couldn&rsquo;t revoke the link. Try again.
-          </p>
+          </FieldError>
         )}
       </Part>
     );
@@ -562,13 +562,11 @@ function InviteLink({ orgId, buildInviteUrl }: { readonly orgId: string; readonl
                     : "stg:border-input stg:text-muted-foreground stg:hover:text-foreground",
                 )}
               >
-                <input
-                  type="radio"
+                <Radio
                   name={groupName}
                   value={choice.label}
                   checked={checked}
                   onChange={() => setRole(choice.role)}
-                  className="stg:sr-only"
                 />
                 {choice.label}
               </label>
@@ -588,9 +586,9 @@ function InviteLink({ orgId, buildInviteUrl }: { readonly orgId: string; readonl
         One link for your whole team. It works for {BRING_OTHERS_IN_LINK_DAYS} days.
       </p>
       {createError !== null && (
-        <p role="alert" className="stg:m-0 stg:text-xs stg:text-destructive">
+        <FieldError className="stg:m-0">
           Couldn&rsquo;t make the link. Try again.
-        </p>
+        </FieldError>
       )}
     </Part>
   );

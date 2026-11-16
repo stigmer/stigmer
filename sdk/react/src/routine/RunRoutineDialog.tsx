@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useId, useState } from "react";
-import { cn } from "@stigmer/design-tokens";
 import { Button } from "../button/Button.js";
 import { DialogShell } from "../internal/DialogShell.js";
+import { FIELD_HINT_CLASSES, FIELD_LABEL_CLASSES, TextArea } from "../internal/form/index.js";
 
 /**
  * The contract's bound on a fire's note: io.proto pins
@@ -146,7 +146,7 @@ function RunRoutineDialogBody({
             Note for this run{" "}
             <span className="stg:font-normal stg:text-muted-foreground">(optional)</span>
           </label>
-          <textarea
+          <TextArea
             id={`${titleId}-note`}
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -154,7 +154,6 @@ function RunRoutineDialogBody({
             rows={4}
             disabled={isStarting}
             placeholder="Sentry alert SEN-4521 fired, see the link"
-            className={inputClasses}
           />
           <p className={hintClasses}>
             The agent receives it after the routine&rsquo;s message, marked as
@@ -175,13 +174,6 @@ function RunRoutineDialogBody({
   );
 }
 
-const labelClasses = "stg:block stg:text-xs stg:font-medium stg:text-foreground";
+const labelClasses = FIELD_LABEL_CLASSES;
 
-const hintClasses = "stg:text-2xs stg:text-muted-foreground";
-
-const inputClasses = cn(
-  "stg:w-full stg:resize-y stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-  "stg:placeholder:text-muted-foreground",
-  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-);
+const hintClasses = FIELD_HINT_CLASSES;

@@ -12,6 +12,7 @@ import { useGitHubRepos, type GitHubRepo, type GitHubBranch } from "./useGitHubR
 import { useGitHubSearch } from "./useGitHubSearch.js";
 import { Button } from "../button/Button.js";
 import { IconButton } from "../button/IconButton.js";
+import { Select, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link GitHubRepoPicker}. */
 export interface GitHubRepoPickerProps {
@@ -406,17 +407,17 @@ export function GitHubRepoPicker({
               Loading branches...
             </div>
           ) : (
-            <select
+            <Select
               value={selectedBranch}
               onChange={(e) => setSelectedBranch(e.target.value)}
-              className="stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
-            >
+              className="stg:w-full"
+ >
               {branches.map((b) => (
                 <option key={b.name} value={b.name}>
                   {b.name}
                 </option>
               ))}
-            </select>
+            </Select>
           )}
         </div>
 
@@ -446,22 +447,22 @@ export function GitHubRepoPicker({
           <span className="stg:font-medium">Paste a repository URL</span>
         </div>
 
-        <input
+        <TextInput
           type="url"
           placeholder="https://github.com/org/repo"
           value={manualUrl}
           onChange={(e) => setManualUrl(e.target.value)}
           onKeyDown={handleManualKeyDown}
-          className="stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground stg:placeholder:text-muted-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
+          className="stg:w-full"
           autoFocus
         />
-        <input
+        <TextInput
           type="text"
           placeholder="Branch (optional, defaults to main)"
           value={manualBranch}
           onChange={(e) => setManualBranch(e.target.value)}
           onKeyDown={handleManualKeyDown}
-          className="stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground stg:placeholder:text-muted-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
+          className="stg:w-full"
         />
 
         <div className="stg:flex stg:justify-end">
@@ -515,7 +516,7 @@ export function GitHubRepoPicker({
       </div>
 
       {/* Search input */}
-      <input
+      <TextInput
         ref={searchRef}
         type="text"
         role="combobox"
@@ -532,7 +533,7 @@ export function GitHubRepoPicker({
         value={activeSearch}
         onChange={(e) => setActiveSearch(e.target.value)}
         onKeyDown={handleSearchKeyDown}
-        className="stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground stg:placeholder:text-muted-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
+        className="stg:w-full"
         autoFocus
       />
 

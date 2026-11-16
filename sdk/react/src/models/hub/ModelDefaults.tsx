@@ -23,7 +23,7 @@ import { HARNESS_META, HARNESS_OPTIONS } from "@stigmer/react-core/internal";
 import { needsKeyLabel } from "../provider-presentation.js";
 import type { ModelReadinessLookup } from "../readiness.js";
 import { useModelRegistry } from "../useModelRegistry.js";
-import { INPUT_CLASSES } from "./ProviderKeyForm.js";
+import { FIELD_LABEL_CLASSES, FieldError, Select } from "../../internal/form/index.js";
 
 /** Props for {@link ModelDefaults}. */
 export interface ModelDefaultsProps {
@@ -120,9 +120,9 @@ export function ModelDefaults({ readinessOf, className }: ModelDefaultsProps) {
         </ul>
       )}
       {saveError && (
-        <p role="alert" className="stg:border-t stg:border-border stg:px-4 stg:py-2 stg:text-xs stg:text-destructive">
+        <FieldError className="stg:border-t stg:border-border stg:px-4 stg:py-2">
           {saveErrorMessage(saveError, "account")}
-        </p>
+        </FieldError>
       )}
     </section>
   );
@@ -155,21 +155,20 @@ function DefaultRow({
   return (
     <li className="stg:grid stg:items-center stg:gap-2 stg:px-3.5 stg:py-2.5 stg:sm:grid-cols-[12rem_1fr_11rem] stg:sm:gap-4">
       <div>
-        <label htmlFor={selectId} className="stg:block stg:text-xs stg:font-medium stg:text-foreground">
+        <label htmlFor={selectId} className={cn(FIELD_LABEL_CLASSES, "stg:block")}>
           {HARNESS_META[harness].label}
         </label>
         <p id={descriptionId} className="stg:text-xs stg:text-muted-foreground">
           {HARNESS_META[harness].description}
         </p>
       </div>
-      <select
+      <Select
         id={selectId}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled || isLoading}
         aria-describedby={`${descriptionId} ${statusId}`}
-        className={INPUT_CLASSES}
-      >
+ >
         <option value="">Platform default{defaultModel ? ` (${defaultModel.displayName})` : ""}</option>
         {isStale && <option value={value}>{value} (unavailable)</option>}
         {models.map((model) => (
@@ -177,7 +176,7 @@ function DefaultRow({
             {model.displayName || model.modelId}
           </option>
         ))}
-      </select>
+      </Select>
       <p
         id={statusId}
         className={cn(

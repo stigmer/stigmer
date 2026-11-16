@@ -22,7 +22,6 @@ import { SettingsPage } from "../settings/SettingsPage.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { cardClasses } from "../internal/surface/Card.js";
-import { INPUT_CLASSES } from "../internal/form-primitives.js";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { ZERO, formatRate } from "./pricing-format.js";
 import { useRetireModelPricingBaseline } from "./useRetireModelPricingBaseline.js";
@@ -32,6 +31,7 @@ import {
   type ModelCatalogRow,
 } from "./useModelCatalogView.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import { TextInput } from "../internal/form/index.js";
 
 /** Props for {@link ModelCatalogConsole}. */
 export interface ModelCatalogConsoleProps {
@@ -227,9 +227,9 @@ function ModelCatalogBody({
 
   return (
     <div className="stg:space-y-3">
-      <input
+      <TextInput
         type="search"
-        className={cn(INPUT_CLASSES, "stg:max-w-xs")}
+        className="stg:max-w-xs"
         value={view.modelQuery}
         onChange={(e) => view.setModelQuery(e.target.value)}
         placeholder="Search models…"

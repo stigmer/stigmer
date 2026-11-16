@@ -50,7 +50,6 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { DialogShell } from "../internal/DialogShell.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { cardClasses } from "../internal/surface/Card.js";
-import { INPUT_CLASSES } from "../internal/form-primitives.js";
 import { Pagination } from "../internal/Pagination.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
@@ -66,6 +65,7 @@ import { type CatalogEntry, catalogEntries, useMarketplaceCatalog } from "./useM
 import { useMarketplaces } from "./useMarketplaces.js";
 import { useInstalledPluginSlugs } from "./useInstalledPluginSlugs.js";
 import { useCanCreatePlugin } from "./useCanCreatePlugin.js";
+import { TextInput } from "../internal/form/index.js";
 
 /** Props for {@link MarketplaceCatalog}. */
 export interface MarketplaceCatalogProps {
@@ -148,10 +148,9 @@ export function MarketplaceCatalog({ org, onInstalled, fetchImpl, className }: M
         <label htmlFor={searchId} className="stg:text-sm stg:font-medium stg:text-foreground">
           Search plugins
         </label>
-        <input
+        <TextInput
           id={searchId}
           type="search"
-          className={INPUT_CLASSES}
           value={query}
           onChange={(event) => changeQuery(event.target.value)}
           placeholder={selected === null ? "Search every source by name or description…" : `Search ${selected} by name or description…`}

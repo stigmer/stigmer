@@ -68,3 +68,9 @@ export function areaControlClasses({
   if (appearance === "bare") return cn("stg:min-w-0 stg:resize-none", BARE, size === "xs" ? "stg:text-xs" : "stg:text-sm");
   return cn("stg:block stg:w-full stg:min-w-0", FRAME, AREA_SIZE_CLASSES[size], invalid ? "stg:border-status-failed" : "stg:border-input");
 }
+
+/** A field's label: 14/20 medium in the foreground. Forms that draw a label of their own use it too. */
+export const FIELD_LABEL_CLASSES = "stg:text-sm stg:font-medium stg:text-foreground";
+
+/** A field's hint: 12/16 muted. */
+export const FIELD_HINT_CLASSES = "stg:m-0 stg:text-xs stg:text-muted-foreground";

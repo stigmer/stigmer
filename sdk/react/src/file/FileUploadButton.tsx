@@ -26,6 +26,7 @@ import { toError } from "@stigmer/react-core/internal";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { Button } from "../button/Button.js";
 import { IconButton } from "../button/IconButton.js";
+import { HiddenFileInput } from "../internal/form/index.js";
 
 /** How many uploads run at once. */
 export const LIBRARY_UPLOAD_CONCURRENCY = 4;
@@ -130,11 +131,9 @@ export function FileUploadButton({ org, onUploaded, label = "Upload", className 
       >
         {label}
       </Button>
-      <input
+      <HiddenFileInput
         ref={inputRef}
-        type="file"
         multiple
-        hidden
         aria-label="Choose files to upload"
         onChange={(event) => {
           const files = Array.from(event.target.files ?? []);

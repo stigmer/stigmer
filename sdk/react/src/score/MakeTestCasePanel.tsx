@@ -32,6 +32,7 @@ import { useStigmer } from "@stigmer/react-core";
 import { downloadBinaryFile } from "../internal/download.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { Button } from "../button/Button.js";
+import { FieldError, Select } from "../internal/form/index.js";
 
 /** Props for {@link MakeTestCasePanel}. */
 export interface MakeTestCasePanelProps {
@@ -104,19 +105,18 @@ export function MakeTestCasePanel({ runId, org }: MakeTestCasePanelProps) {
         </Button>
         {evals.length > 0 && (
           <>
-            <select
+            <Select
               aria-label="Eval"
               value={evalId}
               disabled={busy}
               onChange={(event) => setChosen(event.target.value)}
-              className="stg:h-7 stg:rounded-md stg:border stg:border-border stg:bg-background stg:px-1 stg:text-xs stg:text-foreground"
-            >
+ >
               {evals.map((entry) => (
                 <option key={entry.metadata?.id} value={entry.metadata?.id ?? ""}>
                   {entry.metadata?.slug}
                 </option>
               ))}
-            </select>
+            </Select>
             <Button variant="outline" size="xs" disabled={busy} onClick={() => void onAdd()}>
               Add to eval
             </Button>
@@ -131,18 +131,18 @@ export function MakeTestCasePanel({ runId, org }: MakeTestCasePanelProps) {
       {isLoading ? (
         <p>Loading the organization's evals…</p>
       ) : listError !== null ? (
-        <p role="alert" className="stg:text-destructive">
+        <FieldError>
           The organization's evals could not be listed: {listError.message}
-        </p>
+        </FieldError>
       ) : evals.length > 0 ? (
         <p>Everyone who can read the eval will see this conversation.</p>
       ) : (
         <p>No evals in this organization yet: push one with stigmer push eval to add cases to it here.</p>
       )}
       {loadMoreError !== null && (
-        <p role="alert" className="stg:text-destructive">
+        <FieldError>
           More evals could not be listed: {loadMoreError.message}
-        </p>
+        </FieldError>
       )}
       {status !== null && <p role="status">{status}</p>}
       {notes.length > 0 && (
@@ -153,9 +153,9 @@ export function MakeTestCasePanel({ runId, org }: MakeTestCasePanelProps) {
         </ul>
       )}
       {error !== null && (
-        <p role="alert" className="stg:text-destructive">
+        <FieldError>
           {error}
-        </p>
+        </FieldError>
       )}
     </div>
   );

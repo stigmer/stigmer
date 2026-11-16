@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useId } from "react";
-import { cn } from "@stigmer/design-tokens";
 import { generateSlug } from "../../internal/slug.js";
 import type { AgentWizardData } from "./types.js";
+import { FieldError, TextArea, TextInput } from "../../internal/form/index.js";
 
 /** Props for {@link IdentityStep}. */
 export interface IdentityStepProps {
@@ -66,9 +66,9 @@ export function IdentityStep({
       </div>
 
       {validationError && (
-        <p className="stg:text-sm stg:text-destructive" role="alert">
+        <FieldError>
           {validationError}
-        </p>
+        </FieldError>
       )}
 
       <div className="stg:grid stg:gap-4 stg:sm:grid-cols-2">
@@ -80,18 +80,13 @@ export function IdentityStep({
           >
             Name <span className="stg:text-destructive">*</span>
           </label>
-          <input
+          <TextInput
             id={`${baseId}-name`}
             type="text"
             value={data.name}
             onChange={(e) => handleNameChange(e.target.value)}
             placeholder="e.g. PR Review Bot"
-            autoFocus
-            className={cn(
-              "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:text-sm stg:text-foreground",
-              "stg:placeholder:text-muted-foreground",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            )}
+            autoFocus className="stg:w-full"
           />
         </div>
 
@@ -103,20 +98,12 @@ export function IdentityStep({
           >
             Slug
           </label>
-          <input
+          <TextInput
             id={`${baseId}-slug`}
             type="text"
             value={data.slug}
             onChange={(e) => handleSlugChange(e.target.value)}
-            placeholder="auto-generated"
-            className={cn(
-              "stg:w-full stg:rounded-md stg:border stg:px-3 stg:py-2 stg:font-mono stg:text-sm stg:text-foreground",
-              slugError
-                ? "stg:border-destructive stg:bg-input-bg"
-                : "stg:border-input stg:bg-input-bg",
-              "stg:placeholder:text-muted-foreground",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            )}
+            placeholder="auto-generated" className="stg:w-full stg:font-mono" invalid={Boolean(slugError)}
           />
           {slugError && (
             <p className="stg:text-xs stg:text-destructive">{slugError}</p>
@@ -137,18 +124,13 @@ export function IdentityStep({
         >
           Description
         </label>
-        <input
+        <TextInput
           id={`${baseId}-description`}
           type="text"
           value={data.description}
           onChange={(e) => updateData({ description: e.target.value })}
           placeholder="A brief description of what this agent does"
-          maxLength={200}
-          className={cn(
-            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:text-sm stg:text-foreground",
-            "stg:placeholder:text-muted-foreground",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          )}
+          maxLength={200} className="stg:w-full"
         />
       </div>
 
@@ -160,17 +142,12 @@ export function IdentityStep({
         >
           Icon URL
         </label>
-        <input
+        <TextInput
           id={`${baseId}-icon`}
           type="url"
           value={data.iconUrl}
           onChange={(e) => updateData({ iconUrl: e.target.value })}
-          placeholder="https://example.com/icon.png"
-          className={cn(
-            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:text-sm stg:text-foreground",
-            "stg:placeholder:text-muted-foreground",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          )}
+          placeholder="https://example.com/icon.png" className="stg:w-full"
         />
       </div>
 
@@ -185,17 +162,12 @@ export function IdentityStep({
         <p className="stg:text-xs stg:text-muted-foreground">
           The system prompt that defines this agent&apos;s behavior.
         </p>
-        <textarea
+        <TextArea
           id={`${baseId}-instructions`}
           value={data.instructions}
           onChange={(e) => updateData({ instructions: e.target.value })}
           placeholder="You are a helpful assistant that..."
-          rows={12}
-          className={cn(
-            "stg:w-full stg:resize-y stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:font-mono stg:text-sm stg:text-foreground",
-            "stg:placeholder:text-muted-foreground",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          )}
+          rows={12} className="stg:w-full stg:resize-y stg:font-mono"
         />
       </div>
     </div>

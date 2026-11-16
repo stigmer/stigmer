@@ -2,6 +2,7 @@
 
 import { cn } from "@stigmer/design-tokens";
 import type { ViewMode } from "../types.js";
+import { ChoiceGroup } from "../../internal/form/index.js";
 
 /** Props for {@link ViewSwitcher}. */
 export interface ViewSwitcherProps {
@@ -35,37 +36,16 @@ export function ViewSwitcher({
   className,
 }: ViewSwitcherProps) {
   return (
-    <div
-      role="radiogroup"
+    <ChoiceGroup
       aria-label="View mode"
-      className={cn("stg:inline-flex stg:rounded-md stg:border stg:border-input", className)}
-    >
-      {modes.map((mode) => {
+      className={className}
+      value={value}
+      onChange={onChange}
+      options={modes.map((mode) => {
         const { label, icon: Icon } = MODE_META[mode];
-        const isActive = value === mode;
-        return (
-          <button
-            key={mode}
-            type="button"
-            role="radio"
-            aria-checked={isActive}
-            aria-label={label}
-            onClick={() => onChange(mode)}
-            className={cn(
-              "stg:inline-flex stg:items-center stg:justify-center stg:px-2 stg:py-1.5 stg:transition-colors",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:z-10",
-              "stg:first:rounded-l-[calc(var(--stgm-radius)-1px)] stg:last:rounded-r-[calc(var(--stgm-radius)-1px)]",
-              "stg:border-r stg:border-input stg:last:border-r-0",
-              isActive
-                ? "stg:bg-accent stg:text-accent-foreground"
-                : "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-            )}
-          >
-            <Icon />
-          </button>
-        );
+        return { value: mode, label: <Icon />, "aria-label": label };
       })}
-    </div>
+    />
   );
 }
 

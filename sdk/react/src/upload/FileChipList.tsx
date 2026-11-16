@@ -5,7 +5,7 @@ import { cn } from "@stigmer/design-tokens";
 import type { FileUploadEntry } from "./useFileUploads.js";
 import { useObjectUrl } from "./useObjectUrl.js";
 import { ImageLightbox } from "./ImageLightbox.js";
-import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";
+import { UNSTYLED_BUTTON } from "../internal/element-resets.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { formatFileSize } from "../file/file-size.js";
 import { Button } from "../button/Button.js";

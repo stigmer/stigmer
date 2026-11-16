@@ -34,6 +34,7 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { UNSTYLED_FIELDSET, UNSTYLED_LIST } from "../internal/element-resets.js";
 import { keptReference } from "../internal/kept-reference.js";
 import { tagClasses } from "../internal/surface/Tag.js";
+import { FieldError, Select, TextInput } from "../internal/form/index.js";
 
 /** The roles a first sign-in may grant; owner is never offered, since ownership is assigned explicitly. */
 const SIGN_IN_ROLE_OPTIONS: readonly { readonly value: IamRole; readonly label: string }[] = [
@@ -59,13 +60,6 @@ export interface OrgEmbeddingPanelProps {
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
-
-const INPUT_CLASS = cn(
-  "stg:min-w-0 stg:flex-1 stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-  "stg:placeholder:text-muted-foreground",
-  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-);
 
 /**
  * Self-contained editor for an organization's embedding settings
@@ -263,20 +257,20 @@ function EmbeddingForm({
           <label htmlFor={roleId} className="stg:text-xs stg:text-foreground">
             Sign-in role
           </label>
-          <select
+          <Select
             id={roleId}
             value={String(draft.signInRole)}
             onChange={(event) => edit({ signInRole: Number(event.target.value) as IamRole })}
             disabled={locked || !draft.createAccountsOnSignIn}
             aria-describedby={`${roleId}-hint`}
-            className={cn(INPUT_CLASS, "stg:w-full")}
-          >
+            className="stg:w-full"
+ >
             {SIGN_IN_ROLE_OPTIONS.map((option) => (
               <option key={option.value} value={String(option.value)}>
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
           <p id={`${roleId}-hint`} className="stg:text-2xs stg:text-muted-foreground">
             Granted on this organization when a sign-in creates an account; None grants nothing.
             Accounts that already exist keep the roles they hold.
@@ -291,7 +285,7 @@ function EmbeddingForm({
           origin.
         </p>
         <div className="stg:flex stg:items-center stg:gap-2">
-          <input
+          <TextInput
             type="text"
             value={originInput}
             onChange={(event) => setOriginInput(event.target.value)}
@@ -299,7 +293,6 @@ function EmbeddingForm({
             placeholder="https://app.example.com"
             aria-label="Add an allowed origin"
             disabled={locked}
-            className={INPUT_CLASS}
           />
           <Button variant="ghost" size="xs" onClick={addOrigin} disabled={locked || originInput.trim() === ""}>
             Add
@@ -345,9 +338,9 @@ function EmbeddingForm({
       </fieldset>
 
       {error && (
-        <p className="stg:text-2xs stg:text-destructive" role="alert">
+        <FieldError>
           {getUserMessage(error)}
-        </p>
+        </FieldError>
       )}
 
       {canEdit ? (

@@ -30,11 +30,11 @@ import { GITHUB_SOURCE_SHAPE, describeGitHubSource } from "@stigmer/plugin-packa
 import { Button } from "../button/Button.js";
 import { DialogShell } from "../internal/DialogShell.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
-import { Field, INPUT_CLASSES } from "../internal/form-primitives.js";
 import { SourceMark } from "./SourceMark.js";
 import type { SourceRead } from "./catalog-store.js";
 import type { KnownMarketplace, MarketplaceSource } from "./sources/types.js";
 import type { AddSourceOutcome, UnreadableMarketplace } from "./useMarketplaces.js";
+import { Field, FieldError, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link ManageSourcesDialog}. */
 export interface ManageSourcesDialogProps {
@@ -145,9 +145,9 @@ function SourceList({
         ))}
       </ul>
       {refusal && (
-        <p role="alert" className="stg:text-xs stg:text-destructive">
+        <FieldError>
           {refusal}
-        </p>
+        </FieldError>
       )}
     </div>
   );
@@ -221,8 +221,7 @@ function AddSourceForm({ add }: { readonly add: (sourceText: string, name?: stri
     >
       <div className="stg:flex stg:flex-col stg:gap-2 stg:sm:flex-row stg:sm:items-end">
         <Field label="GitHub repository" className="stg:flex-1">
-          <input
-            className={INPUT_CLASSES}
+          <TextInput
             value={source}
             onChange={(event) => setSource(event.target.value)}
             placeholder="owner/repo or https://github.com/owner/repo"
@@ -230,7 +229,7 @@ function AddSourceForm({ add }: { readonly add: (sourceText: string, name?: stri
           />
         </Field>
         <Field label="Name (optional)" className="stg:sm:w-48">
-          <input className={INPUT_CLASSES} value={name} onChange={(event) => setName(event.target.value)} placeholder="the catalogue's own name" />
+          <TextInput  value={name} onChange={(event) => setName(event.target.value)} placeholder="the catalogue's own name" />
         </Field>
         <Button type="submit" variant="outline" size="sm" disabled={busy || source.trim() === ""}>
           {busy ? "Reading…" : "Add source"}

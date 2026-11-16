@@ -12,6 +12,7 @@ import type { AgentWizardData, EnvVarEntry } from "./types.js";
 import { Button } from "../../button/Button.js";
 import { IconButton } from "../../button/IconButton.js";
 import { PlusGlyph } from "../../internal/thread-card/glyphs.js";
+import { Checkbox, TextInput } from "../../internal/form/index.js";
 
 /** Props for {@link CapabilitiesStep}. */
 export interface CapabilitiesStepProps {
@@ -273,31 +274,21 @@ function EnvVarEditor({
         >
           <div className="stg:flex stg:items-start stg:gap-2">
             <div className="stg:flex-1 stg:space-y-1.5">
-              <input
+              <TextInput
                 type="text"
                 value={entry.key}
                 onChange={(e) =>
                   updateEntry(index, { key: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "") })
                 }
                 placeholder="VARIABLE_NAME"
-                aria-label={`Environment variable name ${index + 1}`}
-                className={cn(
-                  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-2.5 stg:py-1.5 stg:font-mono stg:text-xs stg:text-foreground",
-                  "stg:placeholder:text-muted-foreground",
-                  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-                )}
+                aria-label={`Environment variable name ${index + 1}`} className="stg:w-full stg:font-mono"
               />
-              <input
+              <TextInput
                 type="text"
                 value={entry.description}
                 onChange={(e) => updateEntry(index, { description: e.target.value })}
                 placeholder="Description (optional)"
-                aria-label={`Description for ${entry.key || `variable ${index + 1}`}`}
-                className={cn(
-                  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-                  "stg:placeholder:text-muted-foreground",
-                  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-                )}
+                aria-label={`Description for ${entry.key || `variable ${index + 1}`}`} className="stg:w-full"
               />
             </div>
             <IconButton
@@ -311,20 +302,16 @@ function EnvVarEditor({
 
           <div className="stg:flex stg:items-center stg:gap-4">
             <label className="stg:flex stg:items-center stg:gap-1.5 stg:text-xs stg:text-muted-foreground">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={entry.isSecret}
                 onChange={(e) => updateEntry(index, { isSecret: e.target.checked })}
-                className="stg:size-3.5 stg:rounded stg:border-input"
               />
               Secret
             </label>
             <label className="stg:flex stg:items-center stg:gap-1.5 stg:text-xs stg:text-muted-foreground">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={entry.optional}
                 onChange={(e) => updateEntry(index, { optional: e.target.checked })}
-                className="stg:size-3.5 stg:rounded stg:border-input"
               />
               Optional
             </label>

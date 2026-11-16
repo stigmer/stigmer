@@ -17,6 +17,7 @@ import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { parseAddressList } from "./addresses.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { Button } from "../button/Button.js";
+import { FIELD_LABEL_CLASSES, FieldError, Select, TextInput } from "../internal/form/index.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -288,9 +289,9 @@ export function OAuthAppDetailPanel({
             this app will lose their binding.
           </p>
           {deleteError && (
-            <p className="stg:text-destructive stg:mb-2 stg:text-2xs" role="alert">
+            <FieldError className="stg:mb-2">
               {getUserMessage(deleteError)}
-            </p>
+            </FieldError>
           )}
           <div className="stg:flex stg:items-center stg:gap-2">
             <Button
@@ -413,11 +414,11 @@ export function OAuthAppDetailPanel({
           <div className="stg:space-y-1">
             <label
               htmlFor={`${baseId}-token-auth-method`}
-              className="stg:text-xs stg:font-medium stg:text-foreground"
+              className={FIELD_LABEL_CLASSES}
             >
               Token endpoint auth method
             </label>
-            <select
+            <Select
               id={`${baseId}-token-auth-method`}
               value={tokenEndpointAuthMethod}
               onChange={(e) =>
@@ -425,13 +426,8 @@ export function OAuthAppDetailPanel({
                   e.target.value as typeof tokenEndpointAuthMethod,
                 )
               }
-              disabled={isUpdating}
-              className={cn(
-                "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              )}
-            >
+              disabled={isUpdating} className="stg:w-full"
+ >
               <option value="unspecified">
                 Unspecified (treated as HTTP Basic)
               </option>
@@ -441,17 +437,17 @@ export function OAuthAppDetailPanel({
               <option value="client_secret_post">
                 client_secret_post (form body)
               </option>
-            </select>
+            </Select>
           </div>
 
           <div className="stg:space-y-1">
             <label
               htmlFor={`${baseId}-approval-status`}
-              className="stg:text-xs stg:font-medium stg:text-foreground"
+              className={FIELD_LABEL_CLASSES}
             >
               Vendor approval status
             </label>
-            <select
+            <Select
               id={`${baseId}-approval-status`}
               value={vendorApprovalStatus}
               onChange={(e) =>
@@ -459,18 +455,13 @@ export function OAuthAppDetailPanel({
                   e.target.value as typeof vendorApprovalStatus,
                 )
               }
-              disabled={isUpdating}
-              className={cn(
-                "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              )}
-            >
+              disabled={isUpdating} className="stg:w-full"
+ >
               <option value="unspecified">Unspecified (treated as approved)</option>
               <option value="pending">Pending</option>
               <option value="approved">Approved</option>
               <option value="rejected">Rejected</option>
-            </select>
+            </Select>
           </div>
 
           <FieldInput
@@ -484,9 +475,9 @@ export function OAuthAppDetailPanel({
           />
 
           {updateError && (
-            <p className="stg:text-destructive stg:text-2xs" role="alert">
+            <FieldError>
               {saveErrorMessage(updateError, "OAuth app")}
-            </p>
+            </FieldError>
           )}
 
           <div className="stg:flex stg:items-center stg:gap-2 stg:pt-1">
@@ -689,23 +680,17 @@ function FieldInput({
 }) {
   return (
     <div className="stg:space-y-1">
-      <label htmlFor={id} className="stg:text-xs stg:font-medium stg:text-foreground">
+      <label htmlFor={id} className={FIELD_LABEL_CLASSES}>
         {label}
       </label>
-      <input
+      <TextInput
         id={id}
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
-        required={required}
-        className={cn(
-          "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-          "stg:placeholder:text-muted-foreground",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-        )}
+        required={required} className="stg:w-full"
       />
       {hint && (
         <p className="stg:text-2xs stg:text-muted-foreground">{hint}</p>

@@ -17,7 +17,7 @@ import { useObjectUrl } from "../upload/useObjectUrl.js";
 import { TextContentRenderer } from "../run/TextContentRenderer.js";
 import { FileChangeDiff } from "../run/FileChangesView.js";
 import { useFileChangeContent } from "@stigmer/react-core";
-import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";
+import { UNSTYLED_BUTTON } from "../internal/element-resets.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import type { RevealTarget } from "../internal/useRevealLine.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";

@@ -38,6 +38,7 @@ import {
   type GranteeCandidate,
   type PersonCandidate,
 } from "./useGranteeCandidates.js";
+import { FIELD_LABEL_CLASSES, TextInput } from "../internal/form/index.js";
 
 /** A grantee selected through {@link PrincipalPicker}. */
 export type SelectedGrantee = GranteeCandidate;
@@ -268,12 +269,12 @@ export function PrincipalPicker({
     <div className={cn("stg:space-y-1", className)}>
       <label
         htmlFor={`${listboxId}-input`}
-        className="stg:block stg:text-xs stg:font-medium stg:text-foreground"
+        className={cn(FIELD_LABEL_CLASSES, "stg:block")}
       >
         {fieldLabel}
       </label>
       <div className="stg:relative">
-        <input
+        <TextInput
           id={`${listboxId}-input`}
           ref={inputRef}
           type="text"
@@ -296,13 +297,7 @@ export function PrincipalPicker({
           onKeyDown={handleKeyDown}
           placeholder={includeTeams ? "Search people or teams" : "Search by name or email"}
           disabled={disabled || isLoading}
-          autoFocus={autoFocus}
-          className={cn(
-            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-            "stg:placeholder:text-muted-foreground",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
+          autoFocus={autoFocus} className="stg:w-full"
         />
 
         {open && (

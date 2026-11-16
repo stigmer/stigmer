@@ -4,6 +4,7 @@ import { cn } from "@stigmer/design-tokens";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { UnknownPublicAddressNotice } from "../internal/UnknownPublicAddressNotice.js";
 import { CopyButton, useCopy } from "../internal/CopyBlock.js";
+import { FIELD_LABEL_CLASSES, TextInput } from "../internal/form/index.js";
 
 /**
  * Internal building blocks shared by the channel-app forms and panels.
@@ -34,23 +35,17 @@ export function FormField({
 }) {
   return (
     <div className="stg:space-y-1">
-      <label htmlFor={id} className="stg:text-xs stg:font-medium stg:text-foreground">
+      <label htmlFor={id} className={FIELD_LABEL_CLASSES}>
         {label}
       </label>
-      <input
+      <TextInput
         id={id}
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
-        required={required}
-        className={cn(
-          "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-          "stg:placeholder:text-muted-foreground",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-        )}
+        required={required} className="stg:w-full"
       />
       {hint && <p className="stg:text-2xs stg:text-muted-foreground">{hint}</p>}
     </div>

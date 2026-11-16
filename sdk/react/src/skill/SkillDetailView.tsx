@@ -1,5 +1,6 @@
 "use client";
 
+import { ChoiceGroup } from "../internal/form/index.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import { cn } from "@stigmer/design-tokens";
@@ -492,42 +493,16 @@ function ContentViewToggle({
   readonly onChange: (mode: ContentViewMode) => void;
 }) {
   return (
-    <div
-      role="radiogroup"
+    <ChoiceGroup
       aria-label="Content view mode"
-      className="stg:inline-flex stg:rounded-md stg:border stg:border-input stg:text-2xs"
-    >
-      <button
-        type="button"
-        role="radio"
-        aria-checked={value === "rendered"}
-        onClick={() => onChange("rendered")}
-        className={cn(
-          "stg:rounded-l-md stg:px-2 stg:py-0.5 stg:font-medium stg:transition-colors",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          value === "rendered"
-            ? "stg:bg-muted stg:text-foreground"
-            : "stg:text-muted-foreground stg:hover:text-foreground",
-        )}
-      >
-        Preview
-      </button>
-      <button
-        type="button"
-        role="radio"
-        aria-checked={value === "source"}
-        onClick={() => onChange("source")}
-        className={cn(
-          "stg:rounded-r-md stg:border-l stg:border-input stg:px-2 stg:py-0.5 stg:font-medium stg:transition-colors",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          value === "source"
-            ? "stg:bg-muted stg:text-foreground"
-            : "stg:text-muted-foreground stg:hover:text-foreground",
-        )}
-      >
-        Source
-      </button>
-    </div>
+      size="xs"
+      value={value}
+      onChange={onChange}
+      options={[
+        { value: "rendered", label: "Preview" },
+        { value: "source", label: "Source" },
+      ]}
+    />
   );
 }
 

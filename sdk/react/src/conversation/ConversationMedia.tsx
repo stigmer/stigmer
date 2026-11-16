@@ -7,7 +7,7 @@ import { getUserMessage } from "@stigmer/client";
 import type { ConversationMediaRef } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { GetConversationMediaDownloadUrlInputSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { ImageLightbox } from "../upload/ImageLightbox.js";
-import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";
+import { UNSTYLED_BUTTON } from "../internal/element-resets.js";
 import { toError } from "@stigmer/react-core/internal";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { useStigmer } from "@stigmer/react-core";

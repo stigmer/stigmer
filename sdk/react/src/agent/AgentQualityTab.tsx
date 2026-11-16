@@ -19,8 +19,8 @@ import { ModelSelector } from "../models/ModelSelector.js";
 import { AgentQualityReportView } from "../score/AgentQualityReportView.js";
 import { Section } from "../resource-detail/Section.js";
 import { Switch } from "../switch/Switch.js";
-import { INPUT_CLASS } from "../vault/styles.js";
 import { Button } from "../button/Button.js";
+import { FIELD_HINT_CLASSES, FIELD_LABEL_CLASSES, FieldError, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link AgentQualityTab}. */
 export interface AgentQualityTabProps {
@@ -185,7 +185,7 @@ function QualityForm({
             />
             <label
               htmlFor={`${baseId}-enabled`}
-              className="stg:text-xs stg:font-medium stg:text-foreground"
+              className={FIELD_LABEL_CLASSES}
             >
               Grade this agent&apos;s runs with an AI judge
             </label>
@@ -194,7 +194,7 @@ function QualityForm({
             <label htmlFor={`${baseId}-one-in`} className={LABEL_CLASS}>
               Grade one in N runs
             </label>
-            <input
+            <TextInput
               id={`${baseId}-one-in`}
               type="number"
               min={1}
@@ -205,7 +205,7 @@ function QualityForm({
                 setDraft({ ...draft, oneIn: Number(event.target.value) })
               }
               disabled={!editable || isSaving}
-              className={cn(INPUT_CLASS, "stg:sm:max-w-32")}
+              className="stg:sm:max-w-32"
             />
             <p className={HINT_CLASS}>
               1 grades every run; 10 grades about one run in ten.
@@ -215,7 +215,7 @@ function QualityForm({
             <label htmlFor={`${baseId}-limit`} className={LABEL_CLASS}>
               Monthly limit (USD, estimated model spend)
             </label>
-            <input
+            <TextInput
               id={`${baseId}-limit`}
               type="number"
               min={0}
@@ -224,7 +224,7 @@ function QualityForm({
               onChange={(event) => setLimitText(event.target.value)}
               disabled={!editable || isSaving}
               aria-invalid={!limitValid}
-              className={cn(INPUT_CLASS, "stg:sm:max-w-32")}
+              className="stg:sm:max-w-32"
             />
             <p className={HINT_CLASS}>
               When a grade would pass it, runs are marked &ldquo;not graded:
@@ -257,9 +257,9 @@ function QualityForm({
             </div>
           )}
           {saveError !== null && (
-            <p role="alert" className="stg:text-xs stg:text-destructive">
+            <FieldError>
               {saveError.message}
-            </p>
+            </FieldError>
           )}
         </div>
       </Section>
@@ -286,8 +286,8 @@ function QualityForm({
   );
 }
 
-const LABEL_CLASS = "stg:block stg:text-xs stg:font-medium stg:text-foreground";
-const HINT_CLASS = "stg:text-2xs stg:text-muted-foreground";
+const LABEL_CLASS = FIELD_LABEL_CLASSES;
+const HINT_CLASS = FIELD_HINT_CLASSES;
 
 function usd(amount: number): string {
   return `$${amount.toFixed(2)}`;

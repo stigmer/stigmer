@@ -20,6 +20,7 @@ import { TruncatedText } from "../internal/truncated-text.js";
 import { splitTemplateBody } from "../channel/templatePresentation.js";
 import { useChannelTemplateList } from "../channel/useChannelTemplateList.js";
 import type { ConversationReplyPayload } from "./useConversationParticipation.js";
+import { FIELD_LABEL_CLASSES, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link ConversationTemplatePickerDialog}. */
 export interface ConversationTemplatePickerDialogProps {
@@ -388,21 +389,16 @@ function TemplateFillForm({
             <div key={key}>
               <label
                 htmlFor={`${fieldIdPrefix}-${key}`}
-                className="stg:mb-1 stg:block stg:text-xs stg:font-medium stg:text-foreground"
+                className={cn(FIELD_LABEL_CLASSES, "stg:mb-1 stg:block")}
               >
                 {key}
               </label>
-              <input
+              <TextInput
                 id={`${fieldIdPrefix}-${key}`}
                 type="text"
                 value={values[key] ?? ""}
                 onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
-                disabled={isSending}
-                className={cn(
-                  "stg:w-full stg:rounded-md stg:border stg:border-border stg:bg-background",
-                  "stg:px-3 stg:py-2 stg:text-sm stg:text-foreground stg:placeholder:text-muted-foreground-faint",
-                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                )}
+                disabled={isSending} className="stg:w-full"
               />
             </div>
           ))}

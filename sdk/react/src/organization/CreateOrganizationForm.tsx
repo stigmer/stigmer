@@ -11,6 +11,7 @@ import { generateSlug } from "../internal/slug.js";
 import { validateMessage, getFieldError } from "../internal/validate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { Button } from "../button/Button.js";
+import { FIELD_LABEL_CLASSES, FieldError, TextInput } from "../internal/form/index.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -123,11 +124,11 @@ export function CreateOrganizationForm({
         <div className="stg:space-y-1">
           <label
             htmlFor={`${baseId}-name`}
-            className="stg:text-xs stg:font-medium stg:text-foreground"
+            className={FIELD_LABEL_CLASSES}
           >
             Name
           </label>
-          <input
+          <TextInput
             id={`${baseId}-name`}
             type="text"
             value={name}
@@ -136,19 +137,12 @@ export function CreateOrganizationForm({
             disabled={isCreating}
             autoFocus
             required
-            maxLength={63}
-            className={cn(
-              "stg:w-full stg:rounded-md stg:border stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-              "stg:placeholder:text-muted-foreground",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              nameError ? "stg:border-destructive" : "stg:border-input",
-            )}
+            maxLength={63} className="stg:w-full" invalid={Boolean(nameError)}
           />
           {nameError ? (
-            <p className="stg:text-2xs stg:text-destructive" role="alert">
+            <FieldError>
               {nameError}
-            </p>
+            </FieldError>
           ) : (
             <p className="stg:text-2xs stg:text-muted-foreground">
               A human-readable display name for the organization.
@@ -160,32 +154,23 @@ export function CreateOrganizationForm({
         <div className="stg:space-y-1">
           <label
             htmlFor={`${baseId}-slug`}
-            className="stg:text-xs stg:font-medium stg:text-foreground"
+            className={FIELD_LABEL_CLASSES}
           >
             Slug
           </label>
-          <input
+          <TextInput
             id={`${baseId}-slug`}
             type="text"
             value={slug}
             onChange={(e) => handleSlugChange(e.target.value)}
             placeholder="e.g. acme-corp"
             disabled={isCreating}
-            required
-            className={cn(
-              "stg:w-full stg:rounded-md stg:border stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground stg:font-mono",
-              "stg:placeholder:text-muted-foreground",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              slugError
-                ? "stg:border-destructive"
-                : "stg:border-input",
-            )}
+            required className="stg:w-full stg:font-mono" invalid={Boolean(slugError)}
           />
           {slugError ? (
-            <p className="stg:text-2xs stg:text-destructive" role="alert">
+            <FieldError>
               {slugError}
-            </p>
+            </FieldError>
           ) : (
             <p className="stg:text-2xs stg:text-muted-foreground">
               URL-friendly identifier used in resource references. 2&ndash;63
@@ -198,32 +183,26 @@ export function CreateOrganizationForm({
         <div className="stg:space-y-1">
           <label
             htmlFor={`${baseId}-desc`}
-            className="stg:text-xs stg:font-medium stg:text-muted-foreground"
+            className={FIELD_LABEL_CLASSES}
           >
             Description{" "}
             <span className="stg:text-muted-foreground-subtle">(optional)</span>
           </label>
-          <input
+          <TextInput
             id={`${baseId}-desc`}
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="What is this organization for?"
-            disabled={isCreating}
-            className={cn(
-              "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-              "stg:placeholder:text-muted-foreground",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            )}
+            disabled={isCreating} className="stg:w-full"
           />
         </div>
       </div>
 
       {error && (
-        <p className="stg:text-destructive stg:text-2xs" role="alert">
+        <FieldError>
           {getUserMessage(error)}
-        </p>
+        </FieldError>
       )}
 
       <div className="stg:flex stg:items-center stg:gap-2">

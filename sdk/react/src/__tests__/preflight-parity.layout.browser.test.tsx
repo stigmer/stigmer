@@ -30,7 +30,7 @@ import { render, cleanup } from "@testing-library/react";
 import type { Stigmer } from "@stigmer/client";
 import { StigmerProvider } from "../provider";
 import { Button } from "../button/Button.js";
-import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";
+import { UNSTYLED_BUTTON } from "../internal/element-resets.js";
 
 afterEach(cleanup);
 

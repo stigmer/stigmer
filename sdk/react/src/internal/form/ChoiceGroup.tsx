@@ -13,7 +13,7 @@ import { cn } from "@stigmer/design-tokens";
 import type { FieldSize } from "./fieldClasses.js";
 
 /** One choice: its value, its words, an optional line under it (list), and whether it can be chosen. */
-export interface ChoiceOption<T extends string> {
+export interface ChoiceOption<T extends string | number> {
   readonly value: T;
   readonly label: ReactNode;
   readonly description?: ReactNode;
@@ -23,7 +23,7 @@ export interface ChoiceOption<T extends string> {
 }
 
 /** Props for {@link ChoiceGroup}. */
-export interface ChoiceGroupProps<T extends string> {
+export interface ChoiceGroupProps<T extends string | number> {
   readonly value: T;
   readonly onChange: (value: T) => void;
   readonly options: readonly ChoiceOption<T>[];
@@ -40,7 +40,7 @@ export interface ChoiceGroupProps<T extends string> {
 }
 
 /** A choice of one among a few, as a segmented row or a list of radio rows. */
-export function ChoiceGroup<T extends string>({
+export function ChoiceGroup<T extends string | number>({
   value,
   onChange,
   options,

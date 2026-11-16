@@ -24,7 +24,6 @@ import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import type { EmptyStateAction } from "../empty-state/types.js";
-import { INPUT_CLASS } from "./styles.js";
 import { useUpdateVault } from "./useUpdateVault.js";
 import { useVaultEntries } from "./useVaultEntries.js";
 import { isMyVault, useVaultList } from "./useVaultList.js";
@@ -32,6 +31,7 @@ import { VaultEntriesEditor } from "./VaultEntriesEditor.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { Button } from "../button/Button.js";
 import { List, ListRow } from "../internal/surface/List.js";
+import { FieldError, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link VaultListPanel}. */
 export interface VaultListPanelProps {
@@ -284,9 +284,9 @@ function VaultDetailsForm({
     <div className="stg:space-y-2" aria-label="Vault details">
       <h3 className="stg:text-xs stg:font-semibold stg:text-foreground">Details</h3>
       <div className="stg:grid stg:grid-cols-1 stg:gap-2 stg:sm:grid-cols-3">
-        <input aria-label="Vault name" value={name} onChange={(e) => setName(e.target.value)} className={INPUT_CLASS} />
-        <input aria-label="Vault description" placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} className={INPUT_CLASS} />
-        <input aria-label="External id" placeholder="External id" value={externalId} onChange={(e) => setExternalId(e.target.value)} className={INPUT_CLASS} />
+        <TextInput aria-label="Vault name" value={name} onChange={(e) => setName(e.target.value)}  />
+        <TextInput aria-label="Vault description" placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)}  />
+        <TextInput aria-label="External id" placeholder="External id" value={externalId} onChange={(e) => setExternalId(e.target.value)}  />
       </div>
       {/* My vault is named after its person and keeps its name. */}
       {!isMyVault(vault) && (
@@ -299,9 +299,9 @@ function VaultDetailsForm({
         />
       )}
       {(error || deleteError) && (
-        <p className="stg:text-destructive stg:text-2xs" role="alert">
+        <FieldError>
           {deleteError ?? (error ? getUserMessage(error) : "")}
-        </p>
+        </FieldError>
       )}
       <div className="stg:flex stg:items-center stg:gap-2">
         <Button size="xs" disabled={!dirty || isUpdating || name.trim() === ""} onClick={() => void save()}>

@@ -24,9 +24,9 @@ import {
 } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { normalizeAddress } from "./address.js";
-import { INPUT_CLASS } from "./styles.js";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import { FieldError, TextInput } from "../internal/form/index.js";
 
 const SECRET_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
@@ -204,9 +204,9 @@ export function VaultEntriesEditor({
       </section>
 
       {error && (
-        <p className="stg:text-destructive stg:text-2xs" role="alert">
+        <FieldError>
           {error}
-        </p>
+        </FieldError>
       )}
     </div>
   );
@@ -313,14 +313,13 @@ function EntryRow({
       )}
       {replacing && (
         <form onSubmit={submit} className="stg:mt-2 stg:flex stg:items-center stg:gap-2">
-          <input
+          <TextInput
             type="password"
             aria-label={replaceLabel}
             value={value}
             onChange={(e) => setValue(e.target.value)}
             autoComplete="off"
             disabled={disabled}
-            className={INPUT_CLASS}
             autoFocus
           />
           <Button type="submit" size="xs" disabled={disabled || value === ""}>
@@ -359,17 +358,17 @@ function AddSecretForm({
 
   return (
     <form onSubmit={submit} aria-label="Add a secret" className="stg:grid stg:grid-cols-1 stg:gap-2 stg:sm:grid-cols-[1fr_1fr_1fr_auto]">
-      <input
+      <TextInput
         id={`${id}-name`}
         aria-label="Secret name"
         placeholder="NAME"
         value={name}
         onChange={(e) => setName(e.target.value)}
         disabled={disabled}
-        className={cn(INPUT_CLASS, "stg:font-mono")}
+        className="stg:font-mono"
         aria-invalid={!nameValid}
       />
-      <input
+      <TextInput
         type="password"
         aria-label="Secret value"
         placeholder="Value"
@@ -377,23 +376,21 @@ function AddSecretForm({
         onChange={(e) => setValue(e.target.value)}
         autoComplete="off"
         disabled={disabled}
-        className={INPUT_CLASS}
       />
-      <input
+      <TextInput
         aria-label="Secret description"
         placeholder="What it is for (optional)"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         disabled={disabled}
-        className={INPUT_CLASS}
       />
       <Button type="submit" size="xs" disabled={!canSubmit}>
         Add
       </Button>
       {!nameValid && (
-        <p className="stg:col-span-full stg:text-destructive stg:text-2xs" role="alert">
+        <FieldError className="stg:col-span-full">
           A name starts with a letter or underscore and holds only letters, digits and underscores.
-        </p>
+        </FieldError>
       )}
     </form>
   );
@@ -425,16 +422,15 @@ function AddConnectionForm({
 
   return (
     <form onSubmit={submit} aria-label="Add a login" className="stg:grid stg:grid-cols-1 stg:gap-2 stg:sm:grid-cols-[1fr_1fr_1fr_auto]">
-      <input
+      <TextInput
         aria-label="Login address"
         placeholder="https://mcp.example.com/mcp or github.com"
         value={address}
         onChange={(e) => setAddress(e.target.value)}
         disabled={disabled}
-        className={INPUT_CLASS}
         aria-invalid={!addressValid}
       />
-      <input
+      <TextInput
         type="password"
         aria-label="Login token"
         placeholder="Token"
@@ -442,23 +438,21 @@ function AddConnectionForm({
         onChange={(e) => setToken(e.target.value)}
         autoComplete="off"
         disabled={disabled}
-        className={INPUT_CLASS}
       />
-      <input
+      <TextInput
         aria-label="Login description"
         placeholder="What it is for (optional)"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         disabled={disabled}
-        className={INPUT_CLASS}
       />
       <Button type="submit" size="xs" disabled={!canSubmit}>
         Add
       </Button>
       {!addressValid && (
-        <p className="stg:col-span-full stg:text-destructive stg:text-2xs" role="alert">
+        <FieldError className="stg:col-span-full">
           Enter a tool&apos;s full URL (https://…) or a Git host such as github.com.
-        </p>
+        </FieldError>
       )}
     </form>
   );

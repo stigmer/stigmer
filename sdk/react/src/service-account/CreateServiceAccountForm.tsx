@@ -28,6 +28,7 @@ import {
 import { CreateServiceAccountKeyForm } from "./CreateServiceAccountKeyForm.js";
 import { useCreateServiceAccount } from "./useCreateServiceAccount.js";
 import { Button } from "../button/Button.js";
+import { FIELD_LABEL_CLASSES, FieldError, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link CreateServiceAccountForm}. */
 export interface CreateServiceAccountFormProps {
@@ -186,11 +187,11 @@ function AccountStep({
       <div className="stg:space-y-1">
         <label
           htmlFor={`${baseId}-name`}
-          className="stg:text-xs stg:font-medium stg:text-foreground"
+          className={FIELD_LABEL_CLASSES}
         >
           Name
         </label>
-        <input
+        <TextInput
           id={`${baseId}-name`}
           type="text"
           value={name}
@@ -199,13 +200,7 @@ function AccountStep({
           disabled={isCreating}
           autoFocus
           required
-          aria-describedby={`${baseId}-name-hint`}
-          className={cn(
-            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-            "stg:placeholder:text-muted-foreground",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
+          aria-describedby={`${baseId}-name-hint`} className="stg:w-full"
         />
         <p
           id={`${baseId}-name-hint`}
@@ -224,9 +219,9 @@ function AccountStep({
       />
 
       {error && (
-        <p className="stg:text-destructive stg:text-2xs" role="alert">
+        <FieldError>
           {getUserMessage(error)}
-        </p>
+        </FieldError>
       )}
 
       <div className="stg:flex stg:items-center stg:gap-2">

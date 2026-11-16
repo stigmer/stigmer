@@ -19,7 +19,7 @@ import { tagClasses } from "../internal/surface/Tag.js";
 import type { ContentBlock } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
 import { ImageLightbox } from "../upload/ImageLightbox.js";
 import { useFile, useFileDownload, useFileDownloadUrl } from "../file/useFile.js";
-import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";
+import { UNSTYLED_BUTTON } from "../internal/element-resets.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { formatFileSize } from "../file/file-size.js";

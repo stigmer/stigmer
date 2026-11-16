@@ -18,6 +18,7 @@ import { useOidcDiscovery } from "./useOidcDiscovery.js";
 import type { ProviderPreset, ProviderConfig } from "./presets.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { Button } from "../button/Button.js";
+import { FIELD_LABEL_CLASSES, FieldError, Select, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link FederationIssuerWizard}. */
 export interface FederationIssuerWizardProps {
@@ -398,9 +399,9 @@ function ConfigureStep({
       />
 
       {discoveryError && (
-        <p className="stg:text-destructive stg:text-2xs" role="alert">
+        <FieldError>
           {getUserMessage(discoveryError)}
-        </p>
+        </FieldError>
       )}
 
       <div className="stg:flex stg:items-center stg:gap-2 stg:pt-1">
@@ -513,9 +514,9 @@ function ReviewStep({
       />
 
       {createError && (
-        <p className="stg:text-destructive stg:text-2xs" role="alert">
+        <FieldError>
           {getUserMessage(createError)}
-        </p>
+        </FieldError>
       )}
 
       <div className="stg:flex stg:items-center stg:gap-2 stg:pt-1">
@@ -636,42 +637,31 @@ function FieldInput({
 }) {
   return (
     <div className="stg:space-y-1">
-      <label htmlFor={id} className="stg:text-xs stg:font-medium stg:text-foreground">
+      <label htmlFor={id} className={FIELD_LABEL_CLASSES}>
         {label}
       </label>
       {type === "select" && options ? (
-        <select
+        <Select
           id={id}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          disabled={disabled}
-          className={cn(
-            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
-        >
+          disabled={disabled} className="stg:w-full"
+ >
           {options.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>
           ))}
-        </select>
+        </Select>
       ) : (
-        <input
+        <TextInput
           id={id}
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
-          required={required}
-          className={cn(
-            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-            "stg:placeholder:text-muted-foreground",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
+          required={required} className="stg:w-full"
         />
       )}
       {hint && (

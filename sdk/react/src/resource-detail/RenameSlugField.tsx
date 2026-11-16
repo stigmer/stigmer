@@ -19,7 +19,6 @@
  * server would refuse, and renders its `fallback` otherwise.
  */
 import { type ReactNode, useCallback, useEffect, useId, useState } from "react";
-import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
 import { Button } from "../button/Button.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
@@ -29,6 +28,7 @@ import {
   type RenamedResource,
   useRenameResource,
 } from "./useRenameResource.js";
+import { Field, TextInput } from "../internal/form/index.js";
 
 /** The help line every renamable kind but the organization shows under its slug. */
 export const RESOURCE_RENAME_HINT =
@@ -95,17 +95,16 @@ export function RenameSlugField<T>({
   }, [canRename, clearError, rename, next, currentSlug, onRenamed]);
 
   return (
-    <div className={cn("stg:space-y-1", className)}>
-      <label
-        htmlFor={inputId}
-        className="stg:text-2xs stg:font-medium stg:text-muted-foreground stg:uppercase stg:tracking-wider"
-      >
-        {label}
-      </label>
+    <Field
+      id={inputId}
+      label={label}
+      hint={hint}
+      error={error ? getUserMessage(error) : undefined}
+      className={className}
+    >
       <div className="stg:flex stg:items-center stg:gap-2">
-        <input
-          id={inputId}
-          type="text"
+        <TextInput
+          size="xs"
           value={slug}
           onChange={(e) => {
             setSlug(e.target.value);
@@ -120,24 +119,13 @@ export function RenameSlugField<T>({
           disabled={busy}
           spellCheck={false}
           autoComplete="off"
-          className={cn(
-            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:font-mono stg:text-xs stg:text-foreground",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
+          className="stg:w-full stg:font-mono"
         />
         <Button variant="outline" size="xs" onClick={() => void submit()} disabled={!canRename} icon={busy ? <SpinnerIcon size={12} /> : undefined}>
           Rename
         </Button>
       </div>
-      {error ? (
-        <p className="stg:text-destructive stg:text-2xs" role="alert">
-          {getUserMessage(error)}
-        </p>
-      ) : (
-        <p className="stg:text-2xs stg:text-muted-foreground">{hint}</p>
-      )}
-    </div>
+    </Field>
   );
 }
 

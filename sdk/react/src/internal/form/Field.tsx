@@ -13,6 +13,7 @@
 import { createContext, useContext, useId, type ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { CircleAlert } from "lucide-react";
+import { FIELD_HINT_CLASSES, FIELD_LABEL_CLASSES } from "./fieldClasses.js";
 
 /** What a field tells the control inside it: its id, what describes it, and whether it is in error. */
 export interface FieldWiring {
@@ -77,14 +78,14 @@ export function Field({ label, optional, hint, error, id, labelHidden, children,
   };
   return (
     <div className={cn("stg:flex stg:min-w-0 stg:flex-col stg:gap-2", className)}>
-      <label htmlFor={controlId} className={labelHidden ? "stg:sr-only" : "stg:text-sm stg:font-medium stg:text-foreground"}>
+      <label htmlFor={controlId} className={labelHidden ? "stg:sr-only" : FIELD_LABEL_CLASSES}>
         {label}
         {optional && <span className="stg:font-normal stg:text-muted-foreground"> (optional)</span>}
       </label>
       <FieldContext.Provider value={wiring}>{children}</FieldContext.Provider>
       {hasError && <FieldError id={errorId}>{error}</FieldError>}
       {hasHint && (
-        <p id={hintId} className="stg:m-0 stg:text-xs stg:text-muted-foreground">
+        <p id={hintId} className={FIELD_HINT_CLASSES}>
           {hint}
         </p>
       )}
@@ -97,7 +98,7 @@ export function FieldError({ id, children, className }: { readonly id?: string; 
   return (
     <p id={id} role="alert" className={cn("stg:m-0 stg:flex stg:items-start stg:gap-1 stg:text-xs stg:text-status-failed", className)}>
       <CircleAlert className="stg:mt-px stg:size-3.5 stg:shrink-0" aria-hidden="true" />
-      <span className="stg:min-w-0">{children}</span>
+      {children}
     </p>
   );
 }
@@ -105,7 +106,7 @@ export function FieldError({ id, children, className }: { readonly id?: string; 
 /** A field's hint line, for a control drawn outside a `Field` (a checkbox's or a switch's own words). */
 export function FieldHint({ id, children, className }: { readonly id?: string; readonly children: ReactNode; readonly className?: string }) {
   return (
-    <p id={id} className={cn("stg:m-0 stg:text-xs stg:text-muted-foreground", className)}>
+    <p id={id} className={cn(FIELD_HINT_CLASSES, className)}>
       {children}
     </p>
   );
@@ -114,7 +115,7 @@ export function FieldHint({ id, children, className }: { readonly id?: string; r
 /** A label for a group of controls (a radio list, a set of checkboxes): the field's label type, not tied to one control. */
 export function FieldLegend({ id, children, optional, className }: { readonly id?: string; readonly children: ReactNode; readonly optional?: boolean; readonly className?: string }) {
   return (
-    <span id={id} className={cn("stg:text-sm stg:font-medium stg:text-foreground", className)}>
+    <span id={id} className={cn(FIELD_LABEL_CLASSES, className)}>
       {children}
       {optional && <span className="stg:font-normal stg:text-muted-foreground"> (optional)</span>}
     </span>

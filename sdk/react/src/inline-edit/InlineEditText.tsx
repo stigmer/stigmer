@@ -5,6 +5,7 @@ import { cn } from "@stigmer/design-tokens";
 import type { InlineEditBaseProps } from "./types.js";
 import { useInlineDraft } from "./useInlineDraft.js";
 import { IconButton } from "../button/IconButton.js";
+import { FieldError, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link InlineEditText}. */
 export interface InlineEditTextProps extends InlineEditBaseProps {
@@ -125,21 +126,15 @@ export function InlineEditText({
   return (
     <div className={cn("stg:flex stg:flex-col stg:gap-1", className)}>
       <div className="stg:flex stg:items-center stg:gap-1.5">
-        <input
+        <TextInput
+          size={variant === "heading" ? "sm" : "xs"}
           ref={inputRef}
           type="text"
           value={draft}
           onChange={(e) => { setDraft(e.target.value); setLocalError(null); }}
           onKeyDown={handleKeyDown}
           disabled={isSaving}
-          placeholder={placeholder}
-          className={cn(
-            "stg:flex-1 stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1 stg:text-sm stg:text-foreground",
-            "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
-            "stg:disabled:opacity-50",
-            variant === "heading" && "stg:text-lg stg:font-semibold",
-            displayError && "stg:border-destructive",
-          )}
+          placeholder={placeholder} className={cn("stg:flex-1", variant === "heading" && "stg:text-lg stg:font-semibold")} invalid={Boolean(displayError)}
         />
         <IconButton
           label="Save"
@@ -159,7 +154,7 @@ export function InlineEditText({
         />
       </div>
       {displayError && (
-        <p className="stg:px-1 stg:text-xs stg:text-destructive" role="alert">{displayError}</p>
+        <FieldError className="stg:px-1">{displayError}</FieldError>
       )}
     </div>
   );

@@ -13,6 +13,7 @@ import {
   keyExpiryFields,
   type KeyExpiryOption,
 } from "./KeyExpiryFieldset.js";
+import { Checkbox, FIELD_LABEL_CLASSES, FieldError, TextInput } from "../internal/form/index.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -129,11 +130,11 @@ export function CreateApiKeyForm({
         <div className="stg:space-y-1">
           <label
             htmlFor={`${baseId}-name`}
-            className="stg:text-xs stg:font-medium stg:text-foreground"
+            className={FIELD_LABEL_CLASSES}
           >
             Name
           </label>
-          <input
+          <TextInput
             id={`${baseId}-name`}
             type="text"
             value={name}
@@ -141,13 +142,7 @@ export function CreateApiKeyForm({
             placeholder="e.g. ci-deploy-key"
             disabled={isCreating}
             autoFocus
-            required
-            className={cn(
-              "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-              "stg:placeholder:text-muted-foreground",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            )}
+            required className="stg:w-full"
           />
         </div>
 
@@ -160,8 +155,7 @@ export function CreateApiKeyForm({
         {/* Organization limit */}
         <div className="stg:space-y-0.5">
           <label className="stg:inline-flex stg:cursor-pointer stg:items-center stg:gap-2 stg:text-xs stg:font-medium stg:text-foreground">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={thisOrgOnly}
               disabled={isCreating}
               onChange={(e) => setThisOrgOnly(e.target.checked)}
@@ -183,9 +177,9 @@ export function CreateApiKeyForm({
       </div>
 
       {error && (
-        <p className="stg:text-destructive stg:text-2xs" role="alert">
+        <FieldError>
           {getUserMessage(error)}
-        </p>
+        </FieldError>
       )}
 
       <div className="stg:flex stg:items-center stg:gap-2">

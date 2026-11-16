@@ -32,6 +32,7 @@ import {
 } from "./EnvironmentFields.js";
 import { EnvironmentsNotOnServerNotice } from "./EnvironmentsNotOnServerNotice.js";
 import { useCreateEnvironment } from "./useCreateEnvironment.js";
+import { FIELD_LABEL_CLASSES, FieldError, TextArea, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link EnvironmentForm}. */
 export interface EnvironmentFormProps {
@@ -127,7 +128,7 @@ function EnvironmentFormBody({
         <label htmlFor={`${baseId}-name`} className={labelClasses}>
           Name
         </label>
-        <input
+        <TextInput
           id={`${baseId}-name`}
           type="text"
           value={name}
@@ -136,7 +137,6 @@ function EnvironmentFormBody({
           disabled={isCreating}
           autoFocus
           required
-          className={inputClasses}
         />
       </div>
 
@@ -144,7 +144,7 @@ function EnvironmentFormBody({
         <label htmlFor={`${baseId}-description`} className={labelClasses}>
           Description <span className="stg:font-normal stg:text-muted-foreground">(optional)</span>
         </label>
-        <textarea
+        <TextArea
           id={`${baseId}-description`}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -152,7 +152,7 @@ function EnvironmentFormBody({
           disabled={isCreating}
           rows={2}
           maxLength={500}
-          className={cn(inputClasses, "stg:resize-y")}
+          className="stg:resize-y"
         />
       </div>
 
@@ -161,9 +161,9 @@ function EnvironmentFormBody({
       <PackagesFields value={packages} onChange={setPackages} disabled={isCreating} availability={availability} />
 
       {error && (
-        <p className="stg:text-xs stg:text-destructive" role="alert">
+        <FieldError>
           {getUserMessage(error)}
-        </p>
+        </FieldError>
       )}
 
       <div className="stg:flex stg:items-center stg:gap-2">
@@ -180,10 +180,4 @@ function EnvironmentFormBody({
   );
 }
 
-const labelClasses = "stg:block stg:text-xs stg:font-medium stg:text-foreground";
-const inputClasses = cn(
-  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-  "stg:placeholder:text-muted-foreground",
-  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-);
+const labelClasses = FIELD_LABEL_CLASSES;

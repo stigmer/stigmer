@@ -47,6 +47,7 @@ import { useChatLinkToolReadiness } from "./useChatLinkToolReadiness.js";
 import { SCROLL_REGION_FOCUS, scrollRegion } from "../internal/scroll-region.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { useToolCredentialsDisclosure } from "../vault/useToolCredentialsDisclosure.js";
+import { ChoiceGroup, FIELD_LABEL_CLASSES, FieldError, TextArea, TextInput } from "../internal/form/index.js";
 
 /** Maximum length of each visitor message (proto: `string.max_len = 300`). */
 const MAX_MESSAGE_LENGTH = 300;
@@ -378,30 +379,23 @@ function CreateChatLinkForm({
       <div className="stg:space-y-1">
         <label
           htmlFor={nameId}
-          className="stg:text-xs stg:font-medium stg:text-foreground"
+          className={FIELD_LABEL_CLASSES}
         >
           Name
         </label>
-        <input
+        <TextInput
           id={nameId}
           type="text"
           value={name}
           onChange={(e) => handleNameChange(e.target.value)}
           disabled={isPending}
           required
-          maxLength={63}
-          className={cn(
-            "stg:w-full stg:rounded-md stg:border stg:bg-input-bg stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-            "stg:placeholder:text-muted-foreground",
-            "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            nameError ? "stg:border-destructive" : "stg:border-border",
-          )}
+          maxLength={63} className="stg:w-full" invalid={Boolean(nameError)}
         />
         {nameError ? (
-          <p className="stg:text-2xs stg:text-destructive" role="alert">
+          <FieldError>
             {nameError}
-          </p>
+          </FieldError>
         ) : (
           <p className="stg:text-2xs stg:text-muted-foreground">
             A display name for this chat link — e.g. the site or campaign it
@@ -414,29 +408,22 @@ function CreateChatLinkForm({
       <div className="stg:space-y-1">
         <label
           htmlFor={slugId}
-          className="stg:text-xs stg:font-medium stg:text-foreground"
+          className={FIELD_LABEL_CLASSES}
         >
           Slug
         </label>
-        <input
+        <TextInput
           id={slugId}
           type="text"
           value={slug}
           onChange={(e) => handleSlugChange(e.target.value)}
           disabled={isPending}
-          required
-          className={cn(
-            "stg:w-full stg:rounded-md stg:border stg:bg-input-bg stg:px-2.5 stg:py-1.5 stg:font-mono stg:text-xs stg:text-foreground",
-            "stg:placeholder:text-muted-foreground",
-            "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            slugError ? "stg:border-destructive" : "stg:border-border",
-          )}
+          required className="stg:w-full stg:font-mono" invalid={Boolean(slugError)}
         />
         {slugError ? (
-          <p className="stg:text-2xs stg:text-destructive" role="alert">
+          <FieldError>
             {slugError}
-          </p>
+          </FieldError>
         ) : (
           <p className="stg:text-2xs stg:text-muted-foreground">
             Names this chat link in the CLI and API. The link itself is made
@@ -459,9 +446,9 @@ function CreateChatLinkForm({
       </div>
 
       {submitError && (
-        <p className="stg:text-xs stg:text-destructive" role="alert">
+        <FieldError>
           {submitError}
-        </p>
+        </FieldError>
       )}
 
       <div className="stg:flex stg:items-center stg:justify-end">
@@ -750,38 +737,15 @@ function AudienceSelector({
   readonly className?: string;
 }) {
   return (
-    <div
-      role="radiogroup"
+    <ChoiceGroup
       aria-label="Who can chat"
-      className={cn(
-        "stg:inline-flex stg:rounded-md stg:border stg:border-border stg:p-0.5",
-        className,
-      )}
-    >
-      {AUDIENCE_OPTIONS.map(({ value, label }) => {
-        const selected = audience === value;
-        return (
-          <button
-            key={value}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            onClick={() => onChange(value)}
-            disabled={disabled}
-            className={cn(
-              "stg:rounded stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              selected
-                ? "stg:bg-primary stg:text-primary-foreground"
-                : "stg:text-muted-foreground stg:hover:text-foreground",
-            )}
-          >
-            {label}
-          </button>
-        );
-      })}
-    </div>
+      size="xs"
+      className={className}
+      value={audience}
+      onChange={onChange}
+      disabled={disabled}
+      options={AUDIENCE_OPTIONS.map(({ value, label }) => ({ value, label }))}
+    />
   );
 }
 
@@ -1274,7 +1238,7 @@ function OriginsEditor({
 
       <div className="stg:mt-2 stg:flex stg:items-start stg:gap-1.5">
         <div className="stg:min-w-0 stg:flex-1">
-          <input
+          <TextInput
             type="text"
             value={newOrigin}
             onChange={(e) => {
@@ -1289,16 +1253,12 @@ function OriginsEditor({
             }}
             placeholder="https://example.com"
             aria-label="Add allowed origin"
-            aria-invalid={inputError != null}
-            className={cn(
-              "stg:w-full stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1.5 stg:font-mono stg:text-xs stg:text-foreground",
-              "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
-            )}
+            aria-invalid={inputError != null} className="stg:w-full stg:font-mono"
           />
           {inputError && (
-            <p role="alert" className="stg:mt-1 stg:text-xs stg:text-destructive">
+            <FieldError className="stg:mt-1">
               {inputError}
-            </p>
+            </FieldError>
           )}
         </div>
         <Button variant="outline" size="xs" onClick={() => void handleAdd()} disabled={isPending || !newOrigin.trim()}>
@@ -1425,16 +1385,12 @@ function MessageField({
           {value.length}/{MAX_MESSAGE_LENGTH}
         </span>
       </span>
-      <textarea
+      <TextArea
         value={value}
         onChange={(e) => onChange(e.target.value.slice(0, MAX_MESSAGE_LENGTH))}
         placeholder={placeholder}
         rows={2}
-        maxLength={MAX_MESSAGE_LENGTH}
-        className={cn(
-          "stg:w-full stg:resize-y stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1.5 stg:text-xs stg:text-foreground",
-          "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
-        )}
+        maxLength={MAX_MESSAGE_LENGTH} className="stg:w-full stg:resize-y"
       />
     </label>
   );

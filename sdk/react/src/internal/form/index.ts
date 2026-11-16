@@ -10,4 +10,4 @@ export { ChoiceGroup, type ChoiceGroupProps, type ChoiceOption } from "./ChoiceG
 export { SwitchField, type SwitchFieldProps } from "./SwitchField.js";
 export { FileDrop, type FileDropProps } from "./FileDrop.js";
 export { FormFooter, type FormFooterProps } from "./FormFooter.js";
-export { fieldControlClasses, areaControlClasses, FIELD_SIZE_CLASSES, type FieldSize, type FieldAppearance } from "./fieldClasses.js";
+export { fieldControlClasses, areaControlClasses, FIELD_SIZE_CLASSES, FIELD_LABEL_CLASSES, FIELD_HINT_CLASSES, type FieldSize, type FieldAppearance } from "./fieldClasses.js";

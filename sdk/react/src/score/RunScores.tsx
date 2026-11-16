@@ -20,6 +20,7 @@ import {
 } from "./score-view.js";
 import { useRateRun } from "./useRateRun.js";
 import { Button } from "../button/Button.js";
+import { FieldError, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link RunScores}. */
 export interface RunScoresProps {
@@ -134,18 +135,14 @@ export function RunScores({ runId, className }: RunScoresProps) {
           onSubmit={(event) => onSubmitComment(event, thumbs)}
           className="stg:flex stg:items-center stg:gap-2"
         >
-          <input
+          <TextInput
             type="text"
             value={comment}
             onChange={(event) => setComment(event.target.value)}
             maxLength={RATING_COMMENT_MAX_LENGTH}
             placeholder="Add a note (optional)"
             aria-label="Note on this answer"
-            disabled={isRating}
-            className={cn(
-              "stg:h-7 stg:min-w-0 stg:flex-1 stg:rounded-md stg:border stg:border-border stg:bg-background stg:px-2 stg:text-xs stg:text-foreground",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            )}
+            disabled={isRating} className="stg:min-w-0 stg:flex-1"
           />
           <Button type="submit" variant="ghost" size="xs" disabled={isRating}>
             Save
@@ -153,9 +150,9 @@ export function RunScores({ runId, className }: RunScoresProps) {
         </form>
       )}
       {error !== null && (
-        <p role="alert" className="stg:text-xs stg:text-destructive">
+        <FieldError>
           {error.message}
-        </p>
+        </FieldError>
       )}
     </div>
   );

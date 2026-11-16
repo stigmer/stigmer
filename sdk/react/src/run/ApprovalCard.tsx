@@ -21,8 +21,8 @@ import { type ToolCategory } from "@stigmer/react-core";
 import { ToolArgsView } from "./ToolArgsView.js";
 import { DecisionButton } from "../internal/DecisionButton.js";
 import { InCardDecisionError } from "../internal/InCardDecisionError.js";
-import { INPUT_CLASSES } from "../internal/form-primitives.js";
 import type { ToolUseAnswer } from "@stigmer/react-core";
+import { TextInput } from "../internal/form/index.js";
 
 /** Props for {@link ApprovalCard}. */
 export interface ApprovalCardProps {
@@ -385,7 +385,7 @@ export function ApprovalCardBody({
           <label htmlFor={reasonId} className="stg:sr-only">
             Reason for denying (optional)
           </label>
-          <input
+          <TextInput
             id={reasonId}
             type="text"
             autoFocus
@@ -394,7 +394,7 @@ export function ApprovalCardBody({
             placeholder="Tell the agent why (optional)"
             maxLength={2000}
             disabled={isSubmitting}
-            className={cn(INPUT_CLASSES, "stg:min-w-0 stg:flex-1")}
+            className="stg:min-w-0 stg:flex-1"
           />
           <button
             type="submit"

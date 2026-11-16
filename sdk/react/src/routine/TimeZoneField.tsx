@@ -8,6 +8,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { TextInput } from "../internal/form/index.js";
 
 /** Props for {@link TimeZoneField}. */
 export interface TimeZoneFieldProps {
@@ -108,7 +109,7 @@ export function TimeZoneField({
 
   return (
     <div className="stg:relative">
-      <input
+      <TextInput
         id={id}
         type="text"
         role="combobox"
@@ -129,13 +130,7 @@ export function TimeZoneField({
         // free-typed text is never submitted, only list selections.
         onBlur={close}
         onKeyDown={handleKeyDown}
-        disabled={disabled}
-        className={cn(
-          "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-          "stg:placeholder:text-muted-foreground",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-        )}
+        disabled={disabled} className="stg:w-full"
       />
 
       {isOpen && (

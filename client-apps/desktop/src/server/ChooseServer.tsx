@@ -30,6 +30,7 @@ export function ChooseServer({ onCancel }: { onCancel?: () => void }) {
       <label htmlFor={inputId} className="text-sm font-medium text-foreground">
         Server address
       </label>
+      {/* eslint-disable-next-line stigmer/no-handrolled-field -- the desktop's server chooser draws before the kit's provider (it picks the server the kit talks to), in its own sign-in look, and the kit's form parts are internal; it is redrawn with the desktop's own screens */}
       <input
         id={inputId}
         type="url"

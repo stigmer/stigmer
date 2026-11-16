@@ -28,6 +28,7 @@ import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { listLibraryFilesPage } from "./fileListFn.js";
 import { FileUploadButton } from "./FileUploadButton.js";
 import { Button } from "../button/Button.js";
+import { FieldError, Select } from "../internal/form/index.js";
 
 const NO_FILES: readonly StigmerFile[] = [];
 
@@ -131,13 +132,13 @@ export function FilePicker({ org, value, onChange, disabled = false, className }
         <label htmlFor={selectId} className="stg:sr-only">
           Add a file
         </label>
-        <select
+        <Select
           id={selectId}
           value=""
           disabled={disabled || isLoading || available.length === 0}
           onChange={(event) => add(event.target.value)}
-          className="stg:h-8 stg:min-w-0 stg:flex-1 stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2 stg:text-sm stg:text-foreground stg:disabled:opacity-50 stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
-        >
+          className="stg:min-w-0 stg:flex-1"
+ >
           <option value="" disabled>
             {isLoading
               ? "Loading files…"
@@ -152,14 +153,14 @@ export function FilePicker({ org, value, onChange, disabled = false, className }
               {file.spec?.filename}
             </option>
           ))}
-        </select>
+        </Select>
         {!disabled && <FileUploadButton org={org} label="Upload a file" onUploaded={handleUploaded} />}
       </div>
 
       {error && (
-        <p role="alert" className="stg:text-xs stg:text-destructive">
+        <FieldError>
           {error.message}
-        </p>
+        </FieldError>
       )}
     </div>
   );

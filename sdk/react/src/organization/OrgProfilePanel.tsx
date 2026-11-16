@@ -23,6 +23,7 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { RenameSlugField } from "../resource-detail/RenameSlugField.js";
 import { Tag } from "../internal/surface/Tag.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import { FIELD_LABEL_CLASSES, FieldError, TextArea, TextInput } from "../internal/form/index.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -262,11 +263,11 @@ export function OrgProfilePanel({
         <div className="stg:space-y-1">
           <label
             htmlFor={`${baseId}-name`}
-            className="stg:text-xs stg:font-medium stg:text-foreground"
+            className={FIELD_LABEL_CLASSES}
           >
             Name
           </label>
-          <input
+          <TextInput
             id={`${baseId}-name`}
             type="text"
             value={name}
@@ -274,13 +275,7 @@ export function OrgProfilePanel({
             disabled={isUpdating}
             readOnly={!canEdit}
             required
-            className={cn(
-              "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-              "stg:placeholder:text-muted-foreground",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              editDenied && "stg:bg-muted-subtle stg:text-muted-foreground",
-            )}
+            className={cn("stg:w-full", editDenied && "stg:bg-muted-subtle stg:text-muted-foreground")}
           />
           <p className="stg:text-2xs stg:text-muted-foreground">
             The display name shown in the sidebar and across the platform.
@@ -291,11 +286,11 @@ export function OrgProfilePanel({
         <div className="stg:space-y-1">
           <label
             htmlFor={`${baseId}-desc`}
-            className="stg:text-xs stg:font-medium stg:text-foreground"
+            className={FIELD_LABEL_CLASSES}
           >
             Description
           </label>
-          <textarea
+          <TextArea
             id={`${baseId}-desc`}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -304,13 +299,7 @@ export function OrgProfilePanel({
             disabled={isUpdating}
             readOnly={!canEdit}
             placeholder={canEdit ? "What is this organization for?" : undefined}
-            className={cn(
-              "stg:w-full stg:resize-y stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-              "stg:placeholder:text-muted-foreground",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              editDenied && "stg:bg-muted-subtle stg:text-muted-foreground",
-            )}
+            className={cn("stg:w-full stg:resize-y", editDenied && "stg:bg-muted-subtle stg:text-muted-foreground")}
           />
           {canEdit && (
             <p className="stg:text-2xs stg:text-muted-foreground">
@@ -323,11 +312,11 @@ export function OrgProfilePanel({
         <div className="stg:space-y-1">
           <label
             htmlFor={`${baseId}-logo`}
-            className="stg:text-xs stg:font-medium stg:text-foreground"
+            className={FIELD_LABEL_CLASSES}
           >
             Logo URL
           </label>
-          <input
+          <TextInput
             id={`${baseId}-logo`}
             type="url"
             value={logoUrl}
@@ -336,13 +325,7 @@ export function OrgProfilePanel({
             disabled={isUpdating}
             readOnly={!canEdit}
             placeholder={canEdit ? "https://example.com/logo.png" : undefined}
-            className={cn(
-              "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-              "stg:placeholder:text-muted-foreground",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              editDenied && "stg:bg-muted-subtle stg:text-muted-foreground",
-            )}
+            className={cn("stg:w-full", editDenied && "stg:bg-muted-subtle stg:text-muted-foreground")}
           />
           <p className="stg:text-2xs stg:text-muted-foreground">
             A public URL to your organization&apos;s logo image.
@@ -359,9 +342,9 @@ export function OrgProfilePanel({
 
       {/* -- Error feedback -- */}
       {updateError && (
-        <p className="stg:text-destructive stg:text-2xs" role="alert">
+        <FieldError>
           {saveErrorMessage(updateError, "organization")}
-        </p>
+        </FieldError>
       )}
 
       {/* -- Actions -- */}

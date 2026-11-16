@@ -32,6 +32,7 @@ import { cadenceToCron, validateCron, type CadencePreset } from "./cadence.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { Button } from "../button/Button.js";
+import { FIELD_HINT_CLASSES, FIELD_LABEL_CLASSES, FieldError, TextArea, TextInput } from "../internal/form/index.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -258,7 +259,7 @@ export function RoutineForm({
         <label htmlFor={`${baseId}-name`} className={labelClasses}>
           Name
         </label>
-        <input
+        <TextInput
           id={`${baseId}-name`}
           type="text"
           value={name}
@@ -267,7 +268,6 @@ export function RoutineForm({
           disabled={isCreating}
           autoFocus
           required
-          className={inputClasses}
         />
       </div>
 
@@ -316,7 +316,7 @@ export function RoutineForm({
         <label htmlFor={`${baseId}-message`} className={labelClasses}>
           Message
         </label>
-        <textarea
+        <TextArea
           id={`${baseId}-message`}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
@@ -325,7 +325,7 @@ export function RoutineForm({
           required
           rows={5}
           maxLength={MESSAGE_MAX_LEN}
-          className={cn(inputClasses, "stg:resize-y")}
+          className="stg:resize-y"
         />
         {remaining <= MESSAGE_COUNTER_THRESHOLD && (
           <p className={hintClasses}>{remaining} characters left</p>
@@ -469,7 +469,7 @@ export function RoutineForm({
           Budget per run (USD){" "}
           <span className="stg:font-normal stg:text-muted-foreground">(optional)</span>
         </label>
-        <input
+        <TextInput
           id={`${baseId}-budget`}
           type="number"
           min="0"
@@ -478,7 +478,7 @@ export function RoutineForm({
           onChange={(e) => setBudgetUsd(e.target.value)}
           placeholder="platform default"
           disabled={isCreating}
-          className={cn(inputClasses, "stg:sm:max-w-48")}
+          className="stg:sm:max-w-48"
         />
         <p className={hintClasses}>
           Each run stops when it reaches this spend. You can lower the
@@ -525,9 +525,9 @@ export function RoutineForm({
       </div>
 
       {error && (
-        <p className="stg:text-xs stg:text-destructive" role="alert">
+        <FieldError>
           {getUserMessage(error)}
-        </p>
+        </FieldError>
       )}
 
       <div className="stg:flex stg:items-center stg:gap-2">
@@ -549,8 +549,8 @@ export function RoutineForm({
 // Private helpers
 // ---------------------------------------------------------------------------
 
-const labelClasses = "stg:block stg:text-xs stg:font-medium stg:text-foreground";
-const hintClasses = "stg:text-2xs stg:text-muted-foreground";
+const labelClasses = FIELD_LABEL_CLASSES;
+const hintClasses = FIELD_HINT_CLASSES;
 
 /**
  * Assemble a {@link RunConfigInput} from the model choice and budget, or
@@ -589,12 +589,6 @@ function buildRunConfig(
 
   return Object.keys(config).length > 0 ? config : undefined;
 }
-const inputClasses = cn(
-  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-  "stg:placeholder:text-muted-foreground",
-  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-);
 
 function AgentPickerPopup({
   org,

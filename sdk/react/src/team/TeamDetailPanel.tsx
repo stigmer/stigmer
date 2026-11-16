@@ -21,7 +21,6 @@ import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 import { cn } from "@stigmer/design-tokens";
 import { buildTeamProto, getUserMessage } from "@stigmer/client";
 import { maskedEdit, saveErrorMessage } from "@stigmer/react-core/internal";
-import { Field, INPUT_CLASSES } from "../internal/form-primitives.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { PermissionGate } from "../grant/PermissionGate.js";
 import { TEAM_DESCRIPTION_MAX_LENGTH } from "./CreateTeamForm.js";
@@ -29,6 +28,7 @@ import { TeamMembersPanel } from "./TeamMembersPanel.js";
 import { useDeleteTeam, useUpdateTeam } from "./useTeamMutations.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { Button } from "../button/Button.js";
+import { Field, FieldError, TextArea, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link TeamDetailPanel}. */
 export interface TeamDetailPanelProps {
@@ -167,30 +167,29 @@ function EditTeamForm({
 
   return (
     <form onSubmit={handleSave} className="stg:space-y-3">
-      <Field label="Name" required>
-        <input
+      <Field label="Name">
+        <TextInput
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           disabled={isUpdating}
           autoFocus
-          className={INPUT_CLASSES}
         />
       </Field>
       <Field label="Description">
-        <textarea
+        <TextArea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           maxLength={TEAM_DESCRIPTION_MAX_LENGTH}
           rows={2}
           disabled={isUpdating}
-          className={cn(INPUT_CLASSES, "stg:resize-none")}
+          className="stg:resize-none"
         />
       </Field>
       {error && (
-        <p className="stg:text-destructive stg:text-2xs" role="alert">
+        <FieldError>
           {saveErrorMessage(error, "team")}
-        </p>
+        </FieldError>
       )}
       <div className="stg:flex stg:items-center stg:gap-2">
         <Button type="submit" size="xs" disabled={!canSave} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>
@@ -247,9 +246,9 @@ function DeleteTeam({
         the access shared with the team. Access granted to them directly stays.
       </p>
       {error && (
-        <p className="stg:text-2xs stg:text-destructive" role="alert">
+        <FieldError>
           {getUserMessage(error)}
-        </p>
+        </FieldError>
       )}
       <div className="stg:flex stg:items-center stg:gap-1.5">
         <Button

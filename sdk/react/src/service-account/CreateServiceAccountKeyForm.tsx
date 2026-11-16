@@ -24,6 +24,7 @@ import {
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { useCreateServiceAccountKey } from "./useCreateServiceAccountKey.js";
 import { Button } from "../button/Button.js";
+import { FIELD_LABEL_CLASSES, FieldError, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link CreateServiceAccountKeyForm}. */
 export interface CreateServiceAccountKeyFormProps {
@@ -102,33 +103,27 @@ export function CreateServiceAccountKeyForm({
       <div className="stg:space-y-1">
         <label
           htmlFor={`${baseId}-name`}
-          className="stg:text-xs stg:font-medium stg:text-foreground"
+          className={FIELD_LABEL_CLASSES}
         >
           Key name
         </label>
-        <input
+        <TextInput
           id={`${baseId}-name`}
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. github-actions"
           disabled={isCreating}
-          required
-          className={cn(
-            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-            "stg:placeholder:text-muted-foreground",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
+          required className="stg:w-full"
         />
       </div>
 
       <KeyExpiryFieldset value={expiry} onChange={setExpiry} disabled={isCreating} />
 
       {error && (
-        <p className="stg:text-destructive stg:text-2xs" role="alert">
+        <FieldError>
           {getUserMessage(error)}
-        </p>
+        </FieldError>
       )}
 
       <div className="stg:flex stg:items-center stg:gap-2">

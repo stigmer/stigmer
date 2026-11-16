@@ -7,6 +7,7 @@ import { TEMPLATE_CATEGORY_LABELS } from "./templates/types.js";
 import { useTemplateFilter } from "./useTemplateFilter.js";
 import { TemplateCard } from "./TemplateCard.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import { TextInput } from "../internal/form/index.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -106,17 +107,13 @@ export function TemplateGallery<TData>({
       {/* Search input */}
       <div className="stg:relative">
         <SearchIcon />
-        <input
+        <TextInput
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search templates…"
           aria-label="Search templates"
-          className={cn(
-            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:py-2 stg:pl-9 stg:pr-3 stg:text-sm stg:text-foreground",
-            "stg:placeholder:text-muted-foreground",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          )}
+          className="stg:w-full stg:pl-9"
         />
       </div>
 

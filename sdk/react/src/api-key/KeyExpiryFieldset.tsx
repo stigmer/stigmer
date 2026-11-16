@@ -12,6 +12,7 @@
 import { useId } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
+import { Radio } from "../internal/form/index.js";
 
 /** A key lifetime the forms offer. */
 export type KeyExpiryOption = "30" | "60" | "90" | "never";
@@ -69,14 +70,12 @@ export function KeyExpiryFieldset({
                 disabled && "stg:pointer-events-none stg:opacity-50",
               )}
             >
-              <input
-                type="radio"
+              <Radio
                 name={name}
                 value={option.value}
                 checked={checked}
                 disabled={disabled}
                 onChange={() => onChange(option.value)}
-                className="stg:sr-only"
               />
               {option.label}
             </label>

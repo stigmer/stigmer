@@ -31,3 +31,11 @@ export const UNSTYLED_LIST = "stg:m-0 stg:list-none stg:p-0";
  * in `styles.css`, so it is not repeated here.
  */
 export const UNSTYLED_FIELDSET = "stg:m-0 stg:min-w-0 stg:p-0";
+
+/**
+ * Pointer cursor for buttons styled entirely by their content (chips, image
+ * tiles, icon-only affordances), where nothing else signals that they can be
+ * pressed. The scoped form-control preflight in `styles.css` (#374) already
+ * neutralizes the UA button box under `.stgm`, so only the cursor is set.
+ */
+export const UNSTYLED_BUTTON = "stg:cursor-pointer";

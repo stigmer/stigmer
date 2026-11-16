@@ -1,7 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
+import type { ReactNode } from "react";
+import { FIELD_LABEL_CLASSES, TextArea } from "./form/index.js";
 
 /**
  * Both `OrganizationPreferences.standing_context` and
@@ -56,11 +57,11 @@ export function StandingContextField({
     <div className="stg:space-y-1">
       <label
         htmlFor={id}
-        className="stg:text-xs stg:font-medium stg:text-foreground"
+        className={FIELD_LABEL_CLASSES}
       >
         Standing context
       </label>
-      <textarea
+      <TextArea
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -69,13 +70,7 @@ export function StandingContextField({
         disabled={disabled}
         readOnly={readOnly}
         placeholder={readOnly ? undefined : placeholder}
-        className={cn(
-          "stg:w-full stg:resize-y stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-          "stg:placeholder:text-muted-foreground",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          readOnly && "stg:bg-muted-subtle stg:text-muted-foreground",
-        )}
+        className={cn("stg:w-full stg:resize-y", readOnly && "stg:bg-muted-subtle stg:text-muted-foreground")}
       />
       {helperText && (
         <p className="stg:text-2xs stg:text-muted-foreground">{helperText}</p>

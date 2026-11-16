@@ -11,9 +11,9 @@ import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
 import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
-import { INPUT_CLASS } from "./styles.js";
 import { useCreateVault } from "./useCreateVault.js";
 import { Button } from "../button/Button.js";
+import { FIELD_LABEL_CLASSES, FieldError, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link CreateVaultForm}. */
 export interface CreateVaultFormProps {
@@ -77,10 +77,10 @@ export function CreateVaultForm({
   return (
     <form onSubmit={handleSubmit} className={cn("stg:space-y-3", className)}>
       <div className="stg:space-y-1">
-        <label htmlFor={`${baseId}-name`} className="stg:text-xs stg:font-medium stg:text-foreground">
+        <label htmlFor={`${baseId}-name`} className={FIELD_LABEL_CLASSES}>
           Name
         </label>
-        <input
+        <TextInput
           id={`${baseId}-name`}
           value={name}
           onChange={(e) => {
@@ -89,40 +89,37 @@ export function CreateVaultForm({
           }}
           placeholder="Ledger keys"
           disabled={isCreating}
-          className={INPUT_CLASS}
           autoFocus
         />
       </div>
       <div className="stg:space-y-1">
-        <label htmlFor={`${baseId}-description`} className="stg:text-xs stg:font-medium stg:text-muted-foreground">
+        <label htmlFor={`${baseId}-description`} className={FIELD_LABEL_CLASSES}>
           Description <span className="stg:text-muted-foreground-subtle">(optional)</span>
         </label>
-        <input
+        <TextInput
           id={`${baseId}-description`}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="The finance team's ledger key"
           disabled={isCreating}
-          className={INPUT_CLASS}
         />
       </div>
       <div className="stg:space-y-1">
-        <label htmlFor={`${baseId}-external`} className="stg:text-xs stg:font-medium stg:text-muted-foreground">
+        <label htmlFor={`${baseId}-external`} className={FIELD_LABEL_CLASSES}>
           External id <span className="stg:text-muted-foreground-subtle">(optional, your own id for it)</span>
         </label>
-        <input
+        <TextInput
           id={`${baseId}-external`}
           value={externalId}
           onChange={(e) => setExternalId(e.target.value)}
           placeholder="customer-1234"
           disabled={isCreating}
-          className={INPUT_CLASS}
         />
       </div>
       {error && (
-        <p className="stg:text-destructive stg:text-2xs" role="alert">
+        <FieldError>
           {getUserMessage(error)}
-        </p>
+        </FieldError>
       )}
       <div className="stg:flex stg:items-center stg:gap-2">
         <Button type="submit" disabled={!canSubmit} icon={isCreating ? <SpinnerIcon /> : undefined}>

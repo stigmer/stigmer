@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/design-tokens";
+import { Checkbox } from "../../internal/form/index.js";
 
 /** Props for {@link SelectionCheckbox}. */
 export interface SelectionCheckboxProps {
@@ -33,20 +34,14 @@ export function SelectionCheckbox({
   className,
 }: SelectionCheckboxProps) {
   return (
-    <input
-      type="checkbox"
+    <Checkbox
       role="checkbox"
       checked={checked}
       ref={(el) => {
         if (el) el.indeterminate = indeterminate;
       }}
       onChange={(e) => onChange(e.target.checked)}
-      aria-label={ariaLabel}
-      className={cn(
-        "stg:size-3.5 stg:shrink-0 stg:cursor-pointer stg:rounded stg:border stg:border-input",
-        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:ring-offset-1",
-        className,
-      )}
+      aria-label={ariaLabel} className={cn("stg:shrink-0", className)}
     />
   );
 }

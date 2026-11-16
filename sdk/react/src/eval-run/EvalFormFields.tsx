@@ -19,15 +19,15 @@ import { type HarnessOption } from "@stigmer/react-core";
 import { HARNESS_OPTIONS } from "@stigmer/react-core/internal";
 import { ModelSelector } from "../models/ModelSelector.js";
 import { Switch } from "../switch/Switch.js";
-import { INPUT_CLASS } from "../vault/styles.js";
 import { Button } from "../button/Button.js";
 import { MAX_EVAL_TARGETS, type EvalRunSettings } from "./eval-view.js";
+import { FIELD_HINT_CLASSES, FIELD_LABEL_CLASSES, TextInput } from "../internal/form/index.js";
 
 /** A form field's label. */
 export const LABEL_CLASS =
-  "stg:block stg:text-xs stg:font-medium stg:text-foreground";
+  FIELD_LABEL_CLASSES;
 /** A form field's hint below it. */
-export const HINT_CLASS = "stg:text-2xs stg:text-muted-foreground";
+export const HINT_CLASS = FIELD_HINT_CLASSES;
 
 /**
  * The models switch and, while it is off, the picked models with Add and
@@ -75,7 +75,7 @@ export function EvalModelsField<S extends EvalRunSettings>({
         />
         <label
           htmlFor={id}
-          className="stg:text-xs stg:font-medium stg:text-foreground"
+          className={FIELD_LABEL_CLASSES}
         >
           {switchLabel}
         </label>
@@ -164,7 +164,7 @@ export function NumberField({
       <label htmlFor={id} className={LABEL_CLASS}>
         {label}
       </label>
-      <input
+      <TextInput
         id={id}
         type="number"
         min={min}
@@ -173,7 +173,6 @@ export function NumberField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled}
-        className={INPUT_CLASS}
       />
       <p className={HINT_CLASS}>{hint}</p>
     </div>

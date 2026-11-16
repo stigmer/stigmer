@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import type { InlineEditBaseProps, SelectOption } from "./types.js";
+import { ChoiceGroup, FieldError } from "../internal/form/index.js";
 
 /** Props for {@link InlineEditSelect}. */
 export interface InlineEditSelectProps extends InlineEditBaseProps {
@@ -82,49 +83,24 @@ export function InlineEditSelect({
 
   return (
     <div ref={containerRef} className={cn("stg:flex stg:flex-col stg:gap-1", className)}>
-      <div className="stg:rounded-lg stg:border stg:border-border stg:bg-background stg:p-1" role="radiogroup">
-        {options.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            role="radio"
-            aria-checked={option.value === value}
-            disabled={isSaving}
-            onClick={() => handleSelect(option.value)}
-            className={cn(
-              "stg:flex stg:w-full stg:items-start stg:gap-2 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-left stg:transition-colors",
-              option.value === value
-                ? "stg:bg-muted-subtle stg:text-foreground"
-                : "stg:hover:bg-accent-hover stg:text-foreground",
-              "stg:disabled:opacity-50",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
-            )}
-          >
-            <div className={cn(
-              "stg:mt-0.5 stg:flex stg:size-4 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:border",
-              option.value === value
-                ? "stg:border-primary stg:bg-primary"
-                : "stg:border-muted-foreground",
-            )}>
-              {option.value === value && (
-                <div className="stg:size-1.5 stg:rounded-full stg:bg-primary-foreground" />
-              )}
-            </div>
-            <div className="stg:min-w-0 stg:flex-1">
-              <span className="stg:text-sm stg:font-medium">{option.label}</span>
-              {option.description && (
-                <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">{option.description}</p>
-              )}
-            </div>
-            {isSaving && option.value !== value && (
-              <Spinner />
-            )}
-          </button>
-        ))}
-      </div>
-      {error && (
-        <p className="stg:px-1 stg:text-xs stg:text-destructive" role="alert">{error}</p>
+      <ChoiceGroup
+        variant="list"
+        value={value}
+        onChange={(next) => void handleSelect(next)}
+        disabled={isSaving}
+        options={options.map((option) => ({
+          value: option.value,
+          label: option.label,
+          description: option.description,
+        }))}
+      />
+      {isSaving && (
+        <span className="stg:flex stg:items-center stg:gap-1.5 stg:px-1 stg:text-xs stg:text-muted-foreground">
+          <Spinner />
+          Saving
+        </span>
       )}
+      {error && <FieldError className="stg:px-1">{error}</FieldError>}
     </div>
   );
 }

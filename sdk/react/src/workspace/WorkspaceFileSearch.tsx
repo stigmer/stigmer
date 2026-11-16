@@ -20,6 +20,7 @@ import {
   type WorkspaceFileSearchGroup,
 } from "./useWorkspaceFileSearch.js";
 import type { WorkspaceFileMatch } from "./matchWorkspaceFiles.js";
+import { TextInput } from "../internal/form/index.js";
 
 /** Cap on rendered rows — keeps the DOM bounded on huge repositories. */
 const MAX_RESULTS = 200;
@@ -157,7 +158,7 @@ export function WorkspaceFileSearch({
       </div>
       <div className="stg:flex stg:items-center stg:gap-1.5 stg:border-b stg:border-border stg:px-2 stg:py-1.5">
         <SearchIcon />
-        <input
+        <TextInput
           ref={inputRef}
           type="text"
           role="combobox"
@@ -171,11 +172,9 @@ export function WorkspaceFileSearch({
           onKeyDown={handleKeyDown}
           placeholder="Search files by name…"
           disabled={isUnsupported}
-          className={cn(
-            "stg:min-w-0 stg:flex-1 stg:bg-transparent stg:text-xs stg:text-foreground",
-            "stg:placeholder:text-muted-foreground",
-            "stg:focus-visible:outline-none stg:disabled:cursor-not-allowed",
-          )}
+          appearance="bare"
+          size="xs"
+          className="stg:min-w-0 stg:flex-1"
           aria-label="Search workspace files by name"
         />
         {trimmed.length > 0 && (

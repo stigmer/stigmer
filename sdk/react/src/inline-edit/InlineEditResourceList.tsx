@@ -7,6 +7,7 @@ import { useOrgIdForRef, useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { Button } from "../button/Button.js";
 import { IconButton } from "../button/IconButton.js";
 import { PlusGlyph } from "../internal/thread-card/glyphs.js";
+import { FieldError, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link InlineEditResourceList}. */
 export interface InlineEditResourceListProps extends InlineEditBaseProps {
@@ -196,18 +197,16 @@ export function InlineEditResourceList({
         </div>
       ) : showGenericAdd ? (
         <div className="stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:border stg:border-border stg:bg-muted-faint stg:p-2">
-          <input
+          <TextInput
+            size="xs"
             type="text"
             value={addOrg}
             onChange={(e) => setAddOrg(e.target.value)}
-            placeholder="org"
-            className={cn(
-              "stg:w-24 stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1 stg:text-xs stg:text-foreground",
-              "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
-            )}
+            placeholder="org" className="stg:w-24"
           />
           <span className="stg:text-xs stg:text-muted-foreground">/</span>
-          <input
+          <TextInput
+            size="xs"
             type="text"
             value={addSlug}
             onChange={(e) => setAddSlug(e.target.value)}
@@ -221,11 +220,7 @@ export function InlineEditResourceList({
                 setShowGenericAdd(false);
                 setAddSlug("");
               }
-            }}
-            className={cn(
-              "stg:flex-1 stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1 stg:text-xs stg:text-foreground",
-              "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
-            )}
+            }} className="stg:flex-1"
           />
           <IconButton
             label={`Add ${resourceLabel}`}
@@ -264,7 +259,7 @@ export function InlineEditResourceList({
       </div>
 
       {error && (
-        <p className="stg:px-1 stg:text-xs stg:text-destructive" role="alert">{error}</p>
+        <FieldError className="stg:px-1">{error}</FieldError>
       )}
     </div>
   );

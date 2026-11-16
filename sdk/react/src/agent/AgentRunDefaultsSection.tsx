@@ -23,7 +23,6 @@
  */
 
 import { useState } from "react";
-import { cn } from "@stigmer/design-tokens";
 import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import {
@@ -43,6 +42,7 @@ import { type ThinkingModeOption } from "@stigmer/react-core";
 import { agentHarnessOf } from "./run-defaults.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { Button } from "../button/Button.js";
+import { FieldError, TextInput } from "../internal/form/index.js";
 
 /** What a save writes: the two spec fields, together. */
 export interface AgentRunDefaultsSave {
@@ -181,13 +181,6 @@ function SummaryRow({
 // Edit view
 // ---------------------------------------------------------------------------
 
-const inputClasses = cn(
-  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-  "stg:placeholder:text-muted-foreground",
-  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-);
-
 function RunDefaultsEditor({
   spec,
   isSaving,
@@ -305,7 +298,7 @@ function RunDefaultsEditor({
 
       <label className="stg:flex stg:flex-col stg:gap-1.5">
         <span className="stg:text-xs stg:font-medium stg:text-foreground">Cost cap per message (USD)</span>
-        <input
+        <TextInput
           type="number"
           min="0"
           step="any"
@@ -314,7 +307,7 @@ function RunDefaultsEditor({
           placeholder="No cap"
           disabled={isSaving}
           aria-invalid={!costValid}
-          className={cn(inputClasses, "stg:sm:max-w-48")}
+          className="stg:sm:max-w-48"
         />
         <span className="stg:text-2xs stg:text-muted-foreground">
           A message stops when it reaches this spend. A message can lower it, never raise it.
@@ -331,14 +324,14 @@ function RunDefaultsEditor({
           </Button>
         </div>
         {!costValid && (
-          <p className="stg:text-xs stg:text-destructive" role="alert">
+          <FieldError>
             The cost cap must be a positive number, or empty for no cap.
-          </p>
+          </FieldError>
         )}
         {error && (
-          <p className="stg:text-xs stg:text-destructive" role="alert">
+          <FieldError>
             {error}
-          </p>
+          </FieldError>
         )}
       </div>
     </div>
