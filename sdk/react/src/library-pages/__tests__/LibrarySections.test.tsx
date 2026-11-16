@@ -310,6 +310,30 @@ describe("LibraryAgentsSection delete", () => {
   });
 });
 
+describe("LibraryAgentsSection delete, once asked", () => {
+  it("deletes the agent once the person confirms, says so, and reads the list again", async () => {
+    page.confirmAnswer = true;
+    render(<LibraryAgentsSection onOpen={onOpen} />);
+    const before = workbench().refetchToken;
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => expect(page.toasts).toEqual([["success", "Triage deleted"]]));
+    expect(page.deleted).toEqual(["agt_1"]);
+    expect(workbench().refetchToken).not.toBe(before);
+  });
+
+  it("says the delete failed when the server refuses it", async () => {
+    page.confirmAnswer = true;
+    page.deleteFailure = new Error("refused");
+    render(<LibraryAgentsSection onOpen={onOpen} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => expect(page.toasts).toEqual([["error", "Failed to delete agent"]]));
+  });
+});
+
 describe("LibraryAgentsSection Apply YAML", () => {
   it("opens the apply dialog in the active org, and an apply reads the list again", () => {
     render(<LibraryAgentsSection onOpen={onOpen} />);
@@ -383,6 +407,16 @@ describe("LibrarySkillsSection", () => {
     await waitFor(() => expect(page.toasts).toEqual([["success", "Triage deleted"]]));
     expect(page.deleted).toEqual(["agt_1"]);
     expect(workbench().refetchToken).not.toBe(before);
+  });
+
+  it("deletes nothing when the person declines", async () => {
+    render(<LibrarySkillsSection onOpen={onOpen} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => expect(page.confirms).toHaveLength(1));
+    expect(page.deleted).toEqual([]);
+    expect(page.toasts).toEqual([]);
   });
 
   it("says the delete failed when the server refuses it", async () => {
