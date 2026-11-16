@@ -7,8 +7,12 @@
     {
       "caption": "Routines: Full",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "library-routines",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Routines",
@@ -293,15 +297,43 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word in 14h": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Variance reporter": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word month-end-close": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Monthly on the 1st at 07:00": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word in 15d": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Ledger reviewer": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word receipts-sweep": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Paused": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Every hour": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Receipts matcher": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word vendor-intake": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word By hand only": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Never run": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Vendor onboarding": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for daily-variance-report": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for month-end-close": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for receipts-sweep": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for vendor-intake": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Search routines": "#3210: this kind's list backend has no text search, so the drawn search box is not built; it waits on one.",
+        "word Finished 6m": "#3210: the Last run column says when, not how the run ended; the outcome pill waits on the last run's outcome in the routine list's read.",
+        "word Finished 16d": "#3210: the Last run column says when, not how the run ended; the outcome pill waits on the last run's outcome in the routine list's read.",
+        "word Didn't finish 2d": "#3210: the Last run column says when, not how the run ended; the outcome pill waits on the last run's outcome in the routine list's read."
+      }
     },
     {
       "caption": "Routines: None yet, for someone who may add one",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "library-routines-empty",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Routines",
@@ -374,7 +406,7 @@
       "caption": "Routines: A search that matches nothing",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "unbuilt": "This kind's list has no text search: its list backend has none (the workbench's searchable is off), so the drawn search box and its no-match state are not built (#3210).",
       "words": [
         {
           "text": "Routines",
@@ -409,7 +441,7 @@
           ]
         },
         {
-          "text": "No routines match \u201cpayroll\u201d.",
+          "text": "No routines match “payroll”.",
           "type": [
             14,
             20,
@@ -446,8 +478,12 @@
     {
       "caption": "Routines: Didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "library-routines-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Routines",
@@ -532,7 +568,10 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Stuck? Ask IT on Slack": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
+      },
       "ruled": {},
       "pending": {}
     },
@@ -540,7 +579,7 @@
       "caption": "Routines: Loading",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "unbuilt": "Not pictured for this kind: the gallery pictures this state once, on the Agents list (the same part), so its facts are read there (#3210).",
       "words": [
         {
           "text": "Routines",
@@ -592,8 +631,12 @@
     {
       "caption": "Routines: At 390 wide",
       "narrow": true,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "library-routines",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Routines",
@@ -644,7 +687,7 @@
           ]
         },
         {
-          "text": "Every day at 09:00 \u00b7 next in 14h",
+          "text": "Every day at 09:00 · next in 14h",
           "type": [
             12,
             16,
@@ -668,7 +711,7 @@
           ]
         },
         {
-          "text": "Monthly on the 1st at 07:00 \u00b7 next in 15d",
+          "text": "Monthly on the 1st at 07:00 · next in 15d",
           "type": [
             12,
             16,
@@ -692,7 +735,7 @@
           ]
         },
         {
-          "text": "Every hour \u00b7 no run planned",
+          "text": "Every hour · no run planned",
           "type": [
             12,
             16,
@@ -716,7 +759,7 @@
           ]
         },
         {
-          "text": "By hand only \u00b7 no run planned",
+          "text": "By hand only · no run planned",
           "type": [
             12,
             16,
@@ -750,9 +793,24 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Every day at 09:00 · next in 14h": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word month-end-close": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Monthly on the 1st at 07:00 · next in 15d": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word receipts-sweep": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Paused": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Every hour · no run planned": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word vendor-intake": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word By hand only · no run planned": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for daily-variance-report": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for month-end-close": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for receipts-sweep": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for vendor-intake": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Search routines": "#3210: this kind's list backend has no text search, so the drawn search box is not built; it waits on one."
+      }
     }
   ]
 }

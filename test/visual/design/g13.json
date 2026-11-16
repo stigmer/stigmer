@@ -7,8 +7,12 @@
     {
       "caption": "Plugins: Full",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "library-plugins",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Plugins",
@@ -157,7 +161,19 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Issues, projects, cycles and comments in your Linear workspace.": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word 2d": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Ledger tools": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Reads and posts to acme's general ledger, with an agent that reviews the month.": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Jul 15": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Notion": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Search, read and write the pages and databases your account can reach.": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Jul 3": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for Linear": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for Ledger tools": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for Notion": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
+      },
       "ruled": {},
       "pending": {}
     },
@@ -165,7 +181,7 @@
       "caption": "Plugins: A row's acts, for someone who may delete it (someone who may not sees Copy ID only)",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "unbuilt": "Not pictured for this kind: the gallery pictures this state once, on the Agents list (the same part), so its facts are read there (#3210).",
       "words": [
         {
           "text": "Plugins",
@@ -337,8 +353,12 @@
     {
       "caption": "Plugins: None yet, for someone who may add one",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "library-plugins-empty",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Plugins",
@@ -442,8 +462,12 @@
     {
       "caption": "Plugins: None yet, for a member who may not add one",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "library-plugins-empty-member",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Plugins",
@@ -512,7 +536,7 @@
       "caption": "Plugins: A search that matches nothing",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "unbuilt": "Not pictured for this kind: the gallery pictures this state once, on the Agents list (the same part), so its facts are read there (#3210).",
       "words": [
         {
           "text": "Plugins",
@@ -563,7 +587,7 @@
           ]
         },
         {
-          "text": "No plugins match \u201cjira\u201d.",
+          "text": "No plugins match “jira”.",
           "type": [
             14,
             20,
@@ -604,8 +628,12 @@
     {
       "caption": "Plugins: Didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "library-plugins-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Plugins",
@@ -710,7 +738,10 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Stuck? Ask IT on Slack": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
+      },
       "ruled": {},
       "pending": {}
     },
@@ -718,7 +749,7 @@
       "caption": "Plugins: Loading",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "unbuilt": "Not pictured for this kind: the gallery pictures this state once, on the Agents list (the same part), so its facts are read there (#3210).",
       "words": [
         {
           "text": "Plugins",
@@ -790,8 +821,12 @@
     {
       "caption": "Plugins: At 390 wide",
       "narrow": true,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "library-plugins",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Plugins",
@@ -916,7 +951,16 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Issues, projects, cycles and comments in your Linear workspace.": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Ledger tools": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Reads and posts to acme's general ledger, with an agent that reviews the month.": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Notion": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Search, read and write the pages and databases your account can reach.": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for Linear": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for Ledger tools": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for Notion": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
+      },
       "ruled": {},
       "pending": {}
     }

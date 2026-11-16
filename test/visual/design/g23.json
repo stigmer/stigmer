@@ -7,8 +7,12 @@
     {
       "caption": "Conversations: A customer asks for a person",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "conversations-open",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Conversations",
@@ -67,7 +71,7 @@
           ]
         },
         {
-          "text": "+1 555 010 0142 \u00b7 WhatsApp",
+          "text": "+1 555 010 0142 · WhatsApp",
           "type": [
             12,
             16,
@@ -91,7 +95,7 @@
           ]
         },
         {
-          "text": "#billing \u00b7 Slack",
+          "text": "#billing · Slack",
           "type": [
             12,
             16,
@@ -139,7 +143,7 @@
           ]
         },
         {
-          "text": "+1 555 010 0142 \u00b7 WhatsApp \u00b7 Variance reporter",
+          "text": "+1 555 010 0142 · WhatsApp · Variance reporter",
           "type": [
             12,
             16,
@@ -155,7 +159,7 @@
           ]
         },
         {
-          "text": "\u201cCan I talk to someone before we close the quarter?\u201d",
+          "text": "“Can I talk to someone before we close the quarter?”",
           "type": [
             14,
             20,
@@ -249,15 +253,33 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word All channels": "the scene's organization has one channel, so no channel filter is drawn",
+        "word +1 555 010 0142 · WhatsApp": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Harbor Dental": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word #billing · Slack": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word 1h": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Sam Okafor": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Chat link": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Jul 19": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "type Northwind Books": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word +1 555 010 0142 · WhatsApp · Variance reporter": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word “Can I talk to someone before we close the quarter?”": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "type Agent": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word The customer asked for a person.": "#3210: the notice says \"The agent asked for a person.\": the flag is the agent's escalation and its reason is the agent's own words; shown at his Built look.",
+        "type Dismiss": "#3210: Dismiss is the notice's link beside Take over, not a second button; shown at his Built look.",
+        "word Take over to reply": "#3210: the composer keeps its own words (\"Reply as your business…\") while the agent holds the conversation.",
+        "button Dismiss": "#3210: Dismiss is the notice's link beside Take over, not a second button; shown at his Built look."
+      }
     },
     {
       "caption": "Conversations: You took it over",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "unbuilt": "No gallery scene opens a conversation a person took over in the console's workbench yet (#3210).",
       "words": [
         {
           "text": "Conversations",
@@ -308,7 +330,7 @@
           ]
         },
         {
-          "text": "+1 555 010 0142 \u00b7 WhatsApp",
+          "text": "+1 555 010 0142 · WhatsApp",
           "type": [
             12,
             16,
@@ -332,7 +354,7 @@
           ]
         },
         {
-          "text": "#billing \u00b7 Slack",
+          "text": "#billing · Slack",
           "type": [
             12,
             16,
@@ -380,7 +402,7 @@
           ]
         },
         {
-          "text": "+1 555 010 0142 \u00b7 WhatsApp \u00b7 Variance reporter",
+          "text": "+1 555 010 0142 · WhatsApp · Variance reporter",
           "type": [
             12,
             16,
@@ -436,7 +458,7 @@
           ]
         },
         {
-          "text": "Reply as Acme Books\u2026",
+          "text": "Reply as Acme Books…",
           "type": [
             14,
             20,
@@ -469,8 +491,12 @@
     {
       "caption": "Conversations: Nothing chosen yet",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "conversations-none-selected",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Conversations",
@@ -529,7 +555,7 @@
           ]
         },
         {
-          "text": "+1 555 010 0142 \u00b7 WhatsApp",
+          "text": "+1 555 010 0142 · WhatsApp",
           "type": [
             12,
             16,
@@ -553,7 +579,7 @@
           ]
         },
         {
-          "text": "#billing \u00b7 Slack",
+          "text": "#billing · Slack",
           "type": [
             12,
             16,
@@ -610,15 +636,28 @@
         }
       ],
       "buttons": [],
-      "sample": {},
+      "sample": {
+        "word All channels": "the scene's organization has one channel, so no channel filter is drawn",
+        "word +1 555 010 0142 · WhatsApp": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Harbor Dental": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word #billing · Slack": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word 1h": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Sam Okafor": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Chat link": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Jul 19": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "Conversations: None yet",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "conversations-empty",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Conversations",
@@ -669,13 +708,20 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Open Channels": "#3210: the empty conversations page offers no way to the channels yet: the workbench gets no channels address from its host.",
+        "button Open Channels": "#3210: the empty conversations page offers no way to the channels yet: the workbench gets no channels address from its host."
+      }
     },
     {
       "caption": "Conversations: Didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "conversations-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Conversations",
@@ -768,15 +814,23 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word All channels": "the scene's organization has one channel, so no channel filter is drawn",
+        "word the channel service did not answer": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Stuck? Ask IT on Slack": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "Conversations: At 390 wide: the list",
       "narrow": true,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "conversations-none-selected",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Conversations",
@@ -835,7 +889,7 @@
           ]
         },
         {
-          "text": "+1 555 010 0142 \u00b7 WhatsApp",
+          "text": "+1 555 010 0142 · WhatsApp",
           "type": [
             12,
             16,
@@ -859,7 +913,7 @@
           ]
         },
         {
-          "text": "#billing \u00b7 Slack",
+          "text": "#billing · Slack",
           "type": [
             12,
             16,
@@ -900,15 +954,28 @@
         }
       ],
       "buttons": [],
-      "sample": {},
+      "sample": {
+        "word All channels": "the scene's organization has one channel, so no channel filter is drawn",
+        "word +1 555 010 0142 · WhatsApp": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Harbor Dental": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word #billing · Slack": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word 1h": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Sam Okafor": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Chat link": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Jul 19": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "Conversations: At 390 wide: one conversation, with the way back",
       "narrow": true,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "conversations-open",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Conversations",
@@ -927,7 +994,7 @@
           ]
         },
         {
-          "text": "+1 555 010 0142 \u00b7 WhatsApp \u00b7 Variance reporter",
+          "text": "+1 555 010 0142 · WhatsApp · Variance reporter",
           "type": [
             12,
             16,
@@ -943,7 +1010,7 @@
           ]
         },
         {
-          "text": "\u201cCan I talk to someone before we close the quarter?\u201d",
+          "text": "“Can I talk to someone before we close the quarter?”",
           "type": [
             14,
             20,
@@ -1041,9 +1108,19 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "type Northwind Books": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word +1 555 010 0142 · WhatsApp · Variance reporter": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word “Can I talk to someone before we close the quarter?”": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "type Agent": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word The customer asked for a person.": "#3210: the notice says \"The agent asked for a person.\": the flag is the agent's escalation and its reason is the agent's own words; shown at his Built look.",
+        "type Dismiss": "#3210: Dismiss is the notice's link beside Take over, not a second button; shown at his Built look.",
+        "word Take over to reply": "#3210: the composer keeps its own words (\"Reply as your business…\") while the agent holds the conversation.",
+        "button Dismiss": "#3210: Dismiss is the notice's link beside Take over, not a second button; shown at his Built look."
+      }
     }
   ]
 }

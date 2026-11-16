@@ -7,8 +7,12 @@
     {
       "caption": "Skills: Full",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "library-skills",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Skills",
@@ -145,7 +149,21 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word chart-of-accounts": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word How acme codes expenses: every account, what goes in it, and the usual mistakes.": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word 3d": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word month-end-close": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word The month-end checklist, in order, with who signs off each step.": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Jul 18": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word spreadsheet-export": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Public": "the scene's skills are all organization-wide; the kit tags only a Private one",
+        "word Hands back a table as a .csv file anyone can open in a spreadsheet.": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Jul 2": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for chart-of-accounts": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for month-end-close": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for spreadsheet-export": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
+      },
       "ruled": {},
       "pending": {}
     },
@@ -153,7 +171,7 @@
       "caption": "Skills: A row's acts, for someone who may delete it (someone who may not sees Copy ID only)",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "unbuilt": "Not pictured for this kind: the gallery pictures this state once, on the Agents list (the same part), so its facts are read there (#3210).",
       "words": [
         {
           "text": "Skills",
@@ -313,8 +331,12 @@
     {
       "caption": "Skills: None yet, for someone who may add one",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "library-skills-empty",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Skills",
@@ -386,8 +408,12 @@
     {
       "caption": "Skills: None yet, for a member who may not add one",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "library-skills-empty-member",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Skills",
@@ -436,7 +462,7 @@
       "caption": "Skills: A search that matches nothing",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "unbuilt": "Not pictured for this kind: the gallery pictures this state once, on the Agents list (the same part), so its facts are read there (#3210).",
       "words": [
         {
           "text": "Skills",
@@ -471,7 +497,7 @@
           ]
         },
         {
-          "text": "No skills match \u201cpayroll\u201d.",
+          "text": "No skills match “payroll”.",
           "type": [
             14,
             20,
@@ -508,8 +534,12 @@
     {
       "caption": "Skills: Didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "library-skills-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Skills",
@@ -594,7 +624,10 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Stuck? Ask IT on Slack": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
+      },
       "ruled": {},
       "pending": {}
     },
@@ -602,7 +635,7 @@
       "caption": "Skills: Loading",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "unbuilt": "Not pictured for this kind: the gallery pictures this state once, on the Agents list (the same part), so its facts are read there (#3210).",
       "words": [
         {
           "text": "Skills",
@@ -654,8 +687,12 @@
     {
       "caption": "Skills: At 390 wide",
       "narrow": true,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "library-skills",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Skills",
@@ -768,7 +805,18 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word chart-of-accounts": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word How acme codes expenses: every account, what goes in it, and the usual mistakes.": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word month-end-close": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word The month-end checklist, in order, with who signs off each step.": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word spreadsheet-export": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Public": "the scene's skills are all organization-wide; the kit tags only a Private one",
+        "word Hands back a table as a .csv file anyone can open in a spreadsheet.": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for chart-of-accounts": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for month-end-close": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for spreadsheet-export": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
+      },
       "ruled": {},
       "pending": {}
     }
