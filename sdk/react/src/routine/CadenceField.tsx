@@ -269,7 +269,7 @@ function TimeInput({
   readonly onChange: (hour: number, minute: number) => void;
 }) {
   return (
-    <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-foreground">
+    <div className="stg:flex stg:items-center stg:gap-2 stg:text-sm stg:text-muted-foreground">
       <label htmlFor={id}>At</label>
       <TextInput
         className="stg:w-auto"

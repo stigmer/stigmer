@@ -152,6 +152,7 @@ async function perform(page: Page, act: Act): Promise<void> {
     const control = page.getByRole(act.role, { name: act.press, exact: act.exact });
     await (await pressTarget(page, act.first === true ? control.first() : control)).click();
   }
+  else if ("see" in act) await page.getByText(act.see).first().waitFor({ state: "visible" });
   else await page.getByLabel(act.fill, { exact: act.exact }).fill(act.with);
 }
 

@@ -50,6 +50,8 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { serverSentence } from "../internal/server-words.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { CopyBlock } from "../internal/CopyBlock.js";
+import { ChoiceGroup } from "../internal/form/ChoiceGroup.js";
+import { FieldError } from "../internal/form/Field.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { cardClasses } from "../internal/surface/Card.js";
 import { Notice } from "../internal/surface/Notice.js";
@@ -283,26 +285,13 @@ function StackPicker({ stack, onPick }: { readonly stack: AppHandoverStack; read
       <span id={labelId} className="stg:text-sm stg:text-muted-foreground">
         Your backend
       </span>
-      <div role="radiogroup" aria-labelledby={labelId} className="stg:inline-flex stg:flex-wrap stg:gap-1 stg:rounded-lg stg:border stg:border-border stg:p-0.5">
-        {APP_HANDOVER_STACKS.map((option) => {
-          const on = option.id === stack;
-          return (
-            <button
-              key={option.id}
-              type="button"
-              role="radio"
-              aria-checked={on}
-              onClick={() => onPick(option.id)}
-              className={cn(
-                "stg:rounded-md stg:px-3 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                on ? "stg:bg-foreground stg:text-background" : "stg:text-muted-foreground stg:hover:bg-accent-hover stg:hover:text-foreground",
-              )}
-            >
-              {option.name}
-            </button>
-          );
-        })}
-      </div>
+      <ChoiceGroup
+        aria-labelledby={labelId}
+        size="xs"
+        value={stack}
+        onChange={onPick}
+        options={APP_HANDOVER_STACKS.map((option) => ({ value: option.id, label: option.name }))}
+      />
     </div>
   );
 }
@@ -454,9 +443,7 @@ function ServiceAccountRow({
         !permission.isLoading && !done && <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">An admin of this organization makes the service account.</p>
       )}
       {failure !== null && (
-        <p role="alert" className="stg:m-0 stg:text-xs stg:text-destructive">
-          {failure}
-        </p>
+        <FieldError>{failure}</FieldError>
       )}
     </Row>
   );
@@ -541,9 +528,7 @@ function EmbeddingRow({
         !permission.isLoading && !done && <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">An admin of this organization turns this on.</p>
       )}
       {update.error !== null && (
-        <p role="alert" className="stg:m-0 stg:text-xs stg:text-destructive">
-          The setting wasn&apos;t saved. {serverSentence(update.error)} Try again.
-        </p>
+        <FieldError>The setting wasn&apos;t saved. {serverSentence(update.error)} Try again.</FieldError>
       )}
     </Row>
   );

@@ -246,7 +246,7 @@ export function EvalRunsTab(props: EvalRunsTabProps) {
           </>
         ) : error !== null ? (
           <div className="stg:p-3">
-            <ErrorMessage error={error} retry={refetch} />
+            <ErrorMessage error={error} title="Couldn't load the evals." retry={refetch} />
           </div>
         ) : (
           <p className="stg:px-3 stg:py-2.5 stg:text-sm stg:text-muted-foreground">

@@ -26,7 +26,7 @@ describe("CreationPicker template card", () => {
     render(<CreationPicker resourceLabel="agent" templates={TEMPLATES} onSelect={onSelect} />);
 
     const card = screen.getByRole("button", { name: /Browse templates/ });
-    expect(card.textContent).toContain("2 available");
+    expect(card.closest("li")?.textContent).toContain("2 available");
 
     fireEvent.click(card);
     expect(screen.getByRole("heading", { name: "Choose a template" })).toBeTruthy();

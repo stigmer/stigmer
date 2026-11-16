@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { IconButton } from "../button/IconButton.js";
-import { cardClasses } from "../internal/surface/Card.js";
+import { List, ListRow } from "../internal/surface/List.js";
 import { Tag } from "../internal/surface/Tag.js";
 import type { ResourceTemplate } from "./templates/types.js";
 import { TemplateGallery } from "./TemplateGallery.js";
@@ -136,37 +136,29 @@ export function CreationPicker<TData>({
         </div>
       )}
 
-      <div className="stg:grid stg:grid-cols-1 stg:gap-3 stg:sm:grid-cols-3">
-        {/* Start from scratch */}
-        <OptionCard
+      <List aria-label={`Ways to create ${resourceLabel === "agent" ? "an" : "a"} ${resourceLabel}`}>
+        <OptionRow
           title="Start from scratch"
           description={`Create a blank ${resourceLabel} and configure it step by step.`}
           icon={<BlankPageIcon />}
           onClick={() => onSelect({ kind: "scratch" })}
-          cursorTarget="creation-path-scratch"
         />
-
-        {/* Browse templates */}
         {templates.length > 0 && (
-          <OptionCard
+          <OptionRow
             title="Browse templates"
             description={`Start with a pre-built ${resourceLabel} configuration.`}
             icon={<GridIcon />}
             onClick={() => setView("gallery")}
             badge={`${templates.length} available`}
-            cursorTarget="creation-path-template"
           />
         )}
-
-        {/* Import from file */}
-        <OptionCard
+        <OptionRow
           title="Import from file"
           description="Upload a YAML or JSON configuration file."
           icon={<UploadIcon />}
           onClick={() => onSelect({ kind: "import" })}
-          cursorTarget="creation-path-import"
         />
-      </div>
+      </List>
     </div>
   );
 }
@@ -175,43 +167,41 @@ export function CreationPicker<TData>({
 // Internal components
 // ---------------------------------------------------------------------------
 
-function OptionCard({
+/** One way to start, as a row: its icon in a square, its name and line, a chevron. */
+function OptionRow({
   title,
   description,
   icon,
   onClick,
   badge,
-  cursorTarget,
 }: {
   readonly title: string;
   readonly description: string;
   readonly icon: React.ReactNode;
   readonly onClick: () => void;
   readonly badge?: string;
-  /** `data-cursor-target` hook for guided tours and demo playbacks. */
-  readonly cursorTarget?: string;
 }) {
   return (
-    <button
-      type="button"
+    <ListRow
+      name={title}
+      description={description}
       onClick={onClick}
-      data-cursor-target={cursorTarget}
-      className={cn(
-        cardClasses({ interactive: true }),
-        "stg:group stg:flex stg:flex-col stg:items-center stg:gap-3 stg:text-center",
-      )}
-    >
-      <span className="stg:text-muted-foreground stg:transition-colors stg:group-hover:text-foreground">
-        {icon}
-      </span>
-      <div className="stg:flex stg:flex-col stg:gap-1">
-        <span className="stg:text-sm stg:font-medium stg:text-foreground">{title}</span>
-        <span className="stg:text-xs stg:text-muted-foreground">{description}</span>
-      </div>
-      {badge && (
-        <Tag>{badge}</Tag>
-      )}
-    </button>
+      leading={
+        <span className="stg:flex stg:size-8 stg:items-center stg:justify-center stg:rounded-lg stg:border stg:border-border stg:bg-card stg:text-muted-foreground">
+          {icon}
+        </span>
+      }
+      nameAdornment={badge ? <Tag>{badge}</Tag> : undefined}
+      trailing={<ChevronIcon />}
+    />
+  );
+}
+
+function ChevronIcon() {
+  return (
+    <svg className="stg:size-4 stg:text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m9 6 6 6-6 6" />
+    </svg>
   );
 }
 
@@ -222,7 +212,7 @@ function OptionCard({
 function BlankPageIcon() {
   return (
     <svg
-      className="stg:size-8"
+      className="stg:size-4"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       fill="none"
@@ -241,7 +231,7 @@ function BlankPageIcon() {
 function GridIcon() {
   return (
     <svg
-      className="stg:size-8"
+      className="stg:size-4"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       fill="none"
@@ -262,7 +252,7 @@ function GridIcon() {
 function UploadIcon() {
   return (
     <svg
-      className="stg:size-8"
+      className="stg:size-4"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       fill="none"
