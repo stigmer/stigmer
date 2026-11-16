@@ -97,6 +97,8 @@ function DialogContent({
       <DialogHeader
         id={titleId}
         title={`Add ${offer.name} to an agent`}
+        // Once added, the foot's act is Close; a second close would repeat it.
+        hideClose={phase.status === "added"}
         description="The agent gets the whole plugin: its skills, agents, hooks and MCP servers. It asks for a sign-in or a key the first time it needs one."
         onClose={onClose}
       />

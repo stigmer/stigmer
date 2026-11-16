@@ -155,6 +155,8 @@ function InstallDialogContent({
         }
         onClose={onClose}
         closeDisabled={isInstalling}
+        // Once installed, the foot's act is Close; a second close would repeat it.
+        hideClose={outcome !== null}
       />
       <DialogBody>
 

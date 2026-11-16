@@ -68,6 +68,8 @@ export function ManageSourcesDialog({ open, onClose, reads = NO_READS, marketpla
           <DialogHeader
             id={titleId}
             title="Sources"
+            // Its one act is Close, at its foot.
+            hideClose
             description="What the Marketplace shows comes from Stigmer's catalogue, published with each release, and from any catalogue you add. Added sources are remembered in this browser, as the CLI remembers its own."
             onClose={onClose}
           />
