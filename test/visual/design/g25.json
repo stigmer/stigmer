@@ -271,20 +271,18 @@
       "ruled": {},
       "pending": {
         "word What this environment is for.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type Network": "When its page is redesigned: built 14/20 weight 500, drawn 14/20 weight 600; the Library pages' remaining differences (stigmer#3210)",
         "word Any website": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
         "word Listed websites only": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
         "type Also allow package registries and code hosts": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
         "word npm, PyPI, crates.io, the Go module proxy, RubyGems, the Debian and Ubuntu archives and GitHub. Packages need it.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type Also allow this agent's MCP servers": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
-        "type Packages": "When its page is redesigned: built 14/20 weight 500, drawn 14/20 weight 600; the Library pages' remaining differences (stigmer#3210)"
+        "type Also allow this agent's MCP servers": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)"
       }
     },
     {
       "caption": "New environment: A name that's taken",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
       "words": [
         {
           "text": "New environment",
@@ -553,7 +551,7 @@
       "caption": "New environment: For a member",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
       "words": [
         {
           "text": "New environment",
@@ -589,7 +587,7 @@
       "caption": "New environment: At 390 wide",
       "narrow": true,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
       "words": [
         {
           "text": "New environment",

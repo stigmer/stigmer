@@ -14,6 +14,7 @@ import { strToU8, zipSync } from "fflate";
 import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
 import { EnvironmentQueryController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/query_pb";
 import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/query_pb";
+import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/query_pb";
 import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
 import { IdentityAccountQueryController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
@@ -85,6 +86,13 @@ function pluginRoutes(router: ConnectRouter, may: boolean): void {
     listVersions: () => ({ entries: [] }),
   });
   router.service(AgentQueryController, { list: () => ({ entries: [] }) });
+  // No vault holds a sign-in yet: the person's own My vault isn't made.
+  router.service(VaultQueryController, {
+    list: () => ({ entries: [] }),
+    getMine: () => {
+      throw new ConnectError("no My vault yet", Code.NotFound);
+    },
+  });
 }
 
 /** The plugin's page as an admin sees it; with `removing`, its Remove asked first in the destructive confirm. */

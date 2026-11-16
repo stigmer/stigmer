@@ -304,7 +304,7 @@
       "caption": "A routine's history: History, none yet",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
       "words": [
         {
           "text": "daily-variance-report",
@@ -425,7 +425,7 @@
       "caption": "A routine's history: History, didn't load",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
       "words": [
         {
           "text": "daily-variance-report",

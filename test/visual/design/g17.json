@@ -432,10 +432,7 @@
         "word In your app": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
         "word Name": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
         "type Slug": "When its page is redesigned: built 14/20 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "type Instructions": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 600; the Library pages' remaining differences (stigmer#3210)",
-        "type Run defaults": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 600; the Library pages' remaining differences (stigmer#3210)",
         "word The conversation's harness": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type Environment": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 600; the Library pages' remaining differences (stigmer#3210)",
         "word None: the server's standard sandbox.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
         "button Edit slug": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)",
         "button Edit instructions": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
@@ -816,8 +813,6 @@
       "pending": {
         "word Name": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
         "word Slug": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type Instructions": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 600; the Library pages' remaining differences (stigmer#3210)",
-        "type Run defaults": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 600; the Library pages' remaining differences (stigmer#3210)",
         "word The conversation's harness": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
         "word Environment": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
         "word None: the server's standard sandbox.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
@@ -827,7 +822,7 @@
       "caption": "An agent: Installed by a plugin: read here, changed in the plugin",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
       "words": [
         {
           "text": "Ledger reviewer",
@@ -1911,8 +1906,12 @@
     {
       "caption": "An agent: Channels, none yet",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "agent-profile-channels",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Ledger reviewer",
@@ -2107,13 +2106,22 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word In your app": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Connect Slack or WhatsApp, or make a chat link, so your customers can talk to Ledger reviewer where they already are.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Connect a channel": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "button Connect a channel": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "An agent: Evals, didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "agent-profile-evals-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Ledger reviewer",
@@ -2328,13 +2336,21 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word In your app": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word the eval store did not answer": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Stuck? Ask IT on Slack": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "An agent: Versions",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "agent-profile-versions",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Ledger reviewer",
@@ -2581,7 +2597,18 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word In your app": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Version 3": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Changed the instructions \u00b7 Ada Lovelace \u00b7 2d": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Current": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Version 2": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Added the skill month-end-close \u00b7 Ada Lovelace \u00b7 Jul 12": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Restore": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Version 1": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Created \u00b7 Ada Lovelace \u00b7 Jul 2": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "button Restore": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "An agent: At 390 wide",
@@ -3011,10 +3038,7 @@
         "word In your app": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
         "word Name": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
         "type Slug": "When its page is redesigned: built 14/20 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "type Instructions": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 600; the Library pages' remaining differences (stigmer#3210)",
-        "type Run defaults": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 600; the Library pages' remaining differences (stigmer#3210)",
         "word The conversation's harness": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type Environment": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 600; the Library pages' remaining differences (stigmer#3210)",
         "word None: the server's standard sandbox.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
         "button Edit slug": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)",
         "button Edit instructions": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"

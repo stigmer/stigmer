@@ -7,8 +7,12 @@
     {
       "caption": "An environment: Overview",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "environment-detail",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "data-science",
@@ -179,13 +183,31 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "type data-science": "When its page is redesigned: built 12/16 weight 500, drawn 20/28 weight 600; the Library pages' remaining differences (stigmer#3210)",
+        "word Created by Ada Lovelace": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Updated Jul 14, 2026": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Reaches": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Listed websites only": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Websites": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word api.github.com, our-api.example.com": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Package hosts": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Allowed": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "type poppler-utils": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "word pandas, sqlalchemy==2.0.30": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Used by": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Variance reporter (its default), and the routine daily-variance-report.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "An environment: Its network, being changed",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "environment-detail-editing",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "data-science",
@@ -416,13 +438,36 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "type data-science": "When its page is redesigned: built 12/16 weight 500, drawn 20/28 weight 600; the Library pages' remaining differences (stigmer#3210)",
+        "word Created by Ada Lovelace": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Updated Jul 14, 2026": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Any website": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Listed websites only": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word No network": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word The sandbox reaches nothing outside itself.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "type Also allow package registries and code hosts": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
+        "word npm, PyPI, crates.io, the Go module proxy, RubyGems, the Debian and Ubuntu archives and GitHub. Packages need it.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Save network": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "type Cancel": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
+        "type poppler-utils": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "word pandas, sqlalchemy==2.0.30": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Used by": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Variance reporter (its default), and the routine daily-variance-report.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "button Save network": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)",
+        "button Cancel": "When its page is redesigned: built 28px tall, drawn 32px; the Library pages' remaining differences (stigmer#3210)",
+        "button Edit packages": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "An environment: For a member: read only",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "environment-detail-member",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "data-science",
@@ -580,13 +625,31 @@
       "buttons": [],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "type data-science": "When its page is redesigned: built 12/16 weight 500, drawn 20/28 weight 600; the Library pages' remaining differences (stigmer#3210)",
+        "word Created by Ada Lovelace": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Updated Jul 14, 2026": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Reaches": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Listed websites only": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Websites": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word api.github.com, our-api.example.com": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Package hosts": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Allowed": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "type poppler-utils": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "word pandas, sqlalchemy==2.0.30": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Used by": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Variance reporter (its default), and the routine daily-variance-report.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "An environment: At 390 wide",
       "narrow": true,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "environment-detail",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "data-science",
@@ -757,7 +820,21 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "type data-science": "When its page is redesigned: built 12/16 weight 500, drawn 20/28 weight 600; the Library pages' remaining differences (stigmer#3210)",
+        "word Created by Ada Lovelace": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Updated Jul 14, 2026": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Reaches": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Listed websites only": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Websites": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word api.github.com, our-api.example.com": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Package hosts": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Allowed": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "type poppler-utils": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "word pandas, sqlalchemy==2.0.30": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Used by": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Variance reporter (its default), and the routine daily-variance-report.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
+      }
     }
   ]
 }

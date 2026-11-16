@@ -547,7 +547,7 @@ function RunEvalsForm({
         {onAgent && settings.comparedPluginId !== "" &&
           compareSwitch("Also run each case without the plugin")}
         {onAgent && (
-          <fieldset className="stg:flex stg:flex-col stg:gap-1">
+          <fieldset className="stg:m-0 stg:flex stg:min-w-0 stg:flex-col stg:gap-1 stg:border-0 stg:p-0">
             <legend className={LABEL_CLASS}>Whose cases run</legend>
             {sourceChoices.length === 0 && evalSlugs.length === 0 ? (
               <p className={HINT_CLASS}>

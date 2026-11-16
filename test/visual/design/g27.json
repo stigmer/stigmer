@@ -102,7 +102,7 @@
       "caption": "Upload skill: A file dragged over",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
       "words": [
         {
           "text": "Upload skill",
@@ -182,8 +182,12 @@
     {
       "caption": "Upload skill: Chosen, before upload",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "skill-upload-chosen",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Upload skill",
@@ -306,13 +310,29 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Every agent in acme can load a skill when a task needs it.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word month-end-close.zip": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word 14 KB \u00b7 SKILL.md and 2 more files": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word What it adds": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "type Name": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "type month-end-close": "When its page is redesigned: built 14/20 weight 500, drawn 14/20 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "type Description": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "word SKILL.md, checklist.md, signoff.csv": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "type Upload skill": "When its page is redesigned: built 20/28 weight 600, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
+        "button Remove the file": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)",
+        "button Upload skill": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "Upload skill: A file that isn't a skill",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "skill-upload-refused",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Upload skill",
@@ -395,13 +415,22 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Every agent in acme can load a skill when a task needs it.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Drop a skill's .zip here": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word A folder with a SKILL.md at its top, zipped. Up to 10 MB.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Choose a file": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word month-end.pdf isn't a skill package: choose a .zip with a SKILL.md at its top.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "type Upload skill": "When its page is redesigned: built 20/28 weight 600, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
+        "button Choose a file": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)",
+        "button Upload skill": "When its page is redesigned: built 236px tall, drawn 32px; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "Upload skill: For a member",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
       "words": [
         {
           "text": "Upload skill",
@@ -436,7 +465,12 @@
     {
       "caption": "Upload skill: At 390 wide",
       "narrow": true,
-      "built": [],
+      "built": [
+        {
+          "scene": "skill-upload-chosen",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Upload skill",
@@ -559,8 +593,19 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {},
-      "unbuilt": "built by the Library pages pull request's later scenes: no scene draws this state yet (stigmer#3210)"
+      "pending": {
+        "word Every agent in acme can load a skill when a task needs it.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word month-end-close.zip": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word 14 KB \u00b7 SKILL.md and 2 more files": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word What it adds": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "type Name": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "type month-end-close": "When its page is redesigned: built 14/20 weight 500, drawn 14/20 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "type Description": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "word SKILL.md, checklist.md, signoff.csv": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "type Upload skill": "When its page is redesigned: built 20/28 weight 600, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
+        "button Remove the file": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)",
+        "button Upload skill": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
+      }
     }
   ]
 }

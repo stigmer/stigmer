@@ -7,8 +7,12 @@
     {
       "caption": "A routine: Overview",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "routine-disabled",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "daily-variance-report",
@@ -223,13 +227,31 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Active": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Run now": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word When it runs": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Runs": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Next run": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Tomorrow at 09:00, in 14h": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "type Last run": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "word Finished 6m": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word What it runs": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Agent": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Variance reporter": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "type Message": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "type Environment": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "word data-science": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "type Budget per run": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "button Edit when it runs": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)",
+        "button Edit what it runs": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "A routine: API",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
       "words": [
         {
           "text": "daily-variance-report",
@@ -458,7 +480,7 @@
       "caption": "A routine: At 390 wide",
       "narrow": true,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
       "words": [
         {
           "text": "daily-variance-report",

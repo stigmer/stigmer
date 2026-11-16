@@ -161,7 +161,7 @@ export function NetworkingFields({ value, onChange, disabled = false, availabili
   const hintId = `${baseId}-limited-hint`;
 
   return (
-    <fieldset className={cn("stg:space-y-2", className)} disabled={disabled}>
+    <fieldset className={cn("stg:m-0 stg:min-w-0 stg:space-y-2 stg:border-0 stg:p-0", className)} disabled={disabled}>
       <legend className="stg:mb-1 stg:text-sm stg:font-semibold stg:text-foreground">Network</legend>
       <div className="stg:space-y-1.5">
         <label className="stg:flex stg:items-start stg:gap-2 stg:text-xs stg:text-foreground">
@@ -283,7 +283,7 @@ export function PackagesFields({ value, onChange, disabled = false, availability
   const baseId = useId();
 
   return (
-    <fieldset className={cn("stg:space-y-2", className)} disabled={disabled || unavailable}>
+    <fieldset className={cn("stg:m-0 stg:min-w-0 stg:space-y-2 stg:border-0 stg:p-0", className)} disabled={disabled || unavailable}>
       <legend className="stg:mb-1 stg:text-sm stg:font-semibold stg:text-foreground">Packages</legend>
       <p className={hintClasses}>
         {unavailable

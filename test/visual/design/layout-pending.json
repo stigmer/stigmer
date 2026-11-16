@@ -30,10 +30,6 @@
   "channel-chat-link-embed": {
     "type-off-scale pre \"<script src=\"https://app.stigmer.ai/embed.js\" async></script\": 12px on 19.5px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
-  "environment-new": {
-    "spacing-off-scale fieldset \"Network Unrestricted The sandbox may reach any website. Limi\": paddingTop 5.6px": "On the scale where its screen is designed and rebuilt",
-    "spacing-off-scale fieldset \"Packages Installed before the first turn of every conversati\": paddingTop 5.6px": "On the scale where its screen is designed and rebuilt"
-  },
   "help": {
     "type-off-scale a \"Conversations\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
     "type-off-scale a \"Dashboard\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
@@ -237,7 +233,7 @@
     "type-off-scale a \"Reports\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale button \"N Northwind Books\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale h1 \"Ledger entries\": 20px on 30px lines, its step pairs 28px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale p \"January to September 2026 · 164 entries\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
+    "type-off-scale p \"January to September 2026 \u00b7 164 entries\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale span \"2026\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale td \"(11,840.25)\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale td \"(7,915.80)\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
@@ -429,7 +425,7 @@
     "type-off-scale a \"Reports\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale button \"N Northwind Books\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale h1 \"Ledger entries\": 20px on 30px lines, its step pairs 28px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale p \"July to September 2026 · 18 entries\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
+    "type-off-scale p \"July to September 2026 \u00b7 18 entries\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale span \"Q3 2026\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale td \"(10,106.30)\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale td \"(8,920.40)\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
@@ -626,7 +622,7 @@
     "type-off-scale a \"Reports\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale button \"N Northwind Books\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale h1 \"Ledger entries\": 20px on 30px lines, its step pairs 28px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale p \"July to September 2026 · 18 entries\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
+    "type-off-scale p \"July to September 2026 \u00b7 18 entries\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale span \"Q3 2026\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale td \"(10,106.30)\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale td \"(8,920.40)\": 14px on 21px lines, its step pairs 20px": "On the scale where its screen is designed and rebuilt",
