@@ -449,7 +449,7 @@ function formatFireDuration(fire: RoutineFire): string | null {
 /**
  * A run's id shortened in the middle ("run_8f3a…c21d"): its kind and first
  * characters, then its last four, enough to tell runs apart at a glance.
- * The whole id stays in the link's title and its accessible name.
+ * The whole id stays in the link's accessible name.
  */
 export function shortRunId(runId: string): string {
   return runId.length <= 14 ? runId : `${runId.slice(0, 8)}\u2026${runId.slice(-4)}`;
@@ -467,14 +467,13 @@ function FireRunLink({
   const short = shortRunId(runId);
   if (!onNavigateToRun)
     return (
-      <span title={runId} className="stg:font-mono stg:text-xs stg:text-muted-foreground">
+      <span className="stg:font-mono stg:text-xs stg:text-muted-foreground">
         {short}
       </span>
     );
   return (
     <button
       type="button"
-      title={runId}
       aria-label={`Open the session of run ${runId}`}
       onClick={() => onNavigateToRun(runId)}
       className={cn(
