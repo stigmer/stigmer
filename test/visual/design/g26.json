@@ -7,8 +7,12 @@
     {
       "caption": "New routine: Filled in",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "routine-new",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "New routine",
@@ -373,15 +377,28 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word daily-variance-report": "the scene's data differs (routine-new)",
+        "word Variance reporter": "the scene's data differs (routine-new)",
+        "word Every day at 09:00 (Asia/Kolkata).": "the scene's data differs (routine-new)",
+        "word My vault": "the scene's data differs (routine-new)",
+        "word Default: data-science (the agent's default)": "the scene's data differs (routine-new)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "type At": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "type Connect GitHub": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "New routine: An agent the person can't change: said under the field, Create held",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "routine-new-agent-refused",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "New routine",
@@ -746,9 +763,20 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word daily-variance-report": "the scene's data differs (routine-new-agent-refused)",
+        "word Receipts matcher": "the scene's data differs (routine-new-agent-refused)",
+        "word You can't change Receipts matcher, so you can't schedule it. Pick an agent you may change, or ask its owner.": "the scene's data differs (routine-new-agent-refused)",
+        "word Every day at 09:00 (Asia/Kolkata).": "the scene's data differs (routine-new-agent-refused)",
+        "word My vault": "the scene's data differs (routine-new-agent-refused)",
+        "word Default: data-science (the agent's default)": "the scene's data differs (routine-new-agent-refused)",
+        "word Asia/Kolkata": "the scene's data differs (routine-new-agent-refused)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "type At": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "type Connect GitHub": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "New routine: The message left empty",

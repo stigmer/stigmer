@@ -7,8 +7,12 @@
     {
       "caption": "Upload plugin: Nothing chosen yet",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "plugin-upload-first",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Upload plugin",
@@ -81,9 +85,18 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Drop a plugin's .zip here": "the scene's data differs (plugin-upload-first)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Upload plugin": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Install a plugin you have on your computer. An agent that uses it gets its skills, agents, hooks and MCP servers.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word A folder with a plugin.json at its top, zipped. Up to 50 MB.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Choose a file": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "button Choose a file": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)",
+        "button Upload plugin": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "Upload plugin: Chosen, before upload",
@@ -452,7 +465,6 @@
       "caption": "Upload plugin: At 390 wide",
       "narrow": true,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
       "words": [
         {
           "text": "Upload plugin",
@@ -575,7 +587,8 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {},
+      "unbuilt": "built by the Library pages pull request's later scenes: no scene draws this state yet (stigmer#3210)"
     }
   ]
 }

@@ -7,8 +7,12 @@
     {
       "caption": "Upload skill: Nothing chosen yet",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "skill-upload-first",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Upload skill",
@@ -81,9 +85,18 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Every agent in acme can load a skill when a task needs it.": "the scene's data differs (skill-upload-first)",
+        "word Drop a skill's .zip here": "the scene's data differs (skill-upload-first)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word A folder with a SKILL.md at its top, zipped. Up to 10 MB.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Choose a file": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "type Upload skill": "When its page is redesigned: built 20/28 weight 600, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
+        "button Choose a file": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)",
+        "button Upload skill": "When its page is redesigned: built 236px tall, drawn 32px; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "Upload skill: A file dragged over",
@@ -424,7 +437,6 @@
       "caption": "Upload skill: At 390 wide",
       "narrow": true,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
       "words": [
         {
           "text": "Upload skill",
@@ -547,7 +559,8 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {},
+      "unbuilt": "built by the Library pages pull request's later scenes: no scene draws this state yet (stigmer#3210)"
     }
   ]
 }

@@ -7,8 +7,12 @@
     {
       "caption": "An agent: Overview, as its owner",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "agent-profile-owner",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Ledger reviewer",
@@ -417,15 +421,35 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Skills 2": "the scene's data differs (agent-profile-owner)",
+        "word How acme codes expenses.": "the scene's data differs (agent-profile-owner)",
+        "word The month-end checklist, in order.": "the scene's data differs (agent-profile-owner)",
+        "word MCP servers 1": "the scene's data differs (agent-profile-owner)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word In your app": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Name": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "type Slug": "When its page is redesigned: built 14/20 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "type Instructions": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 600; the Library pages' remaining differences (stigmer#3210)",
+        "type Run defaults": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 600; the Library pages' remaining differences (stigmer#3210)",
+        "word The conversation's harness": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "type Environment": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 600; the Library pages' remaining differences (stigmer#3210)",
+        "word None: the server's standard sandbox.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "button Edit slug": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)",
+        "button Edit instructions": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "An agent: Overview, as someone who may only use it",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "agent-profile-viewer",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Ledger reviewer",
@@ -782,9 +806,22 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Skills 2": "the scene's data differs (agent-profile-viewer)",
+        "word How acme codes expenses.": "the scene's data differs (agent-profile-viewer)",
+        "word The month-end checklist, in order.": "the scene's data differs (agent-profile-viewer)",
+        "word MCP servers 1": "the scene's data differs (agent-profile-viewer)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Name": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Slug": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "type Instructions": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 600; the Library pages' remaining differences (stigmer#3210)",
+        "type Run defaults": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 600; the Library pages' remaining differences (stigmer#3210)",
+        "word The conversation's harness": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Environment": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word None: the server's standard sandbox.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "An agent: Installed by a plugin: read here, changed in the plugin",
@@ -1198,8 +1235,12 @@
     {
       "caption": "An agent: Make it yours, on the parts (a new agent from a template)",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "agent-make-it-yours",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Ledger reviewer",
@@ -1464,15 +1505,38 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Ledger reviewer": "the scene's data differs (agent-make-it-yours)",
+        "word Reads the month's ledger, finds miscoded expenses and asks before it posts an adjustment.": "the scene's data differs (agent-make-it-yours)",
+        "word acme/ledger-reviewer": "the scene's data differs (agent-make-it-yours)",
+        "word Made by Ada Lovelace": "the scene's data differs (agent-make-it-yours)",
+        "word Updated Jul 19, 2026": "the scene's data differs (agent-make-it-yours)",
+        "word Claude Sonnet 4.6": "the scene's data differs (agent-make-it-yours)",
+        "word 2 skills": "the scene's data differs (agent-make-it-yours)",
+        "word 1 MCP server": "the scene's data differs (agent-make-it-yours)",
+        "word 1 sub-agent": "the scene's data differs (agent-make-it-yours)",
+        "word 3 versions": "the scene's data differs (agent-make-it-yours)",
+        "word You review a customer's quarterly ledger. Each row has an account, its budget and its actual amount. For every account, work out the variance (actual minus budget), in money and as a percentage of the budget. Flag each account that is more than 10% over or under budget.": "the scene's data differs (agent-make-it-yours)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "type Choose a file": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
+        "type Add it": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
+        "type Put it in your app": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
+        "button Choose a file": "When its page is redesigned: built 28px tall, drawn 32px; the Library pages' remaining differences (stigmer#3210)",
+        "button Add it": "When its page is redesigned: built 28px tall, drawn 32px; the Library pages' remaining differences (stigmer#3210)",
+        "button Put it in your app": "When its page is redesigned: built 28px tall, drawn 32px; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "An agent: In your app, on the parts",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "agent-in-app",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Ledger reviewer",
@@ -1831,7 +1895,18 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "type Your backend": "When its page is redesigned: built 14/20 weight 400, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
+        "type Next.js": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
+        "type Node": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
+        "type Python": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
+        "type Go": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
+        "type Java": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
+        "type Create accounts on sign-in": "When its page is redesigned: built 14/20 weight 400, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
+        "type Install": "When its page is redesigned: built 11/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "type npm install @stigmer/client": "When its page is redesigned: built 11/17.88 weight 400, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "word Want a public helper anyone on your site can use without signing in? A chat link's Embed tab gives you one line to paste. Open Channels": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "An agent: Channels, none yet",
@@ -2511,8 +2586,12 @@
     {
       "caption": "An agent: At 390 wide",
       "narrow": true,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "agent-profile-owner",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Ledger reviewer",
@@ -2921,9 +3000,25 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Skills 2": "the scene's data differs (agent-profile-owner)",
+        "word How acme codes expenses.": "the scene's data differs (agent-profile-owner)",
+        "word The month-end checklist, in order.": "the scene's data differs (agent-profile-owner)",
+        "word MCP servers 1": "the scene's data differs (agent-profile-owner)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word In your app": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Name": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "type Slug": "When its page is redesigned: built 14/20 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "type Instructions": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 600; the Library pages' remaining differences (stigmer#3210)",
+        "type Run defaults": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 600; the Library pages' remaining differences (stigmer#3210)",
+        "word The conversation's harness": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "type Environment": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 600; the Library pages' remaining differences (stigmer#3210)",
+        "word None: the server's standard sandbox.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "button Edit slug": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)",
+        "button Edit instructions": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
+      }
     }
   ]
 }
