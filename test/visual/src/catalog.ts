@@ -135,6 +135,9 @@ export type AriaRole = Parameters<Page["getByRole"]>[0];
  * - `{ fill, with }` types `with` into the field labelled `fill`.
  * - `first` presses the first of several controls that share the name: a
  *   page's create act, which its empty list repeats under the header's.
+ * - `{ see }` waits until these words show: a state the page reaches after
+ *   a wait of its own (a search the list reads once typing pauses), which
+ *   the settle's quiet window may close before.
  *
  * A name matches as a part of the control's or label's, as Playwright's
  * locators do (a label that wraps its hint names the field with both),
@@ -147,7 +150,8 @@ export type AriaRole = Parameters<Page["getByRole"]>[0];
 export type Act =
   | string
   | { readonly press: string; readonly role: AriaRole; readonly exact?: boolean; readonly first?: boolean }
-  | { readonly fill: string; readonly with: string; readonly exact?: boolean };
+  | { readonly fill: string; readonly with: string; readonly exact?: boolean }
+  | { readonly see: string };
 
 /** One scene and how it is pictured. */
 export interface Scene {
@@ -637,7 +641,7 @@ const LIBRARY_SCENES = [
     id: "library-agents-no-match",
     title: "Library, Agents: a search that matches no agent",
     widths: ["desktop"],
-    opens: [{ fill: "Search agents", with: "ledgr" }],
+    opens: [{ fill: "Search agents", with: "ledgr" }, { see: "No agents match" }],
   },
   { id: "library-agents-failed", title: "Library, Agents: the list could not be read", widths: ["desktop", "narrow"] },
   { id: "library-agents-loading", title: "Library, Agents: while the list is read", widths: ["desktop"] },
