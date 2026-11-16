@@ -50,16 +50,22 @@ describe("CON-15 every dialog is the kit's: one title, body and footer, its acts
     expect(DIALOGS.length).toBeGreaterThan(20);
   });
 
-  it.each(DIALOGS.map(({ file }) => file))("%s draws its title with DialogHeader, or is a named viewer", (file) => {
+  const titled = DIALOGS.filter(({ file }) => !(file in VIEWERS));
+  const withActs = titled.filter(({ file }) => !(file in ACTS_IN_THEIR_FORM));
+
+  it.each(titled.map(({ file }) => file))("%s draws its title with DialogHeader", (file) => {
     const { text } = DIALOGS.find((dialog) => dialog.file === file)!;
-    if (file in VIEWERS) return;
     expect(text, `${file} renders a dialog without DialogHeader`).toContain("<DialogHeader");
   });
 
-  it.each(DIALOGS.map(({ file }) => file))("%s draws its acts with DialogFooter, or its form carries them", (file) => {
+  it.each(withActs.map(({ file }) => file))("%s draws its acts with DialogFooter", (file) => {
     const { text } = DIALOGS.find((dialog) => dialog.file === file)!;
-    if (file in VIEWERS || file in ACTS_IN_THEIR_FORM) return;
     expect(text, `${file} renders a dialog without DialogFooter`).toContain("<DialogFooter");
+  });
+
+  it("names a reason for every dialog it leaves out", () => {
+    for (const reason of [...Object.values(VIEWERS), ...Object.values(ACTS_IN_THEIR_FORM)]) expect(reason.length).toBeGreaterThan(10);
+    expect(withActs.length).toBeGreaterThan(10);
   });
 
   it("names only files that render the shell", () => {
