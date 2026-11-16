@@ -36,7 +36,7 @@ import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/
 import { StigmerContext } from "@stigmer/react-core";
 import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { RoutineDetailView } from "../RoutineDetailView";
-import { fireStartedBy } from "../RoutineFiresTable";
+import { fireStartedBy, shortRunId } from "../RoutineFiresTable";
 import { openMenu } from "../../__tests__/helpers/open-menu";
 
 vi.mock("../../feedback/toast", () => ({
@@ -453,7 +453,7 @@ describe("RoutineDetailView", () => {
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
     fireEvent.click(screen.getByRole("tab", { name: /History/ }));
-    expect(await screen.findByText("No fires yet")).toBeTruthy();
+    expect(await screen.findByText("No runs yet")).toBeTruthy();
     expect(screen.queryByRole("table", { name: "Fire history" })).toBeNull();
   });
 
@@ -517,12 +517,12 @@ describe("RoutineDetailView", () => {
     );
     renderView(client, { onNavigateToRun });
 
-    fireEvent.click(await screen.findByRole("button", { name: "run_01ledger" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open the session of run run_01ledger" }));
     expect(onNavigateToRun).toHaveBeenLastCalledWith("run_01ledger");
 
     fireEvent.click(screen.getByRole("tab", { name: /History/ }));
     const table = await screen.findByRole("table", { name: "Fire history" });
-    fireEvent.click(within(table).getByRole("button", { name: "run_01ledger" }));
+    fireEvent.click(within(table).getByRole("button", { name: "Open the session of run run_01ledger" }));
     expect(onNavigateToRun).toHaveBeenCalledTimes(2);
     expect(onNavigateToRun).toHaveBeenLastCalledWith("run_01ledger");
   });
@@ -1203,8 +1203,9 @@ describe("RoutineDetailView: starting it, who started it, and its API", () => {
     const table = await screen.findByRole("table", { name: "Fire history" });
     expect(within(table).getByRole("columnheader", { name: "Started by" })).toBeTruthy();
     const rows = within(table).getAllByRole("row").slice(1);
-    const startedBy = rows.map((row) => within(row).getAllByRole("cell")[2]!);
-    expect(startedBy.map((cell) => cell.textContent)).toEqual(["alerting", "ana@example.com", "—"]);
+    // The column holds the person who started a run by hand, else how it was started.
+    const startedBy = rows.map((row) => within(row).getAllByRole("cell")[1]!);
+    expect(startedBy.map((cell) => cell.textContent)).toEqual(["alerting", "ana@example.com", "Scheduled"]);
   });
 
   it("names the service account behind an app user's token, and nobody for a schedule fire", () => {
@@ -1255,5 +1256,12 @@ describe("RoutineDetailView: starting it, who started it, and its API", () => {
     );
     await openMenu(screen.getByRole("button", { name: "More actions" }));
     expect(await screen.findByRole("menuitem", { name: "Manage access" })).toBeTruthy();
+  });
+});
+
+describe("shortRunId", () => {
+  it("keeps a short id whole and shortens a long one in the middle", () => {
+    expect(shortRunId("run_01run")).toBe("run_01run");
+    expect(shortRunId("run_8f3a0000000000c21d")).toBe("run_8f3a\u2026c21d");
   });
 });

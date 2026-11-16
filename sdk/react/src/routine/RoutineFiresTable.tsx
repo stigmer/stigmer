@@ -116,17 +116,14 @@ export function RoutineFiresTable({
         >
           <span role="columnheader">Outcome</span>
           <span role="columnheader" className="stg:hidden stg:sm:block">
-            Origin
-          </span>
-          <span role="columnheader" className="stg:hidden stg:sm:block">
             Started by
           </span>
-          <span role="columnheader">Fired</span>
+          <span role="columnheader">When</span>
           <span role="columnheader" className="stg:hidden stg:sm:block">
-            Duration
+            Took
           </span>
           <span role="columnheader" className="stg:text-right">
-            Run
+            Session
           </span>
         </div>
         {fires.map((fire, i) => (
@@ -157,7 +154,7 @@ export function RoutineFiresTable({
 // Mobile keeps the three load-bearing columns (outcome, fired,
 // run); origin, who started it and duration join at the sm breakpoint.
 const rowGridClasses =
-  "stg:grid stg:grid-cols-[7rem_1fr_auto] stg:items-center stg:gap-x-4 stg:sm:grid-cols-[7rem_5.5rem_minmax(0,9rem)_1fr_5rem_minmax(0,12rem)]";
+  "stg:grid stg:grid-cols-[7rem_1fr_auto] stg:items-center stg:gap-x-4 stg:sm:grid-cols-[7rem_minmax(0,10rem)_1fr_5rem_minmax(0,12rem)]";
 
 function FireTableRow({
   fire,
@@ -185,14 +182,12 @@ function FireTableRow({
       <span role="cell">
         <StatusBadge phase={badge.phase} label={badge.label} />
       </span>
-      <span role="cell" className="stg:hidden stg:text-sm stg:text-muted-foreground stg:sm:block">
-        {fireOriginLabel(fire.origin)}
-      </span>
+      {/* Who started it: the person for a run by hand, else how it was started (its schedule, a call). */}
       <span
         role="cell"
         className="stg:hidden stg:truncate stg:text-sm stg:text-muted-foreground stg:sm:block"
       >
-        {startedBy ? <StartedByLabel startedBy={startedBy} /> : "—"}
+        {startedBy ? <StartedByLabel startedBy={startedBy} /> : fireOriginLabel(fire.origin)}
       </span>
       <span role="cell" className="stg:text-sm stg:text-muted-foreground">
         {fireDate ? (
@@ -213,26 +208,7 @@ function FireTableRow({
         {formatFireDuration(fire) ?? "—"}
       </span>
       <span role="cell" className="stg:min-w-0 stg:text-right">
-        {fire.runId ? (
-          onNavigateToRun ? (
-            <button
-              type="button"
-              onClick={() => onNavigateToRun(fire.runId)}
-              className={cn(
-                "stg:max-w-full stg:truncate stg:font-mono stg:text-2xs stg:text-primary stg:underline-offset-2 stg:hover:underline",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded-sm",
-              )}
-            >
-              {fire.runId}
-            </button>
-          ) : (
-            <span className="stg:font-mono stg:text-2xs stg:text-muted-foreground">
-              {fire.runId}
-            </span>
-          )
-        ) : (
-          <span className="stg:text-xs stg:text-muted-foreground">—</span>
-        )}
+        <FireRunLink runId={fire.runId} onNavigateToRun={onNavigateToRun} />
       </span>
       {fire.reason && (
         <p
@@ -341,23 +317,11 @@ function CompactFireRow({
           {fire.reason}
         </p>
       )}
-      {fire.runId &&
-        (onNavigateToRun ? (
-          <button
-            type="button"
-            onClick={() => onNavigateToRun(fire.runId)}
-            className={cn(
-              "stg:self-start stg:font-mono stg:text-2xs stg:text-primary stg:underline-offset-2 stg:hover:underline",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded-sm",
-            )}
-          >
-            {fire.runId}
-          </button>
-        ) : (
-          <span className="stg:self-start stg:font-mono stg:text-2xs stg:text-muted-foreground">
-            {fire.runId}
-          </span>
-        ))}
+      {fire.runId && (
+        <span className="stg:self-start">
+          <FireRunLink runId={fire.runId} onNavigateToRun={onNavigateToRun} />
+        </span>
+      )}
     </li>
   );
 }
@@ -372,8 +336,8 @@ function EmptyFires({ size }: { readonly size: "panel" | "inline" }) {
     <EmptyState
       variant="first-use"
       size={size}
-      title="No fires yet"
-      description="Every fire, on its schedule, by hand or over the API, is recorded here, a refused one included."
+      title="No runs yet"
+      description="This routine hasn't run. Every run, on its schedule, by hand or over the API, is recorded here."
     />
   );
 }
@@ -480,4 +444,45 @@ function formatFireDuration(fire: RoutineFire): string | null {
   const hours = Math.floor(minutes / 60);
   const remMinutes = minutes % 60;
   return remMinutes > 0 ? `${hours}h ${remMinutes}m` : `${hours}h`;
+}
+
+/**
+ * A run's id shortened in the middle ("run_8f3a…c21d"): its kind and first
+ * characters, then its last four, enough to tell runs apart at a glance.
+ * The whole id stays in the link's title and its accessible name.
+ */
+export function shortRunId(runId: string): string {
+  return runId.length <= 14 ? runId : `${runId.slice(0, 8)}\u2026${runId.slice(-4)}`;
+}
+
+/** The session a fire's run made, as a link to it where the host can open it. */
+function FireRunLink({
+  runId,
+  onNavigateToRun,
+}: {
+  readonly runId: string;
+  readonly onNavigateToRun?: (executionId: string) => void;
+}) {
+  if (!runId) return <span className="stg:text-xs stg:text-muted-foreground">—</span>;
+  const short = shortRunId(runId);
+  if (!onNavigateToRun)
+    return (
+      <span title={runId} className="stg:font-mono stg:text-xs stg:text-muted-foreground">
+        {short}
+      </span>
+    );
+  return (
+    <button
+      type="button"
+      title={runId}
+      aria-label={`Open the session of run ${runId}`}
+      onClick={() => onNavigateToRun(runId)}
+      className={cn(
+        "stg:max-w-full stg:truncate stg:font-mono stg:text-xs stg:text-foreground stg:underline stg:decoration-border-strong stg:underline-offset-4 stg:hover:decoration-foreground",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded-sm",
+      )}
+    >
+      {short}
+    </button>
+  );
 }
