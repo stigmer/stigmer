@@ -426,6 +426,7 @@ list hook sends it to the server.
     now: { type: "Date", description: "Frozen instant for deterministic hosts (tests, documentation tours)." },
     onChannelFilterChange: { type: "(channelId: string) => void", description: "Called when the user picks a channel filter.", required: true },
     onFilterChange: { type: "(filter: ChannelConversationListFilter) => void", description: "Called when the user picks a predicate filter. The control renders only when this is wired — a dead toggle over an unfiltered list would lie." },
+    onRetry: { type: "() => void", description: "Reads the list again: the failure's Try again (from `useConversationList`'s `refetch`). Without it, no Try again." },
     onSelect: { type: "(conversation: ChannelConversation) => void", description: "Called when the user opens a conversation.", required: true },
     selected: { type: "ConversationIdentity | null", description: "The open conversation, for row highlighting. `null` when none.", required: true },
   }}
