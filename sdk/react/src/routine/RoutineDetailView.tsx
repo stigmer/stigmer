@@ -81,6 +81,7 @@ import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { describeEnvironmentChoice } from "../environment/copy.js";
 import { RoutineEnvironmentField, useRoutineEnvironmentDefault } from "./RoutineEnvironmentField.js";
 import { Button } from "../button/Button.js";
+import { FIELD_LABEL_CLASSES, FieldError, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link RoutineDetailView}. */
 export interface RoutineDetailViewProps {
@@ -1307,7 +1308,7 @@ function BudgetInlineEditor({
 
   return (
     <div className="stg:flex stg:flex-col stg:gap-2">
-      <input
+      <TextInput
         type="number"
         min="0"
         step="any"
@@ -1316,7 +1317,8 @@ function BudgetInlineEditor({
         onChange={(e) => setBudgetUsd(e.target.value)}
         placeholder="platform default"
         disabled={isSaving}
-        className={cn(editorInputClasses, "stg:sm:max-w-48")}
+        size="xs"
+        className="stg:sm:max-w-48"
       />
       <p className="stg:text-2xs stg:text-muted-foreground">
         Each run stops when it reaches this spend. You can lower the
@@ -1447,14 +1449,7 @@ function validateMessage(value: string): string | null {
 // Inline-edit chrome shared by the bespoke editors above
 // ---------------------------------------------------------------------------
 
-const editorLabelClasses = "stg:block stg:text-xs stg:font-medium stg:text-foreground";
-
-const editorInputClasses = cn(
-  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-  "stg:placeholder:text-muted-foreground",
-  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-);
+const editorLabelClasses = FIELD_LABEL_CLASSES;
 
 /** Read-mode click target with the family's hover pencil. */
 function InlineReadButton({
@@ -1512,9 +1507,9 @@ function InlineEditActions({
         </Button>
       </div>
       {error && (
-        <p className="stg:text-xs stg:text-destructive" role="alert">
+        <FieldError>
           {error}
-        </p>
+        </FieldError>
       )}
     </div>
   );

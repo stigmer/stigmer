@@ -41,6 +41,7 @@ import { orgRoleOf } from "./org-role.js";
 import { ServiceAccountKeyListPanel } from "./ServiceAccountKeyListPanel.js";
 import { useDeleteServiceAccount } from "./useDeleteServiceAccount.js";
 import { Button } from "../button/Button.js";
+import { FieldError, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link ServiceAccountDetailPanel}. */
 export interface ServiceAccountDetailPanelProps {
@@ -193,7 +194,7 @@ function NameSection({
       <label htmlFor={`${baseId}-name`} className={SECTION_HEADING}>
         Name
       </label>
-      <input
+      <TextInput
         id={`${baseId}-name`}
         type="text"
         value={draft}
@@ -201,16 +202,12 @@ function NameSection({
         disabled={isUpdating}
         autoFocus
         required
-        className={cn(
-          "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-        )}
+        className="stg:w-full"
       />
       {error && (
-        <p className="stg:text-destructive stg:text-2xs" role="alert">
+        <FieldError>
           {saveErrorMessage(error, "service account")}
-        </p>
+        </FieldError>
       )}
       <div className="stg:flex stg:items-center stg:gap-2">
         <Button type="submit" size="xs" disabled={!canSave} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>
@@ -294,9 +291,9 @@ function RoleSection({
         disabled={isWorking || access.isLoading}
       />
       {error && (
-        <p className="stg:text-destructive stg:text-2xs" role="alert">
+        <FieldError>
           {getUserMessage(error)}
-        </p>
+        </FieldError>
       )}
       {selected !== null && selected !== current?.role && (
         <div className="stg:flex stg:items-center stg:gap-2">
@@ -431,9 +428,9 @@ function DeleteSection({
         created stays with the organization.
       </p>
       {error && (
-        <p className="stg:text-2xs stg:text-destructive" role="alert">
+        <FieldError>
           {getUserMessage(error)}
-        </p>
+        </FieldError>
       )}
       <div className="stg:flex stg:items-center stg:gap-1.5">
         <Button

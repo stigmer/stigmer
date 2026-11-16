@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useId, useState } from "react";
-import { cn } from "@stigmer/design-tokens";
 import { type RunConfigInput } from "@stigmer/client";
 import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import type { RunConfig } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
@@ -18,6 +17,7 @@ import { fromProtoThinkingMode, toProtoThinkingMode } from "@stigmer/react-core/
 import { type ThinkingModeOption } from "@stigmer/react-core";
 import { useSaveChannel } from "./useSaveChannel.js";
 import { saveErrorMessage } from "@stigmer/react-core/internal";
+import { FIELD_HINT_CLASSES, FIELD_LABEL_CLASSES, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link ChannelRunConfigDialog}. */
 export interface ChannelRunConfigDialogProps {
@@ -227,7 +227,7 @@ function ChannelRunConfigDialogBody({
             Budget per run (USD){" "}
             <span className="stg:font-normal stg:text-muted-foreground">(optional)</span>
           </label>
-          <input
+          <TextInput
             id={`${titleId}-budget`}
             type="number"
             min="0"
@@ -237,7 +237,7 @@ function ChannelRunConfigDialogBody({
             onChange={(e) => setBudgetUsd(e.target.value)}
             placeholder="Platform default"
             disabled={isPending}
-            className={cn(inputClasses, "stg:max-w-40")}
+            className="stg:max-w-40"
           />
           <p className={hintClasses}>
             Caps each turn&rsquo;s estimated spend. The platform profile
@@ -330,16 +330,9 @@ function buildRunConfig(
   return Object.keys(config).length > 0 ? config : undefined;
 }
 
-const labelClasses = "stg:block stg:text-xs stg:font-medium stg:text-foreground";
+const labelClasses = FIELD_LABEL_CLASSES;
 
-const hintClasses = "stg:text-2xs stg:text-muted-foreground";
-
-const inputClasses = cn(
-  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-  "stg:placeholder:text-muted-foreground",
-  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-);
+const hintClasses = FIELD_HINT_CLASSES;
 
 function CloseIcon() {
   return (

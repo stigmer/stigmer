@@ -27,6 +27,7 @@ import { Notice } from "../../internal/surface/Notice.js";
 import { CopyButton, useCopy } from "../../internal/CopyBlock.js";
 import { usePublicBaseUrl } from "../../public-base-url-context.js";
 import type { FirstChoice, FirstChoiceFailure, FirstChoicePending } from "./useStartFromExample.js";
+import { TextArea } from "../../internal/form/index.js";
 
 /** The question, as the person reads it. */
 export const FIRST_QUESTION_HEADING = "What should your agent do for your users?";
@@ -165,7 +166,7 @@ function DescribeOwn({ pending, failure, onDescribe, onJustChat }: Pick<FirstQue
       <label htmlFor={fieldId} className="stg:text-sm stg:font-medium stg:text-foreground">
         Describe your own
       </label>
-      <textarea
+      <TextArea
         id={fieldId}
         ref={field}
         rows={3}
@@ -173,7 +174,7 @@ function DescribeOwn({ pending, failure, onDescribe, onJustChat }: Pick<FirstQue
         onChange={(event) => setWords(event.target.value)}
         aria-describedby={hintId}
         placeholder="Read a user's shipping manifest and list every parcel that will miss its promised date, with the reason."
-        className="stg:w-full stg:resize-y stg:rounded-lg stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:text-sm stg:leading-5 stg:text-foreground stg:placeholder:text-muted-foreground stg:focus:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
+        className="stg:w-full stg:resize-y stg:px-3 stg:py-2"
       />
       <p id={hintId} className="stg:m-0 stg:text-xs stg:leading-5 stg:text-muted-foreground">
         Stigmer uses your words as the agent&apos;s instructions, and adds one line so it saves what it makes as a file you can download. There&apos;s no sample for a job only you know, so its first message takes one of your own files. You can sharpen the instructions after it runs.

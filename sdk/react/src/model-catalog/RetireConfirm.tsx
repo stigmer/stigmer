@@ -4,8 +4,8 @@ import { useState } from "react";
 import { getUserMessage } from "@stigmer/client";
 import type { ModelPricingBaseline } from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { Button } from "../button/index.js";
-import { INPUT_CLASSES } from "../internal/form-primitives.js";
 import { Card } from "../internal/surface/Card.js";
+import { FieldError, TextInput } from "../internal/form/index.js";
 
 // ---------------------------------------------------------------------------
 // RetireConfirm — typed confirmation for retiring a catalog entry (a
@@ -43,16 +43,14 @@ export function RetireConfirm({
         to confirm.
       </p>
       <div className="stg:grid stg:grid-cols-2 stg:gap-2">
-        <input
-          className={INPUT_CLASSES}
+        <TextInput
           value={typed}
           onChange={(e) => setTyped(e.target.value)}
           placeholder={target.modelId}
           disabled={isSubmitting}
           aria-label="Type the model id to confirm retirement"
         />
-        <input
-          className={INPUT_CLASSES}
+        <TextInput
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="Reason (audit trail)"
@@ -60,9 +58,9 @@ export function RetireConfirm({
         />
       </div>
       {submitError && (
-        <p className="stg:text-destructive stg:text-xs" role="alert">
+        <FieldError>
           {getUserMessage(submitError)}
-        </p>
+        </FieldError>
       )}
       <div className="stg:flex stg:gap-2">
         <Button

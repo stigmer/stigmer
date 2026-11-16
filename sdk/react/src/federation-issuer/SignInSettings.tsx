@@ -20,6 +20,7 @@ import type { FederationIssuerInput } from "@stigmer/client";
 import type { FederationIssuerSpec } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/spec_pb";
 import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
+import { FIELD_LABEL_CLASSES, Select, TextInput } from "../internal/form/index.js";
 
 /** The edit state of an issuer's sign-in settings. */
 export interface SignInSettings {
@@ -162,11 +163,11 @@ export function SignInSettingsSection({
       <div className="stg:space-y-1">
         <label
           htmlFor={`${baseId}-role`}
-          className="stg:text-xs stg:font-medium stg:text-foreground"
+          className={FIELD_LABEL_CLASSES}
         >
           Sign-in role
         </label>
-        <select
+        <Select
           id={`${baseId}-role`}
           value={String(value.signInRole)}
           onChange={(e) =>
@@ -177,18 +178,14 @@ export function SignInSettingsSection({
           }
           disabled={disabled}
           aria-describedby={roleHintId}
-          className={cn(
-            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
+          className="stg:w-full"
         >
           {SIGN_IN_ROLE_OPTIONS.map((opt) => (
             <option key={opt.value} value={String(opt.value)}>
               {opt.label}
             </option>
           ))}
-        </select>
+        </Select>
         <p
           id={roleHintId}
           className="stg:text-2xs stg:text-muted-foreground"
@@ -201,11 +198,11 @@ export function SignInSettingsSection({
       <div className="stg:space-y-1">
         <label
           htmlFor={`${baseId}-external-id-claim`}
-          className="stg:text-xs stg:font-medium stg:text-foreground"
+          className={FIELD_LABEL_CLASSES}
         >
           Customer id claim
         </label>
-        <input
+        <TextInput
           id={`${baseId}-external-id-claim`}
           type="text"
           value={value.externalIdClaim}
@@ -216,12 +213,7 @@ export function SignInSettingsSection({
           disabled={disabled}
           maxLength={256}
           aria-describedby={claimHintId}
-          className={cn(
-            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-            "stg:placeholder:text-muted-foreground",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
+          className="stg:w-full"
         />
         <p
           id={claimHintId}

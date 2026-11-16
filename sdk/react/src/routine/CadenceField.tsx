@@ -12,6 +12,7 @@ import {
   type CadenceKind,
   type CadencePreset,
 } from "./cadence.js";
+import { ChoiceGroup, FieldError, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link CadenceField}. */
 export interface CadenceFieldProps {
@@ -73,58 +74,21 @@ export function CadenceField({
 
   return (
     <div className="stg:space-y-2">
-      {/* Preset selector — segmented radio group, matching ViewSwitcher's pattern */}
-      <div
-        role="radiogroup"
+      {/* Preset selector: the kit's segmented choice group */}
+      <ChoiceGroup
         aria-label="Cadence"
-        aria-disabled={disabled || undefined}
-        className={cn(
-          "stg:inline-flex stg:flex-wrap stg:rounded-md stg:bg-muted stg:p-0.5",
-          disabled && "stg:pointer-events-none stg:opacity-50",
-        )}
-      >
-        {KIND_OPTIONS.map((option) => {
-          const isSelected = value.kind === option.kind;
-          return (
-            <button
-              key={option.kind}
-              type="button"
-              role="radio"
-              aria-checked={isSelected}
-              tabIndex={isSelected ? 0 : -1}
-              disabled={disabled}
-              onClick={() => switchKind(option.kind)}
-              onKeyDown={(e) => {
-                if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
-                  e.preventDefault();
-                  const idx = KIND_OPTIONS.findIndex((o) => o.kind === value.kind);
-                  const delta = e.key === "ArrowRight" ? 1 : -1;
-                  const next =
-                    KIND_OPTIONS[
-                      (idx + delta + KIND_OPTIONS.length) % KIND_OPTIONS.length
-                    ];
-                  switchKind(next.kind);
-                }
-              }}
-              className={cn(
-                "stg:inline-flex stg:cursor-pointer stg:items-center stg:rounded-sm stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                isSelected
-                  ? "stg:bg-background stg:text-foreground stg:shadow-sm"
-                  : "stg:text-muted-foreground stg:hover:text-foreground",
-              )}
-            >
-              {option.label}
-            </button>
-          );
-        })}
-      </div>
+        value={value.kind}
+        onChange={switchKind}
+        disabled={disabled}
+        options={KIND_OPTIONS.map((option) => ({ value: option.kind, label: option.label }))}
+      />
 
       {/* Per-preset inputs */}
       {value.kind === "hourly" && (
         <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-foreground">
           <label htmlFor={`${groupId}-minute`}>At minute</label>
-          <input
+          <TextInput
+            className="stg:w-16"
             id={`${groupId}-minute`}
             type="number"
             min={0}
@@ -137,7 +101,6 @@ export function CadenceField({
               })
             }
             disabled={disabled}
-            className={numberInputClasses}
           />
         </div>
       )}
@@ -219,7 +182,8 @@ export function CadenceField({
         <div className="stg:space-y-2">
           <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-foreground">
             <label htmlFor={`${groupId}-day`}>On day</label>
-            <input
+            <TextInput
+              className="stg:w-16"
               id={`${groupId}-day`}
               type="number"
               min={1}
@@ -232,7 +196,6 @@ export function CadenceField({
                 })
               }
               disabled={disabled}
-              className={numberInputClasses}
             />
             <span className="stg:text-muted-foreground">of every month</span>
           </div>
@@ -255,25 +218,20 @@ export function CadenceField({
 
       {value.kind === "custom" && (
         <div className="stg:space-y-1">
-          <input
+          <TextInput
             type="text"
             aria-label="Cron expression"
             placeholder="e.g. 0 9 * * MON-FRI"
             value={value.cron}
             onChange={(e) => onChange({ kind: "custom", cron: e.target.value })}
             disabled={disabled}
-            className={cn(
-              "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:font-mono stg:text-xs stg:text-foreground",
-              "stg:placeholder:font-sans stg:placeholder:text-muted-foreground",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              cronError && "stg:border-destructive",
-            )}
+            className="stg:w-full stg:font-mono"
+            invalid={Boolean(cronError)}
           />
           {cronError ? (
-            <p className="stg:text-2xs stg:text-destructive" role="alert">
+            <FieldError>
               {cronError}
-            </p>
+            </FieldError>
           ) : (
             <p className="stg:text-2xs stg:text-muted-foreground">
               5 fields (minute hour day-of-month month day-of-week) or
@@ -297,12 +255,6 @@ export function CadenceField({
 // Private helpers
 // ---------------------------------------------------------------------------
 
-const numberInputClasses = cn(
-  "stg:w-16 stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2 stg:py-1 stg:text-xs stg:text-foreground",
-  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-);
-
 function TimeInput({
   id,
   hour,
@@ -319,7 +271,8 @@ function TimeInput({
   return (
     <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-foreground">
       <label htmlFor={id}>At</label>
-      <input
+      <TextInput
+        className="stg:w-auto"
         id={id}
         type="time"
         value={formatTime(hour, minute)}
@@ -328,11 +281,6 @@ function TimeInput({
           if (Number.isInteger(h) && Number.isInteger(m)) onChange(h, m);
         }}
         disabled={disabled}
-        className={cn(
-          "stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2 stg:py-1 stg:text-xs stg:text-foreground",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-        )}
       />
     </div>
   );

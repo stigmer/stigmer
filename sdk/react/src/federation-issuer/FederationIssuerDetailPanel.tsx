@@ -20,6 +20,7 @@ import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { Button } from "../button/Button.js";
 import { Tag } from "../internal/surface/Tag.js";
+import { FIELD_LABEL_CLASSES, FieldError, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link FederationIssuerDetailPanel}. */
 export interface FederationIssuerDetailPanelProps {
@@ -262,9 +263,9 @@ export function FederationIssuerDetailPanel({
           />
 
           {error && (
-            <p className="stg:text-destructive stg:text-2xs" role="alert">
+            <FieldError>
               {saveErrorMessage(error, "federation issuer")}
-            </p>
+            </FieldError>
           )}
 
           <div className="stg:flex stg:items-center stg:gap-2 stg:pt-1">
@@ -398,10 +399,10 @@ function FieldInput({
 }) {
   return (
     <div className="stg:space-y-1">
-      <label htmlFor={id} className="stg:text-xs stg:font-medium stg:text-foreground">
+      <label htmlFor={id} className={FIELD_LABEL_CLASSES}>
         {label}
       </label>
-      <input
+      <TextInput
         id={id}
         type="text"
         value={value}
@@ -409,12 +410,7 @@ function FieldInput({
         placeholder={placeholder}
         disabled={disabled}
         required={required}
-        className={cn(
-          "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-          "stg:placeholder:text-muted-foreground",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-        )}
+        className="stg:w-full"
       />
       {hint && (
         <p className="stg:text-2xs stg:text-muted-foreground">{hint}</p>

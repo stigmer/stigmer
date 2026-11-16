@@ -9,11 +9,11 @@ import { useCallback, useState, type FormEvent } from "react";
 import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
-import { Field, INPUT_CLASSES } from "../internal/form-primitives.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { planUpgradeFeature, UpgradeNotice } from "../billing/UpgradeNotice.js";
 import { useCreateTeam } from "./useTeamMutations.js";
 import { Button } from "../button/Button.js";
+import { Field, FieldError, TextArea, TextInput } from "../internal/form/index.js";
 
 /** The longest description the contract accepts (`TeamSpec.description`). */
 export const TEAM_DESCRIPTION_MAX_LENGTH = 500;
@@ -68,35 +68,34 @@ export function CreateTeamForm({ org, onCreated, onCancel, billingHref, classNam
   return (
     <form onSubmit={handleSubmit} className={cn("stg:space-y-3", className)}>
       <h3 className="stg:text-foreground stg:text-sm stg:font-semibold">New team</h3>
-      <Field label="Name" required>
-        <input
+      <Field label="Name">
+        <TextInput
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Site Reliability"
           disabled={isCreating}
           autoFocus
-          className={INPUT_CLASSES}
         />
       </Field>
       <Field label="Description">
-        <textarea
+        <TextArea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Who is on this team and what it is for"
           maxLength={TEAM_DESCRIPTION_MAX_LENGTH}
           rows={2}
           disabled={isCreating}
-          className={cn(INPUT_CLASSES, "stg:resize-none")}
+          className="stg:resize-none"
         />
       </Field>
 
       {error && upgradeFeature !== null ? (
         <UpgradeNotice feature={upgradeFeature} error={error} billingHref={billingHref} />
       ) : error ? (
-        <p className="stg:text-destructive stg:text-2xs" role="alert">
+        <FieldError>
           {getUserMessage(error)}
-        </p>
+        </FieldError>
       ) : null}
 
       <div className="stg:flex stg:items-center stg:gap-2">

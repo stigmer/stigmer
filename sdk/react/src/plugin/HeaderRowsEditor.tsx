@@ -17,7 +17,7 @@
 
 import { cn } from "@stigmer/design-tokens";
 import { Button } from "../button/Button.js";
-import { INPUT_CLASS } from "../vault/styles.js";
+import { TextInput } from "../internal/form/index.js";
 
 /** One header being edited: its name and value, under an id stable for the edit. */
 export interface HeaderRow {
@@ -58,7 +58,7 @@ export function HeaderRowsEditor({ rows, onChange, disabled = false, className }
       </legend>
       {rows.map((row) => (
         <div key={row.id} className="stg:flex stg:items-center stg:gap-2">
-          <input
+          <TextInput
             aria-label="Header name"
             value={row.key}
             onChange={(event) => onChange(rows.map((h) => (h.id === row.id ? { ...h, key: event.target.value } : h)))}
@@ -66,9 +66,8 @@ export function HeaderRowsEditor({ rows, onChange, disabled = false, className }
             autoComplete="off"
             spellCheck={false}
             disabled={disabled}
-            className={INPUT_CLASS}
           />
-          <input
+          <TextInput
             aria-label="Header value"
             value={row.value}
             onChange={(event) => onChange(rows.map((h) => (h.id === row.id ? { ...h, value: event.target.value } : h)))}
@@ -76,7 +75,6 @@ export function HeaderRowsEditor({ rows, onChange, disabled = false, className }
             autoComplete="off"
             spellCheck={false}
             disabled={disabled}
-            className={INPUT_CLASS}
           />
           <Button
             type="button"

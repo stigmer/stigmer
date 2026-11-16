@@ -25,6 +25,7 @@ import { Button } from "../button/Button.js";
 import { Switch } from "../switch/Switch.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
+import { FieldError, Radio } from "../internal/form/index.js";
 
 /** Props for {@link AccountPreferencesPanel}. */
 export interface AccountPreferencesPanelProps {
@@ -372,9 +373,9 @@ export function AccountPreferencesPanel({
       )}
 
       {updateError && (
-        <p className="stg:text-destructive stg:text-2xs" role="alert">
+        <FieldError>
           {saveErrorMessage(updateError, "account")}
-        </p>
+        </FieldError>
       )}
 
       <div className="stg:flex stg:items-center stg:gap-2">
@@ -440,8 +441,7 @@ function HarnessOptionRow({
           disabled && "stg:cursor-default",
         )}
       >
-        <input
-          type="radio"
+        <Radio
           name={radioName}
           value={value}
           checked={checked}
@@ -449,7 +449,7 @@ function HarnessOptionRow({
           disabled={disabled}
           aria-labelledby={titleId}
           aria-describedby={descriptionId}
-          className="stg:mt-0.5 stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring"
+          className="stg:mt-0.5"
         />
         <span className="stg:min-w-0 stg:flex-1">
           <span

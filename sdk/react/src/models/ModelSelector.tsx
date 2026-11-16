@@ -18,6 +18,7 @@ import { thinkingLocked, thinkingSelectable } from "@stigmer/react-core";
 import { type ThinkingModeOption } from "@stigmer/react-core";
 import { needsKeyLabel } from "./provider-presentation.js";
 import type { ModelReadinessLookup } from "./readiness.js";
+import { TextInput } from "../internal/form/index.js";
 
 const COST_TIER_LABEL: Record<CostTier, string> = {
   economy: "$",
@@ -663,7 +664,7 @@ export function ModelSelector({
 
             {/* Search input */}
             <div className="stg:border-b stg:border-border stg:px-3 stg:py-1.5">
-              <input
+              <TextInput
                 ref={searchRef}
                 role="searchbox"
                 aria-label="Search models"
@@ -671,10 +672,9 @@ export function ModelSelector({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className={cn(
-                  "stg:w-full stg:bg-transparent stg:text-xs stg:text-foreground stg:placeholder:text-muted-foreground",
-                  "stg:outline-none",
-                )}
+                appearance="bare"
+                size="xs"
+                className="stg:w-full"
               />
             </div>
 

@@ -7,6 +7,7 @@ import { useScrollShadows } from "../internal/useScrollShadows.js";
 import { ScrollFade } from "../internal/ScrollFade.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { Button } from "../button/Button.js";
+import { TextInput } from "../internal/form/index.js";
 
 /**
  * Describes a single environment variable the form should collect.
@@ -244,7 +245,7 @@ export function EnvVarForm({
                 </label>
 
                 <div className="stg:relative">
-                  <input
+                  <TextInput
                     ref={idx === 0 ? firstInputRef : undefined}
                     id={inputId}
                     type={
@@ -258,13 +259,7 @@ export function EnvVarForm({
                     aria-describedby={descId}
                     autoComplete="off"
                     autoFocus={idx === 0}
-                    className={cn(
-                      "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-                      "stg:placeholder:text-muted-foreground",
-                      "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                      "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-                      variable.isSecret && "stg:pr-8",
-                    )}
+                    className={cn("stg:w-full", variable.isSecret && "stg:pr-8")}
                   />
 
                   {variable.isSecret && (

@@ -292,6 +292,15 @@
       "promise": "Every console screen and every failure note offers the deployment's help link, or none when it sets none; a builder's app never shows it."
     },
     {
+      "id": "CON-14",
+      "promise": "Every field is the kit's: drawn at the button's size, with its label, hint and error wired to it."
+    },
+    {
+      "id": "CON-15",
+      "promise": "Every dialog is the kit's: one title, body and footer, its acts at its end.",
+      "pending": ["stigmer#3211"]
+    },
+    {
       "id": "DSK-01",
       "promise": "Clicking the Dock icon reopens a closed window.",
       "pending": [

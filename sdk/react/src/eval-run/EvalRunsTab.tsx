@@ -58,7 +58,6 @@ import { usePluginList } from "../plugin/usePluginList.js";
 import { Section } from "../resource-detail/Section.js";
 import { Switch } from "../switch/Switch.js";
 import { useEvals } from "./useEvals.js";
-import { INPUT_CLASS } from "../vault/styles.js";
 import { Button } from "../button/Button.js";
 import {
   DEFAULT_EVAL_FORM,
@@ -95,6 +94,7 @@ import { EvalRunResults } from "./EvalRunResults.js";
 import { useEvalRun } from "./useEvalRun.js";
 import { useEvalRuns } from "./useEvalRuns.js";
 import { useStartEvalRun } from "./useStartEvalRun.js";
+import { Checkbox, FIELD_LABEL_CLASSES, FieldError, Select, TextArea, TextInput } from "../internal/form/index.js";
 
 /** The most of the organization's plugins the compare picker lists. */
 const COMPARE_PICKER_PAGE = 100;
@@ -490,7 +490,7 @@ function RunEvalsForm({
       />
       <label
         htmlFor={`${baseId}-compare`}
-        className="stg:text-xs stg:font-medium stg:text-foreground"
+        className={FIELD_LABEL_CLASSES}
       >
         {label}
       </label>
@@ -523,12 +523,11 @@ function RunEvalsForm({
             <label htmlFor={`${baseId}-compared`} className={LABEL_CLASS}>
               Compare with a plugin
             </label>
-            <select
+            <Select
               id={`${baseId}-compared`}
               value={settings.comparedPluginId}
               disabled={isStarting}
               onChange={(event) => pickCompared(event.target.value)}
-              className={INPUT_CLASS}
             >
               <option value="">No comparison</option>
               {orgPlugins.map((plugin) => (
@@ -537,7 +536,7 @@ function RunEvalsForm({
                   {attached.includes(plugin.slug) ? " (attached)" : ""}
                 </option>
               ))}
-            </select>
+            </Select>
             <p className={HINT_CLASS}>
               Each case runs on the agent with this plugin and without it,
               whether the agent attaches it or not, so you see the difference
@@ -562,8 +561,7 @@ function RunEvalsForm({
                     key={`plugin:${slug}`}
                     className="stg:inline-flex stg:cursor-pointer stg:items-center stg:gap-2 stg:text-xs stg:text-foreground"
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={settings.caseSources.includes(slug)}
                       disabled={isStarting}
                       onChange={(event) =>
@@ -578,8 +576,7 @@ function RunEvalsForm({
                     key={`eval:${slug}`}
                     className="stg:inline-flex stg:cursor-pointer stg:items-center stg:gap-2 stg:text-xs stg:text-foreground"
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       aria-label={`Eval ${slug}`}
                       checked={settings.evalSources.includes(slug)}
                       disabled={isStarting}
@@ -663,14 +660,14 @@ function RunEvalsForm({
             <label htmlFor={`${baseId}-allow-tools`} className={LABEL_CLASS}>
               Allowed tools
             </label>
-            <textarea
+            <TextArea
               id={`${baseId}-allow-tools`}
               rows={2}
               value={toolsText}
               onChange={(event) => setToolsText(event.target.value)}
               disabled={isStarting}
               placeholder={"Skill\nAgent"}
-              className={cn(INPUT_CLASS, "stg:font-mono")}
+              className="stg:font-mono"
             />
             <p className={HINT_CLASS}>
               A try gets only the tools its case and this list grant, within
@@ -691,9 +688,9 @@ function RunEvalsForm({
           </Button>
         </div>
         {error !== null && (
-          <p role="alert" className="stg:text-xs stg:text-destructive">
+          <FieldError>
             {error.message}
-          </p>
+          </FieldError>
         )}
       </div>
     </Section>
@@ -720,13 +717,12 @@ function TextField({
       <label htmlFor={id} className={LABEL_CLASS}>
         {label}
       </label>
-      <input
+      <TextInput
         id={id}
         type="text"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled}
-        className={INPUT_CLASS}
       />
       <p className={HINT_CLASS}>{hint}</p>
     </div>
@@ -830,18 +826,17 @@ function CompareEvalRuns({
       <label htmlFor={id} className={LABEL_CLASS}>
         {label}
       </label>
-      <select
+      <Select
         id={id}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className={INPUT_CLASS}
       >
         {evalRuns.map((evalRun) => (
           <option key={evalRun.metadata?.id} value={evalRun.metadata?.id ?? ""}>
             {evalRunSummary(evalRun, pluginName)}
           </option>
         ))}
-      </select>
+      </Select>
     </div>
   );
 

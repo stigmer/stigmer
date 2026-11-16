@@ -28,6 +28,7 @@ import { OrgSlugText } from "../organization/OrgSlugText.js";
 import { useOrgIdForRef, useSameResourceRef } from "../organization/useOrgRefs.js";
 import { PluginIcon } from "./PluginIcon.js";
 import { IconButton } from "../button/IconButton.js";
+import { TextInput } from "../internal/form/index.js";
 
 /** Props for {@link PluginPicker}. */
 export interface PluginPickerProps {
@@ -201,7 +202,7 @@ export function PluginPicker({
       )}
 
       {/* Search input */}
-      <input
+      <TextInput
         ref={searchRef}
         type="text"
         role="combobox"
@@ -215,7 +216,8 @@ export function PluginPicker({
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={handleSearchKeyDown}
         disabled={disabled}
-        className="stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground stg:placeholder:text-muted-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:disabled:pointer-events-none stg:disabled:opacity-50"
+        size="xs"
+        className="stg:w-full"
         autoFocus
       />
 

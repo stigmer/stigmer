@@ -1,0 +1,809 @@
+{
+  "screen": "G18",
+  "title": "A skill",
+  "source": "the Library page, version 5",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "A skill: Content: a package of several files, SKILL.md open",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "month-end-close",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Upload a new version",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The month-end checklist, in order, with who signs off each step.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Uploaded by Ada Lovelace",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 18, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Content",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Versions",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "4 files in 2 folders \u00b7 SKILL.md is what the agent reads first",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "SKILL.md",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "references",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "chart-of-accounts.csv",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "report-template.md",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "scripts",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "variance.py",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "SKILL.md",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Rendered",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Source",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Month-end close",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Close the books in this order. Don't move to a step until the one before it is signed off. Lay the report out like references/report-template.md; scripts/variance.py works out each account's variance.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Reconcile every bank account to its statement.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Post the accruals the controller approved.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Run the variance report and explain anything over 10%.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Upload a new version",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A skill: Content: a script open (no Rendered and Source for code)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "month-end-close",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Upload a new version",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The month-end checklist, in order, with who signs off each step.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Uploaded by Ada Lovelace",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 18, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Content",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Versions",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "4 files in 2 folders \u00b7 SKILL.md is what the agent reads first",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "SKILL.md",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "references",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "chart-of-accounts.csv",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "report-template.md",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "scripts",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "variance.py",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "scripts/variance.py",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Python \u00b7 10 lines",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "import csv def variance(row): budget = float(row[\"budget\"]) actual = float(row[\"actual\"]) return actual - budget, (actual - budget) / budget if budget else None with open(\"ledger.csv\") as f: for row in csv.DictReader(f): print(row[\"account\"], *variance(row))",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Upload a new version",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A skill: Versions",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "month-end-close",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Upload a new version",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The month-end checklist, in order, with who signs off each step.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Uploaded by Ada Lovelace",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 18, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Content",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Versions",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Version 2",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Uploaded by Ada Lovelace \u00b7 Jul 18",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Current",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Version 1",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Uploaded by Ada Lovelace \u00b7 Jul 2",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Upload a new version",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A skill: Content, didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "month-end-close",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Upload a new version",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The month-end checklist, in order, with who signs off each step.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Uploaded by Ada Lovelace",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 18, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Content",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Versions",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the skill package.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the file store did not answer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Upload a new version",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A skill: At 390 wide: the file picked from a list above it",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "month-end-close",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Upload a new version",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The month-end checklist, in order, with who signs off each step.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Uploaded by Ada Lovelace",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 18, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Content",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Versions",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "4 files in 2 folders \u00b7 SKILL.md is what the agent reads first",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "File",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "SKILL.md",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "SKILL.md",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Rendered",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Source",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Month-end close",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Close the books in this order. Don't move to a step until the one before it is signed off. Lay the report out like references/report-template.md; scripts/variance.py works out each account's variance.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Reconcile every bank account to its statement.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Post the accruals the controller approved.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Run the variance report and explain anything over 10%.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Upload a new version",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

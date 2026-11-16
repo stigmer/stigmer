@@ -27,6 +27,7 @@ import {
   conversationContactOf,
   conversationLabelOf,
 } from "./conversationPresentation.js";
+import { ChoiceGroup, Select } from "../internal/form/index.js";
 
 /** The (channel, key) pair identifying one conversation. */
 export interface ConversationIdentity {
@@ -134,15 +135,12 @@ export function ConversationListPane({
               <label className="stg:sr-only" htmlFor={channelFilterId}>
                 Filter by channel
               </label>
-              <select
+              <Select
                 id={channelFilterId}
                 value={channelFilter}
                 onChange={(e) => onChannelFilterChange(e.target.value)}
-                className={cn(
-                  "stg:w-full stg:rounded-md stg:border stg:border-border stg:bg-background stg:px-2 stg:py-1.5",
-                  "stg:text-sm stg:text-foreground",
-                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                )}
+                size="xs"
+                wrapperClassName="stg:w-full"
               >
                 <option value="">All channels</option>
                 {channels.map((channel) => (
@@ -150,7 +148,7 @@ export function ConversationListPane({
                     {channel.metadata?.name || channel.metadata?.slug}
                   </option>
                 ))}
-              </select>
+              </Select>
             </>
           )}
         </div>
@@ -252,10 +250,8 @@ const FILTER_OPTIONS: readonly {
 ];
 
 /**
- * Segmented control for the server-evaluated list filter. Renders as a
- * WAI-ARIA Radio Group with roving tabindex and arrow-key navigation —
- * the `ViewSwitcher` pattern (its second sighting; extract a shared
- * primitive if a third segmented control appears).
+ * Segmented control for the server-evaluated list filter: the kit's
+ * choice group (one radiogroup, the arrow keys move the choice).
  *
  * "Needs human" is exactly the nav badge's predicate,
  * so the number on the badge and the list this control opens can never
@@ -268,67 +264,17 @@ function ConversationFilterToggle({
   readonly value: ChannelConversationListFilter;
   readonly onChange: (filter: ChannelConversationListFilter) => void;
 }) {
-  const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
-
-  const handleSelect = useCallback(
-    (next: ChannelConversationListFilter) => {
-      if (next !== value) onChange(next);
-    },
-    [value, onChange],
-  );
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
-      let nextIndex: number | null = null;
-      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-        e.preventDefault();
-        nextIndex = (index + 1) % FILTER_OPTIONS.length;
-      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-        e.preventDefault();
-        nextIndex = (index - 1 + FILTER_OPTIONS.length) % FILTER_OPTIONS.length;
-      }
-      if (nextIndex !== null) {
-        optionRefs.current[nextIndex]?.focus();
-        handleSelect(FILTER_OPTIONS[nextIndex].value);
-      }
-    },
-    [handleSelect],
-  );
-
   return (
-    <div
-      role="radiogroup"
+    <ChoiceGroup
       aria-label="Conversation filter"
-      className="stg:inline-flex stg:self-start stg:rounded-md stg:bg-muted stg:p-0.5"
-    >
-      {FILTER_OPTIONS.map((option, index) => {
-        const isSelected = value === option.value;
-        return (
-          <button
-            key={option.value}
-            ref={(el) => {
-              optionRefs.current[index] = el;
-            }}
-            type="button"
-            role="radio"
-            aria-checked={isSelected}
-            aria-label={option.ariaLabel}
-            tabIndex={isSelected ? 0 : -1}
-            onClick={() => handleSelect(option.value)}
-            onKeyDown={(e) => handleKeyDown(e, index)}
-            className={cn(
-              "stg:inline-flex stg:cursor-pointer stg:items-center stg:rounded-sm stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-              isSelected
-                ? "stg:bg-background stg:text-foreground stg:shadow-sm"
-                : "stg:text-muted-foreground stg:hover:text-foreground",
-            )}
-          >
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
+      size="xs"
+      className="stg:self-start"
+      value={value}
+      onChange={(next) => {
+        if (next !== value) onChange(next);
+      }}
+      options={FILTER_OPTIONS.map((option) => ({ value: option.value, label: option.label, "aria-label": option.ariaLabel }))}
+    />
   );
 }
 

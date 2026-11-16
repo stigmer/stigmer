@@ -7,19 +7,11 @@
 // it does; a refusal is the server's own words.
 
 import { useId, useState } from "react";
-import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
 import { Button } from "../../button/index.js";
 import { useProviderKeyActions, type ProviderKeyProvider } from "../../billing/useProviderKeys.js";
 import { presentationOf } from "../provider-presentation.js";
-
-/** The hub's text inputs' and selects' classes. */
-export const INPUT_CLASSES = cn(
-  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-  "stg:placeholder:text-muted-foreground",
-  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-);
+import { FIELD_LABEL_CLASSES, FieldError, TextInput } from "../../internal/form/index.js";
 
 /** Props for {@link ProviderKeyForm}. */
 export interface ProviderKeyFormProps {
@@ -70,10 +62,10 @@ export function ProviderKeyForm({ org, provider, initialBaseUrl = "", onSaved, o
     >
       <div className="stg:flex stg:flex-wrap stg:items-end stg:gap-2">
         <div className="stg:min-w-56 stg:flex-[2] stg:space-y-1">
-          <label htmlFor={inputId} className="stg:text-foreground stg:text-xs stg:font-medium">
+          <label htmlFor={inputId} className={FIELD_LABEL_CLASSES}>
             {presentation.name} API key
           </label>
-          <input
+          <TextInput
             id={inputId}
             type="password"
             autoComplete="off"
@@ -82,15 +74,14 @@ export function ProviderKeyForm({ org, provider, initialBaseUrl = "", onSaved, o
             placeholder={presentation.placeholder}
             aria-describedby={keyHintId}
             disabled={actions.isSubmitting}
-            className={INPUT_CLASSES}
           />
         </div>
         {presentation.baseUrlExample !== null && (
           <div className="stg:min-w-48 stg:flex-1 stg:space-y-1">
-            <label htmlFor={baseUrlId} className="stg:text-foreground stg:text-xs stg:font-medium">
+            <label htmlFor={baseUrlId} className={FIELD_LABEL_CLASSES}>
               Base URL (optional)
             </label>
-            <input
+            <TextInput
               id={baseUrlId}
               type="url"
               inputMode="url"
@@ -100,7 +91,6 @@ export function ProviderKeyForm({ org, provider, initialBaseUrl = "", onSaved, o
               placeholder={presentation.baseUrlExample}
               aria-describedby={baseUrlHintId}
               disabled={actions.isSubmitting}
-              className={INPUT_CLASSES}
             />
           </div>
         )}
@@ -126,9 +116,9 @@ export function ProviderKeyForm({ org, provider, initialBaseUrl = "", onSaved, o
         </p>
       )}
       {actions.error && (
-        <p role="alert" className="stg:text-destructive stg:text-xs">
+        <FieldError>
           {getUserMessage(actions.error)}
-        </p>
+        </FieldError>
       )}
     </form>
   );

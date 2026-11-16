@@ -1,14 +1,14 @@
 {
   "screen": "G08",
-  "title": "Library: agents",
-  "source": "the Console parts page, version 6",
+  "title": "Agents",
+  "source": "the Library page, version 5",
   "reader": "bf8cb5c94919",
   "drawings": [
     {
-      "caption": "Library: agents",
+      "caption": "Agents: Full",
       "narrow": false,
       "built": [],
-      "unbuilt": "the Library's agents page is drawn by the console, not the gallery: its Built picture comes from the local console",
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
       "words": [
         {
           "text": "Agents",
@@ -27,7 +27,7 @@
           ]
         },
         {
-          "text": "Browse and manage agents in your organization.",
+          "text": "Each agent is a job you hand off: what it should do, the model it uses, and the skills and tools it can reach.",
           "type": [
             14,
             20,
@@ -35,7 +35,7 @@
           ]
         },
         {
-          "text": "Search agents…",
+          "text": "Search agents",
           "type": [
             14,
             20,
@@ -47,15 +47,766 @@
           "type": [
             14,
             20,
-            600
+            500
           ]
         },
         {
-          "text": "acme",
+          "text": "Reads the ledger each morning and reports every account that moved more than its threshold.",
           "type": [
             12,
             16,
             400
+          ]
+        },
+        {
+          "text": "2h",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Receipts matcher",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Matches card receipts to the statement and lists what is missing.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1d",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Payroll reconciler",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Private",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Reconciles the payroll clearing account against the bank feed.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "3d",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invoice auditor",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Audits last month's invoices for rounding errors and fixes what it finds.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 12",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Vendor onboarding",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Collects a new vendor's tax forms and bank details and files them.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 9",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "Create agent",
+          "height": 32
+        },
+        {
+          "name": "Actions for Variance reporter",
+          "height": 28
+        },
+        {
+          "name": "Actions for Receipts matcher",
+          "height": 28
+        },
+        {
+          "name": "Actions for Payroll reconciler",
+          "height": 28
+        },
+        {
+          "name": "Actions for Invoice auditor",
+          "height": 28
+        },
+        {
+          "name": "Actions for Vendor onboarding",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Agents: A row's acts, for someone who may delete it (someone who may not sees Copy ID only)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Agents",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Create agent",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Each agent is a job you hand off: what it should do, the model it uses, and the skills and tools it can reach.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search agents",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Variance reporter",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Reads the ledger each morning and reports every account that moved more than its threshold.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "2h",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Copy ID",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Delete",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Receipts matcher",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Matches card receipts to the statement and lists what is missing.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1d",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Payroll reconciler",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Private",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Reconciles the payroll clearing account against the bank feed.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "3d",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invoice auditor",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Audits last month's invoices for rounding errors and fixes what it finds.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 12",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Vendor onboarding",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Collects a new vendor's tax forms and bank details and files them.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 9",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "Create agent",
+          "height": 32
+        },
+        {
+          "name": "Actions for Variance reporter",
+          "height": 28
+        },
+        {
+          "name": "Actions for Receipts matcher",
+          "height": 28
+        },
+        {
+          "name": "Actions for Payroll reconciler",
+          "height": 28
+        },
+        {
+          "name": "Actions for Invoice auditor",
+          "height": 28
+        },
+        {
+          "name": "Actions for Vendor onboarding",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Agents: None yet, for someone who may add one",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Agents",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Create agent",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Each agent is a job you hand off: what it should do, the model it uses, and the skills and tools it can reach.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No agents yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Create an agent to hand off a job: write what it should do, and it runs in its own sandbox.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Create agent",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "Create agent",
+          "height": 32
+        },
+        {
+          "name": "Create agent",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Agents: None yet, for a member who may not add one",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Agents",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Each agent is a job you hand off: what it should do, the model it uses, and the skills and tools it can reach.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No agents yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Admins of acme create agents here. Once one does, you can start a session with it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Agents: A search that matches nothing",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Agents",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Create agent",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Each agent is a job you hand off: what it should do, the model it uses, and the skills and tools it can reach.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "ledgr",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No agents match \u201cledgr\u201d.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Clear search",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "Create agent",
+          "height": 32
+        },
+        {
+          "name": "Clear search",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Agents: Didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Agents",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Create agent",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Each agent is a job you hand off: what it should do, the model it uses, and the skills and tools it can reach.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the agents.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "Create agent",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Agents: Loading",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Agents",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Create agent",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Each agent is a job you hand off: what it should do, the model it uses, and the skills and tools it can reach.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search agents",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "Create agent",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Agents: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Agents",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Create agent",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Each agent is a job you hand off: what it should do, the model it uses, and the skills and tools it can reach.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search agents",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Variance reporter",
+          "type": [
+            14,
+            20,
+            500
           ]
         },
         {
@@ -71,15 +822,7 @@
           "type": [
             14,
             20,
-            600
-          ]
-        },
-        {
-          "text": "acme",
-          "type": [
-            12,
-            16,
-            400
+            500
           ]
         },
         {
@@ -95,15 +838,15 @@
           "type": [
             14,
             20,
-            600
+            500
           ]
         },
         {
-          "text": "acme",
+          "text": "Private",
           "type": [
             12,
             16,
-            400
+            500
           ]
         },
         {
@@ -119,15 +862,7 @@
           "type": [
             14,
             20,
-            600
-          ]
-        },
-        {
-          "text": "acme",
-          "type": [
-            12,
-            16,
-            400
+            500
           ]
         },
         {
@@ -143,15 +878,7 @@
           "type": [
             14,
             20,
-            600
-          ]
-        },
-        {
-          "text": "acme",
-          "type": [
-            12,
-            16,
-            400
+            500
           ]
         },
         {
@@ -171,6 +898,26 @@
         {
           "name": "Create agent",
           "height": 32
+        },
+        {
+          "name": "Actions for Variance reporter",
+          "height": 28
+        },
+        {
+          "name": "Actions for Receipts matcher",
+          "height": 28
+        },
+        {
+          "name": "Actions for Payroll reconciler",
+          "height": 28
+        },
+        {
+          "name": "Actions for Invoice auditor",
+          "height": 28
+        },
+        {
+          "name": "Actions for Vendor onboarding",
+          "height": 28
         }
       ],
       "sample": {},

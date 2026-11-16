@@ -12,7 +12,6 @@ import {
   type ModelPricingBaseline,
 } from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { Button } from "../button/index.js";
-import { Field, INPUT_CLASSES } from "../internal/form-primitives.js";
 import { Card, cardClasses } from "../internal/surface/Card.js";
 import { HARNESS_OPTIONS } from "@stigmer/react-core/internal";
 import {
@@ -21,6 +20,7 @@ import {
   formatRate,
   microsToDollarString,
 } from "./pricing-format.js";
+import { Checkbox, Field, FieldError, Select, TextInput } from "../internal/form/index.js";
 
 // ---------------------------------------------------------------------------
 // BaselineEditor — the add/edit form for model registry baselines, with an
@@ -49,8 +49,7 @@ function RateField({
 }) {
   return (
     <Field label={label}>
-      <input
-        className={INPUT_CLASSES}
+      <TextInput
         inputMode="decimal"
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -401,9 +400,9 @@ export function BaselineEditor({
           </div>
         )}
         {submitError && (
-          <p className="stg:text-destructive stg:text-xs" role="alert">
+          <FieldError>
             {getUserMessage(submitError)}
-          </p>
+          </FieldError>
         )}
         <div className="stg:flex stg:gap-2">
           <Button size="sm" disabled={isSubmitting} onClick={handleConfirm}>
@@ -433,9 +432,8 @@ export function BaselineEditor({
       </h4>
 
       <div className="stg:grid stg:grid-cols-2 stg:gap-2">
-        <Field label="Model id" required>
-          <input
-            className={INPUT_CLASSES}
+        <Field label="Model id">
+          <TextInput
             value={form.modelId}
             onChange={(e) => set("modelId", e.target.value)}
             placeholder="e.g. claude-sonnet-4.6"
@@ -446,17 +444,15 @@ export function BaselineEditor({
           />
         </Field>
         <Field label="Provider API id">
-          <input
-            className={INPUT_CLASSES}
+          <TextInput
             value={form.apiModelId}
             onChange={(e) => set("apiModelId", e.target.value)}
             placeholder="e.g. claude-sonnet-4-6"
             disabled={isSubmitting}
           />
         </Field>
-        <Field label="Provider" required>
-          <input
-            className={INPUT_CLASSES}
+        <Field label="Provider">
+          <TextInput
             value={form.provider}
             onChange={(e) => set("provider", e.target.value)}
             placeholder="e.g. anthropic"
@@ -464,9 +460,8 @@ export function BaselineEditor({
             required
           />
         </Field>
-        <Field label="Harness" required>
-          <select
-            className={INPUT_CLASSES}
+        <Field label="Harness">
+          <Select
             value={form.harness}
             onChange={(e) => set("harness", e.target.value)}
             disabled={initial !== null || isSubmitting}
@@ -476,11 +471,10 @@ export function BaselineEditor({
                 {harness}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
-        <Field label="Display name" required>
-          <input
-            className={INPUT_CLASSES}
+        <Field label="Display name">
+          <TextInput
             value={form.displayName}
             onChange={(e) => set("displayName", e.target.value)}
             disabled={isSubmitting}
@@ -488,8 +482,7 @@ export function BaselineEditor({
           />
         </Field>
         <Field label="Short description">
-          <input
-            className={INPUT_CLASSES}
+          <TextInput
             value={form.shortDescription}
             onChange={(e) => set("shortDescription", e.target.value)}
             placeholder="3-6 word pitch"
@@ -497,8 +490,7 @@ export function BaselineEditor({
           />
         </Field>
         <Field label="Speed tier">
-          <select
-            className={INPUT_CLASSES}
+          <Select
             value={form.speedTier}
             onChange={(e) => set("speedTier", e.target.value)}
             disabled={isSubmitting}
@@ -507,11 +499,10 @@ export function BaselineEditor({
             <option value="fast">fast</option>
             <option value="balanced">balanced</option>
             <option value="slow">slow</option>
-          </select>
+          </Select>
         </Field>
         <Field label="Cost tier">
-          <select
-            className={INPUT_CLASSES}
+          <Select
             value={form.costTier}
             onChange={(e) => set("costTier", e.target.value)}
             disabled={isSubmitting}
@@ -519,15 +510,14 @@ export function BaselineEditor({
             <option value="economy">economy</option>
             <option value="standard">standard</option>
             <option value="premium">premium</option>
-          </select>
+          </Select>
         </Field>
       </div>
 
       {/* Inbound aliases, editable on existing entries (unlike identity):
           adding an alias to a live model is this field's primary use. */}
       <Field label="Wire ids (comma-separated)">
-        <input
-          className={INPUT_CLASSES}
+        <TextInput
           value={form.wireIds}
           onChange={(e) => set("wireIds", e.target.value)}
           placeholder="e.g. gemini-3-flash-preview"
@@ -536,8 +526,7 @@ export function BaselineEditor({
       </Field>
 
       <label className="stg:flex stg:cursor-pointer stg:items-center stg:gap-1.5 stg:text-xs stg:text-foreground">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={form.featured}
           onChange={(e) => set("featured", e.target.checked)}
           disabled={isSubmitting}
@@ -563,8 +552,7 @@ export function BaselineEditor({
           <div key={index} className="stg:space-y-2 stg:rounded-md stg:border stg:border-border-muted stg:px-2.5 stg:py-2">
             <div className="stg:flex stg:items-end stg:gap-2">
               <Field label="Variant key" className="stg:w-32">
-                <input
-                  className={INPUT_CLASSES}
+                <TextInput
                   value={variant.key}
                   onChange={(e) => updateVariant(setForm, index, { key: e.target.value })}
                   placeholder="fast"
@@ -572,8 +560,7 @@ export function BaselineEditor({
                 />
               </Field>
               <Field label="Wire ids (comma-separated)" className="stg:flex-1">
-                <input
-                  className={INPUT_CLASSES}
+                <TextInput
                   value={variant.wireIds}
                   onChange={(e) => updateVariant(setForm, index, { wireIds: e.target.value })}
                   placeholder="e.g. claude-opus-4-8-fast"
@@ -621,8 +608,7 @@ export function BaselineEditor({
       </fieldset>
 
       <Field label="Revision note">
-        <input
-          className={INPUT_CLASSES}
+        <TextInput
           value={form.revisionNote}
           onChange={(e) => set("revisionNote", e.target.value)}
           placeholder="Why this revision (audit trail)"

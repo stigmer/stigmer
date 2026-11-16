@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js"
 import { Button } from "../button/Button.js";
 import { IconButton } from "../button/IconButton.js";
 import { Tag } from "../internal/surface/Tag.js";
+import { TextInput } from "../internal/form/index.js";
 
 type ActivePanel = "github" | null;
 
@@ -391,24 +392,24 @@ function ManualGitPanel({
 }) {
   return (
     <div className="stg:space-y-2">
-      <input
+      <TextInput
         type="url"
         aria-label="Git repository URL"
         placeholder="https://github.com/org/repo.git"
         value={url}
         onChange={(e) => onUrlChange(e.target.value)}
         onKeyDown={onKeyDown}
-        className="stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground stg:placeholder:text-muted-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
+        className="stg:w-full"
         autoFocus
       />
-      <input
+      <TextInput
         type="text"
         aria-label="Branch (optional)"
         placeholder="Branch (optional)"
         value={branch}
         onChange={(e) => onBranchChange(e.target.value)}
         onKeyDown={onKeyDown}
-        className="stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground stg:placeholder:text-muted-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
+        className="stg:w-full"
       />
       <div className="stg:flex stg:justify-end stg:gap-2">
         <Button variant="ghost" size="xs" onClick={onCancel}>

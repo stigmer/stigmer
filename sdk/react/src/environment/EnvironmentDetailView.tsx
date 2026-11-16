@@ -54,6 +54,7 @@ import {
 import { EnvironmentsNotOnServerNotice } from "./EnvironmentsNotOnServerNotice.js";
 import { useEnvironment } from "./useEnvironment.js";
 import { useUpdateEnvironment, type EnvironmentEdit } from "./useUpdateEnvironment.js";
+import { FieldError, TextArea } from "../internal/form/index.js";
 
 /** Props for {@link EnvironmentDetailView}. */
 export interface EnvironmentDetailViewProps {
@@ -389,14 +390,14 @@ function DescriptionEditor({
       <label className="stg:sr-only" htmlFor={fieldId}>
         Description
       </label>
-      <textarea
+      <TextArea
+        size="xs"
         id={fieldId}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         rows={3}
         maxLength={500}
         disabled={isSaving}
-        className={inputClasses}
       />
     </EditorFrame>
   );
@@ -462,9 +463,9 @@ function EditorFrame({
     <div className="stg:flex stg:flex-col stg:gap-3 stg:px-3 stg:py-3">
       {children}
       {error && (
-        <p className="stg:text-xs stg:text-destructive" role="alert">
+        <FieldError>
           {error}
-        </p>
+        </FieldError>
       )}
       <div className="stg:flex stg:items-center stg:gap-2">
         <Button size="xs" onClick={onSave} disabled={isSaving} icon={isSaving ? <SpinnerIcon size={12} /> : undefined}>
@@ -524,10 +525,3 @@ function NotFoundState({ className }: { readonly className?: string }) {
     />
   );
 }
-
-const inputClasses = cn(
-  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-  "stg:placeholder:text-muted-foreground",
-  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-);

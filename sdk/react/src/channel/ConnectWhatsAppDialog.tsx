@@ -27,6 +27,7 @@ import { useOrgChannelList } from "./useOrgChannelList.js";
 import { useSaveChannel } from "./useSaveChannel.js";
 import { WhatsAppMarkIcon } from "./WhatsAppMarkIcon.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
+import { TextInput } from "../internal/form/index.js";
 
 /** Props for {@link ConnectWhatsAppDialog}. */
 export interface ConnectWhatsAppDialogProps {
@@ -338,16 +339,12 @@ function ConnectWhatsAppDialogBody({
                 <span className="stg:mb-1.5 stg:block stg:text-xs stg:font-medium stg:text-foreground">
                   Channel name
                 </span>
-                <input
+                <TextInput
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   disabled={busy}
-                  className={cn(
-                    "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-3 stg:py-1.5",
-                    "stg:text-sm stg:text-foreground stg:placeholder:text-muted-foreground",
-                    "stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-ring",
-                  )}
+                  className="stg:w-full"
                 />
                 <span className="stg:mt-1 stg:block stg:text-xs stg:text-muted-foreground">
                   Names the connection in Stigmer — pick something that
@@ -360,7 +357,7 @@ function ConnectWhatsAppDialogBody({
               <span className="stg:mb-1.5 stg:block stg:text-xs stg:font-medium stg:text-foreground">
                 Phone number ID
               </span>
-              <input
+              <TextInput
                 type="text"
                 value={phoneNumberId}
                 onChange={(e) => setPhoneNumberId(e.target.value)}
@@ -368,11 +365,7 @@ function ConnectWhatsAppDialogBody({
                 required
                 placeholder="106540352242922"
                 data-cursor-target="dialog-whatsapp-number"
-                className={cn(
-                  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-3 stg:py-1.5",
-                  "stg:font-mono stg:text-sm stg:text-foreground stg:placeholder:text-muted-foreground",
-                  "stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-ring",
-                )}
+                className={cn("stg:w-full", "stg:font-mono")}
               />
               <span className="stg:mt-1 stg:block stg:text-xs stg:text-muted-foreground">
                 From Meta&apos;s WhatsApp Manager (API Setup) — the numeric

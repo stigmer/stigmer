@@ -5,6 +5,7 @@ import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_FIELDSET } from "../../internal/element-resets.js";
 import type { ResourceRef } from "@stigmer/client";
 import type { ChannelApp } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { Radio } from "../../internal/form/index.js";
 
 /**
  * "Connect as whom" for the channel connect dialogs: the
@@ -168,9 +169,8 @@ function ServingAppOption({
         disabled && "stg:pointer-events-none stg:opacity-50",
       )}
     >
-      <input
+      <Radio
         id={id}
-        type="radio"
         name={name}
         checked={checked}
         onChange={onSelect}

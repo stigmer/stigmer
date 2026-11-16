@@ -22,6 +22,7 @@ import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import type { ResourceRef } from "@stigmer/client";
 import { isMyVault, useVaultList } from "./useVaultList.js";
 import { IconButton } from "../button/IconButton.js";
+import { Checkbox, Select } from "../internal/form/index.js";
 
 /** The name My vault is shown with. */
 export const MY_VAULT_LABEL = "My vault";
@@ -201,19 +202,14 @@ export function VaultPicker({
         <label htmlFor={selectId} className="stg:sr-only">
           Add vault
         </label>
-        <select
+        <Select
           id={selectId}
           disabled={disabled || available.length === 0}
           value=""
           onChange={(e) => {
             if (e.target.value) handleAdd(e.target.value);
           }}
-          className={cn(
-            "stg:w-full stg:rounded-md stg:border stg:border-border stg:bg-background stg:px-3 stg:py-1.5 stg:text-sm",
-            "stg:text-foreground stg:placeholder:text-muted-foreground",
-            "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
-            "stg:disabled:cursor-not-allowed stg:disabled:opacity-50",
-          )}
+          className="stg:w-full"
         >
           <option value="">
             {isLoading
@@ -229,7 +225,7 @@ export function VaultPicker({
               {vaultLabel(vault)}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
     </div>
   );
@@ -250,13 +246,12 @@ function MyVaultRow({
         "stg:bg-muted",
       )}
     >
-      <input
+      <Checkbox
         id={inputId}
-        type="checkbox"
         checked={myVault.checked}
         disabled={disabled}
         onChange={(e) => myVault.onChange(e.target.checked)}
-        className="stg:mt-0.5 stg:shrink-0 stg:disabled:cursor-not-allowed"
+        className="stg:mt-0.5 stg:shrink-0"
       />
       <label htmlFor={inputId} className="stg:flex-1 stg:min-w-0 stg:cursor-pointer stg:select-none">
         <span className="stg:block stg:text-sm stg:font-medium stg:text-foreground">{MY_VAULT_LABEL}</span>

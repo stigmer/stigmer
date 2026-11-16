@@ -6,6 +6,7 @@ import type { InlineEditBaseProps } from "./types.js";
 import { useInlineDraft } from "./useInlineDraft.js";
 import { Button } from "../button/Button.js";
 import { IconButton } from "../button/IconButton.js";
+import { FieldError, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link InlineEditImage}. */
 export interface InlineEditImageProps extends InlineEditBaseProps {
@@ -116,7 +117,8 @@ export function InlineEditImage({
   return (
     <div className={cn("stg:flex stg:flex-col stg:gap-1", className)}>
       <div className="stg:flex stg:items-center stg:gap-1.5">
-        <input
+        <TextInput
+          size="xs"
           ref={inputRef}
           type="url"
           value={draft}
@@ -124,12 +126,8 @@ export function InlineEditImage({
           onKeyDown={handleKeyDown}
           disabled={isSaving}
           placeholder="https://example.com/icon.png"
-          className={cn(
-            "stg:flex-1 stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1 stg:text-sm stg:text-foreground",
-            "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
-            "stg:disabled:opacity-50",
-            displayError && "stg:border-destructive",
-          )}
+          className="stg:flex-1"
+          invalid={Boolean(displayError)}
         />
         <IconButton
           label="Save"
@@ -154,7 +152,7 @@ export function InlineEditImage({
         )}
       </div>
       {displayError && (
-        <p className="stg:px-1 stg:text-xs stg:text-destructive" role="alert">{displayError}</p>
+        <FieldError className="stg:px-1">{displayError}</FieldError>
       )}
     </div>
   );

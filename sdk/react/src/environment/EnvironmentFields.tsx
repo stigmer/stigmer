@@ -25,6 +25,7 @@ import {
 } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/spec_pb";
 import { useEnvironmentAvailability } from "../server-info.js";
 import { LIMITED_NETWORKING_UNAVAILABLE_COPY, PACKAGES_UNAVAILABLE_COPY } from "./copy.js";
+import { Checkbox, FIELD_HINT_CLASSES, FIELD_LABEL_CLASSES, Radio, TextArea } from "../internal/form/index.js";
 
 /** An Environment's network as a person edits it. */
 export interface NetworkingDraft {
@@ -164,8 +165,7 @@ export function NetworkingFields({ value, onChange, disabled = false, availabili
       <legend className={labelClasses}>Network</legend>
       <div className="stg:space-y-1.5">
         <label className="stg:flex stg:items-start stg:gap-2 stg:text-xs stg:text-foreground">
-          <input
-            type="radio"
+          <Radio
             name={`${baseId}-type`}
             checked={value.type === "unrestricted"}
             onChange={() => onChange({ ...value, type: "unrestricted" })}
@@ -182,8 +182,7 @@ export function NetworkingFields({ value, onChange, disabled = false, availabili
             limitedUnavailable && "stg:opacity-60",
           )}
         >
-          <input
-            type="radio"
+          <Radio
             name={`${baseId}-type`}
             checked={value.type === "limited"}
             disabled={limitedUnavailable}
@@ -208,13 +207,13 @@ export function NetworkingFields({ value, onChange, disabled = false, availabili
             <label htmlFor={`${baseId}-hosts`} className={labelClasses}>
               Websites
             </label>
-            <textarea
+            <TextArea
               id={`${baseId}-hosts`}
               value={value.hosts}
               onChange={(e) => onChange({ ...value, hosts: e.target.value })}
               placeholder={"api.github.com\n*.example.com"}
               rows={4}
-              className={cn(inputClasses, "stg:resize-y stg:font-mono")}
+              className="stg:resize-y stg:font-mono"
             />
             <p className={hintClasses}>
               One per line, with no scheme or path. <code className="stg:font-mono">*.example.com</code> matches{" "}
@@ -223,8 +222,7 @@ export function NetworkingFields({ value, onChange, disabled = false, availabili
             </p>
           </div>
           <label className="stg:flex stg:items-start stg:gap-2 stg:text-xs stg:text-foreground">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={value.allowPackageManagers}
               onChange={(e) => onChange({ ...value, allowPackageManagers: e.target.checked })}
               className="stg:mt-0.5"
@@ -238,8 +236,7 @@ export function NetworkingFields({ value, onChange, disabled = false, availabili
             </span>
           </label>
           <label className="stg:flex stg:items-start stg:gap-2 stg:text-xs stg:text-foreground">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={value.allowMcpServers}
               onChange={(e) => onChange({ ...value, allowMcpServers: e.target.checked })}
               className="stg:mt-0.5"
@@ -299,13 +296,13 @@ export function PackagesFields({ value, onChange, disabled = false, availability
             <label htmlFor={`${baseId}-${manager}`} className={labelClasses}>
               {PACKAGE_MANAGER_HINTS[manager].label}
             </label>
-            <textarea
+            <TextArea
               id={`${baseId}-${manager}`}
               value={value[manager]}
               onChange={(e) => onChange({ ...value, [manager]: e.target.value })}
               placeholder={PACKAGE_MANAGER_HINTS[manager].example}
               rows={2}
-              className={cn(inputClasses, "stg:resize-y stg:font-mono")}
+              className="stg:resize-y stg:font-mono"
             />
           </div>
         ))}
@@ -314,11 +311,5 @@ export function PackagesFields({ value, onChange, disabled = false, availability
   );
 }
 
-const labelClasses = "stg:block stg:text-xs stg:font-medium stg:text-foreground";
-const hintClasses = "stg:text-2xs stg:text-muted-foreground";
-const inputClasses = cn(
-  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-  "stg:placeholder:text-muted-foreground",
-  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-);
+const labelClasses = FIELD_LABEL_CLASSES;
+const hintClasses = FIELD_HINT_CLASSES;

@@ -1,0 +1,652 @@
+{
+  "screen": "G11",
+  "title": "The Library",
+  "source": "the Library page, version 5",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "The Library: As an admin, the Add menu open",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Library",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Add",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Skill",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Routine",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Environment",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "File",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Upload plugin",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "MCP server",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "What your agents are made of: the agents, their skills and plugins, the routines that start them, their environments and files.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agents",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The jobs your organization hands off.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Skills",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Know-how an agent loads when a task needs it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Plugins",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Installed bundles of skills, agents and tools.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Routines",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Agents started on a schedule or from another system.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Environments",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Packages and network for your agents' sandboxes.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Files",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Files you keep for your routines to use.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "Add",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "The Library: As a member: only what a member may add",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Library",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Add",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Routine",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "File",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "What your agents are made of: the agents, their skills and plugins, the routines that start them, their environments and files.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agents",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The jobs your organization hands off.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Skills",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Know-how an agent loads when a task needs it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Plugins",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Installed bundles of skills, agents and tools.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Routines",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Agents started on a schedule or from another system.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Environments",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Packages and network for your agents' sandboxes.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Files",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Files you keep for your routines to use.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "Add",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "The Library: A count that didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Library",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Add",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What your agents are made of: the agents, their skills and plugins, the routines that start them, their environments and files.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agents",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The jobs your organization hands off.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Skills",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Know-how an agent loads when a task needs it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Plugins",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Installed bundles of skills, agents and tools.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Routines",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Agents started on a schedule or from another system.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Count didn't load",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Environments",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Packages and network for your agents' sandboxes.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Files",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Files you keep for your routines to use.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "Add",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "The Library: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Library",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Add",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What your agents are made of: the agents, their skills and plugins, the routines that start them, their environments and files.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agents",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The jobs your organization hands off.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Skills",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Know-how an agent loads when a task needs it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Plugins",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Installed bundles of skills, agents and tools.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Routines",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Agents started on a schedule or from another system.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Environments",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Packages and network for your agents' sandboxes.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Files",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Files you keep for your routines to use.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "Add",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

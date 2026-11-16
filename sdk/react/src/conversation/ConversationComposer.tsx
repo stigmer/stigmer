@@ -10,6 +10,7 @@ import { Button } from "../button/Button.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { useComposer } from "../composer/useComposer.js";
 import type { ConversationReplyPayload } from "./useConversationParticipation.js";
+import { TextArea } from "../internal/form/index.js";
 
 /** Props for {@link ConversationComposer}. */
 export interface ConversationComposerProps {
@@ -149,17 +150,13 @@ export function ConversationComposer({
         </p>
       )}
       <div className="stg:flex stg:items-end stg:gap-2">
-        <textarea
+        <TextArea
           {...composer.textareaProps}
           rows={1}
           placeholder="Reply as your business…"
           aria-label="Reply to the customer"
           aria-describedby={hasAdvisory ? advisoryId : undefined}
-          className={cn(
-            "stg:min-h-9 stg:flex-1 stg:resize-none stg:rounded-md stg:border stg:border-border stg:bg-background",
-            "stg:px-3 stg:py-2 stg:text-sm stg:text-foreground stg:placeholder:text-muted-foreground-faint",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          )}
+          className="stg:min-h-9 stg:flex-1 stg:resize-none"
         />
         {onOpenTemplatePicker && (
           <Button

@@ -1,0 +1,668 @@
+{
+  "screen": "G20",
+  "title": "A routine",
+  "source": "the Library page, version 5",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "A routine: Overview",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "daily-variance-report",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Run now",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Created Jul 20, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 20, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Overview",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "History",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "API",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "When it runs",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Runs",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Every day at 09:00 (Asia/Kolkata)",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Next run",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Tomorrow at 09:00, in 14h",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Last run",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Finished 6m",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "What it runs",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Variance reporter",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Message",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Report yesterday's ledger variances against budget, and save the report as variances.csv.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Environment",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "data-science",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Budget per run",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Run now",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        },
+        {
+          "name": "Edit when it runs",
+          "height": 28
+        },
+        {
+          "name": "Edit what it runs",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A routine: API",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "daily-variance-report",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Run now",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Created Jul 20, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 20, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Overview",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "History",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "API",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Start it from another system",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Call this address with an API key that may run the routine. Each call starts one run, as if you pressed Run now.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "POST https://api.stigmer.ai/v1/routines/acme/daily-variance-report:fire",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "curl -X POST \\ -H \"Authorization: Bearer $STIGMER_API_KEY\" \\ https://api.stigmer.ai/v1/routines/acme/daily-variance-report:fire",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Run now",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        },
+        {
+          "name": "Copy",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A routine: Run now, asked first (Run a routine)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Run daily-variance-report now?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "One run starts now with the routine's message. Its schedule doesn't change.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Message (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Report yesterday's ledger variances against budget, and save the report as variances.csv.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Leave empty to send the routine's own message.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Run now",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Run now",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A routine: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "daily-variance-report",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Run now",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Created Jul 20, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 20, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Overview",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "History",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "API",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "When it runs",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Runs",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Every day at 09:00 (Asia/Kolkata)",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Next run",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Tomorrow at 09:00, in 14h",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Last run",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Finished 6m",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "What it runs",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Variance reporter",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Message",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Report yesterday's ledger variances against budget, and save the report as variances.csv.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Environment",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "data-science",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Budget per run",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Run now",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        },
+        {
+          "name": "Edit when it runs",
+          "height": 28
+        },
+        {
+          "name": "Edit what it runs",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

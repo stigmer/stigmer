@@ -21,6 +21,7 @@ import { useId, useMemo } from "react";
 import { cn } from "@stigmer/design-tokens";
 import type { ResourceRef } from "@stigmer/client";
 import { environmentName, useEnvironmentList } from "./useEnvironmentList.js";
+import { Select } from "../internal/form/index.js";
 
 /** Props for {@link EnvironmentPicker}. */
 export interface EnvironmentPickerProps {
@@ -96,7 +97,7 @@ export function EnvironmentPicker({
       >
         {label}
       </label>
-      <select
+      <Select
         id={selectId}
         disabled={disabled}
         value={value?.slug ?? ""}
@@ -104,12 +105,7 @@ export function EnvironmentPicker({
           const row = rows.find((candidate) => candidate.slug === event.target.value);
           onChange(row === undefined ? undefined : { org: row.org, slug: row.slug });
         }}
-        className={cn(
-          "stg:w-full stg:rounded-md stg:border stg:border-border stg:bg-background stg:px-3 stg:py-1.5 stg:text-sm",
-          "stg:text-foreground",
-          "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
-          "stg:disabled:cursor-not-allowed stg:disabled:opacity-50",
-        )}
+        className="stg:w-full"
       >
         <option value="">{defaultLabel}</option>
         {rows.map((row) => (
@@ -122,7 +118,7 @@ export function EnvironmentPicker({
             Loading environments...
           </option>
         )}
-      </select>
+      </Select>
     </div>
   );
 }

@@ -1,0 +1,758 @@
+{
+  "screen": "G14",
+  "title": "Routines",
+  "source": "the Library page, version 5",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Routines: Full",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Routines",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New routine",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Start an agent on a schedule, by hand, or from another system.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search routines",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "State",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Runs",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Next run",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Last run",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "daily-variance-report",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Every day at 09:00",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "in 14h",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Finished 6m",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Variance reporter",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "month-end-close",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Monthly on the 1st at 07:00",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "in 15d",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Finished 16d",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Ledger reviewer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "receipts-sweep",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Paused",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Every hour",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Didn't finish 2d",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Receipts matcher",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "vendor-intake",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Disabled",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "By hand only",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Never run",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Vendor onboarding",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "New routine",
+          "height": 32
+        },
+        {
+          "name": "Actions for daily-variance-report",
+          "height": 28
+        },
+        {
+          "name": "Actions for month-end-close",
+          "height": 28
+        },
+        {
+          "name": "Actions for receipts-sweep",
+          "height": 28
+        },
+        {
+          "name": "Actions for vendor-intake",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Routines: None yet, for someone who may add one",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Routines",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New routine",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Start an agent on a schedule, by hand, or from another system.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No routines yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Create a routine to start an agent on a schedule, by hand, or from another system.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "New routine",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "New routine",
+          "height": 32
+        },
+        {
+          "name": "New routine",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Routines: A search that matches nothing",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Routines",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New routine",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Start an agent on a schedule, by hand, or from another system.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "payroll",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No routines match \u201cpayroll\u201d.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Clear search",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "New routine",
+          "height": 32
+        },
+        {
+          "name": "Clear search",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Routines: Didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Routines",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New routine",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Start an agent on a schedule, by hand, or from another system.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the routines.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "New routine",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Routines: Loading",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Routines",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New routine",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Start an agent on a schedule, by hand, or from another system.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search routines",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "New routine",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Routines: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Routines",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New routine",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Start an agent on a schedule, by hand, or from another system.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search routines",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "daily-variance-report",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Every day at 09:00 \u00b7 next in 14h",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "month-end-close",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Monthly on the 1st at 07:00 \u00b7 next in 15d",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "receipts-sweep",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Paused",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Every hour \u00b7 no run planned",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "vendor-intake",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Disabled",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "By hand only \u00b7 no run planned",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "New routine",
+          "height": 32
+        },
+        {
+          "name": "Actions for daily-variance-report",
+          "height": 28
+        },
+        {
+          "name": "Actions for month-end-close",
+          "height": 28
+        },
+        {
+          "name": "Actions for receipts-sweep",
+          "height": 28
+        },
+        {
+          "name": "Actions for vendor-intake",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

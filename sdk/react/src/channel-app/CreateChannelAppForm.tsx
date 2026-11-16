@@ -19,6 +19,7 @@ import { CopyBlock } from "../internal/CopyBlock.js";
 import { FormField } from "./internal.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { Button } from "../button/Button.js";
+import { FieldError, Radio } from "../internal/form/index.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -231,9 +232,9 @@ export function CreateChannelAppForm({
       </div>
 
       {error && (
-        <p className="stg:text-destructive stg:text-2xs" role="alert">
+        <FieldError>
           {getUserMessage(error)}
-        </p>
+        </FieldError>
       )}
 
       <div className="stg:flex stg:items-center stg:gap-2">
@@ -288,9 +289,8 @@ function ProviderPicker({
                 disabled && "stg:pointer-events-none stg:opacity-50",
               )}
             >
-              <input
+              <Radio
                 id={`stgm-chapp-provider-${p.id}`}
-                type="radio"
                 name={`${groupName}-provider`}
                 checked={checked}
                 onChange={() => onChange(p.id)}

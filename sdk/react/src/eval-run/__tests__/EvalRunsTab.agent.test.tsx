@@ -189,7 +189,7 @@ describe("EvalRunsTab on an agent", () => {
     render(<EvalRunsTab agent={agentWith(["thermos"])} />, { wrapper: wrap(mock) });
     expect(screen.getByText(/pushed to the organization with stigmer push eval/)).toBeDefined();
     const support = await screen.findByRole("checkbox", { name: "Eval support-evals" });
-    const boxes = screen.getAllByRole("checkbox").map((box) => box.getAttribute("aria-label") ?? box.parentElement?.textContent);
+    const boxes = screen.getAllByRole("checkbox").map((box) => box.getAttribute("aria-label") ?? box.closest("label")?.textContent);
     expect(boxes).toEqual(["thermos", "Eval support-evals", "Eval refunds"]);
     expect(mock.eval.list).toHaveBeenCalledWith(expect.objectContaining({ org: "org_acme" }));
     fireEvent.click(support);

@@ -7,6 +7,7 @@ import { Button } from "../button/Button.js";
 import { IconButton } from "../button/IconButton.js";
 import { Tag } from "../internal/surface/Tag.js";
 import { PlusGlyph } from "../internal/thread-card/glyphs.js";
+import { Checkbox, FieldError, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link InlineEditKeyValue}. */
 export interface InlineEditKeyValueProps extends InlineEditBaseProps {
@@ -138,59 +139,48 @@ export function InlineEditKeyValue({
       {draft.map((row, i) => (
         <div key={i} className="stg:flex stg:items-start stg:gap-2 stg:rounded-md stg:border stg:border-border stg:bg-muted-faint stg:p-2.5">
           <div className="stg:flex stg:flex-1 stg:flex-col stg:gap-1.5">
-            <input
+            <TextInput
+              size="xs"
               type="text"
               value={row.key}
               onChange={(e) => updateRow(i, { key: e.target.value })}
               placeholder={keyLabel}
-              className={cn(
-                "stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1 stg:font-mono stg:text-sm stg:text-foreground",
-                "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
-              )}
+              className="stg:font-mono"
             />
             {showValue && (
-              <input
+              <TextInput
+                size="xs"
                 type="text"
                 value={row.value}
                 onChange={(e) => updateRow(i, { value: e.target.value })}
                 placeholder={valueLabel}
-                className={cn(
-                  "stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1 stg:font-mono stg:text-sm stg:text-foreground",
-                  "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
-                )}
+                className="stg:font-mono"
               />
             )}
             {showDescription && (
-              <input
+              <TextInput
+                size="xs"
                 type="text"
                 value={row.description ?? ""}
                 onChange={(e) => updateRow(i, { description: e.target.value })}
                 placeholder="Description"
-                className={cn(
-                  "stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1 stg:text-xs stg:text-foreground",
-                  "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
-                )}
               />
             )}
             <div className="stg:flex stg:items-center stg:gap-3">
               {showSecretToggle && (
                 <label className="stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:text-muted-foreground stg:cursor-pointer">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={row.isSecret ?? false}
                     onChange={(e) => updateRow(i, { isSecret: e.target.checked })}
-                    className="stg:size-3.5 stg:rounded stg:border-border"
                   />
                   Secret
                 </label>
               )}
               {showOptionalToggle && (
                 <label className="stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:text-muted-foreground stg:cursor-pointer">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={row.optional ?? false}
                     onChange={(e) => updateRow(i, { optional: e.target.checked })}
-                    className="stg:size-3.5 stg:rounded stg:border-border"
                   />
                   Optional
                 </label>
@@ -227,7 +217,7 @@ export function InlineEditKeyValue({
       </div>
 
       {error && (
-        <p className="stg:px-1 stg:text-xs stg:text-destructive" role="alert">{error}</p>
+        <FieldError className="stg:px-1">{error}</FieldError>
       )}
     </div>
   );

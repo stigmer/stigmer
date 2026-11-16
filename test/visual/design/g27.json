@@ -1,0 +1,553 @@
+{
+  "screen": "G27",
+  "title": "Upload skill",
+  "source": "the Library page, version 5",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Upload skill: Nothing chosen yet",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Upload skill",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Every agent in acme can load a skill when a task needs it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Drop a skill's .zip here",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "A folder with a SKILL.md at its top, zipped. Up to 10 MB.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Choose a file",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Upload skill",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Choose a file",
+          "height": 32
+        },
+        {
+          "name": "Upload skill",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Upload skill: A file dragged over",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Upload skill",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Every agent in acme can load a skill when a task needs it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Drop it to upload",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "A folder with a SKILL.md at its top, zipped. Up to 10 MB.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Choose a file",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Upload skill",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Choose a file",
+          "height": 32
+        },
+        {
+          "name": "Upload skill",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Upload skill: Chosen, before upload",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Upload skill",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Every agent in acme can load a skill when a task needs it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "month-end-close.zip",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "14 KB \u00b7 SKILL.md and 2 more files",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "What it adds",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "month-end-close",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Description",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "The month-end checklist, in order, with who signs off each step.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Files",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "SKILL.md, checklist.md, signoff.csv",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Upload skill",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Remove the file",
+          "height": 28
+        },
+        {
+          "name": "Upload skill",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Upload skill: A file that isn't a skill",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Upload skill",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Every agent in acme can load a skill when a task needs it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Drop a skill's .zip here",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "A folder with a SKILL.md at its top, zipped. Up to 10 MB.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Choose a file",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "month-end.pdf isn't a skill package: choose a .zip with a SKILL.md at its top.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Upload skill",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Choose a file",
+          "height": 32
+        },
+        {
+          "name": "Upload skill",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Upload skill: For a member",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Upload skill",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Only an admin can upload skills here",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Admins of acme upload skills. Ask one to add the know-how your agents need.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Upload skill: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "words": [
+        {
+          "text": "Upload skill",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Every agent in acme can load a skill when a task needs it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "month-end-close.zip",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "14 KB \u00b7 SKILL.md and 2 more files",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "What it adds",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "month-end-close",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Description",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "The month-end checklist, in order, with who signs off each step.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Files",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "SKILL.md, checklist.md, signoff.csv",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Upload skill",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Remove the file",
+          "height": 28
+        },
+        {
+          "name": "Upload skill",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

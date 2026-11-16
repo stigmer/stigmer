@@ -5,6 +5,7 @@ import { cn } from "@stigmer/design-tokens";
 import type { InlineEditBaseProps } from "./types.js";
 import { useInlineDraft } from "./useInlineDraft.js";
 import { Button } from "../button/Button.js";
+import { FieldError, TextArea } from "../internal/form/index.js";
 
 /** Props for {@link InlineEditTextarea}. */
 export interface InlineEditTextareaProps extends InlineEditBaseProps {
@@ -129,7 +130,8 @@ export function InlineEditTextarea({
 
   return (
     <div className={cn("stg:flex stg:flex-col stg:gap-1.5", className)}>
-      <textarea
+      <TextArea
+        size="xs"
         ref={textareaRef}
         value={draft}
         onChange={(e) => { setDraft(e.target.value); setLocalError(null); }}
@@ -137,12 +139,8 @@ export function InlineEditTextarea({
         disabled={isSaving}
         placeholder={placeholder}
         rows={minRows}
-        className={cn(
-          "stg:w-full stg:resize-y stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-3 stg:py-2 stg:font-mono stg:text-sm stg:text-foreground",
-          "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
-          "stg:disabled:opacity-50",
-          displayError && "stg:border-destructive",
-        )}
+        className="stg:w-full stg:resize-y stg:font-mono"
+        invalid={Boolean(displayError)}
       />
       <div className="stg:flex stg:items-center stg:justify-between">
         <span className="stg:text-2xs stg:text-muted-foreground">
@@ -158,7 +156,7 @@ export function InlineEditTextarea({
         </div>
       </div>
       {displayError && (
-        <p className="stg:px-1 stg:text-xs stg:text-destructive" role="alert">{displayError}</p>
+        <FieldError className="stg:px-1">{displayError}</FieldError>
       )}
     </div>
   );

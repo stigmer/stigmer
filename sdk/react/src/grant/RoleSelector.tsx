@@ -7,6 +7,7 @@ import type { GranteeKind } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import { useRoleSelector } from "./useRoleSelector.js";
+import { Radio } from "../internal/form/index.js";
 
 /** Props for {@link RoleSelector}. */
 export interface RoleSelectorProps {
@@ -108,14 +109,13 @@ export function RoleSelector({
                 disabled && "stg:pointer-events-none stg:opacity-50",
               )}
             >
-              <input
-                type="radio"
+              <Radio
+                visuallyHidden
                 name={groupName}
                 value={opt.value}
                 checked={isChecked}
                 disabled={disabled}
                 onChange={() => handleSelect(opt.role)}
-                className="stg:sr-only"
               />
               <span>{opt.label}</span>
               <span className="stg:text-2xs stg:text-muted-foreground stg:font-normal stg:mt-0.5">

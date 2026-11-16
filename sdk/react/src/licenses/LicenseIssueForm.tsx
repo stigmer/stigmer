@@ -16,7 +16,6 @@ import { LicenseSchema, type License } from "@stigmer/apis/ai/stigmer/billing/li
 import { LicenseTerm } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 import { Button } from "../button/index.js";
 import { UNSTYLED_FIELDSET, UNSTYLED_LIST } from "../internal/element-resets.js";
-import { Field, INPUT_CLASSES } from "../internal/form-primitives.js";
 import { cardClasses } from "../internal/surface/Card.js";
 import { validateMessage } from "../internal/validate.js";
 import {
@@ -34,6 +33,7 @@ import {
 } from "./license-draft.js";
 import { findCustomerMatches, type LicenseCustomerSummary } from "./license-customers.js";
 import { TERM_LABELS, limitPart, utcDay, type IssuableTerm } from "./license-format.js";
+import { Field, FieldError as KitFieldError, Radio, Select, TextArea, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link LicenseIssueForm}. */
 export interface LicenseIssueFormProps {
@@ -55,14 +55,6 @@ export interface LicenseIssueFormProps {
 }
 
 type CustomerMode = "existing" | "new";
-
-/**
- * Native radios take the theme's primary through
- * `accent-color`, the `SelectionCheckbox` idiom, so no preset renders a
- * browser-blue control inside its brand.
- */
-const NATIVE_CONTROL =
-  "stg:size-3.5 stg:shrink-0 stg:cursor-pointer stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:ring-offset-1";
 
 const TERM_PRESET_HINT: Readonly<Record<IssuableTerm, string>> = {
   [LicenseTerm.trial]: "30 days",
@@ -269,9 +261,8 @@ export function LicenseIssueForm({
         {renewing ? (
           <FieldError message={customerProblem} />
         ) : mode === "existing" ? (
-          <Field label="Licensed customer" required>
-            <select
-              className={INPUT_CLASSES}
+          <Field label="Licensed customer">
+            <Select
               value={customerId}
               onChange={(e) => setCustomerId(e.target.value)}
               disabled={isSubmitting}
@@ -282,14 +273,13 @@ export function LicenseIssueForm({
                   {`${c.displayName} — ${c.contactEmail} · ${licenseCount} ${licenseCount === 1 ? "license" : "licenses"}`}
                 </option>
               ))}
-            </select>
+            </Select>
             <FieldError message={shown(selected !== undefined, customerProblem)} />
           </Field>
         ) : (
           <>
-            <Field label="Display name" required>
-              <input
-                className={INPUT_CLASSES}
+            <Field label="Display name">
+              <TextInput
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="As the licensed server shows it, e.g. Acme Corp"
@@ -298,9 +288,8 @@ export function LicenseIssueForm({
               />
               <FieldError message={shown(newName !== "", violationAt("spec.customer.display_name"))} />
             </Field>
-            <Field label="Contact email" required>
-              <input
-                className={INPUT_CLASSES}
+            <Field label="Contact email">
+              <TextInput
                 type="email"
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
@@ -311,8 +300,7 @@ export function LicenseIssueForm({
               <FieldError message={shown(newEmail !== "", violationAt("spec.customer.contact_email"))} />
             </Field>
             <Field label="Cloud organization">
-              <input
-                className={INPUT_CLASSES}
+              <TextInput
                 value={newOrganization}
                 onChange={(e) => setNewOrganization(e.target.value)}
                 placeholder="Its slug, if the customer also holds one"
@@ -368,9 +356,8 @@ export function LicenseIssueForm({
           ))}
         </fieldset>
         <div className="stg:grid stg:grid-cols-1 stg:gap-3 stg:sm:grid-cols-2">
-          <Field label="Covered through (UTC)" required>
-            <input
-              className={INPUT_CLASSES}
+          <Field label="Covered through (UTC)">
+            <TextInput
               type="date"
               min={today}
               value={lastCoveredDay}
@@ -379,9 +366,8 @@ export function LicenseIssueForm({
             />
             <FieldError message={shown(true, coverageError)} />
           </Field>
-          <Field label="Grace period (days)" required>
-            <input
-              className={INPUT_CLASSES}
+          <Field label="Grace period (days)">
+            <TextInput
               type="number"
               inputMode="numeric"
               min={0}
@@ -420,8 +406,7 @@ export function LicenseIssueForm({
       <FormSection title="Entitlements">
         <div className="stg:grid stg:grid-cols-1 stg:gap-3 stg:sm:grid-cols-2">
           <Field label="Max users">
-            <input
-              className={INPUT_CLASSES}
+            <TextInput
               type="number"
               inputMode="numeric"
               min={1}
@@ -439,8 +424,7 @@ export function LicenseIssueForm({
             />
           </Field>
           <Field label="Max organizations">
-            <input
-              className={INPUT_CLASSES}
+            <TextInput
               type="number"
               inputMode="numeric"
               min={1}
@@ -464,8 +448,8 @@ export function LicenseIssueForm({
 
       <FormSection title="Notes">
         <Field label="Internal note">
-          <textarea
-            className={cn(INPUT_CLASSES, "stg:min-h-16")}
+          <TextArea
+            className="stg:min-h-16"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="The order, the contact, the reason for a bespoke entitlement"
@@ -519,9 +503,9 @@ export function LicenseIssueForm({
         </ul>
       )}
       {submitError && (
-        <p className="stg:text-xs stg:text-destructive" role="alert">
+        <KitFieldError>
           {submitErrorMessage(submitError)}
-        </p>
+        </KitFieldError>
       )}
 
       <div className="stg:flex stg:gap-2">
@@ -563,9 +547,7 @@ function Choice({
 }) {
   return (
     <label className="stg:flex stg:items-center stg:gap-1.5 stg:text-sm stg:text-foreground">
-      <input
-        type="radio"
-        className={NATIVE_CONTROL}
+      <Radio
         name={name}
         checked={checked}
         onChange={onChange}
@@ -576,9 +558,10 @@ function Choice({
   );
 }
 
+/** A field's problem, under the field, in the kit's error line; nothing when there is none. */
 function FieldError({ message }: { readonly message: string | null }) {
   if (!message) return null;
-  return <span className="stg:block stg:text-xs stg:text-destructive">{message}</span>;
+  return <KitFieldError>{message}</KitFieldError>;
 }
 
 function submitErrorMessage(error: Error): string {

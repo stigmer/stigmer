@@ -15,12 +15,12 @@
 
 import { type ReactNode, useCallback, useId, useState } from "react";
 import { Button } from "../button/Button.js";
-import { INPUT_CLASS } from "../vault/styles.js";
 import { McpServerIcon } from "../plugin/McpServerIcon.js";
 import { type HeaderRow, HeaderRowsEditor, headerRowsOf } from "../plugin/HeaderRowsEditor.js";
 import { type AgentMcpServerValue, agentMcpServerProblem, headerValueShown } from "./agentMcpServers.js";
 import { IconButton } from "../button/IconButton.js";
 import { PlusGlyph } from "../internal/thread-card/glyphs.js";
+import { FIELD_LABEL_CLASSES, FieldError, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link AgentMcpServerList}. */
 export interface AgentMcpServerListProps {
@@ -210,10 +210,10 @@ function AgentMcpServerForm({
   return (
     <div role="group" aria-label={initial ? `Change ${initial.name}` : "New MCP server"} className="stg:flex stg:flex-col stg:gap-3">
       <div className="stg:space-y-1">
-        <label htmlFor={`${baseId}-name`} className="stg:text-xs stg:font-medium stg:text-foreground">
+        <label htmlFor={`${baseId}-name`} className={FIELD_LABEL_CLASSES}>
           Name
         </label>
-        <input
+        <TextInput
           id={`${baseId}-name`}
           value={name}
           onChange={(event) => setName(event.target.value)}
@@ -221,7 +221,6 @@ function AgentMcpServerForm({
           autoComplete="off"
           spellCheck={false}
           disabled={isSaving}
-          className={INPUT_CLASS}
         />
         <p className="stg:text-xs stg:text-muted-foreground">
           Lowercase letters, digits and hyphens. Its tools are named <code className="stg:font-mono">{"mcp__<name>__<tool>"}</code>.
@@ -229,10 +228,10 @@ function AgentMcpServerForm({
       </div>
 
       <div className="stg:space-y-1">
-        <label htmlFor={`${baseId}-url`} className="stg:text-xs stg:font-medium stg:text-foreground">
+        <label htmlFor={`${baseId}-url`} className={FIELD_LABEL_CLASSES}>
           URL
         </label>
-        <input
+        <TextInput
           id={`${baseId}-url`}
           type="url"
           value={url}
@@ -241,16 +240,15 @@ function AgentMcpServerForm({
           autoComplete="off"
           spellCheck={false}
           disabled={isSaving}
-          className={INPUT_CLASS}
         />
       </div>
 
       <HeaderRowsEditor rows={headers} onChange={setHeaders} disabled={isSaving} />
 
       {problem !== null && (
-        <p role="alert" className="stg:text-xs stg:text-destructive">
+        <FieldError>
           {problem}
-        </p>
+        </FieldError>
       )}
 
       <div className="stg:flex stg:justify-end stg:gap-2">

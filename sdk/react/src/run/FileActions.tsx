@@ -25,6 +25,7 @@ import { Button } from "../button/Button.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { useDeleteResource } from "../resource-detail/useDeleteResource.js";
 import { useApplyResource, type ApplyResourceResult } from "../library/useApplyResource.js";
+import { TextInput } from "../internal/form/index.js";
 
 /** A quiet destructive act: red words on the ghost button, a red tint on hover. */
 const DESTRUCTIVE_GHOST = "stg:text-destructive stg:hover:bg-destructive-subtle";
@@ -157,13 +158,13 @@ export function FileAddAsSkillAction({ file, onAdded }: FileAddAsSkillActionProp
           void add();
         }}
       >
-        <input
+        <TextInput
           type="text"
           value={tag}
           onChange={(event) => setTag(event.target.value)}
           placeholder="Tag (optional)"
           aria-label="Skill tag (optional)"
-          className="stg:h-6 stg:w-28 stg:rounded stg:border stg:border-border stg:bg-background stg:px-1.5 stg:text-xs stg:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
+          className="stg:w-28"
         />
         <Button type="submit" variant="ghost" size="xs" disabled={isApplying}>
           {isApplying ? "Adding…" : "Add"}

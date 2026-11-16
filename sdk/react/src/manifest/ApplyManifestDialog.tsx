@@ -18,6 +18,7 @@ import {
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { YamlEditor } from "./YamlEditor.js";
 import { Button } from "../button/Button.js";
+import { FieldError, HiddenFileInput } from "../internal/form/index.js";
 
 
 /** Props for {@link ApplyManifestDialog}. */
@@ -161,17 +162,17 @@ export function ApplyManifestDialog({
           </p>
         </div>
 
-        {/* File picker */}
-        <input
+        {/* File picker: the kit's button opens the system's picker. */}
+        <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2">
+          <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+            Choose a file
+          </Button>
+          <span className="stg:text-xs stg:text-muted-foreground">A .yaml, .yml or .json file, or paste it below.</span>
+        </div>
+        <HiddenFileInput
           ref={fileInputRef}
-          type="file"
           accept=".yaml,.yml,.json"
           onChange={handleFileChange}
-          className={cn(
-            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-3 stg:py-2 stg:text-sm stg:text-foreground",
-            "stg:file:mr-3 stg:file:rounded-md stg:file:border-0 stg:file:bg-primary stg:file:px-2.5 stg:file:py-1 stg:file:text-xs stg:file:font-medium stg:file:text-primary-foreground",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          )}
           aria-label="Select manifest file"
         />
 
@@ -251,9 +252,9 @@ function PreviewRow({ entry }: { readonly entry: ManifestPreviewEntry }) {
         <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">{kept.join(" ")}</p>
       )}
       {entry.status === "failed" && entry.errorMessage && (
-        <p role="alert" className="stg:mt-1 stg:text-xs stg:text-destructive">
+        <FieldError className="stg:mt-1">
           {entry.errorMessage}
-        </p>
+        </FieldError>
       )}
     </li>
   );

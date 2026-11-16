@@ -12,6 +12,8 @@ import { useSkillUpload } from "./useSkillUpload.js";
 import { usePushSkill } from "./usePushSkill.js";
 import { useSkillDuplicateCheck } from "./useSkillDuplicateCheck.js";
 import { Button } from "../button/Button.js";
+import { FieldError, HiddenFileInput } from "../internal/form/index.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -228,21 +230,18 @@ function DropZonePhase({
           Accepts .zip files following the Anthropic Agent Skills format
         </p>
 
-        <input
+        <HiddenFileInput
           ref={inputRef}
-          type="file"
           accept=".zip"
           onChange={handleFileChange}
-          className="stg:hidden"
-          aria-hidden="true"
         />
       </div>
 
       {validationError && (
         <div className="stg:px-4 stg:py-3">
-          <p className="stg:text-sm stg:text-destructive" role="alert">
+          <FieldError>
             {validationError}
-          </p>
+          </FieldError>
         </div>
       )}
 
@@ -372,9 +371,7 @@ function PreviewPhase({
       {/* Error */}
       {pushError && (
         <div className="stg:px-4 stg:py-2">
-          <p className="stg:text-sm stg:text-destructive" role="alert">
-            {pushError.message}
-          </p>
+          <ErrorMessage error={pushError} title="Couldn't upload the skill." />
         </div>
       )}
 

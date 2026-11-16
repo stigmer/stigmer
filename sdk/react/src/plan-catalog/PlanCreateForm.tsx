@@ -8,9 +8,9 @@ import { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 import { Button } from "../button/index.js";
 import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import { FEATURE_COPY, type NamedFeature } from "../internal/features.js";
-import { Field, INPUT_CLASSES } from "../internal/form-primitives.js";
 import { EMPTY_PLAN_DRAFT, planInputFromDraft, type PlanDraft } from "./plan-draft.js";
 import { useCreatePlan } from "./usePlanMutations.js";
+import { Checkbox, Field, FieldError, TextInput } from "../internal/form/index.js";
 
 /** The features a subscription plan can list, in contract order. */
 const PLAN_FEATURES: readonly NamedFeature[] = [
@@ -66,21 +66,19 @@ export function PlanCreateForm({ onCreated, onCancel }: PlanCreateFormProps) {
   return (
     <form onSubmit={submit} className="stg:space-y-4" aria-label="New plan">
       <div className="stg:grid stg:gap-3 stg:sm:grid-cols-2">
-        <Field label="Name" required>
-          <input className={INPUT_CLASSES} value={draft.name} onChange={(e) => set("name", e.target.value)} />
+        <Field label="Name">
+          <TextInput  value={draft.name} onChange={(e) => set("name", e.target.value)} />
         </Field>
-        <Field label="Handle (slug)" required>
-          <input
-            className={INPUT_CLASSES}
+        <Field label="Handle (slug)">
+          <TextInput
             value={draft.slug}
             placeholder="team-2027"
             onChange={(e) => set("slug", e.target.value)}
           />
           {fieldError("slug")}
         </Field>
-        <Field label="Monthly fee (USD)" required>
-          <input
-            className={INPUT_CLASSES}
+        <Field label="Monthly fee (USD)">
+          <TextInput
             inputMode="decimal"
             value={draft.monthlyMinimumUsd}
             onChange={(e) => set("monthlyMinimumUsd", e.target.value)}
@@ -93,8 +91,7 @@ export function PlanCreateForm({ onCreated, onCancel }: PlanCreateFormProps) {
         <legend className="stg:mb-1 stg:text-xs stg:font-medium stg:text-muted-foreground">Features</legend>
         {PLAN_FEATURES.map((feature) => (
           <label key={feature} className="stg:flex stg:items-start stg:gap-2 stg:text-sm">
-            <input
-              type="checkbox"
+            <Checkbox
               className="stg:mt-0.5"
               checked={draft.features.includes(feature)}
               onChange={(e) => toggle(feature, e.target.checked)}
@@ -112,8 +109,7 @@ export function PlanCreateForm({ onCreated, onCancel }: PlanCreateFormProps) {
       {draft.features.includes(Feature.child_orgs) && (
         <div className="stg:grid stg:gap-3 stg:sm:grid-cols-2">
           <Field label="Child organizations included (empty: unlimited)">
-            <input
-              className={INPUT_CLASSES}
+            <TextInput
               inputMode="numeric"
               value={draft.includedChildOrgs}
               onChange={(e) => set("includedChildOrgs", e.target.value)}
@@ -121,8 +117,7 @@ export function PlanCreateForm({ onCreated, onCancel }: PlanCreateFormProps) {
             {fieldError("includedChildOrgs")}
           </Field>
           <Field label="Each one beyond (USD/month)">
-            <input
-              className={INPUT_CLASSES}
+            <TextInput
               inputMode="decimal"
               value={draft.perExtraOrganizationUsd}
               onChange={(e) => set("perExtraOrganizationUsd", e.target.value)}
@@ -134,8 +129,7 @@ export function PlanCreateForm({ onCreated, onCancel }: PlanCreateFormProps) {
 
       <div className="stg:grid stg:gap-3 stg:sm:grid-cols-2">
         <Field label="Agent hours included each month (empty: unlimited)">
-          <input
-            className={INPUT_CLASSES}
+          <TextInput
             inputMode="numeric"
             value={draft.includedAgentHours}
             onChange={(e) => set("includedAgentHours", e.target.value)}
@@ -143,8 +137,7 @@ export function PlanCreateForm({ onCreated, onCancel }: PlanCreateFormProps) {
           {fieldError("includedAgentHours")}
         </Field>
         <Field label="Each hour over, USD (empty: the organization pauses at the allowance)">
-          <input
-            className={INPUT_CLASSES}
+          <TextInput
             inputMode="decimal"
             value={draft.perAgentHourUsd}
             onChange={(e) => set("perAgentHourUsd", e.target.value)}
@@ -160,9 +153,9 @@ export function PlanCreateForm({ onCreated, onCancel }: PlanCreateFormProps) {
         </p>
       )}
       {creator.error && (
-        <p className="stg:text-xs stg:text-destructive" role="alert">
+        <FieldError>
           {getUserMessage(creator.error)}
-        </p>
+        </FieldError>
       )}
 
       <div className="stg:flex stg:justify-end stg:gap-2">

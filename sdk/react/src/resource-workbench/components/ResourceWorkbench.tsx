@@ -31,6 +31,7 @@ import { ORG_COLUMN_ID } from "../types.js";
 import { OrgSlugText } from "../../organization/OrgSlugText.js";
 import { IconButton } from "../../button/IconButton.js";
 import { cardClasses } from "../../internal/surface/Card.js";
+import { TextInput } from "../../internal/form/index.js";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -336,17 +337,13 @@ export function ResourceWorkbench<TData = SearchResult>({
           {searchable ? (
             <div className="stg:relative stg:flex-1">
               <SearchIcon className="stg:pointer-events-none stg:absolute stg:left-2.5 stg:top-1/2 stg:h-3.5 stg:w-3.5 stg:-translate-y-1/2 stg:text-muted-foreground-subtle" />
-              <input
+              <TextInput
                 type="text"
                 value={filtersHook.query}
                 onChange={(e) => filtersHook.setQuery(e.target.value)}
                 placeholder={searchPlaceholder}
                 aria-label={searchPlaceholder}
-                className={cn(
-                  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:py-1.5 stg:pl-8 stg:pr-3 stg:text-sm",
-                  "stg:placeholder:text-muted-foreground-subtle",
-                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                )}
+                className="stg:w-full stg:pl-8"
               />
             </div>
           ) : (

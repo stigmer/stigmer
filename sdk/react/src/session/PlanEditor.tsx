@@ -18,6 +18,7 @@ import { useBuildFromPlanHotkey } from "../run/use-build-from-plan-hotkey.js";
 import type { SessionPlan } from "../library/detect-plan-file.js";
 import type { PlanDraftController } from "./usePlanDraft.js";
 import { PlanCardHeader, planSubline } from "../run/PlanCard.js";
+import { TextArea } from "../internal/form/index.js";
 
 /** Props for {@link PlanEditor}. */
 export interface PlanEditorProps {
@@ -210,17 +211,15 @@ export function PlanEditor({
         </pre>
       )}
       {activeView === "edit" && activeDraft !== undefined && (
-        <textarea
+        <TextArea
           value={effectiveText}
           onChange={(e) => activeDraft.setDraft(e.target.value)}
           aria-label="Edit plan"
           spellCheck={false}
           rows={28}
-          className={cn(
-            "stg:w-full stg:flex-1 stg:resize-y stg:rounded-md stg:border stg:border-border stg:bg-card stg:p-3",
-            "stg:font-mono stg:text-xs stg:text-foreground",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          )}
+          size="xs"
+          // The session's plan document: its own padding on the card fill, as it passed with the session viewer.
+          className="stg:w-full stg:flex-1 stg:resize-y stg:rounded-md stg:border-border stg:bg-card stg:p-3 stg:font-mono"
         />
       )}
 

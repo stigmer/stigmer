@@ -1,7 +1,7 @@
 {
   "screen": "G04",
   "title": "Models, none connected",
-  "source": "the Console parts page, version 6",
+  "source": "the Console parts page, version 8",
   "reader": "bf8cb5c94919",
   "drawings": [
     {
@@ -335,7 +335,6 @@
       "ruled": {},
       "pending": {
         "type Claude Agent": "When its page is redesigned: the harness's name at the drawn 14/20, weight 500",
-        "type Platform default (Claude Sonnet 4.6)": "When its page is redesigned: a form field's words at the drawn 14/20",
         "type Stigmer": "When its page is redesigned: the harness's name at the drawn 14/20, weight 500",
         "type Paste an Anthropic API key, and every member of Acme Corp can run these models. Anthropic bills Acme Corp directly.": "When its page is redesigned: the provider's line at the drawn 14/20",
         "type Paste an OpenAI API key, and every member of Acme Corp can run these models. OpenAI bills Acme Corp directly.": "When its page is redesigned: the provider's line at the drawn 14/20"

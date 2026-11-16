@@ -18,6 +18,7 @@ export default defineConfig([
       // onto the kit's Button, IconButton and LinkButton, so this fence starts
       // at zero.
       "stigmer/no-handrolled-button": "error",
+      "stigmer/no-handrolled-field": "error",
       "stigmer/no-token-opacity-modifiers": "warn",
       // Every text size comes from the type scale (--stgm-text-* tokens, 11px floor).
       "stigmer/text-size-from-scale": "error",

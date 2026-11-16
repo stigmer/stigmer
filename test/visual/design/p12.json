@@ -1,0 +1,217 @@
+{
+  "screen": "P12",
+  "title": "The inline editor",
+  "source": "the Console parts page, version 8",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "The inline editor",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "parts",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Slug",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "ledger-reviewer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Slug",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "ledger-reviewer-2",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Save",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Slug",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "ledger-reviewer-2",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Save",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Slug",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Ledger Reviewer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Save",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Use lowercase letters, numbers and hyphens.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Description",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Reads the month's ledger\u2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Save",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Edit slug",
+          "height": 28
+        },
+        {
+          "name": "Save",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 28
+        },
+        {
+          "name": "Save",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 28
+        },
+        {
+          "name": "Save",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 28
+        },
+        {
+          "name": "Save",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 28
+        }
+      ],
+      "sample": {
+        "word ledger-reviewer-2": "the scene holds these words as the field's value, which the reader reads only as a placeholder (an empty field's); the field draws them at its own type",
+        "word Ledger Reviewer": "the scene holds these words as the field's value, which the reader reads only as a placeholder (an empty field's); the field draws them at its own type",
+        "word Reads the month's ledger\u2026": "the scene holds these words as the field's value, which the reader reads only as a placeholder (an empty field's); the field draws them at its own type"
+      },
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

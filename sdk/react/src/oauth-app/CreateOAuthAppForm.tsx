@@ -12,6 +12,7 @@ import { useCreateOAuthApp } from "./useCreateOAuthApp.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { MAX_ADDRESSES, parseAddressList } from "./addresses.js";
 import { Button } from "../button/Button.js";
+import { FIELD_LABEL_CLASSES, FieldError, Select, TextInput } from "../internal/form/index.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -289,11 +290,11 @@ export function CreateOAuthAppForm({
               <div className="stg:space-y-1">
                 <label
                   htmlFor={`${baseId}-token-auth-method`}
-                  className="stg:text-xs stg:font-medium stg:text-foreground"
+                  className={FIELD_LABEL_CLASSES}
                 >
                   Token endpoint auth method
                 </label>
-                <select
+                <Select
                   id={`${baseId}-token-auth-method`}
                   value={tokenEndpointAuthMethod}
                   onChange={(e) =>
@@ -302,11 +303,7 @@ export function CreateOAuthAppForm({
                     )
                   }
                   disabled={isCreating}
-                  className={cn(
-                    "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-                    "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-                    "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-                  )}
+                  className="stg:w-full"
                 >
                   <option value="unspecified">
                     Unspecified (treated as HTTP Basic)
@@ -317,7 +314,7 @@ export function CreateOAuthAppForm({
                   <option value="client_secret_post">
                     client_secret_post (form body)
                   </option>
-                </select>
+                </Select>
                 <p className="stg:text-2xs stg:text-muted-foreground">
                   How the client secret is sent to the vendor&apos;s token
                   endpoint. Most vendors accept HTTP Basic; some (e.g.
@@ -328,11 +325,11 @@ export function CreateOAuthAppForm({
               <div className="stg:space-y-1">
                 <label
                   htmlFor={`${baseId}-approval-status`}
-                  className="stg:text-xs stg:font-medium stg:text-foreground"
+                  className={FIELD_LABEL_CLASSES}
                 >
                   Vendor approval status
                 </label>
-                <select
+                <Select
                   id={`${baseId}-approval-status`}
                   value={vendorApprovalStatus}
                   onChange={(e) =>
@@ -341,17 +338,13 @@ export function CreateOAuthAppForm({
                     )
                   }
                   disabled={isCreating}
-                  className={cn(
-                    "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-                    "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-                    "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-                  )}
+                  className="stg:w-full"
                 >
                   <option value="unspecified">Unspecified (treated as approved)</option>
                   <option value="pending">Pending</option>
                   <option value="approved">Approved</option>
                   <option value="rejected">Rejected</option>
-                </select>
+                </Select>
                 <p className="stg:text-2xs stg:text-muted-foreground">
                   Vendor marketplace approval lifecycle status
                 </p>
@@ -372,9 +365,9 @@ export function CreateOAuthAppForm({
       </div>
 
       {error && (
-        <p className="stg:text-destructive stg:text-2xs" role="alert">
+        <FieldError>
           {getUserMessage(error)}
-        </p>
+        </FieldError>
       )}
 
       <div className="stg:flex stg:items-center stg:gap-2">
@@ -434,10 +427,10 @@ function FormField({
 }) {
   return (
     <div className="stg:space-y-1">
-      <label htmlFor={id} className="stg:text-xs stg:font-medium stg:text-foreground">
+      <label htmlFor={id} className={FIELD_LABEL_CLASSES}>
         {label}
       </label>
-      <input
+      <TextInput
         id={id}
         type={type}
         value={value}
@@ -445,12 +438,7 @@ function FormField({
         placeholder={placeholder}
         disabled={disabled}
         required={required}
-        className={cn(
-          "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-          "stg:placeholder:text-muted-foreground",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-        )}
+        className="stg:w-full"
       />
       {hint && (
         <p className="stg:text-2xs stg:text-muted-foreground">{hint}</p>

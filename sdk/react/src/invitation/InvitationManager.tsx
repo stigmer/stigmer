@@ -32,6 +32,7 @@ import { Tag } from "../internal/surface/Tag.js";
 import { StatusBadge } from "../status/StatusBadge.js";
 import type { StatusPhase } from "../resource-workbench/types.js";
 import { List, ListRow } from "../internal/surface/List.js";
+import { FIELD_LABEL_CLASSES, FieldError, Radio, TextInput } from "../internal/form/index.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -225,9 +226,9 @@ export function InvitationManager({
         </List>
       )}
       {loadMoreError !== null && (
-        <p className="stg:text-destructive stg:text-xs" role="alert">
+        <FieldError>
           {getUserMessage(loadMoreError)}
-        </p>
+        </FieldError>
       )}
       {hasMore && (
         <button
@@ -308,12 +309,12 @@ function CreateInvitationForm({
       <div className="stg:space-y-1">
         <label
           htmlFor={`${baseId}-label`}
-          className="stg:text-xs stg:font-medium stg:text-foreground"
+          className={FIELD_LABEL_CLASSES}
         >
           Label{" "}
           <span className="stg:font-normal stg:text-muted-foreground">(optional)</span>
         </label>
-        <input
+        <TextInput
           id={`${baseId}-label`}
           type="text"
           value={label}
@@ -322,12 +323,7 @@ function CreateInvitationForm({
           disabled={isCreating}
           autoFocus
           maxLength={200}
-          className={cn(
-            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-            "stg:placeholder:text-muted-foreground",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
+          className="stg:w-full"
         />
       </div>
 
@@ -390,9 +386,9 @@ function CreateInvitationForm({
       </fieldset>
 
       {error && (
-        <p className="stg:text-destructive stg:text-2xs" role="alert">
+        <FieldError>
           {getUserMessage(error)}
-        </p>
+        </FieldError>
       )}
 
       <div className="stg:flex stg:items-center stg:gap-2">
@@ -624,14 +620,13 @@ function ExpiryRadio({
         disabled && "stg:pointer-events-none stg:opacity-50",
       )}
     >
-      <input
-        type="radio"
+      <Radio
+        visuallyHidden
         name={name}
         value={value}
         checked={checked}
         disabled={disabled}
         onChange={() => onChange(value)}
-        className="stg:sr-only"
       />
       {label}
     </label>
@@ -665,14 +660,13 @@ function RedemptionRadio({
         disabled && "stg:pointer-events-none stg:opacity-50",
       )}
     >
-      <input
-        type="radio"
+      <Radio
+        visuallyHidden
         name={name}
         value={value}
         checked={checked}
         disabled={disabled}
         onChange={() => onChange(value)}
-        className="stg:sr-only"
       />
       <span>{label}</span>
       <span className="stg:text-2xs stg:text-muted-foreground stg:font-normal stg:mt-0.5">

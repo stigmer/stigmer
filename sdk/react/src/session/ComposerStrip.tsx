@@ -13,7 +13,7 @@
 
 import { useId, type HTMLAttributes, type ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";
+import { UNSTYLED_BUTTON } from "../internal/element-resets.js";
 
 /** Props for {@link ComposerStrip}. */
 export interface ComposerStripProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
