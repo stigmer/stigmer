@@ -79,7 +79,7 @@ export function LibraryRow({ icon, name, tags = [], description, changedAt }: Li
         {description && <span className="stg:truncate stg:text-xs stg:text-muted-foreground">{description}</span>}
       </div>
       {/* An item that carries no change time (seconds 0) says nothing rather than 1970. */}
-      {changedAt && changedAt.seconds > 0n && (
+      {changedAt && changedAt.seconds > 0 && (
         <span className="stg:shrink-0 stg:text-xs stg:tabular-nums stg:text-muted-foreground">
           {formatRelativeTime(timestampDate(changedAt))}
         </span>
