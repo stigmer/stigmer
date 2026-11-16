@@ -84,12 +84,11 @@ export function CapabilitiesStep({
   return (
     <div className="stg:flex stg:flex-col stg:gap-6">
       <div>
-        <h2 className="stg:text-lg stg:font-semibold stg:text-foreground">
-          Capabilities
+        <h2 className="stg:m-0 stg:text-base stg:font-semibold stg:text-foreground">
+          What it can use
         </h2>
-        <p className="stg:mt-1 stg:text-sm stg:text-muted-foreground">
-          Configure what tools, skills, and secrets this agent can use.
-          All sections are optional.
+        <p className="stg:m-0 stg:mt-1 stg:text-sm stg:text-muted-foreground">
+          The skills, plugins, servers and settings it reaches. Each is optional.
         </p>
       </div>
 

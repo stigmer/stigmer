@@ -39,11 +39,11 @@ export function ReviewStep({
   return (
     <div className="stg:flex stg:flex-col stg:gap-6">
       <div>
-        <h2 className="stg:text-lg stg:font-semibold stg:text-foreground">
-          Review & Create
+        <h2 className="stg:m-0 stg:text-base stg:font-semibold stg:text-foreground">
+          Review
         </h2>
-        <p className="stg:mt-1 stg:text-sm stg:text-muted-foreground">
-          Review the agent configuration below, then create it.
+        <p className="stg:m-0 stg:mt-1 stg:text-sm stg:text-muted-foreground">
+          Check what you made, then create it.
         </p>
       </div>
 
