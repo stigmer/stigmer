@@ -43,9 +43,10 @@ import {
 import { agentChannelsScene, embedWidgetScene } from "./channel.tsx";
 import { channelAppsScene } from "./channel-app.tsx";
 import { oauthAppsScene, serviceAccountsScene } from "./access.tsx";
-import { conversationsScene } from "./conversations.tsx";
+import { conversationsScene, conversationsStateScene } from "./conversations.tsx";
 import { agentEnvironmentScene, environmentNewScene, runSettingsScene } from "./environment.tsx";
-import { routineDetailScene, routineNewScene } from "./routine.tsx";
+import { routineDetailScene, routineNewFailedScene, routineNewScene } from "./routine.tsx";
+import { agentNewScene, libraryLandingScene, libraryListScene, pluginUploadScene, skillUploadScene } from "./library.tsx";
 import { modelSelectorScene } from "./settings.tsx";
 import {
   endingStoryScene,
@@ -162,6 +163,43 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "bring-others-in-joined": () => bringOthersInScene("joined"),
   "bring-others-in-local": () => bringOthersInScene("local"),
   "skill-detail": skillDetailScene,
+  "library-landing": () => libraryLandingScene("owner"),
+  "library-landing-member": () => libraryLandingScene("member"),
+  "library-landing-failed": () => libraryLandingScene("failed"),
+  "library-agents": () => libraryListScene("agents", "full"),
+  "library-agents-empty": () => libraryListScene("agents", "empty"),
+  "library-agents-empty-member": () => libraryListScene("agents", "empty-member"),
+  "library-agents-no-match": () => libraryListScene("agents", "no-match"),
+  "library-agents-failed": () => libraryListScene("agents", "failed"),
+  "library-agents-loading": () => libraryListScene("agents", "loading"),
+  "library-agents-apply-yaml": () => libraryListScene("agents", "full"),
+  "library-agents-delete": () => libraryListScene("agents", "full"),
+  "library-skills": () => libraryListScene("skills", "full"),
+  "library-skills-empty": () => libraryListScene("skills", "empty"),
+  "library-skills-failed": () => libraryListScene("skills", "failed"),
+  "library-plugins": () => libraryListScene("plugins", "full"),
+  "library-plugins-empty": () => libraryListScene("plugins", "empty"),
+  "library-plugins-empty-member": () => libraryListScene("plugins", "empty-member"),
+  "library-plugins-failed": () => libraryListScene("plugins", "failed"),
+  "library-routines": () => libraryListScene("routines", "full"),
+  "library-routines-empty": () => libraryListScene("routines", "empty"),
+  "library-routines-failed": () => libraryListScene("routines", "failed"),
+  "library-environments": () => libraryListScene("environments", "full"),
+  "library-environments-empty": () => libraryListScene("environments", "empty"),
+  "library-environments-empty-member": () => libraryListScene("environments", "empty-member"),
+  "library-environments-failed": () => libraryListScene("environments", "failed"),
+  "library-files": () => libraryListScene("files", "full"),
+  "library-files-empty": () => libraryListScene("files", "empty"),
+  "library-files-failed": () => libraryListScene("files", "failed"),
+  "agent-new-picker": () => agentNewScene(),
+  "agent-new-wizard": () => agentNewScene(),
+  "agent-new-denied": () => agentNewScene(true),
+  "skill-upload-first": skillUploadScene,
+  "plugin-upload-first": pluginUploadScene,
+  "conversations-empty": () => conversationsStateScene("empty"),
+  "conversations-failed": () => conversationsStateScene("failed"),
+  "conversations-none-selected": () => conversationsStateScene("none-selected"),
+  "conversations-open": () => conversationsStateScene("open"),
   "marketplace-admin": () => marketplaceScene("admin"),
   "marketplace-member": () => marketplaceScene("member"),
   "marketplace-no-match": () => marketplaceScene("admin"),
@@ -241,6 +279,9 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "routine-new": routineNewScene,
   "routine-disabled": () => routineDetailScene("disabled"),
   "routine-history": () => routineDetailScene("history"),
+  "routine-new-failed": routineNewFailedScene,
+  "routine-edit-cadence": () => routineDetailScene("disabled"),
+  "routine-run-dialog": () => routineDetailScene("history"),
   "environment-new": environmentNewScene,
   "environment-agent": agentEnvironmentScene,
   "environment-run-settings": runSettingsScene,

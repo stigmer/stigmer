@@ -11,6 +11,7 @@ import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
 import { FileQueryController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/query_pb";
 import { EnvironmentQueryController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/query_pb";
+import { RoutineCommandController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/command_pb";
 import { RoutineQueryController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/query_pb";
 import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/query_pb";
 import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
@@ -84,5 +85,23 @@ export function routineDetailScene(state: "disabled" | "history"): Drawing {
           onNavigateToRun={() => {}}
         />,
       ),
+  };
+}
+
+/** New routine filled in and sent, refused by the server: the one failure line the form draws today. */
+export function routineNewFailedScene(): Drawing {
+  const routes = routineRoutes(false);
+  return {
+    inOrganization: true,
+    routes: (router) => {
+      routes(router);
+      // The form sends the routine as an apply.
+      router.service(RoutineCommandController, {
+        apply: () => {
+          throw new ConnectError("a routine named daily-variance-report already exists in acme", Code.AlreadyExists);
+        },
+      });
+    },
+    render: () => libraryColumn(<RoutineForm org={ORG_SLUG} onCancel={() => {}} />),
   };
 }
