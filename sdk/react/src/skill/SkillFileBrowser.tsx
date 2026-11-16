@@ -6,7 +6,7 @@ import { cn } from "@stigmer/design-tokens";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components.js";
-import { buildFileTree, FileTreeNode } from "../internal/file-tree/index.js";
+import { buildFileTree, FileTreeNode, type TreeNode } from "../internal/file-tree/index.js";
 import { useSkillArtifact } from "./useSkillArtifact.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { ChoiceGroup, Field, Select } from "../internal/form/index.js";
@@ -125,7 +125,8 @@ export function SkillFileBrowser({
       return parts.map((_, i) => parts.slice(0, i + 1).join("/"));
     }),
   ).size;
-  const sortedPaths = [...fileEntries].map((f) => f.path).sort((x, y) => x.localeCompare(y));
+  // The phone's file list reads in the tree's order: SKILL.md first, then each folder's files.
+  const treePaths = filesInTreeOrder(treeNodes);
 
   return (
     <div className={cn("stg:flex stg:flex-col stg:gap-3", className)}>
@@ -140,7 +141,7 @@ export function SkillFileBrowser({
       <div className="stg:md:hidden">
         <Field label="File">
           <Select value={selectedPath ?? ""} onChange={(e) => setUserSelectedPath(e.target.value)}>
-            {sortedPaths.map((path) => (
+            {treePaths.map((path) => (
               <option key={path} value={path}>
                 {path}
               </option>
@@ -236,3 +237,7 @@ function FileContentViewer({
   );
 }
 
+/** Every file's path, in the order the tree draws it. */
+function filesInTreeOrder(nodes: readonly TreeNode[]): string[] {
+  return nodes.flatMap((node) => (node.children ? filesInTreeOrder(node.children) : [node.path]));
+}

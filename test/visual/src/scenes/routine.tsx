@@ -32,10 +32,10 @@ function libraryColumn(page: ReactElement): ReactElement {
   return <div style={{ maxWidth: "56rem", margin: "0 auto", padding: "2rem 1.5rem" }}>{page}</div>;
 }
 
-/** The calls every routine screen makes: who is looking, their organization, the routine and its Agent. */
 /** What a routine's History reads: its first run, nothing yet, or a read that fails. */
 type Fires = "first-run" | "none" | "failed";
 
+/** The calls every routine screen makes: who is looking, their organization, the routine and its Agent. */
 function routineRoutes(enabled: boolean, mayEditAgent = true, fires: Fires = enabled ? "first-run" : "none") {
   return (router: ConnectRouter) => {
     router.service(OrganizationQueryController, { listMine: () => samples.organizationList([ORGANIZATION]), get: () => ORGANIZATION });
@@ -86,10 +86,10 @@ export function routineNewScene(mayEditAgent = true): Drawing {
   };
 }
 
-/** The routine's page: switched off as made, or on with its first run in History. */
-/** The routine's page: as made (off), its History after a first run, with no runs, or failed to read, and its API tab. */
+/** What a routine's page shows: as made (off), its History after a first run, with no runs, or failed to read, and its API tab. */
 export type RoutineDetailState = "disabled" | "history" | "history-none" | "history-failed" | "api";
 
+/** The routine's page in one of its {@link RoutineDetailState}s. */
 export function routineDetailScene(state: RoutineDetailState): Drawing {
   const fires: Fires = state === "history" ? "first-run" : state === "history-failed" ? "failed" : "none";
   const tab = state.startsWith("history") ? "history" : state === "api" ? "api" : undefined;

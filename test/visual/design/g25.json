@@ -548,7 +548,6 @@
         }
       ],
       "sample": {
-        "word acme already has an environment named data-science.": "the scene's data differs (environment-new-taken)",
         "word pandas and poppler, GitHub and our API only": "the scene's data differs (environment-new-taken)",
         "word api.github.com our-api.example.com": "the scene's data differs (environment-new-taken)",
         "word pandas sqlalchemy==2.0.30": "the scene's data differs (environment-new-taken)"
@@ -560,7 +559,8 @@
         "word Listed websites only": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
         "type Also allow package registries and code hosts": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
         "word npm, PyPI, crates.io, the Go module proxy, RubyGems, the Debian and Ubuntu archives and GitHub. Packages need it.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "type Also allow this agent's MCP servers": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+        "type Also allow this agent's MCP servers": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word acme already has an environment named data-science.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
       }
     },
     {
@@ -599,13 +599,12 @@
         }
       ],
       "buttons": [],
-      "sample": {
-        "word Admins of acme set up environments. Ask one if your agents need packages or a network policy.": "the scene's data differs (environment-new-member)"
-      },
+      "sample": {},
       "ruled": {},
       "pending": {
         "word New environment": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Only an admin can create environments here": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+        "word Only an admin can create environments here": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Admins of acme set up environments. Ask one if your agents need packages or a network policy.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
       }
     },
     {

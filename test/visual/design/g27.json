@@ -179,9 +179,7 @@
           "height": 32
         }
       ],
-      "sample": {
-        "word Every agent in acme can load a skill when a task needs it.": "the scene's data differs (skill-upload-dragover)"
-      },
+      "sample": {},
       "ruled": {},
       "pending": {
         "word Drop it to upload": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
@@ -189,7 +187,8 @@
         "word Choose a file": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
         "type Upload skill": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
         "button Choose a file": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "button Upload skill": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+        "button Upload skill": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Every agent in acme can load a skill when a task needs it.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
       }
     },
     {
@@ -475,12 +474,11 @@
         }
       ],
       "buttons": [],
-      "sample": {
-        "word Admins of acme upload skills. Ask one to add the know-how your agents need.": "the scene's data differs (skill-upload-member)"
-      },
+      "sample": {},
       "ruled": {},
       "pending": {
-        "word Only an admin can upload skills here": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+        "word Only an admin can upload skills here": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Admins of acme upload skills. Ask one to add the know-how your agents need.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
       }
     },
     {

@@ -1,5 +1,13 @@
 "use client";
 
+/**
+ * Says who may upload skills, in place of an upload the server would refuse.
+ *
+ * A member who reaches a skill upload directly (a bookmark, a link) sees who
+ * can add skills and what to ask for, never a form whose submit fails. Hosts
+ * render it when `useCanCreateSkill` says no.
+ */
+
 import { EmptyState } from "../empty-state/EmptyState.js";
 
 /** Props for {@link SkillCreationDenied}. */

@@ -196,8 +196,23 @@ describe("PluginUploader: over a version already installed", () => {
     await screen.findByRole("heading", { name: "Replace thermos" });
     const notice = await screen.findByText("'thermos' is already installed at another version.");
     expect(notice.closest("[role='status']")?.className).toContain("stg:bg-status-degraded-subtle");
-    expect(screen.getByRole("button", { name: /^Replace/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Replace with 1.0.0" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Install" })).toBeNull();
+  });
+
+  it("offers a bare Replace when the package names no version", async () => {
+    renderUploader({ pushes: [], installed: true });
+    const files = thermosAsInputFiles("my-thermos").map((file) => {
+      if (file.webkitRelativePath !== "my-thermos/.cursor-plugin/plugin.json") return file;
+      const { version: _version, ...manifest } = JSON.parse(readFileSync(`${THERMOS}.cursor-plugin/plugin.json`, "utf8")) as Record<string, unknown>;
+      const unversioned = new File([JSON.stringify(manifest)], file.name);
+      Object.defineProperty(unversioned, "webkitRelativePath", { value: file.webkitRelativePath });
+      return unversioned;
+    });
+    await pickFolder(files);
+
+    await screen.findByRole("heading", { name: "Replace thermos" });
+    expect(screen.getByRole("button", { name: "Replace" })).toBeTruthy();
   });
 });
 

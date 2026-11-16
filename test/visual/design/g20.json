@@ -384,10 +384,7 @@
           "height": 32
         }
       ],
-      "sample": {
-        "word POST https://api.stigmer.ai/v1/routines/acme/daily-variance-report:fire": "the scene's data differs (routine-api)",
-        "word curl -X POST \\ -H \"Authorization: Bearer $STIGMER_API_KEY\" \\ https://api.stigmer.ai/v1/routines/acme/daily-variance-report:fire": "the scene's data differs (routine-api)"
-      },
+      "sample": {},
       "ruled": {},
       "pending": {
         "word Active": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
@@ -395,7 +392,9 @@
         "word Start it from another system": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
         "word Call this address with an API key that may run the routine. Each call starts one run, as if you pressed Run now.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
         "type Copy": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "button Copy": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+        "button Copy": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word POST https://api.stigmer.ai/v1/routines/acme/daily-variance-report:fire": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word curl -X POST \\ -H \"Authorization: Bearer $STIGMER_API_KEY\" \\ https://api.stigmer.ai/v1/routines/acme/daily-variance-report:fire": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
       }
     },
     {

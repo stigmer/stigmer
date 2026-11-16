@@ -1228,8 +1228,6 @@
         }
       ],
       "sample": {
-        "word Ledger tools installed this agent.": "the scene's data differs (agent-profile-managed)",
-        "word Open Ledger tools": "the scene's data differs (agent-profile-managed)",
         "word How acme codes expenses.": "the scene's data differs (agent-profile-managed)",
         "word The month-end checklist, in order.": "the scene's data differs (agent-profile-managed)"
       },
@@ -1244,7 +1242,9 @@
         "word MCP servers 1": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
         "word Environment": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
         "word None: the server's standard sandbox.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "button Open Ledger tools": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+        "button Open Ledger tools": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Ledger tools installed this agent.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Open Ledger tools": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
       }
     },
     {

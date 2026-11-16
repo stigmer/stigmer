@@ -4,6 +4,7 @@
 // below it, so the scene draws that very SKILL.md (docs-fixtures.ts).
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
+import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { strToU8, zipSync } from "fflate";
 import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillQueryController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/query_pb";
@@ -11,7 +12,7 @@ import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/quer
 import { IdentityAccountQueryController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 import { SkillDetailView } from "@stigmer/react-sdk";
-import { samples } from "@stigmer/react-sdk/test";
+import { sampleDate, samples } from "@stigmer/react-sdk/test";
 import { VARIANCE_REPORT_SKILL } from "../docs-fixtures.ts";
 import { ACCOUNT, ORGANIZATION } from "../fixtures.ts";
 import type { Drawing } from "./drawing.ts";
@@ -70,15 +71,36 @@ const PACKAGED_SKILL = create(SkillSchema, {
   status: { audit: VARIANCE_REPORT_SKILL.status?.audit, artifactStorageKey: "skills/variance-report/1.zip" },
 });
 
-/** What the package read does: hands back the zip, or fails. */
-function packagedSkillRoutes(router: ConnectRouter, readFails = false): void {
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** The package's two uploads, newest first: the current one a week ago, the first a fortnight before it. */
+const PACKAGE_VERSIONS = [
+  {
+    versionHash: "9f2c41d07ab3e5c86d14",
+    pushedAt: timestampFromDate(sampleDate(-7 * DAY_MS)),
+    pushedBy: { id: ACCOUNT.metadata?.id ?? "" },
+    isCurrent: true,
+    message: "Adds the chart of accounts and the variance script",
+    artifactStorageKey: "skills/variance-report/2.zip",
+  },
+  {
+    versionHash: "3b81e6a2c95d07f4e128",
+    pushedAt: timestampFromDate(sampleDate(-21 * DAY_MS)),
+    pushedBy: { id: ACCOUNT.metadata?.id ?? "" },
+    message: "First version",
+    artifactStorageKey: "skills/variance-report/1.zip",
+  },
+];
+
+/** What the package read does: hands back the zip, or fails; and whether its uploads are listed. */
+function packagedSkillRoutes(router: ConnectRouter, readFails = false, withVersions = false): void {
   router.service(OrganizationQueryController, { listMine: () => samples.organizationList([ORGANIZATION]), get: () => ORGANIZATION });
   router.service(IdentityAccountQueryController, { whoAmI: () => ACCOUNT });
   router.service(GrantQueryController, { checkMyPermission: () => ({ isAuthorized: true }) });
   router.service(SkillQueryController, {
     getByReference: () => PACKAGED_SKILL,
     get: () => PACKAGED_SKILL,
-    listVersions: () => ({ entries: [] }),
+    listVersions: () => ({ entries: withVersions ? PACKAGE_VERSIONS : [] }),
     // No download address on this server: the page reads the bytes in one call.
     getArtifactDownloadUrl: () => {
       throw new ConnectError("no transfer lane", Code.Unimplemented);
@@ -94,7 +116,7 @@ function packagedSkillRoutes(router: ConnectRouter, readFails = false): void {
 export function skillFilesScene(state: "files" | "versions" | "failed" = "files"): Drawing {
   return {
     inOrganization: true,
-    routes: (router) => packagedSkillRoutes(router, state === "failed"),
+    routes: (router) => packagedSkillRoutes(router, state === "failed", state === "versions"),
     render: () => (
       <div style={{ maxWidth: "56rem", margin: "0 auto", padding: "2rem 1.5rem" }}>
         <SkillDetailView
