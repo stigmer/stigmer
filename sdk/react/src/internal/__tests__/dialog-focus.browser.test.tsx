@@ -11,6 +11,7 @@ import { render, cleanup, screen } from "@testing-library/react";
 import { userEvent } from "@vitest/browser/context";
 import { useState } from "react";
 import { DialogBody, DialogFooter, DialogHeader, DialogShell } from "../DialogShell";
+import { ConfirmDialog } from "../../resource-detail/ConfirmDialog";
 
 afterEach(cleanup);
 
@@ -61,5 +62,18 @@ describe("a dialog drawn with its parts", () => {
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(document.activeElement).toBe(opener);
+  });
+
+  it("starts a confirm's focus on Cancel, so a key pressed on opening never confirms", async () => {
+    render(
+      <ConfirmDialog
+        state={{ title: "Remove ledger-tools?", description: "Removes the plugin and its versions.", confirmLabel: "Remove", variant: "destructive", resolve: () => {} }}
+        onConfirm={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+
+    await screen.findByRole("dialog", { name: "Remove ledger-tools?" });
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Cancel" }));
   });
 });
