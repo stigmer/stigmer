@@ -7,10 +7,10 @@
 
 import { useCallback, useReducer, type ReactNode } from "react";
 import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
-import { PageHeader } from "../../page/PageHeader.js";
-import { OrgSlugText } from "../../organization/OrgSlugText.js";
-import { toast } from "../../feedback/toast.js";
-import type { WorkbenchColumnDef } from "../../resource-workbench/types.js";
+import { PageHeader } from "../page/PageHeader.js";
+import { OrgSlugText } from "../organization/OrgSlugText.js";
+import { toast } from "../feedback/toast.js";
+import type { WorkbenchColumnDef } from "../resource-workbench/types.js";
 
 /** Props for {@link LibrarySectionFrame}. */
 export interface LibrarySectionFrameProps {

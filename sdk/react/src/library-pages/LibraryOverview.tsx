@@ -9,20 +9,20 @@ import { type MouseEvent, type ReactNode, useCallback, useReducer, useState } fr
 import { Blocks, Bot, Box, CalendarClock, FileCode2, Files, Plus, Server, Sparkles } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/design-tokens";
-import { Button } from "../../button/Button.js";
-import { ApplyManifestDialog } from "../../manifest/ApplyManifestDialog.js";
-import { PageHeader } from "../../page/PageHeader.js";
-import { ResourceCountCard } from "../ResourceCountCard.js";
-import { useActiveOrgId } from "../../organization/OrgProvider.js";
-import { useAgentCount } from "../../agent/useAgentCount.js";
-import { useCanCreateAgent } from "../../agent/useCanCreateAgent.js";
-import { useSkillCount } from "../../skill/useSkillCount.js";
-import { useRoutineCount } from "../../routine/useRoutineCount.js";
-import { usePluginCount } from "../../plugin/usePluginList.js";
-import { useEnvironmentCount } from "../../environment/useEnvironmentCount.js";
-import { useCanCreateEnvironment } from "../../environment/useCanCreateEnvironment.js";
-import { useFileCount } from "../../file/useFileCount.js";
-import { useCanCreateFile } from "../../file/useCanCreateFile.js";
+import { Button } from "../button/Button.js";
+import { ApplyManifestDialog } from "../manifest/ApplyManifestDialog.js";
+import { PageHeader } from "../page/PageHeader.js";
+import { ResourceCountCard } from "../library/ResourceCountCard.js";
+import { useActiveOrgId } from "../organization/OrgProvider.js";
+import { useAgentCount } from "../agent/useAgentCount.js";
+import { useCanCreateAgent } from "../agent/useCanCreateAgent.js";
+import { useSkillCount } from "../skill/useSkillCount.js";
+import { useRoutineCount } from "../routine/useRoutineCount.js";
+import { usePluginCount } from "../plugin/usePluginList.js";
+import { useEnvironmentCount } from "../environment/useEnvironmentCount.js";
+import { useCanCreateEnvironment } from "../environment/useCanCreateEnvironment.js";
+import { useFileCount } from "../file/useFileCount.js";
+import { useCanCreateFile } from "../file/useCanCreateFile.js";
 import { LIBRARY_HREFS } from "./navigation.js";
 
 /** Props for {@link LibraryOverview}. */
@@ -85,7 +85,7 @@ function useResourceCounts(org: string | null, refetchToken: number) {
  *
  * @example
  * ```tsx
- * <LibraryOverview onNavigate={(path) => router.push(path)} />
+ * <LibraryOverview onNavigate={(path) => window.location.assign(path)} />
  * ```
  */
 export function LibraryOverview({ onNavigate, toHref = identity }: LibraryOverviewProps) {

@@ -50,7 +50,7 @@ const page = vi.hoisted(() => ({
   toasts: [] as Array<[string, string]>,
 }));
 
-vi.mock("../../../resource-workbench/components/ResourceWorkbench.js", () => ({
+vi.mock("../../resource-workbench/components/ResourceWorkbench.js", () => ({
   // Draws one row the way the workbench does (each column's cell, then the
   // row's action slot), the empty list's act, and a press that opens the row.
   ResourceWorkbench: (props: Props) => {
@@ -74,7 +74,7 @@ vi.mock("../../../resource-workbench/components/ResourceWorkbench.js", () => ({
   },
 }));
 
-vi.mock("../../../action-menu/ActionMenu.js", () => {
+vi.mock("../../action-menu/ActionMenu.js", () => {
   const Passthrough = ({ children }: { children?: ReactNode }) => <>{children}</>;
   return {
     ActionMenu: Object.assign(Passthrough, {
@@ -92,7 +92,7 @@ vi.mock("../../../action-menu/ActionMenu.js", () => {
 
 // Stands in for the kit's bar: an act that requires a relation is offered
 // only when the row's resource holds it (the rule is pinned beside the bar).
-vi.mock("../../../resource-detail/ResourceActionBar.js", () => ({
+vi.mock("../../resource-detail/ResourceActionBar.js", () => ({
   ResourceActionBar: ({
     resource,
     menuLabel,
@@ -114,8 +114,8 @@ vi.mock("../../../resource-detail/ResourceActionBar.js", () => ({
   ),
 }));
 
-vi.mock("../../../resource-detail/ConfirmDialog.js", () => ({ ConfirmDialog: () => null }));
-vi.mock("../../../resource-detail/useConfirmAction.js", () => ({
+vi.mock("../../resource-detail/ConfirmDialog.js", () => ({ ConfirmDialog: () => null }));
+vi.mock("../../resource-detail/useConfirmAction.js", () => ({
   useConfirmAction: () => ({
     confirmState: null,
     confirm: async (options: { title: string; description: string }) => {
@@ -126,73 +126,73 @@ vi.mock("../../../resource-detail/useConfirmAction.js", () => ({
     handleCancel: () => undefined,
   }),
 }));
-vi.mock("../../../manifest/ApplyManifestDialog.js", () => ({
+vi.mock("../../manifest/ApplyManifestDialog.js", () => ({
   ApplyManifestDialog: (props: Props) => {
     page.applyDialog.push(props);
     return null;
   },
 }));
-vi.mock("../../../plugin/AddMcpServerDialog.js", () => ({
+vi.mock("../../plugin/AddMcpServerDialog.js", () => ({
   AddMcpServerDialog: (props: Props) => {
     page.addServer.push(props);
     return null;
   },
 }));
-vi.mock("../../../agent/useCanCreateAgent.js", () => ({ useCanCreateAgent: () => page.canCreateAgent }));
-vi.mock("../../../plugin/useCanCreatePlugin.js", () => ({
+vi.mock("../../agent/useCanCreateAgent.js", () => ({ useCanCreateAgent: () => page.canCreateAgent }));
+vi.mock("../../plugin/useCanCreatePlugin.js", () => ({
   useCanCreatePlugin: (org: string | null) => {
     page.pluginAsked.push(org);
     return page.canCreatePlugin;
   },
 }));
-vi.mock("../../../environment/useCanCreateEnvironment.js", () => ({
+vi.mock("../../environment/useCanCreateEnvironment.js", () => ({
   useCanCreateEnvironment: () => page.canCreateEnvironment,
 }));
-vi.mock("../../../file/useCanCreateFile.js", () => ({ useCanCreateFile: () => page.canCreateFile }));
-vi.mock("../../../organization/OrgProvider.js", async () => ({
-  ...(await vi.importActual<typeof import("../../../organization/OrgProvider.js")>("../../../organization/OrgProvider.js")),
+vi.mock("../../file/useCanCreateFile.js", () => ({ useCanCreateFile: () => page.canCreateFile }));
+vi.mock("../../organization/OrgProvider.js", async () => ({
+  ...(await vi.importActual<typeof import("../../organization/OrgProvider.js")>("../../organization/OrgProvider.js")),
   useActiveOrgId: () => "org_acme",
 }));
-vi.mock("../../../organization/useOrgRefs.js", async () => ({
-  ...(await vi.importActual<typeof import("../../../organization/useOrgRefs.js")>("../../../organization/useOrgRefs.js")),
+vi.mock("../../organization/useOrgRefs.js", async () => ({
+  ...(await vi.importActual<typeof import("../../organization/useOrgRefs.js")>("../../organization/useOrgRefs.js")),
   // The person's organizations: the active one and the one sharing the row.
   useOrgSlugForId: () => (id: string) => ({ org_acme: "acme", org_shared: "shared-team" })[id] ?? id,
 }));
 // A stand-in that shows which org id the column handed it.
-vi.mock("../../../organization/OrgSlugText.js", () => ({
+vi.mock("../../organization/OrgSlugText.js", () => ({
   OrgSlugText: ({ orgId }: { orgId: string }) => <span data-org-id={orgId}>slug of {orgId}</span>,
 }));
-vi.mock("../../../feedback/toast.js", () => ({
+vi.mock("../../feedback/toast.js", () => ({
   toast: {
     success: (message: string) => page.toasts.push(["success", message]),
     error: (message: string) => page.toasts.push(["error", message]),
   },
 }));
-vi.mock("../../../routine/RoutineRowActions.js", () => ({
+vi.mock("../../routine/RoutineRowActions.js", () => ({
   RoutineRowActions: (props: Props) => {
     page.props.set("RoutineRowActions", props);
     return null;
   },
 }));
-vi.mock("../../../routine/routineColumns.js", () => ({ createRoutineColumns: () => [] }));
-vi.mock("../../../routine/routineListFn.js", () => ({ createRoutineListFn: () => async () => ({ entries: [] }) }));
-vi.mock("../../../environment/EnvironmentsNotOnServerNotice.js", () => ({ EnvironmentsNotOnServerNotice: () => null }));
-vi.mock("../../../environment/environmentColumns.js", () => ({ createEnvironmentColumns: () => [] }));
-vi.mock("../../../environment/environmentListFn.js", () => ({ createEnvironmentListFn: () => async () => ({ entries: [] }) }));
-vi.mock("../../../file/FileUploadButton.js", () => ({
+vi.mock("../../routine/routineColumns.js", () => ({ createRoutineColumns: () => [] }));
+vi.mock("../../routine/routineListFn.js", () => ({ createRoutineListFn: () => async () => ({ entries: [] }) }));
+vi.mock("../../environment/EnvironmentsNotOnServerNotice.js", () => ({ EnvironmentsNotOnServerNotice: () => null }));
+vi.mock("../../environment/environmentColumns.js", () => ({ createEnvironmentColumns: () => [] }));
+vi.mock("../../environment/environmentListFn.js", () => ({ createEnvironmentListFn: () => async () => ({ entries: [] }) }));
+vi.mock("../../file/FileUploadButton.js", () => ({
   FileUploadButton: (props: Props) => {
     page.props.set("FileUploadButton", props);
     return <button type="button">Upload</button>;
   },
 }));
-vi.mock("../../../file/LibraryFilePreview.js", () => ({
+vi.mock("../../file/LibraryFilePreview.js", () => ({
   LibraryFilePreview: (props: Props) => {
     page.props.set("LibraryFilePreview", props);
     return null;
   },
 }));
-vi.mock("../../../file/fileColumns.js", () => ({ createFileColumns: () => [] }));
-vi.mock("../../../file/fileListFn.js", () => ({ createFileListFn: () => async () => ({ entries: [] }) }));
+vi.mock("../../file/fileColumns.js", () => ({ createFileColumns: () => [] }));
+vi.mock("../../file/fileListFn.js", () => ({ createFileListFn: () => async () => ({ entries: [] }) }));
 vi.mock("@stigmer/react-core", async () => {
   const kind = {
     list: async () => ({ entries: [], nextPageToken: "" }),

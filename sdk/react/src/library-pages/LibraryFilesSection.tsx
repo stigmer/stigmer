@@ -11,13 +11,13 @@ import { useMemo, useState } from "react";
 import { Files } from "lucide-react";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { useStigmer } from "@stigmer/react-core";
-import { ResourceWorkbench } from "../../resource-workbench/components/ResourceWorkbench.js";
-import { FileUploadButton } from "../../file/FileUploadButton.js";
-import { LibraryFilePreview } from "../../file/LibraryFilePreview.js";
-import { createFileColumns } from "../../file/fileColumns.js";
-import { createFileListFn } from "../../file/fileListFn.js";
-import { useCanCreateFile } from "../../file/useCanCreateFile.js";
-import { useActiveOrgId } from "../../organization/OrgProvider.js";
+import { ResourceWorkbench } from "../resource-workbench/components/ResourceWorkbench.js";
+import { FileUploadButton } from "../file/FileUploadButton.js";
+import { LibraryFilePreview } from "../file/LibraryFilePreview.js";
+import { createFileColumns } from "../file/fileColumns.js";
+import { createFileListFn } from "../file/fileListFn.js";
+import { useCanCreateFile } from "../file/useCanCreateFile.js";
+import { useActiveOrgId } from "../organization/OrgProvider.js";
 import type { LibrarySectionNavigation } from "./navigation.js";
 import { LibrarySectionFrame, useRefetchToken } from "./LibrarySectionFrame.js";
 
@@ -31,7 +31,7 @@ export type LibraryFilesSectionProps = LibrarySectionNavigation;
  *
  * @example
  * ```tsx
- * <LibraryFilesSection onOpen={({ kind, org, slug }) => navigate(`/library/${kind}/${org}/${slug}`)} />
+ * <LibraryFilesSection onOpen={({ kind, org, slug }) => window.location.assign(`/library/${kind}/${org}/${slug}`)} />
  * ```
  */
 export function LibraryFilesSection({ onOpen }: LibraryFilesSectionProps) {

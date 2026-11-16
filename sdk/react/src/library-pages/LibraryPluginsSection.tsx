@@ -12,17 +12,17 @@ import { Blocks, Copy, ExternalLink, Server, Store, Trash2, Upload } from "lucid
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 import { createLibraryListFn, useStigmer } from "@stigmer/react-core";
-import { Button } from "../../button/Button.js";
-import { LinkButton, type RenderLink } from "../../button/LinkButton.js";
-import { AddMcpServerDialog } from "../../plugin/AddMcpServerDialog.js";
-import { useCanCreatePlugin } from "../../plugin/useCanCreatePlugin.js";
-import { ResourceActionBar } from "../../resource-detail/ResourceActionBar.js";
-import { ResourceWorkbench } from "../../resource-workbench/components/ResourceWorkbench.js";
-import { useActiveOrgId } from "../../organization/OrgProvider.js";
-import { useOrgSlugForId } from "../../organization/useOrgRefs.js";
-import { useConfirmAction } from "../../resource-detail/useConfirmAction.js";
-import { ConfirmDialog } from "../../resource-detail/ConfirmDialog.js";
-import { toast } from "../../feedback/toast.js";
+import { Button } from "../button/Button.js";
+import { LinkButton, type RenderLink } from "../button/LinkButton.js";
+import { AddMcpServerDialog } from "../plugin/AddMcpServerDialog.js";
+import { useCanCreatePlugin } from "../plugin/useCanCreatePlugin.js";
+import { ResourceActionBar } from "../resource-detail/ResourceActionBar.js";
+import { ResourceWorkbench } from "../resource-workbench/components/ResourceWorkbench.js";
+import { useActiveOrgId } from "../organization/OrgProvider.js";
+import { useOrgSlugForId } from "../organization/useOrgRefs.js";
+import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
+import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
+import { toast } from "../feedback/toast.js";
 import { LIBRARY_HREFS, type LibrarySectionNavigation } from "./navigation.js";
 import { LibrarySectionFrame, SEARCH_RESULT_COLUMNS, copyReference, useRefetchToken } from "./LibrarySectionFrame.js";
 
@@ -82,7 +82,7 @@ export interface LibraryPluginsSectionProps extends LibrarySectionNavigation {
  *
  * @example
  * ```tsx
- * <LibraryPluginsSection onOpen={({ kind, org, slug }) => navigate(`/library/${kind}/${org}/${slug}`)} />
+ * <LibraryPluginsSection onOpen={({ kind, org, slug }) => window.location.assign(`/library/${kind}/${org}/${slug}`)} />
  * ```
  */
 export function LibraryPluginsSection({

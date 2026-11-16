@@ -9,14 +9,14 @@ import { useCallback, useMemo, useState } from "react";
 import { CalendarClock, Plus, Upload } from "lucide-react";
 import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { useStigmer } from "@stigmer/react-core";
-import { Button } from "../../button/Button.js";
-import { LinkButton } from "../../button/LinkButton.js";
-import { ApplyManifestDialog } from "../../manifest/ApplyManifestDialog.js";
-import { ResourceWorkbench } from "../../resource-workbench/components/ResourceWorkbench.js";
-import { RoutineRowActions } from "../../routine/RoutineRowActions.js";
-import { createRoutineColumns } from "../../routine/routineColumns.js";
-import { createRoutineListFn } from "../../routine/routineListFn.js";
-import { useActiveOrgId } from "../../organization/OrgProvider.js";
+import { Button } from "../button/Button.js";
+import { LinkButton } from "../button/LinkButton.js";
+import { ApplyManifestDialog } from "../manifest/ApplyManifestDialog.js";
+import { ResourceWorkbench } from "../resource-workbench/components/ResourceWorkbench.js";
+import { RoutineRowActions } from "../routine/RoutineRowActions.js";
+import { createRoutineColumns } from "../routine/routineColumns.js";
+import { createRoutineListFn } from "../routine/routineListFn.js";
+import { useActiveOrgId } from "../organization/OrgProvider.js";
 import { LIBRARY_HREFS, type LibrarySectionNavigation } from "./navigation.js";
 import { LibrarySectionFrame, useRefetchToken } from "./LibrarySectionFrame.js";
 
@@ -32,7 +32,7 @@ export interface LibraryRoutinesSectionProps extends LibrarySectionNavigation {
  *
  * @example
  * ```tsx
- * <LibraryRoutinesSection onOpen={({ kind, org, slug }) => navigate(`/library/${kind}/${org}/${slug}`)} />
+ * <LibraryRoutinesSection onOpen={({ kind, org, slug }) => window.location.assign(`/library/${kind}/${org}/${slug}`)} />
  * ```
  */
 export function LibraryRoutinesSection({ onOpen, renderLink, createHref = LIBRARY_HREFS.newRoutine }: LibraryRoutinesSectionProps) {

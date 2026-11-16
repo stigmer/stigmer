@@ -12,18 +12,18 @@ import { Bot, Copy, ExternalLink, MoreHorizontal, Plus, Trash2, Upload } from "l
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 import { createLibraryListFn, useStigmer } from "@stigmer/react-core";
-import { IconButton } from "../../button/IconButton.js";
-import { LinkButton } from "../../button/LinkButton.js";
-import { ActionMenu } from "../../action-menu/ActionMenu.js";
-import { ApplyManifestDialog } from "../../manifest/ApplyManifestDialog.js";
-import { ResourceWorkbench } from "../../resource-workbench/components/ResourceWorkbench.js";
-import { useActiveOrgId } from "../../organization/OrgProvider.js";
-import { useOrgSlugForId } from "../../organization/useOrgRefs.js";
-import { useCanCreateAgent } from "../../agent/useCanCreateAgent.js";
-import { useConfirmAction } from "../../resource-detail/useConfirmAction.js";
-import { ConfirmDialog } from "../../resource-detail/ConfirmDialog.js";
+import { IconButton } from "../button/IconButton.js";
+import { LinkButton } from "../button/LinkButton.js";
+import { ActionMenu } from "../action-menu/ActionMenu.js";
+import { ApplyManifestDialog } from "../manifest/ApplyManifestDialog.js";
+import { ResourceWorkbench } from "../resource-workbench/components/ResourceWorkbench.js";
+import { useActiveOrgId } from "../organization/OrgProvider.js";
+import { useOrgSlugForId } from "../organization/useOrgRefs.js";
+import { useCanCreateAgent } from "../agent/useCanCreateAgent.js";
+import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
+import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { AGENT_DELETE_DESCRIPTION } from "./agentDeleteDescription.js";
-import { toast } from "../../feedback/toast.js";
+import { toast } from "../feedback/toast.js";
 import { LIBRARY_HREFS, type LibrarySectionNavigation } from "./navigation.js";
 import { LibrarySectionFrame, SEARCH_RESULT_COLUMNS, copyReference, useRefetchToken } from "./LibrarySectionFrame.js";
 
@@ -41,7 +41,7 @@ export interface LibraryAgentsSectionProps extends LibrarySectionNavigation {
  *
  * @example
  * ```tsx
- * <LibraryAgentsSection onOpen={({ kind, org, slug }) => navigate(`/library/${kind}/${org}/${slug}`)} />
+ * <LibraryAgentsSection onOpen={({ kind, org, slug }) => window.location.assign(`/library/${kind}/${org}/${slug}`)} />
  * ```
  */
 export function LibraryAgentsSection({ onOpen, renderLink, createHref = LIBRARY_HREFS.newAgent }: LibraryAgentsSectionProps) {

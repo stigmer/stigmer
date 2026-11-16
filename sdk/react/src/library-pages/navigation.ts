@@ -3,7 +3,7 @@
 // addresses (`/library/<kind>/...`); a host routes them its own way (the web
 // console's Library overlay, the desktop app's hash router).
 
-import type { RenderLink } from "../../button/LinkButton.js";
+import type { RenderLink } from "../button/LinkButton.js";
 
 /** A Library kind that has a page of its own, as its address names it. */
 export type LibraryResourceKind = "agents" | "skills" | "routines" | "plugins" | "environments";

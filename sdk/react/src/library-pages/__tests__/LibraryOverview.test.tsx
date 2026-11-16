@@ -34,36 +34,36 @@ const page = vi.hoisted(() => ({
 }));
 
 
-vi.mock("../../ResourceCountCard.js", () => ({
+vi.mock("../../library/ResourceCountCard.js", () => ({
   ResourceCountCard: (props: CardProps) => {
     page.cards.set(props.label, props);
     return null;
   },
 }));
-vi.mock("../../../manifest/ApplyManifestDialog.js", () => ({
+vi.mock("../../manifest/ApplyManifestDialog.js", () => ({
   ApplyManifestDialog: (props: { open: boolean; org: string; onApplied: () => void }) => {
     page.dialog.push(props);
     return null;
   },
 }));
-vi.mock("../../../organization/OrgProvider.js", async () => ({
-  ...(await vi.importActual<typeof import("../../../organization/OrgProvider.js")>("../../../organization/OrgProvider.js")),
+vi.mock("../../organization/OrgProvider.js", async () => ({
+  ...(await vi.importActual<typeof import("../../organization/OrgProvider.js")>("../../organization/OrgProvider.js")),
   useActiveOrgId: () => "org_acme",
 }));
-vi.mock("../../../agent/useAgentCount.js", () => ({ useAgentCount: page.count(3) }));
-vi.mock("../../../skill/useSkillCount.js", () => ({ useSkillCount: page.count(5) }));
-vi.mock("../../../routine/useRoutineCount.js", () => ({ useRoutineCount: page.count(4) }));
-vi.mock("../../../plugin/usePluginList.js", async () => ({
-  ...(await vi.importActual<typeof import("../../../plugin/usePluginList.js")>("../../../plugin/usePluginList.js")),
+vi.mock("../../agent/useAgentCount.js", () => ({ useAgentCount: page.count(3) }));
+vi.mock("../../skill/useSkillCount.js", () => ({ useSkillCount: page.count(5) }));
+vi.mock("../../routine/useRoutineCount.js", () => ({ useRoutineCount: page.count(4) }));
+vi.mock("../../plugin/usePluginList.js", async () => ({
+  ...(await vi.importActual<typeof import("../../plugin/usePluginList.js")>("../../plugin/usePluginList.js")),
   usePluginCount: page.count(0),
 }));
-vi.mock("../../../environment/useEnvironmentCount.js", () => ({ useEnvironmentCount: page.count(2) }));
-vi.mock("../../../file/useFileCount.js", () => ({ useFileCount: page.count(7) }));
-vi.mock("../../../agent/useCanCreateAgent.js", () => ({ useCanCreateAgent: () => page.canCreateAgent }));
-vi.mock("../../../environment/useCanCreateEnvironment.js", () => ({
+vi.mock("../../environment/useEnvironmentCount.js", () => ({ useEnvironmentCount: page.count(2) }));
+vi.mock("../../file/useFileCount.js", () => ({ useFileCount: page.count(7) }));
+vi.mock("../../agent/useCanCreateAgent.js", () => ({ useCanCreateAgent: () => page.canCreateAgent }));
+vi.mock("../../environment/useCanCreateEnvironment.js", () => ({
   useCanCreateEnvironment: () => page.canCreateEnvironment,
 }));
-vi.mock("../../../file/useCanCreateFile.js", () => ({ useCanCreateFile: () => page.canCreateFile }));
+vi.mock("../../file/useCanCreateFile.js", () => ({ useCanCreateFile: () => page.canCreateFile }));
 
 import { LibraryOverview } from "../LibraryOverview";
 

@@ -145,7 +145,7 @@ export {
   LIBRARY_HREFS,
   LIBRARY_ADD_PARAM,
   LIBRARY_ADD_MCP_SERVER,
-} from "./library/sections/index.js";
+} from "./library-pages/index.js";
 export type {
   LibraryOverviewProps,
   LibraryAgentsSectionProps,
@@ -157,4 +157,4 @@ export type {
   LibraryResourceKind,
   LibraryResourceRef,
   LibrarySectionNavigation,
-} from "./library/sections/index.js";
+} from "./library-pages/index.js";

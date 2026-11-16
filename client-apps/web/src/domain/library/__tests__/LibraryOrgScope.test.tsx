@@ -2,7 +2,7 @@
  * Pins where the web library's agent page scopes: it shows the agent where
  * it lives. The landing's counts, its Apply YAML and its Add menu moved with
  * the landing into @stigmer/react-sdk/console and are pinned there
- * (`library/sections/__tests__/LibraryOverview.test.tsx`).
+ * (`sdk/react/src/library-pages/__tests__/LibraryOverview.test.tsx`).
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render } from "@testing-library/react";
