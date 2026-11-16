@@ -5,8 +5,11 @@
 // the choice group segmented, small and as a list; the file drop at rest,
 // dragged over and refused; a form's foot (working, a field's error against
 // the form's failure, in a dialog); and the inline editor closed, open,
-// saving and failed. The parts are the kit's internal ones, read from its
-// source as the from-hooks scene reads an example.
+// saving and failed; and the dialog's header, body and footer in four
+// dialogs (a destructive confirm, Apply YAML, Run a routine, Manage access),
+// drawn in the page's flow (not modal) so the scene shows all four at once.
+// The parts are the kit's internal ones, read from its source as the
+// from-hooks scene reads an example.
 
 import type { ReactNode } from "react";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -23,6 +26,13 @@ import {
   TextArea,
   TextInput,
 } from "../../../../sdk/react/src/internal/form/index.ts";
+import {
+  DialogBody,
+  DialogFooter,
+  DialogHeader,
+  DialogShell,
+} from "../../../../sdk/react/src/internal/DialogShell.tsx";
+import { Tag } from "../../../../sdk/react/src/internal/surface/Tag.tsx";
 
 /** A create the server didn't answer: the failure a form's foot most often meets. */
 const UNANSWERED = new ConnectError(
@@ -546,5 +556,148 @@ export function InlineEditorParts({
         </InlineRow>
       </div>
     </Group>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+    </svg>
+  );
+}
+
+/** One person or team on the access list, with what they may do. */
+function AccessRow({ initial, name, sub, trailing }: { readonly initial: string; readonly name: string; readonly sub: string; readonly trailing: ReactNode }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.625rem 0.875rem" }}>
+      <span aria-hidden="true" className="stg:grid stg:size-7 stg:place-items-center stg:rounded-full stg:bg-muted stg:text-xs stg:font-medium stg:text-muted-foreground">
+        {initial}
+      </span>
+      <span style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
+        <span className="stg:text-sm stg:font-medium stg:text-foreground">{name}</span>
+        <span className="stg:text-xs stg:text-muted-foreground">{sub}</span>
+      </span>
+      {trailing}
+    </div>
+  );
+}
+
+/** The dialog's parts in four dialogs, in the page's flow so all four show at once. */
+export function DialogParts({
+  Group,
+}: {
+  readonly Group: (props: {
+    readonly label: string;
+    readonly children: ReactNode;
+  }) => ReactNode;
+}) {
+  const shown = { open: true, modal: false, onOpenChange: () => {} } as const;
+  return (
+    <>
+      <Group label="A destructive confirm">
+        <DialogShell {...shown} width="md">
+          <DialogHeader title="Delete Variance reporter?" description="Its versions, evals and channels go with it. Sessions it ran stay." />
+          <DialogFooter>
+            <Button variant="ghost">Cancel</Button>
+            <Button variant="destructive">Delete</Button>
+          </DialogFooter>
+        </DialogShell>
+      </Group>
+      <Group label="Apply YAML">
+        <DialogShell {...shown} width="xl">
+          <DialogHeader
+            title="Apply YAML"
+            description="Paste or drop a file that describes agents, skills or routines. Each one is created or updated by its name."
+          />
+          <DialogBody>
+            <Field label="YAML" hint="Or drop a .yaml file here.">
+              <TextArea
+                className="stg:font-mono"
+                rows={4}
+                defaultValue={"kind: Agent\nmetadata:\n  name: variance-reporter\nspec:\n  instructions: |\n    You review a customer's quarterly ledger…"}
+              />
+            </Field>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="ghost">Cancel</Button>
+            <Button>Apply</Button>
+          </DialogFooter>
+        </DialogShell>
+      </Group>
+      <Group label="Run a routine">
+        <DialogShell {...shown} width="md">
+          <DialogHeader title="Run daily-variance-report now?" description="One run starts now with the routine's message. Its schedule doesn't change." />
+          <DialogBody>
+            <Field label="Message" optional hint="Leave empty to send the routine's own message.">
+              <TextArea rows={4} placeholder="Report yesterday's ledger variances against budget." />
+            </Field>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="ghost">Cancel</Button>
+            <Button>Run now</Button>
+          </DialogFooter>
+        </DialogShell>
+      </Group>
+      <Group label="Manage access">
+        <DialogShell {...shown} width="xl">
+          <DialogHeader title="Who can use Variance reporter" description="People and teams in acme, and what each may do." />
+          <DialogBody>
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              <Field label="Person or team" labelHidden className="stg:flex-1">
+                <span style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                  <span className="stg:pointer-events-none stg:absolute stg:left-2.5 stg:text-muted-foreground" style={{ display: "grid" }}>
+                    <SearchIcon />
+                  </span>
+                  <TextInput placeholder="Add a person or a team" className="stg:w-full stg:pl-8" />
+                </span>
+              </Field>
+              <Field label="What they may do" labelHidden className="stg:w-48">
+                <Select defaultValue="use">
+                  <option value="use">Can use</option>
+                </Select>
+              </Field>
+              <Button variant="outline">Add</Button>
+            </div>
+            <div className="stg:overflow-hidden stg:rounded-xl stg:border stg:border-border stg:divide-y stg:divide-border-muted">
+              <AccessRow initial="A" name="Ada Lovelace" sub="ada@acme.example" trailing={<Tag>Owner</Tag>} />
+              <AccessRow
+                initial="G"
+                name="Grace Hopper"
+                sub="grace@acme.example"
+                trailing={
+                  <>
+                    <Field label="What Grace Hopper may do" labelHidden className="stg:w-32">
+                      <Select size="xs" defaultValue="change">
+                        <option value="change">Can change</option>
+                      </Select>
+                    </Field>
+                    <IconButton label="Remove Grace Hopper" size="xs" icon={<TrashIcon />} />
+                  </>
+                }
+              />
+              <AccessRow
+                initial="F"
+                name="Finance"
+                sub="Team · 6 people"
+                trailing={
+                  <>
+                    <Field label="What Finance may do" labelHidden className="stg:w-32">
+                      <Select size="xs" defaultValue="use">
+                        <option value="use">Can use</option>
+                      </Select>
+                    </Field>
+                    <IconButton label="Remove Finance" size="xs" icon={<TrashIcon />} />
+                  </>
+                }
+              />
+            </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button>Done</Button>
+          </DialogFooter>
+        </DialogShell>
+      </Group>
+    </>
   );
 }

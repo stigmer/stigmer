@@ -2,8 +2,7 @@
 
 import { useCallback, useId, type ReactNode } from "react";
 import { Button } from "../button/Button.js";
-import { IconButton } from "../button/IconButton.js";
-import { DialogShell } from "../internal/DialogShell.js";
+import { DialogBody, DialogFooter, DialogHeader, DialogShell } from "../internal/DialogShell.js";
 import { ApiResourceKind, hasGrantableRoles, hasTeamGrantableRoles } from "@stigmer/client";
 import { useResourceAvailable } from "@stigmer/react-core";
 import { PeopleWithAccess } from "../grant/PeopleWithAccess.js";
@@ -108,27 +107,10 @@ export function ManageAccessDialog({
     >
       {/* Body mounts only while open so the access-list fetch is lazy. */}
       {open && (
-        <div className="stg:flex stg:flex-col">
-          {/* Header */}
-          <div className="stg:flex stg:items-start stg:justify-between stg:border-b stg:border-border stg:px-6 stg:py-4">
-            <div className="stg:min-w-0">
-              <h2
-                id={titleId}
-                className="stg:text-base stg:font-semibold stg:text-foreground"
-              >
-                Manage access
-              </h2>
-              {resource.name && (
-                <p className="stg:mt-0.5 stg:truncate stg:text-xs stg:text-muted-foreground">
-                  {resource.name}
-                </p>
-              )}
-            </div>
-            <IconButton label="Close" size="xs" icon={<CloseIcon />} onClick={handleClose} />
-          </div>
+        <>
+          <DialogHeader id={titleId} title="Manage access" description={resource.name || undefined} onClose={handleClose} />
 
-          {/* Body */}
-          <div className="stg:flex stg:flex-col stg:divide-y stg:divide-border">
+          <DialogBody className="stg:gap-0 stg:divide-y stg:divide-border">
             {visibility && (
               <AccessSection
                 title="General access"
@@ -158,13 +140,12 @@ export function ManageAccessDialog({
                 />
               </AccessSection>
             )}
-          </div>
+          </DialogBody>
 
-          {/* Footer */}
-          <div className="stg:flex stg:items-center stg:justify-end stg:border-t stg:border-border stg:px-6 stg:py-3">
+          <DialogFooter>
             <Button onClick={handleClose}>Done</Button>
-          </div>
-        </div>
+          </DialogFooter>
+        </>
       )}
     </DialogShell>
   );
@@ -184,7 +165,7 @@ function AccessSection({
   readonly children: ReactNode;
 }) {
   return (
-    <section className="stg:px-6 stg:py-4">
+    <section className="stg:py-4 stg:first:pt-0 stg:last:pb-0">
       <h3 className="stg:text-xs stg:font-medium stg:text-muted-foreground">{title}</h3>
       {description && (
         <p className="stg:mt-0.5 stg:text-2xs stg:text-muted-foreground">
@@ -196,10 +177,4 @@ function AccessSection({
   );
 }
 
-function CloseIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
+

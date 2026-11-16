@@ -28,7 +28,7 @@ import { cn } from "@stigmer/design-tokens";
 import { GITHUB_SOURCE_SHAPE, describeGitHubSource } from "@stigmer/plugin-package/client";
 
 import { Button } from "../button/Button.js";
-import { DialogShell } from "../internal/DialogShell.js";
+import { DialogBody, DialogFooter, DialogHeader, DialogShell } from "../internal/DialogShell.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { SourceMark } from "./SourceMark.js";
 import type { SourceRead } from "./catalog-store.js";
@@ -64,16 +64,16 @@ export function ManageSourcesDialog({ open, onClose, reads = NO_READS, marketpla
       aria-labelledby={titleId}
     >
       {open && (
-        <div className="stg:flex stg:max-h-[85vh] stg:flex-col stg:gap-4 stg:overflow-y-auto stg:p-6">
-          <header>
-            <h2 id={titleId} className="stg:text-base stg:font-semibold stg:text-foreground">
-              Sources
-            </h2>
-            <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
-              What the Marketplace shows comes from Stigmer's catalogue, published with each release, and from any
-              catalogue you add. Added sources are remembered in this browser, as the CLI remembers its own.
-            </p>
-          </header>
+        <div className="stg:flex stg:max-h-[85vh] stg:flex-col stg:overflow-y-auto">
+          <DialogHeader
+            id={titleId}
+            title="Sources"
+            // Its one act is Close, at its foot.
+            hideClose
+            description="What the Marketplace shows comes from Stigmer's catalogue, published with each release, and from any catalogue you add. Added sources are remembered in this browser, as the CLI remembers its own."
+            onClose={onClose}
+          />
+          <DialogBody>
           <SourceList reads={reads} marketplaces={marketplaces} unreadable={unreadable} isBuiltIn={isBuiltIn} remove={remove} />
           <details className="stg:rounded-md stg:border stg:border-border stg:p-3">
             <summary className="stg:cursor-pointer stg:text-sm stg:font-medium stg:text-foreground">Add your own catalogue</summary>
@@ -82,11 +82,12 @@ export function ManageSourcesDialog({ open, onClose, reads = NO_READS, marketpla
             </p>
             <AddSourceForm add={add} />
           </details>
-          <footer className="stg:flex stg:justify-end stg:pt-1">
-            <Button variant="outline" size="sm" onClick={onClose}>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose}>
               Close
             </Button>
-          </footer>
+          </DialogFooter>
         </div>
       )}
     </DialogShell>

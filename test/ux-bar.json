@@ -297,8 +297,7 @@
     },
     {
       "id": "CON-15",
-      "promise": "Every dialog is the kit's: one title, body and footer, its acts at its end.",
-      "pending": ["stigmer#3211"]
+      "promise": "Every dialog is the kit's: one title, body and footer, its acts at its end."
     },
     {
       "id": "DSK-01",

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { DialogShell } from "../internal/DialogShell.js";
+import { DialogBody, DialogFooter, DialogHeader, DialogShell } from "../internal/DialogShell.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { Notice } from "../internal/surface/Notice.js";
 import { Tag } from "../internal/surface/Tag.js";
@@ -151,16 +151,14 @@ export function ApplyManifestDialog({
     !manifest.isApplying;
 
   return (
-    <DialogShell open={open} onOpenChange={handleShellOpenChange} width="3xl" aria-label="Apply YAML">
-      <div className="stg:flex stg:flex-col stg:gap-4 stg:p-6">
-        {/* Header */}
-        <div className="stg:flex stg:flex-col stg:gap-1">
-          <h3 className="stg:text-base stg:font-semibold stg:text-foreground">Apply YAML</h3>
-          <p className="stg:text-sm stg:text-muted-foreground">
-            Paste a resource manifest or upload a file. Resources are created
-            when new and updated when they already exist.
-          </p>
-        </div>
+    <DialogShell open={open} onOpenChange={handleShellOpenChange} width="3xl">
+      <DialogHeader
+        title="Apply YAML"
+        description="Paste a resource manifest or upload a file. Resources are created when new and updated when they already exist."
+        onClose={closeAndMaybeRefresh}
+        closeDisabled={manifest.isApplying}
+      />
+      <DialogBody>
 
         {/* File picker: the kit's button opens the system's picker. */}
         <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2">
@@ -200,23 +198,23 @@ export function ApplyManifestDialog({
           </ul>
         )}
 
-        {/* Actions */}
-        <div className="stg:flex stg:items-center stg:justify-between stg:gap-3">
-          <p className="stg:text-xs stg:text-muted-foreground" aria-live="polite">
+      </DialogBody>
+      <DialogFooter
+        leading={
+          <p className="stg:m-0 stg:text-xs stg:text-muted-foreground" aria-live="polite">
             {manifest.isValidating ? "Validating…" : ""}
           </p>
-          <div className="stg:flex stg:gap-2">
-            <Button variant="outline" onClick={closeAndMaybeRefresh} disabled={manifest.isApplying}>
-              Cancel
-            </Button>
-            <Button onClick={handleApply} disabled={!canApply}>
-              {manifest.isApplying
-                ? "Applying…"
-                : applyLabel(manifest.entries?.length ?? 0)}
-            </Button>
-          </div>
-        </div>
-      </div>
+        }
+      >
+        <Button variant="ghost" onClick={closeAndMaybeRefresh} disabled={manifest.isApplying}>
+          Cancel
+        </Button>
+        <Button onClick={handleApply} disabled={!canApply}>
+          {manifest.isApplying
+            ? "Applying…"
+            : applyLabel(manifest.entries?.length ?? 0)}
+        </Button>
+      </DialogFooter>
     </DialogShell>
   );
 }

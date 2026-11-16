@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { DialogShell } from "../internal/DialogShell.js";
-import { IconButton } from "../button/IconButton.js";
+import { DialogBody, DialogHeader, DialogShell } from "../internal/DialogShell.js";
 import { useSkillDiff } from "./useSkillDiff.js";
 import { MultiFileDiffView } from "../version-history/MultiFileDiffView.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
@@ -80,26 +79,24 @@ export function SkillDiffDialog({ state, onClose }: SkillDiffDialogProps) {
       width="4xl"
       dismissOnBackdrop
       className="stg:h-[85vh]"
-      aria-label="Skill version diff"
     >
       <div className="stg:flex stg:h-full stg:flex-col">
-        {/* Header */}
-        <div className="stg:flex stg:shrink-0 stg:items-center stg:justify-between stg:border-b stg:border-border stg:px-4 stg:py-3">
-          <div className="stg:flex stg:items-center stg:gap-2 stg:text-sm">
-            <span className="stg:font-medium stg:text-foreground">Comparing</span>
-            <code className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-2xs stg:text-muted-foreground">
-              {state.fromLabel}
-            </code>
-            <ArrowIcon className="stg:size-3.5 stg:text-muted-foreground-faint" />
-            <code className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-2xs stg:text-muted-foreground">
-              {state.toLabel}
-            </code>
-          </div>
-          <IconButton label="Close diff viewer" icon={<CloseIcon className="stg:size-4" />} onClick={onClose} />
-        </div>
+        <DialogHeader
+          className="stg:shrink-0"
+          title="Skill version diff"
+          description={
+            <span className="stg:inline-flex stg:items-center stg:gap-2">
+              Comparing
+              <code className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-xs">{state.fromLabel}</code>
+              <ArrowIcon className="stg:size-3.5" />
+              <code className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-xs">{state.toLabel}</code>
+            </span>
+          }
+          closeLabel="Close diff viewer"
+          onClose={onClose}
+        />
 
-        {/* Body */}
-        <div className="stg:flex-1 stg:overflow-auto stg:p-4">
+        <DialogBody className="stg:flex-1 stg:overflow-auto stg:pb-5">
           {isLoading ? (
             <DiffSkeleton />
           ) : error ? (
@@ -107,7 +104,7 @@ export function SkillDiffDialog({ state, onClose }: SkillDiffDialogProps) {
           ) : diff ? (
             <MultiFileDiffView diff={diff} />
           ) : null}
-        </div>
+        </DialogBody>
       </div>
     </DialogShell>
   );
@@ -161,19 +158,3 @@ function ArrowIcon({ className }: { readonly className?: string }) {
   );
 }
 
-function CloseIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M4 4l8 8M12 4l-8 8" />
-    </svg>
-  );
-}

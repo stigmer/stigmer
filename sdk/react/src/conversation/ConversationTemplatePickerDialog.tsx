@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
-import { ArrowLeft, LayoutTemplate, Send, X } from "lucide-react";
+import { ArrowLeft, LayoutTemplate, Send } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
 import { ChannelSendOutcome } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
@@ -13,7 +13,7 @@ import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { Tag } from "../internal/surface/Tag.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
-import { DialogShell } from "../internal/DialogShell.js";
+import { DialogBody, DialogHeader, DialogShell } from "../internal/DialogShell.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { TruncatedText } from "../internal/truncated-text.js";
@@ -159,9 +159,10 @@ function PickerBody({
 
   return (
     <div className="stg:flex stg:max-h-[75vh] stg:flex-col">
-      <div className="stg:flex stg:items-start stg:justify-between stg:gap-3 stg:border-b stg:border-border stg:px-5 stg:py-4">
-        <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-2">
-          {selected !== null && (
+      <DialogHeader
+        id={titleId}
+        icon={
+          selected !== null ? (
             <Button
               variant="ghost"
               size="xs"
@@ -171,27 +172,19 @@ function PickerBody({
             >
               <ArrowLeft className="stg:size-4" />
             </Button>
-          )}
-          <div className="stg:min-w-0">
-            <h2
-              id={titleId}
-              className="stg:text-sm stg:font-semibold stg:text-popover-foreground"
-            >
-              {selected === null ? "Send a template" : selected.name}
-            </h2>
-            <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
-              {selected === null
-                ? "Approved templates deliver even after the 24-hour reply window closes."
-                : "Fill the template's variables — the preview is the exact message the customer receives."}
-            </p>
-          </div>
-        </div>
-        <Button variant="ghost" size="xs" onClick={onClose} aria-label="Close template picker">
-          <X className="stg:size-4" />
-        </Button>
-      </div>
+          ) : undefined
+        }
+        title={selected === null ? "Send a template" : selected.name}
+        description={
+          selected === null
+            ? "Approved templates deliver even after the 24-hour reply window closes."
+            : "Fill the template's variables — the preview is the exact message the customer receives."
+        }
+        closeLabel="Close template picker"
+        onClose={onClose}
+      />
 
-      <div className="stg:min-h-0 stg:flex-1 stg:overflow-y-auto stg:p-4">
+      <DialogBody className="stg:min-h-0 stg:flex-1 stg:overflow-y-auto stg:pb-5">
         {selected === null ? (
           <TemplateChoiceList
             templates={templates}
@@ -207,7 +200,7 @@ function PickerBody({
             onClose={onClose}
           />
         )}
-      </div>
+      </DialogBody>
     </div>
   );
 }

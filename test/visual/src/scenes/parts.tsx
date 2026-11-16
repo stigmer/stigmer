@@ -12,7 +12,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { ActionMenu, Button, EmptyState, ErrorMessage, LinkButton, PageHeader, StatusBadge } from "@stigmer/react-sdk";
 import type { Drawing } from "./drawing.ts";
-import { FieldParts, FooterParts, InlineEditorParts } from "./form-parts.tsx";
+import { DialogParts, FieldParts, FooterParts, InlineEditorParts } from "./form-parts.tsx";
 
 const PHASES: readonly ComponentProps<typeof StatusBadge>["phase"][] = ["ready", "running", "pending", "degraded", "failed", "disabled", "draft"];
 
@@ -144,6 +144,7 @@ function Parts() {
       <FieldParts Group={Group} />
       <FooterParts Group={Group} />
       <InlineEditorParts Group={Group} />
+      <DialogParts Group={Group} />
     </div>
   );
 }

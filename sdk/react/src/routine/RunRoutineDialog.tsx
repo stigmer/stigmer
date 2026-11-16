@@ -2,7 +2,7 @@
 
 import { useCallback, useId, useState } from "react";
 import { Button } from "../button/Button.js";
-import { DialogShell } from "../internal/DialogShell.js";
+import { DialogBody, DialogFooter, DialogHeader, DialogShell } from "../internal/DialogShell.js";
 import { FIELD_HINT_CLASSES, FIELD_LABEL_CLASSES, TextArea } from "../internal/form/index.js";
 
 /**
@@ -125,17 +125,16 @@ function RunRoutineDialogBody({
         void handleStart();
       }}
     >
-      <div className="stg:border-b stg:border-border stg:px-5 stg:py-4">
-        <h2 id={titleId} className="stg:text-sm stg:font-semibold stg:text-foreground">
-          {enableFirst ? "Enable and run this routine now?" : "Run this routine now?"}
-        </h2>
-        <p className="stg:mt-0.5 stg:truncate stg:text-xs stg:text-muted-foreground">
-          {routineName}
-        </p>
-      </div>
+      <DialogHeader
+        id={titleId}
+        title={enableFirst ? "Enable and run this routine now?" : "Run this routine now?"}
+        description={routineName}
+        onClose={onClose}
+        closeDisabled={isStarting}
+      />
 
-      <div className="stg:space-y-4 stg:px-5 stg:py-4">
-        <p className="stg:text-xs stg:text-muted-foreground">
+      <DialogBody>
+        <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
           {enableFirst
             ? "This routine is disabled. Enabling it lets it fire on its schedule again, and starts one real run now so you can see the result. You can disable it again afterwards."
             : "This starts a real run now, outside its schedule. The run is recorded in this routine's history."}
@@ -160,16 +159,16 @@ function RunRoutineDialogBody({
             information from you, not instructions.
           </p>
         </div>
-      </div>
+      </DialogBody>
 
-      <div className="stg:flex stg:justify-end stg:gap-2 stg:border-t stg:border-border stg:px-5 stg:py-3">
-        <Button variant="ghost" size="sm" type="button" onClick={onClose} disabled={isStarting}>
+      <DialogFooter>
+        <Button variant="ghost" type="button" onClick={onClose} disabled={isStarting}>
           Cancel
         </Button>
-        <Button variant="primary" size="sm" type="submit" disabled={isStarting}>
+        <Button variant="primary" type="submit" disabled={isStarting}>
           {enableFirst ? "Enable & run" : "Start run"}
         </Button>
-      </div>
+      </DialogFooter>
     </form>
   );
 }
