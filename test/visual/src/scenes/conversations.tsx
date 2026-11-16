@@ -143,7 +143,7 @@ export function conversationsScene(holder: Holder): Drawing {
 }
 
 /** The states the take-over guide's scenes leave out: none yet, failed, nothing opened, and Northwind's opened. */
-export type ConversationsState = "empty" | "failed" | "none-selected" | "open";
+export type ConversationsState = "empty" | "failed" | "none-selected" | "open" | "taken";
 
 /**
  * The console's Conversations page, opened on Northwind's conversation or on
@@ -167,7 +167,8 @@ function StateWorkbench({ opened }: { readonly opened: boolean }): ReactElement 
 
 /** Conversations in one of the states the guide's scenes leave out. */
 export function conversationsStateScene(state: ConversationsState): Drawing {
-  const conversations = state === "empty" ? [] : [northwind("agent"), FERNHILL];
+  const holder: Holder = state === "taken" ? "ada" : "agent";
+  const conversations = state === "empty" ? [] : [northwind(holder), FERNHILL];
   const down = () => {
     throw new ConnectError("the conversation service did not answer", Code.Unavailable);
   };
@@ -181,10 +182,10 @@ export function conversationsStateScene(state: ConversationsState): Drawing {
       router.service(ChannelConversationQueryController, {
         list: state === "failed" ? down : () => ({ entries: conversations }),
         countConversations: () => ({ count: state === "empty" ? 0 : 1 }),
-        getConversation: (input) => conversations.find((c) => c.conversationKey === input.conversationKey) ?? northwind("agent"),
-        listTimeline: (input) => ({ entries: input.conversationKey === "15550100142" ? northwindTimeline("agent") : [] }),
+        getConversation: (input) => conversations.find((c) => c.conversationKey === input.conversationKey) ?? northwind(holder),
+        listTimeline: (input) => ({ entries: input.conversationKey === "15550100142" ? northwindTimeline(holder) : [] }),
       });
     },
-    render: () => <StateWorkbench opened={state === "open"} />,
+    render: () => <StateWorkbench opened={state === "open" || state === "taken"} />,
   };
 }

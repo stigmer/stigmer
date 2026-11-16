@@ -63,7 +63,13 @@ export function SkillFileBrowser({
     [files],
   );
 
-  const treeNodes = useMemo(() => buildFileTree(fileEntries), [fileEntries]);
+  // SKILL.md is what the agent reads first, so it heads the tree; the rest
+  // keep buildFileTree's order.
+  const treeNodes = useMemo(() => {
+    const nodes = buildFileTree(fileEntries);
+    const manifest = nodes.findIndex((node) => node.path === "SKILL.md");
+    return manifest <= 0 ? nodes : [nodes[manifest]!, ...nodes.slice(0, manifest), ...nodes.slice(manifest + 1)];
+  }, [fileEntries]);
 
   // Default to the manifest; fall back to the first file in rendered tree
   // order (buildFileTree sorts by localeCompare, and depth-first tree order

@@ -86,6 +86,7 @@ export type SceneId =
   | "agent-page-failed"
   | "agent-page-not-found"
   | "plugin-detail"
+  | "agent-profile-managed"
   | "plugin-detail-remove"
   | "plugin-detail-evals"
   | "environment-detail"
@@ -109,6 +110,8 @@ export type SceneId =
   | "skill-detail"
   | "skill-files"
   | "skill-files-script"
+  | "skill-files-versions"
+  | "skill-files-failed"
   | "marketplace-admin"
   | "marketplace-member"
   | "marketplace-no-match"
@@ -121,8 +124,17 @@ export type SceneId =
   | "agent-new-picker"
   | "agent-new-wizard"
   | "agent-new-denied"
+  | "agent-new-name-empty"
+  | "agent-new-step-two"
+  | "agent-new-creating"
+  | "agent-new-refused"
   | "skill-upload-first"
+  | "skill-upload-dragover"
+  | "skill-upload-member"
   | "plugin-upload-first"
+  | "plugin-upload-chosen"
+  | "plugin-upload-refused"
+  | "plugin-upload-installed"
   | `environment-${EnvironmentSceneName}`
   | `channel-${ChannelSceneName}`
   | `access-${AccessSceneName}`
@@ -596,8 +608,21 @@ const ROUTINE_SCENES = [
       { fill: ROUTINE_EXAMPLE.messageLabel, with: ROUTINE_EXAMPLE.message, exact: true },
     ],
   },
-  { id: "routine-disabled", title: "Routine page: the daily variance report as made, switched off, offering Enable & run now", widths: ["desktop"] },
+  { id: "routine-disabled", title: "Routine page: the daily variance report as made, switched off, offering Enable & run now", widths: ["desktop", "narrow"] },
   { id: "routine-history", title: "Routine page, History: the daily variance report's first run, started by hand", widths: ["desktop"] },
+  { id: "routine-history-none", title: "Routine page, History: the daily variance report before its first run", widths: ["desktop"] },
+  { id: "routine-history-failed", title: "Routine page, History: the runs could not be read", widths: ["desktop"] },
+  { id: "routine-api", title: "Routine page, API: the call that starts the daily variance report from another system", widths: ["desktop"] },
+  {
+    id: "routine-new-message-empty",
+    title: "New routine: named and its agent picked, the message left empty, so Create waits",
+    widths: ["desktop"],
+    opens: [
+      { fill: ROUTINE_EXAMPLE.nameLabel, with: ROUTINE_EXAMPLE.name, exact: true },
+      { press: "Agent to run", role: "button" },
+      { press: ROUTINE_EXAMPLE.agent, role: "option" },
+    ],
+  },
   {
     id: "routine-new-failed",
     title: "New routine: the daily variance report filled in and Create routine pressed, refused by the server under the form",
@@ -710,8 +735,65 @@ const LIBRARY_NEW_SCENES = [
     opens: [{ press: "Start from scratch", role: "button" }],
   },
   { id: "agent-new-denied", title: "New agent: a member the server would refuse, told who can", widths: ["desktop"] },
+  {
+    id: "agent-new-name-empty",
+    title: "New agent: the first step with its instructions written and no name, so Next waits",
+    widths: ["desktop"],
+    opens: [{ press: "Start from scratch", role: "button" }, { fill: "Instructions", with: "Review the month's ledger and flag every account that moved more than its threshold." }],
+  },
+  {
+    id: "agent-new-step-two",
+    title: "New agent: the second step, what it can use",
+    widths: ["desktop"],
+    opens: [{ press: "Start from scratch", role: "button" }, { fill: "Name", with: "Variance reporter", exact: true }, { press: "Next", role: "button", exact: true }],
+  },
+  {
+    id: "agent-new-creating",
+    title: "New agent: the review step, Create agent pressed and the agent being made",
+    widths: ["desktop"],
+    opens: [
+      { press: "Start from scratch", role: "button" },
+      { fill: "Name", with: "Variance reporter", exact: true },
+      { press: "Next", role: "button", exact: true },
+      { press: "Next", role: "button", exact: true },
+      { press: "Create agent", role: "button", exact: true },
+    ],
+  },
+  {
+    id: "agent-new-refused",
+    title: "New agent: the review step, Create agent refused by the server",
+    widths: ["desktop"],
+    opens: [
+      { press: "Start from scratch", role: "button" },
+      { fill: "Name", with: "Variance reporter", exact: true },
+      { press: "Next", role: "button", exact: true },
+      { press: "Next", role: "button", exact: true },
+      { press: "Create agent", role: "button", exact: true },
+      { see: "Couldn't create the agent." },
+    ],
+  },
   { id: "skill-upload-first", title: "Upload skill: the drop zone before a package is chosen", widths: ["desktop", "narrow"] },
   { id: "plugin-upload-first", title: "Upload a plugin: the drop zone before a folder or .zip is chosen", widths: ["desktop", "narrow"] },
+  { id: "skill-upload-dragover", title: "Upload skill: a package held over the drop zone", widths: ["desktop"] },
+  { id: "skill-upload-member", title: "Upload skill: a member the server would refuse, told who uploads", widths: ["desktop"] },
+  {
+    id: "plugin-upload-chosen",
+    title: "Upload a plugin: ledger-tools 1.3.0 chosen, what it installs shown before the install",
+    widths: ["desktop", "narrow"],
+    opens: [{ see: "chart-of-accounts" }],
+  },
+  {
+    id: "plugin-upload-refused",
+    title: "Upload a plugin: a .zip that isn't a plugin, refused with the reason",
+    widths: ["desktop"],
+    opens: [{ see: "plugin" }],
+  },
+  {
+    id: "plugin-upload-installed",
+    title: "Upload a plugin: ledger-tools 1.3.0 over the 1.2.0 acme already holds, the act Replace with 1.3.0",
+    widths: ["desktop"],
+    opens: [{ see: "already installed at another version" }],
+  },
   {
     id: "skill-upload-chosen",
     title: "Upload skill: a package chosen, what it adds shown before the upload",
@@ -738,6 +820,7 @@ const CONVERSATIONS_SCENES = [
   { id: "conversations-failed", title: "Conversations: the list could not be read", widths: ["desktop"] },
   { id: "conversations-none-selected", title: "Conversations: two conversations listed, none opened", widths: ["desktop", "narrow"] },
   { id: "conversations-open", title: "Conversations: Northwind's conversation open, escalated to a person", widths: ["desktop", "narrow"] },
+  { id: "conversations-taken-over", title: "Conversations: Northwind's conversation, taken over by the person viewing it", widths: ["desktop"] },
 ] as const satisfies readonly { readonly id: `conversations-${string}`; readonly title: string; readonly widths: readonly WidthName[] }[];
 
 /**
@@ -752,7 +835,7 @@ const ENVIRONMENT_SCENES = [
   {
     id: "environment-new",
     title: "New environment: the environments page's data-science, limited to two websites, with its apt and pip packages",
-    widths: ["desktop"],
+    widths: ["desktop", "narrow"],
     opens: [
       { fill: ENVIRONMENT_EXAMPLE.nameLabel, with: ENVIRONMENT_EXAMPLE.slug, exact: true },
       { fill: "Description (optional)", with: ENVIRONMENT_EXAMPLE.description },
@@ -763,6 +846,17 @@ const ENVIRONMENT_SCENES = [
       { fill: ENVIRONMENT_EXAMPLE.pipLabel, with: ENVIRONMENT_EXAMPLE.pip.join("\n"), exact: true },
     ],
   },
+  {
+    id: "environment-new-taken",
+    title: "New environment: data-science again, the name acme already holds, Create refused",
+    widths: ["desktop"],
+    opens: [
+      { fill: ENVIRONMENT_EXAMPLE.nameLabel, with: ENVIRONMENT_EXAMPLE.slug, exact: true },
+      { press: "Create environment", role: "button", exact: true },
+      { see: "already exists" },
+    ],
+  },
+  { id: "environment-new-member", title: "New environment: a member the server would refuse, told who can", widths: ["desktop"] },
   { id: "environment-agent", title: "Agent page: the data team's Agent, its Environment section naming Data science", widths: ["desktop"] },
   {
     id: "environment-run-settings",
@@ -1133,6 +1227,7 @@ const LISTED: readonly Scene[] = [
   { id: "agent-page-failed", title: "Agent page: the agent could not be read", widths: ["desktop"] },
   { id: "agent-page-not-found", title: "Agent page: no agent at this address", widths: ["desktop"] },
   { id: "plugin-detail", title: "Plugin page: acme's ledger tools, as an admin sees them", widths: ["desktop", "narrow"] },
+  { id: "agent-profile-managed", title: "Agent page: the ledger agent as the ledger tools plugin installed it, read here and changed in the plugin", widths: ["desktop"] },
   { id: "plugin-detail-remove", title: "Plugin page: Remove asked first, in the destructive confirm", widths: ["desktop"] },
   {
     id: "plugin-detail-evals",
@@ -1204,6 +1299,12 @@ const LISTED: readonly Scene[] = [
     widths: ["desktop"],
     opens: [{ press: "variance.py", role: "treeitem", exact: true }],
   },
+  {
+    id: "skill-files-versions",
+    title: "Skill page: the same package's Versions tab",
+    widths: ["desktop"],
+  },
+  { id: "skill-files-failed", title: "Skill page: the package could not be read", widths: ["desktop"] },
   { id: "marketplace-admin", title: "Marketplace: the official catalogue, for an admin", widths: ["desktop", "narrow"] },
   { id: "marketplace-member", title: "Marketplace: the official catalogue, for a member", widths: ["desktop"] },
   {

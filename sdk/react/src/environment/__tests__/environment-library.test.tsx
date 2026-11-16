@@ -83,6 +83,8 @@ function clientWith(
   opts: {
     environments?: { applies: boolean; limitedNetworking: boolean; packages: boolean };
     refuseUpdate?: string;
+    /** The create refused with this code and message. */
+    refuseCreate?: { code: Code; message: string };
   } = {},
 ) {
   return new Stigmer({
@@ -112,6 +114,7 @@ function clientWith(
         },
         create: (req) => {
           captured.creates.push(req);
+          if (opts.refuseCreate) throw new ConnectError(opts.refuseCreate.message, opts.refuseCreate.code);
           return create(EnvironmentSchema, {
             spec: req.spec,
             metadata: { org: req.metadata?.org ?? "", name: req.metadata?.name ?? "", id: "env_new", slug: "made" },
@@ -240,11 +243,14 @@ describe("the fields", () => {
 });
 
 describe("EnvironmentForm", () => {
-  async function renderForm(environments?: { applies: boolean; limitedNetworking: boolean; packages: boolean }) {
+  async function renderForm(
+    environments?: { applies: boolean; limitedNetworking: boolean; packages: boolean },
+    refuseCreate?: { code: Code; message: string },
+  ) {
     const captured = fresh();
     const onCreated = vi.fn();
     render(<EnvironmentForm org={ORG} onCreated={onCreated} />, {
-      wrapper: providers(clientWith(captured, environments ? { environments } : {})),
+      wrapper: providers(clientWith(captured, { ...(environments ? { environments } : {}), ...(refuseCreate ? { refuseCreate } : {}) })),
     });
     await screen.findByRole("form", { name: "New environment" });
     return { captured, onCreated };
@@ -286,6 +292,27 @@ describe("EnvironmentForm", () => {
     expect(sent?.spec?.networking?.allowedHosts).toEqual(["api.github.com"]);
     expect(sent?.spec?.networking?.allowPackageManagers).toBe(true);
     expect(sent?.spec?.packages?.pip).toEqual(["pandas", "sqlalchemy==2.0.30"]);
+  });
+
+  it("says a name the organization already holds under the Name field", async () => {
+    await renderForm(undefined, { code: Code.AlreadyExists, message: "an environment named data-science already exists in acme" });
+    const name = screen.getByRole("textbox", { name: "Name" });
+    fireEvent.change(name, { target: { value: "data-science" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create environment" }));
+
+    const said = await screen.findByText(/already exists in acme/);
+    expect(name.getAttribute("aria-invalid")).toBe("true");
+    expect(name.getAttribute("aria-describedby")).toBe(said.closest("[id]")?.id);
+    expect(screen.queryByText("Couldn't create the environment.")).toBeNull();
+  });
+
+  it("says any other refusal as the form's failure, above its acts", async () => {
+    await renderForm(undefined, { code: Code.Unavailable, message: "the environment store did not answer" });
+    fireEvent.change(screen.getByRole("textbox", { name: "Name" }), { target: { value: "data-science" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create environment" }));
+
+    expect(await screen.findByText("Couldn't create the environment.")).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: "Name" }).getAttribute("aria-invalid")).not.toBe("true");
   });
 });
 

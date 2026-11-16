@@ -117,18 +117,15 @@ export function describeOrigin(origin: InstallOrigin): string {
 function RelationNotice({ relation, name }: { readonly relation: InstallRelation; readonly name: string }) {
   switch (relation) {
     case "installed":
-      return (
-        <p role="status" className="stg:text-sm stg:text-muted-foreground">
-          This exact version of '{name}' is already installed; there is nothing to do.
-        </p>
-      );
+      return <Notice tone="plain" headline={`This exact version of '${name}' is already installed; there is nothing to do.`} />;
     case "upgrade":
       return (
-        <p role="status" className="stg:text-sm stg:text-foreground">
-          '{name}' is already installed at another version. Installing replaces its skills, servers and agent with
-          this version's, whichever source it came from; the agent is re-created, so a session bound to the previous
-          one does not follow.
-        </p>
+        <Notice tone="paused" headline={`'${name}' is already installed at another version.`}>
+          <span>
+            Installing replaces its skills, servers and agent with this version&apos;s, whichever source it came from; the agent is
+            re-created, so a session bound to the previous one does not follow.
+          </span>
+        </Notice>
       );
     case "not-installed":
       return null;

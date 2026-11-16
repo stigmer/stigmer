@@ -99,6 +99,18 @@ describe("SkillFileBrowser", () => {
     expect(screen.queryByRole("heading", { name: "Template" })).toBeNull();
   });
 
+  it("heads the tree with SKILL.md, before its folders", async () => {
+    const stigmer = makeStigmerServing({
+      "SKILL.md": strToU8("# Skill"),
+      "references/notes.md": strToU8("# Notes"),
+      "scripts/run.py": strToU8("print('hi')"),
+    });
+    renderBrowser(stigmer);
+
+    const items = await screen.findAllByRole("treeitem");
+    expect(items[0]!.textContent).toContain("SKILL.md");
+  });
+
   it("counts every folder the tree draws, nested ones included", async () => {
     const stigmer = makeStigmerServing({
       "SKILL.md": strToU8("# Skill"),

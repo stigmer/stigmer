@@ -70,7 +70,8 @@ const PACKAGED_SKILL = create(SkillSchema, {
   status: { audit: VARIANCE_REPORT_SKILL.status?.audit, artifactStorageKey: "skills/variance-report/1.zip" },
 });
 
-function packagedSkillRoutes(router: ConnectRouter): void {
+/** What the package read does: hands back the zip, or fails. */
+function packagedSkillRoutes(router: ConnectRouter, readFails = false): void {
   router.service(OrganizationQueryController, { listMine: () => samples.organizationList([ORGANIZATION]), get: () => ORGANIZATION });
   router.service(IdentityAccountQueryController, { whoAmI: () => ACCOUNT });
   router.service(GrantQueryController, { checkMyPermission: () => ({ isAuthorized: true }) });
@@ -82,20 +83,26 @@ function packagedSkillRoutes(router: ConnectRouter): void {
     getArtifactDownloadUrl: () => {
       throw new ConnectError("no transfer lane", Code.Unimplemented);
     },
-    getArtifact: () => ({
-      artifact: zipSync(Object.fromEntries(Object.entries(PACKAGE_FILES).map(([path, text]) => [path, strToU8(text)]))),
-    }),
+    getArtifact: () => {
+      if (readFails) throw new ConnectError("the file store did not answer", Code.Unavailable);
+      return { artifact: zipSync(Object.fromEntries(Object.entries(PACKAGE_FILES).map(([path, text]) => [path, strToU8(text)]))) };
+    },
   });
 }
 
-/** The variance-report Skill as an uploaded package of four files: its files, SKILL.md open. */
-export function skillFilesScene(): Drawing {
+/** The variance-report Skill as an uploaded package of four files: its files (SKILL.md open), its Versions tab, or a package that won't read. */
+export function skillFilesScene(state: "files" | "versions" | "failed" = "files"): Drawing {
   return {
     inOrganization: true,
-    routes: packagedSkillRoutes,
+    routes: (router) => packagedSkillRoutes(router, state === "failed"),
     render: () => (
       <div style={{ maxWidth: "56rem", margin: "0 auto", padding: "2rem 1.5rem" }}>
-        <SkillDetailView headingLevel={1} org={ORGANIZATION.metadata?.slug ?? ""} slug={PACKAGED_SKILL.metadata?.slug ?? ""} />
+        <SkillDetailView
+          headingLevel={1}
+          org={ORGANIZATION.metadata?.slug ?? ""}
+          slug={PACKAGED_SKILL.metadata?.slug ?? ""}
+          defaultTab={state === "versions" ? "versions" : undefined}
+        />
       </div>
     ),
   };

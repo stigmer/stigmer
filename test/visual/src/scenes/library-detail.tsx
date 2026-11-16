@@ -9,6 +9,9 @@
 // scene hands the page's own file input a .zip built here, as a person's
 // drop would, once the page is drawn.
 import { useEffect, type ReactElement } from "react";
+import { clone } from "@bufbuild/protobuf";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { strToU8, zipSync } from "fflate";
 import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
@@ -23,9 +26,9 @@ import { AgentDetailView, ConfirmDialog, EnvironmentDetailView, PluginDetailView
 import { samples } from "@stigmer/react-sdk/test";
 import { DATA_SCIENCE } from "../docs-fixtures.ts";
 import { ACCOUNT, LEDGER_AGENT, ORGANIZATION } from "../fixtures.ts";
-import { MENU, START_SESSION } from "./agent.tsx";
+import { agentRoutes, MENU, START_SESSION } from "./agent.tsx";
 import type { Drawing } from "./drawing.ts";
-import { skillUploadScene } from "./library.tsx";
+import { pluginUploadScene, skillUploadScene } from "./library.tsx";
 
 const ORG_SLUG = ORGANIZATION.metadata?.slug ?? "";
 const ORG_ID = ORGANIZATION.metadata?.id ?? "";
@@ -142,16 +145,27 @@ export function environmentDetailScene(member = false): Drawing {
   };
 }
 
-/** Hands the page's own .zip input a package built from `files`, as a person's drop would, once the page is drawn. */
+/**
+ * Hands the page's own .zip input a package built from `files`, as a person's
+ * drop would, once the input is drawn (a page that asks first, as the plugin
+ * upload asks whether this person may install, draws it a moment later).
+ */
 function DropOnce({ name, files }: { readonly name: string; readonly files: Readonly<Record<string, string>> }) {
   useEffect(() => {
-    const input = document.querySelector<HTMLInputElement>('input[type="file"][accept=".zip"]');
-    if (input === null) return;
-    const bytes = zipSync(Object.fromEntries(Object.entries(files).map(([path, text]) => [path, strToU8(text)])));
-    const chosen = new DataTransfer();
-    chosen.items.add(new File([bytes], name, { type: "application/zip" }));
-    input.files = chosen.files;
-    input.dispatchEvent(new Event("change", { bubbles: true }));
+    const drop = (input: HTMLInputElement) => {
+      const bytes = zipSync(Object.fromEntries(Object.entries(files).map(([path, text]) => [path, strToU8(text)])));
+      const chosen = new DataTransfer();
+      chosen.items.add(new File([bytes], name, { type: "application/zip" }));
+      input.files = chosen.files;
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+    const timer = window.setInterval(() => {
+      const input = document.querySelector<HTMLInputElement>('input[type="file"][accept=".zip"]');
+      if (input === null) return;
+      window.clearInterval(timer);
+      drop(input);
+    }, 50);
+    return () => window.clearInterval(timer);
   }, [name, files]);
   return null;
 }
@@ -178,6 +192,81 @@ export function skillUploadDropScene(drop: SkillDrop): Drawing {
           <DropOnce name="month-end-close.zip" files={MONTH_END_CLOSE} />
         ) : (
           <DropOnce name="month-end.zip" files={{ "notes.txt": "Not a skill: there is no SKILL.md here.\n" }} />
+        )}
+      </>
+    ),
+  };
+}
+
+/** The ledger agent as a plugin installed it: its label names the ledger tools plugin, so its page reads and points there. */
+export function agentManagedScene(): Drawing {
+  const agent = clone(AgentSchema, LEDGER_AGENT);
+  if (agent.metadata !== undefined) agent.metadata.labels = { ...agent.metadata.labels, "stigmer.ai/plugin": LEDGER_TOOLS.metadata?.id ?? "" };
+  const page = agentRoutes("owner", { agent });
+  return {
+    inOrganization: true,
+    routes: (router) => {
+      page(router);
+      router.service(PluginQueryController, { get: () => LEDGER_TOOLS, getByReference: () => LEDGER_TOOLS });
+    },
+    render: () =>
+      column(
+        <AgentDetailView headingLevel={1} org={ORG_SLUG} slug={LEDGER_AGENT.metadata?.slug ?? ""} editable primaryAction={START_SESSION} actions={MENU} />,
+      ),
+  };
+}
+
+/** Holds a file over the skill upload's drop zone, as a person's drag would, once the page is drawn. */
+function DragOverOnce() {
+  useEffect(() => {
+    const zone = document.querySelector<HTMLElement>('[aria-label="Upload skill package"]');
+    if (zone === null) return;
+    const dragged = new DataTransfer();
+    dragged.items.add(new File(["zip"], "month-end-close.zip", { type: "application/zip" }));
+    zone.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: dragged }));
+  }, []);
+  return null;
+}
+
+/** The Upload skill page with a package held over its drop zone. */
+export function skillUploadDragScene(): Drawing {
+  const page = skillUploadScene();
+  return {
+    ...page,
+    render: () => (
+      <>
+        {page.render()}
+        <DragOverOnce />
+      </>
+    ),
+  };
+}
+
+/** A plugin package as the upload page reads it: a Claude Code plugin with a skill and one MCP server. */
+const LEDGER_TOOLS_PACKAGE = {
+  ".claude-plugin/plugin.json": `${JSON.stringify({ name: "ledger-tools", version: "1.3.0", description: "Reads and posts to acme's general ledger." })}\n`,
+  "skills/chart-of-accounts/SKILL.md":
+    "---\nname: chart-of-accounts\ndescription: How acme codes expenses.\n---\n\n# Chart of accounts\n\nEvery account, what goes in it, and the usual mistakes.\n",
+  ".mcp.json": `${JSON.stringify({ mcpServers: { ledger: { type: "http", url: "https://ledger.acme.example/mcp" } } })}\n`,
+};
+
+/** What the plugin upload page is handed: a plugin, a .zip that isn't one, or a plugin whose earlier version acme already holds. */
+export type PluginDrop = "package" | "not-a-plugin" | "installed";
+
+/** The Upload plugin page after a .zip is chosen: its preview, a refusal, or the preview over a version already installed. */
+export function pluginUploadDropScene(drop: PluginDrop): Drawing {
+  const installed = clone(PluginSchema, LEDGER_TOOLS);
+  if (installed.status !== undefined) installed.status.digest = "sha256:1f0c00000000000000000000000000000000000000000000000000000000a120";
+  const page = pluginUploadScene(drop === "installed" ? installed : undefined);
+  return {
+    ...page,
+    render: () => (
+      <>
+        {page.render()}
+        {drop === "not-a-plugin" ? (
+          <DropOnce name="ledger-tools.zip" files={{ "notes.txt": "Not a plugin: there is no plugin.json here.\n" }} />
+        ) : (
+          <DropOnce name="ledger-tools-1.3.0.zip" files={LEDGER_TOOLS_PACKAGE} />
         )}
       </>
     ),

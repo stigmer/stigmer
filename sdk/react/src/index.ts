@@ -245,9 +245,11 @@ export {
   SkillFileBrowser,
   SkillDiffDialog,
   useCanCreateSkill,
+  SkillCreationDenied,
 } from "./skill/index.js";
 export type {
   UseCanCreateSkillReturn,
+  SkillCreationDeniedProps,
   SkillPickerProps,
   SkillDetailViewProps,
   SkillDiffDialogProps,

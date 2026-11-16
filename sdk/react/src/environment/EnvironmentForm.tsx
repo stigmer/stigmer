@@ -15,7 +15,7 @@
  */
 import { type FormEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { getUserMessage, type EnvironmentAvailability } from "@stigmer/client";
+import { getUserMessage, StigmerError, type EnvironmentAvailability } from "@stigmer/client";
 import type { Environment } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
 import { useServerInfo } from "../server-info.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
@@ -33,6 +33,7 @@ import {
 import { EnvironmentsNotOnServerNotice } from "./EnvironmentsNotOnServerNotice.js";
 import { useCreateEnvironment } from "./useCreateEnvironment.js";
 import { FIELD_LABEL_CLASSES, FieldError, TextArea, TextInput } from "../internal/form/index.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 
 /** Props for {@link EnvironmentForm}. */
 export interface EnvironmentFormProps {
@@ -86,6 +87,9 @@ function EnvironmentFormBody({
 }: EnvironmentFormProps & { readonly availability: EnvironmentAvailability | undefined }) {
   const baseId = useId();
   const { create, isCreating, error } = useCreateEnvironment();
+  // A name the organization already holds is the Name field's to fix, said
+  // under it; any other refusal is the form's, said above its acts.
+  const nameTaken = error instanceof StigmerError && error.code === "already-exists";
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [network, setNetwork] = useState<NetworkingDraft>(() => startingNetworkOf(availability));
@@ -137,7 +141,10 @@ function EnvironmentFormBody({
           disabled={isCreating}
           autoFocus
           required
+          invalid={nameTaken}
+          aria-describedby={nameTaken ? `${baseId}-name-error` : undefined}
         />
+        {nameTaken && <FieldError id={`${baseId}-name-error`}>{getUserMessage(error)}</FieldError>}
       </div>
 
       <div className="stg:space-y-1">
@@ -160,11 +167,7 @@ function EnvironmentFormBody({
 
       <PackagesFields value={packages} onChange={setPackages} disabled={isCreating} availability={availability} />
 
-      {error && (
-        <FieldError>
-          {getUserMessage(error)}
-        </FieldError>
-      )}
+      {error && !nameTaken && <ErrorMessage error={error} title="Couldn't create the environment." />}
 
       <div className="stg:flex stg:items-center stg:gap-2">
         <Button type="submit" disabled={!canSubmit} icon={isCreating ? <SpinnerIcon size={14} /> : undefined}>
