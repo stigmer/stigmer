@@ -7,8 +7,12 @@
     {
       "caption": "Fields",
       "narrow": false,
-      "built": [],
-      "unbuilt": "",
+      "built": [
+        {
+          "scene": "parts",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Name",
@@ -481,7 +485,11 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word daily-variance-report": "the scene holds these words as the field's value, which the reader reads only as a placeholder (an empty field's); the field draws them at its own type",
+        "type ledger-reviewer": "the scene holds these words as the field's value, which the reader reads only as a placeholder (an empty field's); the field draws them at its own type; the only block with these words is the inline editor's closed value, at 14/20",
+        "word https://ledger.acme.example/mcp": "the scene holds these words as the field's value, which the reader reads only as a placeholder (an empty field's); the field draws them at its own type"
+      },
       "ruled": {},
       "pending": {}
     }

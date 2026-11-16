@@ -7,8 +7,12 @@
     {
       "caption": "A form's foot",
       "narrow": false,
-      "built": [],
-      "unbuilt": "",
+      "built": [
+        {
+          "scene": "parts",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Name",
@@ -197,7 +201,9 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Stuck? Ask IT on Slack": "the help line shows the deployment's own words, and the parts scene's server sets none; the help scene draws the line with a company's words"
+      },
       "ruled": {},
       "pending": {}
     }

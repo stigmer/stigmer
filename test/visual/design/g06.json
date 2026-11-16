@@ -63,7 +63,7 @@
           ]
         },
         {
-          "text": "Search every source by name or description…",
+          "text": "Search every source by name or description\u2026",
           "type": [
             14,
             20,
@@ -322,12 +322,11 @@
         }
       ],
       "sample": {
-        "word Figma's hosted MCP server: read design files, components, variables and comments. Sign in with Figma.": "The scene's catalogue describes it: \"… Sign in with your Figma account.\""
+        "word Figma's hosted MCP server: read design files, components, variables and comments. Sign in with Figma.": "The scene's catalogue describes it: \"\u2026 Sign in with your Figma account.\""
       },
       "ruled": {},
       "pending": {
         "button Install again": "When its page is redesigned: an installed source offers Install again",
-        "type Search every source by name or description…": "When its page is redesigned: a form field's words at the drawn 14/20",
         "word All sources 8": "When its page is redesigned: each source in the filter counts its plugins",
         "word stigmer 8": "When its page is redesigned: each source in the filter counts its plugins"
       }

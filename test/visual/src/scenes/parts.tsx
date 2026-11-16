@@ -1,7 +1,8 @@
 // The console's shared parts, each in every variant and state it has, on
 // one page: the button in each variant and size, a page header with its
-// act, the status pill in each phase, the empty state in each variant, and
-// the error message as a failed read draws it. Every page in the console
+// act, the status pill in each phase, the empty state in each variant, the
+// error message as a failed read draws it, and the form parts (fields,
+// choices, the file drop, a form's foot and the inline editor). Every page in the console
 // and the desktop app is built from these, so a change to one of them shows
 // here part by part before it shows on the pages that use it.
 //
@@ -11,6 +12,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { ActionMenu, Button, EmptyState, ErrorMessage, LinkButton, PageHeader, StatusBadge } from "@stigmer/react-sdk";
 import type { Drawing } from "./drawing.ts";
+import { FieldParts, FooterParts, InlineEditorParts } from "./form-parts.tsx";
 
 const PHASES: readonly ComponentProps<typeof StatusBadge>["phase"][] = ["ready", "running", "pending", "degraded", "failed", "disabled", "draft"];
 
@@ -139,6 +141,9 @@ function Parts() {
         <ErrorMessage error={UNAVAILABLE} title="Couldn't load the shared vaults." retry={() => {}} />
         <ErrorMessage error={UNAVAILABLE} />
       </Group>
+      <FieldParts Group={Group} />
+      <FooterParts Group={Group} />
+      <InlineEditorParts Group={Group} />
     </div>
   );
 }

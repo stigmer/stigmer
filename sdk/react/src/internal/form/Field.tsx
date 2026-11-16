@@ -29,7 +29,7 @@ export function useFieldWiring(): FieldWiring | null {
   return useContext(FieldContext);
 }
 
-/** Merges a control's own props with its field's wiring: the control's own id and descriptions win. */
+/** Merges a control's own props with its field's wiring: inside a field the field's id names it (pass `id` to the `Field`), and the control's own descriptions come first. */
 export function wireControl(
   wiring: FieldWiring | null,
   own: { readonly id?: string; readonly "aria-describedby"?: string; readonly "aria-invalid"?: boolean | "true" | "false"; readonly invalid?: boolean },
@@ -37,7 +37,7 @@ export function wireControl(
   const invalid = own.invalid === true || own["aria-invalid"] === true || own["aria-invalid"] === "true" || (wiring?.invalid ?? false);
   const describedBy = [own["aria-describedby"], wiring?.describedBy].filter((x): x is string => typeof x === "string" && x !== "").join(" ");
   return {
-    id: own.id ?? wiring?.id,
+    id: wiring?.id ?? own.id,
     "aria-describedby": describedBy === "" ? undefined : describedBy,
     "aria-invalid": invalid ? true : undefined,
     invalid,
