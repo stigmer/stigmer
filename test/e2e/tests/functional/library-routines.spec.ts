@@ -231,7 +231,7 @@ test.describe("Routine detail tabs and inline editing", () => {
         page.getByRole("tab", { name: "Overview" }),
       ).toBeVisible({ timeout: 15_000 });
       // A fresh routine has an empty fire ledger — stated, not blank.
-      await expect(page.getByText("No fires yet")).toBeVisible();
+      await expect(page.getByText("No runs yet")).toBeVisible();
 
       // Overview: the cadence humanizes; the raw cron stays visible.
       await page.getByRole("tab", { name: "Overview" }).click();
@@ -398,7 +398,12 @@ test.describe("Starting a routine", () => {
       const table = page.getByRole("table", { name: "Fire history" });
       await expect(table).toBeVisible({ timeout: 15_000 });
       await expect(table.getByRole("columnheader", { name: "Started by" })).toBeVisible();
-      await expect(table.getByRole("cell", { name: "Manual" })).toHaveCount(1);
+      // One run, started by hand: the history's header row and that run's row,
+      // whose Started by names who started it (or "Manual"), never the schedule.
+      await expect(table.getByRole("row")).toHaveCount(2);
+      const run = table.getByRole("row").nth(1);
+      await expect(run.getByRole("cell").nth(1)).not.toHaveText(/^\s*$/);
+      await expect(run.getByRole("cell").nth(1)).not.toHaveText("Scheduled");
     } finally {
       await seeded.cleanup();
     }

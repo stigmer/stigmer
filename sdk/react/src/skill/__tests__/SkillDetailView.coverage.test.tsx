@@ -1,6 +1,6 @@
 /**
  * The skill page for a skill the server does not know: a not-found answer
- * is no failure, so the page says "Skill not found" with why, in place of
+ * is no failure, so the page says "This skill isn't here" with why, in place of
  * the skill and its acts, and offers no retry.
  */
 import { afterEach, describe, expect, it } from "vitest";
@@ -32,8 +32,8 @@ describe("SkillDetailView: a skill the server does not know", () => {
     );
     render(<SkillDetailView org="acme" slug="ghost" />, { wrapper });
 
-    expect(await screen.findByText("Skill not found")).toBeTruthy();
-    expect(screen.getByText("This skill doesn't exist or you don't have access to it.")).toBeTruthy();
+    expect(await screen.findByText("This skill isn't here")).toBeTruthy();
+    expect(screen.getByText("It may have been deleted, or it belongs to an organization you're not in.")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "More actions" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Try again/ })).toBeNull();
   });

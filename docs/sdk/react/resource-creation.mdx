@@ -139,6 +139,7 @@ and mounting the wizard.
     className: { type: "string", description: "Additional CSS classes for the root container." },
     onSelect: { type: "(path: CreationPath) => void", description: "Called when the user selects a creation path.", required: true },
     resourceLabel: { type: "string", description: "Label for the resource type (e.g. \"agent\", \"MCP server\"). Used in headings.", required: true },
+    showHeading: { type: "boolean", description: "Whether the picker draws its own \"Create a new …\" heading (default true). A host whose page header already names the page passes false." },
     templates: { type: "readonly ResourceTemplate<TData>[]", description: "Available templates for the gallery view.", required: true },
   }}
 />

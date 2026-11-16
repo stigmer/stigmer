@@ -18,7 +18,7 @@ import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/quer
 import { IdentityAccountQueryController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
-import { RoutineDetailView, RoutineForm } from "@stigmer/react-sdk";
+import { PageHeader, RoutineDetailView, RoutineForm } from "@stigmer/react-sdk";
 import { samples } from "@stigmer/react-sdk/test";
 import type { ReactElement } from "react";
 import { firstRunHistory, VARIANCE_REPORTER, varianceRoutine } from "../docs-fixtures.ts";
@@ -33,11 +33,12 @@ function libraryColumn(page: ReactElement): ReactElement {
 }
 
 /** The calls every routine screen makes: who is looking, their organization, the routine and its Agent. */
-function routineRoutes(enabled: boolean) {
+function routineRoutes(enabled: boolean, mayEditAgent = true) {
   return (router: ConnectRouter) => {
     router.service(OrganizationQueryController, { listMine: () => samples.organizationList([ORGANIZATION]), get: () => ORGANIZATION });
     router.service(IdentityAccountQueryController, { whoAmI: () => ACCOUNT });
-    router.service(GrantQueryController, { checkMyPermission: () => ({ isAuthorized: true }) });
+    // A person who may not change the Agent is refused a routine that runs it.
+    router.service(GrantQueryController, { checkMyPermission: () => ({ isAuthorized: mayEditAgent }) });
     router.service(AgentQueryController, {
       getByReference: () => VARIANCE_REPORTER,
       get: () => VARIANCE_REPORTER,
@@ -61,11 +62,21 @@ function routineRoutes(enabled: boolean) {
 }
 
 /** New routine, as the console's Library → Routines → New routine draws it; the scene's acts fill it. */
-export function routineNewScene(): Drawing {
+export function routineNewScene(mayEditAgent = true): Drawing {
   return {
     inOrganization: true,
-    routes: routineRoutes(false),
-    render: () => libraryColumn(<RoutineForm org={ORG_SLUG} onCancel={() => {}} />),
+    routes: routineRoutes(false, mayEditAgent),
+    render: () => libraryColumn(
+        <>
+          <PageHeader
+            className="stg:mb-6"
+            headingLevel={1}
+            title="New routine"
+            description="Start an agent on a schedule, by hand, or from another system."
+          />
+          <RoutineForm org={ORG_SLUG} onCancel={() => {}} />
+        </>,
+      ),
   };
 }
 
@@ -76,7 +87,7 @@ export function routineDetailScene(state: "disabled" | "history"): Drawing {
     routes: routineRoutes(state === "history"),
     render: () =>
       libraryColumn(
-        <RoutineDetailView
+        <RoutineDetailView headingLevel={1}
           org={ORG_SLUG}
           slug={varianceRoutine(false).metadata?.slug ?? ""}
           editable
@@ -102,6 +113,16 @@ export function routineNewFailedScene(): Drawing {
         },
       });
     },
-    render: () => libraryColumn(<RoutineForm org={ORG_SLUG} onCancel={() => {}} />),
+    render: () => libraryColumn(
+        <>
+          <PageHeader
+            className="stg:mb-6"
+            headingLevel={1}
+            title="New routine"
+            description="Start an agent on a schedule, by hand, or from another system."
+          />
+          <RoutineForm org={ORG_SLUG} onCancel={() => {}} />
+        </>,
+      ),
   };
 }

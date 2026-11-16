@@ -30,7 +30,7 @@ export default function EnvironmentDetailPage() {
   if (!org || !slug) return null;
 
   return (
-    <EnvironmentDetailView
+    <EnvironmentDetailView headingLevel={1}
       org={org}
       slug={slug}
       onResourceLoad={handleResourceLoad}

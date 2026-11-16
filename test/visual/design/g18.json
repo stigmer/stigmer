@@ -7,8 +7,12 @@
     {
       "caption": "A skill: Content: a package of several files, SKILL.md open",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "skill-files",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "month-end-close",
@@ -205,15 +209,36 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word month-end-close": "the scene's data differs (skill-files)",
+        "word The month-end checklist, in order, with who signs off each step.": "the scene's data differs (skill-files)",
+        "word Uploaded by Ada Lovelace": "the scene's data differs (skill-files)",
+        "word Updated Jul 18, 2026": "the scene's data differs (skill-files)",
+        "word Month-end close": "the scene's data differs (skill-files)",
+        "word Close the books in this order. Don't move to a step until the one before it is signed off. Lay the report out like references/report-template.md; scripts/variance.py works out each account's variance.": "the scene's data differs (skill-files)",
+        "word Reconcile every bank account to its statement.": "the scene's data differs (skill-files)",
+        "word Post the accruals the controller approved.": "the scene's data differs (skill-files)",
+        "word Run the variance report and explain anything over 10%.": "the scene's data differs (skill-files)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Upload a new version": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Content": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Versions": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "type references": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "type scripts": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "button Upload a new version": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "A skill: Content: a script open (no Rendered and Source for code)",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "skill-files-script",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "month-end-close",
@@ -370,9 +395,22 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word month-end-close": "the scene's data differs (skill-files-script)",
+        "word The month-end checklist, in order, with who signs off each step.": "the scene's data differs (skill-files-script)",
+        "word Uploaded by Ada Lovelace": "the scene's data differs (skill-files-script)",
+        "word Updated Jul 18, 2026": "the scene's data differs (skill-files-script)",
+        "word Python \u00b7 10 lines": "the scene's data differs (skill-files-script)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Upload a new version": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Content": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Versions": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "type references": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "type scripts": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
+        "button Upload a new version": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "A skill: Versions",
@@ -635,8 +673,12 @@
     {
       "caption": "A skill: At 390 wide: the file picked from a list above it",
       "narrow": true,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "skill-files",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "month-end-close",
@@ -801,9 +843,24 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word month-end-close": "the scene's data differs (skill-files)",
+        "word The month-end checklist, in order, with who signs off each step.": "the scene's data differs (skill-files)",
+        "word Uploaded by Ada Lovelace": "the scene's data differs (skill-files)",
+        "word Updated Jul 18, 2026": "the scene's data differs (skill-files)",
+        "word Month-end close": "the scene's data differs (skill-files)",
+        "word Close the books in this order. Don't move to a step until the one before it is signed off. Lay the report out like references/report-template.md; scripts/variance.py works out each account's variance.": "the scene's data differs (skill-files)",
+        "word Reconcile every bank account to its statement.": "the scene's data differs (skill-files)",
+        "word Post the accruals the controller approved.": "the scene's data differs (skill-files)",
+        "word Run the variance report and explain anything over 10%.": "the scene's data differs (skill-files)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Upload a new version": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Content": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Versions": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "button Upload a new version": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
+      }
     }
   ]
 }

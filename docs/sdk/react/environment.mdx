@@ -282,6 +282,7 @@ edited in place by its editors; rename, access, export and delete.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS classes for the root container." },
+    headingLevel: { type: "1 | 2", description: "The level of the page's title: 1 where the view is the page's main content (the console's and the desktop app's detail pages), 2 (the default) where it sits under a heading of the host's." },
     onDeleted: { type: "() => void", description: "Called after a successful delete (navigate back to the list)." },
     onRenamed: { type: "(environment: Environment) => void", description: "Fired with the renamed Environment after a rename from the slug field; a host whose address names the slug moves it." },
     onResourceLoad: { type: "(environment: Environment) => void", description: "Called when the Environment loads or reloads (e.g. breadcrumb label sync)." },

@@ -16,7 +16,7 @@ export function varianceReporterScene(): Drawing {
     routes: agentRoutes("owner", { agent: VARIANCE_REPORTER, versions: VARIANCE_REPORTER_VERSIONS }),
     render: () => (
       <div style={{ maxWidth: "56rem", margin: "0 auto", padding: "2rem 1.5rem" }}>
-        <AgentDetailView
+        <AgentDetailView headingLevel={1}
           org={ORGANIZATION.metadata?.slug ?? ""}
           slug={VARIANCE_REPORTER.metadata?.slug ?? ""}
           editable

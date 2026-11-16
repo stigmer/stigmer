@@ -9,6 +9,7 @@ import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../intern
 import { buildFileTree, FileTreeNode } from "../internal/file-tree/index.js";
 import { useSkillArtifact } from "./useSkillArtifact.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { ChoiceGroup, Field, Select } from "../internal/form/index.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -111,23 +112,44 @@ export function SkillFileBrowser({
 
   if (!files || files.length === 0) return null;
 
+  // Every folder the tree draws, nested ones included (a/b/c.md is two).
+  const folderCount = new Set(
+    fileEntries.flatMap((f) => {
+      const parts = f.path.split("/").slice(0, -1);
+      return parts.map((_, i) => parts.slice(0, i + 1).join("/"));
+    }),
+  ).size;
+  const sortedPaths = [...fileEntries].map((f) => f.path).sort((x, y) => x.localeCompare(y));
+
   return (
-    <div className={cn("stg:rounded-lg stg:border stg:border-border stg:overflow-hidden", className)}>
-      {/* Header */}
-      <div className="stg:border-b stg:border-border stg:px-4 stg:py-2">
-        <h3 className="stg:text-xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
-          Package Files
-        </h3>
+    <div className={cn("stg:flex stg:flex-col stg:gap-3", className)}>
+      {/* What the package holds, in one line, and which file the agent reads first. */}
+      <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
+        {count(fileEntries.length, "file")}
+        {folderCount > 0 ? ` in ${count(folderCount, "folder")}` : ""}
+        {fileEntries.some((f) => f.path === "SKILL.md") ? " · SKILL.md is what the agent reads first" : ""}
+      </p>
+
+      {/* On a phone the file is picked from a list above the viewer. */}
+      <div className="stg:md:hidden">
+        <Field label="File">
+          <Select value={selectedPath ?? ""} onChange={(e) => setUserSelectedPath(e.target.value)}>
+            {sortedPaths.map((path) => (
+              <option key={path} value={path}>
+                {path}
+              </option>
+            ))}
+          </Select>
+        </Field>
       </div>
 
-      {/* Split pane */}
-      <div className="stg:grid stg:grid-cols-1 stg:md:grid-cols-[220px_1fr]">
-        {/* File tree */}
+      {/* The folders and files on the left, the chosen file on the right. */}
+      <div className="stg:grid stg:grid-cols-1 stg:overflow-hidden stg:rounded-xl stg:border stg:border-border stg:bg-card stg:md:grid-cols-[224px_minmax(0,1fr)]">
         <nav
-          className="stg:border-b stg:border-border stg:md:border-b-0 stg:md:border-r stg:overflow-y-auto"
-          aria-label="Skill package file tree"
+          className="stg:hidden stg:overflow-y-auto stg:border-r stg:border-border-muted stg:p-2 stg:md:block"
+          aria-label="Files in the skill package"
         >
-          <ul className={cn(UNSTYLED_LIST, "stg:py-1")} role="tree">
+          <ul className={UNSTYLED_LIST} role="tree">
             {treeNodes.map((node) => (
               <FileTreeNode
                 key={node.path}
@@ -140,19 +162,22 @@ export function SkillFileBrowser({
           </ul>
         </nav>
 
-        {/* Content viewer */}
-        <div className="stg:min-h-[200px] stg:max-h-[400px] stg:overflow-y-auto stg:p-4">
+        <div className="stg:flex stg:min-w-0 stg:flex-col">
           {selectedPath !== null && content !== null ? (
             <FileContentViewer path={selectedPath} content={content} />
           ) : (
-            <p className="stg:text-sm stg:text-muted-foreground-subtle stg:italic">
-              Select a file to view its contents
+            <p className="stg:m-0 stg:p-4 stg:text-sm stg:text-muted-foreground">
+              Choose a file to read it.
             </p>
           )}
         </div>
       </div>
     </div>
   );
+}
+
+function count(n: number, noun: string): string {
+  return `${n} ${noun}${n === 1 ? "" : "s"}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -167,19 +192,41 @@ function FileContentViewer({
   readonly content: string;
 }) {
   const isMarkdown = path.endsWith(".md");
-
-  if (isMarkdown) {
-    return (
-      <Markdown remarkPlugins={REMARK_PLUGINS} components={MARKDOWN_COMPONENTS}>
-        {stripFrontmatter(content)}
-      </Markdown>
-    );
-  }
+  const [view, setView] = useState<"rendered" | "source">("rendered");
+  const lines = content.replace(/\n$/, "").split("\n").length;
 
   return (
-    <pre className="stg:overflow-x-auto stg:font-mono stg:text-xs stg:leading-relaxed stg:text-foreground stg:whitespace-pre-wrap">
-      {content}
-    </pre>
+    <>
+      {/* The file's own head: its path, then how to read it (Markdown, rendered or as source) or what it is. */}
+      <div className="stg:flex stg:min-h-11 stg:flex-wrap stg:items-center stg:justify-between stg:gap-2 stg:border-b stg:border-border-muted stg:px-4 stg:py-2">
+        <span className="stg:min-w-0 stg:truncate stg:font-mono stg:text-xs stg:text-foreground">{path}</span>
+        {isMarkdown ? (
+          <ChoiceGroup
+            size="xs"
+            aria-label="How to show the file"
+            value={view}
+            onChange={setView}
+            options={[
+              { value: "rendered", label: "Rendered" },
+              { value: "source", label: "Source" },
+            ]}
+          />
+        ) : (
+          <span className="stg:text-xs stg:text-muted-foreground">{count(lines, "line")}</span>
+        )}
+      </div>
+      <div className="stg:max-h-[480px] stg:min-w-0 stg:overflow-auto stg:p-4">
+        {isMarkdown && view === "rendered" ? (
+          <Markdown remarkPlugins={REMARK_PLUGINS} components={MARKDOWN_COMPONENTS}>
+            {stripFrontmatter(content)}
+          </Markdown>
+        ) : (
+          <pre className="stg:m-0 stg:font-mono stg:text-xs stg:text-foreground stg:whitespace-pre">
+            {content}
+          </pre>
+        )}
+      </div>
+    </>
   );
 }
 

@@ -63,7 +63,13 @@ describe("the scenes' pictures", () => {
 /** Every act, as `<scene> act <n>`, that names no control or, filling a field, types nothing. */
 function blankActs(scenes: readonly Scene[]): string[] {
   const blank = (act: Act): boolean =>
-    typeof act === "string" ? act.trim() === "" : "press" in act ? act.press.trim() === "" : act.fill.trim() === "" || act.with.trim() === "";
+    typeof act === "string"
+      ? act.trim() === ""
+      : "press" in act
+        ? act.press.trim() === ""
+        : "see" in act
+          ? act.see.trim() === ""
+          : act.fill.trim() === "" || act.with.trim() === "";
   return scenes.flatMap((scene) =>
     [scene.opens ?? []].flat().flatMap((act, index) => (blank(act) ? [`${scene.id} act ${index + 1}`] : [])),
   );

@@ -71,7 +71,7 @@ test.describe("Plugins list: Add MCP server", () => {
 
     // The plugin is named after the server; its page lists the server, how it is reached, and the key it reads.
     await page.waitForURL(new RegExp(`/library/plugins/[^/]+/${SERVER}$`), { timeout: 30_000 });
-    await expect(page.getByRole("heading", { level: 2, name: SERVER })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("heading", { level: 1, name: SERVER })).toBeVisible({ timeout: 15_000 });
     const servers = page.getByRole("list", { name: "MCP servers", exact: true });
     await expect(servers.getByText(SERVER, { exact: true })).toBeVisible();
     await expect(servers.getByText(SERVER_URL)).toBeVisible();

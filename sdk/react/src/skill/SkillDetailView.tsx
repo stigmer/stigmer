@@ -126,6 +126,12 @@ export interface SkillDetailViewProps {
    * Consumers can use this to refresh breadcrumbs, sync URL state, etc.
    */
   readonly onResourceUpdated?: (skill: Skill) => void;
+  /**
+   * The level of the page's title: 1 where the view is the page's main
+   * content (the console's and the desktop app's detail pages), 2 (the
+   * default) where it sits under a heading of the host's.
+   */
+  readonly headingLevel?: 1 | 2;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -174,6 +180,7 @@ export function SkillDetailView({
   editable: editableProp = false,
   onResourceUpdated,
   className,
+  headingLevel,
 }: SkillDetailViewProps) {
   const { skill, isLoading, error, refetch } = useSkill(org, slug, version);
   const managing = useManagingPlugin(skill?.metadata?.labels);
@@ -326,6 +333,7 @@ export function SkillDetailView({
     <>
       <ResourceDetailShell
         header={headerMeta}
+        headingLevel={headingLevel}
         visibilityControl={visibilityControl}
         headerBanner={<ManagedByPluginNotice plugin={managing.plugin} onPluginClick={onPluginClick} />}
         primaryAction={primaryAction}
@@ -678,8 +686,8 @@ function NotFoundState({ className }: { readonly className?: string }) {
     <EmptyState
       variant="first-use"
       icon={<SkillIcon />}
-      title="Skill not found"
-      description="This skill doesn't exist or you don't have access to it."
+      title="This skill isn't here"
+      description="It may have been deleted, or it belongs to an organization you're not in."
       className={className}
     />
   );

@@ -7,6 +7,7 @@ import {
   useActiveOrgId,
   useOrgSlugForId,
   useBreadcrumbOverride,
+  PageHeader,
 } from "@stigmer/react-sdk";
 
 /**
@@ -29,15 +30,18 @@ export function SkillNewPage() {
   if (!org) return null;
 
   return (
-    <SkillUploader
-      org={org}
-      onComplete={(skill) =>
-        router.push(
-          `/library/skills/${slugForOrg(skill.metadata?.org ?? "")}/${skill.metadata?.slug}`,
-        )
-      }
-      onCancel={() => router.push("/library/skills")}
-      className="min-h-[320px]"
-    />
+    <>
+      <PageHeader className="mb-6" headingLevel={1} title="Upload skill" description="Every agent in your organization can load a skill when a task needs it." />
+      <SkillUploader
+        org={org}
+        onComplete={(skill) =>
+          router.push(
+            `/library/skills/${slugForOrg(skill.metadata?.org ?? "")}/${skill.metadata?.slug}`,
+          )
+        }
+        onCancel={() => router.push("/library/skills")}
+        className="min-h-[320px]"
+      />
+    </>
   );
 }

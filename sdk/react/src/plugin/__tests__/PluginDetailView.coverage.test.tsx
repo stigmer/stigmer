@@ -1,6 +1,6 @@
 /**
  * The plugin page for a plugin the organization has not installed: a
- * not-found answer is no failure, so the page says "Plugin not installed"
+ * not-found answer is no failure, so the page says "This plugin isn't installed"
  * with why, in place of the plugin and its acts, and offers no retry.
  */
 import { afterEach, describe, expect, it } from "vitest";
@@ -32,7 +32,7 @@ describe("PluginDetailView: a plugin the organization has not installed", () => 
     );
     render(<PluginDetailView org="acme" slug="ghost" onStartChat={() => {}} />, { wrapper });
 
-    expect(await screen.findByText("Plugin not installed")).toBeTruthy();
+    expect(await screen.findByText("This plugin isn't installed")).toBeTruthy();
     expect(screen.getByText("No plugin with this name is installed in the organization.")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Start a chat" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Try again/ })).toBeNull();

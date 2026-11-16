@@ -9,8 +9,8 @@ import { test, expect } from "@playwright/test";
  * - Invalid run IDs → inline "Run not found"
  * - Invalid session IDs → SessionError ("This session didn’t open", naming
  *   the id, with a retry)
- * - Invalid library slugs → inline not-found state ("Agent not found")
- *   with the access hint
+ * - Invalid library slugs → inline not-found state ("This agent isn't here")
+ *   with why
  *
  * Each case asserts its exact state: a loose "any error-looking text"
  * match would pass on the wrong failure.
@@ -59,9 +59,9 @@ test.describe("Error state resilience", () => {
   }) => {
     await page.goto("/library/agents/e2e-nonexistent-org/e2e-nonexistent-slug");
 
-    await expect(page.getByText("Agent not found")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("This agent isn't here")).toBeVisible({ timeout: 15_000 });
     await expect(
-      page.getByText("This agent doesn't exist or you don't have access to it."),
+      page.getByText("It may have been deleted, or it belongs to an organization you're not in."),
     ).toBeVisible();
     await expectNoCrash(page);
   });

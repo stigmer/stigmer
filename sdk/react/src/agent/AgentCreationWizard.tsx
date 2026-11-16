@@ -54,19 +54,19 @@ export interface AgentCreationWizardProps {
 const STEPS: WizardStepDef<AgentWizardData>[] = [
   {
     id: "identity",
-    label: "Identity & Instructions",
+    label: "Name and instructions",
     validate: (data) => {
-      if (!data.name.trim()) return "Name is required";
+      if (!data.name.trim()) return "Give the agent a name.";
       return null;
     },
   },
   {
     id: "capabilities",
-    label: "Capabilities",
+    label: "What it can use",
   },
   {
     id: "review",
-    label: "Review & Create",
+    label: "Review",
   },
 ];
 
@@ -78,9 +78,9 @@ const STEPS: WizardStepDef<AgentWizardData>[] = [
  * Multi-step wizard for creating a new agent blueprint.
  *
  * Three condensed steps:
- * 1. **Identity & Instructions** — name, slug, description, icon, system prompt
- * 2. **Capabilities** — plugins, skills, env var declarations (all optional)
- * 3. **Review & Create** — YAML preview + submission
+ * 1. **Name and instructions** — name, slug, description, icon, system prompt
+ * 2. **What it can use** — plugins, skills, env var declarations (all optional)
+ * 3. **Review** — YAML preview + submission
  *
  * Uses the shared `WizardShell` layout and `useWizardState` hook for
  * navigation. Form data accumulates in the wizard state; on the final

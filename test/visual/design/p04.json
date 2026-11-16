@@ -71,7 +71,7 @@
           ]
         },
         {
-          "text": "vlt_00000000000000000000000003 · 4 secrets",
+          "text": "vlt_00000000000000000000000003 \u00b7 4 secrets",
           "type": [
             12,
             16,
@@ -302,7 +302,12 @@
         }
       ],
       "sample": {},
-      "ruled": {},
+      "ruled": {
+        "word Origin": "His look at the Library page (2026-11-16) passed G07's history, which replaces this table's columns: Started by (the person, else how it started), When, Took, Session",
+        "word Fired": "His look at the Library page (2026-11-16) passed G07's history, which replaces this table's columns: Started by (the person, else how it started), When, Took, Session",
+        "word Duration": "His look at the Library page (2026-11-16) passed G07's history, which replaces this table's columns: Started by (the person, else how it started), When, Took, Session",
+        "word Manual": "His look at the Library page (2026-11-16) passed G07's history, which replaces this table's columns: Started by (the person, else how it started), When, Took, Session"
+      },
       "pending": {
         "button More actions": "When its page is redesigned: a list row's overflow menu, which no list draws yet",
         "type daily-variance-report": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
@@ -320,7 +325,7 @@
         "word Used by": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
         "word the routine": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
         "word variance-reporter, payroll-reconciler": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
-        "word vlt_00000000000000000000000003 · 4 secrets": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows"
+        "word vlt_00000000000000000000000003 \u00b7 4 secrets": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows"
       }
     }
   ]

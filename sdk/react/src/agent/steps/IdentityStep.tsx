@@ -51,21 +51,19 @@ export function IdentityStep({
 
   const slugError =
     data.slug.length > 0 && !SLUG_PATTERN.test(data.slug)
-      ? "Slug must be lowercase letters, numbers, and hyphens only"
+      ? "Use lowercase letters, numbers and hyphens."
       : null;
 
   return (
     <div className="stg:flex stg:flex-col stg:gap-6">
       <div>
-        <h2 className="stg:text-lg stg:font-semibold stg:text-foreground">
-          Identity & Instructions
+        <h2 className="stg:m-0 stg:text-base stg:font-semibold stg:text-foreground">
+          Name and instructions
         </h2>
-        <p className="stg:mt-1 stg:text-sm stg:text-muted-foreground">
-          Define what this agent is and what it does.
+        <p className="stg:m-0 stg:mt-1 stg:text-sm stg:text-muted-foreground">
+          Name it, then write what it should do. You can change both any time.
         </p>
       </div>
-
-      {validationError && <FieldError>{validationError}</FieldError>}
 
       <div className="stg:grid stg:gap-4 stg:sm:grid-cols-2">
         {/* Name */}
@@ -74,7 +72,7 @@ export function IdentityStep({
             htmlFor={`${baseId}-name`}
             className="stg:text-sm stg:font-medium stg:text-foreground"
           >
-            Name <span className="stg:text-destructive">*</span>
+            Name
           </label>
           <TextInput
             id={`${baseId}-name`}
@@ -84,7 +82,11 @@ export function IdentityStep({
             placeholder="e.g. PR Review Bot"
             autoFocus
             className="stg:w-full"
+            invalid={Boolean(validationError)}
+            aria-describedby={validationError ? `${baseId}-name-error` : undefined}
           />
+          {/* The step's check is about the name, so its words sit under the name. */}
+          {validationError && <FieldError id={`${baseId}-name-error`}>{validationError}</FieldError>}
         </div>
 
         {/* Slug */}
@@ -104,12 +106,11 @@ export function IdentityStep({
             className="stg:w-full stg:font-mono"
             invalid={Boolean(slugError)}
           />
-          {slugError && (
-            <p className="stg:text-xs stg:text-destructive">{slugError}</p>
-          )}
-          {!slugError && data.slug && (
-            <p className="stg:text-xs stg:text-muted-foreground">
-              Referenced as <code className="stg:font-mono">{data.slug}</code>
+          {slugError ? (
+            <FieldError>{slugError}</FieldError>
+          ) : (
+            <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
+              The name in links and files. Lowercase letters, numbers and hyphens.
             </p>
           )}
         </div>

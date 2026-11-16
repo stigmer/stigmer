@@ -74,7 +74,7 @@ export function agentInAppScene(face: InAppFace): Drawing {
     },
     render: () => (
       <div style={{ maxWidth: "56rem", margin: "0 auto", padding: "2rem 1.5rem" }}>
-        <AgentDetailView
+        <AgentDetailView headingLevel={1}
           org={ORGANIZATION.metadata?.slug ?? ""}
           slug={LEDGER_AGENT.metadata?.slug ?? ""}
           editable={face !== "member"}

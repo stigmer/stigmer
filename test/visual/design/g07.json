@@ -7,8 +7,12 @@
     {
       "caption": "A routine's history: History",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "routine-history",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "daily-variance-report",
@@ -277,7 +281,22 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Running": "the scene's data differs (routine-history)",
+        "word run_8f3a\u2026c21d": "the scene's data differs (routine-history)",
+        "word Finished": "the scene's data differs (routine-history)",
+        "word Schedule": "the scene's data differs (routine-history)",
+        "word 1d": "the scene's data differs (routine-history)",
+        "word 2m 14s": "the scene's data differs (routine-history)",
+        "word run_77b0\u20269e02": "the scene's data differs (routine-history)",
+        "word Didn't finish": "the scene's data differs (routine-history)",
+        "word 2d": "the scene's data differs (routine-history)",
+        "word 41s": "the scene's data differs (routine-history)",
+        "word run_1c9d\u202604af": "the scene's data differs (routine-history)",
+        "word Skipped": "the scene's data differs (routine-history)",
+        "word 3d": "the scene's data differs (routine-history)",
+        "word No session: the last run was still going": "the scene's data differs (routine-history)"
+      },
       "ruled": {},
       "pending": {}
     },

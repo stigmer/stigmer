@@ -53,6 +53,7 @@ export function ResourceDetailShell({
   activeTab,
   onTabChange,
   tabsAriaLabel,
+  headingLevel = 2,
   children,
   className,
 }: ResourceDetailShellProps) {
@@ -70,6 +71,7 @@ export function ResourceDetailShell({
             header={header}
             visibilityControl={visibilityControl}
             metaExtra={headerMetaExtra}
+            headingLevel={headingLevel}
           />
         )}
         <ResourceActionBar
@@ -105,7 +107,9 @@ function Header({
   header,
   visibilityControl,
   metaExtra,
+  headingLevel,
 }: {
+  readonly headingLevel: 1 | 2;
   readonly header: ResourceDetailShellProps["header"];
   readonly visibilityControl?: ResourceDetailShellProps["visibilityControl"];
   readonly metaExtra?: ResourceDetailShellProps["headerMetaExtra"];
@@ -126,6 +130,7 @@ function Header({
   } = header;
 
   const showSlug = slug && slug !== name && !qualifiedSlug;
+  const Heading = headingLevel === 1 ? "h1" : "h2";
   const slugForOrg = useOrgSlugForId();
 
   return (
@@ -146,9 +151,9 @@ function Header({
         <div className="stg:min-w-0 stg:flex-1">
           <div className="stg:flex stg:items-center stg:gap-2">
             {nameElement ?? (
-              <h2 className="stg:truncate stg:text-xl stg:font-semibold stg:text-foreground">
+              <Heading className="stg:m-0 stg:truncate stg:text-xl stg:font-semibold stg:text-foreground">
                 {name}
-              </h2>
+              </Heading>
             )}
             {showSlug && (
               <code className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-xs stg:font-medium stg:text-muted-foreground">

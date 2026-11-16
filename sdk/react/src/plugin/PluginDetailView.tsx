@@ -98,6 +98,12 @@ export interface PluginDetailViewProps {
   readonly onTabChange?: (tabId: string) => void;
   /** @default "overview" */
   readonly defaultTab?: string;
+  /**
+   * The level of the page's title: 1 where the view is the page's main
+   * content (the console's and the desktop app's detail pages), 2 (the
+   * default) where it sits under a heading of the host's.
+   */
+  readonly headingLevel?: 1 | 2;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -134,6 +140,7 @@ export function PluginDetailView({
   onTabChange,
   defaultTab,
   className,
+  headingLevel,
 }: PluginDetailViewProps) {
   const { plugin, isLoading, error, refetch } = usePlugin(org, slug);
   // The resource the header's acts are checked on: Remove is offered only
@@ -236,6 +243,7 @@ export function PluginDetailView({
     <>
       <ResourceDetailShell
         header={headerMeta}
+        headingLevel={headingLevel}
         visibilityControl={visibilityControl}
         primaryAction={primaryAction}
         actions={mergedActions}
@@ -495,7 +503,7 @@ function NotFoundState({ className }: { readonly className?: string }) {
     <EmptyState
       variant="first-use"
       icon={<PluginIcon />}
-      title="Plugin not installed"
+      title="This plugin isn't installed"
       description="No plugin with this name is installed in the organization."
       className={className}
     />

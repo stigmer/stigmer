@@ -126,7 +126,7 @@ test.describe("Plugin hooks journey", () => {
 
 /** The plugin page's kebab Remove, confirmed. */
 async function removePlugin(page: import("@playwright/test").Page): Promise<void> {
-  await expect(page.getByRole("heading", { level: 2, name: PLUGIN })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("heading", { level: 1, name: PLUGIN })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /More actions|Actions/ }).click();
   await page.getByRole("menuitem", { name: "Remove" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Remove" }).click();

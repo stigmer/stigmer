@@ -142,6 +142,12 @@ export interface RoutineDetailViewProps {
    * @default new Date() at render
    */
   readonly now?: Date;
+  /**
+   * The level of the page's title: 1 where the view is the page's main
+   * content (the console's and the desktop app's detail pages), 2 (the
+   * default) where it sits under a heading of the host's.
+   */
+  readonly headingLevel?: 1 | 2;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -199,6 +205,7 @@ export function RoutineDetailView({
   now,
   serviceAccountsHref,
   className,
+  headingLevel,
 }: RoutineDetailViewProps) {
   const slugForOrg = useOrgSlugForId();
   const { routine, isLoading, error, refetch } = useRoutine(org, slug);
@@ -826,6 +833,7 @@ export function RoutineDetailView({
     <>
       <ResourceDetailShell
         header={headerMeta}
+        headingLevel={headingLevel}
         headerBanner={headerBanner}
         primaryAction={primaryAction}
         actions={actions}
@@ -1797,8 +1805,8 @@ function NotFoundState({ className }: { readonly className?: string }) {
     <EmptyState
       variant="first-use"
       icon={<RoutineIcon />}
-      title="Routine not found"
-      description="This routine doesn't exist or you don't have access to it."
+      title="This routine isn't here"
+      description="It may have been deleted, or it belongs to an organization you're not in."
       className={className}
     />
   );

@@ -254,7 +254,7 @@ function AgentNewPage({ member }: { readonly member: boolean }): ReactElement {
   return wizard ? (
     <AgentCreationWizard org={ORG_SLUG} onComplete={stay} onCancel={() => setWizard(false)} />
   ) : (
-    <CreationPicker resourceLabel="agent" templates={AGENT_TEMPLATES} onSelect={() => setWizard(true)} />
+    <CreationPicker resourceLabel="agent" templates={AGENT_TEMPLATES} onSelect={() => setWizard(true)} showHeading={false} />
   );
 }
 
@@ -265,6 +265,12 @@ export function agentNewScene(member = false): Drawing {
     routes: libraryRoutes({ member }),
     render: () => (
       <PageFrame width="wide">
+        <PageHeader
+          className="stg:mb-6"
+          headingLevel={1}
+          title="New agent"
+          description="Start from a blank page, a template, or a file you already have."
+        />
         <AgentNewPage member={member} />
       </PageFrame>
     ),
@@ -278,6 +284,12 @@ export function skillUploadScene(): Drawing {
     routes: libraryRoutes({}),
     render: () => (
       <PageFrame width="wide">
+        <PageHeader
+          className="stg:mb-6"
+          headingLevel={1}
+          title="Upload skill"
+          description="Every agent in your organization can load a skill when a task needs it."
+        />
         <SkillUploader org={ORG_SLUG} onComplete={stay} onCancel={stay} />
       </PageFrame>
     ),

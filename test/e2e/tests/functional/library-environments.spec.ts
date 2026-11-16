@@ -151,7 +151,7 @@ test.describe("An Environment's page", () => {
       expect(saved.spec?.environmentRef?.id).toBe(environment.id);
 
       await page.goto(`/library/environments/${ENVIRONMENTS_ORG}/${environment.slug}`);
-      await expect(page.getByRole("heading", { level: 2, name: environment.slug })).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByRole("heading", { level: 1, name: environment.slug })).toBeVisible({ timeout: 15_000 });
       await page.getByRole("button", { name: /More actions|Actions/ }).click();
       await page.getByRole("menuitem", { name: "Delete" }).click();
       await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();

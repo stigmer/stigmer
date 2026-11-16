@@ -7,8 +7,12 @@
     {
       "caption": "New agent: Choose how to start",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "agent-new-picker",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "New agent",
@@ -78,13 +82,23 @@
       "buttons": [],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Name it, write what it should do, then pick what it can use.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Start from a template": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word A finished agent for a common job, ready to change.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Import from a file": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word A YAML or JSON file that describes an agent.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "New agent: Step 1, filled in",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "agent-new-wizard",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "New agent",
@@ -209,9 +223,18 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Variance reporter": "the scene's data differs (agent-new-wizard)",
+        "word variance-reporter": "the scene's data differs (agent-new-wizard)",
+        "word Turns a customer's ledger into a variance report.": "the scene's data differs (agent-new-wizard)",
+        "word You review a customer's quarterly ledger. Each row has an account, its budget and its actual amount\u2026": "the scene's data differs (agent-new-wizard)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Step 1 of 3 \u00b7 Name and instructions": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Description (optional)": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word What it should do, in plain words. You can change them any time.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "New agent: Step 1, a field left empty",
@@ -848,8 +871,12 @@
     {
       "caption": "New agent: For a member who may not create agents",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "agent-new-denied",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "New agent",
@@ -877,15 +904,18 @@
         }
       ],
       "buttons": [],
-      "sample": {},
+      "sample": {
+        "word Ask an admin of acme to turn on \u201cMembers can create agents\u201d in the organization's settings.": "the scene's data differs (agent-new-denied)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Only an admin can create agents here": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "New agent: At 390 wide",
       "narrow": true,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
       "words": [
         {
           "text": "New agent",
@@ -1012,7 +1042,8 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {},
+      "unbuilt": "built by the Library pages pull request's later scenes: no scene draws this state yet (stigmer#3210)"
     }
   ]
 }

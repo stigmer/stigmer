@@ -15,6 +15,7 @@ import { Bot, Cpu, History, MessageSquare, Puzzle, Server, Zap } from "lucide-re
 import { cn } from "@stigmer/design-tokens";
 import { useModelRegistry } from "../models/useModelRegistry.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
+import { tagClasses } from "../internal/surface/Tag.js";
 import { agentHarnessOf } from "./run-defaults.js";
 
 /** Props for {@link AgentProfileHeader}. */
@@ -28,11 +29,18 @@ export interface AgentProfileHeaderProps {
   readonly versionCount?: number;
   /** How many channels reach the agent, once read: the page's channel list, the one its Channels tab shows. */
   readonly channelCount?: number;
+  /**
+   * The level of the page's title: 1 where the header is the page's main
+   * content (the console's and the desktop app's detail pages), 2 (the
+   * default) where it sits under a heading of the host's.
+   */
+  readonly headingLevel?: 1 | 2;
   readonly className?: string;
 }
 
 /** The agent's identity: face, name, purpose, maker and what it is made of. */
-export function AgentProfileHeader({ agent, icon, visibilityControl, versionCount, channelCount, className }: AgentProfileHeaderProps) {
+export function AgentProfileHeader({ agent, icon, visibilityControl, versionCount, channelCount, headingLevel = 2, className }: AgentProfileHeaderProps) {
+  const Heading = headingLevel === 1 ? "h1" : "h2";
   const meta = agent.metadata;
   const spec = agent.spec;
   const audit = agent.status?.audit?.specAudit;
@@ -43,12 +51,12 @@ export function AgentProfileHeader({ agent, icon, visibilityControl, versionCoun
 
   return (
     <div className={cn("stg:flex stg:min-w-0 stg:items-start stg:gap-4", className)}>
-      <span className="stg:flex stg:size-14 stg:shrink-0 stg:items-center stg:justify-center stg:overflow-hidden stg:rounded-xl stg:border stg:border-border stg:bg-muted-subtle">
+      <span className="stg:flex stg:size-10 stg:shrink-0 stg:items-center stg:justify-center stg:overflow-hidden stg:rounded-lg stg:border stg:border-border stg:bg-card">
         {icon}
       </span>
       <div className="stg:min-w-0 stg:flex-1">
         <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2">
-          <h2 className="stg:m-0 stg:truncate stg:text-xl stg:font-semibold stg:tracking-tight stg:text-foreground">{meta?.name || meta?.slug}</h2>
+          <Heading className="stg:m-0 stg:truncate stg:text-xl stg:font-semibold stg:tracking-tight stg:text-foreground">{meta?.name || meta?.slug}</Heading>
           {visibilityControl}
         </div>
         {spec?.description && <p className="stg:m-0 stg:mt-1 stg:max-w-2xl stg:text-sm stg:text-muted-foreground">{spec.description}</p>}
@@ -69,13 +77,9 @@ export function AgentProfileHeader({ agent, icon, visibilityControl, versionCoun
             </>
           )}
         </p>
-        <ul aria-label="What the agent is made of" className="stg:m-0 stg:mt-3 stg:flex stg:list-none stg:flex-wrap stg:gap-1.5 stg:p-0">
+        <ul aria-label="What the agent is made of" className="stg:m-0 stg:mt-2 stg:flex stg:list-none stg:flex-wrap stg:gap-1 stg:p-0">
           {facts.map((fact) => (
-            <li
-              key={fact.label}
-              className="stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:border-border stg:px-2 stg:py-1 stg:text-xs stg:text-foreground stg:[&_svg]:size-3.5 stg:[&_svg]:text-muted-foreground"
-            >
-              {fact.icon}
+            <li key={fact.label} className={tagClasses()}>
               {fact.label}
             </li>
           ))}

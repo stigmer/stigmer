@@ -141,7 +141,7 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
 
   return (
     <>
-      <AgentDetailView
+      <AgentDetailView headingLevel={1}
         org={org}
         slug={slug}
         onResourceLoad={handleResourceLoad}

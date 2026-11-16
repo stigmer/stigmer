@@ -244,6 +244,12 @@ export interface AgentDetailViewProps {
    * `?tab=in-app`. Without it, no tab.
    */
   readonly inApp?: InAppLinks;
+  /**
+   * The level of the page's title: 1 where the view is the page's main
+   * content (the console's and the desktop app's detail pages), 2 (the
+   * default) where it sits under a heading of the host's.
+   */
+  readonly headingLevel?: 1 | 2;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -320,6 +326,7 @@ export function AgentDetailView({
   makeItYours,
   inApp,
   className,
+  headingLevel,
 }: AgentDetailViewProps) {
   const { agent, isLoading, error, refetch } = useAgent(org, slug);
   // The agent's org is compared with stored references, which name orgs by
@@ -688,8 +695,10 @@ export function AgentDetailView({
     <>
       <ResourceDetailShell
         header={headerMeta}
+        headingLevel={headingLevel}
         identity={
           <AgentProfileHeader
+            headingLevel={headingLevel}
             agent={agent}
             icon={headerMeta.icon ?? (headerMeta.iconUrl ? <img src={headerMeta.iconUrl} alt="" className="stg:size-full stg:object-cover" /> : null)}
             visibilityControl={visibilityControl}
@@ -1279,8 +1288,8 @@ function NotFoundState({ className }: { readonly className?: string }) {
     <EmptyState
       variant="first-use"
       icon={<AgentIcon />}
-      title="Agent not found"
-      description="This agent doesn't exist or you don't have access to it."
+      title="This agent isn't here"
+      description="It may have been deleted, or it belongs to an organization you're not in."
       className={className}
     />
   );

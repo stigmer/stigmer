@@ -365,8 +365,12 @@
     {
       "caption": "A routine: Run now, asked first (Run a routine)",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "routine-run-dialog",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Run daily-variance-report now?",
@@ -439,9 +443,16 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Run daily-variance-report now?": "the scene's data differs (routine-run-dialog)",
+        "word Report yesterday's ledger variances against budget, and save the report as variances.csv.": "the scene's data differs (routine-run-dialog)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word One run starts now with the routine's message. Its schedule doesn't change.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Message (optional)": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Leave empty to send the routine's own message.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "A routine: At 390 wide",

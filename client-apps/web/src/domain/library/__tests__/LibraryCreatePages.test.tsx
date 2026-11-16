@@ -132,6 +132,13 @@ describe("web library create pages", () => {
     call("SkillUploader", "onComplete", CREATED);
     expect(page.pushed).toEqual(["/library/skills/acme/made"]);
   });
+
+  it("SkillNewPage returns to the skill list on cancel", () => {
+    render(<SkillNewPage />);
+
+    call("SkillUploader", "onCancel", undefined);
+    expect(page.pushed).toEqual(["/library/skills"]);
+  });
 });
 
 describe("web AgentNewPage — who may create agents", () => {

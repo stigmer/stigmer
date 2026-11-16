@@ -126,7 +126,7 @@ test.describe("Plugin install journey", () => {
     await expect(install).toBeEnabled({ timeout: 15_000 });
     await install.click();
     await page.waitForURL(new RegExp(`/library/plugins/[^/]+/${HOSTED_PLUGIN}$`), { timeout: 30_000 });
-    await expect(page.getByRole("heading", { level: 2, name: HOSTED_PLUGIN })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("heading", { level: 1, name: HOSTED_PLUGIN })).toBeVisible({ timeout: 15_000 });
     await expectPluginHolds(page, HOSTED_PLUGIN, HOSTED_SKILL, HOSTED_SERVER);
 
     // The server reads a key, asked for when a conversation that uses it starts.
@@ -237,7 +237,7 @@ test.describe("Plugin install journey", () => {
     await expect(install).toBeEnabled({ timeout: 15_000 });
     await install.click();
     await page.waitForURL(new RegExp(`/library/plugins/[^/]+/${UPLOADED_PLUGIN}$`), { timeout: 30_000 });
-    await expect(page.getByRole("heading", { level: 2, name: UPLOADED_PLUGIN })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("heading", { level: 1, name: UPLOADED_PLUGIN })).toBeVisible({ timeout: 15_000 });
     await expectPluginHolds(page, UPLOADED_PLUGIN, UPLOADED_SKILL, UPLOADED_SERVER);
   });
 });

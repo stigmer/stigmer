@@ -68,6 +68,12 @@ export interface EnvironmentDetailViewProps {
   readonly onRenamed?: (environment: Environment) => void;
   /** Called after a successful delete (navigate back to the list). */
   readonly onDeleted?: () => void;
+  /**
+   * The level of the page's title: 1 where the view is the page's main
+   * content (the console's and the desktop app's detail pages), 2 (the
+   * default) where it sits under a heading of the host's.
+   */
+  readonly headingLevel?: 1 | 2;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -93,6 +99,7 @@ export function EnvironmentDetailView({
   onRenamed,
   onDeleted,
   className,
+  headingLevel,
 }: EnvironmentDetailViewProps) {
   const { environment, isLoading, error, refetch } = useEnvironment(org, slug);
   const loadedId = environment?.metadata?.id ?? null;
@@ -201,6 +208,7 @@ export function EnvironmentDetailView({
     <>
       <ResourceDetailShell
         header={headerMeta}
+        headingLevel={headingLevel}
         visibilityControl={visibilityControl}
         actions={actions}
         className={className}
@@ -519,8 +527,8 @@ function NotFoundState({ className }: { readonly className?: string }) {
     <EmptyState
       variant="first-use"
       icon={<EnvironmentIcon />}
-      title="Environment not found"
-      description="No environment with this name exists in the organization, or you may not view it."
+      title="This environment isn't here"
+      description="It may have been deleted, or it belongs to an organization you're not in."
       className={className}
     />
   );

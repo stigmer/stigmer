@@ -7,6 +7,7 @@ import {
   useActiveOrgId,
   useOrgSlugForId,
   useBreadcrumbOverride,
+  PageHeader,
 } from "@stigmer/react-sdk";
 
 /**
@@ -29,14 +30,17 @@ export function RoutineNewPage() {
   if (!org) return null;
 
   return (
-    <RoutineForm
-      org={org}
-      onComplete={(routine) =>
-        router.push(
-          `/library/routines/${slugForOrg(routine.metadata?.org ?? "")}/${routine.metadata?.slug}`,
-        )
-      }
-      onCancel={() => router.push("/library/routines")}
-    />
+    <>
+      <PageHeader className="mb-6" headingLevel={1} title="New routine" description="Start an agent on a schedule, by hand, or from another system." />
+      <RoutineForm
+        org={org}
+        onComplete={(routine) =>
+          router.push(
+            `/library/routines/${slugForOrg(routine.metadata?.org ?? "")}/${routine.metadata?.slug}`,
+          )
+        }
+        onCancel={() => router.push("/library/routines")}
+      />
+    </>
   );
 }

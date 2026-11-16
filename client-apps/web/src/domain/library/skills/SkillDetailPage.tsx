@@ -90,7 +90,7 @@ export function SkillDetailPageInner({ org, slug }: SkillDetailPageInnerProps) {
 
   return (
     <>
-      <SkillDetailView
+      <SkillDetailView headingLevel={1}
         org={org}
         slug={slug}
         editable
