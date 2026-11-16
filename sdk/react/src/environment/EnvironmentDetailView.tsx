@@ -68,6 +68,12 @@ export interface EnvironmentDetailViewProps {
   readonly onRenamed?: (environment: Environment) => void;
   /** Called after a successful delete (navigate back to the list). */
   readonly onDeleted?: () => void;
+  /**
+   * The level of the page's title: 1 where the view is the page's main
+   * content (the console's and the desktop app's detail pages), 2 (the
+   * default) where it sits under a heading of the host's.
+   */
+  readonly headingLevel?: 1 | 2;
   /** Additional CSS classes for the root container. */
   /**
    * The level of the page's title: 1 where the view is the page's main

@@ -465,10 +465,12 @@ function FireRunLink({
 }) {
   if (!runId) return <span className="stg:text-xs stg:text-muted-foreground">—</span>;
   const short = shortRunId(runId);
+  // Without a way to open the session, the id is all there is to read or
+  // copy, so it is shown whole.
   if (!onNavigateToRun)
     return (
-      <span className="stg:font-mono stg:text-xs stg:text-muted-foreground">
-        {short}
+      <span className="stg:font-mono stg:text-xs stg:text-muted-foreground stg:break-all">
+        {runId}
       </span>
     );
   return (

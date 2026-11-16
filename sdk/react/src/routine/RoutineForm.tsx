@@ -176,7 +176,11 @@ export function RoutineForm({
   // picked is asked once (closed: no answer yet holds Create, no answer is a
   // no) and a person who may not change it is told under the field, before
   // they fill in the rest.
-  const { agent: pickedAgent } = useAgent(agentRef?.org ?? null, agentRef?.slug ?? null);
+  const {
+    agent: pickedAgent,
+    isLoading: pickedAgentLoading,
+    refetch: refetchPickedAgent,
+  } = useAgent(agentRef?.org ?? null, agentRef?.slug ?? null);
   const pickedAgentId = pickedAgent?.metadata?.id ?? "";
   const agentEdit = useCheckPermissions(
     pickedAgentId === "" ? null : { kind: "agent", id: pickedAgentId },
@@ -184,6 +188,9 @@ export function RoutineForm({
     { fail: "closed" },
   ).can_edit;
   const agentEditDenied = pickedAgentId !== "" && !agentEdit.isLoading && !agentEdit.allowed;
+  // The picked agent couldn't be read (a failed read, or it is gone), so
+  // nothing can be asked about it: Create stays held, and the field says why.
+  const agentUnread = agentRef !== null && !pickedAgentLoading && pickedAgentId === "";
 
   const canSubmit =
     trimmedName !== "" &&
@@ -297,10 +304,10 @@ export function RoutineForm({
           <Popover.Trigger
             disabled={isCreating}
             aria-labelledby={`${baseId}-agent-label`}
-            aria-invalid={agentEditDenied || undefined}
-            aria-describedby={agentEditDenied ? `${baseId}-agent-error` : undefined}
+            aria-invalid={agentEditDenied || agentUnread || undefined}
+            aria-describedby={agentEditDenied || agentUnread ? `${baseId}-agent-error` : undefined}
             className={cn(
-              fieldControlClasses({ invalid: agentEditDenied }),
+              fieldControlClasses({ invalid: agentEditDenied || agentUnread }),
               "stg:flex stg:items-center stg:justify-between stg:gap-2 stg:text-left",
               "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
               "stg:disabled:pointer-events-none stg:disabled:opacity-50",
@@ -328,6 +335,15 @@ export function RoutineForm({
           <FieldError id={`${baseId}-agent-error`}>
             You can&rsquo;t change {agentName ?? agentRef?.slug}, so you can&rsquo;t schedule it. Pick an agent you may change, or ask its owner.
           </FieldError>
+        ) : agentUnread ? (
+          <div className="stg:flex stg:items-center stg:gap-2">
+            <FieldError id={`${baseId}-agent-error`}>
+              Couldn&rsquo;t check whether you may change {agentName ?? agentRef?.slug}, so Create waits.
+            </FieldError>
+            <Button variant="ghost" size="xs" onClick={refetchPickedAgent} disabled={isCreating}>
+              Try again
+            </Button>
+          </div>
         ) : (
         <p className={hintClasses}>
           Each run starts this agent unattended in a fresh session. Only
