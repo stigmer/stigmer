@@ -151,6 +151,14 @@ describe("web library create pages", () => {
     expect(screen.getByText("only admins upload skills")).toBeTruthy();
     expect(page.props.has("SkillUploader")).toBe(false);
   });
+
+  it("SkillNewPage shows nothing while it asks whether the caller may upload", () => {
+    page.canCreateSkill = { allowed: false, isLoading: true };
+    render(<SkillNewPage />);
+
+    expect(screen.queryByText("only admins upload skills")).toBeNull();
+    expect(page.props.has("SkillUploader")).toBe(false);
+  });
 });
 
 describe("web AgentNewPage — who may create agents", () => {

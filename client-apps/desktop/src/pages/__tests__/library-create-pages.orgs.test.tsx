@@ -161,6 +161,14 @@ describe("desktop SkillNewPage — organizations", () => {
 
     expect(screen.getByText("only admins upload skills")).toBeTruthy();
   });
+
+  it("shows nothing while it asks whether the caller may upload", () => {
+    page.canCreateSkill = { allowed: false, isLoading: true };
+    renderPage(SkillNewPage);
+
+    expect(screen.queryByText("only admins upload skills")).toBeNull();
+    expect(page.props.SkillUploader).toBeUndefined();
+  });
 });
 
 describe("desktop PluginUploadPage — organizations", () => {
