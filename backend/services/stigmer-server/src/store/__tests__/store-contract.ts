@@ -2629,7 +2629,7 @@ export function describeStoreContract(
       }
     });
 
-    it("reads with a bound of \"\" exactly what it reads with no bound", async () => {
+    it('reads with a bound of "" exactly what it reads with no bound', async () => {
       await saveWindowRows();
       for (const shape of WINDOW_SHAPES) {
         for (const limit of [undefined, 2]) {
