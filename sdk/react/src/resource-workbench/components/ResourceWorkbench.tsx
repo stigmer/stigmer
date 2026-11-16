@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { cn } from "@stigmer/design-tokens";
@@ -32,6 +32,8 @@ import { OrgSlugText } from "../../organization/OrgSlugText.js";
 import { IconButton } from "../../button/IconButton.js";
 import { cardClasses } from "../../internal/surface/Card.js";
 import { TextInput } from "../../internal/form/index.js";
+import { ErrorMessage } from "../../error/ErrorMessage.js";
+import { useIsNarrowerThan } from "../../internal/useIsNarrowerThan.js";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -143,8 +145,19 @@ export interface ResourceWorkbenchProps<TData = SearchResult> {
    * Accepts any ReactNode — typically a `<Link>` or `<button>`.
    */
   readonly emptyAction?: ReactNode;
-  /** Called when the user clicks "Retry" after an error. */
+  /**
+   * Called when the user presses "Try again" after the list failed to load.
+   * Without it, Try again reads the list again itself.
+   */
   readonly onRetry?: () => void;
+  /**
+   * What the list holds, plural and lowercase ("agents"): named in the
+   * failure's sentence ("Couldn't load the agents.") and in a search that
+   * matches nothing ("No agents match “ledgr”."). Without it the failure
+   * reads "Couldn't load the list." and a search that matches nothing keeps
+   * the empty state's own words.
+   */
+  readonly itemsLabel?: string;
 
   // --- Header action -----------------------------------------------------
 
@@ -170,6 +183,13 @@ export interface ResourceWorkbenchProps<TData = SearchResult> {
   readonly searchable?: boolean;
   /** Search input placeholder text. @default "Search\u2026" */
   readonly searchPlaceholder?: string;
+  /**
+   * The view drawn while the workbench itself is narrower than 640px (its
+   * own width, not the window's): a table that compares several columns
+   * reads as rows on a phone. The view switcher hides while it applies.
+   * Without it, the chosen view is drawn at every width.
+   */
+  readonly narrowViewMode?: ViewMode;
   /** Accessible label for the workbench region. @default "Resource workbench" */
   readonly "aria-label"?: string;
   /** Additional CSS classes for the root container. */
@@ -181,6 +201,9 @@ export interface ResourceWorkbenchProps<TData = SearchResult> {
 // ---------------------------------------------------------------------------
 
 const DEBOUNCE_MS = 300;
+
+/** Below this width of its own (40rem), the workbench draws a host's `narrowViewMode`. */
+const NARROW_BELOW_PX = 640;
 
 /**
  * Full-featured resource collection workbench that composes headless
@@ -243,17 +266,24 @@ export function ResourceWorkbench<TData = SearchResult>({
   emptyDescription,
   emptyAction,
   onRetry,
+  itemsLabel,
   headerAction,
   searchable = true,
   searchPlaceholder = "Search\u2026",
+  narrowViewMode,
   "aria-label": ariaLabel = "Resource workbench",
   className,
 }: ResourceWorkbenchProps<TData>) {
   // --- View preference ---------------------------------------------------
-  const { viewMode, setViewMode } = useViewPreference(
+  const { viewMode: chosenViewMode, setViewMode } = useViewPreference(
     viewModeStorageKey,
     defaultViewMode,
   );
+  // Under 640px of its own width a host's narrow view replaces the chosen one.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const narrow = useIsNarrowerThan(rootRef, NARROW_BELOW_PX);
+  const useNarrowView = narrow && narrowViewMode !== undefined;
+  const viewMode = useNarrowView ? narrowViewMode : chosenViewMode;
 
   // --- Filter/sort/query state -------------------------------------------
   const filtersHook = useResourceFilters({
@@ -328,14 +358,15 @@ export function ResourceWorkbench<TData = SearchResult>({
 
   return (
     <div
+      ref={rootRef}
       aria-label={ariaLabel}
       className={cn("stg:flex stg:flex-col stg:gap-3", className)}
     >
       {/* --- Toolbar: search + filters + view switcher; none when it would hold nothing --- */}
-      {(searchable || viewModes.length > 1 || (headerAction != null && headerAction !== false)) && (
+      {(searchable || (viewModes.length > 1 && !useNarrowView) || (headerAction != null && headerAction !== false)) && (
         <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2">
           {searchable ? (
-            <div className="stg:relative stg:flex-1">
+            <div className="stg:relative stg:min-w-0 stg:flex-1 stg:sm:max-w-80">
               <SearchIcon className="stg:pointer-events-none stg:absolute stg:left-2.5 stg:top-1/2 stg:h-3.5 stg:w-3.5 stg:-translate-y-1/2 stg:text-muted-foreground-subtle" />
               <TextInput
                 type="text"
@@ -351,7 +382,8 @@ export function ResourceWorkbench<TData = SearchResult>({
             // matching the searchable layout.
             <div className="stg:flex-1" aria-hidden="true" />
           )}
-          {viewModes.length > 1 && (
+          {searchable && <div className="stg:flex-1" aria-hidden="true" />}
+          {viewModes.length > 1 && !useNarrowView && (
             <ViewSwitcher
               value={viewMode}
               onChange={setViewMode}
@@ -382,14 +414,10 @@ export function ResourceWorkbench<TData = SearchResult>({
           {showSkeletons && <SkeletonPlaceholder viewMode={viewMode} />}
 
           {showError && (
-            <EmptyState
-              variant="error"
-              errorMessage={collection.error!.message}
-              action={
-                onRetry
-                  ? { label: "Try again", onClick: onRetry ?? collection.refetch }
-                  : undefined
-              }
+            <ErrorMessage
+              error={collection.error}
+              title={`Couldn't load the ${itemsLabel ?? "list"}.`}
+              retry={onRetry ?? collection.refetch}
             />
           )}
 
@@ -397,7 +425,14 @@ export function ResourceWorkbench<TData = SearchResult>({
             (filtersHook.hasActiveFilters || filtersHook.debouncedQuery ? (
               <EmptyState
                 variant="zero-results"
+                size="inline"
+                className={cardClasses({ flush: true })}
                 query={filtersHook.query.trim() || undefined}
+                title={
+                  itemsLabel !== undefined && filtersHook.query.trim() !== ""
+                    ? `No ${itemsLabel} match \u201c${filtersHook.query.trim()}\u201d.`
+                    : undefined
+                }
                 action={{ label: "Clear search", onClick: clearSearch }}
               />
             ) : (

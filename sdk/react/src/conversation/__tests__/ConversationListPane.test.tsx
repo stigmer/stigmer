@@ -141,7 +141,7 @@ describe("ConversationListPane", () => {
     );
 
     expect(
-      screen.getByText("Needs attention: refund I cannot process"),
+      screen.getByText("Why: refund I cannot process"),
     ).toBeDefined();
   });
 
@@ -169,7 +169,7 @@ describe("ConversationListPane", () => {
     expect(container.querySelector("[title]")).toBeNull();
     // The badge keeps its screen-reader name.
     expect(
-      screen.getByText("Needs attention: refund I cannot process"),
+      screen.getByText("Why: refund I cannot process"),
     ).toBeDefined();
     // The tooltip trigger must not nest a button inside the row button
     // or add a tab stop.
@@ -191,7 +191,7 @@ describe("ConversationListPane", () => {
       />,
     );
 
-    expect(screen.getByText("Human has the conversation")).toBeDefined();
+    expect(screen.getByText("A person has this conversation")).toBeDefined();
   });
 
   it("marks an awaiting conversation strongly when a human holds it — the agent will not answer", () => {
@@ -261,7 +261,7 @@ describe("ConversationListPane", () => {
 
     await user.click(
       screen.getByRole("radio", {
-        name: "Conversations where a human action is wanted",
+        name: "Conversations where a person is wanted",
       }),
     );
 
@@ -306,7 +306,7 @@ describe("ConversationListPane", () => {
       />,
     );
 
-    expect(screen.getByText("Nothing needs a human right now")).toBeDefined();
+    expect(screen.getByText("Nothing needs a person right now")).toBeDefined();
     expect(screen.queryByText("No conversations yet")).toBeNull();
   });
 
@@ -379,5 +379,19 @@ describe("ConversationListPane", () => {
       <ConversationListPane {...baseProps()} error={new Error("unauthorized to list")} />,
     );
     expect(screen.getByText("unauthorized to list")).toBeDefined();
+  });
+});
+
+describe("ConversationListPane, failed", () => {
+  afterEach(() => cleanup());
+
+  it("says the list didn't load, and Try again reads it again", async () => {
+    const user = userEvent.setup();
+    const onRetry = vi.fn();
+    render(<ConversationListPane {...baseProps()} error={new Error("the channel service did not answer")} onRetry={onRetry} />);
+
+    expect(screen.getByText("Couldn't load the conversations.")).toBeDefined();
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
   });
 });

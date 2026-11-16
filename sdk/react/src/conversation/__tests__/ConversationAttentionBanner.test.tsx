@@ -69,6 +69,20 @@ describe("ConversationAttentionBanner", () => {
     expect(p.clearAttention).toHaveBeenCalled();
   });
 
+  it("sends no second dismissal while the first is in flight", async () => {
+    const user = userEvent.setup();
+    const p = participation({ pendingCommands: new Set<ConversationCommand>(["clearAttention"]) });
+    render(
+      <ConversationAttentionBanner
+        conversation={conversation({ needsAttention: true })}
+        participation={p}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Dismissing…" }));
+    expect(p.clearAttention).not.toHaveBeenCalled();
+  });
+
   it("renders a dismissal failure verbatim", () => {
     render(
       <ConversationAttentionBanner

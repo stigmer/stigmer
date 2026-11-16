@@ -7,8 +7,12 @@
     {
       "caption": "Files: Full",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "library-files",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Files",
@@ -189,15 +193,35 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word variances-2026-q2.csv": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word CSV": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word 48 KB": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word chart-of-accounts.xlsx": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Excel": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word 212 KB": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Jul 14": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word vendor-w9-template.pdf": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word PDF": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Jul 2": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for variances-2026-q2.csv": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for chart-of-accounts.xlsx": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for vendor-w9-template.pdf": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Search files": "#3210: this kind's list backend has no text search, so the drawn search box is not built; it waits on one."
+      }
     },
     {
       "caption": "Files: None yet, for someone who may add one",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "library-files-empty",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Files",
@@ -266,7 +290,7 @@
       "caption": "Files: A search that matches nothing",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "unbuilt": "This kind's list has no text search: its list backend has none (the workbench's searchable is off), so the drawn search box and its no-match state are not built (#3210).",
       "words": [
         {
           "text": "Files",
@@ -301,7 +325,7 @@
           ]
         },
         {
-          "text": "No files match \u201cbudget\u201d.",
+          "text": "No files match “budget”.",
           "type": [
             14,
             20,
@@ -334,8 +358,12 @@
     {
       "caption": "Files: Didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "library-files-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Files",
@@ -416,7 +444,10 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Stuck? Ask IT on Slack": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
+      },
       "ruled": {},
       "pending": {}
     },
@@ -424,7 +455,7 @@
       "caption": "Files: Loading",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "unbuilt": "Not pictured for this kind: the gallery pictures this state once, on the Agents list (the same part), so its facts are read there (#3210).",
       "words": [
         {
           "text": "Files",
@@ -472,8 +503,12 @@
     {
       "caption": "Files: At 390 wide",
       "narrow": true,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "library-files",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Files",
@@ -516,7 +551,7 @@
           ]
         },
         {
-          "text": "CSV \u00b7 48 KB \u00b7 2d",
+          "text": "CSV · 48 KB · 2d",
           "type": [
             12,
             16,
@@ -532,7 +567,7 @@
           ]
         },
         {
-          "text": "Excel \u00b7 212 KB \u00b7 Jul 14",
+          "text": "Excel · 212 KB · Jul 14",
           "type": [
             12,
             16,
@@ -548,7 +583,7 @@
           ]
         },
         {
-          "text": "PDF \u00b7 1.2 MB \u00b7 Jul 2",
+          "text": "PDF · 1.2 MB · Jul 2",
           "type": [
             12,
             16,
@@ -574,9 +609,21 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word variances-2026-q2.csv": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word CSV · 48 KB · 2d": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word chart-of-accounts.xlsx": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Excel · 212 KB · Jul 14": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word vendor-w9-template.pdf": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word PDF · 1.2 MB · Jul 2": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for variances-2026-q2.csv": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for chart-of-accounts.xlsx": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for vendor-w9-template.pdf": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Search files": "#3210: this kind's list backend has no text search, so the drawn search box is not built; it waits on one."
+      }
     }
   ]
 }

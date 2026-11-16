@@ -317,9 +317,9 @@ function useConversationTimeline(channelId: string, conversationKey: string, opt
 
 ### ConversationAttentionBanner
 
-The needs-attention banner: the escalating agent's reason,
-verbatim, with the escalation's ANSWER beside its false-alarm
-dismissal.
+The needs-attention notice, in the paused tone (a person asked for is
+not a failure): the escalating agent's reason, verbatim, with the
+escalation's ANSWER beside its false-alarm dismissal.
 
 Take over is the primary action because the human arriving IS the
 answer to an escalation — taking over clears attention structurally
@@ -377,6 +377,12 @@ Who may speak to the customer, and the controls that move it: take
 over (the agent goes quiet) and hand back (the agent resumes, with
 the context it missed injected on its next turn).
 
+While the conversation is flagged for a person and staff can reply, this
+banner draws no Take over of its own: `ConversationAttentionBanner`, drawn
+above it by `ConversationsWorkbench`, offers it. A host that composes this
+banner without the attention banner draws both, or its flagged
+conversations offer no Take over.
+
 Truth rules: state renders from the conversation row the server
 answered — a takeover that lost its race renders the WINNER's hold,
 because that is what happened. Failures render verbatim beside the
@@ -426,6 +432,7 @@ list hook sends it to the server.
     now: { type: "Date", description: "Frozen instant for deterministic hosts (tests, documentation tours)." },
     onChannelFilterChange: { type: "(channelId: string) => void", description: "Called when the user picks a channel filter.", required: true },
     onFilterChange: { type: "(filter: ChannelConversationListFilter) => void", description: "Called when the user picks a predicate filter. The control renders only when this is wired — a dead toggle over an unfiltered list would lie." },
+    onRetry: { type: "() => void", description: "Reads the list again: the failure's Try again (from `useConversationList`'s `refetch`). Without it, no Try again." },
     onSelect: { type: "(conversation: ChannelConversation) => void", description: "Called when the user opens a conversation.", required: true },
     selected: { type: "ConversationIdentity | null", description: "The open conversation, for row highlighting. `null` when none.", required: true },
   }}
@@ -441,6 +448,9 @@ timeline, participation banners, and staff composer on the right.
 Everything under it is independently importable — hosts that need a
 different layout compose `ConversationListPane`,
 `ConversationTimelineView`, the banners, and the hooks directly.
+
+Narrower than 640px of its own width it shows one pane at a time: the
+list, then the chosen conversation with a way back to the list.
 
 **Props** — `ConversationsWorkbenchProps`
 

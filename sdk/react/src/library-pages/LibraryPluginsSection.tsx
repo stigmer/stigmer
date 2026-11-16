@@ -8,7 +8,7 @@
 // the server lets delete that plugin.
 
 import { useCallback, useMemo, useState } from "react";
-import { Blocks, Copy, ExternalLink, Server, Store, Trash2, Upload } from "lucide-react";
+import { Blocks, Server, Store, Upload } from "lucide-react";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 import { createLibraryListFn, useStigmer } from "@stigmer/react-core";
@@ -16,7 +16,6 @@ import { Button } from "../button/Button.js";
 import { LinkButton, type RenderLink } from "../button/LinkButton.js";
 import { AddMcpServerDialog } from "../plugin/AddMcpServerDialog.js";
 import { useCanCreatePlugin } from "../plugin/useCanCreatePlugin.js";
-import { ResourceActionBar } from "../resource-detail/ResourceActionBar.js";
 import { ResourceWorkbench } from "../resource-workbench/components/ResourceWorkbench.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
@@ -24,9 +23,15 @@ import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { toast } from "../feedback/toast.js";
 import { LIBRARY_HREFS, type LibrarySectionNavigation } from "./navigation.js";
-import { LibrarySectionFrame, SEARCH_RESULT_COLUMNS, copyReference, useRefetchToken } from "./LibrarySectionFrame.js";
-
-const VIEW_MODE_STORAGE_KEY = "stigmer:workbench:plugins:viewMode";
+import {
+  LibraryRow,
+  LibraryRowActions,
+  LibrarySectionFrame,
+  SEARCH_RESULT_COLUMNS,
+  copyReference,
+  useRefetchToken,
+  visibilityTag,
+} from "./LibrarySectionFrame.js";
 
 /**
  * The ways in, side by side: the Marketplace (what you can get), an upload from disk (what you have), and one MCP server
@@ -46,27 +51,29 @@ function WaysIn({
 }) {
   return (
     <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2">
-      <LinkButton href={LIBRARY_HREFS.marketplace} icon={<Store className="stg:size-3.5" aria-hidden="true" />} renderLink={renderLink}>
-        Browse Marketplace
-      </LinkButton>
       {mayInstall && (
         <>
-          <LinkButton href={uploadHref} variant="outline" icon={<Upload className="stg:size-3.5" aria-hidden="true" />} renderLink={renderLink}>
-            Upload plugin
-          </LinkButton>
           <Button variant="outline" icon={<Server className="stg:size-3.5" aria-hidden="true" />} onClick={onAddMcpServer}>
             Add MCP server
           </Button>
+          <LinkButton href={uploadHref} variant="outline" icon={<Upload className="stg:size-3.5" aria-hidden="true" />} renderLink={renderLink}>
+            Upload plugin
+          </LinkButton>
         </>
       )}
+      <LinkButton
+        href={LIBRARY_HREFS.marketplace}
+        icon={<Store className="stg:size-3.5" aria-hidden="true" />}
+        renderLink={renderLink}
+      >
+        Browse Marketplace
+      </LinkButton>
     </div>
   );
 }
 
 const EMPTY_FOR_ADMIN =
-  "Install a plugin from the Marketplace, upload one from your computer, or add an MCP server: a chat or an agent that uses a plugin gets its skills, agents, hooks and MCP servers, as one unit.";
-const EMPTY_FOR_MEMBER =
-  "An admin of this organization installs plugins. Browse the Marketplace to see what is offered: a chat or an agent that uses a plugin gets its skills, agents, hooks and MCP servers, as one unit.";
+  "Install a plugin from the Marketplace, upload one from your computer, or add an MCP server. An agent that uses a plugin gets everything in it.";
 
 /** Props for {@link LibraryPluginsSection}. */
 export interface LibraryPluginsSectionProps extends LibrarySectionNavigation {
@@ -92,7 +99,7 @@ export function LibraryPluginsSection({
   addMcpServerOnArrival = false,
 }: LibraryPluginsSectionProps) {
   const org = useActiveOrgId();
-  const mayInstall = useCanCreatePlugin(org || null).allowed;
+  const { allowed: mayInstall, isLoading: checkingInstall } = useCanCreatePlugin(org || null);
   const slugForOrg = useOrgSlugForId();
   const stigmer = useStigmer();
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
@@ -133,7 +140,7 @@ export function LibraryPluginsSection({
   return (
     <LibrarySectionFrame
       title="Plugins"
-      description="What you have installed. A plugin is what you install; the agent it installs is what runs."
+      description="What you have installed. A plugin brings skills, agents, hooks and MCP servers as one unit; the agent it installs is what runs."
       actions={waysIn}
     >
       <ResourceWorkbench
@@ -141,48 +148,54 @@ export function LibraryPluginsSection({
         listFn={listFn}
         org={org}
         columns={SEARCH_RESULT_COLUMNS}
-        defaultViewMode="cards"
-        viewModes={["table", "cards"]}
-        viewModeStorageKey={VIEW_MODE_STORAGE_KEY}
-        searchPlaceholder="Search plugins…"
+        defaultViewMode="list"
+        viewModes={["list"]}
+        itemsLabel="plugins"
+        searchPlaceholder="Search plugins"
         emptyIcon={<Blocks className="stg:size-10" aria-hidden="true" />}
         emptyTitle="No plugins installed"
-        emptyDescription={mayInstall ? EMPTY_FOR_ADMIN : EMPTY_FOR_MEMBER}
-        emptyAction={waysIn}
+        emptyDescription={
+          // The member's words only once the server has said no.
+          mayInstall || checkingInstall
+            ? EMPTY_FOR_ADMIN
+            : `Admins of ${slugForOrg(org ?? "")} install plugins. Browse the Marketplace to see what's offered.`
+        }
+        emptyAction={
+          <>
+            <LinkButton
+              href={LIBRARY_HREFS.marketplace}
+              variant={mayInstall ? "primary" : "outline"}
+              icon={<Store className="stg:size-3.5" aria-hidden="true" />}
+              renderLink={renderLink}
+            >
+              Browse Marketplace
+            </LinkButton>
+            {mayInstall && (
+              <LinkButton href={uploadHref} variant="outline" icon={<Upload className="stg:size-3.5" aria-hidden="true" />} renderLink={renderLink}>
+                Upload plugin
+              </LinkButton>
+            )}
+          </>
+        }
         onItemClick={open}
+        renderRow={(item) => (
+          <LibraryRow
+            icon={<Blocks />}
+            name={item.name || item.slug}
+            tags={visibilityTag(item.visibility)}
+            description={item.description}
+            changedAt={item.updatedAt}
+          />
+        )}
         renderItemAction={(item) => (
-          <div onClick={(e) => e.stopPropagation()}>
-            {/* Remove is offered only on the server's yes for this row's plugin (one cached check per row). */}
-            <ResourceActionBar
-              resource={{ kind: "plugin", id: item.id }}
-              menuLabel={`Actions for ${item.name || item.slug}`}
-              actions={[
-                {
-                  id: "view",
-                  label: "View details",
-                  icon: <ExternalLink className="stg:size-4" />,
-                  group: "row",
-                  onAction: () => open(item),
-                },
-                {
-                  id: "copy-id",
-                  label: "Copy ID",
-                  icon: <Copy className="stg:size-4" />,
-                  group: "row",
-                  onAction: () => copyReference(slugForOrg(item.org), item.slug, "plugin"),
-                },
-                {
-                  id: "remove",
-                  label: "Remove",
-                  icon: <Trash2 className="stg:size-4" />,
-                  variant: "destructive",
-                  group: "danger",
-                  requires: "can_delete",
-                  onAction: () => void handleRemoveItem(item),
-                },
-              ]}
-            />
-          </div>
+          // Remove is offered only on the server's yes for this row's plugin (one cached check per row).
+          <LibraryRowActions
+            resource={{ kind: "plugin", id: item.id }}
+            name={item.name || item.slug}
+            onCopyId={() => copyReference(slugForOrg(item.org), item.slug, "plugin")}
+            onDelete={() => void handleRemoveItem(item)}
+            deleteLabel="Remove"
+          />
         )}
         aria-label="Plugin workbench"
       />

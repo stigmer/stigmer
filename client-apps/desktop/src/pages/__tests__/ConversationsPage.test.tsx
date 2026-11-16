@@ -31,6 +31,8 @@ vi.mock("@stigmer/react-sdk", () => ({
     page.workbench.push(props);
     return <>{props.headerAccessory?.({ channel: CHANNEL })}</>;
   },
+  // The page names itself above the workbench.
+  PageHeader: ({ title }: { title: string }) => <h1>{title}</h1>,
   ManageAccessButton: (props: Record<string, unknown>) => {
     page.access.push(props);
     return null;
@@ -64,6 +66,11 @@ beforeEach(() => {
 });
 
 describe("desktop ConversationsPage", () => {
+  it("names the page Conversations above the workbench", () => {
+    renderAt("/conversations");
+    expect(screen.getByRole("heading", { level: 1, name: "Conversations" })).toBeTruthy();
+  });
+
   it("selects the conversation its route names and mounts that channel's access dialog", () => {
     renderAt(`/conversations/${encodeURIComponent("chn_1")}/${encodeURIComponent("wa:+15550100")}`);
 

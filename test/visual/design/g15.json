@@ -7,8 +7,12 @@
     {
       "caption": "Environments: Full",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "library-environments",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Environments",
@@ -169,15 +173,33 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word data-science": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word pandas, poppler-utils and 2 more": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Jul 14": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word ledger-locked": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word No network": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word No packages beyond the sandbox's own": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Jul 2": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word open-web": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Private": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Any website": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word requests, httpx": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Jun 28": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for data-science": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for ledger-locked": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for open-web": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Search environments": "#3210: this kind's list backend has no text search, so the drawn search box is not built; it waits on one."
+      }
     },
     {
       "caption": "Environments: A row's acts, for someone who may delete it (someone who may not sees Copy ID only)",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "unbuilt": "An Environment's row offers Copy ID only: its delete stays on its own page, where it names the agents and routines that use it, so the drawn row Delete is not built (#3210).",
       "words": [
         {
           "text": "Environments",
@@ -361,8 +383,12 @@
     {
       "caption": "Environments: None yet, for someone who may add one",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "library-environments-empty",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Environments",
@@ -434,8 +460,12 @@
     {
       "caption": "Environments: None yet, for a member who may not add one",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "library-environments-empty-member",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Environments",
@@ -478,13 +508,15 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "button Apply YAML": "#3210: the drawing offers a member Apply YAML for Environments; the kit offers it only to someone who may create one (CON-01), so the drawing is redrawn at the Library page's next version."
+      }
     },
     {
       "caption": "Environments: A search that matches nothing",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "unbuilt": "This kind's list has no text search: its list backend has none (the workbench's searchable is off), so the drawn search box and its no-match state are not built (#3210).",
       "words": [
         {
           "text": "Environments",
@@ -519,7 +551,7 @@
           ]
         },
         {
-          "text": "No environments match \u201crust\u201d.",
+          "text": "No environments match “rust”.",
           "type": [
             14,
             20,
@@ -556,8 +588,12 @@
     {
       "caption": "Environments: Didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "library-environments-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Environments",
@@ -642,7 +678,10 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Stuck? Ask IT on Slack": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
+      },
       "ruled": {},
       "pending": {}
     },
@@ -650,7 +689,7 @@
       "caption": "Environments: Loading",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "unbuilt": "Not pictured for this kind: the gallery pictures this state once, on the Agents list (the same part), so its facts are read there (#3210).",
       "words": [
         {
           "text": "Environments",
@@ -702,8 +741,12 @@
     {
       "caption": "Environments: At 390 wide",
       "narrow": true,
-      "built": [],
-      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "library-environments",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Environments",
@@ -840,9 +883,24 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word data-science": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word pandas, poppler-utils and 2 more": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word ledger-locked": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word No network": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word No packages beyond the sandbox's own": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word open-web": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Private": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word Any website": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "word requests, httpx": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for data-science": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for ledger-locked": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
+        "button Actions for open-web": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Search environments": "#3210: this kind's list backend has no text search, so the drawn search box is not built; it waits on one."
+      }
     }
   ]
 }

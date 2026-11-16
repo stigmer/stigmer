@@ -1,45 +1,39 @@
 /**
- * Pins the Library's landing, the page both consoles render: one count card
- * per kind, each counted in the active organization by its id and going to
- * its kind's list (a plain click through the host's router, a modified one
- * left to the browser at the host's address); Apply YAML opens the manifest
- * dialog in the active organization and an apply recounts every card. The
- * Add menu offers Agent, Environment and File only to someone the server
- * lets create each (and Environment and File not until the server has
- * answered), and each item goes to its kind's create page. The count card,
- * the dialog and the checks are pinned beside their own modules.
+ * Pins the Library's landing, the page both consoles render: one row per
+ * kind, saying what it is for and its count (counted in the active
+ * organization by its id), each going to its kind's list (a plain click
+ * through the host's router, a modified one left to the browser at the
+ * host's address); a count that fails says so and its row still opens.
+ * Apply YAML opens the manifest dialog in the active organization and an
+ * apply recounts every row. The Add menu offers Agent, Skill, Environment,
+ * File and the plugin items only to someone the server lets create each
+ * (and not until the server has answered), and each item goes to its kind's
+ * create page. The dialog and the checks are pinned beside their own
+ * modules.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-
-interface CardProps {
-  label: string;
-  count: number;
-  href?: string;
-  onClick?: (e: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; button: number; preventDefault: () => void }) => void;
-}
 
 const page = vi.hoisted(() => ({
   canCreateAgent: { allowed: true, isLoading: false },
   canCreateEnvironment: { allowed: true, isLoading: false },
   canCreateFile: { allowed: true, isLoading: false },
+  canCreateSkill: { allowed: true, isLoading: false },
+  canCreatePlugin: { allowed: true, isLoading: false },
+  /** The count hooks that fail, by the count they would return. */
+  failing: new Set<number>(),
   counted: [] as Array<{ org: string | null; refetchToken: unknown }>,
-  cards: new Map<string, CardProps>(),
   dialog: [] as Array<{ open: boolean; org: string; onApplied: () => void }>,
   /** A count hook that records where it counted and returns `n`. */
   count: (n: number) => (org: string | null, options: { refetchToken?: unknown }) => {
     page.counted.push({ org, refetchToken: options.refetchToken });
-    return { count: n, isLoading: false };
+    return page.failing.has(n)
+      ? { count: 0, isLoading: false, error: new Error("count failed") }
+      : { count: n, isLoading: false, error: null };
   },
 }));
 
 
-vi.mock("../../library/ResourceCountCard.js", () => ({
-  ResourceCountCard: (props: CardProps) => {
-    page.cards.set(props.label, props);
-    return null;
-  },
-}));
 vi.mock("../../manifest/ApplyManifestDialog.js", () => ({
   ApplyManifestDialog: (props: { open: boolean; org: string; onApplied: () => void }) => {
     page.dialog.push(props);
@@ -64,6 +58,8 @@ vi.mock("../../environment/useCanCreateEnvironment.js", () => ({
   useCanCreateEnvironment: () => page.canCreateEnvironment,
 }));
 vi.mock("../../file/useCanCreateFile.js", () => ({ useCanCreateFile: () => page.canCreateFile }));
+vi.mock("../../skill/useCanCreateSkill.js", () => ({ useCanCreateSkill: () => page.canCreateSkill }));
+vi.mock("../../plugin/useCanCreatePlugin.js", () => ({ useCanCreatePlugin: () => page.canCreatePlugin }));
 
 import { LibraryOverview } from "../LibraryOverview";
 
@@ -76,17 +72,15 @@ beforeEach(() => {
   page.canCreateAgent = { allowed: true, isLoading: false };
   page.canCreateEnvironment = { allowed: true, isLoading: false };
   page.canCreateFile = { allowed: true, isLoading: false };
+  page.canCreateSkill = { allowed: true, isLoading: false };
+  page.canCreatePlugin = { allowed: true, isLoading: false };
+  page.failing.clear();
   page.counted.length = 0;
-  page.cards.clear();
   page.dialog.length = 0;
   navigated = [];
 });
 
 afterEach(cleanup);
-
-function click(modifier = false) {
-  return { metaKey: modifier, ctrlKey: false, shiftKey: false, altKey: false, button: 0, preventDefault: vi.fn() };
-}
 
 async function addMenuItems(): Promise<string[]> {
   render(<LibraryOverview onNavigate={onNavigate} />);
@@ -95,52 +89,61 @@ async function addMenuItems(): Promise<string[]> {
   return items.map((item) => item.textContent ?? "");
 }
 
-describe("LibraryOverview cards", () => {
-  it("shows one count card per library kind, each counted in the active org by its id", () => {
+describe("LibraryOverview rows", () => {
+  it("shows one row per kind with what it is for and its count, each counted in the active org by its id", () => {
     render(<LibraryOverview onNavigate={onNavigate} />);
 
-    expect([...page.cards].map(([label, card]) => [label, card.count])).toEqual([
-      ["Agents", 3],
-      ["Skills", 5],
-      ["Routines", 4],
-      ["Plugins", 0],
-      ["Environments", 2],
-      ["Files", 7],
+    const rows = screen.getAllByRole("listitem").map((row) => row.textContent);
+    expect(rows).toEqual([
+      "AgentsThe jobs your organization hands off.3",
+      "SkillsKnow-how an agent loads when a task needs it.5",
+      "PluginsInstalled bundles of skills, agents and tools.0",
+      "RoutinesAgents started on a schedule or from another system.4",
+      "EnvironmentsPackages and network for your agents' sandboxes.2",
+      "FilesFiles you keep for your routines to use.7",
     ]);
     expect(page.counted).toHaveLength(6);
     expect(new Set(page.counted.map((c) => c.org))).toEqual(new Set(["org_acme"]));
   });
 
-  it("opens each kind's list from its card on a plain click, and leaves a modified click to the browser", () => {
+  it("opens each kind's list from its row on a plain click, and leaves a modified click to the browser", () => {
     render(<LibraryOverview onNavigate={onNavigate} />);
 
-    for (const label of ["Agents", "Skills", "Routines", "Plugins", "Environments", "Files"]) {
-      act(() => page.cards.get(label)?.onClick?.(click()));
+    for (const name of ["Agents", "Skills", "Plugins", "Routines", "Environments", "Files"]) {
+      fireEvent.click(screen.getByRole("link", { name }));
     }
     expect(navigated).toEqual([
       "/library/agents",
       "/library/skills",
-      "/library/routines",
       "/library/plugins",
+      "/library/routines",
       "/library/environments",
       "/library/files",
     ]);
 
-    const modified = click(true);
-    act(() => page.cards.get("Plugins")?.onClick?.(modified));
-    expect(modified.preventDefault).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("link", { name: "Plugins" }), { metaKey: true });
     expect(navigated).toHaveLength(6);
   });
 
-  it("writes each card's address the host's way", () => {
+  it("writes each row's address the host's way", () => {
     render(<LibraryOverview onNavigate={onNavigate} toHref={(path) => `#${path}`} />);
 
-    expect(page.cards.get("Plugins")?.href).toBe("#/library/plugins");
+    expect(screen.getByRole("link", { name: "Plugins" }).getAttribute("href")).toBe("#/library/plugins");
+  });
+
+  it("says a count didn't load, and its row still opens", () => {
+    page.failing.add(4);
+    render(<LibraryOverview onNavigate={onNavigate} />);
+
+    const routines = screen.getByRole("link", { name: "Routines" }).closest("li");
+    expect(routines?.textContent).toContain("Count didn\u2019t load");
+    fireEvent.click(screen.getByRole("link", { name: "Routines" }));
+    expect(navigated).toEqual(["/library/routines"]);
   });
 });
 
 describe("LibraryOverview Apply YAML", () => {
-  it("opens the apply dialog in the active org, and an apply recounts every card", () => {
+  it("opens the apply dialog in the active org, and an apply recounts every row", () => {
     render(<LibraryOverview onNavigate={onNavigate} />);
     expect(page.dialog.at(-1)).toMatchObject({ open: false, org: "org_acme" });
 
@@ -212,5 +215,26 @@ describe("LibraryOverview Add menu: where each item goes", () => {
     fireEvent.click(screen.getByRole("menuitem", { name: "Routine" }), { metaKey: true });
 
     expect(navigated).toEqual([]);
+  });
+});
+
+describe("LibraryOverview Add menu: who may upload skills and install plugins", () => {
+  it("offers Skill, Upload plugin and MCP server to an admin, plugins after a separator", async () => {
+    const labels = await addMenuItems();
+    expect(labels).toEqual(["Agent", "Skill", "Routine", "Environment", "File", "Upload plugin", "MCP server"]);
+    expect(screen.getAllByRole("separator")).toHaveLength(1);
+  });
+
+  it("CON-01 leaves Skill and the plugin items out for someone the server would refuse", async () => {
+    page.canCreateSkill = { allowed: false, isLoading: false };
+    page.canCreatePlugin = { allowed: false, isLoading: false };
+    const labels = await addMenuItems();
+    expect(labels).toEqual(["Agent", "Routine", "Environment", "File"]);
+    expect(screen.queryByRole("separator")).toBeNull();
+  });
+
+  it("is the page's labelled Add button", () => {
+    render(<LibraryOverview onNavigate={onNavigate} />);
+    expect(screen.getByRole("button", { name: "Add a new resource" }).textContent).toBe("Add");
   });
 });

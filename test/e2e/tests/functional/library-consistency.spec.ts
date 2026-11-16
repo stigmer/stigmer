@@ -20,15 +20,14 @@ test.describe("Library consistency: agents", () => {
       await expect(page.getByRole("heading", { level: 1, name: "Agents" })).toBeVisible({
         timeout: 15_000,
       });
-      await expect(page.getByRole("textbox", { name: "Search agents…" })).toBeVisible();
+      await expect(page.getByRole("textbox", { name: "Search agents" })).toBeVisible();
       await expect(
         page.getByRole("link", { name: "Create agent" }).first(),
       ).toHaveAttribute("href", "/library/agents/new");
 
-      const views = page.getByRole("radiogroup", { name: "View mode" });
-      await expect(views.getByRole("radio", { name: "Card view" })).toBeChecked();
+      await expect(page.getByRole("radiogroup", { name: "View mode" })).toHaveCount(0);
 
-      const cards = page.getByRole("list", { name: "Resource cards" }).getByRole("listitem");
+      const cards = page.getByRole("list", { name: "Resource list" }).getByRole("listitem");
       await expect(cards).toHaveCount(1, { timeout: 15_000 });
       await expect(cards).toContainText(seeded.slug);
       await expect(page.getByRole("table")).toHaveCount(0);

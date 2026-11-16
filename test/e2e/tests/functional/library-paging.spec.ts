@@ -31,7 +31,7 @@ test.describe("Library paging: agents", () => {
       const oldest = seeded[0]!;
 
       await page.goto("/library/agents");
-      const cards = page.getByRole("list", { name: "Resource cards" }).getByRole("listitem");
+      const cards = page.getByRole("list", { name: "Resource list" }).getByRole("listitem");
       await expect(cards).toHaveCount(20, { timeout: 30_000 });
       await expect(page.getByText("Page 1", { exact: true })).toBeVisible();
       await expect(page.getByText(/\d+ results?$/)).toHaveCount(0);

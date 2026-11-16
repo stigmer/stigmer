@@ -119,8 +119,8 @@ test.describe("Routines list page", () => {
 
       const row = page.getByText(seeded.routineSlug).first();
       await expect(row).toBeVisible({ timeout: 15_000 });
-      // Operational columns straight from the proto.
-      await expect(page.getByText("0 9 * * *").first()).toBeVisible();
+      // Operational columns from the proto, its cron said in words.
+      await expect(page.getByText("Every day at 09:00").first()).toBeVisible();
       await expect(
         page.getByText(`${ROUTINES_ORG}/${seeded.agentSlug}`).first(),
       ).toBeVisible();

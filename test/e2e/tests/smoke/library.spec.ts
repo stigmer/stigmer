@@ -21,7 +21,7 @@ test.describe("Library pages", () => {
     });
   }
 
-  test("/library/agents has view toggle and defaults to cards", async ({ page }) => {
+  test("/library/agents renders its workbench", async ({ page }) => {
     await page.goto("/library/agents");
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(3000);

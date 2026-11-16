@@ -133,7 +133,7 @@ describe("ConversationsWorkbench", () => {
     );
 
     await waitFor(() => expect(screen.getByText("Pat")).toBeDefined());
-    expect(screen.getByText("Select a conversation")).toBeDefined();
+    expect(screen.getByText("Choose a conversation")).toBeDefined();
   });
 
   it("offers no chat link in the channel filter: a chat link's guests are not inbox conversations", async () => {
@@ -245,12 +245,12 @@ describe("ConversationsWorkbench", () => {
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Take over" })).toBeDefined(),
     );
-    expect(screen.queryByText("Human has the conversation")).toBeNull();
+    expect(screen.queryByText("A person has this conversation")).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Take over" }));
 
     await waitFor(() =>
-      expect(screen.getByText("Human has the conversation")).toBeDefined(),
+      expect(screen.getByText("A person has this conversation")).toBeDefined(),
     );
   });
 
@@ -265,7 +265,7 @@ describe("ConversationsWorkbench", () => {
 
     await user.click(
       screen.getByRole("radio", {
-        name: "Conversations where a human action is wanted",
+        name: "Conversations where a person is wanted",
       }),
     );
 
@@ -510,7 +510,7 @@ describe("ConversationsWorkbench", () => {
         await Promise.resolve();
       });
       expect(
-        screen.getByRole("button", { name: "Hand back to agent" }),
+        screen.getByRole("button", { name: "Hand back to the agent" }),
       ).toBeDefined();
       const callsBeforePoll = listTimeline.mock.calls.length;
 
@@ -545,7 +545,7 @@ describe("ConversationsWorkbench", () => {
       // under fake timers, and pointer realism adds nothing here — the
       // confirm's interaction contract is pinned with real userEvent in
       // ConversationControlBanner.test.tsx.
-      fireEvent.click(screen.getByRole("button", { name: "Hand back to agent" }));
+      fireEvent.click(screen.getByRole("button", { name: "Hand back to the agent" }));
       expect(
         screen.getByText(/The customer's last message has no reply/),
       ).toBeDefined();
@@ -601,7 +601,7 @@ describe("ConversationsWorkbench", () => {
       { wrapper: wrapper(client) },
     );
     const handBackButton = await screen.findByRole("button", {
-      name: "Hand back to agent",
+      name: "Hand back to the agent",
     });
 
     await user.click(handBackButton);
@@ -653,7 +653,7 @@ describe("ConversationsWorkbench", () => {
       { wrapper: wrapper(client) },
     );
     const handBackButton = await screen.findByRole("button", {
-      name: "Hand back to agent",
+      name: "Hand back to the agent",
     });
 
     await user.click(handBackButton);
@@ -699,7 +699,7 @@ describe("ConversationsWorkbench", () => {
       { wrapper: wrapper(client) },
     );
     const handBackButton = await screen.findByRole("button", {
-      name: "Hand back to agent",
+      name: "Hand back to the agent",
     });
 
     await user.click(handBackButton);

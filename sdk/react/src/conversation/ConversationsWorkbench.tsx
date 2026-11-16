@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { MessagesSquare } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, MessagesSquare } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import {
@@ -12,6 +12,8 @@ import { ChannelSendOutcome } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/
 import { channelProviderOf } from "../channel/providers.js";
 import { useOrgChannelList } from "../channel/useOrgChannelList.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import { Button } from "../button/Button.js";
+import { useIsNarrowerThan } from "../internal/useIsNarrowerThan.js";
 import { ConversationAttentionBanner } from "./ConversationAttentionBanner.js";
 import { ConversationComposer } from "./ConversationComposer.js";
 import { ConversationControlBanner } from "./ConversationControlBanner.js";
@@ -46,6 +48,9 @@ export interface ConversationHeaderContext {
    */
   readonly channel: Channel | null;
 }
+
+/** Narrower than this (40rem) of its own width, the workbench shows one pane at a time. */
+const ONE_PANE_BELOW_PX = 640;
 
 /** Props for {@link ConversationsWorkbench}. */
 export interface ConversationsWorkbenchProps {
@@ -107,6 +112,9 @@ export interface ConversationsWorkbenchProps {
  * Everything under it is independently importable — hosts that need a
  * different layout compose `ConversationListPane`,
  * `ConversationTimelineView`, the banners, and the hooks directly.
+ *
+ * Narrower than 640px of its own width it shows one pane at a time: the
+ * list, then the chosen conversation with a way back to the list.
  */
 export function ConversationsWorkbench({
   org,
@@ -288,6 +296,11 @@ export function ConversationsWorkbench({
     [participation.reply, timeline.refetch, selectionKey],
   );
 
+  // The workbench's own width decides the layout, not the window's: docked
+  // in a narrow panel on a wide screen, it is narrow.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const narrow = useIsNarrowerThan(rootRef, ONE_PANE_BELOW_PX);
+
   const detailLabel = detail.conversation
     ? conversationLabelOf(detail.conversation, descriptor?.id ?? null)
     : selected?.conversationKey ?? "";
@@ -308,14 +321,20 @@ export function ConversationsWorkbench({
 
   return (
     <div
+      ref={rootRef}
       aria-label="Conversations workbench"
       className={cn("stg:flex stg:min-h-0 stg:flex-1", className)}
     >
+      {/* Narrower than 640px of its own width, one pane at a time: the
+          list until a conversation is chosen, then the conversation with
+          the way back. Wider, the two side by side. */}
+      {(!narrow || selected === null) && (
       <ConversationListPane
-        className="stg:w-80 stg:shrink-0 stg:border-r stg:border-border"
+        className={cn("stg:min-w-0", narrow ? "stg:flex-1" : "stg:w-80 stg:shrink-0 stg:border-r stg:border-border")}
         conversations={list.conversations}
         isLoading={list.isLoading}
         error={list.error}
+        onRetry={list.refetch}
         hasMore={list.hasMore}
         loadMore={list.loadMore}
         isLoadingMore={list.isLoadingMore}
@@ -328,16 +347,19 @@ export function ConversationsWorkbench({
         onSelect={handleSelect}
         now={now}
       />
+      )}
 
       {selected === null ? (
+        narrow ? null : (
         <div className="stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:justify-center stg:p-6">
           <EmptyState
             variant="first-use"
             icon={<MessagesSquare className="stg:size-8" />}
-            title="Select a conversation"
-            description="Pick a conversation to read its thread, reply as your business, or take over from the agent."
+            title="Choose a conversation"
+            description="Pick one on the left to read it and step in."
           />
         </div>
+        )
       ) : (
         // Keyed by conversation identity (`key` remounts are the
         // clean-reset pattern): every open starts a fresh detail column, so
@@ -351,6 +373,13 @@ export function ConversationsWorkbench({
           key={`${selected.channelId}:${selected.conversationKey}`}
           className="stg:flex stg:min-w-0 stg:flex-1 stg:flex-col"
         >
+          {narrow && (
+            <div className="stg:px-2 stg:pt-2">
+              <Button variant="ghost" size="xs" icon={<ArrowLeft className="stg:size-3.5" aria-hidden="true" />} onClick={() => onSelectionChange(null)}>
+                Conversations
+              </Button>
+            </div>
+          )}
           <div className="stg:flex stg:items-center stg:justify-between stg:gap-2 stg:border-b stg:border-border stg:px-4 stg:py-2.5">
             <div className="stg:min-w-0">
               <h2 className="stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">

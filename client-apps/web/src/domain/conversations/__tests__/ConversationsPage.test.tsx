@@ -7,7 +7,7 @@
  */
 import type { ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 interface WorkbenchProps {
@@ -32,6 +32,8 @@ vi.mock("@stigmer/react-sdk", () => ({
     page.workbench.push(props);
     return <>{props.headerAccessory?.({ channel: CHANNEL })}</>;
   },
+  // The page names itself above the workbench.
+  PageHeader: ({ title }: { title: string }) => <h1>{title}</h1>,
   ManageAccessButton: (props: Record<string, unknown>) => {
     page.access.push(props);
     return null;
@@ -58,6 +60,11 @@ beforeEach(() => {
 });
 
 describe("web ConversationsPage", () => {
+  it("names the page Conversations above the workbench", () => {
+    render(<ConversationsPage />);
+    expect(screen.getByRole("heading", { level: 1, name: "Conversations" })).toBeTruthy();
+  });
+
   it("reads the selection from the path and mounts that channel's access dialog", () => {
     page.path = `/conversations/${encodeURIComponent("chn_1")}/${encodeURIComponent("1712.0001")}/`;
     render(<ConversationsPage />);

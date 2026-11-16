@@ -10,7 +10,7 @@ export async function navigateToAgents(page: Page): Promise<void> {
 }
 
 export function getResourceCardsList(page: Page): Locator {
-  return page.getByRole("list", { name: "Resource cards" });
+  return page.getByRole("list", { name: "Resource list" });
 }
 
 export async function verifyResourceInList(

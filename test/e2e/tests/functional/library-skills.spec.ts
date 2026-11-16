@@ -10,18 +10,15 @@ import { createTestSkill } from "../../fixtures/seed-helpers";
  * (the `freshOrg` fixture), so neither depends on what other specs seeded.
  */
 test.describe("Skills list page", () => {
-  test("renders heading, description, search and the view switcher", async ({ page }) => {
+  test("renders heading, what skills are for, search, and no view switcher", async ({ page }) => {
     await page.goto("/library/skills");
 
     await expect(page.getByRole("heading", { level: 1, name: "Skills" })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByText("Browse and manage skills in your organization.")).toBeVisible();
-    await expect(page.getByRole("textbox", { name: "Search skills…" })).toBeVisible();
-
-    const views = page.getByRole("radiogroup", { name: "View mode" });
-    await expect(views.getByRole("radio", { name: "Card view" })).toBeChecked();
-    await expect(views.getByRole("radio", { name: "Table view" })).not.toBeChecked();
+    await expect(page.getByText(/^Know-how an agent loads when a task needs it/)).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Search skills" })).toBeVisible();
+    await expect(page.getByRole("radiogroup", { name: "View mode" })).toHaveCount(0);
   });
 
   test("offers Upload skill in the header", async ({ page }) => {
@@ -50,7 +47,7 @@ test.describe("Skills list page", () => {
       "href",
       "/library/skills/new",
     );
-    await expect(page.getByRole("list", { name: "Resource cards" })).toHaveCount(0);
+    await expect(page.getByRole("list", { name: "Resource list" })).toHaveCount(0);
   });
 
   test("a seeded skill is listed as a card and opens its detail page", async ({
@@ -62,7 +59,7 @@ test.describe("Skills list page", () => {
     try {
       await page.goto("/library/skills");
 
-      const cards = page.getByRole("list", { name: "Resource cards" });
+      const cards = page.getByRole("list", { name: "Resource list" });
       await expect(cards.getByRole("listitem")).toHaveCount(1, { timeout: 15_000 });
       await cards.getByRole("listitem").filter({ hasText: skill.slug }).click();
 

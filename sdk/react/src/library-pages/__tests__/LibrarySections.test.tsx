@@ -2,10 +2,13 @@
  * Pins the Library's list sections, the pages both consoles render. Each
  * lists the active organization by its id, the way the server names every
  * org. Agents, skills and plugins show a row's organization through
- * OrgSlugText (its slug, never the raw id), open a row and its View details
- * on the row's own organization and slug, and copy the `<org slug>/<slug>`
- * reference a person types elsewhere. A row's Delete on the agents list
- * confirms in the agent page's words. Create agent is offered only to
+ * OrgSlugText (its slug, never the raw id), open a row on the row's own
+ * organization and slug, and copy the `<org slug>/<slug>`
+ * reference a person types elsewhere; each is one list of rows, and a row's
+ * Delete (Remove for a plugin) is offered only on the server's yes for that
+ * row (CON-01). A row's Delete on the agents list confirms in the agent
+ * page's words. Upload skill is offered only to someone the server lets
+ * upload one. Create agent is offered only to
  * someone the server lets create one. The plugins list offers the
  * Marketplace, an upload and Add MCP server (open on arrival when the host
  * asks, CON-01 for who may install and remove), and opens a plugin once it
@@ -17,6 +20,9 @@
  * own modules and stand in here to capture their props.
  */
 import type { ReactNode } from "react";
+import { timestampFromDate } from "@bufbuild/protobuf/wkt";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { NetworkingType } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/spec_pb";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 
@@ -34,6 +40,7 @@ const page = vi.hoisted(() => ({
   granted: ["can_delete"] as string[],
   canCreateAgent: { allowed: true, isLoading: false },
   canCreatePlugin: { allowed: true, isLoading: false },
+  canCreateSkill: { allowed: true, isLoading: false },
   canCreateEnvironment: { allowed: true, isLoading: false },
   canCreateFile: { allowed: true, isLoading: false },
   pluginAsked: [] as Array<string | null>,
@@ -57,6 +64,7 @@ vi.mock("../../resource-workbench/components/ResourceWorkbench.js", () => ({
     page.workbench.push(props);
     const columns = (props.columns as ColumnDef[] | undefined) ?? [];
     const renderItemAction = props.renderItemAction as ((item: unknown) => ReactNode) | undefined;
+    const renderRow = props.renderRow as ((item: unknown) => ReactNode) | undefined;
     const onItemClick = props.onItemClick as ((item: unknown) => void) | undefined;
     return (
       <div>
@@ -65,6 +73,7 @@ vi.mock("../../resource-workbench/components/ResourceWorkbench.js", () => ({
             {column.cell(page.row)}
           </div>
         ))}
+        <div data-testid="row">{renderRow?.(page.row)}</div>
         {renderItemAction?.(page.row)}
         <button type="button" onClick={() => onItemClick?.(page.row)}>
           open row
@@ -145,6 +154,7 @@ vi.mock("../../plugin/useCanCreatePlugin.js", () => ({
     return page.canCreatePlugin;
   },
 }));
+vi.mock("../../skill/useCanCreateSkill.js", () => ({ useCanCreateSkill: () => page.canCreateSkill }));
 vi.mock("../../environment/useCanCreateEnvironment.js", () => ({
   useCanCreateEnvironment: () => page.canCreateEnvironment,
 }));
@@ -174,10 +184,19 @@ vi.mock("../../routine/RoutineRowActions.js", () => ({
     return null;
   },
 }));
-vi.mock("../../routine/routineColumns.js", () => ({ createRoutineColumns: () => [] }));
+vi.mock("../../routine/routineColumns.js", () => ({
+  createRoutineColumns: () => [
+    { id: "name", cell: () => "daily-report" },
+    { id: "state", cell: () => "Active" },
+    { id: "cron", cell: () => "Every day at 09:00" },
+  ],
+}));
 vi.mock("../../routine/routineListFn.js", () => ({ createRoutineListFn: () => async () => ({ entries: [] }) }));
 vi.mock("../../environment/EnvironmentsNotOnServerNotice.js", () => ({ EnvironmentsNotOnServerNotice: () => null }));
-vi.mock("../../environment/environmentColumns.js", () => ({ createEnvironmentColumns: () => [] }));
+vi.mock("../../environment/environmentColumns.js", () => ({
+  createEnvironmentColumns: () => [],
+  describePackagesShort: () => "4 packages",
+}));
 vi.mock("../../environment/environmentListFn.js", () => ({ createEnvironmentListFn: () => async () => ({ entries: [] }) }));
 vi.mock("../../file/FileUploadButton.js", () => ({
   FileUploadButton: (props: Props) => {
@@ -227,6 +246,7 @@ beforeEach(() => {
   page.granted = ["can_delete"];
   page.canCreateAgent = { allowed: true, isLoading: false };
   page.canCreatePlugin = { allowed: true, isLoading: false };
+  page.canCreateSkill = { allowed: true, isLoading: false };
   page.canCreateEnvironment = { allowed: true, isLoading: false };
   page.canCreateFile = { allowed: true, isLoading: false };
   page.pluginAsked.length = 0;
@@ -275,16 +295,29 @@ describe.each([
     expect(screen.getByTestId("cell-org").textContent).toBe("slug of org_shared");
   });
 
-  it("opens a row, and its View details, on the row's own organization and slug", () => {
+  it("opens a row on the row's own organization and slug", () => {
     render(<Section onOpen={onOpen} />);
 
     fireEvent.click(screen.getByRole("button", { name: "open row" }));
-    fireEvent.click(screen.getByRole("button", { name: "View details" }));
 
-    expect(opened).toEqual([
-      { kind, org: "org_shared", slug: "triage" },
-      { kind, org: "org_shared", slug: "triage" },
-    ]);
+    expect(opened).toEqual([{ kind, org: "org_shared", slug: "triage" }]);
+  });
+
+  it("CON-01 offers the row's Delete only on the server's yes for that row, and Copy ID always", () => {
+    page.granted = [];
+    render(<Section onOpen={onOpen} />);
+
+    expect(screen.getByRole("button", { name: "Copy ID" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: kind === "plugins" ? "Remove" : "Delete" })).toBeNull();
+    expect(screen.getByLabelText("Actions for Triage").getAttribute("data-resource")).toBe(`${noun}:agt_1`);
+  });
+
+  it("draws one list of rows, with no cards or table switch", () => {
+    render(<Section onOpen={onOpen} />);
+
+    expect(workbench().viewModes).toEqual(["list"]);
+    expect(workbench().defaultViewMode).toBe("list");
+    expect(workbench().itemsLabel).toBe(kind);
   });
 
   it("copies the row's reference under its org's slug, and says so", () => {
@@ -388,6 +421,17 @@ describe("LibraryAgentsSection: who may create agents", () => {
 });
 
 describe("LibrarySkillsSection", () => {
+  it("opens the apply dialog in the active org from Apply YAML, and an apply reads the list again", () => {
+    render(<LibrarySkillsSection onOpen={onOpen} />);
+    const before = workbench().refetchToken;
+
+    fireEvent.click(screen.getByRole("button", { name: "Apply YAML" }));
+    expect(page.applyDialog.at(-1)).toMatchObject({ open: true, org: "org_acme" });
+
+    act(() => (page.applyDialog.at(-1)?.onApplied as () => void)());
+    expect(workbench().refetchToken).not.toBe(before);
+  });
+
   it("offers Upload skill in the header and the empty list", () => {
     render(<LibrarySkillsSection onOpen={onOpen} />);
     render(<>{workbench().emptyAction as ReactNode}</>);
@@ -395,6 +439,24 @@ describe("LibrarySkillsSection", () => {
     const links = screen.getAllByRole("link", { name: "Upload skill" });
     expect(links).toHaveLength(2);
     expect(links[0]!.getAttribute("href")).toBe("/library/skills/new");
+  });
+
+  it("says who uploads only once the server has answered", () => {
+    page.canCreateSkill = { allowed: false, isLoading: true };
+    render(<LibrarySkillsSection onOpen={onOpen} />);
+
+    expect(workbench().emptyDescription).toBe("Upload a skill package to give your agents reusable instructions and context.");
+    expect(workbench().emptyAction).toBeUndefined();
+  });
+
+  it("CON-01 offers a member no Upload skill, and says who uploads", () => {
+    page.canCreateSkill = { allowed: false, isLoading: false };
+    render(<LibrarySkillsSection onOpen={onOpen} />);
+
+    expect(screen.queryByRole("link", { name: "Upload skill" })).toBeNull();
+    expect(workbench().emptyAction).toBeUndefined();
+    expect(workbench().emptyDescription).toBe("Admins of acme upload skills. Once one does, every agent here can use it.");
+    expect(screen.getByRole("button", { name: "Apply YAML" })).toBeTruthy();
   });
 
   it("deletes a skill only once the person confirms, then reads the list again", async () => {
@@ -479,7 +541,7 @@ describe("LibraryPluginsSection: who may install", () => {
     expect(screen.getAllByRole("link", { name: "Browse Marketplace" }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("link", { name: "Upload plugin" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Add MCP server" })).toBeNull();
-    expect(workbench().emptyDescription).toMatch(/^An admin of this organization installs plugins/);
+    expect(workbench().emptyDescription).toBe("Admins of acme install plugins. Browse the Marketplace to see what's offered.");
     expect(page.addServer).toHaveLength(0);
   });
 });
@@ -492,11 +554,10 @@ describe("LibraryPluginsSection: who may remove a row's plugin", () => {
     expect(screen.getByLabelText("Actions for Triage").getAttribute("data-resource")).toBe("plugin:agt_1");
   });
 
-  it("CON-01 offers a member the row's View details and Copy ID, and no Remove", () => {
+  it("CON-01 offers a member the row's Copy ID, and no Remove", () => {
     page.granted = [];
     render(<LibraryPluginsSection onOpen={onOpen} />);
 
-    expect(screen.getByRole("button", { name: "View details" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Copy ID" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Remove" })).toBeNull();
   });
@@ -693,5 +754,62 @@ describe("LibraryFilesSection", () => {
     expect(screen.getByText("preview")).toBeTruthy();
     act(() => (preview.onClose as () => void)());
     expect(screen.queryByText("preview")).toBeNull();
+  });
+});
+
+describe("the rows the sections draw", () => {
+  it("draws an agent as its name, a Private tag, its one line, and when it last changed", () => {
+    page.row = {
+      ...SEARCH_ROW,
+      description: "Labels each new ticket.",
+      visibility: ApiResourceVisibility.visibility_private,
+      updatedAt: timestampFromDate(new Date(Date.now() - 2 * 3_600_000)),
+    };
+    render(<LibraryAgentsSection onOpen={onOpen} />);
+
+    expect(screen.getByTestId("row").textContent).toBe("TriagePrivateLabels each new ticket.2h");
+  });
+
+  it("says no time for an agent that carries none, and no tag for one the organization sees", () => {
+    render(<LibraryAgentsSection onOpen={onOpen} />);
+
+    expect(screen.getByTestId("row").textContent).toBe("Triage");
+  });
+
+  it("draws an Environment with the form's words for its network, and its packages when it has no description", () => {
+    page.row = {
+      metadata: { id: "env_1", org: "org_shared", slug: "python", name: "python" },
+      spec: { networking: { type: NetworkingType.limited, allowedHosts: ["api.github.com"] } },
+    };
+    render(<LibraryEnvironmentsSection onOpen={onOpen} />);
+
+    expect(screen.getByTestId("row").textContent).toBe("pythonListed websites4 packages");
+    fireEvent.click(screen.getByRole("button", { name: "Copy ID" }));
+    expect(copied).toEqual(["shared-team/python"]);
+    expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
+  });
+
+  it("draws an Environment that may reach any website, with its own description", () => {
+    page.row = { metadata: { id: "env_2", org: "org_acme", slug: "open" }, spec: { description: "Anything goes" } };
+    render(<LibraryEnvironmentsSection onOpen={onOpen} />);
+
+    expect(screen.getByTestId("row").textContent).toBe("openAny websiteAnything goes");
+  });
+
+  it("reads a routine as a row when narrow: its name, its state beside it, when it runs under it", () => {
+    page.row = { metadata: { id: "rtn_1", org: "org_shared", slug: "nightly" } };
+    render(<LibraryRoutinesSection onOpen={onOpen} />);
+
+    expect(workbench().narrowViewMode).toBe("list");
+    expect(workbench().itemsLabel).toBe("routines");
+    expect(screen.getByTestId("row").textContent).toBe("daily-reportActiveEvery day at 09:00");
+  });
+
+  it("reads a File as a row when narrow", () => {
+    page.row = { metadata: { id: "file_1", org: "org_acme" }, spec: { filename: "ledger.csv" } };
+    render(<LibraryFilesSection onOpen={onOpen} />);
+
+    expect(workbench().narrowViewMode).toBe("list");
+    expect(workbench().itemsLabel).toBe("files");
   });
 });

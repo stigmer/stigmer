@@ -117,7 +117,7 @@ test.describe("Conversations page", () => {
     // live validation script, not faked here.)
     await page.goBack();
     await waitForConversationsSettled(page);
-    await expect(page.getByText("Select a conversation")).toBeVisible();
+    await expect(page.getByText("Choose a conversation")).toBeVisible();
   });
 
   test("a cold deep link is served the placeholder document, not the home page", async ({
