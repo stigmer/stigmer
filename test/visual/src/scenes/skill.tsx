@@ -71,13 +71,14 @@ const PACKAGED_SKILL = create(SkillSchema, {
   status: { audit: VARIANCE_REPORT_SKILL.status?.audit, artifactStorageKey: "skills/variance-report/1.zip" },
 });
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
 
-/** The package's two uploads, newest first: the current one a week ago, the first a fortnight before it. */
+/** The package's two uploads, newest first: both the day the skill was made (docs-fixtures), the current one two hours after the first. */
 const PACKAGE_VERSIONS = [
   {
     versionHash: "9f2c41d07ab3e5c86d14",
-    pushedAt: timestampFromDate(sampleDate(-7 * DAY_MS)),
+    pushedAt: timestampFromDate(sampleDate(-30 * DAY_MS)),
     pushedBy: { id: ACCOUNT.metadata?.id ?? "" },
     isCurrent: true,
     message: "Adds the chart of accounts and the variance script",
@@ -85,7 +86,7 @@ const PACKAGE_VERSIONS = [
   },
   {
     versionHash: "3b81e6a2c95d07f4e128",
-    pushedAt: timestampFromDate(sampleDate(-21 * DAY_MS)),
+    pushedAt: timestampFromDate(sampleDate(-30 * DAY_MS - 2 * HOUR_MS)),
     pushedBy: { id: ACCOUNT.metadata?.id ?? "" },
     message: "First version",
     artifactStorageKey: "skills/variance-report/1.zip",
