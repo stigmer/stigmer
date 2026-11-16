@@ -32,12 +32,12 @@ export interface CreationPickerProps<TData> {
   readonly templates: readonly ResourceTemplate<TData>[];
   /** Called when the user selects a creation path. */
   readonly onSelect: (path: CreationPath) => void;
-  /** Additional CSS classes for the root container. */
   /**
    * Whether the picker draws its own "Create a new …" heading (default
    * true). A host whose page header already names the page passes false.
    */
   readonly showHeading?: boolean;
+  /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
 

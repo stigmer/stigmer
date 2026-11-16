@@ -98,13 +98,13 @@ export interface PluginDetailViewProps {
   readonly onTabChange?: (tabId: string) => void;
   /** @default "overview" */
   readonly defaultTab?: string;
-  /** Additional CSS classes for the root container. */
   /**
    * The level of the page's title: 1 where the view is the page's main
    * content (the console's and the desktop app's detail pages), 2 (the
    * default) where it sits under a heading of the host's.
    */
   readonly headingLevel?: 1 | 2;
+  /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
 

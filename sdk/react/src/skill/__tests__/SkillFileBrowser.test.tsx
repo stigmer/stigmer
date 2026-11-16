@@ -36,7 +36,7 @@ function renderBrowser(stigmer: Stigmer) {
   });
 }
 
-const PLACEHOLDER = "Select a file to view its contents";
+const PLACEHOLDER = "Choose a file to read it.";
 
 afterEach(() => {
   cleanup();
@@ -97,6 +97,16 @@ describe("SkillFileBrowser", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Source" }));
     expect(screen.getByText("# Template")).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Template" })).toBeNull();
+  });
+
+  it("counts every folder the tree draws, nested ones included", async () => {
+    const stigmer = makeStigmerServing({
+      "SKILL.md": strToU8("# Skill"),
+      "a/b/c.md": strToU8("# Deep"),
+    });
+    renderBrowser(stigmer);
+
+    expect(await screen.findByText("2 files in 2 folders · SKILL.md is what the agent reads first")).toBeTruthy();
   });
 
   it("falls back to the first file in tree order when there is no root SKILL.md", async () => {

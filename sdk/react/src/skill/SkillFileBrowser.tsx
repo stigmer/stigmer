@@ -112,8 +112,12 @@ export function SkillFileBrowser({
 
   if (!files || files.length === 0) return null;
 
+  // Every folder the tree draws, nested ones included (a/b/c.md is two).
   const folderCount = new Set(
-    fileEntries.map((f) => f.path.split("/").slice(0, -1).join("/")).filter((dir) => dir !== ""),
+    fileEntries.flatMap((f) => {
+      const parts = f.path.split("/").slice(0, -1);
+      return parts.map((_, i) => parts.slice(0, i + 1).join("/"));
+    }),
   ).size;
   const sortedPaths = [...fileEntries].map((f) => f.path).sort((x, y) => x.localeCompare(y));
 

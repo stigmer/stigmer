@@ -515,7 +515,7 @@ All visual properties flow through `--stgm-*` design tokens.
     actions: { type: "readonly DetailAction[]", description: "Secondary actions rendered in the kebab overflow menu." },
     activeTab: { type: "string", description: "Controlled active tab ID. When provided together with `onTabChange`, the component operates in controlled mode — the consumer owns tab state. When omitted, the component manages its own internal tab state." },
     additionalTabs: { type: "readonly AdditionalTab[]", description: "Additional tabs to render alongside the built-in \"Content\" tab. When provided (with at least one entry), a tab bar appears. When omitted or empty, no tab bar is shown (single-tab suppression).  Each entry provides both the tab metadata and the content to render. The SDK manages the tab switching logic internally." },
-    className: { type: "string", description: "" },
+    className: { type: "string", description: "Additional CSS classes for the root container." },
     defaultTab: { type: "string", description: "Default active tab ID when in uncontrolled mode." },
     editable: { type: "boolean", description: "When `true`, this host allows editing: metadata fields (description, tag) become click-to-edit for a person the server lets edit the skill (`can_edit`, asked by the view; a reader sees a read-only page from the first frame). Skill content (SKILL.md / artifact) is NOT editable inline — use the upload flow." },
     headingLevel: { type: "1 | 2", description: "The level of the page's title: 1 where the view is the page's main content (the console's and the desktop app's detail pages), 2 (the default) where it sits under a heading of the host's." },

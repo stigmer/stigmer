@@ -213,18 +213,29 @@ function createClient(overrides?: {
   vault?: { getMine: ReturnType<typeof vi.fn>; list: ReturnType<typeof vi.fn> };
   /** Whether the caller may change the agent picked (creating a routine asks it). */
   mayEditAgent?: boolean;
+  /** The permission check itself fails (closed: a failure is a no). */
+  checkFails?: boolean;
+  /** Reading the picked agent fails. */
+  agentReadFails?: boolean;
 }) {
   return {
     routine: { apply: overrides?.apply ?? vi.fn().mockResolvedValue(CREATED) },
-    grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: overrides?.mayEditAgent ?? true })) },
+    grant: {
+      checkMyPermission: vi.fn(async () => {
+        if (overrides?.checkFails) throw new Error("authorizer unavailable");
+        return { isAuthorized: overrides?.mayEditAgent ?? true };
+      }),
+    },
     agent: {
       list:
         overrides?.list ?? vi.fn().mockResolvedValue({ entries: [AGENT], nextPageToken: "" }),
       // The Environment field names the picked agent's default.
-      getByReference: vi.fn().mockResolvedValue({
-        metadata: { id: "agt_fee", org: "isc", slug: "fee-reminder" },
-        spec: { environmentRef: { org: "isc", slug: "data-science" } },
-      }),
+      getByReference: overrides?.agentReadFails
+        ? vi.fn().mockRejectedValue(new Error("agent store unavailable"))
+        : vi.fn().mockResolvedValue({
+            metadata: { id: "agt_fee", org: "isc", slug: "fee-reminder" },
+            spec: { environmentRef: { org: "isc", slug: "data-science" } },
+          }),
     },
     organization: { get: vi.fn().mockResolvedValue({ metadata: { id: "isc" }, spec: {} }) },
     // The Files field offers the Library's Files.
@@ -316,12 +327,44 @@ describe("RoutineForm", () => {
     const refusal = await screen.findByText(/so you can.t schedule it\. Pick an agent you may change, or ask its owner\./);
     expect(refusal.closest("[role='alert']")).not.toBeNull();
     expect(client.grant.checkMyPermission).toHaveBeenCalledWith(
-      expect.objectContaining({ relation: "can_edit" }),
+      expect.objectContaining({
+        relation: "can_edit",
+        resource: expect.objectContaining({ kind: "agent", id: "agt_fee" }),
+      }),
     );
     const submit = screen.getByRole("button", { name: "Create routine" }) as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
     fireEvent.click(submit);
     expect(apply).not.toHaveBeenCalled();
+  });
+
+  it("holds Create when the check itself fails: a failed check is a no", async () => {
+    const apply = vi.fn().mockResolvedValue(CREATED);
+    const client = createClient({ apply, checkFails: true });
+    render(<RoutineForm org="isc" />, { wrapper: wrapper(client) });
+
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "daily-fee-reminders" } });
+    fireEvent.change(screen.getByLabelText("Message"), { target: { value: "Send today's reminders." } });
+    await pickAgent();
+
+    await screen.findByText(/so you can.t schedule it/);
+    const submit = screen.getByRole("button", { name: "Create routine" }) as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
+  });
+
+  it("says why Create waits when the picked agent can't be read, and tries again", async () => {
+    const client = createClient({ agentReadFails: true });
+    render(<RoutineForm org="isc" />, { wrapper: wrapper(client) });
+
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "daily-fee-reminders" } });
+    fireEvent.change(screen.getByLabelText("Message"), { target: { value: "Send today's reminders." } });
+    await pickAgent();
+
+    await screen.findByText(/Couldn.t check whether you may change .*, so Create waits\./);
+    expect((screen.getByRole("button", { name: "Create routine" }) as HTMLButtonElement).disabled).toBe(true);
+    const before = client.agent.getByReference.mock.calls.length;
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(client.agent.getByReference.mock.calls.length).toBeGreaterThan(before));
   });
 
   it("submits the generated cron, browser time zone, and staged-disabled default", async () => {
