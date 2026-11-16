@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { cn } from "@stigmer/design-tokens";
-import { DialogShell } from "../internal/DialogShell.js";
+import { DialogBody, DialogHeader, DialogShell } from "../internal/DialogShell.js";
 import {
   Menu,
   MenuContent,
@@ -199,23 +199,22 @@ export function OrgSwitcher({ onOrgChanged, className }: OrgSwitcherProps) {
         dismissOnBackdrop={false}
         aria-labelledby={titleId}
       >
-        {/* eslint-disable stigmer/no-main-tokens-in-sidebar -- The dialog paints in the top layer on the popover surface, outside the sidebar's tokens; main-area tokens are correct there. */}
         {createOpen && (
-          <div className="stg:p-6">
-            <h2 id={titleId} className="stg:text-sm stg:font-semibold stg:text-foreground">
-              Create organization
-            </h2>
-            <p className="stg:mt-1 stg:mb-4 stg:text-xs stg:text-muted-foreground">
-              Organizations are tenancy boundaries that own agents,
-              vaults, and other resources.
-            </p>
-            <CreateOrganizationForm
-              onCreated={handleCreated}
-              onCancel={() => setCreateOpen(false)}
+          <>
+            <DialogHeader
+              id={titleId}
+              title="Create organization"
+              description="Organizations are tenancy boundaries that own agents, vaults, and other resources."
+              onClose={() => setCreateOpen(false)}
             />
-          </div>
+            <DialogBody className="stg:pb-5">
+              <CreateOrganizationForm
+                onCreated={handleCreated}
+                onCancel={() => setCreateOpen(false)}
+              />
+            </DialogBody>
+          </>
         )}
-        {/* eslint-enable stigmer/no-main-tokens-in-sidebar */}
       </DialogShell>
     </>
   );

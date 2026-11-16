@@ -8,7 +8,7 @@ import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { Button } from "../button/Button.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { CopyBlock } from "../internal/CopyBlock.js";
-import { DialogShell } from "../internal/DialogShell.js";
+import { DialogBody, DialogHeader, DialogShell } from "../internal/DialogShell.js";
 import { trimTrailing } from "../internal/trim.js";
 import { UnknownPublicAddressNotice } from "../internal/UnknownPublicAddressNotice.js";
 import { usePublicBaseUrl } from "../public-base-url-context.js";
@@ -311,25 +311,22 @@ function CreateAccountDialog({
   return (
     <DialogShell open={open} onOpenChange={onOpenChange} width="md" aria-labelledby={titleId}>
       {open && (
-        <div className="stg:flex stg:flex-col">
-          <div className="stg:border-b stg:border-border stg:px-5 stg:py-4">
-            <h2 id={titleId} className="stg:text-sm stg:font-semibold stg:text-foreground">
-              Create a service account
-            </h2>
-            <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
-              For the system that starts this routine. Give it Participant on
-              the routine next.
-            </p>
-          </div>
-          <div className="stg:px-5 stg:py-4">
+        <>
+          <DialogHeader
+            id={titleId}
+            title="Create a service account"
+            description="For the system that starts this routine. Give it Participant on the routine next."
+            onClose={close}
+          />
+          <DialogBody className="stg:pb-5">
             <CreateServiceAccountForm
               org={org}
               defaultRole={IamRole.viewer}
               onDone={close}
               onCancel={close}
             />
-          </div>
-        </div>
+          </DialogBody>
+        </>
       )}
     </DialogShell>
   );

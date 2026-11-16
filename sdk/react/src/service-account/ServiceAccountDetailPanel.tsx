@@ -417,6 +417,7 @@ function DeleteSection({
   }
 
   return (
+    // eslint-disable-next-line stigmer/no-handrolled-dialog -- An inline confirm in the panel, not a modal: its role tells assistive technology the row asks for an answer, and focus stays in the panel.
     <div
       role="alertdialog"
       aria-label={`Delete ${name}`}

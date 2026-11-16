@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useId, type ReactNode } from "react";
-import { ExternalLink, LayoutTemplate, X } from "lucide-react";
+import { ExternalLink, LayoutTemplate } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
-import { DialogShell } from "../internal/DialogShell.js";
+import { DialogBody, DialogHeader, DialogShell } from "../internal/DialogShell.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import type { ChannelTemplate } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
@@ -138,33 +138,17 @@ function ChannelTemplatesDialogBody({
 
   return (
     <div className="stg:flex stg:max-h-[75vh] stg:flex-col">
-      <div className="stg:flex stg:items-start stg:justify-between stg:gap-3 stg:border-b stg:border-border stg:px-5 stg:py-4">
-        <div className="stg:min-w-0">
-          <h2
-            id={titleId}
-            className="stg:text-sm stg:font-semibold stg:text-popover-foreground"
-          >
-            Templates
-          </h2>
-          <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
-            The message templates WhatsApp holds for {channelName} — authored
-            and approved in WhatsApp Manager, listed here as WhatsApp reports
-            them.
-          </p>
-        </div>
-        <Button
-          variant="ghost"
-          size="xs"
-          onClick={onClose}
-          aria-label="Close templates"
-        >
-          <X className="stg:size-4" />
-        </Button>
-      </div>
+      <DialogHeader
+        id={titleId}
+        title="Templates"
+        description={<>The message templates WhatsApp holds for {channelName} — authored and approved in WhatsApp Manager, listed here as WhatsApp reports them.</>}
+        closeLabel="Close templates"
+        onClose={onClose}
+      />
 
-      <div className="stg:min-h-0 stg:flex-1 stg:overflow-y-auto stg:p-4">
+      <DialogBody className="stg:min-h-0 stg:flex-1 stg:overflow-y-auto stg:pb-5">
         <ChannelTemplatesContent channel={channel} onEditYaml={onEditYaml} />
-      </div>
+      </DialogBody>
     </div>
   );
 }

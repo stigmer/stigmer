@@ -20,7 +20,7 @@ import { cn } from "@stigmer/design-tokens";
 import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { Button } from "../button/Button.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
-import { DialogShell } from "../internal/DialogShell.js";
+import { DialogBody, DialogFooter, DialogHeader, DialogShell } from "../internal/DialogShell.js";
 import { type HeaderRow, HeaderRowsEditor } from "./HeaderRowsEditor.js";
 import { PrepareRefusal } from "./InstallPreview.js";
 import { PluginReadRefusal } from "./sources/read.js";
@@ -109,16 +109,15 @@ function AddMcpServerForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="stg:flex stg:max-h-[85vh] stg:flex-col stg:gap-4 stg:overflow-y-auto stg:p-6">
-      <header>
-        <h2 id={titleId} className="stg:text-base stg:font-semibold stg:text-foreground">
-          Add MCP server
-        </h2>
-        <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
-          Installs a plugin of this one server. A chat or an agent that uses the plugin gets the server&apos;s tools; if the server asks you to sign
-          in, its plugin page says so.
-        </p>
-      </header>
+    <form onSubmit={handleSubmit} className="stg:flex stg:max-h-[85vh] stg:flex-col stg:overflow-y-auto">
+      <DialogHeader
+        id={titleId}
+        title="Add MCP server"
+        description="Installs a plugin of this one server. A chat or an agent that uses the plugin gets the server's tools; if the server asks you to sign in, its plugin page says so."
+        onClose={onClose}
+        closeDisabled={isAdding}
+      />
+      <DialogBody>
 
       <div className="stg:space-y-1">
         <label htmlFor={`${baseId}-name`} className={FIELD_LABEL_CLASSES}>
@@ -172,14 +171,15 @@ function AddMcpServerForm({
         error && <ErrorMessage error={error} title="Couldn't add the server." />
       )}
 
-      <footer className="stg:flex stg:justify-end stg:gap-2 stg:pt-1">
-        <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isAdding}>
+      </DialogBody>
+      <DialogFooter>
+        <Button type="button" variant="ghost" onClick={onClose} disabled={isAdding}>
           Cancel
         </Button>
-        <Button type="submit" variant="primary" size="sm" disabled={!canSubmit}>
+        <Button type="submit" variant="primary" disabled={!canSubmit}>
           {isAdding ? "Adding…" : "Add"}
         </Button>
-      </footer>
+      </DialogFooter>
     </form>
   );
 }

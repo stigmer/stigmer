@@ -19,7 +19,7 @@ import type { ResourceRef } from "@stigmer/client";
 import { AgentPicker } from "../agent/AgentPicker.js";
 import { Button } from "../button/Button.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
-import { DialogShell } from "../internal/DialogShell.js";
+import { DialogBody, DialogFooter, DialogHeader, DialogShell } from "../internal/DialogShell.js";
 import { PluginIcon } from "./PluginIcon.js";
 import { type PluginOffer, useAddPluginToAgent } from "./useAddPluginToAgent.js";
 
@@ -93,15 +93,14 @@ function DialogContent({
   const agentName = "agent" in phase ? phase.agent.metadata?.name || phase.agent.metadata?.slug || "the agent" : "";
 
   return (
-    <div className="stg:flex stg:max-h-[85vh] stg:flex-col stg:gap-4 stg:overflow-y-auto stg:p-6">
-      <header>
-        <h2 id={titleId} className="stg:text-base stg:font-semibold stg:text-foreground">
-          Add {offer.name} to an agent
-        </h2>
-        <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
-          The agent gets the whole plugin: its skills, agents, hooks and MCP servers. It asks for a sign-in or a key the first time it needs one.
-        </p>
-      </header>
+    <div className="stg:flex stg:max-h-[85vh] stg:flex-col stg:overflow-y-auto">
+      <DialogHeader
+        id={titleId}
+        title={`Add ${offer.name} to an agent`}
+        description="The agent gets the whole plugin: its skills, agents, hooks and MCP servers. It asks for a sign-in or a key the first time it needs one."
+        onClose={onClose}
+      />
+      <DialogBody>
 
       {phase.status === "added" ? (
         <p role="status" className="stg:rounded-md stg:border stg:border-border stg:bg-muted stg:p-3 stg:text-sm stg:text-foreground">
@@ -140,15 +139,15 @@ function DialogContent({
         </>
       )}
 
-      <footer className="stg:flex stg:justify-end stg:gap-2 stg:pt-1">
-        <Button variant="outline" size="sm" onClick={onClose}>
+      </DialogBody>
+      <DialogFooter>
+        <Button variant="ghost" onClick={onClose}>
           {phase.status === "added" ? "Close" : "Cancel"}
         </Button>
         {phase.status === "added" ? (
           onAgentClick && (
             <Button
               variant="primary"
-              size="sm"
               onClick={() => onAgentClick({ org: phase.agent.metadata?.org ?? org, slug: phase.agent.metadata?.slug ?? "" })}
             >
               Open agent
@@ -157,7 +156,6 @@ function DialogContent({
         ) : (
           <Button
             variant="primary"
-            size="sm"
             disabled={phase.status !== "ready"}
             onClick={() => {
               void flow.add().catch(() => undefined);
@@ -166,7 +164,7 @@ function DialogContent({
             {phase.status === "adding" ? "Adding…" : "Add"}
           </Button>
         )}
-      </footer>
+      </DialogFooter>
     </div>
   );
 }

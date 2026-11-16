@@ -20,7 +20,7 @@ import { useCallback, useEffect, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { Button } from "../button/Button.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
-import { DialogShell } from "../internal/DialogShell.js";
+import { DialogBody, DialogFooter, DialogHeader, DialogShell } from "../internal/DialogShell.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { InstallPreview, PrepareRefusal, describeOrigin } from "./InstallPreview.js";
 import type { OpenedMarketplace } from "./sources/read.js";
@@ -91,9 +91,8 @@ export function PluginInstallDialog({
       }}
       width="lg"
       className={cn("stg:max-h-[85vh] stg:bg-card stg:text-foreground", className)}
-      aria-label={`Install ${entryName}`}
     >
-      <div className="stg:flex stg:max-h-[85vh] stg:flex-col stg:overflow-y-auto stg:p-6">
+      <div className="stg:flex stg:max-h-[85vh] stg:flex-col stg:overflow-y-auto">
         <InstallDialogContent
           opened={opened}
           entryName={entryName}
@@ -146,15 +145,18 @@ function InstallDialogContent({
   const title = relation === "upgrade" ? `Upgrade ${entryName}` : `Install ${entryName}`;
 
   return (
-    <div className="stg:flex stg:flex-col stg:gap-5">
-      <header className="stg:flex stg:items-start stg:justify-between stg:gap-4">
-        <div>
-          <h2 className="stg:text-base stg:font-semibold stg:text-foreground">{title}</h2>
-          <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
+    <>
+      <DialogHeader
+        title={title}
+        description={
+          <>
             From {sourceName} ({prepared ? describeOrigin(prepared.origin) : opened.tree.describe}) into {slugForOrg(org)}
-          </p>
-        </div>
-      </header>
+          </>
+        }
+        onClose={onClose}
+        closeDisabled={isInstalling}
+      />
+      <DialogBody>
 
       {isPreparing && (
         <div className="stg:flex stg:items-center stg:gap-2 stg:text-sm stg:text-muted-foreground" role="status">
@@ -175,22 +177,22 @@ function InstallDialogContent({
         </div>
       )}
 
-      <footer className="stg:flex stg:justify-end stg:gap-2 stg:pt-1">
-        <Button variant="outline" size="sm" onClick={onClose}>
+      </DialogBody>
+      <DialogFooter>
+        <Button variant={outcome ? "outline" : "ghost"} onClick={onClose}>
           {outcome ? "Close" : "Cancel"}
         </Button>
         {!outcome && (
           <Button
             variant="primary"
-            size="sm"
             onClick={handleInstall}
             disabled={!prepared || isPreparing || isInstalling || relation === "installed"}
           >
             {isInstalling ? "Installing…" : relation === "upgrade" ? "Upgrade" : "Install"}
           </Button>
         )}
-      </footer>
-    </div>
+      </DialogFooter>
+    </>
   );
 }
 

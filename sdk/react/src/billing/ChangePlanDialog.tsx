@@ -1,10 +1,11 @@
 "use client";
 
 import { useId } from "react";
-import { getErrorReason, getUserMessage } from "@stigmer/client";
+import { getErrorReason } from "@stigmer/client";
 import type { Plan } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
 import { Button } from "../button/index.js";
-import { DialogShell } from "../internal/DialogShell.js";
+import { DialogBody, DialogFooter, DialogHeader, DialogShell } from "../internal/DialogShell.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 import {
   formatAgentHoursTerms,
   formatChildOrgs,
@@ -86,10 +87,9 @@ export function ChangePlanDialog({
       aria-labelledby={headingId}
     >
       {move && (
-        <div className="stg:space-y-3 stg:p-5">
-          <h2 id={headingId} className="stg:text-sm stg:font-semibold stg:text-foreground">
-            {title(move)}
-          </h2>
+        <>
+          <DialogHeader id={headingId} title={title(move)} onClose={onClose} closeDisabled={isSubmitting} />
+          <DialogBody>
           {body(move, planName, losing)}
 
           {needsCard && (
@@ -100,31 +100,29 @@ export function ChangePlanDialog({
             </p>
           )}
           {error && getErrorReason(error)?.reason !== PAYMENT_METHOD_REQUIRED && (
-            <p className="stg:text-xs stg:text-destructive" role="alert">
-              {getUserMessage(error)}
-            </p>
+            <ErrorMessage error={error} title="Couldn't change the plan." />
           )}
+          </DialogBody>
 
-          <div className="stg:flex stg:justify-end stg:gap-2 stg:pt-1">
-            <Button variant="ghost" size="sm" onClick={onClose} disabled={isSubmitting}>
+          <DialogFooter>
+            <Button variant="ghost" onClick={onClose} disabled={isSubmitting}>
               Not now
             </Button>
             {needsCard ? (
-              <Button size="sm" onClick={onAddPaymentMethod} disabled={isSubmitting || awaitingPaymentMethod}>
+              <Button onClick={onAddPaymentMethod} disabled={isSubmitting || awaitingPaymentMethod}>
                 Add a payment method
               </Button>
             ) : (
               <Button
                 variant={move.kind === "cancel" ? "destructive" : "primary"}
-                size="sm"
                 onClick={onConfirm}
                 disabled={isSubmitting}
               >
                 {confirmLabel(move)}
               </Button>
             )}
-          </div>
-        </div>
+          </DialogFooter>
+        </>
       )}
     </DialogShell>
   );

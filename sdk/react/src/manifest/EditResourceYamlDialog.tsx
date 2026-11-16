@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect } from "react";
 import type { Message } from "@bufbuild/protobuf";
-import { DialogShell } from "../internal/DialogShell.js";
+import { DialogBody, DialogFooter, DialogHeader, DialogShell } from "../internal/DialogShell.js";
 import { getUserMessage, type AppliedManifest } from "@stigmer/client";
 import { toast } from "../feedback/toast.js";
 import { keptChangeSentences } from "./keptChanges.js";
@@ -94,16 +94,14 @@ export function EditResourceYamlDialog({
     edit.validation.status === "valid" && edit.isDirty && !edit.isApplying;
 
   return (
-    <DialogShell open={open} onOpenChange={onOpenChange} width="3xl" aria-label="Edit YAML">
-      <div className="stg:flex stg:flex-col stg:gap-4 stg:p-6">
-        {/* Header */}
-        <div className="stg:flex stg:flex-col stg:gap-1">
-          <h3 className="stg:text-base stg:font-semibold stg:text-foreground">Edit YAML</h3>
-          <p className="stg:text-sm stg:text-muted-foreground">
-            Edit the resource definition and apply. Changes are validated
-            against the resource schema as you type.
-          </p>
-        </div>
+    <DialogShell open={open} onOpenChange={onOpenChange} width="3xl">
+      <DialogHeader
+        title="Edit YAML"
+        description="Edit the resource definition and apply. Changes are validated against the resource schema as you type."
+        onClose={() => onOpenChange(false)}
+        closeDisabled={edit.isApplying}
+      />
+      <DialogBody>
 
         {/* Editor */}
         {resource ? (
@@ -143,21 +141,22 @@ export function EditResourceYamlDialog({
           </Notice>
         )}
 
-        {/* Footer: target summary + actions */}
-        <div className="stg:flex stg:items-center stg:justify-between stg:gap-3">
-          <p className="stg:text-xs stg:text-muted-foreground" aria-live="polite">
+      </DialogBody>
+      {/* The target summary sits at the acts' start. */}
+      <DialogFooter
+        leading={
+          <p className="stg:m-0 stg:text-xs stg:text-muted-foreground" aria-live="polite">
             {targetSummary(edit.validation, edit.isDirty, edit.target)}
           </p>
-          <div className="stg:flex stg:gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={edit.isApplying}>
-              Cancel
-            </Button>
-            <Button onClick={handleApply} disabled={!canApply}>
-              {edit.isApplying ? "Applying…" : "Apply changes"}
-            </Button>
-          </div>
-        </div>
-      </div>
+        }
+      >
+        <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={edit.isApplying}>
+          Cancel
+        </Button>
+        <Button onClick={handleApply} disabled={!canApply}>
+          {edit.isApplying ? "Applying…" : "Apply changes"}
+        </Button>
+      </DialogFooter>
     </DialogShell>
   );
 }

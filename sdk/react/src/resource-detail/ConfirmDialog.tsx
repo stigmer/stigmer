@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { Button } from "../button/Button.js";
-import { DialogShell } from "../internal/DialogShell.js";
+import { DialogFooter, DialogHeader, DialogShell } from "../internal/DialogShell.js";
 import type { ConfirmState } from "./types.js";
 
 export interface ConfirmDialogProps {
@@ -57,25 +57,16 @@ export function ConfirmDialog({
   const isDestructive = state.variant === "destructive";
 
   return (
-    <DialogShell open onOpenChange={handleOpenChange} width="sm" aria-label={state.title}>
-      <div className="stg:flex stg:flex-col stg:gap-4 stg:p-6">
-        <div className="stg:flex stg:flex-col stg:gap-1.5">
-          <h3 className="stg:text-base stg:font-semibold stg:text-foreground">
-            {state.title}
-          </h3>
-          <p className="stg:text-sm stg:text-muted-foreground">
-            {state.description}
-          </p>
-        </div>
-        <div className="stg:flex stg:justify-end stg:gap-2">
-          <Button variant="outline" onClick={onCancel}>
-            {state.cancelLabel ?? "Cancel"}
-          </Button>
-          <Button variant={isDestructive ? "destructive" : "primary"} onClick={onConfirm}>
-            {state.confirmLabel ?? "Confirm"}
-          </Button>
-        </div>
-      </div>
+    <DialogShell open onOpenChange={handleOpenChange} width="sm">
+      <DialogHeader title={state.title} description={state.description} onClose={onCancel} />
+      <DialogFooter>
+        <Button variant="ghost" onClick={onCancel}>
+          {state.cancelLabel ?? "Cancel"}
+        </Button>
+        <Button variant={isDestructive ? "destructive" : "primary"} onClick={onConfirm}>
+          {state.confirmLabel ?? "Confirm"}
+        </Button>
+      </DialogFooter>
     </DialogShell>
   );
 }

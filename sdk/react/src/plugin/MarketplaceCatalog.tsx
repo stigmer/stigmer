@@ -47,7 +47,7 @@ import type { MarketplaceEntry } from "@stigmer/plugin-package";
 
 import { Button } from "../button/Button.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
-import { DialogShell } from "../internal/DialogShell.js";
+import { DialogBody, DialogHeader, DialogShell } from "../internal/DialogShell.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { cardClasses } from "../internal/surface/Card.js";
 import { Pagination } from "../internal/Pagination.js";
@@ -343,11 +343,11 @@ function UploadDialog({
       aria-labelledby={titleId}
     >
       {open && (
-        <div className="stg:flex stg:max-h-[85vh] stg:flex-col stg:gap-4 stg:overflow-y-auto stg:p-6">
-          <h2 id={titleId} className="stg:text-base stg:font-semibold stg:text-foreground">
-            Upload a plugin
-          </h2>
-          <PluginUploader org={org} onComplete={onInstalled} onCancel={onClose} />
+        <div className="stg:flex stg:max-h-[85vh] stg:flex-col stg:overflow-y-auto">
+          <DialogHeader id={titleId} title="Upload a plugin" onClose={onClose} />
+          <DialogBody className="stg:pb-5">
+            <PluginUploader org={org} onComplete={onInstalled} onCancel={onClose} />
+          </DialogBody>
         </div>
       )}
     </DialogShell>

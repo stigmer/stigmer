@@ -2,7 +2,7 @@
 
 import { useCallback, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { DialogShell } from "../internal/DialogShell.js";
+import { DialogFooter, DialogHeader, DialogShell } from "../internal/DialogShell.js";
 import { Button } from "../button/Button.js";
 import { IconButton } from "../button/IconButton.js";
 import { LinkButton, type RenderLink } from "../button/LinkButton.js";
@@ -209,20 +209,12 @@ function ChatLinkDialogBody({
   return (
     <div className="stg:flex stg:flex-col">
       {/* Header */}
-      <div className="stg:flex stg:items-start stg:justify-between stg:border-b stg:border-border stg:px-6 stg:py-4">
-        <div className="stg:min-w-0">
-          <h2
-            id={titleId}
-            className="stg:text-base stg:font-semibold stg:text-foreground"
-          >
-            {isCreating ? "Create a chat link" : "Chat link"}
-          </h2>
-          <p className="stg:mt-0.5 stg:truncate stg:text-xs stg:text-muted-foreground">
-            {agent.metadata?.name || agent.metadata?.slug}
-          </p>
-        </div>
-        <IconButton size="xs" label="Close" icon={<CloseIcon />} onClick={onClose} />
-      </div>
+      <DialogHeader
+        id={titleId}
+        title={isCreating ? "Create a chat link" : "Chat link"}
+        description={agent.metadata?.name || agent.metadata?.slug}
+        onClose={onClose}
+      />
 
       {isCreating ? (
         <CreateChatLinkForm
@@ -242,11 +234,11 @@ function ChatLinkDialogBody({
       )}
 
       {/* Footer */}
-      <div className="stg:flex stg:items-center stg:justify-end stg:border-t stg:border-border stg:px-6 stg:py-3">
-        <Button variant={isCreating ? "outline" : "primary"} onClick={onClose}>
+      <DialogFooter>
+        <Button variant={isCreating ? "ghost" : "primary"} onClick={onClose}>
           {isCreating ? "Cancel" : "Done"}
         </Button>
-      </div>
+      </DialogFooter>
     </div>
   );
 }
@@ -1540,14 +1532,6 @@ function CopyField({
 // ---------------------------------------------------------------------------
 // Icons — inline SVGs following the SDK pattern (no icon library dependency)
 // ---------------------------------------------------------------------------
-
-function CloseIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 function RemoveIcon() {
   return (

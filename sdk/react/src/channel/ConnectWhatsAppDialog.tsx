@@ -2,13 +2,12 @@
 
 import { useCallback, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { DialogShell } from "../internal/DialogShell.js";
+import { DialogBody, DialogFooter, DialogHeader, DialogShell } from "../internal/DialogShell.js";
 import { getErrorReason, type ResourceRef } from "@stigmer/client";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { ChannelInstallState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/status_pb";
 import { Button } from "../button/Button.js";
-import { IconButton } from "../button/IconButton.js";
 import { useChannelAppList } from "../channel-app/useChannelAppList.js";
 import { useDeploymentMode } from "@stigmer/react-core";
 import { channelInstallsAvailable } from "./providers.js";
@@ -20,7 +19,7 @@ import {
 } from "./connect/ServingAppSection.js";
 import { ToolCredentialsSection } from "./connect/ToolCredentialsSection.js";
 import { RefusalBox, VerbatimRefusal } from "./connect/VerbatimRefusal.js";
-import { CheckIcon, CloseIcon, Spinner } from "./connect/icons.js";
+import { CheckIcon, Spinner } from "./connect/icons.js";
 import { useCreateChannel } from "./useCreateChannel.js";
 import { useInstallChannel } from "./useInstallChannel.js";
 import { useOrgChannelList } from "./useOrgChannelList.js";
@@ -308,17 +307,15 @@ function ConnectWhatsAppDialogBody({
   return (
     <div className="stg:flex stg:flex-col">
       {/* Header */}
-      <div className="stg:flex stg:items-start stg:justify-between stg:gap-3 stg:border-b stg:border-border stg:px-5 stg:py-4">
-        <div className="stg:flex stg:items-center stg:gap-2.5">
-          <WhatsAppMarkIcon className="stg:size-5 stg:text-foreground" />
-          <h2 id={titleId} className="stg:text-sm stg:font-semibold stg:text-foreground">
-            {channel ? "Reconnect to WhatsApp" : "Connect to WhatsApp"}
-          </h2>
-        </div>
-        <IconButton size="xs" label="Close dialog" icon={<CloseIcon />} onClick={onClose} />
-      </div>
+      <DialogHeader
+        id={titleId}
+        icon={<WhatsAppMarkIcon className="stg:size-5" />}
+        title={channel ? "Reconnect to WhatsApp" : "Connect to WhatsApp"}
+        closeLabel="Close dialog"
+        onClose={onClose}
+      />
 
-      <div className="stg:space-y-4 stg:px-5 stg:py-4">
+      <DialogBody>
         {!installsAvailable ? (
           // Preempt the doomed flow: an edition without the delivery
           // runtime answers every install with FAILED_PRECONDITION.
@@ -431,22 +428,21 @@ function ConnectWhatsAppDialogBody({
             )}
           </>
         )}
-      </div>
+      </DialogBody>
 
       {/* Footer */}
-      <div className="stg:flex stg:justify-end stg:gap-2 stg:border-t stg:border-border stg:px-5 stg:py-3">
+      <DialogFooter>
         {installed || !installsAvailable ? (
-          <Button variant="outline" size="sm" onClick={onClose}>
+          <Button variant="outline" onClick={onClose}>
             {installed ? "Done" : "Close"}
           </Button>
         ) : (
           <>
-            <Button variant="ghost" size="sm" onClick={onClose} disabled={busy}>
+            <Button variant="ghost" onClick={onClose} disabled={busy}>
               Cancel
             </Button>
             <Button
               variant="primary"
-              size="sm"
               onClick={() => void handleConnect()}
               disabled={!canConnect}
               icon={<WhatsAppMarkIcon className="stg:size-3.5" />}
@@ -456,7 +452,7 @@ function ConnectWhatsAppDialogBody({
             </Button>
           </>
         )}
-      </div>
+      </DialogFooter>
     </div>
   );
 }

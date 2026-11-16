@@ -1,13 +1,12 @@
 "use client";
 
 import { useCallback, useId, useState } from "react";
-import { DialogShell } from "../internal/DialogShell.js";
+import { DialogBody, DialogFooter, DialogHeader, DialogShell } from "../internal/DialogShell.js";
 import { type ResourceRef } from "@stigmer/client";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { Button } from "../button/Button.js";
 import { Notice } from "../internal/surface/Notice.js";
-import { IconButton } from "../button/IconButton.js";
 import { ChannelToolCredentials } from "./ChannelToolCredentials.js";
 import { useSaveChannel } from "./useSaveChannel.js";
 import { saveErrorMessage } from "@stigmer/react-core/internal";
@@ -129,23 +128,10 @@ function ChannelCredentialsDialogBody({
   }, [channel, draft, onClose, onSaved, update]);
 
   return (
-    <div className="stg:flex stg:flex-col">
-      <div className="stg:flex stg:items-start stg:justify-between stg:gap-3 stg:border-b stg:border-border stg:px-5 stg:py-4">
-        <div className="stg:min-w-0">
-          <h2
-            id={titleId}
-            className="stg:text-sm stg:font-semibold stg:text-foreground"
-          >
-            Tool credentials
-          </h2>
-          <p className="stg:mt-0.5 stg:truncate stg:text-xs stg:text-muted-foreground">
-            {channelName}
-          </p>
-        </div>
-        <IconButton size="xs" label="Close dialog" icon={<CloseIcon />} onClick={onClose} />
-      </div>
+    <>
+      <DialogHeader id={titleId} title="Tool credentials" description={channelName} closeLabel="Close dialog" onClose={onClose} closeDisabled={isPending} />
 
-      <div className="stg:px-5 stg:py-4">
+      <DialogBody>
         <ChannelToolCredentials
           agent={agent}
           org={org}
@@ -156,14 +142,13 @@ function ChannelCredentialsDialogBody({
         />
 
         {error && (
-          <Notice tone="failed" headline={saveErrorMessage(error, "channel")} className="stg:mt-3" />
+          <Notice tone="failed" headline={saveErrorMessage(error, "channel")} />
         )}
-      </div>
+      </DialogBody>
 
-      <div className="stg:flex stg:justify-end stg:gap-2 stg:border-t stg:border-border stg:px-5 stg:py-3">
+      <DialogFooter>
         <Button
           variant="ghost"
-          size="sm"
           onClick={() => {
             clearError();
             onClose();
@@ -174,21 +159,13 @@ function ChannelCredentialsDialogBody({
         </Button>
         <Button
           variant="primary"
-          size="sm"
           onClick={() => void handleSave()}
           disabled={isPending}
         >
           Save
         </Button>
-      </div>
-    </div>
+      </DialogFooter>
+    </>
   );
 }
 
-function CloseIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-      <path d="m3 3 8 8M11 3l-8 8" />
-    </svg>
-  );
-}

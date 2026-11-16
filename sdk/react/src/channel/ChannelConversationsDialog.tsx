@@ -2,9 +2,9 @@
 
 import { useCallback, useId } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { MessageSquare, User, X } from "lucide-react";
+import { MessageSquare, User } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
-import { DialogShell } from "../internal/DialogShell.js";
+import { DialogBody, DialogHeader, DialogShell } from "../internal/DialogShell.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
@@ -116,30 +116,20 @@ function ChannelConversationsDialogBody({
 
   return (
     <div className="stg:flex stg:max-h-[70vh] stg:flex-col">
-      <div className="stg:flex stg:items-start stg:justify-between stg:gap-3 stg:border-b stg:border-border stg:px-5 stg:py-4">
-        <div className="stg:min-w-0">
-          <h2
-            id={titleId}
-            className="stg:text-sm stg:font-semibold stg:text-popover-foreground"
-          >
-            Sessions
-          </h2>
-          <p className="stg:mt-0.5 stg:truncate stg:text-xs stg:text-muted-foreground">
+      <DialogHeader
+        id={titleId}
+        title="Sessions"
+        description={
+          <>
             The sessions {channelName} created — read-only, visible to the
             channel&apos;s owner and org admins.
-          </p>
-        </div>
-        <Button
-          variant="ghost"
-          size="xs"
-          onClick={onClose}
-          aria-label="Close sessions"
-        >
-          <X className="stg:size-4" />
-        </Button>
-      </div>
+          </>
+        }
+        closeLabel="Close sessions"
+        onClose={onClose}
+      />
 
-      <div className="stg:min-h-0 stg:flex-1 stg:overflow-y-auto stg:p-3">
+      <DialogBody className="stg:min-h-0 stg:flex-1 stg:overflow-y-auto stg:pb-5">
         {isLoading ? (
           <ConversationsSkeleton />
         ) : error ? (
@@ -172,7 +162,7 @@ function ChannelConversationsDialogBody({
           isLoadingMore={isLoadingMore}
           loadMoreError={loadMoreError}
         />
-      </div>
+      </DialogBody>
     </div>
   );
 }

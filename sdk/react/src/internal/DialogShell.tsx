@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type {
   KeyboardEvent,
   MouseEvent,
@@ -8,6 +8,7 @@ import type {
   SyntheticEvent,
 } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { IconButton } from "../button/IconButton.js";
 import {
   PortalContainerContext,
   useStigmerPortalContainer,
@@ -29,6 +30,134 @@ const WIDTH_CLASS: Record<DialogShellWidth, string> = {
   "3xl": "stg:max-w-3xl",
   "4xl": "stg:max-w-4xl",
 };
+
+/**
+ * What a shell tells the parts drawn inside it: the ids its header's title
+ * and description take, how to ask it to close, and a way for the header to
+ * say it is there (so the shell names itself by the title and describes
+ * itself by the description, with no id wired by hand).
+ */
+interface DialogShellContextValue {
+  readonly titleId: string;
+  readonly descriptionId: string;
+  readonly requestClose: () => void;
+  readonly registerHeader: (title: boolean, description: boolean) => () => void;
+}
+
+const DialogShellContext = createContext<DialogShellContextValue | null>(null);
+
+/** Props for {@link DialogHeader}. */
+export interface DialogHeaderProps {
+  /** The dialog's title, 16/24 semibold: the dialog's accessible name. */
+  readonly title: ReactNode;
+  /** One line under the title, 14/20 muted: the dialog's accessible description. */
+  readonly description?: ReactNode;
+  /**
+   * The title's id, for a caller that already names the shell with its own
+   * `aria-labelledby`. Omitted, the shell's own id is used and the shell is
+   * named by it.
+   */
+  readonly id?: string;
+  /** What the close button does; the shell's close request when omitted. */
+  readonly onClose?: () => void;
+  /** The close button's name, for a dialog whose readers know it by another ("Close sessions"). */
+  readonly closeLabel?: string;
+  /** Draw no close button (a dialog that must be answered by its acts). */
+  readonly hideClose?: boolean;
+  /** Hold the close button while the dialog works. */
+  readonly closeDisabled?: boolean;
+  /** A mark drawn before the title (a service's logo), 20px. */
+  readonly icon?: ReactNode;
+  /** Anything the header carries beside the title (a status, a tab row), drawn before the close button. */
+  readonly actions?: ReactNode;
+  readonly className?: string;
+}
+
+/**
+ * A dialog's header: its title, an optional line under it, and the close
+ * button, on the dialog's 24px sides and 20px top. Every dialog's title is
+ * this one size, and the shell is named and described by it.
+ *
+ * @example
+ * ```tsx
+ * <DialogShell open={open} onOpenChange={setOpen}>
+ *   <DialogHeader title="Run daily-report now?" description="Its schedule doesn't change." />
+ *   <DialogBody>…</DialogBody>
+ *   <DialogFooter>…</DialogFooter>
+ * </DialogShell>
+ * ```
+ */
+export function DialogHeader({ title, description, id, onClose, closeLabel = "Close", hideClose = false, closeDisabled = false, icon, actions, className }: DialogHeaderProps) {
+  const shell = useContext(DialogShellContext);
+  const hasDescription = description !== undefined && description !== null && description !== false;
+  const register = shell?.registerHeader;
+  useLayoutEffect(() => register?.(id === undefined, hasDescription), [register, id, hasDescription]);
+  const close = onClose ?? shell?.requestClose;
+  return (
+    <div className={cn("stg:flex stg:items-start stg:gap-3 stg:px-6 stg:pt-5", className)}>
+      {icon !== undefined && <span className="stg:flex stg:h-6 stg:shrink-0 stg:items-center stg:text-foreground">{icon}</span>}
+      <div className="stg:flex stg:min-w-0 stg:flex-1 stg:flex-col stg:gap-1">
+        <h2 id={id ?? shell?.titleId} className="stg:m-0 stg:text-base stg:font-semibold stg:text-foreground">
+          {title}
+        </h2>
+        {hasDescription && (
+          <p id={shell?.descriptionId} className="stg:m-0 stg:text-sm stg:text-muted-foreground">
+            {description}
+          </p>
+        )}
+      </div>
+      {actions}
+      {!hideClose && close && (
+        <IconButton label={closeLabel} size="xs" icon={<DialogCloseIcon />} onClick={close} disabled={closeDisabled} />
+      )}
+    </div>
+  );
+}
+
+/** Props for {@link DialogBody}. */
+export interface DialogBodyProps {
+  readonly children: ReactNode;
+  readonly className?: string;
+}
+
+/**
+ * A dialog's body: its fields and words on the dialog's 24px sides, 16px
+ * under the header, its parts 16px apart. A failure of the whole dialog's
+ * form is an `ErrorMessage` at the end of the body, above the acts.
+ */
+export function DialogBody({ children, className }: DialogBodyProps) {
+  return <div className={cn("stg:flex stg:min-w-0 stg:flex-col stg:gap-4 stg:px-6 stg:pt-4", className)}>{children}</div>;
+}
+
+/** Props for {@link DialogFooter}. */
+export interface DialogFooterProps {
+  /** The acts, Cancel first and the dialog's act last, at the dialog's end. */
+  readonly children: ReactNode;
+  /** Anything that sits at the dialog's start, apart from the acts (a status line, a secondary link). */
+  readonly leading?: ReactNode;
+  readonly className?: string;
+}
+
+/**
+ * A dialog's acts at its end, 16px under what is above them and 20px over
+ * the dialog's edge: Cancel first, the dialog's act last, one size.
+ */
+export function DialogFooter({ children, leading, className }: DialogFooterProps) {
+  return (
+    <div className={cn("stg:flex stg:flex-wrap stg:items-center stg:justify-end stg:gap-2 stg:px-6 stg:pt-4 stg:pb-5", className)}>
+      {leading !== undefined && <div className="stg:mr-auto stg:min-w-0">{leading}</div>}
+      {children}
+    </div>
+  );
+}
+
+function DialogCloseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M18 6 6 18M6 6l12 12" />
+    </svg>
+  );
+}
 
 /** Props for {@link DialogShell}. */
 export interface DialogShellProps {
@@ -109,6 +238,10 @@ export interface DialogShellProps {
  * and keeps the dialog open for that one close request; the next Escape
  * closes the dialog.
  *
+ * Its content is drawn with {@link DialogHeader}, {@link DialogBody} and
+ * {@link DialogFooter}, so every dialog's title is one size, its words sit
+ * on the same 24px sides, and its acts sit in one place.
+ *
  * Internal on purpose — not exported from the package until a host needs it.
  * The `stigmer/no-handrolled-dialog` lint rule fences new `<dialog>`
  * elements and Base UI's `Dialog` and `AlertDialog` onto this shell.
@@ -132,6 +265,20 @@ export function DialogShell({
   "aria-labelledby": ariaLabelledby,
 }: DialogShellProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const descriptionId = useId();
+  // Whether a DialogHeader inside names the shell by its title (it took the
+  // shell's id) and describes it by its line.
+  const [header, setHeader] = useState({ title: false, description: false });
+  const registerHeader = useCallback((title: boolean, description: boolean) => {
+    setHeader({ title, description });
+    return () => setHeader({ title: false, description: false });
+  }, []);
+  const requestClose = useCallback(() => onOpenChange(false), [onOpenChange]);
+  const shellContext = useMemo<DialogShellContextValue>(
+    () => ({ titleId, descriptionId, requestClose, registerHeader }),
+    [titleId, descriptionId, requestClose, registerHeader],
+  );
   const inheritedPortalContainer = useStigmerPortalContainer();
   // State, not a ref: children must re-render with the element once it
   // mounts. Until then the value is `null`, which Base UI reads as "wait
@@ -210,7 +357,8 @@ export function DialogShell({
       onClose={modal ? handleClose : undefined}
       onClick={modal && dismissOnBackdrop ? handleClick : undefined}
       aria-label={ariaLabel}
-      aria-labelledby={ariaLabelledby}
+      aria-labelledby={ariaLabelledby ?? (ariaLabel === undefined && header.title ? titleId : undefined)}
+      aria-describedby={header.description ? descriptionId : undefined}
       className={cn(
         "stg:w-full stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:text-popover-foreground stg:shadow-xl",
         modal
@@ -227,7 +375,7 @@ export function DialogShell({
       <PortalContainerContext.Provider
         value={modal ? portalTarget : inheritedPortalContainer}
       >
-        {children}
+        <DialogShellContext.Provider value={shellContext}>{children}</DialogShellContext.Provider>
       </PortalContainerContext.Provider>
       {/* A zero-size fixed box at the viewport origin, not an in-flow
           div: a fixed box's containing block is the viewport, so popups
