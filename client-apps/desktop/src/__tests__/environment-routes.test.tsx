@@ -24,6 +24,12 @@ vi.mock("@tauri-apps/api/window", () => ({
 }));
 vi.mock("@tauri-apps/plugin-updater", () => ({ check: vi.fn().mockResolvedValue(null) }));
 
+// The Library's list is the kit's console section, stubbed with its workbench's name.
+vi.mock("@stigmer/react-sdk/console", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-sdk/console")>()),
+  LibraryEnvironmentsSection: () => <p>Environment workbench</p>,
+}));
+
 vi.mock("@stigmer/react-sdk", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@stigmer/react-sdk")>()),
   ResourceWorkbench: ({ "aria-label": label }: { "aria-label"?: string }) => <p>{label}</p>,

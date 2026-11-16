@@ -1,325 +1,148 @@
 /**
- * Pins the web library's list pages: each lists the active organization by
- * its id, the way the server names every org; a row's Organization column
- * shows the org the stored resource names by id through OrgSlugText (its
- * slug, never the raw id); and a row's "Copy ID" copies the
- * `<org slug>/<slug>` reference a person types elsewhere. A row's Delete on
- * the agents list confirms in the agent detail page's words, the same
- * confirmation for the same act. The plugins list offers "Add MCP server"
- * in the active organization, open on arrival through `?add=mcp-server`
- * (the Library's Add menu), and goes to the new plugin's page. The routines
- * list's "Apply YAML" opens the manifest dialog in the active org. The
- * workbench, OrgSlugText and the form are pinned in @stigmer/react-sdk.
+ * Pins the web console's Library list pages and landing as thin shells over
+ * the kit's console sections (what each list shows is pinned beside the
+ * sections in @stigmer/react-sdk): each route serves its page, each page
+ * links with Next's `Link` and opens a resource as a Library detail through
+ * the overlay's client-side navigation, under its organization's slug. The
+ * plugins list opens "Add MCP server" on arrival through `?add=mcp-server`
+ * (the Library's Add menu), and the landing goes to a card's list through
+ * Next's router.
  */
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, render } from "@testing-library/react";
+import type { LibraryResourceRef } from "@stigmer/react-sdk/console";
 
-interface ColumnDef {
-  id: string;
-  cell: (item: Row) => ReactNode;
-}
-
-interface Row {
-  id: string;
-  org: string;
-  slug: string;
-  name: string;
-}
-
-interface WorkbenchProps {
-  org: string | null;
-  columns: ColumnDef[];
-  renderItemAction?: (item: Row) => ReactNode;
-  emptyAction?: ReactNode;
-  onItemClick?: (item: { metadata: { org: string; slug: string } }) => void;
-}
-
-const ROW: Row = { id: "agt_1", org: "org_acme", slug: "kit", name: "Kit" };
+type Props = Record<string, unknown>;
 
 const page = vi.hoisted(() => ({
-  /** The relations every row's resource holds, as the self-check would answer them. */
-  granted: ["can_delete"] as string[],
-  // The server's answer to "may this person create an agent here?".
-  canCreate: { allowed: true, isLoading: false },
-  workbench: [] as WorkbenchProps[],
-  addServer: [] as Array<Record<string, unknown>>,
-  detail: [] as Array<{ type: string; org: string; slug: string }>,
+  props: new Map<string, Props>(),
   search: new URLSearchParams(),
-  confirms: [] as Array<{ title: string; description: string }>,
-  applyDialog: [] as Array<{ open: boolean; org: string }>,
+  pushed: [] as string[],
 }));
 
-vi.mock("@stigmer/react-sdk", async () => {
-  const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
-  const Passthrough = ({ children }: { children?: ReactNode }) => (
-    <>{children}</>
-  );
-  const ActionMenu = Object.assign(Passthrough, {
-    Trigger: () => null,
-    Content: Passthrough,
-    Separator: () => null,
-    Item: ({
-      children,
-      onSelect,
-    }: {
-      children?: ReactNode;
-      onSelect: () => void;
-    }) => (
-      <button type="button" onClick={onSelect}>
-        {children}
-      </button>
-    ),
-  });
-  const kind = {
-    list: async () => ({ entries: [], nextPageToken: "" }),
-    delete: async () => undefined,
+vi.mock("@stigmer/react-sdk/console", async (importOriginal) => {
+  const capture = (name: string) => (props: Props) => {
+    page.props.set(name, props);
+    return null;
   };
   return {
-    Button: kit.Button,
-    IconButton: kit.IconButton,
-    LinkButton: kit.LinkButton,
-    PageHeader: kit.PageHeader,
-    ResourceWorkbench: (props: WorkbenchProps) => {
-      page.workbench.push(props);
-      // Render one row the way the workbench does: each column's cell,
-      // then the row's action slot.
-      return (
-        <div>
-          {props.columns.map((column) => (
-            <div key={column.id} data-column={column.id}>
-              {column.cell(ROW)}
-            </div>
-          ))}
-          {props.renderItemAction?.(ROW)}
-        </div>
-      );
-    },
-    ActionMenu,
-    // Stands in for the kit's bar: an act that requires a relation is offered
-    // only when the row's resource holds it (the rule is pinned in the kit).
-    ResourceActionBar: ({
-      resource,
-      menuLabel,
-      actions,
-    }: {
-      resource?: { kind: string; id: string } | null;
-      menuLabel?: string;
-      actions: Array<{ id: string; label: string; requires?: string; onAction: () => void }>;
-    }) => (
-      <div aria-label={menuLabel} data-resource={resource ? `${resource.kind}:${resource.id}` : ""}>
-        {actions
-          .filter((action) => action.requires === undefined || page.granted.includes(action.requires))
-          .map((action) => (
-            <button key={action.id} type="button" onClick={action.onAction}>
-              {action.label}
-            </button>
-          ))}
-      </div>
-    ),
-    ApplyManifestDialog: (props: { open: boolean; org: string }) => {
-      page.applyDialog.push({ open: props.open, org: props.org });
-      return null;
-    },
-    ConfirmDialog: () => null,
-    AddMcpServerDialog: (props: Record<string, unknown>) => {
-      page.addServer.push(props);
-      return null;
-    },
-    // A stand-in that shows which org id the column handed it.
-    OrgSlugText: ({ orgId }: { orgId: string }) => <span>slug of {orgId}</span>,
-    RoutineRowActions: () => null,
-    createRoutineColumns: () => [],
-    createRoutineListFn: () => kind.list,
-    createLibraryListFn: () => kind.list,
-    useStigmer: () => ({
-      agent: kind,
-      skill: kind,
-      plugin: kind,
-    }),
-    useActiveOrgId: () => "org_acme",
-    useCanCreateAgent: () => page.canCreate,
-    // An admin: the plugin list's ways in are pinned for a member in its own suite.
-    useCanCreatePlugin: () => ({ allowed: true, isLoading: false }),
-    // The person's organizations: org_acme reads "acme".
-    useOrgSlugForId: () => (id: string) => (id === "org_acme" ? "acme" : id),
-    useConfirmAction: () => ({
-      confirmState: null,
-      confirm: async (options: { title: string; description: string }) => {
-        page.confirms.push(options);
-        return false;
-      },
-      handleConfirm: () => undefined,
-      handleCancel: () => undefined,
-    }),
-    toast: { success: () => undefined, error: () => undefined },
+    ...(await importOriginal<typeof import("@stigmer/react-sdk/console")>()),
+    LibraryOverview: capture("LibraryOverview"),
+    LibraryAgentsSection: capture("LibraryAgentsSection"),
+    LibrarySkillsSection: capture("LibrarySkillsSection"),
+    LibraryPluginsSection: capture("LibraryPluginsSection"),
+    LibraryRoutinesSection: capture("LibraryRoutinesSection"),
+    LibraryEnvironmentsSection: capture("LibraryEnvironmentsSection"),
+    LibraryFilesSection: capture("LibraryFilesSection"),
   };
 });
 
-vi.mock("next/link", () => ({
-  default: ({ children, href }: { children?: ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
-  ),
+// The person's organizations: org_acme reads "acme" in a URL.
+vi.mock("@stigmer/react-sdk", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-sdk")>()),
+  useOrgSlugForId: () => (id: string) => (id === "org_acme" ? "acme" : id),
+  useCanonicalOrgSlug: (segment: string | null) => segment,
 }));
 
 vi.mock("next/navigation", () => ({
+  usePathname: () => "/library",
   useSearchParams: () => page.search,
+  useRouter: () => ({ push: (url: string) => page.pushed.push(url) }),
 }));
 
-vi.mock("@/domain/library/library-navigation", () => ({
-  useLibraryNavigation: () => ({
-    navigateToDetail: (type: string, org: string, slug: string) => {
-      page.detail.push({ type, org, slug });
-    },
-  }),
+vi.mock("next/link", () => ({
+  default: ({ children, href }: { children?: ReactNode; href: string }) => <a href={href}>{children}</a>,
 }));
 
-import { AgentListPage } from "../agents/AgentListPage";
-import { PluginListPage } from "../plugins/PluginListPage";
-import { RoutineListPage } from "../routines/RoutineListPage";
+import { LibraryNavigationProvider } from "../library-navigation";
+import { renderJourneyLink } from "@/domain/journey/journey-links";
+import LibraryPage from "@/app/library/page";
+import AgentsPage from "@/app/library/agents/page";
+import SkillsPage from "@/app/library/skills/page";
+import PluginsPage from "@/app/library/plugins/page";
 import RoutinesPage from "@/app/library/routines/page";
-import { SkillListPage } from "../skills/SkillListPage";
-import { AGENT_DELETE_DESCRIPTION } from "../agents/agent-delete-confirmation";
+import EnvironmentsPage from "@/app/library/environments/page";
+import FilesPage from "@/app/library/files/page";
 
-let copied: string[] = [];
-
-beforeEach(() => {
-  page.canCreate = { allowed: true, isLoading: false };
-  page.workbench.length = 0;
-  page.addServer.length = 0;
-  page.detail.length = 0;
-  page.search = new URLSearchParams();
-  page.confirms.length = 0;
-  page.applyDialog.length = 0;
-  copied = [];
-  vi.spyOn(navigator.clipboard, "writeText").mockImplementation(
-    async (text: string) => {
-      copied.push(text);
-    },
+function renderInZone(Page: ComponentType) {
+  return render(
+    <LibraryNavigationProvider>
+      <Page />
+    </LibraryNavigationProvider>,
   );
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
-
-function orgCell(): HTMLElement {
-  const cell = document.querySelector<HTMLElement>('[data-column="org"]');
-  if (!cell) throw new Error("no Organization column");
-  return cell;
 }
 
+function propsOf(name: string): Props {
+  const props = page.props.get(name);
+  if (!props) throw new Error(`${name} was not rendered`);
+  return props;
+}
+
+beforeEach(() => {
+  page.props.clear();
+  page.search = new URLSearchParams();
+  page.pushed.length = 0;
+  window.history.replaceState(null, "", "/library");
+});
+
+afterEach(cleanup);
+
 describe.each([
-  { name: "AgentListPage", Page: AgentListPage },
-  { name: "SkillListPage", Page: SkillListPage },
-  { name: "PluginListPage", Page: PluginListPage },
-])("web $name", ({ Page }) => {
-  it("lists the active org by its id", () => {
-    render(<Page />);
+  { route: "/library/agents", Page: AgentsPage, section: "LibraryAgentsSection", kind: "agents" },
+  { route: "/library/skills", Page: SkillsPage, section: "LibrarySkillsSection", kind: "skills" },
+  { route: "/library/plugins", Page: PluginsPage, section: "LibraryPluginsSection", kind: "plugins" },
+  { route: "/library/routines", Page: RoutinesPage, section: "LibraryRoutinesSection", kind: "routines" },
+  { route: "/library/environments", Page: EnvironmentsPage, section: "LibraryEnvironmentsSection", kind: "environments" },
+  { route: "/library/files", Page: FilesPage, section: "LibraryFilesSection", kind: "skills" },
+] as const)("web $route", ({ Page, section, kind }) => {
+  it("serves the kit's section, linked with Next's Link", () => {
+    renderInZone(Page);
 
-    expect(page.workbench.at(-1)?.org).toBe("org_acme");
+    expect(propsOf(section).renderLink).toBe(renderJourneyLink);
   });
 
-  it("shows a row's org through OrgSlugText, from the id the row names it by", () => {
-    render(<Page />);
+  it("opens a resource as a Library detail under its organization's slug", () => {
+    renderInZone(Page);
 
-    expect(orgCell().textContent).toBe("slug of org_acme");
-  });
+    const onOpen = propsOf(section).onOpen as (resource: LibraryResourceRef) => void;
+    act(() => onOpen({ kind, org: "org_acme", slug: "kit" }));
 
-  it("copies the row's reference under its org's slug", () => {
-    render(<Page />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Copy ID" }));
-
-    expect(copied).toEqual(["acme/kit"]);
-  });
-});
-
-describe("web AgentListPage delete", () => {
-  it("confirms in the detail page's words, naming the agent alone", () => {
-    render(<AgentListPage />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
-
-    expect(page.confirms).toHaveLength(1);
-    expect(page.confirms[0]!.description).toBe(AGENT_DELETE_DESCRIPTION);
-    expect(page.confirms[0]!.description).not.toMatch(/instance/);
-  });
-});
-
-describe("web PluginListPage Add MCP server", () => {
-  it("adds the server in the active org by its id, closed until asked", () => {
-    render(<PluginListPage />);
-
-    expect(page.addServer.at(-1)).toMatchObject({ org: "org_acme", open: false });
-  });
-
-  it("opens on arrival from the Library's Add menu", () => {
-    page.search = new URLSearchParams("add=mcp-server");
-    render(<PluginListPage />);
-
-    expect(page.addServer.at(-1)?.open).toBe(true);
-  });
-
-  it("goes to the new plugin's page once it is added", () => {
-    render(<PluginListPage />);
-
-    const onAdded = page.addServer.at(-1)?.onAdded as (plugin: { metadata: { org: string; slug: string } }) => void;
-    onAdded({ metadata: { org: "org_acme", slug: "linear" } });
-
-    expect(page.detail).toEqual([{ type: "plugins", org: "org_acme", slug: "linear" }]);
+    expect(window.location.pathname).toBe(`/library/${kind}/acme/kit`);
   });
 });
 
 describe("web RoutineListPage", () => {
-  it("lists the active org by its id", () => {
-    render(<RoutineListPage />);
-
-    expect(page.workbench.at(-1)?.org).toBe("org_acme");
-  });
-
-  it("opens the Apply YAML dialog in the active org from the header", () => {
-    const { getByRole } = render(<RoutineListPage />);
-    expect(page.applyDialog.at(-1)).toEqual({ open: false, org: "org_acme" });
-
-    fireEvent.click(within(getByRole("banner")).getByRole("button", { name: "Apply YAML" }));
-
-    expect(page.applyDialog.at(-1)).toEqual({ open: true, org: "org_acme" });
-  });
-
   it("is the page /library/routines serves, and a row opens its routine", () => {
-    render(<RoutinesPage />);
+    renderInZone(RoutinesPage);
 
-    page.workbench.at(-1)?.onItemClick?.({ metadata: { org: "org_acme", slug: "nightly" } });
-    expect(page.detail).toEqual([{ type: "routines", org: "org_acme", slug: "nightly" }]);
+    act(() => (propsOf("LibraryRoutinesSection").onOpen as (r: LibraryResourceRef) => void)({ kind: "routines", org: "org_acme", slug: "nightly" }));
+
+    expect(window.location.pathname).toBe("/library/routines/acme/nightly");
   });
 });
 
-describe("web AgentListPage — who may create agents", () => {
-  function renderActions() {
-    const props = page.workbench.at(-1);
-    if (!props) throw new Error("the workbench was not rendered");
-    return render(
-      <>
-        {props.emptyAction}
-      </>,
-    );
-  }
+describe("web PluginListPage Add MCP server", () => {
+  it("is closed on a plain visit", () => {
+    renderInZone(PluginsPage);
 
-  it("offers Create agent in the header and the empty list to someone the server lets create one", () => {
-    render(<AgentListPage />);
-    const { getAllByRole } = renderActions();
-
-    expect(getAllByRole("link", { name: "Create agent" })).toHaveLength(2);
+    expect(propsOf("LibraryPluginsSection").addMcpServerOnArrival).toBe(false);
   });
 
-  it("offers no Create agent to someone the server would refuse, and keeps Apply YAML", () => {
-    page.canCreate = { allowed: false, isLoading: false };
-    render(<AgentListPage />);
-    const { getByRole, queryByRole } = renderActions();
+  it("opens on arrival from the Library's Add menu", () => {
+    page.search = new URLSearchParams("add=mcp-server");
+    renderInZone(PluginsPage);
 
-    expect(queryByRole("link", { name: "Create agent" })).toBeNull();
-    expect(page.workbench.at(-1)?.emptyAction).toBeUndefined();
-    expect(getByRole("button", { name: "Apply YAML" })).toBeTruthy();
+    expect(propsOf("LibraryPluginsSection").addMcpServerOnArrival).toBe(true);
+  });
+});
+
+describe("web LibraryLanding", () => {
+  it("is the page /library serves, and goes to a card's list through Next's router", () => {
+    renderInZone(LibraryPage);
+
+    act(() => (propsOf("LibraryOverview").onNavigate as (path: string) => void)("/library/plugins"));
+
+    expect(page.pushed).toEqual(["/library/plugins"]);
   });
 });

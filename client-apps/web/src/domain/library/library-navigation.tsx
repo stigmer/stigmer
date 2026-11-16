@@ -11,6 +11,7 @@ import {
 } from "react";
 import { usePathname } from "next/navigation";
 import { useCanonicalOrgSlug, useOrgSlugForId } from "@stigmer/react-sdk";
+import type { LibraryResourceRef } from "@stigmer/react-sdk/console";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -320,4 +321,16 @@ export function useLibraryNavigation(): LibraryNavigationValue {
     );
   }
   return ctx;
+}
+
+/**
+ * Opens a resource from one of the kit's Library sections: the overlay's
+ * client-side detail navigation, as the sections' `onOpen` takes it.
+ */
+export function useLibraryOpen(): (resource: LibraryResourceRef) => void {
+  const { navigateToDetail } = useLibraryNavigation();
+  return useCallback(
+    (resource: LibraryResourceRef) => navigateToDetail(resource.kind, resource.org, resource.slug),
+    [navigateToDetail],
+  );
 }

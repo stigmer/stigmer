@@ -1,101 +1,14 @@
-import { useReducer, useState } from "react";
+/**
+ * The desktop app's Library landing: the kit's overview, its cards and Add
+ * menu going through the router; a card's address is the hash route.
+ */
+
 import { useNavigate } from "react-router-dom";
-import { Blocks, Bot, Box, CalendarClock, FileCode2, Files, Sparkles } from "lucide-react";
-import {
-  Button,
-  ApplyManifestDialog,
-  useAgentCount,
-  useRoutineCount,
-  useEnvironmentCount,
-  useFileCount,
-  useSkillCount,
-  usePluginCount,
-  ResourceCountCard,
-  useActiveOrgId,
-  PageHeader,
-} from "@stigmer/react-sdk";
+import { LibraryOverview } from "@stigmer/react-sdk/console";
+
+const toHashHref = (path: string) => `#${path}`;
 
 export default function LibraryLanding() {
-  const org = useActiveOrgId();
   const navigate = useNavigate();
-  // Apply YAML here can create any kind, so a bump recounts every card.
-  const [refetchToken, refreshCounts] = useReducer((n: number) => n + 1, 0);
-  const agents = useAgentCount(org, { refetchToken });
-  const skills = useSkillCount(org, { refetchToken });
-  const routines = useRoutineCount(org, { refetchToken });
-  const plugins = usePluginCount(org, { refetchToken });
-  const environments = useEnvironmentCount(org, { refetchToken });
-  const files = useFileCount(org, { refetchToken });
-  const [applyYamlOpen, setApplyYamlOpen] = useState(false);
-
-  return (
-    <>
-      <PageHeader
-        className="mb-6"
-        headingLevel={1}
-        title="Library"
-        actions={
-          // Declarative entry point, wired identically to the web Library
-          // landing.
-          <Button variant="ghost" icon={<FileCode2 className="size-3.5" aria-hidden="true" />} onClick={() => setApplyYamlOpen(true)}>
-            Apply YAML
-          </Button>
-        }
-      />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <ResourceCountCard
-          icon={<Bot className="size-5" aria-hidden="true" />}
-          label="Agents"
-          count={agents.count}
-          isLoading={agents.isLoading}
-          onClick={() => navigate("/library/agents")}
-        />
-        <ResourceCountCard
-          icon={<Sparkles className="size-5" aria-hidden="true" />}
-          label="Skills"
-          count={skills.count}
-          isLoading={skills.isLoading}
-          onClick={() => navigate("/library/skills")}
-        />
-        <ResourceCountCard
-          icon={<CalendarClock className="size-5" aria-hidden="true" />}
-          label="Routines"
-          count={routines.count}
-          countIsLowerBound={routines.isLowerBound}
-          isLoading={routines.isLoading}
-          onClick={() => navigate("/library/routines")}
-        />
-        <ResourceCountCard
-          icon={<Blocks className="size-5" aria-hidden="true" />}
-          label="Plugins"
-          count={plugins.count}
-          isLoading={plugins.isLoading}
-          onClick={() => navigate("/library/plugins")}
-        />
-        <ResourceCountCard
-          icon={<Box className="size-5" aria-hidden="true" />}
-          label="Environments"
-          count={environments.count}
-          countIsLowerBound={environments.isLowerBound}
-          isLoading={environments.isLoading}
-          onClick={() => navigate("/library/environments")}
-        />
-        <ResourceCountCard
-          icon={<Files className="size-5" aria-hidden="true" />}
-          label="Files"
-          count={files.count}
-          countIsLowerBound={files.isLowerBound}
-          isLoading={files.isLoading}
-          onClick={() => navigate("/library/files")}
-        />
-      </div>
-
-      <ApplyManifestDialog
-        open={applyYamlOpen}
-        onOpenChange={setApplyYamlOpen}
-        org={org ?? ""}
-        onApplied={refreshCounts}
-      />
-    </>
-  );
+  return <LibraryOverview onNavigate={(path) => navigate(path)} toHref={toHashHref} />;
 }

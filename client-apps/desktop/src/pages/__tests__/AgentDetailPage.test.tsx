@@ -117,7 +117,7 @@ vi.mock("@stigmer/react-sdk", () => ({
 }));
 
 import AgentDetailPage from "../library/AgentDetailPage";
-import { AGENT_DELETE_DESCRIPTION } from "../library/agent-delete-confirmation";
+import { AGENT_DELETE_DESCRIPTION } from "@stigmer/react-sdk/console";
 
 /** The view's report of a load of the agent, answering `slug`. */
 function loaded(slug: string): void {

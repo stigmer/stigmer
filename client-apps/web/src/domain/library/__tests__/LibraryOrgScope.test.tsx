@@ -1,14 +1,11 @@
 /**
- * Pins where the web library scopes to the viewer's active organization by
- * its id, the way the server names every org: the landing's resource
- * counts; the agent page shows the agent where it lives. The Add menu
- * offers Agent, Environment and File only to someone the server lets
- * create each, and Environment and File not until the server has answered.
- * "Apply YAML" opens the manifest dialog for the active org. The views and
- * count hooks are pinned in @stigmer/react-sdk.
+ * Pins where the web library's agent page scopes: it shows the agent where
+ * it lives. The landing's counts, its Apply YAML and its Add menu moved with
+ * the landing into @stigmer/react-sdk/console and are pinned there
+ * (`library/sections/__tests__/LibraryOverview.test.tsx`).
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render } from "@testing-library/react";
 
 const page = vi.hoisted(() => ({
   // The server's answer to "may this person create an agent here?".
@@ -99,7 +96,6 @@ vi.mock("@/config/env", () => ({
   getAppBaseUrl: () => "https://console.test",
 }));
 
-import { LibraryLanding } from "../LibraryLanding";
 import { AgentDetailPageInner } from "../agents/AgentDetailPage";
 
 beforeEach(() => {
@@ -112,83 +108,10 @@ beforeEach(() => {
 });
 
 describe("web library org scope", () => {
-  it("LibraryLanding counts every kind in the active org by its id", () => {
-    render(<LibraryLanding />);
-
-    expect(page.counted).toHaveLength(6);
-    expect(new Set(page.counted)).toEqual(new Set(["org_acme"]));
-  });
-
-  it("LibraryLanding opens the Apply YAML dialog for the active org", () => {
-    render(<LibraryLanding />);
-    expect(page.applyDialog.at(-1)).toEqual({ open: false, org: "org_acme" });
-
-    fireEvent.click(screen.getByRole("button", { name: "Apply YAML" }));
-
-    expect(page.applyDialog.at(-1)).toEqual({ open: true, org: "org_acme" });
-  });
-
   it("AgentDetailPageInner shows the agent where it lives, with no instances to scope", () => {
     render(<AgentDetailPageInner org="other" slug="helper" />);
 
     expect(page.agentView.at(-1)).toMatchObject({ org: "other", slug: "helper" });
     expect(page.agentView.at(-1)).not.toHaveProperty("viewerOrg");
-  });
-});
-
-describe("web library Add menu — who may create agents", () => {
-  async function addMenuItems(): Promise<string[]> {
-    render(<LibraryLanding />);
-    fireEvent.click(screen.getByRole("button", { name: "Add a new resource" }));
-    const items = await screen.findAllByRole("menuitem");
-    return items.map((item) => item.textContent ?? "");
-  }
-
-  it("offers Agent to someone the server lets create one", async () => {
-    expect((await addMenuItems()).some((label) => label.includes("Agent"))).toBe(true);
-  });
-
-  it("leaves Agent out for someone the server would refuse, and keeps the other kinds", async () => {
-    page.canCreate = { allowed: false, isLoading: false };
-    const labels = await addMenuItems();
-    expect(labels.some((label) => label.includes("Agent"))).toBe(false);
-    expect(labels.length).toBeGreaterThan(0);
-  });
-});
-
-describe("web library Add menu — who may create environments", () => {
-  async function addMenuItems(): Promise<string[]> {
-    render(<LibraryLanding />);
-    fireEvent.click(screen.getByRole("button", { name: "Add a new resource" }));
-    const items = await screen.findAllByRole("menuitem");
-    return items.map((item) => item.textContent ?? "");
-  }
-
-  it("offers Environment to an admin", async () => {
-    expect(await addMenuItems()).toContain("Environment");
-  });
-
-  it("leaves Environment out for someone the server would refuse (a member, or anyone before it answers)", async () => {
-    page.canCreateEnvironment = { allowed: false, isLoading: false };
-    expect(await addMenuItems()).not.toContain("Environment");
-  });
-});
-
-describe("web library Add menu — who may upload files", () => {
-  async function addMenuItems(): Promise<string[]> {
-    render(<LibraryLanding />);
-    fireEvent.click(screen.getByRole("button", { name: "Add a new resource" }));
-    const items = await screen.findAllByRole("menuitem");
-    return items.map((item) => item.textContent ?? "");
-  }
-
-  it("offers File, which opens the Files page, to whoever may upload one", async () => {
-    expect(await addMenuItems()).toContain("File");
-    expect(screen.getByRole("menuitem", { name: "File" }).getAttribute("href")).toBe("/library/files");
-  });
-
-  it("leaves File out for someone the server would refuse (or anyone before it answers)", async () => {
-    page.canCreateFile = { allowed: false, isLoading: false };
-    expect(await addMenuItems()).not.toContain("File");
   });
 });

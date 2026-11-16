@@ -19,7 +19,7 @@ import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam"
 import { useRunNavigation } from "@/domain/runs/run-navigation";
 import { getAgentSessionUrl } from "@/domain/session/session-url";
 import { chatLinkUrlFor } from "@/domain/chat-link/chat-link-url";
-import { AGENT_DELETE_DESCRIPTION } from "@/domain/library/agents/agent-delete-confirmation";
+import { AGENT_DELETE_DESCRIPTION } from "@stigmer/react-sdk/console";
 import { useJourneyLinks } from "@/domain/journey/journey-links";
 
 /**

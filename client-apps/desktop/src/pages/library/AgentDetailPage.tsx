@@ -14,7 +14,7 @@ import {
 } from "@stigmer/react-sdk";
 import { buildChatUrl } from "@stigmer/client";
 import { CONSOLE_URL } from "../../config";
-import { AGENT_DELETE_DESCRIPTION } from "./agent-delete-confirmation";
+import { AGENT_DELETE_DESCRIPTION } from "@stigmer/react-sdk/console";
 import { useCanonicalDetailSlug } from "./canonical-slug";
 import { useJourneyLinks } from "../../journey/journey-links";
 
