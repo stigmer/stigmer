@@ -99,6 +99,12 @@ export interface PluginDetailViewProps {
   /** @default "overview" */
   readonly defaultTab?: string;
   /** Additional CSS classes for the root container. */
+  /**
+   * The level of the page's title: 1 where the view is the page's main
+   * content (the console's and the desktop app's detail pages), 2 (the
+   * default) where it sits under a heading of the host's.
+   */
+  readonly headingLevel?: 1 | 2;
   readonly className?: string;
 }
 
@@ -134,6 +140,7 @@ export function PluginDetailView({
   onTabChange,
   defaultTab,
   className,
+  headingLevel,
 }: PluginDetailViewProps) {
   const { plugin, isLoading, error, refetch } = usePlugin(org, slug);
   // The resource the header's acts are checked on: Remove is offered only
@@ -236,6 +243,7 @@ export function PluginDetailView({
     <>
       <ResourceDetailShell
         header={headerMeta}
+        headingLevel={headingLevel}
         visibilityControl={visibilityControl}
         primaryAction={primaryAction}
         actions={mergedActions}

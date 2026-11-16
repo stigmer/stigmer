@@ -31,7 +31,7 @@ export function skillDetailScene(): Drawing {
     routes: skillRoutes,
     render: () => (
       <div style={{ maxWidth: "56rem", margin: "0 auto", padding: "2rem 1.5rem" }}>
-        <SkillDetailView org={ORGANIZATION.metadata?.slug ?? ""} slug={VARIANCE_REPORT_SKILL.metadata?.slug ?? ""} />
+        <SkillDetailView headingLevel={1} org={ORGANIZATION.metadata?.slug ?? ""} slug={VARIANCE_REPORT_SKILL.metadata?.slug ?? ""} />
       </div>
     ),
   };

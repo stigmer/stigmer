@@ -32,7 +32,9 @@ import { cadenceToCron, validateCron, type CadencePreset } from "./cadence.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { Button } from "../button/Button.js";
-import { FIELD_HINT_CLASSES, FIELD_LABEL_CLASSES, TextArea, TextInput } from "../internal/form/index.js";
+import { FIELD_HINT_CLASSES, FIELD_LABEL_CLASSES, FieldError, TextArea, TextInput, fieldControlClasses } from "../internal/form/index.js";
+import { useAgent } from "../agent/useAgent.js";
+import { useCheckPermissions } from "../grant/useCheckPermissions.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 
 // ---------------------------------------------------------------------------
@@ -170,9 +172,23 @@ export function RoutineForm({
   const cron = cadenceToCron(cadence).trim();
   const cronValid = cron !== "" && validateCron(cron) === null;
 
+  // Creating a routine asks to change the agent it names, so the agent
+  // picked is asked once (closed: no answer yet holds Create, no answer is a
+  // no) and a person who may not change it is told under the field, before
+  // they fill in the rest.
+  const { agent: pickedAgent } = useAgent(agentRef?.org ?? null, agentRef?.slug ?? null);
+  const pickedAgentId = pickedAgent?.metadata?.id ?? "";
+  const agentEdit = useCheckPermissions(
+    pickedAgentId === "" ? null : { kind: "agent", id: pickedAgentId },
+    ["can_edit"],
+    { fail: "closed" },
+  ).can_edit;
+  const agentEditDenied = pickedAgentId !== "" && !agentEdit.isLoading && !agentEdit.allowed;
+
   const canSubmit =
     trimmedName !== "" &&
     agentRef !== null &&
+    agentEdit.allowed &&
     trimmedMessage !== "" &&
     cronValid &&
     !isCreating;
@@ -281,8 +297,11 @@ export function RoutineForm({
           <Popover.Trigger
             disabled={isCreating}
             aria-labelledby={`${baseId}-agent-label`}
+            aria-invalid={agentEditDenied || undefined}
+            aria-describedby={agentEditDenied ? `${baseId}-agent-error` : undefined}
             className={cn(
-              "stg:flex stg:w-full stg:items-center stg:justify-between stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-left stg:text-xs",
+              fieldControlClasses({ invalid: agentEditDenied }),
+              "stg:justify-between stg:text-left",
               "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
               "stg:disabled:pointer-events-none stg:disabled:opacity-50",
               agentRef ? "stg:text-foreground" : "stg:text-muted-foreground",
@@ -305,11 +324,17 @@ export function RoutineForm({
             disabled={isCreating}
           />
         </Popover.Root>
+        {agentEditDenied ? (
+          <FieldError id={`${baseId}-agent-error`}>
+            You can&rsquo;t change {agentName ?? agentRef?.slug}, so you can&rsquo;t schedule it. Pick an agent you may change, or ask its owner.
+          </FieldError>
+        ) : (
         <p className={hintClasses}>
-          Each fire runs this agent unattended in a fresh session. Only
-          agents in <span className="stg:font-medium">{slugForOrg(org)}</span> can be
+          Each run starts this agent unattended in a fresh session. Only
+          agents in <span className="stg:font-medium stg:text-foreground">{slugForOrg(org)}</span> can be
           scheduled.
         </p>
+        )}
       </div>
 
       {/* Message */}
@@ -321,7 +346,7 @@ export function RoutineForm({
           id={`${baseId}-message`}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="The instruction the agent receives on every fire — write it for a run with no human present."
+          placeholder="The instruction the agent receives on every run. Write it for a run with nobody watching."
           disabled={isCreating}
           required
           rows={5}
@@ -333,6 +358,21 @@ export function RoutineForm({
         )}
       </div>
 
+      {/* Cadence */}
+      <div className="stg:space-y-1">
+        <span className={labelClasses}>Runs</span>
+        <CadenceField
+          value={cadence}
+          onChange={setCadence}
+          timeZone={timeZone}
+          disabled={isCreating}
+        />
+      </div>
+
+      {/* The rest is optional: what each run reads, the keys it uses, its
+          sandbox, its model, its spend and its clock. */}
+      <div className="stg:space-y-5 stg:border-t stg:border-border-muted stg:pt-5">
+        <h2 className="stg:m-0 stg:text-sm stg:font-semibold stg:text-foreground">Optional</h2>
       {/* Workspace — what each fire's fresh session operates on.
           Git sources only; the server refuses local
           folders at write time because no client is connected when a
@@ -352,7 +392,7 @@ export function RoutineForm({
         <p className={hintClasses}>
           Each run clones these repositories fresh. Private repositories need
           a <code className="stg:font-mono">github.com</code> login in one of
-          this routine&rsquo;s vaults; public ones need nothing.
+          this routine&rsquo;s vaults.
         </p>
       </div>
 
@@ -385,9 +425,8 @@ export function RoutineForm({
           allowMyVault
         />
         <p className={hintClasses}>
-          The keys and logins every fire uses (your own My vault is named by
-          default). Without them, an agent whose tools need credentials is
-          refused every run, naming the key.
+          The keys and logins every run uses. Without them, an agent whose
+          tools need a key is refused every run, naming the key.
         </p>
       </div>
 
@@ -409,23 +448,12 @@ export function RoutineForm({
         </p>
       </div>
 
-      {/* Cadence */}
-      <div className="stg:space-y-1">
-        <span className={labelClasses}>Runs</span>
-        <CadenceField
-          value={cadence}
-          onChange={setCadence}
-          timeZone={timeZone}
-          disabled={isCreating}
-        />
-      </div>
-
       {/* Engine & model — the composer's own picker,
           replacing the free-text model box whose typos surfaced as
           fire-time failures. Nothing is pinned until a model is picked. */}
       <div className="stg:space-y-1">
         <span className={labelClasses}>
-          Harness &amp; model{" "}
+          Harness and model{" "}
           <span className="stg:font-normal stg:text-muted-foreground">(optional)</span>
         </span>
         <div className="stg:flex stg:items-center stg:gap-2">
@@ -457,8 +485,8 @@ export function RoutineForm({
           )}
         </div>
         <p className={hintClasses}>
-          Runs use the platform&rsquo;s default harness and model unless you
-          pick one here. Picking a model pins the harness it belongs to.
+          Runs use the platform&rsquo;s default unless you pick one. Picking a
+          model pins the harness it belongs to.
         </p>
       </div>
 
@@ -477,14 +505,13 @@ export function RoutineForm({
           step="any"
           value={budgetUsd}
           onChange={(e) => setBudgetUsd(e.target.value)}
-          placeholder="platform default"
+          placeholder="Platform default"
           disabled={isCreating}
           className="stg:sm:max-w-48"
         />
         <p className={hintClasses}>
           Each run stops when it reaches this spend. You can lower the
-          platform&rsquo;s per-run cap, never raise it past the
-          platform&rsquo;s ceiling.
+          platform&rsquo;s cap, never raise it.
         </p>
       </div>
 
@@ -516,13 +543,15 @@ export function RoutineForm({
             htmlFor={`${baseId}-enabled`}
             className={labelClasses}
           >
-            Enabled
+            Turn it on now
           </label>
           <p className={hintClasses}>
-            Leave off to create the routine staged: validate it with
-            &ldquo;Run now&rdquo; on the routine page, then enable it there.
+            Leave off to create it staged: try it with Run now on its page,
+            then turn it on there.
           </p>
         </div>
+      </div>
+
       </div>
 
       {error && <ErrorMessage error={error} title="Couldn't create the routine." />}

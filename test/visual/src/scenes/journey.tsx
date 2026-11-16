@@ -330,7 +330,7 @@ export function agentMakeItYoursScene(makesSkills: boolean): Drawing {
     },
     render: () => (
       <div style={{ maxWidth: "56rem", margin: "0 auto", padding: "2rem 1.5rem" }}>
-        <AgentDetailView
+        <AgentDetailView headingLevel={1}
           org={ORG_SLUG}
           slug={agent.metadata?.slug ?? ""}
           editable

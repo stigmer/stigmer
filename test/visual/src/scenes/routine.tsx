@@ -76,7 +76,7 @@ export function routineDetailScene(state: "disabled" | "history"): Drawing {
     routes: routineRoutes(state === "history"),
     render: () =>
       libraryColumn(
-        <RoutineDetailView
+        <RoutineDetailView headingLevel={1}
           org={ORG_SLUG}
           slug={varianceRoutine(false).metadata?.slug ?? ""}
           editable

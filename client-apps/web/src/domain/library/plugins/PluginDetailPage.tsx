@@ -96,7 +96,7 @@ export function PluginDetailPageInner({ org, slug }: PluginDetailPageInnerProps)
 
   return (
     <>
-      <PluginDetailView
+      <PluginDetailView headingLevel={1}
         org={org}
         slug={slug}
         onResourceLoad={handleResourceLoad}

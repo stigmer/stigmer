@@ -51,7 +51,7 @@ export default function RoutineDetailPage() {
   if (!org || !slug) return null;
 
   return (
-    <RoutineDetailView
+    <RoutineDetailView headingLevel={1}
       org={org}
       slug={slug}
       editable

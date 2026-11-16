@@ -117,7 +117,7 @@ export function agentProfileScene(viewer: AgentViewer): Drawing {
     routes: agentRoutes(viewer),
     render: () => (
       <div style={{ maxWidth: "56rem", margin: "0 auto", padding: "2rem 1.5rem" }}>
-        <AgentDetailView org={org} slug={slug} editable primaryAction={START_SESSION} actions={MENU} />
+        <AgentDetailView headingLevel={1} org={org} slug={slug} editable primaryAction={START_SESSION} actions={MENU} />
       </div>
     ),
   };

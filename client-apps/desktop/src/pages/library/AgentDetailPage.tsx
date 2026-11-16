@@ -173,7 +173,7 @@ export default function AgentDetailPage() {
 
   return (
     <>
-      <AgentDetailView
+      <AgentDetailView headingLevel={1}
         org={org}
         slug={slug}
         editable

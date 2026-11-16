@@ -69,7 +69,7 @@ export function agentEnvironmentScene(): Drawing {
     },
     render: () => (
       <div style={{ maxWidth: "56rem", margin: "0 auto", padding: "2rem 1.5rem" }}>
-        <AgentDetailView org={ORG_SLUG} slug={DATA_ANALYST.metadata?.slug ?? ""} editable primaryAction={START_SESSION} actions={MENU} />
+        <AgentDetailView headingLevel={1} org={ORG_SLUG} slug={DATA_ANALYST.metadata?.slug ?? ""} editable primaryAction={START_SESSION} actions={MENU} />
       </div>
     ),
   };

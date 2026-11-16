@@ -211,9 +211,12 @@ function createClient(overrides?: {
   apply?: ReturnType<typeof vi.fn>;
   list?: ReturnType<typeof vi.fn>;
   vault?: { getMine: ReturnType<typeof vi.fn>; list: ReturnType<typeof vi.fn> };
+  /** Whether the caller may change the agent picked (creating a routine asks it). */
+  mayEditAgent?: boolean;
 }) {
   return {
     routine: { apply: overrides?.apply ?? vi.fn().mockResolvedValue(CREATED) },
+    grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: overrides?.mayEditAgent ?? true })) },
     agent: {
       list:
         overrides?.list ?? vi.fn().mockResolvedValue({ entries: [AGENT], nextPageToken: "" }),
@@ -274,6 +277,11 @@ async function pickAgent() {
   fireEvent.click(screen.getByText("Choose an agent…"));
   const result = await screen.findByRole("option", { name: /Fee Reminder/ });
   fireEvent.click(result);
+  // The agent picked is read, then asked whether the caller may change it.
+  await waitFor(() => expect(screen.getByText(/Each run starts this agent|so you can.t schedule it/)).toBeTruthy());
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
 }
 
 describe("RoutineForm", () => {
@@ -293,7 +301,27 @@ describe("RoutineForm", () => {
     expect((submit as HTMLButtonElement).disabled).toBe(true);
 
     await pickAgent();
-    expect((submit as HTMLButtonElement).disabled).toBe(false);
+    await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
+  });
+
+  it("says under the agent when the caller may not change it, and holds Create", async () => {
+    const apply = vi.fn().mockResolvedValue(CREATED);
+    const client = createClient({ apply, mayEditAgent: false });
+    render(<RoutineForm org="isc" />, { wrapper: wrapper(client) });
+
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "daily-fee-reminders" } });
+    fireEvent.change(screen.getByLabelText("Message"), { target: { value: "Send today's reminders." } });
+    await pickAgent();
+
+    const refusal = await screen.findByText(/so you can.t schedule it\. Pick an agent you may change, or ask its owner\./);
+    expect(refusal.closest("[role='alert']")).not.toBeNull();
+    expect(client.grant.checkMyPermission).toHaveBeenCalledWith(
+      expect.objectContaining({ relation: "can_edit" }),
+    );
+    const submit = screen.getByRole("button", { name: "Create routine" }) as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
+    fireEvent.click(submit);
+    expect(apply).not.toHaveBeenCalled();
   });
 
   it("submits the generated cron, browser time zone, and staged-disabled default", async () => {

@@ -64,7 +64,7 @@ export function RoutineDetailPageInner({
   );
 
   return (
-    <RoutineDetailView
+    <RoutineDetailView headingLevel={1}
       org={org}
       slug={slug}
       editable

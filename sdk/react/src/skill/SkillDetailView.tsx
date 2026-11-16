@@ -127,6 +127,12 @@ export interface SkillDetailViewProps {
    */
   readonly onResourceUpdated?: (skill: Skill) => void;
   /** Additional CSS classes for the root container. */
+  /**
+   * The level of the page's title: 1 where the view is the page's main
+   * content (the console's and the desktop app's detail pages), 2 (the
+   * default) where it sits under a heading of the host's.
+   */
+  readonly headingLevel?: 1 | 2;
   readonly className?: string;
 }
 
@@ -174,6 +180,7 @@ export function SkillDetailView({
   editable: editableProp = false,
   onResourceUpdated,
   className,
+  headingLevel,
 }: SkillDetailViewProps) {
   const { skill, isLoading, error, refetch } = useSkill(org, slug, version);
   const managing = useManagingPlugin(skill?.metadata?.labels);
@@ -326,6 +333,7 @@ export function SkillDetailView({
     <>
       <ResourceDetailShell
         header={headerMeta}
+        headingLevel={headingLevel}
         visibilityControl={visibilityControl}
         headerBanner={<ManagedByPluginNotice plugin={managing.plugin} onPluginClick={onPluginClick} />}
         primaryAction={primaryAction}

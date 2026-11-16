@@ -35,7 +35,7 @@ export function EnvironmentDetailPageInner({ org, slug }: EnvironmentDetailPageI
   );
 
   return (
-    <EnvironmentDetailView
+    <EnvironmentDetailView headingLevel={1}
       org={org}
       slug={slug}
       onResourceLoad={handleResourceLoad}

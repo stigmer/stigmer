@@ -143,6 +143,12 @@ export interface RoutineDetailViewProps {
    */
   readonly now?: Date;
   /** Additional CSS classes for the root container. */
+  /**
+   * The level of the page's title: 1 where the view is the page's main
+   * content (the console's and the desktop app's detail pages), 2 (the
+   * default) where it sits under a heading of the host's.
+   */
+  readonly headingLevel?: 1 | 2;
   readonly className?: string;
 }
 
@@ -199,6 +205,7 @@ export function RoutineDetailView({
   now,
   serviceAccountsHref,
   className,
+  headingLevel,
 }: RoutineDetailViewProps) {
   const slugForOrg = useOrgSlugForId();
   const { routine, isLoading, error, refetch } = useRoutine(org, slug);
@@ -826,6 +833,7 @@ export function RoutineDetailView({
     <>
       <ResourceDetailShell
         header={headerMeta}
+        headingLevel={headingLevel}
         headerBanner={headerBanner}
         primaryAction={primaryAction}
         actions={actions}

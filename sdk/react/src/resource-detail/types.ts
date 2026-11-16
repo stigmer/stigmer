@@ -163,6 +163,12 @@ export interface ConfirmState extends ConfirmOptions {
 // ---------------------------------------------------------------------------
 
 export interface ResourceDetailShellProps {
+  /**
+   * The level of the page's title: 1 where the view is the page's main
+   * content (the console's and the desktop app's detail pages), 2 (the
+   * default) where it sits under a heading of the host's.
+   */
+  readonly headingLevel?: 1 | 2;
   /** Header metadata extracted from the resource. */
   readonly header: ResourceHeaderMeta;
 

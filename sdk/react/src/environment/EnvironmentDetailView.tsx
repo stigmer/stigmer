@@ -69,6 +69,12 @@ export interface EnvironmentDetailViewProps {
   /** Called after a successful delete (navigate back to the list). */
   readonly onDeleted?: () => void;
   /** Additional CSS classes for the root container. */
+  /**
+   * The level of the page's title: 1 where the view is the page's main
+   * content (the console's and the desktop app's detail pages), 2 (the
+   * default) where it sits under a heading of the host's.
+   */
+  readonly headingLevel?: 1 | 2;
   readonly className?: string;
 }
 
@@ -93,6 +99,7 @@ export function EnvironmentDetailView({
   onRenamed,
   onDeleted,
   className,
+  headingLevel,
 }: EnvironmentDetailViewProps) {
   const { environment, isLoading, error, refetch } = useEnvironment(org, slug);
   const loadedId = environment?.metadata?.id ?? null;
@@ -201,6 +208,7 @@ export function EnvironmentDetailView({
     <>
       <ResourceDetailShell
         header={headerMeta}
+        headingLevel={headingLevel}
         visibilityControl={visibilityControl}
         actions={actions}
         className={className}

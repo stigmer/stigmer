@@ -98,7 +98,7 @@ export default function SkillDetailPage() {
 
   return (
     <>
-      <SkillDetailView
+      <SkillDetailView headingLevel={1}
         org={org}
         slug={slug}
         editable

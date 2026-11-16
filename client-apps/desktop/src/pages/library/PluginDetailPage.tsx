@@ -106,7 +106,7 @@ export default function PluginDetailPage() {
 
   return (
     <>
-      <PluginDetailView
+      <PluginDetailView headingLevel={1}
         org={org}
         slug={slug}
         onResourceLoad={handleResourceLoad}
