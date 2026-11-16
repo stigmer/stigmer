@@ -167,7 +167,7 @@ export function ColumnsAsRow<TData>({ columns, item, besideName = [], icon }: Co
           ))}
         </span>
         {under.length > 0 && (
-          <span className="stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-x-1.5 stg:text-xs stg:text-muted-foreground [&_*]:stg:text-xs">
+          <span className="stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-x-1.5 stg:text-xs stg:text-muted-foreground stg:[&_*]:text-xs">
             {under.map((column, index) => (
               <span key={column.id} className="stg:inline-flex stg:items-center stg:gap-1.5">
                 {index > 0 && <span aria-hidden="true">·</span>}
