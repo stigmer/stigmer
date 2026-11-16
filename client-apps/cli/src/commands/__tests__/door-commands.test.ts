@@ -10,14 +10,19 @@
 // a server that trusts every caller; `apikey create --save-to-env` writes the
 // key and prints only where it went. currentOrganization reads the named
 // organization, or a one-organization server's own.
+//
+// The commands stand in the scratch folder through a `process.cwd` spy rather
+// than `process.chdir`, which Node refuses in the worker threads the mutation
+// sweep runs tests in; a path a command hands to `fs` unresolved is passed
+// absolute.
 
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
 import { ConnectError, Code } from "@connectrpc/connect";
 import { GUIDE } from "@stigmer/coding-agent-plugin";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
 import { currentOrganization } from "../../client/current-organization.js";
 import type { Config } from "../../config/index.js";
 import { classify } from "../../errors/index.js";
@@ -59,7 +64,7 @@ vi.mock("../../backend.js", () => ({
 
 let out = "";
 let cwd: string;
-let previousCwd: string;
+let cwdSpy: MockInstance<() => string>;
 
 beforeEach(() => {
   out = "";
@@ -67,13 +72,13 @@ beforeEach(() => {
   fake.getOrg.mockResolvedValue(ORG);
   fake.serverInfo.mockResolvedValue({ authenticationRequired: true, version: "0.2.0" });
   fake.getByReference.mockResolvedValue({ metadata: { slug: "invoice-matcher" } });
-  previousCwd = process.cwd();
   cwd = mkdtempSync(join(tmpdir(), "stigmer-door-cmd-"));
-  process.chdir(cwd);
+  cwdSpy = vi.spyOn(process, "cwd").mockReturnValue(cwd);
 });
 
 afterEach(() => {
-  process.chdir(previousCwd);
+  cwdSpy.mockRestore();
+  rmSync(cwd, { recursive: true, force: true });
 });
 
 async function run(...args: string[]): Promise<{ readonly out: string; readonly error?: unknown }> {
@@ -179,7 +184,7 @@ describe("stigmer app-handover", () => {
 describe("stigmer apikey create --save-to-env", () => {
   it("writes the new key into the file and prints only where it went", async () => {
     fake.createKey.mockResolvedValue({ metadata: { id: "key_1", name: "my-app" }, spec: { keyHash: "stk_secret_value_1234" } });
-    const { out: text } = await run("apikey", "create", "--name", "my-app", "--save-to-env", ".env.local");
+    const { out: text } = await run("apikey", "create", "--name", "my-app", "--save-to-env", join(cwd, ".env.local"));
     expect(readFileSync(join(cwd, ".env.local"), "utf8")).toBe("STIGMER_API_KEY=stk_secret_value_1234\n");
     expect(text).toContain("saved as STIGMER_API_KEY in .env.local");
     expect(text).not.toContain("stk_secret_value_1234");

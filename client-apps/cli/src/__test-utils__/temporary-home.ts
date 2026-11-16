@@ -14,6 +14,14 @@
 // suite a fresh home of its own and makes `os.homedir()` answer whatever HOME
 // says, in every pool. A test that redirects HOME further still does so the
 // way it always has.
+//
+// It evens out one more difference between the pools: Node refuses
+// `process.chdir()` in a worker thread, so a test that moves the process into a
+// folder passes the gate (forks) and fails the sweep's first test run
+// (threads), as door-commands.test.ts did until stigmer#3190. Here
+// `process.chdir` throws in every pool, saying what to do instead. It is a
+// plain assignment, not a spy, so a test file's `vi.restoreAllMocks()` cannot
+// undo it.
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -25,6 +33,13 @@ process.env.USERPROFILE = home;
 afterAll(() => {
   rmSync(home, { recursive: true, force: true });
 });
+
+process.chdir = (): never => {
+  throw new Error(
+    "process.chdir() is not allowed in CLI tests: they also run in worker threads (the mutation sweep), " +
+      "where Node refuses it. Stub process.cwd with vi.spyOn and pass absolute paths to fs instead.",
+  );
+};
 
 vi.mock("node:os", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:os")>();
