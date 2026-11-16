@@ -9,6 +9,14 @@
 // dead: a new <dialog> element belongs inside DialogShell, everywhere else
 // renders <DialogShell>.
 //
+// An element that only says it is a dialog (`role="dialog"` or
+// `role="alertdialog"` on a div) is the same bypass a third way: it has none
+// of the shell's focus trap, Escape wiring or top layer, so assistive
+// technology is told "dialog" about something that does not behave as one.
+// It is refused on a plain HTML element anywhere but the shell's file; a
+// component that sets its own role (a Base UI popover's popup) owns its own
+// focus and is left alone.
+//
 // Base UI's Dialog and AlertDialog are the same bypass by another road: a
 // modal with its own lifecycle, backdrop and chrome beside the shell's
 // (stigmer#2772). They are refused by subpath and by name from the package
@@ -23,6 +31,19 @@ const BASE_UI_DIALOG_SUBPATHS = new Set([
   "@base-ui/react/alert-dialog",
 ]);
 const BASE_UI_DIALOG_NAMES = new Set(["Dialog", "AlertDialog"]);
+const DIALOG_ROLES = new Set(["dialog", "alertdialog"]);
+
+/** The role an element's `role` attribute names, when it is a plain string. */
+function staticRole(node) {
+  for (const attribute of node.attributes) {
+    if (attribute.type !== "JSXAttribute" || attribute.name.name !== "role" || !attribute.value) continue;
+    if (attribute.value.type === "Literal" && typeof attribute.value.value === "string") return attribute.value.value;
+    const expression = attribute.value.type === "JSXExpressionContainer" ? attribute.value.expression : null;
+    if (expression && expression.type === "Literal" && typeof expression.value === "string") return expression.value;
+    if (expression && expression.type === "TemplateLiteral" && expression.expressions.length === 0) return expression.quasis[0].value.cooked;
+  }
+  return null;
+}
 
 module.exports = {
   meta: {
@@ -38,6 +59,11 @@ module.exports = {
         "the showModal lifecycle, cancel/Escape wiring, the --stgm-backdrop " +
         "token, the open animation, and the base chrome, so dialogs cannot " +
         "drift apart again (stigmer#653).",
+      handrolledRole:
+        "An element given role=\"{{ role }}\" acts as a dialog it is not: it has " +
+        "none of the shell's focus trap, Escape wiring or top layer. Render the " +
+        "internal DialogShell primitive with DialogHeader, DialogBody and " +
+        "DialogFooter instead (sdk/react/src/internal/DialogShell.tsx).",
       baseUiDialog:
         "Base UI dialog import (\"{{ source }}\"). Render the internal " +
         "DialogShell primitive instead (sdk/react/src/internal/DialogShell.tsx): " +
@@ -76,6 +102,14 @@ module.exports = {
         if (isShellFile) return;
         if (node.name.type === "JSXIdentifier" && node.name.name === "dialog") {
           context.report({ node, messageId: "handrolledDialog" });
+          return;
+        }
+        // Only a plain HTML element: a component (a Base UI popover's popup)
+        // sets its own role and owns its own focus.
+        if (node.name.type !== "JSXIdentifier" || !/^[a-z]/.test(node.name.name)) return;
+        const role = staticRole(node);
+        if (role !== null && DIALOG_ROLES.has(role)) {
+          context.report({ node, messageId: "handrolledRole", data: { role } });
         }
       },
     };

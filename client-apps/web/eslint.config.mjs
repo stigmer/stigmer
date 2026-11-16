@@ -33,6 +33,7 @@ const eslintConfig = defineConfig([
       // Error (not warn): the 2026-11 sweep moved every hand-drawn filled button
       // onto the kit's Button, IconButton and LinkButton, so this fence starts
       // at zero.
+      "stigmer/no-handrolled-dialog": "error",
       "stigmer/no-handrolled-button": "error",
       "stigmer/no-handrolled-field": "error",
       "stigmer/no-token-opacity-modifiers": "warn",

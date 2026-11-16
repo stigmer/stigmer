@@ -51,6 +51,7 @@ function ServerGate() {
       {/* Over the app, not in its place: Back leaves the app (and the
           conversations its runner holds) as it was. */}
       {isChoosing && (
+        // eslint-disable-next-line stigmer/no-handrolled-dialog -- The chooser draws before the kit's provider, so the kit's dialog shell can't hold it; its missing focus trap is #3212.
         <div role="dialog" aria-modal="true" aria-label="Use another server" className="fixed inset-0 z-50">
           <ChooseServerScreen />
         </div>
