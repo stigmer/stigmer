@@ -92,7 +92,7 @@ import type {
   ListIndexRow,
   ListIndexSweep,
 } from "../list-index.js";
-import { provenReadSql } from "./list-index-read.js";
+import { provenReads } from "./list-index-read.js";
 import { NOOP_STORE_LOGGER } from "../logger.js";
 import { newBoundedPool } from "./pool.js";
 import type { BoundedPool, PoolStats } from "./pool.js";
@@ -662,16 +662,13 @@ export class PostgresStore implements Store {
     // columns, so the plan is one index range whatever the planner's
     // statistics say (a freshly written table has none); several keys are
     // one such read each, merged below. Without a key the organization
-    // index is the range; an empty key list matches no proven row, but
+    // index is the range. A creation window is two ranges of each, the
+    // window and the stampless rows (list-index-read.ts, provenReads),
+    // merged the same way. An empty key list matches no proven row, but
     // the unproven rows are still judged, so a sweep hears of a damaged
     // one.
     const provenRows: ListIndexRow[] = [];
-    const reads =
-      query.anyKey === undefined
-        ? [provenReadSql(kindName, declaration.revision, query, undefined)]
-        : query.anyKey.map((key) =>
-            provenReadSql(kindName, declaration.revision, query, key),
-          );
+    const reads = provenReads(kindName, declaration.revision, query);
     for (const read of reads) {
       const result = await this.open().query(read.sql, read.params);
       for (const row of result.rows as Array<{

@@ -7,12 +7,24 @@
  * list read is one range of its index, planned from statistics the store
  * keeps. This file is where that promise is proven (stigmer/stigmer#3166).
  *
- * The rule: every read below, at every shape below, is one backward range
- * of its index on the table that drives it (the key read's driving table is
- * the key table; its rows are then fetched by primary key), with no Sort
- * node, and a page after the first carries its cursor in that range's
- * index condition, so it starts where the last page ended. No read is
- * exempt; a later plan that needs an exemption has to argue for it here.
+ * The rule: every statement of every read below (provenReads), at every
+ * shape below, is one backward range of its index on the table that drives
+ * it (the key read's driving table is the key table; its rows are then
+ * fetched by primary key), with no Sort node, and a page after the first
+ * carries its cursor in that range's index condition, so it starts where
+ * the last page ended. A read bounded by a creation window is two
+ * statements: the window's carries its start in the index condition, so
+ * the walk stops there, and the stampless rows' carries `= ''`.
+ *
+ * One allowance, for the window's statement only: it may instead read the
+ * window's range alone through one bitmap index scan of the same index,
+ * its start (and a later page's cursor) in that scan's condition, and
+ * sort just those rows. The planner picks that for a window of a thousand
+ * rows or so (measured on the 3,003- and 20,000-row shapes), main planned
+ * the same, and it reads the same buffers as the walk. The sort this file
+ * forbids (stigmer/stigmer#3166) sorts a whole kind; the window's start
+ * bounds this one to the rows the caller asked for. No read is exempt; a
+ * later plan that needs an exemption has to argue for it here.
  *
  * Each shape is its own database, walked through the states a real one
  * passes through:
@@ -37,13 +49,14 @@
  * Gated on TEST_DATABASE_URL (support.ts).
  */
 import { randomBytes } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { ListIndexQuery } from "../../list-index.js";
 import type { StoreLogger } from "../../logger.js";
-import { provenReadSql } from "../list-index-read.js";
+import { provenReads, type ProvenRead } from "../list-index-read.js";
 import { runMigrations } from "../migrations.js";
 import { PostgresStore } from "../store.js";
 import {
@@ -129,7 +142,6 @@ const SHAPES: readonly Shape[] = [
 interface Read {
   readonly name: string;
   readonly query: ListIndexQuery;
-  readonly key: { readonly name: string; readonly value: string } | undefined;
   /** How the read must reach the table that drives it. */
   readonly drives: { readonly relation: string; readonly index: string };
   /** A page after the first: its cursor must be the range's start. */
@@ -161,7 +173,6 @@ function readsOf(shape: Shape): readonly Read[] {
     {
       name: "a page with neither an organization nor a key (listMine on one person's server)",
       query: { limit: LIST_PAGE },
-      key: undefined,
       drives: unscoped,
       deep: false,
     },
@@ -171,14 +182,12 @@ function readsOf(shape: Shape): readonly Read[] {
         after: cursorAt(middle(shape, () => true)),
         limit: LIST_PAGE,
       },
-      key: undefined,
       drives: unscoped,
       deep: true,
     },
     {
       name: "one organization's page",
       query: { org: "org_3", limit: LIST_PAGE },
-      key: undefined,
       drives: organization,
       deep: false,
     },
@@ -189,14 +198,12 @@ function readsOf(shape: Shape): readonly Read[] {
         after: cursorAt(middle(shape, (g) => g % 10 === 3)),
         limit: LIST_PAGE,
       },
-      key: undefined,
       drives: organization,
       deep: true,
     },
     {
       name: "one key's page",
       query: { anyKey: [PARENT_KEY], limit: LIST_PAGE },
-      key: PARENT_KEY,
       drives: byKey,
       deep: false,
     },
@@ -207,7 +214,6 @@ function readsOf(shape: Shape): readonly Read[] {
         after: cursorAt(middle(shape, hasParentKey)),
         limit: LIST_PAGE,
       },
-      key: PARENT_KEY,
       drives: byKey,
       deep: true,
     },
@@ -219,10 +225,38 @@ function readsOf(shape: Shape): readonly Read[] {
         after: { createdAt: instant(10_000_000), id: "" },
         limit: FUNNEL_PAGE,
       },
-      key: undefined,
       drives: unscoped,
-      // Its cursor is the window's end, past every row; its start is not a
-      // range bound yet (stigmer/stigmer#3179), so only the walk is judged.
+      // Its cursor is the window's end, past every row.
+      deep: true,
+    },
+    {
+      name: "the funnel's page over a recent window, its start at the middle row",
+      query: {
+        withoutKeys: ["parent_org"],
+        createdAtOrAfter: cursorAt(middle(shape, () => true)).createdAt,
+        after: { createdAt: instant(10_000_000), id: "" },
+        limit: FUNNEL_PAGE,
+      },
+      drives: unscoped,
+      deep: true,
+    },
+    {
+      name: "one key's rows since a bound, unlimited (a session's recent activity, sandbox/session-activity.ts)",
+      query: {
+        anyKey: [PARENT_KEY],
+        createdAtOrAfter: cursorAt(middle(shape, hasParentKey)).createdAt,
+      },
+      drives: byKey,
+      deep: false,
+    },
+    {
+      name: "one organization's rows since a bound, unlimited (the run summary, domain/run/usage.ts)",
+      query: {
+        org: "org_3",
+        createdAtOrAfter: cursorAt(middle(shape, (g) => g % 10 === 3))
+          .createdAt,
+      },
+      drives: organization,
       deep: false,
     },
   ];
@@ -266,6 +300,14 @@ const SORTS = new Set(["Sort", "Incremental Sort"]);
 /** The cursor as Postgres prints a row comparison in an index condition. */
 const CURSOR_IN_RANGE = /ROW\((list_)?created_at, .*\) < ROW\(/;
 
+/** Each windowed statement's creation range as Postgres prints it in an index condition. */
+const CREATION_RANGE: Readonly<Record<ProvenRead["arm"], RegExp | undefined>> =
+  {
+    whole: undefined,
+    window: /\((list_)?created_at >= /,
+    unstamped: /\((list_)?created_at = ''::text\)/,
+  };
+
 interface Judged {
   /** Every node that reads the driving table. */
   drivenBy: string[];
@@ -274,6 +316,17 @@ interface Judged {
   sorts: string[];
   /** Whether the driving scan starts at the cursor (deep pages only). */
   cursorInRange: boolean | undefined;
+  /**
+   * Whether the driving scan's range is the statement's creation range: the
+   * window's start, where the walk stops, or the stampless rows (windowed
+   * reads only).
+   */
+  creationInRange: boolean | undefined;
+}
+
+/** Whether a read is driven from the key table. */
+function keyed(read: Read): boolean {
+  return read.query.anyKey !== undefined;
 }
 
 /**
@@ -281,21 +334,58 @@ interface Judged {
  * fetch the rows a key read names, any sort, and whether a later page's
  * cursor is the start of the driving range.
  */
-function judge(plan: PlanNode, read: Read): Judged {
+function judge(plan: PlanNode, read: Read, arm: ProvenRead["arm"]): Judged {
   const nodes = nodesOf(plan);
   const driving = nodes.filter(
     (node) => node["Relation Name"] === read.drives.relation,
   );
   return {
-    drivenBy: driving.map(describeNode).map(asIndexScan),
-    fetchedBy: read.key === undefined ? [] : reachedBy(nodes, "resources"),
+    drivenBy: driving.map(describeDriving),
+    fetchedBy: keyed(read) ? reachedBy(nodes, "resources") : [],
     sorts: nodes
       .filter((node) => SORTS.has(node["Node Type"]))
       .map(describeNode),
-    cursorInRange: read.deep
-      ? driving.some((node) => CURSOR_IN_RANGE.test(node["Index Cond"] ?? ""))
-      : undefined,
+    cursorInRange: inRange(driving, read.deep ? CURSOR_IN_RANGE : undefined),
+    creationInRange: inRange(driving, CREATION_RANGE[arm]),
   };
+}
+
+/**
+ * A driving node as {@link Judged.drivenBy} names it: a bitmap heap scan
+ * with the bitmap index scans it reads through.
+ */
+function describeDriving(node: PlanNode): string {
+  if (node["Node Type"] !== "Bitmap Heap Scan") {
+    return asIndexScan(describeNode(node));
+  }
+  const through = bitmapScansOf(node).map(
+    (child) => child["Index Name"] ?? "Bitmap Index Scan",
+  );
+  return `${describeNode(node)} through ${through.join(", ")}`;
+}
+
+/** The bitmap index scans under a bitmap heap scan. */
+function bitmapScansOf(node: PlanNode): PlanNode[] {
+  return nodesOf(node).filter(
+    (child) => child["Node Type"] === "Bitmap Index Scan",
+  );
+}
+
+/**
+ * Whether the driving range's index condition carries `range` (for a
+ * bitmap heap scan, its bitmap index scans' conditions); undefined for no
+ * range.
+ */
+function inRange(
+  driving: readonly PlanNode[],
+  range: RegExp | undefined,
+): boolean | undefined {
+  if (range === undefined) {
+    return undefined;
+  }
+  return driving
+    .flatMap((node) => [node, ...bitmapScansOf(node)])
+    .some((node) => range.test(node["Index Cond"] ?? ""));
 }
 
 /**
@@ -308,9 +398,9 @@ function reachedBy(nodes: readonly PlanNode[], relation: string): string[] {
     .filter((node) => node["Relation Name"] === relation)
     .flatMap((node) => {
       if (node["Node Type"] === "Bitmap Heap Scan") {
-        return nodesOf(node)
-          .filter((child) => child["Node Type"] === "Bitmap Index Scan")
-          .map((child) => child["Index Name"] ?? "Bitmap Index Scan");
+        return bitmapScansOf(node).map(
+          (child) => child["Index Name"] ?? "Bitmap Index Scan",
+        );
       }
       return [node["Index Name"] ?? node["Node Type"]];
     });
@@ -321,15 +411,51 @@ function asIndexScan(line: string): string {
   return line.replace(/^Index Only Scan /, "Index Scan ");
 }
 
-function expected(read: Read): Judged {
+function expected(read: Read, arm: ProvenRead["arm"]): Judged {
   return {
     drivenBy: [
       `Index Scan Backward using ${read.drives.index} on ${read.drives.relation}`,
     ],
-    fetchedBy: read.key === undefined ? [] : ["resources_pkey"],
+    fetchedBy: keyed(read) ? ["resources_pkey"] : [],
     sorts: [],
     cursorInRange: read.deep ? true : undefined,
+    creationInRange: CREATION_RANGE[arm] === undefined ? undefined : true,
   };
+}
+
+/**
+ * The window statement's allowance (the header): one bitmap index scan of
+ * the driving index, reading the window's range alone, then one sort of
+ * those rows.
+ */
+function expectedWindowSort(read: Read): Judged {
+  return {
+    ...expected(read, "window"),
+    drivenBy: [
+      `Bitmap Heap Scan on ${read.drives.relation} through ${read.drives.index}`,
+    ],
+    sorts: ["Sort"],
+  };
+}
+
+/** What a statement may plan as: the walk, and for a window's statement also the sorted window. */
+function allowed(read: Read, arm: ProvenRead["arm"]): Judged[] {
+  return arm === "window"
+    ? [expected(read, arm), expectedWindowSort(read)]
+    : [expected(read, arm)];
+}
+
+/** The statements a read runs, as the driver builds them. */
+function statementsOf(read: Read): ProvenRead[] {
+  return provenReads(LISTED, REVISION, read.query);
+}
+
+/** The arms a read must run: two for a creation window ("" is none), else the whole read. */
+function armsOf(read: Read): Array<ProvenRead["arm"]> {
+  const start = read.query.createdAtOrAfter;
+  return start === undefined || start === ""
+    ? ["whole"]
+    : ["window", "unstamped"];
 }
 
 async function seed(pool: pg.Pool, shape: Shape): Promise<void> {
@@ -368,8 +494,10 @@ async function seed(pool: pg.Pool, shape: Shape): Promise<void> {
   );
 }
 
-async function explain(pool: pg.Pool, read: Read): Promise<PlanNode> {
-  const statement = provenReadSql(LISTED, REVISION, read.query, read.key);
+async function explain(
+  pool: pg.Pool,
+  statement: ProvenRead,
+): Promise<PlanNode> {
   const result = await pool.query(
     `EXPLAIN (FORMAT JSON) ${statement.sql}`,
     statement.params,
@@ -490,10 +618,23 @@ for (const shape of SHAPES) {
 
       for (const read of readsOf(shape)) {
         it(`is one backward range of its index: ${read.name}`, async () => {
-          const plan = await explain(pool, read);
-          expect(judge(plan, read), outline(plan).join("\n")).toEqual(
-            expected(read),
+          const statements = statementsOf(read);
+          expect(statements.map((statement) => statement.arm)).toEqual(
+            armsOf(read),
           );
+          for (const statement of statements) {
+            const plan = await explain(pool, statement);
+            const judged = judge(plan, read, statement.arm);
+            const plans = allowed(read, statement.arm);
+            // Diffed against the walk when no allowed plan matches.
+            expect(
+              judged,
+              [`${statement.arm}:`, ...outline(plan)].join("\n"),
+            ).toEqual(
+              plans.find((candidate) => isDeepStrictEqual(candidate, judged)) ??
+                plans[0],
+            );
+          }
         });
       }
     },

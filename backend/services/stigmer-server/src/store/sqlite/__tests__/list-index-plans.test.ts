@@ -5,10 +5,18 @@
  * Postgres twin is postgres/__tests__/list-index-plans.postgres.test.ts;
  * the store's promise is in ../../README.md (the list index).
  *
- * The rule: every read is a search of its index (the key read's driving
- * table is the key table, its rows then fetched by primary key), with no
- * `USE TEMP B-TREE FOR ORDER BY`, and a page after the first carries its
- * cursor in that search, so it starts where the last page ended.
+ * The rule: every statement of every read (provenReads) is a search of its
+ * index (the key read's driving table is the key table, its rows then
+ * fetched by primary key), with no `USE TEMP B-TREE FOR ORDER BY`, and a
+ * page after the first carries its cursor in that search, so it starts
+ * where the last page ended. A read bounded by a creation window is two
+ * statements: the window's walk stops at its start (read from the
+ * statement's program, `stopsAt` below), and the stampless rows' search
+ * is `created_at=?`. That search drops a later page's row-value cursor
+ * (measured, sqlite 3.51; the Postgres twin keeps it), so the cursor is
+ * judged on the window's and the whole read's statements only: the
+ * stampless range is read whole, it is empty in steady state, and a
+ * cursor inside the window leaves every stampless row after it anyway.
  *
  * The driver never gathers statistics (no `sqlite_stat1`), so its plans do
  * not move with the data; the rows seeded here are only so a search has
@@ -22,7 +30,7 @@ import { DatabaseSync } from "node:sqlite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { ListIndexQuery } from "../../list-index.js";
-import { provenReadSql } from "../list-index-read.js";
+import { provenReads } from "../list-index-read.js";
 import { tempStore, type TempStore } from "./support.js";
 
 const LISTED = "organization";
@@ -51,7 +59,6 @@ const PARENT_KEY = { name: "parent_org", value: "org_parent_1" } as const;
 interface Read {
   readonly name: string;
   readonly query: ListIndexQuery;
-  readonly key: { readonly name: string; readonly value: string } | undefined;
   /** The table alias the read drives from, and the index it must search. */
   readonly drives: { readonly alias: string; readonly index: string };
   /** A page after the first: the cursor's row value must be in the search. */
@@ -66,42 +73,36 @@ const READS: readonly Read[] = [
   {
     name: "a page with neither an organization nor a key",
     query: { limit: LIST_PAGE },
-    key: undefined,
     drives: UNSCOPED,
     cursor: undefined,
   },
   {
     name: "a later page with neither an organization nor a key",
     query: { after: cursorAt(1_500), limit: LIST_PAGE },
-    key: undefined,
     drives: UNSCOPED,
     cursor: "(list_created_at,id)<(?,?)",
   },
   {
     name: "one organization's page",
     query: { org: "org_3", limit: LIST_PAGE },
-    key: undefined,
     drives: ORGANIZATION,
     cursor: undefined,
   },
   {
     name: "a later page of one organization",
     query: { org: "org_3", after: cursorAt(1_503), limit: LIST_PAGE },
-    key: undefined,
     drives: ORGANIZATION,
     cursor: "(list_created_at,id)<(?,?)",
   },
   {
     name: "one key's page",
     query: { anyKey: [PARENT_KEY], limit: LIST_PAGE },
-    key: PARENT_KEY,
     drives: BY_KEY,
     cursor: undefined,
   },
   {
     name: "a later page of one key",
     query: { anyKey: [PARENT_KEY], after: cursorAt(1_506), limit: LIST_PAGE },
-    key: PARENT_KEY,
     drives: BY_KEY,
     cursor: "(created_at,id)<(?,?)",
   },
@@ -113,13 +114,106 @@ const READS: readonly Read[] = [
       after: { createdAt: instant(10_000_000), id: "" },
       limit: 500,
     },
-    key: undefined,
     drives: UNSCOPED,
-    // Its cursor is the window's end; its start is not a range bound yet
-    // (stigmer/stigmer#3179), so only the search is judged.
+    // Its cursor is the window's end, past every row.
+    cursor: "(list_created_at,id)<(?,?)",
+  },
+  {
+    name: "the funnel's page over a recent window, its start at the middle row",
+    query: {
+      withoutKeys: ["parent_org"],
+      createdAtOrAfter: cursorAt(1_500).createdAt,
+      after: { createdAt: instant(10_000_000), id: "" },
+      limit: 500,
+    },
+    drives: UNSCOPED,
+    cursor: "(list_created_at,id)<(?,?)",
+  },
+  {
+    name: "one key's rows since a bound, unlimited (a session's recent activity, sandbox/session-activity.ts)",
+    query: {
+      anyKey: [PARENT_KEY],
+      createdAtOrAfter: cursorAt(1_506).createdAt,
+    },
+    drives: BY_KEY,
+    cursor: undefined,
+  },
+  {
+    name: "one organization's rows since a bound, unlimited (the run summary, domain/run/usage.ts)",
+    query: { org: "org_3", createdAtOrAfter: cursorAt(1_503).createdAt },
+    drives: ORGANIZATION,
     cursor: undefined,
   },
 ];
+
+/** One instruction of a statement's program (`EXPLAIN`, not `EXPLAIN QUERY PLAN`). */
+interface Instruction {
+  readonly addr: number;
+  readonly opcode: string;
+  readonly p1: number;
+  readonly p2: number;
+  readonly p3: number;
+  readonly p4: unknown;
+}
+
+/** Instructions that load a value into register p2. */
+const LOADS = new Set([
+  "Variable",
+  "Null",
+  "String8",
+  "Integer",
+  "Int64",
+  "Real",
+  "Copy",
+  "SCopy",
+]);
+
+/**
+ * Whether the walk of `index` stops at the parameter `param` (1-based): a
+ * backward search's lower bound is the `IdxLT` (`>=`) or `IdxLE` (`>`) that
+ * ends its loop, comparing the index key with registers p3 to p3+p4-1, the
+ * last of them the bound. `EXPLAIN QUERY PLAN` prints every lower bound as
+ * `>?`, the stamp's `IS NOT NULL` among them (the created index's search
+ * shows `list_created_at>?` with no window at all), so which bound the walk
+ * stops at is read from the program: the window's start is that last
+ * register loaded from the window's parameter, and a `NULL` there is the
+ * stamp check's bound, which walks every older row.
+ */
+function stopsAt(
+  db: DatabaseSync,
+  sql: string,
+  params: ReadonlyArray<string | number>,
+  index: string,
+  param: number,
+): boolean {
+  const program = db
+    .prepare(`EXPLAIN ${sql}`)
+    .all(...params) as unknown as Instruction[];
+  const root = (
+    db
+      .prepare(`SELECT rootpage FROM sqlite_schema WHERE name = ?`)
+      .get(index) as {
+      rootpage: number;
+    }
+  ).rootpage;
+  const cursors = new Set(
+    program
+      .filter((op) => op.opcode === "OpenRead" && op.p2 === root)
+      .map((op) => op.p1),
+  );
+  return program.some((stop) => {
+    if (!["IdxLT", "IdxLE"].includes(stop.opcode) || !cursors.has(stop.p1)) {
+      return false;
+    }
+    const bound = stop.p3 + Number(stop.p4) - 1;
+    const load = program
+      .filter(
+        (op) => op.addr < stop.addr && LOADS.has(op.opcode) && op.p2 === bound,
+      )
+      .at(-1);
+    return load?.opcode === "Variable" && load.p1 === param;
+  });
+}
 
 function seed(db: DatabaseSync): void {
   const row = db.prepare(
@@ -149,12 +243,23 @@ function seed(db: DatabaseSync): void {
   db.exec("COMMIT");
 }
 
-function plan(db: DatabaseSync, read: Read): string[] {
-  const statement = provenReadSql(LISTED, REVISION, read.query, read.key);
-  const rows = db
-    .prepare(`EXPLAIN QUERY PLAN ${statement.sql}`)
-    .all(...statement.params) as Array<{ detail: string }>;
+function plan(
+  db: DatabaseSync,
+  sql: string,
+  params: ReadonlyArray<string | number>,
+): string[] {
+  const rows = db.prepare(`EXPLAIN QUERY PLAN ${sql}`).all(...params) as Array<{
+    detail: string;
+  }>;
   return rows.map((row) => row.detail);
+}
+
+/** The arms a read must run: two for a creation window ("" is none), else the whole read. */
+function armsOf(read: Read): string[] {
+  const start = read.query.createdAtOrAfter;
+  return start === undefined || start === ""
+    ? ["whole"]
+    : ["window", "unstamped"];
 }
 
 describe("sqlite list-index plans", () => {
@@ -183,25 +288,50 @@ describe("sqlite list-index plans", () => {
 
   for (const read of READS) {
     it(`searches its index: ${read.name}`, () => {
-      const details = plan(db, read);
-      const message = details.join("\n");
-      const search = details.find((detail) =>
-        new RegExp(
-          `^SEARCH ${read.drives.alias} USING (COVERING )?INDEX ${read.drives.index} \\(`,
-        ).test(detail),
+      const statements = provenReads(LISTED, REVISION, read.query);
+      expect(statements.map((statement) => statement.arm)).toEqual(
+        armsOf(read),
       );
-      expect(search, message).toBeDefined();
-      expect(details, message).not.toContain("USE TEMP B-TREE FOR ORDER BY");
-      if (read.cursor !== undefined) {
-        expect(search, message).toContain(read.cursor);
-      }
-      if (read.key !== undefined) {
-        expect(
-          details.some((detail) =>
-            /^SEARCH r USING PRIMARY KEY \(kind=\? AND id=\?\)$/.test(detail),
-          ),
-          message,
-        ).toBe(true);
+      for (const statement of statements) {
+        const details = plan(db, statement.sql, statement.params);
+        const message = [`${statement.arm}:`, ...details].join("\n");
+        const search = details.find((detail) =>
+          new RegExp(
+            `^SEARCH ${read.drives.alias} USING (COVERING )?INDEX ${read.drives.index} \\(`,
+          ).test(detail),
+        );
+        expect(search, message).toBeDefined();
+        expect(details, message).not.toContain("USE TEMP B-TREE FOR ORDER BY");
+        if (read.cursor !== undefined && statement.arm !== "unstamped") {
+          expect(search, message).toContain(read.cursor);
+        }
+        if (read.query.anyKey !== undefined) {
+          expect(
+            details.some((detail) =>
+              /^SEARCH r USING PRIMARY KEY \(kind=\? AND id=\?\)$/.test(detail),
+            ),
+            message,
+          ).toBe(true);
+        }
+        if (statement.arm === "window") {
+          const start = read.query.createdAtOrAfter ?? "";
+          expect(statement.params.indexOf(start)).toBe(
+            statement.params.lastIndexOf(start),
+          );
+          expect(
+            stopsAt(
+              db,
+              statement.sql,
+              statement.params,
+              read.drives.index,
+              statement.params.indexOf(start) + 1,
+            ),
+            `the walk of ${read.drives.index} stops at the window's start\n${message}`,
+          ).toBe(true);
+        }
+        if (statement.arm === "unstamped") {
+          expect(search, message).toMatch(/[ (](list_)?created_at=\?/);
+        }
       }
     });
   }

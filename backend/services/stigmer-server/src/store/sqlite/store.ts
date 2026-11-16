@@ -93,7 +93,7 @@ import type {
   ListIndexRow,
   ListIndexSweep,
 } from "../list-index.js";
-import { provenReadSql } from "./list-index-read.js";
+import { provenReads } from "./list-index-read.js";
 import { NOOP_STORE_LOGGER } from "../logger.js";
 import {
   QueuedSessionMessageGoneError,
@@ -594,15 +594,12 @@ export class SqliteStore implements Store {
 
     // A key read is driven from the key table (CROSS JOIN fixes sqlite's
     // join order), so only the rows the key names are ever read; several
-    // keys are one such read each, merged below (postgres/store.ts's twin).
-    // An empty key list matches no proven row, but the unproven rows are
-    // still judged, so a sweep hears of a damaged one.
-    const reads =
-      query.anyKey === undefined
-        ? [provenReadSql(kindName, declaration.revision, query, undefined)]
-        : query.anyKey.map((key) =>
-            provenReadSql(kindName, declaration.revision, query, key),
-          );
+    // keys are one such read each, and a creation window two ranges of
+    // each (list-index-read.ts, provenReads), merged below
+    // (postgres/store.ts's twin). An empty key list matches no proven
+    // row, but the unproven rows are still judged, so a sweep hears of a
+    // damaged one.
+    const reads = provenReads(kindName, declaration.revision, query);
     const proven: ListIndexRow[] = [];
     for (const read of reads) {
       const rows = db.prepare(read.sql).all(...read.params) as Array<{
