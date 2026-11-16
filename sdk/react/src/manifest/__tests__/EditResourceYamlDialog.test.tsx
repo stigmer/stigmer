@@ -207,4 +207,15 @@ describe("EditResourceYamlDialog — Cancel", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
     expect(applyMock).not.toHaveBeenCalled();
   });
+
+  it("closes from its header's close button too, without applying", () => {
+    editState = {};
+    applyMock.mockClear();
+    const onOpenChange = vi.fn();
+    renderDialog(onOpenChange);
+
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(applyMock).not.toHaveBeenCalled();
+  });
 });

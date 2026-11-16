@@ -10,7 +10,7 @@
  * fails to load shows its error and loads again on Retry.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, cleanup, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { StigmerContext } from "@stigmer/react-core";
@@ -144,6 +144,23 @@ describe("OrgSwitcher", () => {
 
     expect((dialog as HTMLDialogElement).open).toBe(true);
     expect((screen.getByPlaceholderText("e.g. Acme Corp") as HTMLInputElement).value).toBe("initech");
+  });
+
+  it("closes the create dialog from its header's close button and from the form's Cancel", async () => {
+    renderSwitcher(clientFor([[ACME, GLOBEX]]));
+    await waitFor(() => expect(screen.getByLabelText("active org").textContent).toBe(ACME_ID));
+
+    await openMenu(screen.getByRole("button", { name: "Organization menu" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Create organization" }));
+    const dialog = await screen.findByRole("dialog", { name: "Create organization" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+    await waitFor(() => expect((dialog as HTMLDialogElement).open).toBe(false));
+
+    await openMenu(screen.getByRole("button", { name: "Organization menu" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Create organization" }));
+    const again = await screen.findByRole("dialog", { name: "Create organization" });
+    fireEvent.click(within(again).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect((again as HTMLDialogElement).open).toBe(false));
   });
 
   it("lists an opened child first, checked, as a child of its parent, until another is chosen", async () => {
