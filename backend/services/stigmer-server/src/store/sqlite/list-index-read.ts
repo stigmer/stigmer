@@ -1,25 +1,69 @@
 /**
- * The sqlite driver's proven list read: the SQL of one index range of
- * `queryResources` and `queryResourcesForSweep` (store.ts), over the rows
- * whose list facts are proven current (../list-index.ts). The unproven
- * rows are store.ts's to judge from their bytes; this module only builds
- * the statement and its parameters, so a plan test can ask sqlite how it
- * reads the exact SQL the driver runs. Internal to the driver: the barrel
+ * The sqlite driver's proven list read: every statement one
+ * `queryResources` or `queryResourcesForSweep` read (store.ts) runs over
+ * the rows whose list facts are proven current (../list-index.ts), each
+ * one index search. The unproven rows are store.ts's to judge from their
+ * bytes; this module only builds the statements and their parameters, so
+ * a plan test can ask sqlite how it reads the exact SQL the driver runs,
+ * every statement of it. Internal to the driver: the barrel
  * (../../index.ts) does not export it. The Postgres twin is
- * postgres/list-index-read.ts.
+ * postgres/list-index-read.ts, which says why a read bounded by a
+ * creation window is two ranges, the window and the rows with no creation
+ * stamp (stigmer/stigmer#3179).
  */
 import type { ListIndexQuery } from "../list-index.js";
 
+/** Which part of a read one statement answers (the Postgres twin's arms). */
+export type ProvenReadArm = "whole" | "window" | "unstamped";
+
+/** One statement of a proven read. */
+export interface ProvenRead {
+  readonly arm: ProvenReadArm;
+  readonly sql: string;
+  readonly params: Array<string | number>;
+}
+
 /**
- * One proven read of `queryResources` (postgres/list-index-read.ts's
- * twin): through one key's index range when `key` is given, else through
- * the organization index; only rows whose facts are proven current.
+ * Every statement one proven read of `queryResources` runs
+ * (postgres/list-index-read.ts's twin): one per key of `anyKey` (none for
+ * an empty list), else one; for a read bounded by a creation window (a
+ * bound of "" is none), the window and the stampless rows of each.
  */
-export function provenReadSql(
+export function provenReads(
+  kindName: string,
+  revision: number,
+  query: ListIndexQuery,
+): ProvenRead[] {
+  const keys = query.anyKey === undefined ? [undefined] : query.anyKey;
+  const start = query.createdAtOrAfter;
+  const windows: ReadonlyArray<Window | undefined> =
+    start === undefined || start === ""
+      ? [undefined]
+      : [{ arm: "window", start }, { arm: "unstamped" }];
+  return keys.flatMap((key) =>
+    windows.map((window) => ({
+      arm: window?.arm ?? "whole",
+      ...provenReadSql(kindName, revision, query, key, window),
+    })),
+  );
+}
+
+/** The creation range one statement of a windowed read covers. */
+type Window =
+  | { readonly arm: "window"; readonly start: string }
+  | { readonly arm: "unstamped" };
+
+/**
+ * One statement of a proven read: through one key's index range when
+ * `key` is given, else through the organization index, over `window`'s
+ * creation range when given; only rows whose facts are proven current.
+ */
+function provenReadSql(
   kindName: string,
   revision: number,
   query: ListIndexQuery,
   key: { readonly name: string; readonly value: string } | undefined,
+  window: Window | undefined,
 ): { sql: string; params: Array<string | number> } {
   const params: Array<string | number> = [];
   const created = key === undefined ? "r.list_created_at" : "k.created_at";
@@ -70,9 +114,11 @@ export function provenReadSql(
     );
     params.push(...query.withoutKeys);
   }
-  if (query.createdAtOrAfter !== undefined) {
-    where.push(`(${created} >= ? OR ${created} = '')`);
-    params.push(query.createdAtOrAfter);
+  if (window?.arm === "window") {
+    where.push(`${created} >= ?`);
+    params.push(window.start);
+  } else if (window?.arm === "unstamped") {
+    where.push(`${created} = ''`);
   }
   if (query.after !== undefined) {
     // A row value, so the cursor is in the index search: with the OR it

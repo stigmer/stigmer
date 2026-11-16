@@ -105,7 +105,9 @@ driver runs at open derives every unproven row, so the unproven set is empty in
 steady state and reads stay one index range.
 
 Every read is one range of its index, and a page after the first starts at its
-cursor (a row comparison, so the index search starts there). On SQLite each
+cursor (a row comparison, so the index search starts there). A read bounded by
+a creation window is two ranges, the window and the rows with no creation
+stamp, so its walk stops at the window's start. On SQLite each
 read names its index or needs no statistics, and the driver gathers none, so
 its plans do not move with the data. Postgres has no index hints: it plans
 from statistics, and the store keeps the ones these reads need. Schema v2 adds

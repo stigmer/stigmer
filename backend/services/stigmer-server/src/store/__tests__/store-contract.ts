@@ -2563,6 +2563,102 @@ export function describeStoreContract(
       ).toEqual(["ses_new", "ses_unstamped"]);
     });
 
+    /**
+     * A window read's rows for each read shape: the unscoped read, one
+     * organization's and one key's. A driver may read the window and the
+     * rows with no stamp as separate ranges (stigmer/stigmer#3179); a
+     * cursor walk crosses from one to the other mid-page.
+     */
+    async function saveWindowRows(): Promise<void> {
+      await save(session("ses_o1", "acme", 10, { agentId: "agt_1" }));
+      await save(session("ses_o2", "acme", 100, { agentId: "agt_1" }));
+      await save(session("ses_w0", "acme", 150, { agentId: "agt_1" }));
+      await save(session("ses_w1", "acme", 200, { agentId: "agt_1" }));
+      await save(session("ses_w2", "acme", 200, { agentId: "agt_1" }));
+      await save(session("ses_w3", "acme", 300, { agentId: "agt_1" }));
+      await save(session("ses_w4", "acme", 400, { agentId: "agt_1" }));
+      await save(session("ses_u1", "acme", undefined, { agentId: "agt_1" }));
+      await save(session("ses_u2", "acme", undefined, { agentId: "agt_1" }));
+      await save(session("ses_x", "other", 500, { agentId: "agt_2" }));
+    }
+
+    const WINDOW_SHAPES = [
+      { name: "unscoped", query: {} },
+      { name: "one organization", query: { org: "acme" } },
+      {
+        name: "one key",
+        query: { anyKey: [{ name: "agent" as const, value: "agt_1" }] },
+      },
+    ];
+
+    it("walks a window by cursor into its unstamped rows, each row once and none older than the bound", async () => {
+      await saveWindowRows();
+      const bound = "1970-01-01T00:02:30.000000000Z";
+      const inWindow = ["ses_w4", "ses_w3", "ses_w2", "ses_w1", "ses_w0"];
+      const unstamped = ["ses_u2", "ses_u1"];
+      const expected: Record<string, string[]> = {
+        unscoped: ["ses_x", ...inWindow, ...unstamped],
+        "one organization": [...inWindow, ...unstamped],
+        "one key": [...inWindow, ...unstamped],
+      };
+      for (const shape of WINDOW_SHAPES) {
+        const query = { ...shape.query, createdAtOrAfter: bound };
+        expect(
+          ids(await fx.store.queryResources(CONTRACT_SESSION_INDEX, query)),
+          shape.name,
+        ).toEqual(expected[shape.name]);
+        for (const limit of [1, 2, 3]) {
+          const walked: string[] = [];
+          let after: ListIndexRow["cursor"] | undefined;
+          for (;;) {
+            const page = await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
+              ...query,
+              limit,
+              ...(after === undefined ? {} : { after }),
+            });
+            walked.push(...ids(page));
+            if (page.length < limit) {
+              break;
+            }
+            after = page[page.length - 1]!.cursor;
+          }
+          expect(walked, `${shape.name}, pages of ${limit}`).toEqual(
+            expected[shape.name],
+          );
+        }
+      }
+    });
+
+    it("reads with a bound of \"\" exactly what it reads with no bound", async () => {
+      await saveWindowRows();
+      for (const shape of WINDOW_SHAPES) {
+        for (const limit of [undefined, 2]) {
+          const paged = limit === undefined ? {} : { limit };
+          const unbounded = ids(
+            await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
+              ...shape.query,
+              ...paged,
+            }),
+          );
+          if (limit === undefined) {
+            expect(unbounded, shape.name).toEqual(
+              expect.arrayContaining(["ses_o1", "ses_u1"]),
+            );
+          }
+          expect(
+            ids(
+              await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
+                ...shape.query,
+                ...paged,
+                createdAtOrAfter: "",
+              }),
+            ),
+            `${shape.name}, limit ${String(limit)}`,
+          ).toEqual(unbounded);
+        }
+      }
+    });
+
     it("follows a key an update changes, and forgets a deleted row", async () => {
       await save(session("ses_1", "acme", 1, { agentId: "agt_1" }));
       await fx.store.updateResource(SESSION, "ses_1", SessionSchema, (s) => {
