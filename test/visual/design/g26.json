@@ -779,8 +779,12 @@
     {
       "caption": "New routine: The message left empty",
       "narrow": false,
-      "built": [],
-      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
+      "built": [
+        {
+          "scene": "routine-new-message-empty",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "New routine",
@@ -1153,9 +1157,19 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word daily-variance-report": "the scene's data differs (routine-new-message-empty)",
+        "word Variance reporter": "the scene's data differs (routine-new-message-empty)",
+        "word Every day at 09:00 (Asia/Kolkata).": "the scene's data differs (routine-new-message-empty)",
+        "word Default: data-science (the agent's default)": "the scene's data differs (routine-new-message-empty)",
+        "word Asia/Kolkata": "the scene's data differs (routine-new-message-empty)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Write the message the agent gets on every run.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "type Connect GitHub": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word My vault": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "New routine: At 390 wide",

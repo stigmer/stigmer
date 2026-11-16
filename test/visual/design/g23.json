@@ -278,8 +278,12 @@
     {
       "caption": "Conversations: You took it over",
       "narrow": false,
-      "built": [],
-      "unbuilt": "No gallery scene opens a conversation a person took over in the console's workbench yet (#3210).",
+      "built": [
+        {
+          "scene": "conversations-taken-over",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Conversations",
@@ -484,9 +488,24 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word +1 555 010 0142 · WhatsApp": "the scene's data differs (conversations-taken-over)",
+        "word Jul 19": "the scene's data differs (conversations-taken-over)",
+        "word +1 555 010 0142 · WhatsApp · Variance reporter": "the scene's data differs (conversations-taken-over)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word All channels": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word 13m": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Harbor Dental": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word #billing · Slack": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word 1h": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Sam Okafor": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Chat link": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "type Northwind Books": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "type Agent": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Reply as Acme Books…": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "Conversations: Nothing chosen yet",

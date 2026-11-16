@@ -250,8 +250,12 @@
     {
       "caption": "A routine: API",
       "narrow": false,
-      "built": [],
-      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
+      "built": [
+        {
+          "scene": "routine-api",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "daily-variance-report",
@@ -380,9 +384,19 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word POST https://api.stigmer.ai/v1/routines/acme/daily-variance-report:fire": "the scene's data differs (routine-api)",
+        "word curl -X POST \\ -H \"Authorization: Bearer $STIGMER_API_KEY\" \\ https://api.stigmer.ai/v1/routines/acme/daily-variance-report:fire": "the scene's data differs (routine-api)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Active": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Run now": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Start it from another system": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Call this address with an API key that may run the routine. Each call starts one run, as if you pressed Run now.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "type Copy": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "button Copy": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "A routine: Run now, asked first (Run a routine)",
@@ -479,8 +493,12 @@
     {
       "caption": "A routine: At 390 wide",
       "narrow": true,
-      "built": [],
-      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
+      "built": [
+        {
+          "scene": "routine-disabled",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "daily-variance-report",
@@ -693,9 +711,28 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Tomorrow at 09:00, in 14h": "the scene's data differs (routine-disabled)",
+        "word Variance reporter": "the scene's data differs (routine-disabled)",
+        "word data-science": "the scene's data differs (routine-disabled)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Active": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Run now": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word When it runs": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Runs": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Next run": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "type Last run": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Finished 6m": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word What it runs": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Agent": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "type Message": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "type Environment": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "type Budget per run": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "button Edit when it runs": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "button Edit what it runs": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+      }
     }
   ]
 }

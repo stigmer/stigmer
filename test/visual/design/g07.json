@@ -303,8 +303,12 @@
     {
       "caption": "A routine's history: History, none yet",
       "narrow": false,
-      "built": [],
-      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
+      "built": [
+        {
+          "scene": "routine-history-none",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "daily-variance-report",
@@ -419,13 +423,21 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Active": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Run now": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word This routine hasn't run. Run now to try it before its first scheduled run.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "A routine's history: History, didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
+      "built": [
+        {
+          "scene": "routine-history-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "daily-variance-report",
@@ -558,9 +570,16 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "the scene's data differs (routine-history-failed)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Active": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Run now": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Couldn't load the routine's runs.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Stuck? Ask IT on Slack": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+      }
     }
   ]
 }
