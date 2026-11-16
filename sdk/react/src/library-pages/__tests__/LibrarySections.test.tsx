@@ -421,6 +421,17 @@ describe("LibraryAgentsSection: who may create agents", () => {
 });
 
 describe("LibrarySkillsSection", () => {
+  it("opens the apply dialog in the active org from Apply YAML, and an apply reads the list again", () => {
+    render(<LibrarySkillsSection onOpen={onOpen} />);
+    const before = workbench().refetchToken;
+
+    fireEvent.click(screen.getByRole("button", { name: "Apply YAML" }));
+    expect(page.applyDialog.at(-1)).toMatchObject({ open: true, org: "org_acme" });
+
+    act(() => (page.applyDialog.at(-1)?.onApplied as () => void)());
+    expect(workbench().refetchToken).not.toBe(before);
+  });
+
   it("offers Upload skill in the header and the empty list", () => {
     render(<LibrarySkillsSection onOpen={onOpen} />);
     render(<>{workbench().emptyAction as ReactNode}</>);
