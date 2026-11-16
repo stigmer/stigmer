@@ -1,63 +1,25 @@
 /**
- * Pins the desktop Library landing: one count card per library kind, each
- * opening its list, and the declarative Apply YAML entry point, whose apply
- * recounts every card (it can create any kind). The cards and the dialog
- * are pinned in @stigmer/react-sdk.
+ * Pins the desktop Library landing as a thin shell over the kit's overview
+ * (its cards, Add menu and Apply YAML are pinned beside the overview in
+ * @stigmer/react-sdk): a card or an Add menu item goes to its address
+ * through the router, and a card's address is the hash route, so a
+ * modified click lands where a plain one does.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 
-interface CardProps {
-  label: string;
-  count: number;
-  isLoading: boolean;
-  onClick: () => void;
-}
+type Props = Record<string, unknown>;
 
-interface DialogProps {
-  open: boolean;
-  org: string;
-  onApplied: () => void;
-}
+const page = vi.hoisted(() => ({ props: new Map<string, Props>() }));
 
-const page = vi.hoisted(() => ({
-  cards: new Map<string, CardProps>(),
-  dialog: [] as DialogProps[],
-  tokens: [] as number[],
+vi.mock("@stigmer/react-sdk/console", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-sdk/console")>()),
+  LibraryOverview: (props: Props) => {
+    page.props.set("LibraryOverview", props);
+    return null;
+  },
 }));
-
-function counter(count: number) {
-  return (_org: string, options: { refetchToken: number }) => {
-    page.tokens.push(options.refetchToken);
-    return { count, isLoading: false };
-  };
-}
-
-vi.mock("@stigmer/react-sdk", async () => {
-  const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
-  return {
-    Button: kit.Button,
-    IconButton: kit.IconButton,
-    LinkButton: kit.LinkButton,
-    PageHeader: kit.PageHeader,
-    ApplyManifestDialog: (props: DialogProps) => {
-      page.dialog.push(props);
-      return null;
-    },
-    ResourceCountCard: (props: CardProps) => {
-      page.cards.set(props.label, props);
-      return null;
-    },
-    useAgentCount: counter(3),
-    useSkillCount: counter(5),
-    useRoutineCount: counter(4),
-    usePluginCount: counter(0),
-    useEnvironmentCount: counter(2),
-    useFileCount: counter(7),
-    useActiveOrgId: () => "org_acme",
-  };
-});
 
 import LibraryLanding from "../library/LibraryLanding";
 
@@ -76,48 +38,30 @@ function renderLanding() {
   );
 }
 
+function overview(): Props {
+  const props = page.props.get("LibraryOverview");
+  if (!props) throw new Error("the overview was not rendered");
+  return props;
+}
+
 beforeEach(() => {
-  page.cards.clear();
-  page.dialog.length = 0;
-  page.tokens.length = 0;
+  page.props.clear();
 });
 
 describe("desktop LibraryLanding", () => {
-  it("shows one count card per library kind", () => {
-    renderLanding();
-
-    expect([...page.cards].map(([label, card]) => [label, card.count])).toEqual([
-      ["Agents", 3],
-      ["Skills", 5],
-      ["Routines", 4],
-      ["Plugins", 0],
-      ["Environments", 2],
-      ["Files", 7],
-    ]);
-  });
-
   it("opens each kind's list from its card", () => {
     renderLanding();
+    const onNavigate = overview().onNavigate as (path: string) => void;
 
-    act(() => page.cards.get("Plugins")?.onClick());
+    act(() => onNavigate("/library/plugins"));
     expect(screen.getByTestId("location").textContent).toBe("/library/plugins");
-    act(() => page.cards.get("Routines")?.onClick());
-    expect(screen.getByTestId("location").textContent).toBe("/library/routines");
-    act(() => page.cards.get("Environments")?.onClick());
-    expect(screen.getByTestId("location").textContent).toBe("/library/environments");
-    act(() => page.cards.get("Files")?.onClick());
-    expect(screen.getByTestId("location").textContent).toBe("/library/files");
+    act(() => onNavigate("/library/routines/new"));
+    expect(screen.getByTestId("location").textContent).toBe("/library/routines/new");
   });
 
-  it("opens Apply YAML in the active org, and an apply recounts every card", () => {
+  it("writes a card's address as the hash route", () => {
     renderLanding();
-    expect(page.dialog.at(-1)).toMatchObject({ open: false, org: "org_acme" });
 
-    fireEvent.click(screen.getByRole("button", { name: "Apply YAML" }));
-    expect(page.dialog.at(-1)?.open).toBe(true);
-
-    page.tokens.length = 0;
-    act(() => page.dialog.at(-1)?.onApplied());
-    expect(page.tokens).toEqual([1, 1, 1, 1, 1, 1]);
+    expect((overview().toHref as (path: string) => string)("/library/files")).toBe("#/library/files");
   });
 });

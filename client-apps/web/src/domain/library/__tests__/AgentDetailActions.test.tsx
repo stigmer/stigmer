@@ -122,7 +122,7 @@ vi.mock("@/config/env", () => ({
 }));
 
 import { AgentDetailPageInner } from "../agents/AgentDetailPage";
-import { AGENT_DELETE_DESCRIPTION } from "../agents/agent-delete-confirmation";
+import { AGENT_DELETE_DESCRIPTION } from "@stigmer/react-sdk/console";
 
 function action(id: string): Action {
   const found = page.actions.at(-1)?.find((a) => a.id === id);

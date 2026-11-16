@@ -93,6 +93,9 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
       "resource-creation",
       "resource-detail",
       "settings",
+      // library-pages is the console's Library (its landing and list
+      // pages), beside settings' sections.
+      "library-pages",
       "version-history",
       "dependency-graph",
       "dashboard",

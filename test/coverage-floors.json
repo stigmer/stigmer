@@ -63,12 +63,12 @@
     "client-apps/desktop": {
       "lines": 90.9,
       "branches": 77.2,
-      "cases": 389
+      "cases": 364
     },
     "client-apps/web": {
       "lines": 82.9,
       "branches": 70.9,
-      "cases": 447
+      "cases": 414
     },
     "coding-agents": {
       "lines": 100,

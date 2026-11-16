@@ -1,18 +1,14 @@
 /**
  * Pins the desktop Environment pages, wired identically to the web ones:
- * the list lists the active organization by its id with no server text
- * search, opens a row under its organization's slug, and offers "New
- * environment" and Apply YAML only to someone the server lets create one;
  * the new page creates in the active organization, opens the new
  * Environment on completion and the list on cancel, and meets someone who
  * may not create one with the denied notice; the detail page shows the
  * Environment the route names, names the breadcrumb, moves the route to
  * the slug it answers to, follows a rename, lands on the list after a
- * delete, and renders nothing for a route that names no Environment. Apply
- * YAML opens the manifest dialog and refreshes the list once a manifest is
- * applied; the new page waits, rendering nothing, while the server's
- * answer is in flight. The SDK views are pinned in @stigmer/react-sdk and
- * stubbed here.
+ * delete, and renders nothing for a route that names no Environment. The
+ * new page waits, rendering nothing, while the server's answer is in
+ * flight. The list moved into @stigmer/react-sdk/console and is pinned
+ * there. The SDK views are pinned in @stigmer/react-sdk and stubbed here.
  */
 import type { ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -57,7 +53,6 @@ vi.mock("@stigmer/react-sdk", async () => {
   };
 });
 
-import EnvironmentListPage from "../library/EnvironmentListPage";
 import EnvironmentNewPage from "../library/EnvironmentNewPage";
 import EnvironmentDetailPage from "../library/EnvironmentDetailPage";
 
@@ -98,44 +93,6 @@ beforeEach(() => {
   page.canCreate = { allowed: true, isLoading: false };
   page.props.clear();
   page.labels.length = 0;
-});
-
-describe("desktop EnvironmentListPage", () => {
-  it("lists the active org with no text search and opens a row under its org's slug", () => {
-    renderAt("/library/environments", "/library/environments", <EnvironmentListPage />);
-    expect(propsOf("ResourceWorkbench")).toMatchObject({ org: "org_acme", searchable: false });
-    call("ResourceWorkbench", "onItemClick", CREATED);
-    expect(location()).toBe("/library/environments/acme/data-science");
-  });
-
-  it("offers New environment and Apply YAML only to someone the server lets create one", () => {
-    const { unmount } = renderAt("/library/environments", "/library/environments", <EnvironmentListPage />);
-    expect(screen.getByRole("link", { name: "New environment" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Apply YAML" })).toBeTruthy();
-    unmount();
-
-    page.canCreate = { allowed: false, isLoading: false };
-    renderAt("/library/environments", "/library/environments", <EnvironmentListPage />);
-    expect(screen.queryByRole("link", { name: "New environment" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Apply YAML" })).toBeNull();
-  });
-
-  it("opens Apply YAML and refreshes the list once a manifest is applied", () => {
-    renderAt("/library/environments", "/library/environments", <EnvironmentListPage />);
-    expect(propsOf("ApplyManifestDialog").open).toBe(false);
-    fireEvent.click(screen.getByRole("button", { name: "Apply YAML" }));
-    expect(propsOf("ApplyManifestDialog")).toMatchObject({ open: true, org: "org_acme" });
-    const before = propsOf("ResourceWorkbench").refetchToken as number;
-    call("ApplyManifestDialog", "onApplied");
-    expect(propsOf("ResourceWorkbench").refetchToken).toBe(before + 1);
-  });
-
-  it("keys each row by its Environment's id", () => {
-    renderAt("/library/environments", "/library/environments", <EnvironmentListPage />);
-    const getItemId = propsOf("ResourceWorkbench").getItemId as (item: unknown) => string;
-    expect(getItemId({ metadata: { id: "env_ds" } })).toBe("env_ds");
-    expect(getItemId({})).toBe("");
-  });
 });
 
 describe("desktop EnvironmentNewPage", () => {

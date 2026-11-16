@@ -128,3 +128,33 @@ export type {
 // the Library, models, the dashboard, the marketplace), in both apps.
 export { PageFrame } from "./page-frame/PageFrame.js";
 export type { PageFrameProps, PageFrameWidth } from "./page-frame/PageFrame.js";
+
+// Library — the landing and one list page per kind, in both apps. The
+// detail views stay in the root entry (embedders build on them); these are
+// the console's pages, with its addresses and Apply YAML. Hosts inject
+// routing (`onOpen`, `renderLink`, `onNavigate`).
+export {
+  LibraryOverview,
+  LibraryAgentsSection,
+  LibrarySkillsSection,
+  LibraryPluginsSection,
+  LibraryRoutinesSection,
+  LibraryEnvironmentsSection,
+  LibraryFilesSection,
+  AGENT_DELETE_DESCRIPTION,
+  LIBRARY_HREFS,
+  LIBRARY_ADD_PARAM,
+  LIBRARY_ADD_MCP_SERVER,
+} from "./library-pages/index.js";
+export type {
+  LibraryOverviewProps,
+  LibraryAgentsSectionProps,
+  LibrarySkillsSectionProps,
+  LibraryPluginsSectionProps,
+  LibraryRoutinesSectionProps,
+  LibraryEnvironmentsSectionProps,
+  LibraryFilesSectionProps,
+  LibraryResourceKind,
+  LibraryResourceRef,
+  LibrarySectionNavigation,
+} from "./library-pages/index.js";

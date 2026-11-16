@@ -21,7 +21,12 @@ import { MODES, SCENES, WIDTHS, screenshotsOf, type Mode, type SceneId } from ".
 import { draw } from "./draw.ts";
 
 /** The rules each scene fails today, in each mode, against the issue that tracks each. */
-const KNOWN_VIOLATIONS: Readonly<Partial<Record<`${SceneId} ${Mode}`, readonly KnownViolation[]>>> = {};
+const KNOWN_VIOLATIONS: Readonly<Partial<Record<`${SceneId} ${Mode}`, readonly KnownViolation[]>>> = {
+  "library-agents-apply-yaml light": [{ rule: "aria-input-field-name", issue: "stigmer#3196" }],
+  "library-agents-apply-yaml dark": [{ rule: "aria-input-field-name", issue: "stigmer#3196" }],
+  "skill-upload-first dark": [{ rule: "color-contrast", issue: "stigmer#3196" }],
+  "plugin-upload-first dark": [{ rule: "color-contrast", issue: "stigmer#3196" }],
+};
 
 const SCREENSHOTS = fileURLToPath(new URL("./__screenshots__/", import.meta.url));
 

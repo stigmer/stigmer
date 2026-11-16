@@ -2,7 +2,7 @@
  * Pins the desktop router's Files address: /library/files resolves to a
  * route whose lazy page loads and renders the Library's File list, and no
  * route exists under it, since a File has no page of its own (a row opens
- * its preview). The SDK's list is stubbed and pinned by its own suites in
+ * its preview). The kit's list section is stubbed and pinned by its own suites in
  * sdk/react.
  */
 import { describe, it, expect, vi } from "vitest";
@@ -22,6 +22,12 @@ vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: vi.fn(() => ({ listen: vi.fn().mockResolvedValue(() => {}) })),
 }));
 vi.mock("@tauri-apps/plugin-updater", () => ({ check: vi.fn().mockResolvedValue(null) }));
+
+// The Library's list is the kit's console section, stubbed with its workbench's name.
+vi.mock("@stigmer/react-sdk/console", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-sdk/console")>()),
+  LibraryFilesSection: () => <p>File workbench</p>,
+}));
 
 vi.mock("@stigmer/react-sdk", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@stigmer/react-sdk")>()),

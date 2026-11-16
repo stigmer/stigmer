@@ -1,89 +1,13 @@
-import { useMemo, useReducer, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Box, Plus, Upload } from "lucide-react";
-import type { Environment } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
-import {
-  Button,
-  LinkButton,
-  ApplyManifestDialog,
-  EnvironmentsNotOnServerNotice,
-  ResourceWorkbench,
-  createEnvironmentColumns,
-  createEnvironmentListFn,
-  useActiveOrgId,
-  useCanCreateEnvironment,
-  useOrgSlugForId,
-  useStigmer,
-  PageHeader,
-} from "@stigmer/react-sdk";
-import { renderJourneyLink } from "../../journey/journey-links";
-
 /**
- * The organization's Environments, wired identically to the web Library's
- * list: only an admin is offered "New environment" and Apply YAML, and
- * neither shows until the server has answered.
+ * The desktop app's Environments list: the kit's section, opened at the resource's
+ * address and linked with the router.
  */
+
+import { LibraryEnvironmentsSection } from "@stigmer/react-sdk/console";
+import { renderJourneyLink } from "../../journey/journey-links";
+import { useLibraryOpen } from "./library-open";
+
 export default function EnvironmentListPage() {
-  const org = useActiveOrgId();
-  const slugForOrg = useOrgSlugForId();
-  const stigmer = useStigmer();
-  const navigate = useNavigate();
-  const { allowed: canCreate } = useCanCreateEnvironment(org || null);
-
-  const [importOpen, setImportOpen] = useState(false);
-  // Bumped after Apply YAML so the list refetches in place.
-  const [refetchToken, refreshList] = useReducer((n: number) => n + 1, 0);
-
-  const listFn = useMemo(() => createEnvironmentListFn(stigmer), [stigmer]);
-  const columns = useMemo(() => createEnvironmentColumns(), []);
-
-  const newEnvironmentButton = canCreate ? (
-    <LinkButton href="/library/environments/new" icon={<Plus className="size-3.5" aria-hidden="true" />} renderLink={renderJourneyLink}>
-      New environment
-    </LinkButton>
-  ) : undefined;
-
-  const headerActions = canCreate ? (
-    <>
-      <Button variant="ghost" icon={<Upload className="size-3.5" aria-hidden="true" />} onClick={() => setImportOpen(true)}>
-        Apply YAML
-      </Button>
-      {newEnvironmentButton}
-    </>
-  ) : undefined;
-
-  return (
-    <>
-      <PageHeader
-        className="mb-6"
-        headingLevel={1}
-        title="Environments"
-        description="Packages and network access for the sandboxes your agents run in."
-        actions={headerActions}
-      />
-
-      <EnvironmentsNotOnServerNotice className="mb-6" />
-
-      <ResourceWorkbench<Environment>
-        refetchToken={refetchToken}
-        listFn={listFn}
-        org={org}
-        columns={columns}
-        getItemId={(item) => item.metadata?.id ?? ""}
-        searchable={false}
-        defaultViewMode="table"
-        viewModes={["table"]}
-        emptyIcon={<Box className="size-10" aria-hidden="true" />}
-        emptyTitle="No environments yet"
-        emptyDescription="Create an environment to give your agents' sandboxes packages and a network policy."
-        emptyAction={newEnvironmentButton}
-        onItemClick={(item) =>
-          navigate(`/library/environments/${slugForOrg(item.metadata?.org ?? "")}/${item.metadata?.slug ?? ""}`)
-        }
-        aria-label="Environment workbench"
-      />
-
-      <ApplyManifestDialog open={importOpen} onOpenChange={setImportOpen} org={org ?? ""} onApplied={refreshList} />
-    </>
-  );
+  const onOpen = useLibraryOpen();
+  return <LibraryEnvironmentsSection onOpen={onOpen} renderLink={renderJourneyLink} />;
 }

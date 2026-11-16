@@ -106,6 +106,10 @@
     "type-off-scale p \"Rather hand it to Claude Code, Cursor or Codex? Let your cod\": 12px on 20px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale p \"Say what it should do for your users, in a sentence or two.\": 12px on 20px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
+  "library-agents-apply-yaml": {
+    "spacing-off-scale div \"1\": paddingRight 3px": "The Apply YAML editor's gutter, stigmer#3196",
+    "spacing-off-scale div \"1\": paddingLeft 5px": "The Apply YAML editor's gutter, stigmer#3196"
+  },
   "story-embed": {
     "type-off-scale div \"Help with your books\": 24px on 36px lines, its step pairs 32px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale div \"acme.com/help\": 13px is no step's size": "On the scale where its screen is designed and rebuilt",

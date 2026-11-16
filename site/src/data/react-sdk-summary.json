@@ -211,6 +211,13 @@
       "components": 4
     },
     {
+      "slug": "library-pages",
+      "title": "library-pages",
+      "description": "",
+      "hooks": 0,
+      "components": 7
+    },
+    {
       "slug": "manifest",
       "title": "manifest",
       "description": "",

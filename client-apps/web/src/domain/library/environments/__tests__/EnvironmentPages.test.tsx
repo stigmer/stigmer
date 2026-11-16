@@ -1,21 +1,18 @@
 /**
- * Pins the web Environment pages' seams around the SDK: the list lists the
- * active organization by its id, opens a row as a Library detail, and
- * offers "New environment" and Apply YAML only to someone the server lets
- * create one; the new page creates in the active organization, opens the
- * new Environment under its organization's slug, goes back to the list on
- * cancel, and meets a direct visit by someone who may not create one with
- * the denied notice; the detail page shows the Environment where it lives,
- * names the breadcrumb, keeps the canonical slug, and lands on the list
- * after a delete. /library/environments serves the list; Apply YAML opens
- * the manifest dialog and refreshes the list once a manifest is applied;
- * the routed detail page reads the Environment from the address the static
- * export serves. The views, form and workbench are pinned in
- * @stigmer/react-sdk and stubbed here to capture their props.
+ * Pins the web Environment pages' seams around the SDK: the new page
+ * creates in the active organization, opens the new Environment under its
+ * organization's slug, goes back to the list on cancel, and meets a direct
+ * visit by someone who may not create one with the denied notice; the
+ * detail page shows the Environment where it lives, names the breadcrumb,
+ * keeps the canonical slug, and lands on the list after a delete; the
+ * routed detail page reads the Environment from the address the static
+ * export serves. The list moved into @stigmer/react-sdk/console and is
+ * pinned there. The views and form are pinned in @stigmer/react-sdk and
+ * stubbed here to capture their props.
  */
 import type { ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 
 type Props = Record<string, unknown>;
 
@@ -83,10 +80,8 @@ vi.mock("@/domain/library/library-navigation", () => ({
   useRouteDetailYieldsToOverlay: () => false,
 }));
 
-import { EnvironmentListPage } from "../EnvironmentListPage";
 import { EnvironmentNewPage } from "../EnvironmentNewPage";
 import { EnvironmentDetailPage, EnvironmentDetailPageInner } from "../EnvironmentDetailPage";
-import EnvironmentsPage from "@/app/library/environments/page";
 
 function propsOf(name: string): Props {
   const props = page.props.get(name);
@@ -112,53 +107,6 @@ beforeEach(() => {
   page.labels.length = 0;
   page.canonical.length = 0;
   page.detail.length = 0;
-});
-
-describe("web EnvironmentListPage", () => {
-  it("lists the active org by its id and opens a row as a Library detail", () => {
-    render(<EnvironmentListPage />);
-    expect(propsOf("ResourceWorkbench").org).toBe("org_acme");
-    expect(propsOf("ResourceWorkbench").searchable).toBe(false);
-    call("ResourceWorkbench", "onItemClick", CREATED);
-    expect(page.detail).toEqual([["environments", "org_acme", "data-science"]]);
-  });
-
-  it("offers New environment and Apply YAML to someone the server lets create one", () => {
-    render(<EnvironmentListPage />);
-    expect(screen.getAllByRole("link", { name: "New environment" })[0]?.getAttribute("href")).toBe(
-      "/library/environments/new",
-    );
-    expect(screen.getByRole("button", { name: "Apply YAML" })).toBeTruthy();
-  });
-
-  it("offers neither to someone the server would refuse", () => {
-    page.canCreate = { allowed: false, isLoading: false };
-    render(<EnvironmentListPage />);
-    expect(screen.queryByRole("link", { name: "New environment" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Apply YAML" })).toBeNull();
-  });
-
-  it("is the page /library/environments serves", () => {
-    render(<EnvironmentsPage />);
-    expect(propsOf("ResourceWorkbench").org).toBe("org_acme");
-  });
-
-  it("opens Apply YAML and refreshes the list once a manifest is applied", () => {
-    render(<EnvironmentListPage />);
-    expect(propsOf("ApplyManifestDialog").open).toBe(false);
-    fireEvent.click(screen.getByRole("button", { name: "Apply YAML" }));
-    expect(propsOf("ApplyManifestDialog")).toMatchObject({ open: true, org: "org_acme" });
-    const before = propsOf("ResourceWorkbench").refetchToken as number;
-    call("ApplyManifestDialog", "onApplied");
-    expect(propsOf("ResourceWorkbench").refetchToken).toBe(before + 1);
-  });
-
-  it("keys each row by its Environment's id", () => {
-    render(<EnvironmentListPage />);
-    const getItemId = propsOf("ResourceWorkbench").getItemId as (item: unknown) => string;
-    expect(getItemId({ metadata: { id: "env_ds" } })).toBe("env_ds");
-    expect(getItemId({})).toBe("");
-  });
 });
 
 describe("web EnvironmentNewPage", () => {

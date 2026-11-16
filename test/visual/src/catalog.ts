@@ -99,6 +99,13 @@ export type SceneId =
   | `story-${StorySceneName}`
   | "agent-chat-page"
   | `routine-${RoutineSceneName}`
+  | `library-${LibrarySceneName}`
+  | `conversations-${ConversationsSceneName}`
+  | "agent-new-picker"
+  | "agent-new-wizard"
+  | "agent-new-denied"
+  | "skill-upload-first"
+  | "plugin-upload-first"
   | `environment-${EnvironmentSceneName}`
   | `channel-${ChannelSceneName}`
   | `access-${AccessSceneName}`
@@ -559,7 +566,122 @@ const ROUTINE_SCENES = [
   },
   { id: "routine-disabled", title: "Routine page: the daily variance report as made, switched off, offering Enable & run now", widths: ["desktop"] },
   { id: "routine-history", title: "Routine page, History: the daily variance report's first run, started by hand", widths: ["desktop"] },
+  {
+    id: "routine-new-failed",
+    title: "New routine: the daily variance report filled in and Create routine pressed, refused by the server under the form",
+    widths: ["desktop"],
+    opens: [
+      { fill: ROUTINE_EXAMPLE.nameLabel, with: ROUTINE_EXAMPLE.name, exact: true },
+      { press: "Agent to run", role: "button" },
+      { press: ROUTINE_EXAMPLE.agent, role: "option" },
+      { fill: ROUTINE_EXAMPLE.messageLabel, with: ROUTINE_EXAMPLE.message, exact: true },
+      { press: "Create routine", role: "button", exact: true },
+    ],
+  },
+  {
+    id: "routine-edit-cadence",
+    title: "Routine page: the daily variance report's cadence open in its inline editor",
+    widths: ["desktop"],
+    opens: [{ press: "Edit cadence", role: "button", exact: true }],
+  },
+  {
+    id: "routine-run-dialog",
+    title: "Routine page: the daily variance report's Run now dialog open",
+    widths: ["desktop"],
+    opens: [{ press: "Run now", role: "button", exact: true, first: true }],
+  },
 ] as const satisfies readonly { readonly id: `routine-${string}`; readonly title: string; readonly widths: readonly WidthName[]; readonly opens?: readonly Act[] }[];
+
+/**
+ * The Library's pages as they are, the pictures their redesign is measured
+ * from: the landing for an owner, for a member and with its counts failed;
+ * each kind's list full, empty for someone who may create one and for a
+ * member, with nothing matching a search, failed and loading; and the
+ * dialogs a list opens.
+ */
+export type LibrarySceneName = (typeof LIBRARY_SCENES)[number]["id"] extends `library-${infer Name}` ? Name : never;
+
+const LIBRARY_SCENES = [
+  { id: "library-landing", title: "Library: the landing for an owner, a count card per kind", widths: ["desktop", "narrow"] },
+  {
+    id: "library-landing-member",
+    title: "Library: the landing for a member, its Add menu open on what a member may create",
+    widths: ["desktop"],
+    opens: [{ press: "Add a new resource", role: "button", exact: true }],
+  },
+  { id: "library-landing-failed", title: "Library: the landing when no count could be read", widths: ["desktop"] },
+  { id: "library-agents", title: "Library, Agents: the organization's five agents", widths: ["desktop", "narrow"] },
+  { id: "library-agents-empty", title: "Library, Agents: none yet, for someone who may create one", widths: ["desktop"] },
+  { id: "library-agents-empty-member", title: "Library, Agents: none yet, for a member who may not create one", widths: ["desktop"] },
+  {
+    id: "library-agents-no-match",
+    title: "Library, Agents: a search that matches no agent",
+    widths: ["desktop"],
+    opens: [{ fill: "Search agents…", with: "ledgr" }],
+  },
+  { id: "library-agents-failed", title: "Library, Agents: the list could not be read", widths: ["desktop", "narrow"] },
+  { id: "library-agents-loading", title: "Library, Agents: while the list is read", widths: ["desktop"] },
+  {
+    id: "library-agents-apply-yaml",
+    title: "Library, Agents: the Apply YAML dialog open",
+    widths: ["desktop"],
+    opens: [{ press: "Apply YAML", role: "button", exact: true }],
+  },
+  {
+    id: "library-agents-delete",
+    title: "Library, Agents: a row's Delete asking first",
+    widths: ["desktop"],
+    opens: [
+      { press: "Actions for variance-reporter", role: "button", exact: true },
+      { press: "Delete", role: "menuitem", exact: true },
+    ],
+  },
+  { id: "library-skills", title: "Library, Skills: the organization's three skills", widths: ["desktop", "narrow"] },
+  { id: "library-skills-empty", title: "Library, Skills: none yet", widths: ["desktop"] },
+  { id: "library-skills-failed", title: "Library, Skills: the list could not be read", widths: ["desktop"] },
+  { id: "library-plugins", title: "Library, Plugins: the organization's two installed plugins", widths: ["desktop", "narrow"] },
+  { id: "library-plugins-empty", title: "Library, Plugins: none installed, for an admin", widths: ["desktop"] },
+  { id: "library-plugins-empty-member", title: "Library, Plugins: none installed, for a member, told an admin installs", widths: ["desktop"] },
+  { id: "library-plugins-failed", title: "Library, Plugins: the list could not be read", widths: ["desktop"] },
+  { id: "library-routines", title: "Library, Routines: the daily variance report, on, and a weekly one, off", widths: ["desktop", "narrow"] },
+  { id: "library-routines-empty", title: "Library, Routines: none yet", widths: ["desktop"] },
+  { id: "library-routines-failed", title: "Library, Routines: the list could not be read", widths: ["desktop"] },
+  { id: "library-environments", title: "Library, Environments: data-science", widths: ["desktop", "narrow"] },
+  { id: "library-environments-empty", title: "Library, Environments: none yet, for an admin", widths: ["desktop"] },
+  { id: "library-environments-empty-member", title: "Library, Environments: none yet, for a member, offered nothing to make", widths: ["desktop"] },
+  { id: "library-environments-failed", title: "Library, Environments: the list could not be read", widths: ["desktop"] },
+  { id: "library-files", title: "Library, Files: three kept Files", widths: ["desktop", "narrow"] },
+  { id: "library-files-empty", title: "Library, Files: none yet", widths: ["desktop"] },
+  { id: "library-files-failed", title: "Library, Files: the list could not be read", widths: ["desktop"] },
+] as const satisfies readonly { readonly id: `library-${string}`; readonly title: string; readonly widths: readonly WidthName[]; readonly opens?: readonly Act[] }[];
+
+/** The new and upload pages at their first step. */
+const LIBRARY_NEW_SCENES = [
+  { id: "agent-new-picker", title: "New agent: how to start, from scratch, a template or YAML", widths: ["desktop", "narrow"] },
+  {
+    id: "agent-new-wizard",
+    title: "New agent: the wizard's first step, once From scratch is chosen",
+    widths: ["desktop"],
+    opens: [{ press: "Start from scratch", role: "button" }],
+  },
+  { id: "agent-new-denied", title: "New agent: a member the server would refuse, told who can", widths: ["desktop"] },
+  { id: "skill-upload-first", title: "Upload skill: the drop zone before a package is chosen", widths: ["desktop", "narrow"] },
+  { id: "plugin-upload-first", title: "Upload a plugin: the drop zone before a folder or .zip is chosen", widths: ["desktop", "narrow"] },
+] as const satisfies readonly { readonly id: SceneId; readonly title: string; readonly widths: readonly WidthName[]; readonly opens?: readonly Act[] }[];
+
+/**
+ * The console's Conversations page in the states the take-over guide's
+ * scenes do not draw: no conversation yet, a list that could not be read,
+ * nothing selected, and the page at a phone's width.
+ */
+export type ConversationsSceneName = (typeof CONVERSATIONS_SCENES)[number]["id"] extends `conversations-${infer Name}` ? Name : never;
+
+const CONVERSATIONS_SCENES = [
+  { id: "conversations-empty", title: "Conversations: no customer has written yet", widths: ["desktop"] },
+  { id: "conversations-failed", title: "Conversations: the list could not be read", widths: ["desktop"] },
+  { id: "conversations-none-selected", title: "Conversations: two conversations listed, none opened", widths: ["desktop", "narrow"] },
+  { id: "conversations-open", title: "Conversations: Northwind's conversation open, escalated to a person", widths: ["desktop", "narrow"] },
+] as const satisfies readonly { readonly id: `conversations-${string}`; readonly title: string; readonly widths: readonly WidthName[] }[];
 
 /**
  * The environments page's screens (docs/guides/environments/set-up-an-environment.mdx):
@@ -778,7 +900,7 @@ function whole<S extends Scene>(scene: S): S & { readonly whole: true } {
  * inside it, and the console pages the shared parts are drawn on, whose
  * lower halves scroll under the console's frame.
  */
-const WHOLE_PREFIXES = ["session-", "settings-", "models-hub-", "dashboard-", "marketplace-", "routine-", "agent-profile-"] as const;
+const WHOLE_PREFIXES = ["session-", "settings-", "models-hub-", "dashboard-", "marketplace-", "routine-", "agent-profile-", "library-", "conversations-"] as const;
 
 /**
  * The scenes of those groups kept at their viewport's height: the session
@@ -979,6 +1101,9 @@ const LISTED: readonly Scene[] = [
   ...SESSION_SCENES,
   ...STORY_SCENES,
   ...ROUTINE_SCENES,
+  ...LIBRARY_SCENES,
+  ...LIBRARY_NEW_SCENES,
+  ...CONVERSATIONS_SCENES,
   ...ENVIRONMENT_SCENES,
   ...CHANNEL_SCENES,
   ...ACCESS_SCENES,

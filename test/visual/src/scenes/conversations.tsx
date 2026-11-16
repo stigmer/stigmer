@@ -10,7 +10,7 @@
 // has sent its one acknowledgment while she types her reply.
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import type { ConnectRouter } from "@connectrpc/connect";
+import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { ChannelQueryController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/query_pb";
 import { ChannelConversationQueryController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_query_pb";
 import {
@@ -139,5 +139,42 @@ export function conversationsScene(holder: Holder): Drawing {
       });
     },
     render: () => <Workbench holder={holder} />,
+  };
+}
+
+/** The states the take-over guide's scenes leave out: none yet, failed, nothing opened, and Northwind's opened. */
+export type ConversationsState = "empty" | "failed" | "none-selected" | "open";
+
+/** The console's Conversations page, opened on Northwind's conversation or on none, at the page's full height. */
+function StateWorkbench({ opened }: { readonly opened: boolean }): ReactElement {
+  const [selected, setSelected] = useState<ConversationIdentity | null>(opened ? { channelId: CHANNEL_ID, conversationKey: "15550100142" } : null);
+  return (
+    <div style={{ height: WORKBENCH_HEIGHT.agent, display: "flex", flexDirection: "column" }}>
+      <ConversationsWorkbench org={ORGANIZATION.metadata?.slug ?? ""} selected={selected} onSelectionChange={setSelected} currentIdentityAccountId={ACCOUNT.metadata?.id} />
+    </div>
+  );
+}
+
+/** Conversations in one of the states the guide's scenes leave out. */
+export function conversationsStateScene(state: ConversationsState): Drawing {
+  const conversations = state === "empty" ? [] : [northwind("agent"), FERNHILL];
+  const down = () => {
+    throw new ConnectError("the conversation service did not answer", Code.Unavailable);
+  };
+  return {
+    inOrganization: true,
+    routes: (router: ConnectRouter) => {
+      router.service(OrganizationQueryController, { listMine: () => samples.organizationList([ORGANIZATION]), get: () => ORGANIZATION });
+      router.service(IdentityAccountQueryController, { whoAmI: () => ACCOUNT });
+      router.service(GrantQueryController, { checkMyPermission: () => ({ isAuthorized: true }) });
+      router.service(ChannelQueryController, { get: () => WHATSAPP_CHANNEL, list: () => ({ entries: [WHATSAPP_CHANNEL] }) });
+      router.service(ChannelConversationQueryController, {
+        list: state === "failed" ? down : () => ({ entries: conversations }),
+        countConversations: () => ({ count: state === "empty" ? 0 : 1 }),
+        getConversation: (input) => conversations.find((c) => c.conversationKey === input.conversationKey) ?? northwind("agent"),
+        listTimeline: (input) => ({ entries: input.conversationKey === "15550100142" ? northwindTimeline("agent") : [] }),
+      });
+    },
+    render: () => <StateWorkbench opened={state === "open"} />,
   };
 }
