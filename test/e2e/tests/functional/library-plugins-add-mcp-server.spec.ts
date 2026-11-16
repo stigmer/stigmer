@@ -22,15 +22,18 @@ const SERVER_URL = "https://orders.example.com/mcp";
 const TOKEN = "ORDERS_TOKEN";
 
 test.describe("Plugins list: Add MCP server", () => {
-  test("an organization with no plugin offers Add MCP server in its empty state", async ({ page, freshOrg }) => {
+  test("an organization with no plugin offers Add MCP server beside its empty state", async ({ page, freshOrg }) => {
     await page.goto("/library/plugins");
     await expect(page.getByRole("button", { name: "Organization menu" })).toContainText(freshOrg.slug, {
       timeout: 15_000,
     });
 
+    // The empty list offers the Marketplace and an upload; Add MCP server is
+    // the header's, one of the three ways in.
     const empty = page.getByRole("status").filter({ hasText: "No plugins installed" });
     await expect(empty).toBeVisible({ timeout: 15_000 });
-    await expect(empty.getByRole("button", { name: "Add MCP server" })).toBeVisible();
+    await expect(empty.getByRole("link", { name: "Browse Marketplace" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Add MCP server" })).toBeVisible();
     await expect(page.getByRole("list", { name: "Resource list" })).toHaveCount(0);
   });
 
