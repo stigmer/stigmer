@@ -630,18 +630,11 @@ function SkillSection({
   readonly trailing?: React.ReactNode;
   readonly children: React.ReactNode;
 }) {
+  // The detail page's own section card, so its title takes the page's level.
   return (
-    <section>
-      <div className="stg:mb-2 stg:flex stg:items-center stg:justify-between">
-        <h3 className="stg:text-xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
-          {title}
-        </h3>
-        {trailing}
-      </div>
-      <div className="stg:overflow-hidden stg:rounded-lg stg:border stg:border-border">
-        {children}
-      </div>
-    </section>
+    <Section title={title} headerActions={trailing}>
+      {children}
+    </Section>
   );
 }
 

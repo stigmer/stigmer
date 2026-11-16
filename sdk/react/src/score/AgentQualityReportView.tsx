@@ -65,6 +65,7 @@ import { FEEDBACK_METRIC, JUDGE_METRIC, RUN_HEALTH_METRIC } from "./score-view.j
 import { useAgentQualityReport } from "./useAgentQualityReport.js";
 import { useFlaggedRuns } from "./useFlaggedRuns.js";
 import { useLatestFinishedEvals } from "./useLatestFinishedEvals.js";
+import { SubHeading } from "../resource-detail/headingLevel.js";
 
 /** Props for {@link AgentQualityReportView}. */
 export interface AgentQualityReportViewProps {
@@ -337,9 +338,9 @@ function Tile({
       className="stg:flex stg:flex-col stg:gap-2 stg:rounded-lg stg:border stg:border-border stg:p-3"
     >
       <div className="stg:flex stg:flex-col stg:gap-0.5">
-        <h4 className="stg:text-xs stg:font-medium stg:text-muted-foreground">
+        <SubHeading className="stg:text-xs stg:font-medium stg:text-muted-foreground">
           {title}
-        </h4>
+        </SubHeading>
         <p className="stg:text-lg stg:font-semibold stg:tabular-nums stg:text-foreground">
           {value}
         </p>

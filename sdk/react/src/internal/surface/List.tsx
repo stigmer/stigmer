@@ -66,6 +66,12 @@ export interface ListRowProps {
   readonly onClick?: () => void;
   /** For a row whose name is a button: whether the row is open (a disclosure). */
   readonly "aria-expanded"?: boolean;
+  /**
+   * The leading, adornment and trailing slots hold only decoration (an icon,
+   * a tag, a chevron): a click on them opens the row like a click anywhere
+   * else on it. Leave off when a slot holds a control of its own.
+   */
+  readonly decorativeSlots?: boolean;
   readonly className?: string;
 }
 
@@ -88,8 +94,11 @@ export function ListRow({
   renderLink = anchorLink,
   onClick,
   "aria-expanded": ariaExpanded,
+  decorativeSlots = false,
   className,
 }: ListRowProps) {
+  // A slot sits above the name's stretched link; decoration lets clicks through to it.
+  const slot = decorativeSlots && "stg:pointer-events-none";
   const interactive = href != null || onClick != null;
   const nameNode =
     href != null ? (
@@ -110,15 +119,15 @@ export function ListRow({
           interactive && "stg:transition-colors stg:hover:bg-accent",
         )}
       >
-        {leading != null && <div className="stg:relative stg:z-10 stg:flex stg:shrink-0 stg:items-center">{leading}</div>}
+        {leading != null && <div className={cn("stg:relative stg:z-10 stg:flex stg:shrink-0 stg:items-center", slot)}>{leading}</div>}
         <div className="stg:flex stg:min-w-0 stg:flex-1 stg:flex-col">
           <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-2 stg:font-medium stg:text-foreground">
             {nameNode}
-            {nameAdornment != null && <span className="stg:relative stg:z-10 stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">{nameAdornment}</span>}
+            {nameAdornment != null && <span className={cn("stg:relative stg:z-10 stg:flex stg:shrink-0 stg:items-center stg:gap-1.5", slot)}>{nameAdornment}</span>}
           </div>
           {description != null && <div className="stg:truncate stg:text-xs stg:text-muted-foreground">{description}</div>}
         </div>
-        {trailing != null && <div className="stg:relative stg:z-10 stg:flex stg:shrink-0 stg:items-center stg:gap-2">{trailing}</div>}
+        {trailing != null && <div className={cn("stg:relative stg:z-10 stg:flex stg:shrink-0 stg:items-center stg:gap-2", slot)}>{trailing}</div>}
       </div>
       {open && expanded != null && (
         <div className="stg:border-t stg:border-border-muted stg:px-3.5 stg:py-3">{expanded}</div>

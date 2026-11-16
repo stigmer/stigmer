@@ -240,7 +240,7 @@
       "caption": "New agent: Step 1, a field left empty",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
       "words": [
         {
           "text": "New agent",
@@ -373,7 +373,7 @@
       "caption": "New agent: Step 2",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
       "words": [
         {
           "text": "New agent",
@@ -562,7 +562,7 @@
       "caption": "New agent: Step 3, creating",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
       "words": [
         {
           "text": "New agent",
@@ -695,7 +695,7 @@
       "caption": "New agent: Step 3, couldn't create it",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
       "words": [
         {
           "text": "New agent",
@@ -915,7 +915,12 @@
     {
       "caption": "New agent: At 390 wide",
       "narrow": true,
-      "built": [],
+      "built": [
+        {
+          "scene": "agent-new-wizard",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "New agent",
@@ -1042,8 +1047,15 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {},
-      "unbuilt": "built by the Library pages pull request's later scenes: no scene draws this state yet (stigmer#3210)"
+      "pending": {
+        "word Step 1 of 3 \u00b7 Name and instructions": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Variance reporter": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word variance-reporter": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Description (optional)": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Turns a customer's ledger into a variance report.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word You review a customer's quarterly ledger. Each row has an account, its budget and its actual amount\u2026": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word What it should do, in plain words. You can change them any time.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
+      }
     }
   ]
 }

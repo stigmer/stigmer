@@ -7,8 +7,12 @@
     {
       "caption": "Any detail page: Loading",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "agent-page-loading",
+          "width": "desktop"
+        }
+      ],
       "words": [],
       "buttons": [],
       "sample": {},
@@ -18,8 +22,12 @@
     {
       "caption": "Any detail page: Didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "agent-page-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Couldn't load the agent.",
@@ -74,13 +82,21 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Couldn't load the agent.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word the server did not answer in time": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Stuck? Ask IT on Slack": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "Any detail page: Not found",
       "narrow": false,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "agent-page-not-found",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "This agent isn't here",
@@ -115,7 +131,10 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Back to agents": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "button Back to agents": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
+      }
     }
   ]
 }

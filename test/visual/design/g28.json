@@ -102,7 +102,7 @@
       "caption": "Upload plugin: Chosen, before upload",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
       "words": [
         {
           "text": "Upload plugin",
@@ -231,7 +231,7 @@
       "caption": "Upload plugin: Refused: not a plugin",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
       "words": [
         {
           "text": "Upload plugin",
@@ -320,7 +320,7 @@
       "caption": "Upload plugin: A version already installed",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
       "words": [
         {
           "text": "Upload plugin",
@@ -588,7 +588,7 @@
       "sample": {},
       "ruled": {},
       "pending": {},
-      "unbuilt": "built by the Library pages pull request's later scenes: no scene draws this state yet (stigmer#3210)"
+      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)"
     }
   ]
 }

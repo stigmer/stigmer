@@ -79,6 +79,20 @@ export type SceneId =
   | "dashboard-journey-folded"
   | `settings-${SettingsSceneName}`
   | "agent-profile-owner"
+  | "agent-profile-channels"
+  | "agent-profile-evals-failed"
+  | "agent-profile-versions"
+  | "agent-page-loading"
+  | "agent-page-failed"
+  | "agent-page-not-found"
+  | "plugin-detail"
+  | "plugin-detail-remove"
+  | "plugin-detail-evals"
+  | "environment-detail"
+  | "environment-detail-editing"
+  | "environment-detail-member"
+  | "skill-upload-chosen"
+  | "skill-upload-refused"
   | "agent-profile-manage-access"
   | "agent-profile-viewer"
   | "agent-profile-variance-reporter"
@@ -561,7 +575,7 @@ const ROUTINE_SCENES = [
   {
     id: "routine-new",
     title: "New routine: the routines page's daily variance report, filled in, its schedule every day at 09:00 in Kolkata",
-    widths: ["desktop"],
+    widths: ["desktop", "narrow"],
     opens: [
       { fill: ROUTINE_EXAMPLE.nameLabel, with: ROUTINE_EXAMPLE.name, exact: true },
       { press: "Agent to run", role: "button" },
@@ -692,12 +706,24 @@ const LIBRARY_NEW_SCENES = [
   {
     id: "agent-new-wizard",
     title: "New agent: the wizard's first step, once From scratch is chosen",
-    widths: ["desktop"],
+    widths: ["desktop", "narrow"],
     opens: [{ press: "Start from scratch", role: "button" }],
   },
   { id: "agent-new-denied", title: "New agent: a member the server would refuse, told who can", widths: ["desktop"] },
   { id: "skill-upload-first", title: "Upload skill: the drop zone before a package is chosen", widths: ["desktop", "narrow"] },
   { id: "plugin-upload-first", title: "Upload a plugin: the drop zone before a folder or .zip is chosen", widths: ["desktop", "narrow"] },
+  {
+    id: "skill-upload-chosen",
+    title: "Upload skill: a package chosen, what it adds shown before the upload",
+    widths: ["desktop", "narrow"],
+    opens: [{ see: "month-end-close" }],
+  },
+  {
+    id: "skill-upload-refused",
+    title: "Upload skill: a .zip that isn't a skill, refused with the reason",
+    widths: ["desktop"],
+    opens: [{ see: "SKILL.md" }],
+  },
 ] as const satisfies readonly { readonly id: SceneId; readonly title: string; readonly widths: readonly WidthName[]; readonly opens?: readonly Act[] }[];
 
 /**
@@ -1085,6 +1111,43 @@ const LISTED: readonly Scene[] = [
   ...SETTINGS_SCENES,
   { id: "agent-profile-owner", title: "Agent page: the ledger agent, as its owner sees it", widths: ["desktop", "narrow"] },
   { id: "agent-profile-viewer", title: "Agent page: the ledger agent, as a person who may only read it sees it", widths: ["desktop"] },
+  {
+    id: "agent-profile-channels",
+    title: "Agent page, Channels: the ledger agent with no channel yet, offering to connect one",
+    widths: ["desktop"],
+    opens: [{ press: "Channels", role: "tab" }],
+  },
+  {
+    id: "agent-profile-evals-failed",
+    title: "Agent page, Evals: the agent's eval runs could not be read",
+    widths: ["desktop"],
+    opens: [{ press: "Evals", role: "tab" }],
+  },
+  {
+    id: "agent-profile-versions",
+    title: "Agent page, Versions: the ledger agent's three versions",
+    widths: ["desktop"],
+    opens: [{ press: "Versions", role: "tab" }],
+  },
+  { id: "agent-page-loading", title: "Agent page: while the agent is read", widths: ["desktop"] },
+  { id: "agent-page-failed", title: "Agent page: the agent could not be read", widths: ["desktop"] },
+  { id: "agent-page-not-found", title: "Agent page: no agent at this address", widths: ["desktop"] },
+  { id: "plugin-detail", title: "Plugin page: acme's ledger tools, as an admin sees them", widths: ["desktop", "narrow"] },
+  { id: "plugin-detail-remove", title: "Plugin page: Remove asked first, in the destructive confirm", widths: ["desktop"] },
+  {
+    id: "plugin-detail-evals",
+    title: "Plugin page, Evals: none yet",
+    widths: ["desktop"],
+    opens: [{ press: "Evals", role: "tab" }],
+  },
+  { id: "environment-detail", title: "Environment page: data-science, as an admin sees it", widths: ["desktop", "narrow"] },
+  {
+    id: "environment-detail-editing",
+    title: "Environment page: its network being changed in place",
+    widths: ["desktop"],
+    opens: [{ press: "Edit network", role: "button" }],
+  },
+  { id: "environment-detail-member", title: "Environment page: data-science, read only for a member", widths: ["desktop"] },
   {
     id: "agent-profile-manage-access",
     title: "Agent page: the ledger agent's Manage access dialog, opened from More actions by its owner",

@@ -2,8 +2,10 @@
 
 import { cn } from "@stigmer/design-tokens";
 import { IconButton } from "../button/IconButton.js";
+import { cardClasses, cardHeaderClasses } from "../internal/surface/Card.js";
 import { Tag } from "../internal/surface/Tag.js";
 import type { ReactNode } from "react";
+import { useSectionHeadingLevel } from "./headingLevel.js";
 
 export interface SectionProps {
   readonly title: string;
@@ -31,10 +33,14 @@ export interface SectionProps {
 /**
  * Shared section layout for resource detail views.
  *
- * Renders a labeled section with an optional count badge and edit affordance
- * in the header row. The content is wrapped in a bordered card.
+ * A card whose header bar holds the section's title (14/20, semibold, one
+ * heading level under the detail page's title: `h2` under an `h1`, `h3`
+ * under the default `h2` and wherever no detail page sets it), its count and its
+ * acts (the edit icon button among them); the content sits under the bar
+ * and draws its own inner spacing.
  *
- * Used uniformly by AgentDetailView, PluginDetailView, and SkillDetailView.
+ * Used uniformly by AgentDetailView, PluginDetailView, SkillDetailView and
+ * the other detail views.
  */
 export function Section({
   title,
@@ -46,17 +52,17 @@ export function Section({
   children,
   className,
 }: SectionProps) {
+  const level = useSectionHeadingLevel();
+  const Heading = level === 2 ? "h2" : "h3";
   return (
-    <section className={className} data-scroll-target={scrollTarget}>
-      <div className="stg:mb-2 stg:flex stg:items-center stg:gap-2">
-        <h3 className="stg:text-xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
-          {title}
-        </h3>
-        {count != null && count > 0 && (
-          <Tag>{countIsLowerBound ? `${count}+` : count}</Tag>
-        )}
+    <section className={cn(cardClasses({ flush: true }), className)} data-scroll-target={scrollTarget}>
+      <div className={cardHeaderClasses()}>
+        <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-2">
+          <Heading className="stg:m-0 stg:text-sm stg:font-semibold stg:text-foreground">{title}</Heading>
+          {count != null && count > 0 && <Tag>{countIsLowerBound ? `${count}+` : count}</Tag>}
+        </div>
         {(headerActions || onEdit) && (
-          <div className="stg:ml-auto stg:flex stg:items-center stg:gap-1">
+          <div className="stg:flex stg:items-center stg:gap-1">
             {headerActions}
             {onEdit && (
               <IconButton label={`Edit ${title.toLowerCase()}`} size="xs" icon={<PencilIcon className="stg:size-3.5" />} onClick={onEdit} />
@@ -64,9 +70,7 @@ export function Section({
           </div>
         )}
       </div>
-      <div className="stg:overflow-hidden stg:rounded-lg stg:border stg:border-border">
-        {children}
-      </div>
+      {children}
     </section>
   );
 }

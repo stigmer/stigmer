@@ -7,6 +7,7 @@ import { PRESETS, THREAD_STATES, type Preset, type SceneId, type ThreadState } f
 import { inheritedOpenAiKey, NOTHING_CONNECTED, NOTHING_ON_THE_RUNNER, ownAnthropicKey } from "../fixtures.ts";
 import { agentChatScene } from "./agent-chat.tsx";
 import { agentProfileScene } from "./agent.tsx";
+import { agentPageReadScene, environmentDetailScene, pluginDetailScene, skillUploadDropScene } from "./library-detail.tsx";
 import { fromHooksScene } from "./from-hooks.tsx";
 import { varianceReporterScene } from "./agent-pages.tsx";
 import { skillDetailScene, skillFilesScene } from "./skill.tsx";
@@ -151,6 +152,20 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "settings-loading": settingsLoadingScene,
   "agent-profile-owner": () => agentProfileScene("owner"),
   "agent-profile-viewer": () => agentProfileScene("reader"),
+  "agent-profile-channels": () => agentProfileScene("owner"),
+  "agent-profile-evals-failed": () => agentProfileScene("owner"),
+  "agent-profile-versions": () => agentProfileScene("owner"),
+  "agent-page-loading": () => agentPageReadScene("loading"),
+  "agent-page-failed": () => agentPageReadScene("failed"),
+  "agent-page-not-found": () => agentPageReadScene("not-found"),
+  "plugin-detail": () => pluginDetailScene(),
+  "plugin-detail-remove": () => pluginDetailScene(true),
+  "plugin-detail-evals": () => pluginDetailScene(),
+  "environment-detail": () => environmentDetailScene(),
+  "environment-detail-editing": () => environmentDetailScene(),
+  "environment-detail-member": () => environmentDetailScene(true),
+  "skill-upload-chosen": () => skillUploadDropScene("package"),
+  "skill-upload-refused": () => skillUploadDropScene("not-a-skill"),
   "agent-profile-manage-access": () => agentProfileScene("owner"),
   "agent-profile-variance-reporter": varianceReporterScene,
   "agent-make-it-yours": () => agentMakeItYoursScene(true),

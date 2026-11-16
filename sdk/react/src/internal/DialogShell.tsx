@@ -300,6 +300,10 @@ export function DialogShell({
     if (!dialog || !modal) return;
     if (open && !dialog.open) {
       dialog.showModal();
+      // The browser focuses the first focusable element (the header's close
+      // button); a dialog that marks a safer place to start (a confirm's
+      // Cancel) with `data-autofocus` starts there instead.
+      dialog.querySelector<HTMLElement>("[data-autofocus]")?.focus();
     } else if (!open && dialog.open) {
       dialog.close();
     }

@@ -95,6 +95,7 @@ import { useEvalRun } from "./useEvalRun.js";
 import { useEvalRuns } from "./useEvalRuns.js";
 import { useStartEvalRun } from "./useStartEvalRun.js";
 import { Checkbox, FIELD_LABEL_CLASSES, FieldError, Select, TextArea, TextInput } from "../internal/form/index.js";
+import { SubHeading } from "../resource-detail/headingLevel.js";
 
 /** The most of the organization's plugins the compare picker lists. */
 const COMPARE_PICKER_PAGE = 100;
@@ -246,7 +247,7 @@ export function EvalRunsTab(props: EvalRunsTabProps) {
           </>
         ) : error !== null ? (
           <div className="stg:p-3">
-            <ErrorMessage error={error} retry={refetch} />
+            <ErrorMessage error={error} title="Couldn't load the evals." retry={refetch} />
           </div>
         ) : (
           <p className="stg:px-3 stg:py-2.5 stg:text-sm stg:text-muted-foreground">
@@ -547,7 +548,7 @@ function RunEvalsForm({
         {onAgent && settings.comparedPluginId !== "" &&
           compareSwitch("Also run each case without the plugin")}
         {onAgent && (
-          <fieldset className="stg:flex stg:flex-col stg:gap-1">
+          <fieldset className="stg:m-0 stg:flex stg:min-w-0 stg:flex-col stg:gap-1 stg:border-0 stg:p-0">
             <legend className={LABEL_CLASS}>Whose cases run</legend>
             {sourceChoices.length === 0 && evalSlugs.length === 0 ? (
               <p className={HINT_CLASS}>
@@ -904,7 +905,7 @@ function CompareSectionView({
       data-digest-changed={section.digestChanged ? "true" : undefined}
       className="stg:flex stg:flex-col stg:gap-1.5"
     >
-      <h4 className="stg:flex stg:flex-wrap stg:items-baseline stg:gap-x-2 stg:text-xs">
+      <SubHeading className="stg:flex stg:flex-wrap stg:items-baseline stg:gap-x-2 stg:text-xs">
         <span className="stg:font-medium stg:text-foreground">
           {section.slug}
         </span>
@@ -922,7 +923,7 @@ function CompareSectionView({
             {section.kind} version changed: its cases may differ
           </span>
         )}
-      </h4>
+      </SubHeading>
       {[
         { label: "Before", reason: section.beforeNotRun },
         { label: "After", reason: section.afterNotRun },

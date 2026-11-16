@@ -125,7 +125,7 @@ function CopyDetails({ details, flush }: { readonly details: string; readonly fl
       icon={copied ? CHECK_ICON : COPY_ICON}
       onClick={copy}
       // Alone in its row it sits flush with the words above it.
-      className={cn("stg:text-muted-foreground", flush && "stg:-ml-2.5")}
+      className={cn(flush && "stg:-ml-2.5")}
     >
       {copied ? "Copied" : "Copy details"}
     </Button>

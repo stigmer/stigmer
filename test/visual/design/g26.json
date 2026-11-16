@@ -386,7 +386,6 @@
       },
       "ruled": {},
       "pending": {
-        "type At": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 400; the Library pages' remaining differences (stigmer#3210)",
         "type Connect GitHub": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)"
       }
     },
@@ -774,7 +773,6 @@
       },
       "ruled": {},
       "pending": {
-        "type At": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 400; the Library pages' remaining differences (stigmer#3210)",
         "type Connect GitHub": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)"
       }
     },
@@ -782,7 +780,7 @@
       "caption": "New routine: The message left empty",
       "narrow": false,
       "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
       "words": [
         {
           "text": "New routine",
@@ -1162,8 +1160,12 @@
     {
       "caption": "New routine: At 390 wide",
       "narrow": true,
-      "built": [],
-      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts (stigmer#3210)",
+      "built": [
+        {
+          "scene": "routine-new",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "New routine",
@@ -1530,7 +1532,14 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word daily-variance-report": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Variance reporter": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Every day at 09:00 (Asia/Kolkata).": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "type Connect GitHub": "When its page is redesigned: built 14/20 weight 400, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
+        "word My vault": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
+        "word Default: data-science (the agent's default)": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
+      }
     }
   ]
 }

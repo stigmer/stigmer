@@ -60,7 +60,8 @@ export function ConfirmDialog({
     <DialogShell open onOpenChange={handleOpenChange} width="sm">
       <DialogHeader title={state.title} description={state.description} onClose={onCancel} />
       <DialogFooter>
-        <Button variant="ghost" onClick={onCancel}>
+        {/* Focus starts on Cancel: Enter or Space on opening never confirms. */}
+        <Button variant="ghost" onClick={onCancel} data-autofocus="">
           {state.cancelLabel ?? "Cancel"}
         </Button>
         <Button variant={isDestructive ? "destructive" : "primary"} onClick={onConfirm}>

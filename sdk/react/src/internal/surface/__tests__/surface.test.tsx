@@ -114,6 +114,20 @@ describe("List and ListRow", () => {
     expect(screen.getByRole("listitem").className).toContain("stg:bg-muted-faint");
   });
 
+  it("lets a click on decoration slots reach the row, and keeps a control's slot clickable by default", () => {
+    render(
+      <List aria-label="Ways to create an agent">
+        <ListRow name="Start from scratch" onClick={() => {}} decorativeSlots leading={<span>icon</span>} nameAdornment={<span>3 available</span>} trailing={<span>chevron</span>} />
+        <ListRow name="Ledger reviewer" onClick={() => {}} trailing={<button type="button">Remove</button>} />
+      </List>,
+    );
+
+    for (const text of ["icon", "3 available", "chevron"]) {
+      expect(screen.getByText(text).parentElement!.className).toContain("stg:pointer-events-none");
+    }
+    expect(screen.getByRole("button", { name: "Remove" }).parentElement!.className).not.toContain("stg:pointer-events-none");
+  });
+
   it("draws a row that goes nowhere with no link and no button", () => {
     render(
       <List aria-label="Members">

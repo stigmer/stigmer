@@ -247,7 +247,7 @@ export function WorkspaceEditor({
               if (path) workspace.addLocalPath(path);
             }}
             disabled={disabled}
-            className="stg:flex stg:w-full stg:items-center stg:gap-2 stg:rounded-md stg:px-2.5 stg:py-2 stg:text-xs stg:text-foreground stg:transition-colors stg:hover:bg-accent-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring stg:disabled:pointer-events-none stg:disabled:opacity-40"
+            className="stg:flex stg:w-full stg:items-center stg:gap-2 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-sm stg:text-foreground stg:transition-colors stg:hover:bg-accent-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring stg:disabled:pointer-events-none stg:disabled:opacity-40"
           >
             <FolderIcon />
             <span className="stg:flex-1 stg:text-left">Browse Folder</span>
@@ -258,7 +258,7 @@ export function WorkspaceEditor({
             type="button"
             onClick={() => setActivePanel("github")}
             disabled={disabled}
-            className="stg:flex stg:w-full stg:items-center stg:gap-2 stg:rounded-md stg:px-2.5 stg:py-2 stg:text-xs stg:text-foreground stg:transition-colors stg:hover:bg-accent-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring stg:disabled:pointer-events-none stg:disabled:opacity-40"
+            className="stg:flex stg:w-full stg:items-center stg:gap-2 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-sm stg:text-foreground stg:transition-colors stg:hover:bg-accent-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring stg:disabled:pointer-events-none stg:disabled:opacity-40"
           >
             <GitHubIcon />
             <span className="stg:flex-1 stg:text-left">Connect GitHub</span>

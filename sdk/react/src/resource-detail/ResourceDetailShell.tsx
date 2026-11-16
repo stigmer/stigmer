@@ -6,6 +6,7 @@ import { Tabs } from "../tabs/Tabs.js";
 import { ResourceActionBar } from "./ResourceActionBar.js";
 import type { ResourceDetailShellProps } from "./types.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
+import { SectionHeadingLevelContext } from "./headingLevel.js";
 
 /**
  * Shared layout shell for resource detail pages.
@@ -60,6 +61,8 @@ export function ResourceDetailShell({
   const hasTabs = tabs != null && tabs.length > 0;
 
   return (
+    // A section's title sits one level under the page's title.
+    <SectionHeadingLevelContext.Provider value={headingLevel === 1 ? 2 : 3}>
     <div className={cn("stg:flex stg:flex-col stg:gap-6", className)}>
       {headerBanner}
 
@@ -96,6 +99,7 @@ export function ResourceDetailShell({
         children
       )}
     </div>
+    </SectionHeadingLevelContext.Provider>
   );
 }
 

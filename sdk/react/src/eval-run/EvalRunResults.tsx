@@ -62,6 +62,7 @@ import {
 } from "./eval-view.js";
 import { useCancelEvalRun } from "./useCancelEvalRun.js";
 import { useEvalRun } from "./useEvalRun.js";
+import { SubHeading } from "../resource-detail/headingLevel.js";
 
 /** Props for {@link EvalRunResults}. */
 export interface EvalRunResultsProps {
@@ -240,7 +241,7 @@ function PluginSectionView({
       aria-label={`${section.kind === "eval" ? "Eval" : "Plugin"} ${section.slug}`}
       className="stg:flex stg:flex-col stg:gap-2"
     >
-      <h4 className="stg:flex stg:flex-wrap stg:items-baseline stg:gap-x-2 stg:text-xs">
+      <SubHeading className="stg:flex stg:flex-wrap stg:items-baseline stg:gap-x-2 stg:text-xs">
         <span className="stg:font-medium stg:text-foreground">
           {section.slug}
         </span>
@@ -262,7 +263,7 @@ function PluginSectionView({
             {arms === "both" ? ` · mean Δ ${formatDelta(section.meanDelta)}` : ""}
           </span>
         )}
-      </h4>
+      </SubHeading>
       {section.notRun !== "" ? (
         <p className="stg:text-xs stg:text-muted-foreground">
           Not run: {section.notRun}
