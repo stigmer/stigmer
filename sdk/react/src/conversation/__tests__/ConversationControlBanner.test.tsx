@@ -61,6 +61,20 @@ describe("ConversationControlBanner", () => {
     expect(p.takeOver).toHaveBeenCalled();
   });
 
+  it("offers no second Take over while the attention notice above offers one", () => {
+    const flagged = create(ChannelConversationSchema, {
+      channelId: "chn_1",
+      conversationKey: "15550001111",
+      org: "acme",
+      control: ConversationControl.control_agent,
+      needsAttention: true,
+    });
+    render(<ConversationControlBanner {...baseProps()} conversation={flagged} />);
+
+    expect(screen.getByText("The agent is serving this conversation.")).toBeDefined();
+    expect(screen.queryByRole("button", { name: "Take over" })).toBeNull();
+  });
+
   it("says YOU hold it only when the host-provided identity matches", () => {
     const held = conversation(ConversationControl.control_human, "idt_me");
     const { rerender } = render(
@@ -94,7 +108,7 @@ describe("ConversationControlBanner", () => {
       />,
     );
     expect(
-      screen.getByText(/This conversation is with a human/),
+      screen.getByText(/A person has this conversation/),
     ).toBeDefined();
     expect(screen.queryByText(/A teammate has this conversation/)).toBeNull();
     expect(screen.queryByText(/You have this conversation/)).toBeNull();
@@ -112,7 +126,7 @@ describe("ConversationControlBanner", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Hand back to agent" }));
+    await user.click(screen.getByRole("button", { name: "Hand back to the agent" }));
     expect(p.handBack).toHaveBeenCalled();
   });
 
@@ -128,7 +142,7 @@ describe("ConversationControlBanner", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Hand back to agent" }));
+    await user.click(screen.getByRole("button", { name: "Hand back to the agent" }));
     // No turn runs on handback — the agent stays quiet until the
     // customer writes again. The state must be unmissable first.
     expect(p.handBack).not.toHaveBeenCalled();
@@ -150,11 +164,11 @@ describe("ConversationControlBanner", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Hand back to agent" }));
+    await user.click(screen.getByRole("button", { name: "Hand back to the agent" }));
     await user.click(screen.getByRole("button", { name: "Keep the conversation" }));
 
     expect(p.handBack).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Hand back to agent" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Hand back to the agent" })).toBeDefined();
   });
 
   it("disables takeover on senderless providers with the reason VISIBLE", () => {

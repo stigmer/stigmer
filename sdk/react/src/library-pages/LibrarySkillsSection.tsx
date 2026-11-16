@@ -1,27 +1,36 @@
 "use client";
 
-// The Library's Skills list: the organization's skills, newest first until a
-// search, with Upload skill in the header and in the empty list. A row's
-// menu opens the skill, copies its reference, or deletes it after a
-// confirmation.
+// The Library's Skills list: the organization's skills as rows, newest first
+// until a search, with Apply YAML and, for someone the server lets upload
+// one (an admin, `can_create_skill`), Upload skill. A row opens the skill;
+// its acts copy its reference and, only on the server's yes for that skill,
+// delete it after a confirmation.
 
-import { useCallback, useMemo } from "react";
-import { Copy, ExternalLink, MoreHorizontal, Plus, Sparkles, Trash2 } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { Plus, Sparkles, Upload } from "lucide-react";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 import { createLibraryListFn, useStigmer } from "@stigmer/react-core";
+import { IconButton } from "../button/IconButton.js";
 import { LinkButton } from "../button/LinkButton.js";
-import { ActionMenu } from "../action-menu/ActionMenu.js";
+import { ApplyManifestDialog } from "../manifest/ApplyManifestDialog.js";
 import { ResourceWorkbench } from "../resource-workbench/components/ResourceWorkbench.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
+import { useCanCreateSkill } from "../skill/useCanCreateSkill.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { toast } from "../feedback/toast.js";
 import { LIBRARY_HREFS, type LibrarySectionNavigation } from "./navigation.js";
-import { LibrarySectionFrame, SEARCH_RESULT_COLUMNS, copyReference, useRefetchToken } from "./LibrarySectionFrame.js";
-
-const VIEW_MODE_STORAGE_KEY = "stigmer:workbench:skills:viewMode";
+import {
+  LibraryRow,
+  LibraryRowActions,
+  LibrarySectionFrame,
+  SEARCH_RESULT_COLUMNS,
+  copyReference,
+  useRefetchToken,
+  visibilityTag,
+} from "./LibrarySectionFrame.js";
 
 /** Props for {@link LibrarySkillsSection}. */
 export interface LibrarySkillsSectionProps extends LibrarySectionNavigation {
@@ -30,8 +39,8 @@ export interface LibrarySkillsSectionProps extends LibrarySectionNavigation {
 }
 
 /**
- * The Library's Skills page: the active organization's skills, with Upload
- * skill.
+ * The Library's Skills page: the active organization's skills as rows, with
+ * Apply YAML and, for an admin, Upload skill.
  *
  * @example
  * ```tsx
@@ -40,9 +49,11 @@ export interface LibrarySkillsSectionProps extends LibrarySectionNavigation {
  */
 export function LibrarySkillsSection({ onOpen, renderLink, createHref = LIBRARY_HREFS.newSkill }: LibrarySkillsSectionProps) {
   const org = useActiveOrgId();
+  const { allowed: canUpload } = useCanCreateSkill(org || null);
   const slugForOrg = useOrgSlugForId();
   const stigmer = useStigmer();
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
+  const [importOpen, setImportOpen] = useState(false);
   const [refetchToken, refreshList] = useRefetchToken();
 
   const open = useCallback((item: SearchResult) => onOpen({ kind: "skills", org: item.org, slug: item.slug }), [onOpen]);
@@ -78,44 +89,60 @@ export function LibrarySkillsSection({ onOpen, renderLink, createHref = LIBRARY_
   );
 
   return (
-    <LibrarySectionFrame title="Skills" description="Browse and manage skills in your organization." actions={uploadSkill}>
+    <LibrarySectionFrame
+      title="Skills"
+      description="Know-how an agent loads when a task needs it: instructions, examples and scripts, packaged once for every agent in the organization."
+      actions={
+        <>
+          <IconButton
+            variant="outline"
+            label="Apply YAML"
+            icon={<Upload className="stg:size-3.5" aria-hidden="true" />}
+            onClick={() => setImportOpen(true)}
+          />
+          {canUpload && uploadSkill}
+        </>
+      }
+    >
       <ResourceWorkbench
         refetchToken={refetchToken}
         listFn={listFn}
         org={org}
         columns={SEARCH_RESULT_COLUMNS}
-        defaultViewMode="cards"
-        viewModes={["table", "cards"]}
-        viewModeStorageKey={VIEW_MODE_STORAGE_KEY}
-        searchPlaceholder="Search skills…"
+        defaultViewMode="list"
+        viewModes={["list"]}
+        itemsLabel="skills"
+        searchPlaceholder="Search skills"
         emptyIcon={<Sparkles className="stg:size-10" aria-hidden="true" />}
         emptyTitle="No skills yet"
-        emptyDescription="Upload a skill package to provide reusable instructions and context for your agents."
-        emptyAction={uploadSkill}
+        emptyDescription={
+          canUpload
+            ? "Upload a skill package to give your agents reusable instructions and context."
+            : `Admins of ${slugForOrg(org ?? "")} upload skills. Once one does, every agent here can use it.`
+        }
+        emptyAction={canUpload ? uploadSkill : undefined}
         onItemClick={open}
+        renderRow={(item) => (
+          <LibraryRow
+            icon={<Sparkles />}
+            name={item.name || item.slug}
+            tags={visibilityTag(item.visibility)}
+            description={item.description}
+            changedAt={item.updatedAt}
+          />
+        )}
         renderItemAction={(item) => (
-          <div onClick={(e) => e.stopPropagation()}>
-            <ActionMenu>
-              <ActionMenu.Trigger aria-label={`Actions for ${item.name || item.slug}`}>
-                <MoreHorizontal className="stg:size-4" />
-              </ActionMenu.Trigger>
-              <ActionMenu.Content>
-                <ActionMenu.Item icon={<ExternalLink className="stg:size-4" />} onSelect={() => open(item)}>
-                  View details
-                </ActionMenu.Item>
-                <ActionMenu.Item icon={<Copy className="stg:size-4" />} onSelect={() => copyReference(slugForOrg(item.org), item.slug, "skill")}>
-                  Copy ID
-                </ActionMenu.Item>
-                <ActionMenu.Separator />
-                <ActionMenu.Item icon={<Trash2 className="stg:size-4" />} variant="destructive" onSelect={() => void handleDeleteItem(item)}>
-                  Delete
-                </ActionMenu.Item>
-              </ActionMenu.Content>
-            </ActionMenu>
-          </div>
+          <LibraryRowActions
+            resource={{ kind: "skill", id: item.id }}
+            name={item.name || item.slug}
+            onCopyId={() => copyReference(slugForOrg(item.org), item.slug, "skill")}
+            onDelete={() => void handleDeleteItem(item)}
+          />
         )}
         aria-label="Skill workbench"
       />
+
+      <ApplyManifestDialog open={importOpen} onOpenChange={setImportOpen} org={org ?? ""} onApplied={refreshList} />
 
       <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </LibrarySectionFrame>

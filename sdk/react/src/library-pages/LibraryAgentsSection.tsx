@@ -1,20 +1,19 @@
 "use client";
 
-// The Library's Agents list: the organization's agents, newest first until a
-// search, with Apply YAML and Create agent in the header. Create agent shows
-// only to someone the server lets create one (admins, and members while the
-// organization lets members create agents). A row's menu opens the agent,
-// copies its reference, or deletes it after a confirmation in the agent
-// page's words.
+// The Library's Agents list: the organization's agents as rows, newest first
+// until a search, with Apply YAML and Create agent in the header. Create
+// agent shows only to someone the server lets create one (admins, and
+// members while the organization lets members create agents). A row opens
+// the agent; its acts copy its reference and, only on the server's yes for
+// that agent, delete it after a confirmation in the agent page's words.
 
 import { useCallback, useMemo, useState } from "react";
-import { Bot, Copy, ExternalLink, MoreHorizontal, Plus, Trash2, Upload } from "lucide-react";
+import { Bot, Plus, Upload } from "lucide-react";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 import { createLibraryListFn, useStigmer } from "@stigmer/react-core";
 import { IconButton } from "../button/IconButton.js";
 import { LinkButton } from "../button/LinkButton.js";
-import { ActionMenu } from "../action-menu/ActionMenu.js";
 import { ApplyManifestDialog } from "../manifest/ApplyManifestDialog.js";
 import { ResourceWorkbench } from "../resource-workbench/components/ResourceWorkbench.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
@@ -25,9 +24,15 @@ import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { AGENT_DELETE_DESCRIPTION } from "./agentDeleteDescription.js";
 import { toast } from "../feedback/toast.js";
 import { LIBRARY_HREFS, type LibrarySectionNavigation } from "./navigation.js";
-import { LibrarySectionFrame, SEARCH_RESULT_COLUMNS, copyReference, useRefetchToken } from "./LibrarySectionFrame.js";
-
-const VIEW_MODE_STORAGE_KEY = "stigmer:workbench:agents:viewMode";
+import {
+  LibraryRow,
+  LibraryRowActions,
+  LibrarySectionFrame,
+  SEARCH_RESULT_COLUMNS,
+  copyReference,
+  useRefetchToken,
+  visibilityTag,
+} from "./LibrarySectionFrame.js";
 
 /** Props for {@link LibraryAgentsSection}. */
 export interface LibraryAgentsSectionProps extends LibrarySectionNavigation {
@@ -36,8 +41,8 @@ export interface LibraryAgentsSectionProps extends LibrarySectionNavigation {
 }
 
 /**
- * The Library's Agents page: the active organization's agents, with Apply
- * YAML and, for someone the server lets create one, Create agent.
+ * The Library's Agents page: the active organization's agents as rows, with
+ * Apply YAML and, for someone the server lets create one, Create agent.
  *
  * @example
  * ```tsx
@@ -88,7 +93,7 @@ export function LibraryAgentsSection({ onOpen, renderLink, createHref = LIBRARY_
   return (
     <LibrarySectionFrame
       title="Agents"
-      description="Browse and manage agents in your organization."
+      description="Each agent is a job you hand off: what it should do, the model it uses, and the skills and tools it can reach."
       actions={
         <>
           <IconButton
@@ -106,35 +111,35 @@ export function LibraryAgentsSection({ onOpen, renderLink, createHref = LIBRARY_
         listFn={listFn}
         org={org}
         columns={SEARCH_RESULT_COLUMNS}
-        defaultViewMode="cards"
-        viewModes={["table", "cards"]}
-        viewModeStorageKey={VIEW_MODE_STORAGE_KEY}
-        searchPlaceholder="Search agents…"
+        defaultViewMode="list"
+        viewModes={["list"]}
+        itemsLabel="agents"
+        searchPlaceholder="Search agents"
         emptyIcon={<Bot className="stg:size-10" aria-hidden="true" />}
         emptyTitle="No agents yet"
-        emptyDescription="Create an agent to define instructions, tools, skills, and execution behavior."
+        emptyDescription={
+          canCreateAgent
+            ? "Create an agent to hand off a job: write what it should do, and it runs in its own sandbox."
+            : `Admins of ${slugForOrg(org ?? "")} create agents here. Once one does, you can start a session with it.`
+        }
         emptyAction={canCreateAgent ? createAgent : undefined}
         onItemClick={open}
+        renderRow={(item) => (
+          <LibraryRow
+            icon={<Bot />}
+            name={item.name || item.slug}
+            tags={visibilityTag(item.visibility)}
+            description={item.description}
+            changedAt={item.updatedAt}
+          />
+        )}
         renderItemAction={(item) => (
-          <div onClick={(e) => e.stopPropagation()}>
-            <ActionMenu>
-              <ActionMenu.Trigger aria-label={`Actions for ${item.name || item.slug}`}>
-                <MoreHorizontal className="stg:size-4" />
-              </ActionMenu.Trigger>
-              <ActionMenu.Content>
-                <ActionMenu.Item icon={<ExternalLink className="stg:size-4" />} onSelect={() => open(item)}>
-                  View details
-                </ActionMenu.Item>
-                <ActionMenu.Item icon={<Copy className="stg:size-4" />} onSelect={() => copyReference(slugForOrg(item.org), item.slug, "agent")}>
-                  Copy ID
-                </ActionMenu.Item>
-                <ActionMenu.Separator />
-                <ActionMenu.Item icon={<Trash2 className="stg:size-4" />} variant="destructive" onSelect={() => void handleDeleteItem(item)}>
-                  Delete
-                </ActionMenu.Item>
-              </ActionMenu.Content>
-            </ActionMenu>
-          </div>
+          <LibraryRowActions
+            resource={{ kind: "agent", id: item.id }}
+            name={item.name || item.slug}
+            onCopyId={() => copyReference(slugForOrg(item.org), item.slug, "agent")}
+            onDelete={() => void handleDeleteItem(item)}
+          />
         )}
         aria-label="Agent workbench"
       />

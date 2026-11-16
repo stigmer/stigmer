@@ -3,6 +3,7 @@
 import { useCallback, useMemo } from "react";
 import {
   ConversationsWorkbench,
+  PageHeader,
   ManageAccessButton,
   useActiveOrgId,
   useOrgSlugForId,
@@ -59,6 +60,12 @@ export function ConversationsPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      <PageHeader
+        className="border-b border-border px-4 py-4 sm:px-6"
+        headingLevel={1}
+        title="Conversations"
+        description="Your customers' chats on Slack, WhatsApp and your chat links. Step in when one asks for a person."
+      />
       <ConversationsWorkbench
         org={org}
         selected={selected}

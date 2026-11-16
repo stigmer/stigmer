@@ -31,7 +31,7 @@ test.describe("Plugins list: Add MCP server", () => {
     const empty = page.getByRole("status").filter({ hasText: "No plugins installed" });
     await expect(empty).toBeVisible({ timeout: 15_000 });
     await expect(empty.getByRole("button", { name: "Add MCP server" })).toBeVisible();
-    await expect(page.getByRole("list", { name: "Resource cards" })).toHaveCount(0);
+    await expect(page.getByRole("list", { name: "Resource list" })).toHaveCount(0);
   });
 
   test("the Library Add menu's link opens the form on arrival", async ({ page, freshOrg }) => {

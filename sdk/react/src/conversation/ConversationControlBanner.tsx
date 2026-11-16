@@ -102,14 +102,14 @@ export function ConversationControlBanner({
             <>
               <User aria-hidden="true" className="stg:size-4 stg:text-muted-foreground" />
               {heldByMe
-                ? "You have this conversation — the agent is quiet until you hand it back."
+                ? "You have this conversation. The agent waits until you hand it back."
                 : currentIdentityAccountId !== undefined
-                  ? "A teammate has this conversation — the agent is quiet until handback."
+                  ? "A teammate has this conversation. The agent waits until it's handed back."
                   : // Without the host's identity the holder may be the
                     // viewer themself — claiming "a teammate" would be a
                     // guess. State only what the row proves: a human
                     // holds it.
-                    "This conversation is with a human — the agent is quiet until handback."}
+                    "A person has this conversation. The agent waits until it's handed back."}
             </>
           ) : (
             <>
@@ -153,9 +153,10 @@ export function ConversationControlBanner({
             onClick={requestHandBack}
             disabled={pendingCommands.has("handBack")}
           >
-            {pendingCommands.has("handBack") ? "Handing back…" : "Hand back to agent"}
+            {pendingCommands.has("handBack") ? "Handing back…" : "Hand back to the agent"}
           </Button>
-        ) : (
+        ) : conversation.needsAttention && supportsStaffReplies ? // The attention notice above offers Take over; one is enough.
+        null : (
           <div className="stg:flex stg:items-center stg:gap-2">
             {!supportsStaffReplies && (
               // Visible text, never a native title: a disabled

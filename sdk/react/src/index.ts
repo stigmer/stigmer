@@ -244,8 +244,10 @@ export {
   SkillUploader,
   SkillFileBrowser,
   SkillDiffDialog,
+  useCanCreateSkill,
 } from "./skill/index.js";
 export type {
+  UseCanCreateSkillReturn,
   SkillPickerProps,
   SkillDetailViewProps,
   SkillDiffDialogProps,

@@ -2,10 +2,13 @@
  * Pins the Library's list sections, the pages both consoles render. Each
  * lists the active organization by its id, the way the server names every
  * org. Agents, skills and plugins show a row's organization through
- * OrgSlugText (its slug, never the raw id), open a row and its View details
- * on the row's own organization and slug, and copy the `<org slug>/<slug>`
- * reference a person types elsewhere. A row's Delete on the agents list
- * confirms in the agent page's words. Create agent is offered only to
+ * OrgSlugText (its slug, never the raw id), open a row on the row's own
+ * organization and slug, and copy the `<org slug>/<slug>`
+ * reference a person types elsewhere; each is one list of rows, and a row's
+ * Delete (Remove for a plugin) is offered only on the server's yes for that
+ * row (CON-01). A row's Delete on the agents list confirms in the agent
+ * page's words. Upload skill is offered only to someone the server lets
+ * upload one. Create agent is offered only to
  * someone the server lets create one. The plugins list offers the
  * Marketplace, an upload and Add MCP server (open on arrival when the host
  * asks, CON-01 for who may install and remove), and opens a plugin once it
@@ -34,6 +37,7 @@ const page = vi.hoisted(() => ({
   granted: ["can_delete"] as string[],
   canCreateAgent: { allowed: true, isLoading: false },
   canCreatePlugin: { allowed: true, isLoading: false },
+  canCreateSkill: { allowed: true, isLoading: false },
   canCreateEnvironment: { allowed: true, isLoading: false },
   canCreateFile: { allowed: true, isLoading: false },
   pluginAsked: [] as Array<string | null>,
@@ -145,6 +149,7 @@ vi.mock("../../plugin/useCanCreatePlugin.js", () => ({
     return page.canCreatePlugin;
   },
 }));
+vi.mock("../../skill/useCanCreateSkill.js", () => ({ useCanCreateSkill: () => page.canCreateSkill }));
 vi.mock("../../environment/useCanCreateEnvironment.js", () => ({
   useCanCreateEnvironment: () => page.canCreateEnvironment,
 }));
@@ -227,6 +232,7 @@ beforeEach(() => {
   page.granted = ["can_delete"];
   page.canCreateAgent = { allowed: true, isLoading: false };
   page.canCreatePlugin = { allowed: true, isLoading: false };
+  page.canCreateSkill = { allowed: true, isLoading: false };
   page.canCreateEnvironment = { allowed: true, isLoading: false };
   page.canCreateFile = { allowed: true, isLoading: false };
   page.pluginAsked.length = 0;
@@ -275,16 +281,29 @@ describe.each([
     expect(screen.getByTestId("cell-org").textContent).toBe("slug of org_shared");
   });
 
-  it("opens a row, and its View details, on the row's own organization and slug", () => {
+  it("opens a row on the row's own organization and slug", () => {
     render(<Section onOpen={onOpen} />);
 
     fireEvent.click(screen.getByRole("button", { name: "open row" }));
-    fireEvent.click(screen.getByRole("button", { name: "View details" }));
 
-    expect(opened).toEqual([
-      { kind, org: "org_shared", slug: "triage" },
-      { kind, org: "org_shared", slug: "triage" },
-    ]);
+    expect(opened).toEqual([{ kind, org: "org_shared", slug: "triage" }]);
+  });
+
+  it("CON-01 offers the row's Delete only on the server's yes for that row, and Copy ID always", () => {
+    page.granted = [];
+    render(<Section onOpen={onOpen} />);
+
+    expect(screen.getByRole("button", { name: "Copy ID" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: kind === "plugins" ? "Remove" : "Delete" })).toBeNull();
+    expect(screen.getByLabelText("Actions for Triage").getAttribute("data-resource")).toBe(`${noun}:agt_1`);
+  });
+
+  it("draws one list of rows, with no cards or table switch", () => {
+    render(<Section onOpen={onOpen} />);
+
+    expect(workbench().viewModes).toEqual(["list"]);
+    expect(workbench().defaultViewMode).toBe("list");
+    expect(workbench().itemsLabel).toBe(kind);
   });
 
   it("copies the row's reference under its org's slug, and says so", () => {
@@ -397,6 +416,16 @@ describe("LibrarySkillsSection", () => {
     expect(links[0]!.getAttribute("href")).toBe("/library/skills/new");
   });
 
+  it("CON-01 offers a member no Upload skill, and says who uploads", () => {
+    page.canCreateSkill = { allowed: false, isLoading: false };
+    render(<LibrarySkillsSection onOpen={onOpen} />);
+
+    expect(screen.queryByRole("link", { name: "Upload skill" })).toBeNull();
+    expect(workbench().emptyAction).toBeUndefined();
+    expect(workbench().emptyDescription).toBe("Admins of acme upload skills. Once one does, every agent here can use it.");
+    expect(screen.getByRole("button", { name: "Apply YAML" })).toBeTruthy();
+  });
+
   it("deletes a skill only once the person confirms, then reads the list again", async () => {
     page.confirmAnswer = true;
     render(<LibrarySkillsSection onOpen={onOpen} />);
@@ -479,7 +508,7 @@ describe("LibraryPluginsSection: who may install", () => {
     expect(screen.getAllByRole("link", { name: "Browse Marketplace" }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("link", { name: "Upload plugin" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Add MCP server" })).toBeNull();
-    expect(workbench().emptyDescription).toMatch(/^An admin of this organization installs plugins/);
+    expect(workbench().emptyDescription).toBe("Admins of acme install plugins. Browse the Marketplace to see what's offered.");
     expect(page.addServer).toHaveLength(0);
   });
 });
@@ -492,11 +521,10 @@ describe("LibraryPluginsSection: who may remove a row's plugin", () => {
     expect(screen.getByLabelText("Actions for Triage").getAttribute("data-resource")).toBe("plugin:agt_1");
   });
 
-  it("CON-01 offers a member the row's View details and Copy ID, and no Remove", () => {
+  it("CON-01 offers a member the row's Copy ID, and no Remove", () => {
     page.granted = [];
     render(<LibraryPluginsSection onOpen={onOpen} />);
 
-    expect(screen.getByRole("button", { name: "View details" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Copy ID" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Remove" })).toBeNull();
   });

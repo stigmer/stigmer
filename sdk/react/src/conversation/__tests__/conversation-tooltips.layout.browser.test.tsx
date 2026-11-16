@@ -160,7 +160,7 @@ describe("conversation status tooltips", () => {
     expect(pane.querySelectorAll("li [tabindex]")).toHaveLength(0);
 
     const badgeTrigger = Array.from(pane.querySelectorAll("span")).find(
-      (el) => el.textContent === "Needs attention: refund I cannot process",
+      (el) => el.textContent === "Needs a person",
     );
     await expectHoverReveals(pane, badgeTrigger!, "refund I cannot process");
   });

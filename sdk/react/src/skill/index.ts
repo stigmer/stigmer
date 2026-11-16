@@ -58,3 +58,5 @@ export type {
 
 export { useSkillDuplicateCheck } from "./useSkillDuplicateCheck.js";
 export type { UseSkillDuplicateCheckReturn } from "./useSkillDuplicateCheck.js";
+export { useCanCreateSkill } from "./useCanCreateSkill.js";
+export type { UseCanCreateSkillReturn } from "./useCanCreateSkill.js";

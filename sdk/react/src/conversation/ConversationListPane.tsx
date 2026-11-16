@@ -2,7 +2,7 @@
 
 import { memo, useCallback, useId, useRef } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { MessageSquare, TriangleAlert, User } from "lucide-react";
+import { MessageSquare, User } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
@@ -12,6 +12,7 @@ import {
   type ChannelConversation,
 } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
+import { StatusBadge } from "../status/StatusBadge.js";
 import { channelProviderOf } from "../channel/providers.js";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
@@ -174,7 +175,7 @@ export function ConversationListPane({
             <EmptyState
               variant="first-use"
               icon={<MessageSquare className="stg:size-8" />}
-              title="Nothing needs a human right now"
+              title="Nothing needs a person right now"
               description="Conversations appear here when the agent asks for attention, or when a human-held conversation has a customer message awaiting a reply."
             />
           ) : (
@@ -244,8 +245,8 @@ const FILTER_OPTIONS: readonly {
   },
   {
     value: ChannelConversationListFilter.filter_wants_human,
-    label: "Needs human",
-    ariaLabel: "Conversations where a human action is wanted",
+    label: "Needs a person",
+    ariaLabel: "Conversations where a person is wanted",
   },
 ];
 
@@ -253,7 +254,7 @@ const FILTER_OPTIONS: readonly {
  * Segmented control for the server-evaluated list filter: the kit's
  * choice group (one radiogroup, the arrow keys move the choice).
  *
- * "Needs human" is exactly the nav badge's predicate,
+ * "Needs a person" is exactly the nav badge's predicate,
  * so the number on the badge and the list this control opens can never
  * disagree.
  */
@@ -336,28 +337,21 @@ const ConversationRow = memo(function ConversationRow({
                 tooltip here added noise without adding reach. */}
             <p className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground">{label}</p>
             {conversation.needsAttention && (
-              // The reason rides the house tooltip. The trigger
-              // renders as a span — it sits INSIDE the row button, so a
-              // default (button) trigger would nest buttons — and stays
-              // out of the tab order; the sr-only text remains the
-              // accessible name. The full reason is also always visible
-              // in the open conversation's attention banner.
-              <Tooltip>
-                <TooltipTrigger render={<span className="stg:shrink-0" />}>
-                  <TriangleAlert
-                    aria-hidden="true"
-                    className="stg:size-3.5 stg:text-destructive"
-                  />
-                  <span className="stg:sr-only">
-                    {conversation.attentionReason
-                      ? `Needs attention: ${conversation.attentionReason}`
-                      : "Needs attention"}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  {conversation.attentionReason || "Needs attention"}
-                </TooltipContent>
-              </Tooltip>
+              // A person asked for, on the status pill; its reason rides the
+              // pill's tooltip and is always visible in the open
+              // conversation's notice.
+              <>
+                <StatusBadge
+                  phase="degraded"
+                  label="Needs a person"
+                  tooltip={conversation.attentionReason || undefined}
+                  className="stg:shrink-0"
+                />
+                {conversation.attentionReason && (
+                  // The tooltip is hover-only; a screen reader hears the reason here.
+                  <span className="stg:sr-only">Why: {conversation.attentionReason}</span>
+                )}
+              </>
             )}
           </div>
           {contact !== null && (
@@ -368,7 +362,7 @@ const ConversationRow = memo(function ConversationRow({
           {humanHeld && (
             <p className="stg:mt-0.5 stg:flex stg:items-center stg:gap-1 stg:text-xs stg:text-muted-foreground">
               <User aria-hidden="true" className="stg:size-3" />
-              Human has the conversation
+              A person has this conversation
             </p>
           )}
         </div>

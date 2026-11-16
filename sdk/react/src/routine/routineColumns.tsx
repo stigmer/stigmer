@@ -1,5 +1,6 @@
 "use client";
 
+import { cronToCadence, describeCadence } from "./cadence.js";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { isDeletedReference } from "@stigmer/client";
 import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
@@ -59,22 +60,17 @@ export function createRoutineColumns(
     },
     {
       id: "cron",
-      header: "Cadence",
+      header: "Runs",
       cell: (item) => (
-        <span className="stg:inline-flex stg:items-baseline stg:gap-1.5">
-          <code className="stg:font-mono stg:text-xs stg:text-foreground">
-            {item.spec?.cron || "—"}
-          </code>
-          <span className="stg:text-xs stg:text-muted-foreground">
-            {item.spec?.timeZone}
-          </span>
+        <span className="stg:text-foreground" title={item.spec?.timeZone || undefined}>
+          {item.spec?.cron ? describeCadence(cronToCadence(item.spec.cron)) : "By hand only"}
         </span>
       ),
       flex: 1.5,
     },
     {
       id: "next-fire",
-      header: "Next fire",
+      header: "Next run",
       cell: (item) => {
         const info = deriveRoutineState(item.spec, item.status);
         const nextFireAt = item.status?.nextFireAt;
@@ -102,7 +98,7 @@ export function createRoutineColumns(
     },
     {
       id: "target",
-      header: "Target agent",
+      header: "Agent",
       cell: (item) => {
         const target =
           item.spec?.agent;

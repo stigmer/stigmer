@@ -19,7 +19,7 @@ import { createFileListFn } from "../file/fileListFn.js";
 import { useCanCreateFile } from "../file/useCanCreateFile.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
 import type { LibrarySectionNavigation } from "./navigation.js";
-import { LibrarySectionFrame, useRefetchToken } from "./LibrarySectionFrame.js";
+import { ColumnsAsRow, LibrarySectionFrame, useRefetchToken } from "./LibrarySectionFrame.js";
 
 /** Props for {@link LibraryFilesSection}. */
 export type LibraryFilesSectionProps = Pick<LibrarySectionNavigation, "onOpen">;
@@ -69,6 +69,9 @@ export function LibraryFilesSection({ onOpen }: LibraryFilesSectionProps) {
         searchable={false}
         defaultViewMode="table"
         viewModes={["table"]}
+        narrowViewMode="list"
+        itemsLabel="files"
+        renderRow={(item) => <ColumnsAsRow columns={columns} item={item} icon={<Files />} />}
         emptyIcon={<Files className="stg:size-10" aria-hidden="true" />}
         emptyTitle="No files yet"
         emptyDescription="Upload a file to keep it here and hand it to your routines."

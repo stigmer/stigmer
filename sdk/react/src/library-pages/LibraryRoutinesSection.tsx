@@ -9,7 +9,7 @@ import { useCallback, useMemo, useState } from "react";
 import { CalendarClock, Plus, Upload } from "lucide-react";
 import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { useStigmer } from "@stigmer/react-core";
-import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
 import { LinkButton } from "../button/LinkButton.js";
 import { ApplyManifestDialog } from "../manifest/ApplyManifestDialog.js";
 import { ResourceWorkbench } from "../resource-workbench/components/ResourceWorkbench.js";
@@ -18,7 +18,7 @@ import { createRoutineColumns } from "../routine/routineColumns.js";
 import { createRoutineListFn } from "../routine/routineListFn.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
 import { LIBRARY_HREFS, type LibrarySectionNavigation } from "./navigation.js";
-import { LibrarySectionFrame, useRefetchToken } from "./LibrarySectionFrame.js";
+import { ColumnsAsRow, LibrarySectionFrame, useRefetchToken } from "./LibrarySectionFrame.js";
 
 /** Props for {@link LibraryRoutinesSection}. */
 export interface LibraryRoutinesSectionProps extends LibrarySectionNavigation {
@@ -61,12 +61,15 @@ export function LibraryRoutinesSection({ onOpen, renderLink, createHref = LIBRAR
   return (
     <LibrarySectionFrame
       title="Routines"
-      description="Start an agent on a routine, by hand, or from another system."
+      description="Start an agent on a schedule, by hand, or from another system."
       actions={
         <>
-          <Button variant="ghost" icon={<Upload className="stg:size-3.5" aria-hidden="true" />} onClick={() => setImportOpen(true)}>
-            Apply YAML
-          </Button>
+          <IconButton
+            variant="outline"
+            label="Apply YAML"
+            icon={<Upload className="stg:size-3.5" aria-hidden="true" />}
+            onClick={() => setImportOpen(true)}
+          />
           {newRoutineButton}
         </>
       }
@@ -80,10 +83,13 @@ export function LibraryRoutinesSection({ onOpen, renderLink, createHref = LIBRAR
         searchable={false}
         defaultViewMode="table"
         viewModes={["table"]}
+        narrowViewMode="list"
+        itemsLabel="routines"
+        renderRow={(item) => <ColumnsAsRow columns={columns} item={item} besideName={["state"]} icon={<CalendarClock />} />}
         renderItemAction={(item) => <RoutineRowActions routine={item} onChanged={refreshList} />}
         emptyIcon={<CalendarClock className="stg:size-10" aria-hidden="true" />}
         emptyTitle="No routines yet"
-        emptyDescription="Create a routine to start an agent on a routine, by hand, or from another system."
+        emptyDescription="Create a routine to start an agent on a schedule, by hand, or from another system."
         emptyAction={newRoutineButton}
         onItemClick={open}
         aria-label="Routine workbench"

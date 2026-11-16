@@ -1,13 +1,13 @@
 "use client";
 
-import { TriangleAlert } from "lucide-react";
+import { Hand } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
 import {
   ConversationControl,
   type ChannelConversation,
 } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
-import { Button } from "../button/Button.js";
+import { Notice } from "../internal/surface/Notice.js";
 import type { UseConversationParticipationReturn } from "./useConversationParticipation.js";
 
 /** Props for {@link ConversationAttentionBanner}. */
@@ -31,9 +31,9 @@ export interface ConversationAttentionBannerProps {
 }
 
 /**
- * The needs-attention banner: the escalating agent's reason,
- * verbatim, with the escalation's ANSWER beside its false-alarm
- * dismissal.
+ * The needs-attention notice, in the paused tone (a person asked for is
+ * not a failure): the escalating agent's reason, verbatim, with the
+ * escalation's ANSWER beside its false-alarm dismissal.
  *
  * Take over is the primary action because the human arriving IS the
  * answer to an escalation — taking over clears attention structurally
@@ -63,60 +63,43 @@ export function ConversationAttentionBanner({
   const offersTakeOver = !humanHeld && supportsStaffReplies;
 
   return (
-    <div
-      className={cn(
-        "stg:border-b stg:border-border stg:bg-destructive-subtle stg:px-4 stg:py-2",
-        className,
-      )}
-      role="status"
-    >
-      <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-2">
-        <p className="stg:flex stg:min-w-0 stg:items-start stg:gap-1.5 stg:text-sm stg:text-destructive">
-          <TriangleAlert aria-hidden="true" className="stg:mt-0.5 stg:size-4 stg:shrink-0" />
-          <span className="stg:min-w-0 stg:break-words">
-            The agent asked for a human
-            {conversation.attentionReason ? (
-              <> — &ldquo;{conversation.attentionReason}&rdquo;</>
-            ) : (
-              "."
-            )}
-          </span>
-        </p>
-        {/* One shrink-proof group, right-aligned even after a wrap
-            (ml-auto): under a long reason, actions wrapped to the
-            bottom-LEFT would read as part of the message. */}
-        <div className="stg:ml-auto stg:flex stg:shrink-0 stg:items-center stg:gap-2">
-          <Button
-            variant="outline"
-            size="xs"
-            onClick={() =>
-              void clearAttention().catch(() => {
-                // Recorded in commandErrors and rendered below.
-              })
-            }
-            disabled={pendingCommands.has("clearAttention")}
-          >
-            {pendingCommands.has("clearAttention") ? "Dismissing…" : "Dismiss"}
-          </Button>
-          {offersTakeOver && (
-            <Button
-              variant="primary"
-              size="xs"
-              onClick={() =>
+    // A person asked for is not a failure: the paused tone, one Take over
+    // (the control strip beside it offers none while this shows), Dismiss.
+    <Notice
+      tone="paused"
+      icon={<Hand aria-hidden="true" className="stg:size-4" />}
+      headline="The agent asked for a person."
+      act={
+        offersTakeOver
+          ? {
+              label: pendingCommands.has("takeOver") ? "Taking over…" : "Take over",
+              busy: pendingCommands.has("takeOver"),
+              onClick: () =>
                 void takeOver().catch(() => {
                   // Recorded in commandErrors and rendered below.
-                })
-              }
-              disabled={pendingCommands.has("takeOver")}
-            >
-              {pendingCommands.has("takeOver") ? "Taking over…" : "Take over"}
-            </Button>
-          )}
-        </div>
-      </div>
-      {error && (
-        <p className="stg:mt-1 stg:text-xs stg:text-destructive">{getUserMessage(error)}</p>
+                }),
+            }
+          : undefined
+      }
+      actSize="xs"
+      link={{
+        label: pendingCommands.has("clearAttention") ? "Dismissing…" : "Dismiss",
+        onClick: () =>
+          void clearAttention().catch(() => {
+            // Recorded in commandErrors and rendered below.
+          }),
+      }}
+      className={cn("stg:mx-4 stg:mt-3", className)}
+    >
+      {conversation.attentionReason && (
+        <p className="stg:m-0 stg:break-words">&ldquo;{conversation.attentionReason}&rdquo;</p>
       )}
-    </div>
+      {!humanHeld && (
+        <p className="stg:m-0 stg:text-muted-foreground">
+          The agent is still serving the conversation until someone takes over.
+        </p>
+      )}
+      {error && <p className="stg:m-0 stg:text-xs stg:text-status-failed">{getUserMessage(error)}</p>}
+    </Notice>
   );
 }

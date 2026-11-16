@@ -1,22 +1,29 @@
 "use client";
 
-// The Library's landing: one count card per kind (agents, skills, routines,
-// plugins, environments, files), an Add menu of what the person may create,
-// and Apply YAML, which can create any kind and so recounts every card. The
-// cards count the organization's rows, the same set every list page shows.
+// The Library's landing: one row per kind (agents, skills, plugins, routines,
+// environments, files) saying what it is for and how many there are, an Add
+// menu of only what the person may create, and Apply YAML, which can create
+// any kind and so recounts every row. The counts count the organization's
+// rows, the same set every list page shows; a count that fails says so, and
+// its row still opens.
 
-import { type MouseEvent, type ReactNode, useCallback, useReducer, useState } from "react";
-import { Blocks, Bot, Box, CalendarClock, FileCode2, Files, Plus, Server, Sparkles } from "lucide-react";
+import { Fragment, type MouseEvent, type ReactNode, useCallback, useReducer, useState } from "react";
+import { AlertCircle, Blocks, Bot, Box, CalendarClock, ChevronDown, ChevronRight, Files, Plus, Server, Sparkles, Upload } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/design-tokens";
-import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
+import { buttonClasses } from "../button/buttonClasses.js";
+import type { RenderLink } from "../button/LinkButton.js";
+import { List, ListRow } from "../internal/surface/List.js";
+import { Tag } from "../internal/surface/Tag.js";
 import { ApplyManifestDialog } from "../manifest/ApplyManifestDialog.js";
 import { PageHeader } from "../page/PageHeader.js";
-import { ResourceCountCard } from "../library/ResourceCountCard.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
 import { useAgentCount } from "../agent/useAgentCount.js";
 import { useCanCreateAgent } from "../agent/useCanCreateAgent.js";
 import { useSkillCount } from "../skill/useSkillCount.js";
+import { useCanCreateSkill } from "../skill/useCanCreateSkill.js";
+import { useCanCreatePlugin } from "../plugin/useCanCreatePlugin.js";
 import { useRoutineCount } from "../routine/useRoutineCount.js";
 import { usePluginCount } from "../plugin/usePluginList.js";
 import { useEnvironmentCount } from "../environment/useEnvironmentCount.js";
@@ -42,30 +49,31 @@ function isPlainClick(e: MouseEvent): boolean {
 
 const identity = (path: string) => path;
 
-const RESOURCE_CARDS = [
-  { key: "agents", label: "Agents", href: LIBRARY_HREFS.agents, icon: <Bot className="stg:size-5" aria-hidden="true" /> },
-  { key: "skills", label: "Skills", href: LIBRARY_HREFS.skills, icon: <Sparkles className="stg:size-5" aria-hidden="true" /> },
-  { key: "routines", label: "Routines", href: LIBRARY_HREFS.routines, icon: <CalendarClock className="stg:size-5" aria-hidden="true" /> },
-  { key: "plugins", label: "Plugins", href: LIBRARY_HREFS.plugins, icon: <Blocks className="stg:size-5" aria-hidden="true" /> },
-  { key: "environments", label: "Environments", href: LIBRARY_HREFS.environments, icon: <Box className="stg:size-5" aria-hidden="true" /> },
-  { key: "files", label: "Files", href: LIBRARY_HREFS.files, icon: <Files className="stg:size-5" aria-hidden="true" /> },
+const RESOURCE_ROWS = [
+  { key: "agents", label: "Agents", purpose: "The jobs your organization hands off.", href: LIBRARY_HREFS.agents, icon: <Bot aria-hidden="true" /> },
+  { key: "skills", label: "Skills", purpose: "Know-how an agent loads when a task needs it.", href: LIBRARY_HREFS.skills, icon: <Sparkles aria-hidden="true" /> },
+  { key: "plugins", label: "Plugins", purpose: "Installed bundles of skills, agents and tools.", href: LIBRARY_HREFS.plugins, icon: <Blocks aria-hidden="true" /> },
+  { key: "routines", label: "Routines", purpose: "Agents started on a schedule or from another system.", href: LIBRARY_HREFS.routines, icon: <CalendarClock aria-hidden="true" /> },
+  { key: "environments", label: "Environments", purpose: "Packages and network for your agents' sandboxes.", href: LIBRARY_HREFS.environments, icon: <Box aria-hidden="true" /> },
+  { key: "files", label: "Files", purpose: "Files you keep for your routines to use.", href: LIBRARY_HREFS.files, icon: <Files aria-hidden="true" /> },
 ] as const;
 
 interface AddMenuItem {
   readonly label: string;
   readonly icon: ReactNode;
   readonly href: string;
+  /** Items that install a plugin, drawn after a separator. */
+  readonly group?: "plugins";
 }
 
 const ADD_MENU_ITEMS: readonly AddMenuItem[] = [
   { label: "Agent", icon: <Bot className="stg:size-4" aria-hidden="true" />, href: LIBRARY_HREFS.newAgent },
   { label: "Skill", icon: <Sparkles className="stg:size-4" aria-hidden="true" />, href: LIBRARY_HREFS.newSkill },
-  { label: "MCP server", icon: <Server className="stg:size-4" aria-hidden="true" />, href: LIBRARY_HREFS.addMcpServer },
   { label: "Routine", icon: <CalendarClock className="stg:size-4" aria-hidden="true" />, href: LIBRARY_HREFS.newRoutine },
-  { label: "Upload plugin", icon: <Blocks className="stg:size-4" aria-hidden="true" />, href: LIBRARY_HREFS.uploadPlugin },
   { label: "Environment", icon: <Box className="stg:size-4" aria-hidden="true" />, href: LIBRARY_HREFS.newEnvironment },
-  // A File has no create page: the Files page's header uploads.
   { label: "File", icon: <Files className="stg:size-4" aria-hidden="true" />, href: LIBRARY_HREFS.files },
+  { label: "Upload plugin", icon: <Upload className="stg:size-4" aria-hidden="true" />, href: LIBRARY_HREFS.uploadPlugin, group: "plugins" },
+  { label: "MCP server", icon: <Server className="stg:size-4" aria-hidden="true" />, href: LIBRARY_HREFS.addMcpServer, group: "plugins" },
 ];
 
 // Cards count the organization's rows: the landing presents "your
@@ -81,7 +89,7 @@ function useResourceCounts(org: string | null, refetchToken: number) {
 }
 
 /**
- * The Library's landing: a count card per kind, the Add menu and Apply YAML.
+ * The Library's landing: one row per kind with what it is for and its count, the Add menu and Apply YAML.
  *
  * @example
  * ```tsx
@@ -95,14 +103,24 @@ export function LibraryOverview({ onNavigate, toHref = identity }: LibraryOvervi
   const counts = useResourceCounts(org || null, refetchToken);
   const [applyYamlOpen, setApplyYamlOpen] = useState(false);
 
-  const handleCardClick = useCallback(
-    (href: string) => (e: MouseEvent) => {
-      if (isPlainClick(e)) {
-        e.preventDefault();
-        onNavigate(href);
-      }
-    },
-    [onNavigate],
+  // A row's link goes through the host's router on a plain click; a modified
+  // click (a new tab) is the browser's, at the host's address for the path.
+  const renderRowLink: RenderLink = useCallback(
+    ({ href, className, children }) => (
+      <a
+        href={toHref(href)}
+        className={className}
+        onClick={(e) => {
+          if (isPlainClick(e)) {
+            e.preventDefault();
+            onNavigate(href);
+          }
+        }}
+      >
+        {children}
+      </a>
+    ),
+    [onNavigate, toHref],
   );
 
   return (
@@ -111,38 +129,58 @@ export function LibraryOverview({ onNavigate, toHref = identity }: LibraryOvervi
         className="stg:mb-6"
         headingLevel={1}
         title="Library"
-        description="Browse and manage your agents, skills, plugins, environments, and files."
+        description="What your agents are made of: the agents, their skills and plugins, the routines that start them, their environments and files."
         actions={
           <>
+            <IconButton
+              variant="outline"
+              label="Apply YAML"
+              icon={<Upload className="stg:size-3.5" aria-hidden="true" />}
+              onClick={() => setApplyYamlOpen(true)}
+            />
             <AddResourceMenu onNavigate={onNavigate} toHref={toHref} />
-            <Button variant="ghost" icon={<FileCode2 className="stg:size-3.5" aria-hidden="true" />} onClick={() => setApplyYamlOpen(true)}>
-              Apply YAML
-            </Button>
           </>
         }
       />
 
-      <div className="stg:grid stg:grid-cols-1 stg:gap-4 stg:sm:grid-cols-2 stg:lg:grid-cols-3">
-        {RESOURCE_CARDS.map((card) => {
-          const cardCount = counts[card.key];
-          const { count, isLoading } = cardCount;
-          // Routines, environments and files have no search count: their cards
-          // count a first page and read "100+" when more follow.
-          const countIsLowerBound = "isLowerBound" in cardCount && cardCount.isLowerBound;
+      <List aria-label="What the Library holds">
+        {RESOURCE_ROWS.map((row) => {
+          const rowCount = counts[row.key];
+          const countIsLowerBound = "isLowerBound" in rowCount && rowCount.isLowerBound;
           return (
-            <ResourceCountCard
-              key={card.key}
-              icon={card.icon}
-              label={card.label}
-              count={count}
-              countIsLowerBound={countIsLowerBound}
-              isLoading={isLoading}
-              href={toHref(card.href)}
-              onClick={handleCardClick(card.href)}
+            <ListRow
+              key={row.key}
+              leading={
+                <span
+                  aria-hidden="true"
+                  className="stg:grid stg:size-8 stg:place-items-center stg:rounded-lg stg:border stg:border-border stg:bg-card stg:text-muted-foreground stg:[&_svg]:size-4"
+                >
+                  {row.icon}
+                </span>
+              }
+              name={row.label}
+              description={row.purpose}
+              href={row.href}
+              renderLink={renderRowLink}
+              trailing={
+                <>
+                  {rowCount.error ? (
+                    <span className="stg:inline-flex stg:items-center stg:gap-1 stg:text-xs stg:text-muted-foreground">
+                      <AlertCircle className="stg:size-3.5 stg:text-status-failed" aria-hidden="true" />
+                      Count didn&rsquo;t load
+                    </span>
+                  ) : rowCount.isLoading ? (
+                    <span className="stg:h-5 stg:w-6 stg:animate-pulse stg:rounded stg:bg-muted" aria-hidden="true" />
+                  ) : (
+                    <Tag>{`${rowCount.count}${countIsLowerBound ? "+" : ""}`}</Tag>
+                  )}
+                  <ChevronRight className="stg:size-4 stg:text-muted-foreground-subtle" aria-hidden="true" />
+                </>
+              }
             />
           );
         })}
-      </div>
+      </List>
 
       <ApplyManifestDialog open={applyYamlOpen} onOpenChange={setApplyYamlOpen} org={org ?? ""} onApplied={refreshCounts} />
     </>
@@ -161,30 +199,29 @@ function AddResourceMenu({ onNavigate, toHref }: Required<LibraryOverviewProps>)
   const { allowed: canCreateEnvironment } = useCanCreateEnvironment(org || null);
   // "File" is offered to whoever may upload one: members and guests.
   const { allowed: canCreateFile } = useCanCreateFile(org || null);
+  const { allowed: canCreateSkill } = useCanCreateSkill(org || null);
+  const { allowed: canInstallPlugin } = useCanCreatePlugin(org || null);
+  // Only what this person may add: each kind the server lets them create.
   const addMenuItems = ADD_MENU_ITEMS.filter(
     (item) =>
       (canCreateAgent || item.href !== LIBRARY_HREFS.newAgent) &&
+      (canCreateSkill || item.href !== LIBRARY_HREFS.newSkill) &&
       (canCreateEnvironment || item.href !== LIBRARY_HREFS.newEnvironment) &&
-      (canCreateFile || item.href !== LIBRARY_HREFS.files),
+      (canCreateFile || item.href !== LIBRARY_HREFS.files) &&
+      (canInstallPlugin || item.group !== "plugins"),
   );
   const [open, setOpen] = useState(false);
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger
-        className={cn(
-          "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm",
-          "stg:text-muted-foreground stg:transition-colors",
-          "stg:hover:bg-accent stg:hover:text-accent-foreground",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-        )}
-        aria-label="Add a new resource"
-      >
+      {/* The page's primary act, drawn as the kit's button; it opens a menu of links. */}
+      <Popover.Trigger className={buttonClasses("primary", "sm")} aria-label="Add a new resource">
         <Plus className="stg:size-3.5" aria-hidden="true" />
         Add
+        <ChevronDown className="stg:size-3.5" aria-hidden="true" />
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Positioner sideOffset={4} align="start">
+        <Popover.Positioner sideOffset={4} align="end">
           <Popover.Popup
             className={cn(
               "stg:z-popover stg:min-w-[10rem] stg:overflow-hidden stg:rounded-lg",
@@ -192,9 +229,12 @@ function AddResourceMenu({ onNavigate, toHref }: Required<LibraryOverviewProps>)
             )}
           >
             <div className="stg:py-1" role="menu">
-              {addMenuItems.map((item) => (
+              {addMenuItems.map((item, index) => (
+                <Fragment key={item.label}>
+                {item.group === "plugins" && addMenuItems[index - 1]?.group !== "plugins" && index > 0 && (
+                  <div role="separator" className="stg:my-1 stg:h-px stg:bg-border-muted" />
+                )}
                 <a
-                  key={item.label}
                   href={toHref(item.href)}
                   role="menuitem"
                   onClick={(e) => {
@@ -214,6 +254,7 @@ function AddResourceMenu({ onNavigate, toHref }: Required<LibraryOverviewProps>)
                   <span className="stg:shrink-0 stg:text-muted-foreground">{item.icon}</span>
                   <span>{item.label}</span>
                 </a>
+                </Fragment>
               ))}
             </div>
           </Popover.Popup>
