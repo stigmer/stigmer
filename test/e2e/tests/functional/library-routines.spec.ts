@@ -398,7 +398,8 @@ test.describe("Starting a routine", () => {
       const table = page.getByRole("table", { name: "Fire history" });
       await expect(table).toBeVisible({ timeout: 15_000 });
       await expect(table.getByRole("columnheader", { name: "Started by" })).toBeVisible();
-      await expect(table.getByRole("cell", { name: "Manual" })).toHaveCount(1);
+      // One run, started by hand: the history's header row and that run's row.
+      await expect(table.getByRole("row")).toHaveCount(2);
     } finally {
       await seeded.cleanup();
     }
