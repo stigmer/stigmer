@@ -1,0 +1,1049 @@
+{
+  "screen": "G23",
+  "title": "Conversations",
+  "source": "the Library page, version 5",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Conversations: A customer asks for a person",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Conversations",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Your customers' chats on Slack, WhatsApp and your chat links. Step in when one asks for a person.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "All channels",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "All",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Needs a person",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Northwind Books",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Needs a person",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "+1 555 010 0142 \u00b7 WhatsApp",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "13m",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Harbor Dental",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "#billing \u00b7 Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1h",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Sam Okafor",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Chat link",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 19",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Northwind Books",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "+1 555 010 0142 \u00b7 WhatsApp \u00b7 Variance reporter",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "The customer asked for a person.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "\u201cCan I talk to someone before we close the quarter?\u201d",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The agent is still serving the conversation until someone takes over.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Take over",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Dismiss",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Hi, is our Q3 variance report ready?",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Yes. Revenue came in 4% under budget, and marketing was 38% over: the spring campaign billed in July.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "38% is more than we planned for. Can I talk to someone before we close the quarter?",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Take over to reply",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Send",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Take over",
+          "height": 28
+        },
+        {
+          "name": "Dismiss",
+          "height": 28
+        },
+        {
+          "name": "Send",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Conversations: You took it over",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Conversations",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Your customers' chats on Slack, WhatsApp and your chat links. Step in when one asks for a person.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "All channels",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "All",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Needs a person",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Northwind Books",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "+1 555 010 0142 \u00b7 WhatsApp",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "13m",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Harbor Dental",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "#billing \u00b7 Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1h",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Sam Okafor",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Chat link",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 19",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Northwind Books",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "+1 555 010 0142 \u00b7 WhatsApp \u00b7 Variance reporter",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "You have this conversation. The agent waits until you hand it back.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Hand back to the agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Hi, is our Q3 variance report ready?",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Yes. Revenue came in 4% under budget, and marketing was 38% over: the spring campaign billed in July.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "38% is more than we planned for. Can I talk to someone before we close the quarter?",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Reply as Acme Books\u2026",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Send",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Hand back to the agent",
+          "height": 28
+        },
+        {
+          "name": "Send",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Conversations: Nothing chosen yet",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Conversations",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Your customers' chats on Slack, WhatsApp and your chat links. Step in when one asks for a person.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "All channels",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "All",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Needs a person",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Northwind Books",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Needs a person",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "+1 555 010 0142 \u00b7 WhatsApp",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "13m",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Harbor Dental",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "#billing \u00b7 Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1h",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Sam Okafor",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Chat link",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 19",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Choose a conversation",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Pick one on the left to read it and step in.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Conversations: None yet",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Conversations",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Your customers' chats on Slack, WhatsApp and your chat links. Step in when one asks for a person.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No conversations yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "When a customer messages one of your channels, their conversation appears here.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Open Channels",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Open Channels",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Conversations: Didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Conversations",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Your customers' chats on Slack, WhatsApp and your chat links. Step in when one asks for a person.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "All channels",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "All",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Needs a person",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Couldn't load the conversations.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the channel service did not answer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Conversations: At 390 wide: the list",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Conversations",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Your customers' chats on Slack, WhatsApp and your chat links.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "All channels",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "All",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Needs a person",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Northwind Books",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Needs a person",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "+1 555 010 0142 \u00b7 WhatsApp",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "13m",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Harbor Dental",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "#billing \u00b7 Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1h",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Sam Okafor",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Chat link",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 19",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Conversations: At 390 wide: one conversation, with the way back",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Conversations",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Northwind Books",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "+1 555 010 0142 \u00b7 WhatsApp \u00b7 Variance reporter",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "The customer asked for a person.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "\u201cCan I talk to someone before we close the quarter?\u201d",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The agent is still serving the conversation until someone takes over.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Take over",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Dismiss",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Hi, is our Q3 variance report ready?",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Yes. Revenue came in 4% under budget, and marketing was 38% over: the spring campaign billed in July.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "38% is more than we planned for. Can I talk to someone before we close the quarter?",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Take over to reply",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Send",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Conversations",
+          "height": 28
+        },
+        {
+          "name": "Take over",
+          "height": 28
+        },
+        {
+          "name": "Dismiss",
+          "height": 28
+        },
+        {
+          "name": "Send",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

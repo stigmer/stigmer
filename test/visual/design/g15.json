@@ -1,0 +1,848 @@
+{
+  "screen": "G15",
+  "title": "Environments",
+  "source": "the Library page, version 5",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Environments: Full",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Environments",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New environment",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The packages and network access your agents' sandboxes get.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search environments",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "data-science",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Listed websites",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "pandas, poppler-utils and 2 more",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 14",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "ledger-locked",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "No network",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "No packages beyond the sandbox's own",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 2",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "open-web",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Private",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Any website",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "requests, httpx",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jun 28",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "New environment",
+          "height": 32
+        },
+        {
+          "name": "Actions for data-science",
+          "height": 28
+        },
+        {
+          "name": "Actions for ledger-locked",
+          "height": 28
+        },
+        {
+          "name": "Actions for open-web",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Environments: A row's acts, for someone who may delete it (someone who may not sees Copy ID only)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Environments",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New environment",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The packages and network access your agents' sandboxes get.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search environments",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "data-science",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Listed websites",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "pandas, poppler-utils and 2 more",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 14",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Copy ID",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Delete",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "ledger-locked",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "No network",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "No packages beyond the sandbox's own",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 2",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "open-web",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Private",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Any website",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "requests, httpx",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jun 28",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "New environment",
+          "height": 32
+        },
+        {
+          "name": "Actions for data-science",
+          "height": 28
+        },
+        {
+          "name": "Actions for ledger-locked",
+          "height": 28
+        },
+        {
+          "name": "Actions for open-web",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Environments: None yet, for someone who may add one",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Environments",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New environment",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The packages and network access your agents' sandboxes get.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No environments yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Create an environment to give your agents' sandboxes packages and a network policy.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "New environment",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "New environment",
+          "height": 32
+        },
+        {
+          "name": "New environment",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Environments: None yet, for a member who may not add one",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Environments",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "The packages and network access your agents' sandboxes get.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No environments yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Admins of acme set up environments. Until one does, sandboxes get the server's standard packages and network.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Environments: A search that matches nothing",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Environments",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New environment",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The packages and network access your agents' sandboxes get.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "rust",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No environments match \u201crust\u201d.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Clear search",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "New environment",
+          "height": 32
+        },
+        {
+          "name": "Clear search",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Environments: Didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Environments",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New environment",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The packages and network access your agents' sandboxes get.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the environments.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "New environment",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Environments: Loading",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Environments",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New environment",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The packages and network access your agents' sandboxes get.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search environments",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "New environment",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Environments: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Environments",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New environment",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The packages and network access your agents' sandboxes get.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search environments",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "data-science",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Listed websites",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "pandas, poppler-utils and 2 more",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "ledger-locked",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "No network",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "No packages beyond the sandbox's own",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "open-web",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Private",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Any website",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "requests, httpx",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "New environment",
+          "height": 32
+        },
+        {
+          "name": "Actions for data-science",
+          "height": 28
+        },
+        {
+          "name": "Actions for ledger-locked",
+          "height": 28
+        },
+        {
+          "name": "Actions for open-web",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

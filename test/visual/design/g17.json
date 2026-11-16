@@ -1,0 +1,2929 @@
+{
+  "screen": "G17",
+  "title": "An agent",
+  "source": "the Library page, version 5",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "An agent: Overview, as its owner",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "Ledger reviewer",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Organization",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Start session",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Reads the month's ledger, finds miscoded expenses and asks before it posts an adjustment.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme/ledger-reviewer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Made by Ada Lovelace",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 19, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "2 skills",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "1 MCP server",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "1 sub-agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "3 versions",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Overview",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "In your app",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Channels",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Quality",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Evals",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Dependencies",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Versions",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Slug",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "ledger-reviewer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Instructions",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "You review the organization's ledger. Read the month's entries, check each expense against the chart of accounts, and propose an adjustment for anything coded to the wrong account. Never post an adjustment without asking first.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Run defaults",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Harness",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "The conversation's harness",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Model",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Speed",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Standard",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Thinking",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Off",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cost cap",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "None",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Skills 2",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "chart-of-accounts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "How acme codes expenses.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "month-end-close",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The month-end checklist, in order.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "MCP servers 1",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "ledger",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "https://ledger.acme.example/mcp",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Sign in",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Environment",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "None: the server's standard sandbox.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Start session",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        },
+        {
+          "name": "Edit slug",
+          "height": 28
+        },
+        {
+          "name": "Edit instructions",
+          "height": 28
+        },
+        {
+          "name": "Edit run defaults",
+          "height": 28
+        },
+        {
+          "name": "Edit skills",
+          "height": 28
+        },
+        {
+          "name": "Edit MCP servers",
+          "height": 28
+        },
+        {
+          "name": "Sign in",
+          "height": 28
+        },
+        {
+          "name": "Edit environment",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "An agent: Overview, as someone who may only use it",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "Ledger reviewer",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Organization",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Start session",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Reads the month's ledger, finds miscoded expenses and asks before it posts an adjustment.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme/ledger-reviewer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Made by Ada Lovelace",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 19, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "2 skills",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "1 MCP server",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "1 sub-agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "3 versions",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Overview",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Channels",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Quality",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Evals",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Versions",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Slug",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "ledger-reviewer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Instructions",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "You review the organization's ledger. Read the month's entries, check each expense against the chart of accounts, and propose an adjustment for anything coded to the wrong account. Never post an adjustment without asking first.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Run defaults",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Harness",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "The conversation's harness",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Model",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Speed",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Standard",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Thinking",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Off",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cost cap",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "None",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Skills 2",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "chart-of-accounts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "How acme codes expenses.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "month-end-close",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The month-end checklist, in order.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "MCP servers 1",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "ledger",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "https://ledger.acme.example/mcp",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Environment",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "None: the server's standard sandbox.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Start session",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "An agent: Installed by a plugin: read here, changed in the plugin",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "Ledger reviewer",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Organization",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Start session",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Reads the month's ledger, finds miscoded expenses and asks before it posts an adjustment.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme/ledger-reviewer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Made by Ada Lovelace",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 19, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "2 skills",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "1 MCP server",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "1 sub-agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "3 versions",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Overview",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "In your app",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Channels",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Quality",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Evals",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Dependencies",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Versions",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Ledger tools installed this agent.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Change it in the plugin: an edit here would be replaced at the plugin's next version.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Open Ledger tools",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Slug",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "ledger-reviewer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Instructions",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "You review the organization's ledger. Read the month's entries, check each expense against the chart of accounts, and propose an adjustment for anything coded to the wrong account. Never post an adjustment without asking first.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Run defaults",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Harness",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "The conversation's harness",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Model",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Speed",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Standard",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Thinking",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Off",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cost cap",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "None",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Skills 2",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "chart-of-accounts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "How acme codes expenses.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "month-end-close",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The month-end checklist, in order.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "MCP servers 1",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "ledger",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "https://ledger.acme.example/mcp",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Environment",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "None: the server's standard sandbox.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Start session",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        },
+        {
+          "name": "Open Ledger tools",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "An agent: Make it yours, on the parts (a new agent from a template)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "Ledger reviewer",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Organization",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Start session",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Reads the month's ledger, finds miscoded expenses and asks before it posts an adjustment.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme/ledger-reviewer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Made by Ada Lovelace",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 19, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "2 skills",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "1 MCP server",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "1 sub-agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "3 versions",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Make it yours",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Overview",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Channels",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Quality",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Evals",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Versions",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Change what it does",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Its instructions are plain words. Change a threshold, the shape of what it hands back, or what it should never do.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "You review a customer's quarterly ledger. Each row has an account, its budget and its actual amount. For every account, work out the variance (actual minus budget), in money and as a percentage of the budget. Flag each account that is more than 10% over or under budget.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Every save is kept under Versions.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Try your own file",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Run it on a real file from your product, not the sample. It runs the same instructions; your file stays in this organization.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Choose a file",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Give it a skill",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Skills add know-how. Spreadsheet export also hands back the table as a .csv file your users can open in any spreadsheet.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Add it",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "When it does the job your way, put it where your users are.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Put it in your app",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Start session",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        },
+        {
+          "name": "Choose a file",
+          "height": 32
+        },
+        {
+          "name": "Add it",
+          "height": 32
+        },
+        {
+          "name": "Put it in your app",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "An agent: In your app, on the parts",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "Ledger reviewer",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Organization",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Start session",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Reads the month's ledger, finds miscoded expenses and asks before it posts an adjustment.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme/ledger-reviewer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Made by Ada Lovelace",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 19, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "2 skills",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "1 MCP server",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "1 sub-agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "3 versions",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Overview",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "In your app",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Channels",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Quality",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Evals",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Dependencies",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Versions",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Put Ledger reviewer in your app",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Your organization and agent are already filled in.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Your backend",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Next.js",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Node",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Python",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Go",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Java",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "A service account for your backend",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your backend signs your users in with its key. It belongs to the organization and serves every agent, as an admin, which minting needs. Its key is shown once.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Make it",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your users get accounts the first time your app signs them in",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Off for this organization, so your backend can't sign anyone in yet. Turned on, they join as Member, from any origin.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Create accounts on sign-in",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Add a token route to your backend",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Copy",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "npm install @stigmer/client",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Show the chat in your app",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Put <StigmerAgentChat /> where the chat belongs.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Your first user from your app",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Waiting for the first person your app signs in. This ticks by itself.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Want a public helper anyone on your site can use without signing in? A chat link's Embed tab gives you one line to paste. Open Channels",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Start session",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        },
+        {
+          "name": "Make it",
+          "height": 32
+        },
+        {
+          "name": "Copy",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "An agent: Channels, none yet",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "Ledger reviewer",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Organization",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Start session",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Reads the month's ledger, finds miscoded expenses and asks before it posts an adjustment.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme/ledger-reviewer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Made by Ada Lovelace",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 19, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "2 skills",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "1 MCP server",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "1 sub-agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "3 versions",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Overview",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "In your app",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Channels",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Quality",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Evals",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Dependencies",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Versions",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No channels yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Connect Slack or WhatsApp, or make a chat link, so your customers can talk to Ledger reviewer where they already are.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Connect a channel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Start session",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        },
+        {
+          "name": "Connect a channel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "An agent: Evals, didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "Ledger reviewer",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Organization",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Start session",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Reads the month's ledger, finds miscoded expenses and asks before it posts an adjustment.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme/ledger-reviewer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Made by Ada Lovelace",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 19, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "2 skills",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "1 MCP server",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "1 sub-agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "3 versions",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Overview",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "In your app",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Channels",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Quality",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Evals",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Dependencies",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Versions",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the evals.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the eval store did not answer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Start session",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "An agent: Versions",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "Ledger reviewer",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Organization",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Start session",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Reads the month's ledger, finds miscoded expenses and asks before it posts an adjustment.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme/ledger-reviewer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Made by Ada Lovelace",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 19, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "2 skills",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "1 MCP server",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "1 sub-agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "3 versions",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Overview",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "In your app",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Channels",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Quality",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Evals",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Dependencies",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Versions",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Version 3",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Changed the instructions \u00b7 Ada Lovelace \u00b7 2d",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Current",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Version 2",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Added the skill month-end-close \u00b7 Ada Lovelace \u00b7 Jul 12",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Restore",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Version 1",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Created \u00b7 Ada Lovelace \u00b7 Jul 2",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Restore",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Start session",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        },
+        {
+          "name": "Restore",
+          "height": 28
+        },
+        {
+          "name": "Restore",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "An agent: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "Ledger reviewer",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Organization",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Start session",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Reads the month's ledger, finds miscoded expenses and asks before it posts an adjustment.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme/ledger-reviewer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Made by Ada Lovelace",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 19, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "2 skills",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "1 MCP server",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "1 sub-agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "3 versions",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Overview",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "In your app",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Channels",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Quality",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Evals",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Dependencies",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Versions",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Slug",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "ledger-reviewer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Instructions",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "You review the organization's ledger. Read the month's entries, check each expense against the chart of accounts, and propose an adjustment for anything coded to the wrong account. Never post an adjustment without asking first.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Run defaults",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Harness",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "The conversation's harness",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Model",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Speed",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Standard",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Thinking",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Off",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cost cap",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "None",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Skills 2",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "chart-of-accounts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "How acme codes expenses.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "month-end-close",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The month-end checklist, in order.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "MCP servers 1",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "ledger",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "https://ledger.acme.example/mcp",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Sign in",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Environment",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "None: the server's standard sandbox.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Start session",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        },
+        {
+          "name": "Edit slug",
+          "height": 28
+        },
+        {
+          "name": "Edit instructions",
+          "height": 28
+        },
+        {
+          "name": "Edit run defaults",
+          "height": 28
+        },
+        {
+          "name": "Edit skills",
+          "height": 28
+        },
+        {
+          "name": "Edit MCP servers",
+          "height": 28
+        },
+        {
+          "name": "Sign in",
+          "height": 28
+        },
+        {
+          "name": "Edit environment",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

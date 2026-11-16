@@ -1,0 +1,763 @@
+{
+  "screen": "G21",
+  "title": "An environment",
+  "source": "the Library page, version 5",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "An environment: Overview",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "data-science",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "pandas and poppler, GitHub and our API only",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Created by Ada Lovelace",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 14, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Network",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Reaches",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Listed websites only",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Websites",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "api.github.com, our-api.example.com",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Package hosts",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Allowed",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Packages",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "apt",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "poppler-utils",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "pip",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "pandas, sqlalchemy==2.0.30",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Used by",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Variance reporter (its default), and the routine daily-variance-report.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "More actions",
+          "height": 32
+        },
+        {
+          "name": "Edit network",
+          "height": 28
+        },
+        {
+          "name": "Edit packages",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "An environment: Its network, being changed",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "data-science",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "pandas and poppler, GitHub and our API only",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Created by Ada Lovelace",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 14, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Network",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Any website",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The sandbox may reach any website.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Listed websites only",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The sandbox may reach only the websites below.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "No network",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The sandbox reaches nothing outside itself.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Websites",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "api.github.com our-api.example.com",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "One per line, with no scheme or path. *.example.com matches api.example.com, not example.com.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Also allow package registries and code hosts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "npm, PyPI, crates.io, the Go module proxy, RubyGems, the Debian and Ubuntu archives and GitHub. Packages need it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Save network",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Packages",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "apt",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "poppler-utils",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "pip",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "pandas, sqlalchemy==2.0.30",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Used by",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Variance reporter (its default), and the routine daily-variance-report.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "More actions",
+          "height": 32
+        },
+        {
+          "name": "Save network",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Edit packages",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "An environment: For a member: read only",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "data-science",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "pandas and poppler, GitHub and our API only",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Created by Ada Lovelace",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 14, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Network",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Reaches",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Listed websites only",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Websites",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "api.github.com, our-api.example.com",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Package hosts",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Allowed",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Packages",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "apt",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "poppler-utils",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "pip",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "pandas, sqlalchemy==2.0.30",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Used by",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Variance reporter (its default), and the routine daily-variance-report.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "An environment: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "data-science",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "pandas and poppler, GitHub and our API only",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Created by Ada Lovelace",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 14, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Network",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Reaches",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Listed websites only",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Websites",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "api.github.com, our-api.example.com",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Package hosts",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Allowed",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Packages",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "apt",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "poppler-utils",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "pip",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "pandas, sqlalchemy==2.0.30",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Used by",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Variance reporter (its default), and the routine daily-variance-report.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "More actions",
+          "height": 32
+        },
+        {
+          "name": "Edit network",
+          "height": 28
+        },
+        {
+          "name": "Edit packages",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

@@ -1,0 +1,835 @@
+{
+  "screen": "G25",
+  "title": "New environment",
+  "source": "the Library page, version 5",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "New environment: Filled in",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "New environment",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "The packages and network access the sandboxes of the agents, routines and conversations that use it get.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "data-science",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Description (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "pandas and poppler, GitHub and our API only",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "What this environment is for.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Network",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Any website",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The sandbox may reach any website.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Listed websites only",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The sandbox may reach only the websites below.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Websites",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "api.github.com our-api.example.com",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "One per line, with no scheme or path. *.example.com matches api.example.com, not example.com.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Also allow package registries and code hosts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "npm, PyPI, crates.io, the Go module proxy, RubyGems, the Debian and Ubuntu archives and GitHub. Packages need it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Also allow this agent's MCP servers",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Packages",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Installed before the first turn of every conversation in this environment. One per line, each with its installer's own version pin if you want one.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "apt (Debian packages)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "poppler-utils",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "pip (Python packages)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "pandas sqlalchemy==2.0.30",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "npm (Node packages)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "express@4.18.0",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "go (Go programs)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "golang.org/x/tools/cmd/goimports@latest",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Create environment",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Create environment",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "New environment: A name that's taken",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "New environment",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "The packages and network access the sandboxes of the agents, routines and conversations that use it get.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "data-science",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme already has an environment named data-science.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Description (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "pandas and poppler, GitHub and our API only",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "What this environment is for.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Network",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Any website",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The sandbox may reach any website.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Listed websites only",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The sandbox may reach only the websites below.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Websites",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "api.github.com our-api.example.com",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "One per line, with no scheme or path. *.example.com matches api.example.com, not example.com.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Also allow package registries and code hosts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "npm, PyPI, crates.io, the Go module proxy, RubyGems, the Debian and Ubuntu archives and GitHub. Packages need it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Also allow this agent's MCP servers",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Packages",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Installed before the first turn of every conversation in this environment. One per line, each with its installer's own version pin if you want one.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "apt (Debian packages)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "poppler-utils",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "pip (Python packages)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "pandas sqlalchemy==2.0.30",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "npm (Node packages)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "express@4.18.0",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "go (Go programs)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "golang.org/x/tools/cmd/goimports@latest",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Create environment",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Create environment",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "New environment: For a member",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "New environment",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Only an admin can create environments here",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Admins of acme set up environments. Ask one if your agents need packages or a network policy.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "New environment: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "New environment",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "The packages and network access the sandboxes of the agents, routines and conversations that use it get.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "data-science",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Description (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "pandas and poppler, GitHub and our API only",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "What this environment is for.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Network",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Any website",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The sandbox may reach any website.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Listed websites only",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The sandbox may reach only the websites below.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Websites",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "api.github.com our-api.example.com",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "One per line, with no scheme or path. *.example.com matches api.example.com, not example.com.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Also allow package registries and code hosts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "npm, PyPI, crates.io, the Go module proxy, RubyGems, the Debian and Ubuntu archives and GitHub. Packages need it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Also allow this agent's MCP servers",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Packages",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Installed before the first turn of every conversation in this environment. One per line, each with its installer's own version pin if you want one.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "apt (Debian packages)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "poppler-utils",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "pip (Python packages)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "pandas sqlalchemy==2.0.30",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "npm (Node packages)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "express@4.18.0",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "go (Go programs)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "golang.org/x/tools/cmd/goimports@latest",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Create environment",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Create environment",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

@@ -1,0 +1,924 @@
+{
+  "screen": "G13",
+  "title": "Plugins",
+  "source": "the Library page, version 5",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Plugins: Full",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Plugins",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Add MCP server",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Upload plugin",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Browse Marketplace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What you have installed. A plugin brings skills, agents, hooks and MCP servers as one unit; the agent it installs is what runs.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search plugins",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Linear",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Issues, projects, cycles and comments in your Linear workspace.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "2d",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Ledger tools",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Reads and posts to acme's general ledger, with an agent that reviews the month.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 15",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Notion",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Search, read and write the pages and databases your account can reach.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 3",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Add MCP server",
+          "height": 32
+        },
+        {
+          "name": "Upload plugin",
+          "height": 32
+        },
+        {
+          "name": "Browse Marketplace",
+          "height": 32
+        },
+        {
+          "name": "Actions for Linear",
+          "height": 28
+        },
+        {
+          "name": "Actions for Ledger tools",
+          "height": 28
+        },
+        {
+          "name": "Actions for Notion",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Plugins: A row's acts, for someone who may delete it (someone who may not sees Copy ID only)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Plugins",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Add MCP server",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Upload plugin",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Browse Marketplace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What you have installed. A plugin brings skills, agents, hooks and MCP servers as one unit; the agent it installs is what runs.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search plugins",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Linear",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Issues, projects, cycles and comments in your Linear workspace.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "2d",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Copy ID",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Remove",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Ledger tools",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Reads and posts to acme's general ledger, with an agent that reviews the month.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 15",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Notion",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Search, read and write the pages and databases your account can reach.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 3",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Add MCP server",
+          "height": 32
+        },
+        {
+          "name": "Upload plugin",
+          "height": 32
+        },
+        {
+          "name": "Browse Marketplace",
+          "height": 32
+        },
+        {
+          "name": "Actions for Linear",
+          "height": 28
+        },
+        {
+          "name": "Actions for Ledger tools",
+          "height": 28
+        },
+        {
+          "name": "Actions for Notion",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Plugins: None yet, for someone who may add one",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Plugins",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Add MCP server",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Upload plugin",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Browse Marketplace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What you have installed. A plugin brings skills, agents, hooks and MCP servers as one unit; the agent it installs is what runs.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No plugins installed",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Install a plugin from the Marketplace, upload one from your computer, or add an MCP server. An agent that uses a plugin gets everything in it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Browse Marketplace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Upload plugin",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Add MCP server",
+          "height": 32
+        },
+        {
+          "name": "Upload plugin",
+          "height": 32
+        },
+        {
+          "name": "Browse Marketplace",
+          "height": 32
+        },
+        {
+          "name": "Browse Marketplace",
+          "height": 32
+        },
+        {
+          "name": "Upload plugin",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Plugins: None yet, for a member who may not add one",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Plugins",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Browse Marketplace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What you have installed. A plugin brings skills, agents, hooks and MCP servers as one unit; the agent it installs is what runs.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No plugins installed",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Admins of acme install plugins. Browse the Marketplace to see what's offered.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Browse Marketplace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Browse Marketplace",
+          "height": 32
+        },
+        {
+          "name": "Browse Marketplace",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Plugins: A search that matches nothing",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Plugins",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Add MCP server",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Upload plugin",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Browse Marketplace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What you have installed. A plugin brings skills, agents, hooks and MCP servers as one unit; the agent it installs is what runs.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "jira",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No plugins match \u201cjira\u201d.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Clear search",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Add MCP server",
+          "height": 32
+        },
+        {
+          "name": "Upload plugin",
+          "height": 32
+        },
+        {
+          "name": "Browse Marketplace",
+          "height": 32
+        },
+        {
+          "name": "Clear search",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Plugins: Didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Plugins",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Add MCP server",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Upload plugin",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Browse Marketplace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What you have installed. A plugin brings skills, agents, hooks and MCP servers as one unit; the agent it installs is what runs.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the plugins.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Add MCP server",
+          "height": 32
+        },
+        {
+          "name": "Upload plugin",
+          "height": 32
+        },
+        {
+          "name": "Browse Marketplace",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Plugins: Loading",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Plugins",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Add MCP server",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Upload plugin",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Browse Marketplace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What you have installed. A plugin brings skills, agents, hooks and MCP servers as one unit; the agent it installs is what runs.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search plugins",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Add MCP server",
+          "height": 32
+        },
+        {
+          "name": "Upload plugin",
+          "height": 32
+        },
+        {
+          "name": "Browse Marketplace",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Plugins: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Plugins",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Add MCP server",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Upload plugin",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Browse Marketplace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What you have installed. A plugin brings skills, agents, hooks and MCP servers as one unit; the agent it installs is what runs.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search plugins",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Linear",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Issues, projects, cycles and comments in your Linear workspace.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Ledger tools",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Reads and posts to acme's general ledger, with an agent that reviews the month.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Notion",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Search, read and write the pages and databases your account can reach.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Add MCP server",
+          "height": 32
+        },
+        {
+          "name": "Upload plugin",
+          "height": 32
+        },
+        {
+          "name": "Browse Marketplace",
+          "height": 32
+        },
+        {
+          "name": "Actions for Linear",
+          "height": 28
+        },
+        {
+          "name": "Actions for Ledger tools",
+          "height": 28
+        },
+        {
+          "name": "Actions for Notion",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

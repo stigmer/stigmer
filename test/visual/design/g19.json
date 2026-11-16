@@ -1,0 +1,612 @@
+{
+  "screen": "G19",
+  "title": "A plugin",
+  "source": "the Library page, version 5",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "A plugin: Overview",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "Ledger tools",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Start session",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Reads and posts to acme's general ledger, with an agent that reviews the month.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Uploaded by Ada Lovelace",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Installed Jul 15, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Overview",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Evals",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Versions",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "What it brings 4",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Ledger reviewer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Reads the month's ledger and proposes adjustments.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "chart-of-accounts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Skill",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "How acme codes expenses.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "ledger",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "MCP server",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "https://ledger.acme.example/mcp",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Post only after asking",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Hook",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stops any posting the person hasn't approved.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Used by",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "2 agents: Ledger reviewer, Variance reporter.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Start session",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A plugin: Remove, asked first (the destructive confirm)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "Remove Ledger tools?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Removes the plugin and its versions. The server refuses while an agent of acme uses it; a conversation that uses it fails its next message.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Remove",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Remove",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A plugin: Evals, none yet",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "Ledger tools",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Start session",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Reads and posts to acme's general ledger, with an agent that reviews the month.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Uploaded by Ada Lovelace",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Installed Jul 15, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Overview",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Evals",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Versions",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No evals yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Evals check the plugin's agent does its job the same way after each change.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Write an eval",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Start session",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        },
+        {
+          "name": "Write an eval",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A plugin: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "Ledger tools",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Start session",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Reads and posts to acme's general ledger, with an agent that reviews the month.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Uploaded by Ada Lovelace",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Installed Jul 15, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Overview",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Evals",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Versions",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "What it brings 4",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Ledger reviewer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Reads the month's ledger and proposes adjustments.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "chart-of-accounts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Skill",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "How acme codes expenses.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "ledger",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "MCP server",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "https://ledger.acme.example/mcp",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Post only after asking",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Hook",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stops any posting the person hasn't approved.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Used by",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "2 agents: Ledger reviewer, Variance reporter.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Start session",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

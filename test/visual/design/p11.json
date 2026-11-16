@@ -1,0 +1,341 @@
+{
+  "screen": "P11",
+  "title": "Dialogs",
+  "source": "the Console parts page, version 8",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Dialogs",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the dialogs pull request, which gives the dialog its header, body and footer",
+      "words": [
+        {
+          "text": "Delete Variance reporter?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Its versions, evals and channels go with it. Sessions it ran stay.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Delete",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Apply YAML",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Paste or drop a file that describes agents, skills or routines. Each one is created or updated by its name.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "YAML",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "kind: Agent metadata: name: variance-reporter spec: instructions: | You review a customer's quarterly ledger\u2026",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Or drop a .yaml file here.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Apply",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Run daily-variance-report now?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "One run starts now with the routine's message. Its schedule doesn't change.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Message (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Report yesterday's ledger variances against budget.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Leave empty to send the routine's own message.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Run now",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Who can use Variance reporter",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "People and teams in acme, and what each may do.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Add a person or a team",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Can use",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Add",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "ada@acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Owner",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Grace Hopper",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "grace@acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Can change",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Finance",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Team \u00b7 6 people",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Can use",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Done",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Delete",
+          "height": 32
+        },
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Apply",
+          "height": 32
+        },
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Run now",
+          "height": 32
+        },
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Add",
+          "height": 32
+        },
+        {
+          "name": "Remove Grace Hopper",
+          "height": 28
+        },
+        {
+          "name": "Remove Finance",
+          "height": 28
+        },
+        {
+          "name": "Done",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

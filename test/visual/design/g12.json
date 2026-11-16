@@ -1,0 +1,776 @@
+{
+  "screen": "G12",
+  "title": "Skills",
+  "source": "the Library page, version 5",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Skills: Full",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Skills",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Upload skill",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Know-how an agent loads when a task needs it: instructions, examples and scripts, packaged once for every agent in the organization.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search skills",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "chart-of-accounts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "How acme codes expenses: every account, what goes in it, and the usual mistakes.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "3d",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "month-end-close",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The month-end checklist, in order, with who signs off each step.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 18",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "spreadsheet-export",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Public",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Hands back a table as a .csv file anyone can open in a spreadsheet.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 2",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "Upload skill",
+          "height": 32
+        },
+        {
+          "name": "Actions for chart-of-accounts",
+          "height": 28
+        },
+        {
+          "name": "Actions for month-end-close",
+          "height": 28
+        },
+        {
+          "name": "Actions for spreadsheet-export",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Skills: A row's acts, for someone who may delete it (someone who may not sees Copy ID only)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Skills",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Upload skill",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Know-how an agent loads when a task needs it: instructions, examples and scripts, packaged once for every agent in the organization.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search skills",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "chart-of-accounts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "How acme codes expenses: every account, what goes in it, and the usual mistakes.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "3d",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Copy ID",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Delete",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "month-end-close",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The month-end checklist, in order, with who signs off each step.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 18",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "spreadsheet-export",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Public",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Hands back a table as a .csv file anyone can open in a spreadsheet.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 2",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "Upload skill",
+          "height": 32
+        },
+        {
+          "name": "Actions for chart-of-accounts",
+          "height": 28
+        },
+        {
+          "name": "Actions for month-end-close",
+          "height": 28
+        },
+        {
+          "name": "Actions for spreadsheet-export",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Skills: None yet, for someone who may add one",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Skills",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Upload skill",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Know-how an agent loads when a task needs it: instructions, examples and scripts, packaged once for every agent in the organization.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No skills yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Upload a skill package to give your agents reusable instructions and context.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Upload skill",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "Upload skill",
+          "height": 32
+        },
+        {
+          "name": "Upload skill",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Skills: None yet, for a member who may not add one",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Skills",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Know-how an agent loads when a task needs it: instructions, examples and scripts, packaged once for every agent in the organization.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No skills yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Admins of acme upload skills. Once one does, every agent here can use it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Skills: A search that matches nothing",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Skills",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Upload skill",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Know-how an agent loads when a task needs it: instructions, examples and scripts, packaged once for every agent in the organization.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "payroll",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No skills match \u201cpayroll\u201d.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Clear search",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "Upload skill",
+          "height": 32
+        },
+        {
+          "name": "Clear search",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Skills: Didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Skills",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Upload skill",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Know-how an agent loads when a task needs it: instructions, examples and scripts, packaged once for every agent in the organization.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the skills.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "Upload skill",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Skills: Loading",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Skills",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Upload skill",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Know-how an agent loads when a task needs it: instructions, examples and scripts, packaged once for every agent in the organization.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search skills",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "Upload skill",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Skills: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Skills",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Upload skill",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Know-how an agent loads when a task needs it: instructions, examples and scripts, packaged once for every agent in the organization.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search skills",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "chart-of-accounts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "How acme codes expenses: every account, what goes in it, and the usual mistakes.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "month-end-close",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The month-end checklist, in order, with who signs off each step.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "spreadsheet-export",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Public",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Hands back a table as a .csv file anyone can open in a spreadsheet.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "Upload skill",
+          "height": 32
+        },
+        {
+          "name": "Actions for chart-of-accounts",
+          "height": 28
+        },
+        {
+          "name": "Actions for month-end-close",
+          "height": 28
+        },
+        {
+          "name": "Actions for spreadsheet-export",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

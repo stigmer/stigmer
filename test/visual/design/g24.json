@@ -1,0 +1,1018 @@
+{
+  "screen": "G24",
+  "title": "New agent",
+  "source": "the Library page, version 5",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "New agent: Choose how to start",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "New agent",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Start from a blank page, a template, or a file you already have.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Start from scratch",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Name it, write what it should do, then pick what it can use.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Start from a template",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "A finished agent for a common job, ready to change.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Import from a file",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "A YAML or JSON file that describes an agent.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "New agent: Step 1, filled in",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "New agent",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Step 1 of 3 \u00b7 Name and instructions",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Variance reporter",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Slug",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "variance-reporter",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The name in links and files. Lowercase letters, numbers and hyphens.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Description (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Turns a customer's ledger into a variance report.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Instructions",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "You review a customer's quarterly ledger. Each row has an account, its budget and its actual amount\u2026",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "What it should do, in plain words. You can change them any time.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Next",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Next",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "New agent: Step 1, a field left empty",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "New agent",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Step 1 of 3 \u00b7 Name and instructions",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Give the agent a name.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Slug",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "variance-reporter",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The name in links and files. Lowercase letters, numbers and hyphens.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Description (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Turns a customer's ledger into a variance report.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Instructions",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "You review a customer's quarterly ledger. Each row has an account, its budget and its actual amount\u2026",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "What it should do, in plain words. You can change them any time.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Next",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Next",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "New agent: Step 2",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "New agent",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Step 2 of 3 \u00b7 What it can use",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Skills (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "chart-of-accounts, month-end-close",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Know-how it loads when a task needs it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Plugins (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Choose plugins\u2026",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Tools, skills and hooks, each plugin whole.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "MCP servers (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "https://\u2026",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Add",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Servers the agent dials itself, by name and address.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Environment variables (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "REPORT_CURRENCY",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "USD",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Add",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Settings the agent reads. Keep secrets in a vault, not here.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Next",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Back",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Add",
+          "height": 32
+        },
+        {
+          "name": "Add",
+          "height": 32
+        },
+        {
+          "name": "Next",
+          "height": 32
+        },
+        {
+          "name": "Back",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "New agent: Step 3, creating",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "New agent",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Step 3 of 3 \u00b7 Review",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Variance reporter",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Slug",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "variance-reporter",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Instructions",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "You review a customer's quarterly ledger\u2026",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Skills",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "chart-of-accounts, month-end-close",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Plugins",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "None",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Create agent",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Back",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Create agent",
+          "height": 32
+        },
+        {
+          "name": "Back",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "New agent: Step 3, couldn't create it",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "New agent",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Step 3 of 3 \u00b7 Review",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Variance reporter",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Slug",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "variance-reporter",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Instructions",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "You review a customer's quarterly ledger\u2026",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Skills",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "chart-of-accounts, month-end-close",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Plugins",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "None",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't create the agent.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "an agent with the slug variance-reporter already exists in acme",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Change the slug on step 1; nothing else is lost.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Create agent",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Back",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Create agent",
+          "height": 32
+        },
+        {
+          "name": "Back",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "New agent: For a member who may not create agents",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "New agent",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Only an admin can create agents here",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Ask an admin of acme to turn on \u201cMembers can create agents\u201d in the organization's settings.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "New agent: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "New agent",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Step 1 of 3 \u00b7 Name and instructions",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Variance reporter",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Slug",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "variance-reporter",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The name in links and files. Lowercase letters, numbers and hyphens.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Description (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Turns a customer's ledger into a variance report.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Instructions",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "You review a customer's quarterly ledger. Each row has an account, its budget and its actual amount\u2026",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "What it should do, in plain words. You can change them any time.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Next",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Next",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

@@ -1,18 +1,14 @@
 {
   "screen": "G07",
-  "title": "Routine history",
-  "source": "the Console parts page, version 6",
+  "title": "A routine's history",
+  "source": "the Library page, version 5",
   "reader": "bf8cb5c94919",
   "drawings": [
     {
-      "caption": "Routine history",
+      "caption": "A routine's history: History",
       "narrow": false,
-      "built": [
-        {
-          "scene": "routine-history",
-          "width": "desktop"
-        }
-      ],
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
       "words": [
         {
           "text": "daily-variance-report",
@@ -95,14 +91,6 @@
           ]
         },
         {
-          "text": "Origin",
-          "type": [
-            12,
-            16,
-            500
-          ]
-        },
-        {
           "text": "Started by",
           "type": [
             12,
@@ -111,7 +99,7 @@
           ]
         },
         {
-          "text": "Fired",
+          "text": "When",
           "type": [
             12,
             16,
@@ -119,7 +107,7 @@
           ]
         },
         {
-          "text": "Duration",
+          "text": "Took",
           "type": [
             12,
             16,
@@ -127,7 +115,7 @@
           ]
         },
         {
-          "text": "Run",
+          "text": "Session",
           "type": [
             12,
             16,
@@ -135,19 +123,11 @@
           ]
         },
         {
-          "text": "Started",
+          "text": "Running",
           "type": [
             12,
             16,
             500
-          ]
-        },
-        {
-          "text": "Manual",
-          "type": [
-            14,
-            20,
-            400
           ]
         },
         {
@@ -167,7 +147,119 @@
           ]
         },
         {
-          "text": "run_000000…000001",
+          "text": "run_8f3a\u2026c21d",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Finished",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Schedule",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "1d",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "2m 14s",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "run_77b0\u20269e02",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Didn't finish",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Schedule",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "2d",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "41s",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "run_1c9d\u202604af",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Skipped",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Schedule",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "3d",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No session: the last run was still going",
           "type": [
             12,
             16,
@@ -187,9 +279,269 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {
-        "word run_000000…000001": "When its page is redesigned: a fire's run id shortened in the middle"
-      }
+      "pending": {}
+    },
+    {
+      "caption": "A routine's history: History, none yet",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "daily-variance-report",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Run now",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Created Jul 20, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 20, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Overview",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "History",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "API",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No runs yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "This routine hasn't run. Run now to try it before its first scheduled run.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Run now",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Run now",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        },
+        {
+          "name": "Run now",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A routine's history: History, didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "daily-variance-report",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Run now",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Created Jul 20, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Updated Jul 20, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Overview",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "History",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "API",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the routine's runs.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Run now",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
     }
   ]
 }

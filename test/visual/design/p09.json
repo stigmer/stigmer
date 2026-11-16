@@ -1,0 +1,489 @@
+{
+  "screen": "P09",
+  "title": "Fields",
+  "source": "the Console parts page, version 8",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Fields",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "e.g. daily-fee-reminders",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The name in links and files.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "daily-variance-report",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The name in links and files.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "daily-variance-report",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Give the routine a name.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "daily-variance-report",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Search agents",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "ledger-reviewer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Save",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "https://ledger.acme.example/mcp",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Add",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Connect",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Message",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Report yesterday's ledger variances against budget, and save the report as variances.csv.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Grows with its words.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Time zone",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Asia/Kolkata",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Environment (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Choose an environment",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Also allow package registries and code hosts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "npm, PyPI, crates.io and the other common hosts. Packages need it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Also allow this agent's MCP servers",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Turn it on now",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Leave off to create it staged.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Create accounts on sign-in",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your users join as Member.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Hourly",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Daily",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Weekly",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Monthly",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Custom cron",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Rendered",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Source",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Any website",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The sandbox may reach any website.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Listed websites only",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The sandbox may reach only the websites below.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Drop a skill's .zip here",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Up to 10 MB.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Choose a file",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Drop it to upload",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Up to 10 MB.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Choose a file",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Drop a plugin's .zip here",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Up to 50 MB.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Choose a file",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "This isn't a plugin: there's no plugin.json at its top.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Save",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 28
+        },
+        {
+          "name": "Add",
+          "height": 32
+        },
+        {
+          "name": "Connect",
+          "height": 32
+        },
+        {
+          "name": "Choose a file",
+          "height": 32
+        },
+        {
+          "name": "Choose a file",
+          "height": 32
+        },
+        {
+          "name": "Choose a file",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

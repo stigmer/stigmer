@@ -1,0 +1,582 @@
+{
+  "screen": "G16",
+  "title": "Files",
+  "source": "the Library page, version 5",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Files: Full",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Files",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Upload file",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Files you keep to reuse: name one in a routine and every run gets its own copy. A conversation's files stay with that conversation.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search files",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Type",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Size",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Uploaded",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "variances-2026-q2.csv",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "CSV",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "48 KB",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "2d",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "chart-of-accounts.xlsx",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Excel",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "212 KB",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Jul 14",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "vendor-w9-template.pdf",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "PDF",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "1.2 MB",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Jul 2",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Upload file",
+          "height": 32
+        },
+        {
+          "name": "Actions for variances-2026-q2.csv",
+          "height": 28
+        },
+        {
+          "name": "Actions for chart-of-accounts.xlsx",
+          "height": 28
+        },
+        {
+          "name": "Actions for vendor-w9-template.pdf",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Files: None yet, for someone who may add one",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Files",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Upload file",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Files you keep to reuse: name one in a routine and every run gets its own copy. A conversation's files stay with that conversation.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No files yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Upload a file to keep it here and hand it to your routines.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Upload file",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Upload file",
+          "height": 32
+        },
+        {
+          "name": "Upload file",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Files: A search that matches nothing",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Files",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Upload file",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Files you keep to reuse: name one in a routine and every run gets its own copy. A conversation's files stay with that conversation.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "budget",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No files match \u201cbudget\u201d.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Clear search",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Upload file",
+          "height": 32
+        },
+        {
+          "name": "Clear search",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Files: Didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Files",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Upload file",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Files you keep to reuse: name one in a routine and every run gets its own copy. A conversation's files stay with that conversation.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the files.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Upload file",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Files: Loading",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Files",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Upload file",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Files you keep to reuse: name one in a routine and every run gets its own copy. A conversation's files stay with that conversation.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search files",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Upload file",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Files: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "built by the Library lists pull request, which draws the lists and the conversations on the form parts",
+      "words": [
+        {
+          "text": "Files",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Upload file",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Files you keep to reuse: name one in a routine and every run gets its own copy. A conversation's files stay with that conversation.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search files",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "variances-2026-q2.csv",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "CSV \u00b7 48 KB \u00b7 2d",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "chart-of-accounts.xlsx",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Excel \u00b7 212 KB \u00b7 Jul 14",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "vendor-w9-template.pdf",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "PDF \u00b7 1.2 MB \u00b7 Jul 2",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Upload file",
+          "height": 32
+        },
+        {
+          "name": "Actions for variances-2026-q2.csv",
+          "height": 28
+        },
+        {
+          "name": "Actions for chart-of-accounts.xlsx",
+          "height": 28
+        },
+        {
+          "name": "Actions for vendor-w9-template.pdf",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

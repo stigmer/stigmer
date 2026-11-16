@@ -1,0 +1,1508 @@
+{
+  "screen": "G26",
+  "title": "New routine",
+  "source": "the Library page, version 5",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "New routine: Filled in",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "New routine",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Start an agent on a schedule, by hand, or from another system.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "daily-variance-report",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent to run",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Variance reporter",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Each run starts this agent unattended in a fresh session. Only agents in acme can be scheduled.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Message",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Report yesterday's ledger variances against budget, and save the report as variances.csv.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Runs",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Hourly",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Daily",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Weekly",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Monthly",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Custom cron",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "At",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Every day at 09:00 (Asia/Kolkata).",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Optional",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Workspace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Connect GitHub",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Each run clones these repositories fresh. Private repositories need a github.com login in one of this routine's vaults.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Files",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "No files in the Library yet",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Upload a file",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Every run gets its own copy of these files in .stigmer/uploads/.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Vaults",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "My vault",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The keys and logins every run uses. Without them, an agent whose tools need a key is refused every run, naming the key.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Environment",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Default: data-science (the agent's default)",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The packages and network every run's sandbox gets.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Harness and model",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Platform default",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Runs use the platform's default unless you pick one. Picking a model pins the harness it belongs to.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Budget per run (USD)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Platform default",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Each run stops when it reaches this spend. You can lower the platform's cap, never raise it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Time zone",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Asia/Kolkata",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Turn it on now",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Leave off to create it staged: try it with Run now on its page, then turn it on there.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Create routine",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Connect GitHub",
+          "height": 32
+        },
+        {
+          "name": "Upload a file",
+          "height": 32
+        },
+        {
+          "name": "Create routine",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "New routine: An agent the person can't change: said under the field, Create held",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "New routine",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Start an agent on a schedule, by hand, or from another system.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "daily-variance-report",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent to run",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Receipts matcher",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "You can't change Receipts matcher, so you can't schedule it. Pick an agent you may change, or ask its owner.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Message",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Report yesterday's ledger variances against budget, and save the report as variances.csv.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Runs",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Hourly",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Daily",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Weekly",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Monthly",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Custom cron",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "At",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Every day at 09:00 (Asia/Kolkata).",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Optional",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Workspace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Connect GitHub",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Each run clones these repositories fresh. Private repositories need a github.com login in one of this routine's vaults.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Files",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "No files in the Library yet",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Upload a file",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Every run gets its own copy of these files in .stigmer/uploads/.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Vaults",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "My vault",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The keys and logins every run uses. Without them, an agent whose tools need a key is refused every run, naming the key.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Environment",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Default: data-science (the agent's default)",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The packages and network every run's sandbox gets.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Harness and model",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Platform default",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Runs use the platform's default unless you pick one. Picking a model pins the harness it belongs to.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Budget per run (USD)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Platform default",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Each run stops when it reaches this spend. You can lower the platform's cap, never raise it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Time zone",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Asia/Kolkata",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Turn it on now",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Leave off to create it staged: try it with Run now on its page, then turn it on there.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Create routine",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Connect GitHub",
+          "height": 32
+        },
+        {
+          "name": "Upload a file",
+          "height": 32
+        },
+        {
+          "name": "Create routine",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "New routine: The message left empty",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "New routine",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Start an agent on a schedule, by hand, or from another system.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "daily-variance-report",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent to run",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Variance reporter",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Each run starts this agent unattended in a fresh session. Only agents in acme can be scheduled.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Message",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The instruction the agent receives on every run. Write it for a run with nobody watching.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Write the message the agent gets on every run.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Runs",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Hourly",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Daily",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Weekly",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Monthly",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Custom cron",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "At",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Every day at 09:00 (Asia/Kolkata).",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Optional",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Workspace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Connect GitHub",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Each run clones these repositories fresh. Private repositories need a github.com login in one of this routine's vaults.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Files",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "No files in the Library yet",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Upload a file",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Every run gets its own copy of these files in .stigmer/uploads/.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Vaults",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "My vault",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The keys and logins every run uses. Without them, an agent whose tools need a key is refused every run, naming the key.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Environment",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Default: data-science (the agent's default)",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The packages and network every run's sandbox gets.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Harness and model",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Platform default",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Runs use the platform's default unless you pick one. Picking a model pins the harness it belongs to.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Budget per run (USD)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Platform default",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Each run stops when it reaches this spend. You can lower the platform's cap, never raise it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Time zone",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Asia/Kolkata",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Turn it on now",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Leave off to create it staged: try it with Run now on its page, then turn it on there.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Create routine",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Connect GitHub",
+          "height": 32
+        },
+        {
+          "name": "Upload a file",
+          "height": 32
+        },
+        {
+          "name": "Create routine",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "New routine: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "built by the Library pages pull request, which draws the detail, new and upload pages on the form parts",
+      "words": [
+        {
+          "text": "New routine",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Start an agent on a schedule, by hand, or from another system.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "daily-variance-report",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent to run",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Variance reporter",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Each run starts this agent unattended in a fresh session. Only agents in acme can be scheduled.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Message",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Report yesterday's ledger variances against budget, and save the report as variances.csv.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Runs",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Hourly",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Daily",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Weekly",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Monthly",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Custom cron",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "At",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Every day at 09:00 (Asia/Kolkata).",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Optional",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Workspace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Connect GitHub",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Each run clones these repositories fresh. Private repositories need a github.com login in one of this routine's vaults.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Files",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "No files in the Library yet",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Upload a file",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Every run gets its own copy of these files in .stigmer/uploads/.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Vaults",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "My vault",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The keys and logins every run uses. Without them, an agent whose tools need a key is refused every run, naming the key.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Environment",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Default: data-science (the agent's default)",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The packages and network every run's sandbox gets.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Harness and model",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Platform default",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Runs use the platform's default unless you pick one. Picking a model pins the harness it belongs to.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Budget per run (USD)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Platform default",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Each run stops when it reaches this spend. You can lower the platform's cap, never raise it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Time zone",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Asia/Kolkata",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Turn it on now",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Leave off to create it staged: try it with Run now on its page, then turn it on there.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Create routine",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Connect GitHub",
+          "height": 32
+        },
+        {
+          "name": "Upload a file",
+          "height": 32
+        },
+        {
+          "name": "Create routine",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

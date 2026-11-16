@@ -1,0 +1,205 @@
+{
+  "screen": "P10",
+  "title": "A form's foot",
+  "source": "the Console parts page, version 8",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "A form's foot",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "data-science",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Create environment",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Create environment",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "data-science",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme already has an environment named data-science.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't create the environment.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Create environment",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Remove",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Create environment",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Create environment",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Create environment",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Remove",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}
