@@ -79,6 +79,7 @@ export type SceneId =
   | "dashboard-journey-folded"
   | `settings-${SettingsSceneName}`
   | "agent-profile-owner"
+  | "agent-profile-manage-access"
   | "agent-profile-viewer"
   | "agent-profile-variance-reporter"
   | "agent-make-it-yours"
@@ -1054,6 +1055,15 @@ const LISTED: readonly Scene[] = [
   ...SETTINGS_SCENES,
   { id: "agent-profile-owner", title: "Agent page: the ledger agent, as its owner sees it", widths: ["desktop", "narrow"] },
   { id: "agent-profile-viewer", title: "Agent page: the ledger agent, as a person who may only read it sees it", widths: ["desktop"] },
+  {
+    id: "agent-profile-manage-access",
+    title: "Agent page: the ledger agent's Manage access dialog, opened from More actions by its owner",
+    widths: ["desktop"],
+    opens: [
+      { press: "More actions", role: "button", exact: true },
+      { press: "Manage access", role: "menuitem", exact: true },
+    ],
+  },
   {
     id: "agent-profile-variance-reporter",
     title: "Agent page: the agents page's variance reporter, each section one of the YAML fields the page prints",
