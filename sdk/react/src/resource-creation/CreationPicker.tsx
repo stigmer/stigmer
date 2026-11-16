@@ -186,6 +186,7 @@ function OptionRow({
       name={title}
       description={description}
       onClick={onClick}
+      decorativeSlots
       leading={
         <span className="stg:flex stg:size-8 stg:items-center stg:justify-center stg:rounded-lg stg:border stg:border-border stg:bg-card stg:text-muted-foreground">
           {icon}

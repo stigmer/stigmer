@@ -34,7 +34,8 @@ export interface SectionProps {
  * Shared section layout for resource detail views.
  *
  * A card whose header bar holds the section's title (14/20, semibold, one
- * heading level under the page's title, `useSectionHeadingLevel`), its count and its
+ * heading level under the detail page's title: `h2` under an `h1`, `h3`
+ * under the default `h2` and wherever no detail page sets it), its count and its
  * acts (the edit icon button among them); the content sits under the bar
  * and draws its own inner spacing.
  *

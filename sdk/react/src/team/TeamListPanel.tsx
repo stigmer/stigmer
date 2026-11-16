@@ -91,6 +91,7 @@ export function TeamListPanel({
           <ListRow
             key={id}
             onClick={() => onOpen(team)}
+            decorativeSlots
             leading={<UsersRound className="stg:h-3.5 stg:w-3.5 stg:shrink-0 stg:text-muted-foreground" aria-hidden="true" />}
             name={name}
             description={description || undefined}
