@@ -221,8 +221,40 @@ function readsOf(shape: Shape): readonly Read[] {
       },
       key: undefined,
       drives: unscoped,
-      // Its cursor is the window's end, past every row; its start is not a
-      // range bound yet (stigmer/stigmer#3179), so only the walk is judged.
+      // Its cursor is the window's end, past every row.
+      deep: true,
+    },
+    {
+      name: "the funnel's page over a recent window, its start at the middle row",
+      query: {
+        withoutKeys: ["parent_org"],
+        createdAtOrAfter: cursorAt(middle(shape, () => true)).createdAt,
+        after: { createdAt: instant(10_000_000), id: "" },
+        limit: FUNNEL_PAGE,
+      },
+      key: undefined,
+      drives: unscoped,
+      deep: true,
+    },
+    {
+      name: "one key's rows since a bound, unlimited (a session's recent activity, sandbox/session-activity.ts)",
+      query: {
+        anyKey: [PARENT_KEY],
+        createdAtOrAfter: cursorAt(middle(shape, hasParentKey)).createdAt,
+      },
+      key: PARENT_KEY,
+      drives: byKey,
+      deep: false,
+    },
+    {
+      name: "one organization's rows since a bound, unlimited (the run summary, domain/run/usage.ts)",
+      query: {
+        org: "org_3",
+        createdAtOrAfter: cursorAt(middle(shape, (g) => g % 10 === 3))
+          .createdAt,
+      },
+      key: undefined,
+      drives: organization,
       deep: false,
     },
   ];
@@ -266,6 +298,9 @@ const SORTS = new Set(["Sort", "Incremental Sort"]);
 /** The cursor as Postgres prints a row comparison in an index condition. */
 const CURSOR_IN_RANGE = /ROW\((list_)?created_at, .*\) < ROW\(/;
 
+/** A creation window's start as Postgres prints it in an index condition. */
+const WINDOW_IN_RANGE = /\((list_)?created_at >= /;
+
 interface Judged {
   /** Every node that reads the driving table. */
   drivenBy: string[];
@@ -274,6 +309,16 @@ interface Judged {
   sorts: string[];
   /** Whether the driving scan starts at the cursor (deep pages only). */
   cursorInRange: boolean | undefined;
+  /** Whether the driving scan stops at the window's start (windowed reads only). */
+  windowInRange: boolean | undefined;
+}
+
+/** Whether a read is bounded by a creation window ("" is no bound). */
+function windowed(read: Read): boolean {
+  return (
+    read.query.createdAtOrAfter !== undefined &&
+    read.query.createdAtOrAfter !== ""
+  );
 }
 
 /**
@@ -294,6 +339,9 @@ function judge(plan: PlanNode, read: Read): Judged {
       .map(describeNode),
     cursorInRange: read.deep
       ? driving.some((node) => CURSOR_IN_RANGE.test(node["Index Cond"] ?? ""))
+      : undefined,
+    windowInRange: windowed(read)
+      ? driving.some((node) => WINDOW_IN_RANGE.test(node["Index Cond"] ?? ""))
       : undefined,
   };
 }
@@ -329,6 +377,7 @@ function expected(read: Read): Judged {
     fetchedBy: read.key === undefined ? [] : ["resources_pkey"],
     sorts: [],
     cursorInRange: read.deep ? true : undefined,
+    windowInRange: windowed(read) ? true : undefined,
   };
 }
 

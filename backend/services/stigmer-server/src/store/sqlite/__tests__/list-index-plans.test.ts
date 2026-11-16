@@ -115,11 +115,108 @@ const READS: readonly Read[] = [
     },
     key: undefined,
     drives: UNSCOPED,
-    // Its cursor is the window's end; its start is not a range bound yet
-    // (stigmer/stigmer#3179), so only the search is judged.
+    // Its cursor is the window's end, past every row.
+    cursor: "(list_created_at,id)<(?,?)",
+  },
+  {
+    name: "the funnel's page over a recent window, its start at the middle row",
+    query: {
+      withoutKeys: ["parent_org"],
+      createdAtOrAfter: cursorAt(1_500).createdAt,
+      after: { createdAt: instant(10_000_000), id: "" },
+      limit: 500,
+    },
+    key: undefined,
+    drives: UNSCOPED,
+    cursor: "(list_created_at,id)<(?,?)",
+  },
+  {
+    name: "one key's rows since a bound, unlimited (a session's recent activity, sandbox/session-activity.ts)",
+    query: {
+      anyKey: [PARENT_KEY],
+      createdAtOrAfter: cursorAt(1_506).createdAt,
+    },
+    key: PARENT_KEY,
+    drives: BY_KEY,
+    cursor: undefined,
+  },
+  {
+    name: "one organization's rows since a bound, unlimited (the run summary, domain/run/usage.ts)",
+    query: { org: "org_3", createdAtOrAfter: cursorAt(1_503).createdAt },
+    key: undefined,
+    drives: ORGANIZATION,
     cursor: undefined,
   },
 ];
+
+/** One instruction of a statement's program (`EXPLAIN`, not `EXPLAIN QUERY PLAN`). */
+interface Instruction {
+  readonly addr: number;
+  readonly opcode: string;
+  readonly p1: number;
+  readonly p2: number;
+  readonly p3: number;
+  readonly p4: unknown;
+}
+
+/** Instructions that load a value into register p2. */
+const LOADS = new Set([
+  "Variable",
+  "Null",
+  "String8",
+  "Integer",
+  "Int64",
+  "Real",
+  "Copy",
+  "SCopy",
+]);
+
+/**
+ * Whether the walk of `index` stops at the parameter `param` (1-based): a
+ * backward search's lower bound is the `IdxLT` (`>=`) or `IdxLE` (`>`) that
+ * ends its loop, comparing the index key with registers p3 to p3+p4-1, the
+ * last of them the bound. `EXPLAIN QUERY PLAN` prints every lower bound as
+ * `>?`, the stamp's `IS NOT NULL` among them (the created index's search
+ * shows `list_created_at>?` with no window at all), so which bound the walk
+ * stops at is read from the program: the window's start is that last
+ * register loaded from the window's parameter, and a `NULL` there is the
+ * stamp check's bound, which walks every older row.
+ */
+function stopsAt(
+  db: DatabaseSync,
+  sql: string,
+  params: ReadonlyArray<string | number>,
+  index: string,
+  param: number,
+): boolean {
+  const program = db
+    .prepare(`EXPLAIN ${sql}`)
+    .all(...params) as unknown as Instruction[];
+  const root = (
+    db
+      .prepare(`SELECT rootpage FROM sqlite_schema WHERE name = ?`)
+      .get(index) as {
+      rootpage: number;
+    }
+  ).rootpage;
+  const cursors = new Set(
+    program
+      .filter((op) => op.opcode === "OpenRead" && op.p2 === root)
+      .map((op) => op.p1),
+  );
+  return program.some((stop) => {
+    if (!["IdxLT", "IdxLE"].includes(stop.opcode) || !cursors.has(stop.p1)) {
+      return false;
+    }
+    const bound = stop.p3 + Number(stop.p4) - 1;
+    const load = program
+      .filter(
+        (op) => op.addr < stop.addr && LOADS.has(op.opcode) && op.p2 === bound,
+      )
+      .at(-1);
+    return load?.opcode === "Variable" && load.p1 === param;
+  });
+}
 
 function seed(db: DatabaseSync): void {
   const row = db.prepare(
@@ -194,6 +291,23 @@ describe("sqlite list-index plans", () => {
       expect(details, message).not.toContain("USE TEMP B-TREE FOR ORDER BY");
       if (read.cursor !== undefined) {
         expect(search, message).toContain(read.cursor);
+      }
+      const start = read.query.createdAtOrAfter;
+      if (start !== undefined && start !== "") {
+        const statement = provenReadSql(LISTED, REVISION, read.query, read.key);
+        expect(statement.params.indexOf(start)).toBe(
+          statement.params.lastIndexOf(start),
+        );
+        expect(
+          stopsAt(
+            db,
+            statement.sql,
+            statement.params,
+            read.drives.index,
+            statement.params.indexOf(start) + 1,
+          ),
+          `the walk of ${read.drives.index} stops at the window's start\n${message}`,
+        ).toBe(true);
       }
       if (read.key !== undefined) {
         expect(
