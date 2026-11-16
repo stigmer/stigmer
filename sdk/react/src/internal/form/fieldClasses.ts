@@ -3,6 +3,8 @@
 // the button's 6px corner and its 2px focus ring, the input border on the
 // input fill. A field and the button beside it line up. An error draws the
 // border in the failed status hue; disabled is half opacity, as a button is.
+// A field takes its width from where it sits: inside a `Field` it fills the
+// column, in a row it is as wide as the caller says (`flex-1`, `w-full`).
 //
 // `bare` is a field inside another control's own frame (a picker's search
 // box, a chip editor): it keeps the type, the placeholder and the focus
@@ -52,7 +54,7 @@ export function fieldControlClasses({
   readonly appearance?: FieldAppearance;
 } = {}): string {
   if (appearance === "bare") return cn("stg:min-w-0", BARE, size === "xs" ? "stg:text-xs" : "stg:text-sm");
-  return cn("stg:w-full stg:min-w-0", FRAME, FIELD_SIZE_CLASSES[size], invalid ? "stg:border-status-failed" : "stg:border-input");
+  return cn("stg:min-w-0", FRAME, FIELD_SIZE_CLASSES[size], invalid ? "stg:border-status-failed" : "stg:border-input");
 }
 
 /** The classes of a multi-line field: the frame, the size's padding and type, and the error's border. */
@@ -66,11 +68,11 @@ export function areaControlClasses({
   readonly appearance?: FieldAppearance;
 } = {}): string {
   if (appearance === "bare") return cn("stg:min-w-0 stg:resize-none", BARE, size === "xs" ? "stg:text-xs" : "stg:text-sm");
-  return cn("stg:block stg:w-full stg:min-w-0", FRAME, AREA_SIZE_CLASSES[size], invalid ? "stg:border-status-failed" : "stg:border-input");
+  return cn("stg:block stg:min-w-0", FRAME, AREA_SIZE_CLASSES[size], invalid ? "stg:border-status-failed" : "stg:border-input");
 }
 
 /** A field's label: 14/20 medium in the foreground. Forms that draw a label of their own use it too. */
-export const FIELD_LABEL_CLASSES = "stg:text-sm stg:font-medium stg:text-foreground";
+export const FIELD_LABEL_CLASSES = "stg:block stg:text-sm stg:font-medium stg:text-foreground";
 
 /** A field's hint: 12/16 muted. */
 export const FIELD_HINT_CLASSES = "stg:m-0 stg:text-xs stg:text-muted-foreground";

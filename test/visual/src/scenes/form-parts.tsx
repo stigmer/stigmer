@@ -86,21 +86,21 @@ export function FieldParts({ Group }: { readonly Group: (props: { readonly label
               <span className="stg:pointer-events-none stg:absolute stg:left-2.5 stg:text-muted-foreground" style={{ display: "grid" }}>
                 <SearchIcon />
               </span>
-              <TextInput placeholder="Search agents" className="stg:pl-8" />
+              <TextInput placeholder="Search agents" className="stg:w-full stg:pl-8" />
             </span>
           </Field>
         </Columns>
       </Group>
       <Group label="Small, for inline rows">
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", maxWidth: "24rem" }}>
-          <TextInput size="xs" aria-label="Slug" defaultValue="ledger-reviewer" className="stg:font-mono" />
+          <TextInput size="xs" aria-label="Slug" defaultValue="ledger-reviewer" className="stg:flex-1 stg:font-mono" />
           <Button size="xs">Save</Button>
           <Button size="xs" variant="ghost">Cancel</Button>
         </div>
       </Group>
       <Group label="A field and the button beside it: one height">
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", maxWidth: "35rem" }}>
-          <TextInput aria-label="Address" defaultValue="https://ledger.acme.example/mcp" className="stg:font-mono" />
+          <TextInput aria-label="Address" defaultValue="https://ledger.acme.example/mcp" className="stg:flex-1 stg:font-mono" />
           <Button variant="outline">Add</Button>
           <Button>Connect</Button>
         </div>
@@ -226,7 +226,7 @@ export function FooterParts({ Group }: { readonly Group: (props: { readonly labe
 export function InlineEditorParts({ Group }: { readonly Group: (props: { readonly label: string; readonly children: ReactNode }) => ReactNode }) {
   const open = (value: string, saving = false) => (
     <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", minWidth: 0 }}>
-      <TextInput size="xs" aria-label="Slug" defaultValue={value} className="stg:font-mono" disabled={saving} />
+      <TextInput size="xs" aria-label="Slug" defaultValue={value} className="stg:flex-1 stg:font-mono" disabled={saving} />
       <Button size="xs" disabled={saving}>Save</Button>
       <Button size="xs" variant="ghost" disabled={saving}>Cancel</Button>
     </div>
@@ -246,7 +246,7 @@ export function InlineEditorParts({ Group }: { readonly Group: (props: { readonl
           <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem", minWidth: 0 }}>
             <Field label="Slug" labelHidden error="Use lowercase letters, numbers and hyphens.">
               <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", minWidth: 0 }}>
-                <TextInput size="xs" defaultValue="Ledger Reviewer" className="stg:font-mono" />
+                <TextInput size="xs" defaultValue="Ledger Reviewer" className="stg:flex-1 stg:font-mono" />
                 <Button size="xs">Save</Button>
                 <Button size="xs" variant="ghost">Cancel</Button>
               </div>
@@ -255,7 +255,7 @@ export function InlineEditorParts({ Group }: { readonly Group: (props: { readonl
         </InlineRow>
         <InlineRow label="Description">
           <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", minWidth: 0 }}>
-            <TextInput size="xs" aria-label="Description" defaultValue="Reads the month's ledger…" />
+            <TextInput size="xs" aria-label="Description" defaultValue="Reads the month's ledger…" className="stg:flex-1" />
             <Button size="xs">Save</Button>
             <Button size="xs" variant="ghost">Cancel</Button>
           </div>

@@ -110,6 +110,7 @@ export function RoleSelector({
               )}
             >
               <Radio
+                visuallyHidden
                 name={groupName}
                 value={opt.value}
                 checked={isChecked}

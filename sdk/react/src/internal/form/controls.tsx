@@ -77,17 +77,23 @@ export interface SelectProps extends NativeSelectProps {
 }
 
 /** A choice from a list: the native select, drawn as a field with its chevron. */
+/** A layout class (its width, its share of a row, its place in a grid) belongs on the select's wrapper, which is what sits in the row. */
+const WRAPPER_LAYOUT = /^(stg:)?((sm|md|lg):)?(w-|min-w-|max-w-|flex-|grow|shrink|basis-|self-|col-span-|order-)/;
+
 export function Select({ size = "sm", invalid, className, wrapperClassName, ref, children, ...rest }: SelectProps) {
+  const own = (className ?? "").split(/\s+/).filter(Boolean);
+  const layout = own.filter((c) => WRAPPER_LAYOUT.test(c)).join(" ");
+  const look = own.filter((c) => !WRAPPER_LAYOUT.test(c)).join(" ");
   const wired = wireControl(useFieldWiring(), { id: rest.id, "aria-describedby": rest["aria-describedby"], "aria-invalid": rest["aria-invalid"] as boolean | undefined, invalid });
   return (
-    <span className={cn("stg:relative stg:flex stg:min-w-0 stg:items-center", wrapperClassName)}>
+    <span className={cn("stg:relative stg:flex stg:min-w-0 stg:items-center", layout, wrapperClassName)}>
       <select
         {...rest}
         ref={ref}
         id={wired.id}
         aria-describedby={wired["aria-describedby"]}
         aria-invalid={wired["aria-invalid"]}
-        className={cn(fieldControlClasses({ size, invalid: wired.invalid }), "stg:cursor-pointer stg:appearance-none", size === "xs" ? "stg:pr-6" : "stg:pr-8", className)}
+        className={cn(fieldControlClasses({ size, invalid: wired.invalid }), "stg:cursor-pointer stg:appearance-none", size === "xs" ? "stg:pr-6" : "stg:pr-8", look)}
       >
         {children}
       </select>
@@ -102,6 +108,11 @@ export function Select({ size = "sm", invalid, className, wrapperClassName, ref,
 /** Props for {@link Checkbox} and {@link Radio}. */
 export interface CheckProps extends Omit<NativeInputProps, "type"> {
   readonly ref?: Ref<HTMLInputElement>;
+  /**
+   * Keeps the native control for the keyboard and a screen reader and draws
+   * nothing: a choice card around it shows what is chosen.
+   */
+  readonly visuallyHidden?: boolean;
 }
 
 const CHECK_BOX = cn(
@@ -112,8 +123,9 @@ const CHECK_BOX = cn(
 );
 
 /** A checkbox: the native element, 16px with a 4px corner (`rounded-md`), filled when checked. Its label sits beside it. */
-export function Checkbox({ className, ref, ...rest }: CheckProps) {
+export function Checkbox({ className, ref, visuallyHidden, ...rest }: CheckProps) {
   const wired = wireControl(useFieldWiring(), { id: rest.id, "aria-describedby": rest["aria-describedby"] });
+  if (visuallyHidden) return <input {...rest} ref={ref} type="checkbox" id={wired.id} aria-describedby={wired["aria-describedby"]} className={cn("stg:sr-only", className)} />;
   return (
     <span className="stg:relative stg:inline-flex stg:size-4 stg:shrink-0">
       <input
@@ -134,7 +146,8 @@ export function Checkbox({ className, ref, ...rest }: CheckProps) {
 }
 
 /** A radio button: the native element, 16px round, its dot drawn when chosen. Its label sits beside it. */
-export function Radio({ className, ref, ...rest }: CheckProps) {
+export function Radio({ className, ref, visuallyHidden, ...rest }: CheckProps) {
+  if (visuallyHidden) return <input {...rest} ref={ref} type="radio" className={cn("stg:sr-only", className)} />;
   return (
     <span className="stg:relative stg:inline-flex stg:size-4 stg:shrink-0">
       <input

@@ -563,6 +563,7 @@ function InviteLink({ orgId, buildInviteUrl }: { readonly orgId: string; readonl
                 )}
               >
                 <Radio
+                  visuallyHidden
                   name={groupName}
                   value={choice.label}
                   checked={checked}

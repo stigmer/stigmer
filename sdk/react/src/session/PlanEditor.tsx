@@ -216,7 +216,10 @@ export function PlanEditor({
           onChange={(e) => activeDraft.setDraft(e.target.value)}
           aria-label="Edit plan"
           spellCheck={false}
-          rows={28} className={cn("stg:w-full stg:flex-1 stg:resize-y", "stg:font-mono")}
+          rows={28}
+          size="xs"
+          // The session's plan document: its own padding on the card fill, as it passed with the session viewer.
+          className="stg:w-full stg:flex-1 stg:resize-y stg:rounded-md stg:border-border stg:bg-card stg:p-3 stg:font-mono"
         />
       )}
 

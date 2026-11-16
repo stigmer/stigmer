@@ -71,6 +71,7 @@ export function KeyExpiryFieldset({
               )}
             >
               <Radio
+                visuallyHidden
                 name={name}
                 value={option.value}
                 checked={checked}

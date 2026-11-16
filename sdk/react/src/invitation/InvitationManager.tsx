@@ -620,6 +620,7 @@ function ExpiryRadio({
       )}
     >
       <Radio
+        visuallyHidden
         name={name}
         value={value}
         checked={checked}
@@ -659,6 +660,7 @@ function RedemptionRadio({
       )}
     >
       <Radio
+        visuallyHidden
         name={name}
         value={value}
         checked={checked}
