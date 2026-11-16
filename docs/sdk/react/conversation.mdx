@@ -317,9 +317,9 @@ function useConversationTimeline(channelId: string, conversationKey: string, opt
 
 ### ConversationAttentionBanner
 
-The needs-attention banner: the escalating agent's reason,
-verbatim, with the escalation's ANSWER beside its false-alarm
-dismissal.
+The needs-attention notice, in the paused tone (a person asked for is
+not a failure): the escalating agent's reason, verbatim, with the
+escalation's ANSWER beside its false-alarm dismissal.
 
 Take over is the primary action because the human arriving IS the
 answer to an escalation — taking over clears attention structurally
@@ -441,6 +441,9 @@ timeline, participation banners, and staff composer on the right.
 Everything under it is independently importable — hosts that need a
 different layout compose `ConversationListPane`,
 `ConversationTimelineView`, the banners, and the hooks directly.
+
+Narrower than 640px of its own width it shows one pane at a time: the
+list, then the chosen conversation with a way back to the list.
 
 **Props** — `ConversationsWorkbenchProps`
 
