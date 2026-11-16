@@ -273,6 +273,9 @@ function ConnectSlackDialogBody({
         title={channel ? "Reconnect to Slack" : "Connect to Slack"}
         closeLabel="Close dialog"
         onClose={onClose}
+        closeDisabled={busy}
+        // When the foot's act is Close or Done, a second close would repeat it.
+        hideClose={installed !== null || !installsAvailable}
       />
 
       <DialogBody>

@@ -151,6 +151,7 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "settings-loading": settingsLoadingScene,
   "agent-profile-owner": () => agentProfileScene("owner"),
   "agent-profile-viewer": () => agentProfileScene("reader"),
+  "agent-profile-manage-access": () => agentProfileScene("owner"),
   "agent-profile-variance-reporter": varianceReporterScene,
   "agent-make-it-yours": () => agentMakeItYoursScene(true),
   "agent-make-it-yours-member": () => agentMakeItYoursScene(false),

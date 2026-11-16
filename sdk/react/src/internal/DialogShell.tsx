@@ -89,7 +89,7 @@ export interface DialogHeaderProps {
  */
 export function DialogHeader({ title, description, id, onClose, closeLabel = "Close", hideClose = false, closeDisabled = false, icon, actions, className }: DialogHeaderProps) {
   const shell = useContext(DialogShellContext);
-  const hasDescription = description !== undefined && description !== null && description !== false;
+  const hasDescription = description !== undefined && description !== null && description !== false && description !== "";
   const register = shell?.registerHeader;
   useLayoutEffect(() => register?.(id === undefined, hasDescription), [register, id, hasDescription]);
   const close = onClose ?? shell?.requestClose;

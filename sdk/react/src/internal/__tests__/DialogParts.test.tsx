@@ -45,6 +45,16 @@ describe("DialogHeader", () => {
     expect(container.querySelector("dialog")!.hasAttribute("aria-describedby")).toBe(false);
   });
 
+  it("reads an empty line as none: no paragraph, no description", () => {
+    const { container } = render(
+      <DialogShell open onOpenChange={() => {}}>
+        <DialogHeader title="Manage access" description="" />
+      </DialogShell>,
+    );
+    expect(container.querySelector("dialog")!.hasAttribute("aria-describedby")).toBe(false);
+    expect(container.querySelector("dialog p")).toBeNull();
+  });
+
   it("keeps a caller's own title id, which the caller's aria-labelledby names", () => {
     const { container } = render(
       <DialogShell open onOpenChange={() => {}} aria-labelledby="own-title">

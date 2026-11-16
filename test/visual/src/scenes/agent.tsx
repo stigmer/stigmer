@@ -16,6 +16,8 @@ import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/
 import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
 import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
+import { PrincipalAccessSchema, type PrincipalAccess } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
+import { create } from "@bufbuild/protobuf";
 import { IdentityAccountQueryController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
@@ -53,6 +55,17 @@ export const MENU: readonly DetailAction[] = [
   { id: "delete", label: "Delete", variant: "destructive", group: "danger", requires: "can_delete", onAction: inert },
 ];
 
+/** One principal and its direct role on the agent. */
+function access(id: string, name: string, kind: string, role: string): PrincipalAccess {
+  return create(PrincipalAccessSchema, { principal: { kind, id, name }, roles: [{ role: { code: role, name: role } }] });
+}
+
+/** Who may use the ledger agent, as its Manage access dialog lists them: Ada, who owns it, and the finance team. */
+const AGENT_ACCESS: readonly PrincipalAccess[] = [
+  access(ACCOUNT.metadata?.id ?? "", ACCOUNT.metadata?.name ?? "", "identity_account", "owner"),
+  access("team_finance", "Finance", "team", "viewer"),
+];
+
 /** The agent a page shows, its versions, its channels and the vaults they bind: the ledger agent's, with none, unless a scene names others. */
 export interface AgentPage {
   readonly agent?: Agent;
@@ -66,7 +79,10 @@ export function agentRoutes(viewer: AgentViewer, { agent = LEDGER_AGENT, version
   return (router: ConnectRouter) => {
     router.service(OrganizationQueryController, { listMine: () => samples.organizationList([ORGANIZATION]), get: () => ORGANIZATION });
     router.service(IdentityAccountQueryController, { whoAmI: () => ACCOUNT });
-    router.service(GrantQueryController, { checkMyPermission: () => ({ isAuthorized: viewer === "owner" }) });
+    router.service(GrantQueryController, {
+      checkMyPermission: () => ({ isAuthorized: viewer === "owner" }),
+      listResourceAccessByPrincipal: () => ({ entries: [...AGENT_ACCESS] }),
+    });
     router.service(AgentQueryController, {
       getByReference: (input) => (input.slug === RECEIPT_MATCHER.metadata?.slug ? RECEIPT_MATCHER : agent),
       get: () => agent,
