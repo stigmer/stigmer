@@ -101,8 +101,12 @@
     {
       "caption": "Upload plugin: Chosen, before upload",
       "narrow": false,
-      "built": [],
-      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
+      "built": [
+        {
+          "scene": "plugin-upload-chosen",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Upload plugin",
@@ -223,15 +227,32 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Ledger reviewer": "the scene's data differs (plugin-upload-chosen)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Upload plugin": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Install a plugin you have on your computer. An agent that uses it gets its skills, agents, hooks and MCP servers.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word What it brings": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Skill": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word MCP server": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Cancel": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "button Remove the file": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "button Upload plugin": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "button Cancel": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word 88 KB \u00b7 plugin.json and 4 more": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "Upload plugin: Refused: not a plugin",
       "narrow": false,
-      "built": [],
-      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
+      "built": [
+        {
+          "scene": "plugin-upload-refused",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Upload plugin",
@@ -314,13 +335,26 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Upload plugin": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Install a plugin you have on your computer. An agent that uses it gets its skills, agents, hooks and MCP servers.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word A folder with a plugin.json at its top, zipped. Up to 50 MB.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Choose a file": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "button Choose a file": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "button Upload plugin": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Drop a plugin's .zip here": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word This isn't a plugin: there's no plugin.json at the top of ledger-tools.zip.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "Upload plugin: A version already installed",
       "narrow": false,
-      "built": [],
-      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
+      "built": [
+        {
+          "scene": "plugin-upload-installed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Upload plugin",
@@ -457,14 +491,33 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Ledger reviewer": "the scene's data differs (plugin-upload-installed)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Upload plugin": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Install a plugin you have on your computer. An agent that uses it gets its skills, agents, hooks and MCP servers.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word What it brings": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Skill": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word MCP server": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Cancel": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "button Remove the file": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "button Cancel": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word 88 KB \u00b7 plugin.json and 4 more": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word acme already has Ledger tools 1.2.0.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Uploading replaces it with 1.3.0 for every agent that uses it. 1.2.0 stays under its Versions.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "Upload plugin: At 390 wide",
       "narrow": true,
-      "built": [],
+      "built": [
+        {
+          "scene": "plugin-upload-chosen",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Upload plugin",
@@ -585,10 +638,22 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Ledger reviewer": "the scene's data differs (plugin-upload-chosen)"
+      },
       "ruled": {},
-      "pending": {},
-      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)"
+      "pending": {
+        "word Upload plugin": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Install a plugin you have on your computer. An agent that uses it gets its skills, agents, hooks and MCP servers.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word What it brings": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Skill": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word MCP server": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Cancel": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "button Remove the file": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "button Upload plugin": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "button Cancel": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word 88 KB \u00b7 plugin.json and 4 more": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+      }
     }
   ]
 }

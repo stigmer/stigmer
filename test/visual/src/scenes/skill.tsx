@@ -4,6 +4,7 @@
 // below it, so the scene draws that very SKILL.md (docs-fixtures.ts).
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
+import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { strToU8, zipSync } from "fflate";
 import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillQueryController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/query_pb";
@@ -11,7 +12,7 @@ import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/quer
 import { IdentityAccountQueryController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 import { SkillDetailView } from "@stigmer/react-sdk";
-import { samples } from "@stigmer/react-sdk/test";
+import { sampleDate, samples } from "@stigmer/react-sdk/test";
 import { VARIANCE_REPORT_SKILL } from "../docs-fixtures.ts";
 import { ACCOUNT, ORGANIZATION } from "../fixtures.ts";
 import type { Drawing } from "./drawing.ts";
@@ -70,32 +71,61 @@ const PACKAGED_SKILL = create(SkillSchema, {
   status: { audit: VARIANCE_REPORT_SKILL.status?.audit, artifactStorageKey: "skills/variance-report/1.zip" },
 });
 
-function packagedSkillRoutes(router: ConnectRouter): void {
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
+
+/** The package's two uploads, newest first: both the day the skill was made (docs-fixtures), the current one two hours after the first. */
+const PACKAGE_VERSIONS = [
+  {
+    versionHash: "9f2c41d07ab3e5c86d14",
+    pushedAt: timestampFromDate(sampleDate(-30 * DAY_MS)),
+    pushedBy: { id: ACCOUNT.metadata?.id ?? "" },
+    isCurrent: true,
+    message: "Adds the chart of accounts and the variance script",
+    artifactStorageKey: "skills/variance-report/2.zip",
+  },
+  {
+    versionHash: "3b81e6a2c95d07f4e128",
+    pushedAt: timestampFromDate(sampleDate(-30 * DAY_MS - 2 * HOUR_MS)),
+    pushedBy: { id: ACCOUNT.metadata?.id ?? "" },
+    message: "First version",
+    artifactStorageKey: "skills/variance-report/1.zip",
+  },
+];
+
+/** What the package read does: hands back the zip, or fails; and whether its uploads are listed. */
+function packagedSkillRoutes(router: ConnectRouter, readFails = false, withVersions = false): void {
   router.service(OrganizationQueryController, { listMine: () => samples.organizationList([ORGANIZATION]), get: () => ORGANIZATION });
   router.service(IdentityAccountQueryController, { whoAmI: () => ACCOUNT });
   router.service(GrantQueryController, { checkMyPermission: () => ({ isAuthorized: true }) });
   router.service(SkillQueryController, {
     getByReference: () => PACKAGED_SKILL,
     get: () => PACKAGED_SKILL,
-    listVersions: () => ({ entries: [] }),
+    listVersions: () => ({ entries: withVersions ? PACKAGE_VERSIONS : [] }),
     // No download address on this server: the page reads the bytes in one call.
     getArtifactDownloadUrl: () => {
       throw new ConnectError("no transfer lane", Code.Unimplemented);
     },
-    getArtifact: () => ({
-      artifact: zipSync(Object.fromEntries(Object.entries(PACKAGE_FILES).map(([path, text]) => [path, strToU8(text)]))),
-    }),
+    getArtifact: () => {
+      if (readFails) throw new ConnectError("the file store did not answer", Code.Unavailable);
+      return { artifact: zipSync(Object.fromEntries(Object.entries(PACKAGE_FILES).map(([path, text]) => [path, strToU8(text)]))) };
+    },
   });
 }
 
-/** The variance-report Skill as an uploaded package of four files: its files, SKILL.md open. */
-export function skillFilesScene(): Drawing {
+/** The variance-report Skill as an uploaded package of four files: its files (SKILL.md open), its Versions tab, or a package that won't read. */
+export function skillFilesScene(state: "files" | "versions" | "failed" = "files"): Drawing {
   return {
     inOrganization: true,
-    routes: packagedSkillRoutes,
+    routes: (router) => packagedSkillRoutes(router, state === "failed", state === "versions"),
     render: () => (
       <div style={{ maxWidth: "56rem", margin: "0 auto", padding: "2rem 1.5rem" }}>
-        <SkillDetailView headingLevel={1} org={ORGANIZATION.metadata?.slug ?? ""} slug={PACKAGED_SKILL.metadata?.slug ?? ""} />
+        <SkillDetailView
+          headingLevel={1}
+          org={ORGANIZATION.metadata?.slug ?? ""}
+          slug={PACKAGED_SKILL.metadata?.slug ?? ""}
+          defaultTab={state === "versions" ? "versions" : undefined}
+        />
       </div>
     ),
   };

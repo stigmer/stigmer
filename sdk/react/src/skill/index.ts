@@ -59,4 +59,6 @@ export type {
 export { useSkillDuplicateCheck } from "./useSkillDuplicateCheck.js";
 export type { UseSkillDuplicateCheckReturn } from "./useSkillDuplicateCheck.js";
 export { useCanCreateSkill } from "./useCanCreateSkill.js";
+export { SkillCreationDenied } from "./SkillCreationDenied.js";
+export type { SkillCreationDeniedProps } from "./SkillCreationDenied.js";
 export type { UseCanCreateSkillReturn } from "./useCanCreateSkill.js";

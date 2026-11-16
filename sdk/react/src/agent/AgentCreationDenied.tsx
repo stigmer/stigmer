@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * Says who may create agents, in place of a create flow the server would
+ * refuse.
+ *
+ * A member who reaches agent creation directly sees who can create one,
+ * never a picker whose last step fails. Hosts render it when the create
+ * permission check says no.
+ */
+
 import { EmptyState } from "../empty-state/EmptyState.js";
 
 /** Props for {@link AgentCreationDenied}. */

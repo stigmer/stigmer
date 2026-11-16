@@ -101,8 +101,12 @@
     {
       "caption": "Upload skill: A file dragged over",
       "narrow": false,
-      "built": [],
-      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
+      "built": [
+        {
+          "scene": "skill-upload-dragover",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Upload skill",
@@ -177,7 +181,15 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Drop it to upload": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word A folder with a SKILL.md at its top, zipped. Up to 10 MB.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Choose a file": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "type Upload skill": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "button Choose a file": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "button Upload skill": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Every agent in acme can load a skill when a task needs it.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "Upload skill: Chosen, before upload",
@@ -429,8 +441,12 @@
     {
       "caption": "Upload skill: For a member",
       "narrow": false,
-      "built": [],
-      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
+      "built": [
+        {
+          "scene": "skill-upload-member",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Upload skill",
@@ -460,7 +476,10 @@
       "buttons": [],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Only an admin can upload skills here": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Admins of acme upload skills. Ask one to add the know-how your agents need.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "Upload skill: At 390 wide",

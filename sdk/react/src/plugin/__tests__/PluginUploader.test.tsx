@@ -81,6 +81,8 @@ function thermosAsZip(name: string, wrapIn: string): File {
 
 interface Backend {
   readonly pushes: Uint8Array[];
+  /** The organization already holds the plugin, at another version (a different digest). */
+  readonly installed?: boolean;
 }
 
 /** Who is uploading: an admin, whom `can_create_plugin` answers yes, a member, answered no, or "asking", never answered. */
@@ -110,6 +112,11 @@ function transport(backend: Backend, viewer: Viewer) {
     });
     service(PluginQueryController, {
       getByReference: () => {
+        if (backend.installed)
+          return create(PluginSchema, {
+            metadata: create(ApiResourceMetadataSchema, { id: "plg_1", org: ORG, slug: "thermos", name: "thermos" }),
+            status: create(PluginStatusSchema, { digest: "sha256:an-earlier-version" }),
+          });
         throw new ConnectError("no plugin", Code.NotFound);
       },
     });
@@ -178,6 +185,34 @@ describe("PluginUploader", () => {
       target: { files: [new File([bytesOf(new TextEncoder().encode("plain"))], "notes.zip")] },
     });
     await screen.findByText(/'notes\.zip' is not a zip archive/);
+  });
+});
+
+describe("PluginUploader: over a version already installed", () => {
+  it("says so in the paused tone and offers Replace, not Install", async () => {
+    renderUploader({ pushes: [], installed: true });
+    await pickFolder(thermosAsInputFiles("my-thermos"));
+
+    await screen.findByRole("heading", { name: "Replace thermos" });
+    const notice = await screen.findByText("'thermos' is already installed at another version.");
+    expect(notice.closest("[role='status']")?.className).toContain("stg:bg-status-degraded-subtle");
+    expect(screen.getByRole("button", { name: "Replace with 1.0.0" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Install" })).toBeNull();
+  });
+
+  it("offers a bare Replace when the package names no version", async () => {
+    renderUploader({ pushes: [], installed: true });
+    const files = thermosAsInputFiles("my-thermos").map((file) => {
+      if (file.webkitRelativePath !== "my-thermos/.cursor-plugin/plugin.json") return file;
+      const { version: _version, ...manifest } = JSON.parse(readFileSync(`${THERMOS}.cursor-plugin/plugin.json`, "utf8")) as Record<string, unknown>;
+      const unversioned = new File([JSON.stringify(manifest)], file.name);
+      Object.defineProperty(unversioned, "webkitRelativePath", { value: file.webkitRelativePath });
+      return unversioned;
+    });
+    await pickFolder(files);
+
+    await screen.findByRole("heading", { name: "Replace thermos" });
+    expect(screen.getByRole("button", { name: "Replace" })).toBeTruthy();
   });
 });
 

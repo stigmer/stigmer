@@ -11,7 +11,9 @@
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
+import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { EnvironmentQueryController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/query_pb";
 import { FileSchema, type File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { FileQueryController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/query_pb";
@@ -32,6 +34,7 @@ import {
   CreationPicker,
   PageHeader,
   PluginUploader,
+  SkillCreationDenied,
   SkillUploader,
 } from "@stigmer/react-sdk";
 import {
@@ -168,6 +171,8 @@ interface LibraryData {
   readonly failed?: boolean;
   /** Every list read stays in flight. */
   readonly loading?: boolean;
+  /** A plugin of the uploaded one's name the organization already holds (another version); none when absent. */
+  readonly installedPlugin?: Plugin;
 }
 
 /** The calls the Library's pages make, answered from `data`. */
@@ -185,7 +190,13 @@ function libraryRoutes(data: LibraryData) {
     router.service(PlatformQueryController, { getServerInfo: () => ({}) });
     router.service(AgentQueryController, { list: list(AGENTS) });
     router.service(SkillQueryController, { list: list(SKILLS) });
-    router.service(PluginQueryController, { list: list(PLUGINS) });
+    router.service(PluginQueryController, {
+      list: list(PLUGINS),
+      getByReference: (input) => {
+        if (data.installedPlugin !== undefined && data.installedPlugin.metadata?.slug === input.slug) return data.installedPlugin;
+        throw new ConnectError(`no plugin ${input.slug}`, Code.NotFound);
+      },
+    });
     router.service(RoutineQueryController, { list: list(routines()) });
     router.service(EnvironmentQueryController, { list: list([DATA_SCIENCE]) });
     router.service(FileQueryController, { list: list(FILES) });
@@ -258,11 +269,24 @@ function AgentNewPage({ member }: { readonly member: boolean }): ReactElement {
   );
 }
 
-/** The console's New agent page, as the Library frames it. */
-export function agentNewScene(member = false): Drawing {
+/** How the wizard's create is answered: not at all (still creating), or refused. */
+export type AgentCreate = "creating" | "refused";
+
+/** The console's New agent page, as the Library frames it; with `create`, the wizard's Create agent answered so. */
+export function agentNewScene(member = false, create?: AgentCreate): Drawing {
+  const library = libraryRoutes({ member });
   return {
     inOrganization: true,
-    routes: libraryRoutes({ member }),
+    uncounted: create === "creating" ? ["apply"] : undefined,
+    routes: (router) => {
+      library(router);
+      router.service(AgentCommandController, {
+        apply: () => {
+          if (create === "creating") return new Promise<never>(() => {});
+          throw new ConnectError(`an agent with the slug variance-reporter already exists in ${ORG_SLUG}`, Code.AlreadyExists);
+        },
+      });
+    },
     render: () => (
       <PageFrame width="wide">
         <PageHeader
@@ -277,11 +301,11 @@ export function agentNewScene(member = false): Drawing {
   };
 }
 
-/** The console's Upload skill page at its first step. */
-export function skillUploadScene(): Drawing {
+/** The console's Upload skill page at its first step; for a member, told who uploads. */
+export function skillUploadScene(member = false): Drawing {
   return {
     inOrganization: true,
-    routes: libraryRoutes({}),
+    routes: libraryRoutes({ member }),
     render: () => (
       <PageFrame width="wide">
         <PageHeader
@@ -290,17 +314,17 @@ export function skillUploadScene(): Drawing {
           title="Upload skill"
           description="Every agent in your organization can load a skill when a task needs it."
         />
-        <SkillUploader org={ORG_SLUG} onComplete={stay} onCancel={stay} />
+        {member ? <SkillCreationDenied /> : <SkillUploader org={ORG_SLUG} onComplete={stay} onCancel={stay} />}
       </PageFrame>
     ),
   };
 }
 
-/** The console's Upload plugin page at its first step. */
-export function pluginUploadScene(): Drawing {
+/** The console's Upload plugin page at its first step; with `installedPlugin`, the organization already holds a version of the one dropped. */
+export function pluginUploadScene(installedPlugin?: Plugin): Drawing {
   return {
     inOrganization: true,
-    routes: libraryRoutes({}),
+    routes: libraryRoutes({ installedPlugin }),
     render: () => (
       <PageFrame width="wide">
         <PageHeader

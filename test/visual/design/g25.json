@@ -281,8 +281,12 @@
     {
       "caption": "New environment: A name that's taken",
       "narrow": false,
-      "built": [],
-      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
+      "built": [
+        {
+          "scene": "environment-new-taken",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "New environment",
@@ -543,15 +547,31 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word pandas and poppler, GitHub and our API only": "the scene's data differs (environment-new-taken)",
+        "word api.github.com our-api.example.com": "the scene's data differs (environment-new-taken)",
+        "word pandas sqlalchemy==2.0.30": "the scene's data differs (environment-new-taken)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word What this environment is for.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Any website": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Listed websites only": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "type Also allow package registries and code hosts": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word npm, PyPI, crates.io, the Go module proxy, RubyGems, the Debian and Ubuntu archives and GitHub. Packages need it.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "type Also allow this agent's MCP servers": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word acme already has an environment named data-science.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "New environment: For a member",
       "narrow": false,
-      "built": [],
-      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
+      "built": [
+        {
+          "scene": "environment-new-member",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "New environment",
@@ -581,13 +601,21 @@
       "buttons": [],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word New environment": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Only an admin can create environments here": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Admins of acme set up environments. Ask one if your agents need packages or a network policy.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "New environment: At 390 wide",
       "narrow": true,
-      "built": [],
-      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
+      "built": [
+        {
+          "scene": "environment-new",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "New environment",
@@ -840,9 +868,18 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word data-science": "the scene's data differs (environment-new)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word What this environment is for.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Any website": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Listed websites only": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "type Also allow package registries and code hosts": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word npm, PyPI, crates.io, the Go module proxy, RubyGems, the Debian and Ubuntu archives and GitHub. Packages need it.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "type Also allow this agent's MCP servers": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+      }
     }
   ]
 }

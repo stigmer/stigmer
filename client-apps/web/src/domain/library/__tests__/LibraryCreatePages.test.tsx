@@ -17,6 +17,7 @@ type Props = Record<string, unknown>;
 const page = vi.hoisted(() => ({
   // The server's answer to "may this person create an agent here?".
   canCreate: { allowed: true, isLoading: false },
+  canCreateSkill: { allowed: true, isLoading: false },
   props: new Map<string, Props>(),
   pushed: [] as string[],
 }));
@@ -44,6 +45,8 @@ vi.mock("@stigmer/react-sdk", () => {
     AGENT_TEMPLATES: [],
     useActiveOrgId: () => "org_acme",
     useCanCreateAgent: () => page.canCreate,
+    useCanCreateSkill: () => page.canCreateSkill,
+    SkillCreationDenied: () => <p>only admins upload skills</p>,
     AgentCreationDenied: () => <p>only admins create agents</p>,
     useActiveOrgSlug: () => "acme",
     // The person's organizations: org_acme reads "acme" in a URL.
@@ -77,6 +80,7 @@ const CREATED = { metadata: { org: "org_acme", slug: "made" } };
 
 beforeEach(() => {
   page.canCreate = { allowed: true, isLoading: false };
+  page.canCreateSkill = { allowed: true, isLoading: false };
   page.props.clear();
   page.pushed.length = 0;
 });
@@ -138,6 +142,22 @@ describe("web library create pages", () => {
 
     call("SkillUploader", "onCancel", undefined);
     expect(page.pushed).toEqual(["/library/skills"]);
+  });
+
+  it("SkillNewPage tells a member who uploads skills instead of offering the upload", () => {
+    page.canCreateSkill = { allowed: false, isLoading: false };
+    render(<SkillNewPage />);
+
+    expect(screen.getByText("only admins upload skills")).toBeTruthy();
+    expect(page.props.has("SkillUploader")).toBe(false);
+  });
+
+  it("SkillNewPage shows nothing while it asks whether the caller may upload", () => {
+    page.canCreateSkill = { allowed: false, isLoading: true };
+    render(<SkillNewPage />);
+
+    expect(screen.queryByText("only admins upload skills")).toBeNull();
+    expect(page.props.has("SkillUploader")).toBe(false);
   });
 });
 

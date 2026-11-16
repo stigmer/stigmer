@@ -415,8 +415,12 @@
     {
       "caption": "A skill: Versions",
       "narrow": false,
-      "built": [],
-      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
+      "built": [
+        {
+          "scene": "skill-files-versions",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "month-end-close",
@@ -533,15 +537,32 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word month-end-close": "the scene's data differs (skill-files-versions)",
+        "word The month-end checklist, in order, with who signs off each step.": "the scene's data differs (skill-files-versions)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Upload a new version": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Version 2": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Current": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Version 1": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "button Upload a new version": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Uploaded by Ada Lovelace": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Updated Jul 18, 2026": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Uploaded by Ada Lovelace \u00b7 Jul 18": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Uploaded by Ada Lovelace \u00b7 Jul 2": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "A skill: Content, didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
+      "built": [
+        {
+          "scene": "skill-files-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "month-end-close",
@@ -666,9 +687,20 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word month-end-close": "the scene's data differs (skill-files-failed)",
+        "word The month-end checklist, in order, with who signs off each step.": "the scene's data differs (skill-files-failed)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Upload a new version": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Content": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Versions": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Stuck? Ask IT on Slack": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "button Upload a new version": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Uploaded by Ada Lovelace": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Updated Jul 18, 2026": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "A skill: At 390 wide: the file picked from a list above it",

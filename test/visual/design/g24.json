@@ -239,8 +239,12 @@
     {
       "caption": "New agent: Step 1, a field left empty",
       "narrow": false,
-      "built": [],
-      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
+      "built": [
+        {
+          "scene": "agent-new-name-empty",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "New agent",
@@ -365,15 +369,28 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word variance-reporter": "the scene's data differs (agent-new-name-empty)",
+        "word Turns a customer's ledger into a variance report.": "the scene's data differs (agent-new-name-empty)",
+        "word You review a customer's quarterly ledger. Each row has an account, its budget and its actual amount\u2026": "the scene's data differs (agent-new-name-empty)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Step 1 of 3 \u00b7 Name and instructions": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Give the agent a name.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Description (optional)": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word What it should do, in plain words. You can change them any time.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "New agent: Step 2",
       "narrow": false,
-      "built": [],
-      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
+      "built": [
+        {
+          "scene": "agent-new-step-two",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "New agent",
@@ -554,15 +571,37 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word chart-of-accounts, month-end-close": "the scene's data differs (agent-new-step-two)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Step 2 of 3 \u00b7 What it can use": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Skills (optional)": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Know-how it loads when a task needs it.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Plugins (optional)": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Choose plugins\u2026": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Tools, skills and hooks, each plugin whole.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word MCP servers (optional)": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word https://\u2026": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Add": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Servers the agent dials itself, by name and address.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Environment variables (optional)": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word REPORT_CURRENCY": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word USD": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Settings the agent reads. Keep secrets in a vault, not here.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "button Add": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "New agent: Step 3, creating",
       "narrow": false,
-      "built": [],
-      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
+      "built": [
+        {
+          "scene": "agent-new-creating",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "New agent",
@@ -687,15 +726,25 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word You review a customer's quarterly ledger\u2026": "the scene's data differs (agent-new-creating)",
+        "word chart-of-accounts, month-end-close": "the scene's data differs (agent-new-creating)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Step 3 of 3 \u00b7 Review": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Instructions": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "New agent: Step 3, couldn't create it",
       "narrow": false,
-      "built": [],
-      "unbuilt": "still to build: no scene draws this state yet (stigmer#3210)",
+      "built": [
+        {
+          "scene": "agent-new-refused",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "New agent",
@@ -864,9 +913,17 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word You review a customer's quarterly ledger\u2026": "the scene's data differs (agent-new-refused)",
+        "word chart-of-accounts, month-end-close": "the scene's data differs (agent-new-refused)"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Step 3 of 3 \u00b7 Review": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Instructions": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Change the slug on step 1; nothing else is lost.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
+        "word Stuck? Ask IT on Slack": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
+      }
     },
     {
       "caption": "New agent: For a member who may not create agents",

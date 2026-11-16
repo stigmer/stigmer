@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * Says who may set up environments, in place of a form the server would
+ * refuse.
+ *
+ * A member who reaches the new-environment form directly sees who can set
+ * one up, never a form whose submit fails. Hosts render it when the create
+ * permission check says no.
+ */
+
 import { EmptyState } from "../empty-state/EmptyState.js";
 
 /** Props for {@link EnvironmentCreationDenied}. */

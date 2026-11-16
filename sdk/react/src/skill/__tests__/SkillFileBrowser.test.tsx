@@ -99,6 +99,31 @@ describe("SkillFileBrowser", () => {
     expect(screen.queryByRole("heading", { name: "Template" })).toBeNull();
   });
 
+  it("heads the tree with SKILL.md, before its folders", async () => {
+    const stigmer = makeStigmerServing({
+      "SKILL.md": strToU8("# Skill"),
+      "references/notes.md": strToU8("# Notes"),
+      "scripts/run.py": strToU8("print('hi')"),
+    });
+    renderBrowser(stigmer);
+
+    const items = await screen.findAllByRole("treeitem");
+    expect(items[0]!.textContent).toContain("SKILL.md");
+  });
+
+  it("lists the phone's files in the tree's order, SKILL.md first", async () => {
+    const stigmer = makeStigmerServing({
+      "references/notes.md": strToU8("# Notes"),
+      "SKILL.md": strToU8("# Skill"),
+      "scripts/run.py": strToU8("print('hi')"),
+    });
+    renderBrowser(stigmer);
+
+    const picker = await screen.findByRole("combobox", { name: "File" });
+    const options = Array.from(picker.querySelectorAll("option"), (option) => option.value);
+    expect(options).toEqual(["SKILL.md", "references/notes.md", "scripts/run.py"]);
+  });
+
   it("counts every folder the tree draws, nested ones included", async () => {
     const stigmer = makeStigmerServing({
       "SKILL.md": strToU8("# Skill"),

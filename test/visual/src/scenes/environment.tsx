@@ -9,6 +9,8 @@
 // networking and install packages, as the page's reader needs.
 import { clone, create } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
+import { Code, ConnectError } from "@connectrpc/connect";
+import { EnvironmentCommandController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/command_pb";
 import { EnvironmentQueryController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/query_pb";
 import { EnvironmentSource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
@@ -19,7 +21,7 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { SessionStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/status_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
-import { AgentDetailView, EnvironmentForm } from "@stigmer/react-sdk";
+import { AgentDetailView, EnvironmentCreationDenied, EnvironmentForm } from "@stigmer/react-sdk";
 import { samples, scenarios } from "@stigmer/react-sdk/test";
 import { DATA_ANALYST, DATA_SCIENCE } from "../docs-fixtures.ts";
 import { ACCOUNT, ORGANIZATION } from "../fixtures.ts";
@@ -41,18 +43,24 @@ function environmentRoutes(router: ConnectRouter): void {
 }
 
 /** New environment, as the console's Library → Environments → New environment draws it; the scene's acts fill it. */
-export function environmentNewScene(): Drawing {
+export function environmentNewScene(state: "form" | "taken" | "member" = "form"): Drawing {
   return {
     inOrganization: true,
     routes: (router) => {
       router.service(OrganizationQueryController, { listMine: () => samples.organizationList([ORGANIZATION]), get: () => ORGANIZATION });
       router.service(IdentityAccountQueryController, { whoAmI: () => ACCOUNT });
-      router.service(GrantQueryController, { checkMyPermission: () => ({ isAuthorized: true }) });
+      router.service(GrantQueryController, { checkMyPermission: () => ({ isAuthorized: state !== "member" }) });
       router.service(PlatformQueryController, { getServerInfo: () => SANDBOXED });
+      // An Environment of the name is already the organization's: the create is refused.
+      router.service(EnvironmentCommandController, {
+        create: () => {
+          throw new ConnectError(`an environment named data-science already exists in ${ORG_SLUG}`, Code.AlreadyExists);
+        },
+      });
     },
     render: () => (
       <div style={{ maxWidth: "56rem", margin: "0 auto", padding: "2rem 1.5rem" }}>
-        <EnvironmentForm org={ORG_SLUG} onCancel={() => {}} />
+        {state === "member" ? <EnvironmentCreationDenied /> : <EnvironmentForm org={ORG_SLUG} onCancel={() => {}} />}
       </div>
     ),
   };

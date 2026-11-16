@@ -821,5 +821,14 @@
     "type-off-scale td \"Printer paper and toner\": 12px on 18px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale td \"September rent\": 12px on 18px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale td \"Shopify Basic\": 12px on 18px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
+  },
+  "routine-api": {
+    "type-off-scale pre \"curl -X POST https://gallery.invalid/ai.stigmer.agentic.rout\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
+  },
+  "agent-new-creating": {
+    "type-off-scale pre \"apiVersion: agentic.stigmer.ai/v1 kind: Agent metadata: name\": 12px on 19.5px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
+  },
+  "agent-new-refused": {
+    "type-off-scale pre \"apiVersion: agentic.stigmer.ai/v1 kind: Agent metadata: name\": 12px on 19.5px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   }
 }

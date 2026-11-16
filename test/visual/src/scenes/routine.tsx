@@ -32,8 +32,11 @@ function libraryColumn(page: ReactElement): ReactElement {
   return <div style={{ maxWidth: "56rem", margin: "0 auto", padding: "2rem 1.5rem" }}>{page}</div>;
 }
 
+/** What a routine's History reads: its first run, nothing yet, or a read that fails. */
+type Fires = "first-run" | "none" | "failed";
+
 /** The calls every routine screen makes: who is looking, their organization, the routine and its Agent. */
-function routineRoutes(enabled: boolean, mayEditAgent = true) {
+function routineRoutes(enabled: boolean, mayEditAgent = true, fires: Fires = enabled ? "first-run" : "none") {
   return (router: ConnectRouter) => {
     router.service(OrganizationQueryController, { listMine: () => samples.organizationList([ORGANIZATION]), get: () => ORGANIZATION });
     router.service(IdentityAccountQueryController, { whoAmI: () => ACCOUNT });
@@ -48,7 +51,10 @@ function routineRoutes(enabled: boolean, mayEditAgent = true) {
     router.service(RoutineQueryController, {
       getByReference: () => varianceRoutine(enabled),
       get: () => varianceRoutine(enabled),
-      listFires: () => (enabled ? firstRunHistory() : { entries: [] }),
+      listFires: () => {
+        if (fires === "failed") throw new ConnectError("the routine store did not answer", Code.Unavailable);
+        return fires === "first-run" ? firstRunHistory() : { entries: [] };
+      },
     });
     router.service(EnvironmentQueryController, { list: () => ({ entries: [] }) });
     router.service(PlatformQueryController, { getServerInfo: () => ({}) });
@@ -80,18 +86,23 @@ export function routineNewScene(mayEditAgent = true): Drawing {
   };
 }
 
-/** The routine's page: switched off as made, or on with its first run in History. */
-export function routineDetailScene(state: "disabled" | "history"): Drawing {
+/** What a routine's page shows: as made (off), its History after a first run, with no runs, or failed to read, and its API tab. */
+export type RoutineDetailState = "disabled" | "history" | "history-none" | "history-failed" | "api";
+
+/** The routine's page in one of its {@link RoutineDetailState}s. */
+export function routineDetailScene(state: RoutineDetailState): Drawing {
+  const fires: Fires = state === "history" ? "first-run" : state === "history-failed" ? "failed" : "none";
+  const tab = state.startsWith("history") ? "history" : state === "api" ? "api" : undefined;
   return {
     inOrganization: true,
-    routes: routineRoutes(state === "history"),
+    routes: routineRoutes(state === "history", true, fires),
     render: () =>
       libraryColumn(
         <RoutineDetailView headingLevel={1}
           org={ORG_SLUG}
           slug={varianceRoutine(false).metadata?.slug ?? ""}
           editable
-          defaultTab={state === "history" ? "history" : undefined}
+          defaultTab={tab}
           onNavigateToAgent={() => {}}
           onNavigateToRun={() => {}}
         />,

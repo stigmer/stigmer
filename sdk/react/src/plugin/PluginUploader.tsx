@@ -231,13 +231,16 @@ function PreviewPhase({
     }
   }, [install, prepared, org, onComplete]);
 
-  const verb = relation.relation === "upgrade" ? "Upgrade" : "Install";
+  // Over a version already installed, the act says what it does and to which version.
+  const version = prepared.plugin.version;
+  const verb =
+    relation.relation === "upgrade" ? (version ? `Replace with ${version}` : "Replace") : "Install";
 
   return (
     <div className="stg:flex stg:flex-col stg:gap-5">
       <header>
         <h2 className="stg:text-base stg:font-semibold stg:text-foreground">
-          {verb} {prepared.plugin.name}
+          {relation.relation === "upgrade" ? "Replace" : "Install"} {prepared.plugin.name}
         </h2>
         <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
           From {describeOrigin(prepared.origin)} into {slugForOrg(org)}. The archive is rebuilt from the selected files, so its digest is

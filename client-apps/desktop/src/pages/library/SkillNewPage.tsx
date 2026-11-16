@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   SkillUploader,
+  SkillCreationDenied,
+  useCanCreateSkill,
   useBreadcrumbOverride,
   useActiveOrgId,
   useOrgSlugForId,
@@ -14,12 +16,23 @@ export default function SkillNewPage() {
   const navigate = useNavigate();
   const { setLabel } = useBreadcrumbOverride();
 
+  // Only admins upload skills (`can_create_skill`): a member who comes here
+  // directly is told who can, never shown an upload the server refuses.
+  const { allowed: canUpload, isLoading: isChecking } = useCanCreateSkill(org || null);
+
   useEffect(() => {
     setLabel("Upload skill");
     return () => setLabel(null);
   }, [setLabel]);
 
-  if (!org) return null;
+  if (!org || isChecking) return null;
+  if (!canUpload)
+    return (
+      <>
+        <PageHeader className="mb-6" headingLevel={1} title="Upload skill" description="Every agent in your organization can load a skill when a task needs it." />
+        <SkillCreationDenied />
+      </>
+    );
 
   return (
     <>
