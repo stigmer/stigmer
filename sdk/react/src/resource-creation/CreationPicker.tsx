@@ -38,11 +38,6 @@ export interface CreationPickerProps<TData> {
    */
   readonly showHeading?: boolean;
   /** Additional CSS classes for the root container. */
-  /**
-   * Whether the picker draws its own "Create a new …" heading (default
-   * true). A host whose page header already names the page passes false.
-   */
-  readonly showHeading?: boolean;
   readonly className?: string;
 }
 
