@@ -1,11 +1,11 @@
 {
   "screen": "G04",
-  "title": "Models, none connected",
-  "source": "the Console parts page, version 8",
+  "title": "Models & providers",
+  "source": "the Workspace pages page, version 1",
   "reader": "bf8cb5c94919",
   "drawings": [
     {
-      "caption": "Models, none connected",
+      "caption": "Models & providers: none connected, as an admin",
       "narrow": false,
       "built": [
         {
@@ -127,7 +127,7 @@
           ]
         },
         {
-          "text": "Claude Sonnet 4.5",
+          "text": "Claude Opus 4.5",
           "type": [
             12,
             16,
@@ -273,8 +273,8 @@
         {
           "text": "Platform default (Claude Sonnet 4.6)",
           "type": [
-            14,
-            20,
+            12,
+            16,
             400
           ]
         },
@@ -305,8 +305,8 @@
         {
           "text": "Platform default (Claude Sonnet 4.6)",
           "type": [
-            14,
-            20,
+            12,
+            16,
             400
           ]
         },
@@ -329,16 +329,1441 @@
           "height": 32
         }
       ],
-      "sample": {
-        "word Claude Sonnet 4.5": "the scene's catalog lists Claude Opus 4.5 in its place; Sonnet 4.5 retired 2026-11-30"
-      },
+      "sample": {},
       "ruled": {},
-      "pending": {
-        "type Claude Agent": "When its page is redesigned: the harness's name at the drawn 14/20, weight 500",
-        "type Stigmer": "When its page is redesigned: the harness's name at the drawn 14/20, weight 500",
-        "type Paste an Anthropic API key, and every member of Acme Corp can run these models. Anthropic bills Acme Corp directly.": "When its page is redesigned: the provider's line at the drawn 14/20",
-        "type Paste an OpenAI API key, and every member of Acme Corp can run these models. OpenAI bills Acme Corp directly.": "When its page is redesigned: the provider's line at the drawn 14/20"
-      }
+      "pending": {}
+    },
+    {
+      "caption": "Models & providers: connected",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "models-hub-connected",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Models & providers",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Which models Acme Corp's agents can run, and the provider keys behind them.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Providers",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Anthropic",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Connected",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Key ending in x7Qa · Checked with Anthropic · saved Jul 13 by Ada Lovelace · last used Jul 19",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Replace key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Remove",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Ready to run",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Haiku 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Agent",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Haiku 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "OpenAI",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Connected",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Key ending in m2Lk · from acme-holdings (parent organization) · Saved, not checked: OpenAI did not answer · on gateway.acme.example · not used yet",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Ready to run",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "GPT-5.2",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Your default models",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "The model a new conversation starts on, for each engine, on every device and in the CLI. A pick in the composer wins for that conversation.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer's own harness: runs any catalog model, open source end to end",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Platform default (Claude Sonnet 4.6)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Ready",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Agent",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic's Claude Agent SDK: Claude models on your Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Platform default (Claude Sonnet 4.6)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Ready",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Replace key",
+          "height": 32
+        },
+        {
+          "name": "Remove",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Models & providers: a member",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "models-hub-member",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Models & providers",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Which models Acme Corp's agents can run, and the provider keys behind them.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Providers",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Anthropic",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Not connected",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Runs that need Anthropic are refused until a key is added.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "An admin of Acme Corp connects Anthropic. Ask one to add its key in Models & providers, and these models are ready for everyone in Acme Corp.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Unlocks",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Haiku 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Agent",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Haiku 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "OpenAI",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Not connected",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Runs that need OpenAI are refused until a key is added.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "An admin of Acme Corp connects OpenAI. Ask one to add its key in Models & providers, and these models are ready for everyone in Acme Corp.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Unlocks",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "GPT-5.2",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Your default models",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "The model a new conversation starts on, for each engine, on every device and in the CLI. A pick in the composer wins for that conversation.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer's own harness: runs any catalog model, open source end to end",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Platform default (Claude Sonnet 4.6)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Needs an Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Agent",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic's Claude Agent SDK: Claude models on your Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Platform default (Claude Sonnet 4.6)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Needs an Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Models & providers: on this machine",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "models-hub-local",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Models & providers",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Which models your agents can run on this machine, and the providers behind them.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Providers",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Anthropic",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Not connected",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Runs that need Anthropic are refused until this machine's runner has a key.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Run stigmer setup in a terminal on this machine, then restart Stigmer:",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "stigmer setup stigmer down && stigmer up",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Copy",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Get a key at console.anthropic.com",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Unlocks",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Haiku 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Agent",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Haiku 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "OpenAI",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Not connected",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Runs that need OpenAI are refused until this machine's runner has a key.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Set OPENAI_API_KEY in the shell you start Stigmer from, then restart Stigmer:",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "export OPENAI_API_KEY=<your key> stigmer down && stigmer up",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Copy",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Get a key at platform.openai.com",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Unlocks",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "GPT-5.2",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Your default models",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "The model a new conversation starts on, for each engine, on every device and in the CLI. A pick in the composer wins for that conversation.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer's own harness: runs any catalog model, open source end to end",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Platform default (Claude Sonnet 4.6)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Needs an Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Agent",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic's Claude Agent SDK: Claude models on your Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Platform default (Claude Sonnet 4.6)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Needs an Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Copy",
+          "height": 28
+        },
+        {
+          "name": "Copy",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Models & providers: no providers on this server",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene's server offers no provider; ModelsHub's empty state is pinned by its tests",
+      "words": [
+        {
+          "text": "Models & providers",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Which models Acme Corp's agents can run, and the provider keys behind them.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Providers",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "No model providers on this server",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "This server offers no provider your agents can use. Whoever runs it adds one; until then, runs are refused.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Models & providers: didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene refuses the readiness read; ModelsHub.test.tsx pins the failure and its Try again",
+      "words": [
+        {
+          "text": "Models & providers",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Which models Acme Corp's agents can run, and the provider keys behind them.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the providers.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the billing service did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Your keys are safe; only this page's read failed.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Models & providers: loading",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "The gallery pictures a page once it settles, so a loading state has no scene",
+      "words": [
+        {
+          "text": "Models & providers",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Which models Acme Corp's agents can run, and the provider keys behind them.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Providers",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Models & providers: none connected at 390",
+      "narrow": true,
+      "built": [
+        {
+          "scene": "models-hub-none",
+          "width": "narrow"
+        }
+      ],
+      "words": [
+        {
+          "text": "Models & providers",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Which models Acme Corp's agents can run, and the provider keys behind them.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Providers",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Anthropic",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Not connected",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Runs that need Anthropic are refused until a key is added.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Connect Anthropic",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Paste an Anthropic API key, and every member of Acme Corp can run these models. Anthropic bills Acme Corp directly.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Get a key at console.anthropic.com",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Unlocks",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Haiku 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Agent",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Haiku 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "OpenAI",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Not connected",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Runs that need OpenAI are refused until a key is added.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Connect OpenAI",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Paste an OpenAI API key, and every member of Acme Corp can run these models. OpenAI bills Acme Corp directly.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Get a key at platform.openai.com",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Unlocks",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "GPT-5.2",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Your default models",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "The model a new conversation starts on, for each engine, on every device and in the CLI. A pick in the composer wins for that conversation.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer's own harness: runs any catalog model, open source end to end",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Platform default (Claude Sonnet 4.6)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Needs an Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Agent",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic's Claude Agent SDK: Claude models on your Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Platform default (Claude Sonnet 4.6)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Needs an Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Connect Anthropic",
+          "height": 32
+        },
+        {
+          "name": "Connect OpenAI",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
     }
   ]
 }

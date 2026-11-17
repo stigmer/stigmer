@@ -1,0 +1,676 @@
+{
+  "screen": "G70",
+  "title": "A new organization",
+  "source": "the Workspace pages page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "A new organization: a new organization",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "dashboard-new-org",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Dashboard",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What your organization's agents did this week, in conversations you can see.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "From first agent to your users",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "0 of 6",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Hide",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Say what it should do",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Pick an example job or describe your own. It runs on a sample file.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Pick an example",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Add a model key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Watch it work",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Make it yours",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Put it in your app",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Bring others in",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Hide",
+          "height": 28
+        },
+        {
+          "name": "Pick an example",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A new organization: four of six done",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "dashboard-journey-mid",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Dashboard",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What your organization's agents did this week, in conversations you can see.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "From first agent to your users",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "4 of 6",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Hide",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Say what it should do",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Variance Reporter is made",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Add a model key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic is connected",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Watch it work",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "It ran its first job",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Make it yours",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Variance Reporter has your changes",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Put it in your app",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Give your users the chat, from the agent's In your app tab.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Put it in your app",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Bring others in",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Completed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Failed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Tokens",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "18.4M",
+          "type": [
+            24,
+            32,
+            600
+          ]
+        },
+        {
+          "text": "Recent failures",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "No recent failures.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Hide",
+          "height": 28
+        },
+        {
+          "name": "Put it in your app",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A new organization: all done: one line",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "dashboard-journey-folded",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Dashboard",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What your organization's agents did this week, in conversations you can see.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Your organization is set up · 6 of 6",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Completed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Failed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Tokens",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "18.4M",
+          "type": [
+            24,
+            32,
+            600
+          ]
+        },
+        {
+          "text": "Recent failures 3",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Match the July receipts to the card statement",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The card statement export was empty",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "3h",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "View",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Reconcile the payroll clearing account",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The ledger server refused the read: its token expired",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1d",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "View",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Variance report for June",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic refused the request: the key's credit is used up",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "2d",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "View",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "View",
+          "height": 28
+        },
+        {
+          "name": "View",
+          "height": 28
+        },
+        {
+          "name": "View",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A new organization: a new organization at 390",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "No scene pictures a new organization at 390; dashboard-journey-new narrow shows the card alone at that width",
+      "words": [
+        {
+          "text": "Dashboard",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What your organization's agents did this week, in conversations you can see.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "From first agent to your users",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "0 of 6",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Hide",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Say what it should do",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Pick an example job or describe your own. It runs on a sample file.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Pick an example",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Add a model key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Watch it work",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Make it yours",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Put it in your app",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Bring others in",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Hide",
+          "height": 28
+        },
+        {
+          "name": "Pick an example",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}
