@@ -1,19 +1,18 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { getUserMessage } from "@stigmer/client";
+import { useCallback } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { FederationIssuer } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { PermissionGate } from "../grant/PermissionGate.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useFederationIssuerList } from "./useFederationIssuerList.js";
 import { useDeleteFederationIssuer } from "./useDeleteFederationIssuer.js";
-import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import type { EmptyStateAction } from "../empty-state/types.js";
-import { Button } from "../button/Button.js";
+import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
+import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { IconButton } from "../button/IconButton.js";
 import { List, ListRow } from "../internal/surface/List.js";
 import { Tag } from "../internal/surface/Tag.js";
@@ -47,12 +46,13 @@ export interface FederationIssuerListPanelProps {
 
 /**
  * Displays a list of {@link FederationIssuer} resources for an
- * organization with inline delete confirmation.
+ * organization, each deleted after a confirm dialog that does the delete.
  *
  * Each issuer is rendered as a row showing name, slug, a JIT badge
  * (when a first sign-in creates the person's account), and creation date. The edit and
  * delete buttons appear only on rows the caller may edit or delete
- * (`can_edit`, `can_delete`); delete opens an inline confirmation.
+ * (`can_edit`, `can_delete`), each only after the server's yes; delete
+ * opens a confirm dialog that runs the delete and says a refusal there.
  *
  * Federation issuers are admin-level resources with small cardinality
  * (typically 1–3 per org), so the list is rendered without pagination.
@@ -82,7 +82,24 @@ export function FederationIssuerListPanel({
 }: FederationIssuerListPanelProps) {
   const { federationIssuers, isLoading, error, refetch } =
     useFederationIssuerList(org);
-  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const { deleteProvider } = useDeleteFederationIssuer();
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
+  const askToDelete = useCallback(
+    async (id: string, name: string) => {
+      const deleted = await confirm({
+        title: `Delete ${name}?`,
+        description: `Tokens from ${name} stop working at once. People who joined through it keep their accounts and roles.`,
+        confirmLabel: "Delete issuer",
+        variant: "destructive",
+        action: async () => {
+          await deleteProvider({ resourceId: id });
+        },
+        failureTitle: `Couldn't delete ${name}.`,
+      });
+      if (deleted) refetch();
+    },
+    [confirm, deleteProvider, refetch],
+  );
 
   if (onRefetchRef) {
     onRefetchRef(refetch);
@@ -109,25 +126,22 @@ export function FederationIssuerListPanel({
   }
 
   return (
-    <List aria-label="Federation issuers" className={className}>
-      {federationIssuers.map((issuer) => {
-        const id = issuer.metadata?.id ?? "";
-        return (
-          <IssuerRow
-            key={id}
-            federationIssuer={issuer}
-            isConfirming={confirmingId === id}
-            onEdit={onEdit ? () => onEdit(issuer) : undefined}
-            onConfirmDelete={() => setConfirmingId(id)}
-            onCancelDelete={() => setConfirmingId(null)}
-            onDeleted={() => {
-              setConfirmingId(null);
-              refetch();
-            }}
-          />
-        );
-      })}
-    </List>
+    <div className={className}>
+      <List aria-label="Federation issuers">
+        {federationIssuers.map((issuer) => {
+          const id = issuer.metadata?.id ?? "";
+          return (
+            <IssuerRow
+              key={id}
+              federationIssuer={issuer}
+              onEdit={onEdit ? () => onEdit(issuer) : undefined}
+              onDelete={askToDelete}
+            />
+          );
+        })}
+      </List>
+      <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
+    </div>
   );
 }
 
@@ -137,21 +151,13 @@ export function FederationIssuerListPanel({
 
 function IssuerRow({
   federationIssuer,
-  isConfirming,
   onEdit,
-  onConfirmDelete,
-  onCancelDelete,
-  onDeleted,
+  onDelete,
 }: {
   federationIssuer: FederationIssuer;
-  isConfirming: boolean;
   onEdit?: () => void;
-  onConfirmDelete: () => void;
-  onCancelDelete: () => void;
-  onDeleted: () => void;
+  onDelete: (id: string, name: string) => void;
 }) {
-  const { deleteProvider, isDeleting, error } = useDeleteFederationIssuer();
-
   const id = federationIssuer.metadata?.id ?? "";
   const spec = federationIssuer.spec;
   const name =
@@ -162,49 +168,6 @@ function IssuerRow({
   const isJit = spec?.createAccountsOnSignIn;
   const createdAt =
     federationIssuer.status?.audit?.specAudit?.createdAt;
-
-  const handleDelete = useCallback(async () => {
-    try {
-      await deleteProvider({ resourceId: id });
-      onDeleted();
-    } catch {
-      // error state is surfaced via the hook
-    }
-  }, [id, deleteProvider, onDeleted]);
-
-  if (isConfirming) {
-    return (
-      // The confirmation's sentence wraps, so it keeps its own markup on the
-      // list's row padding rather than a ListRow's one truncated line.
-      <li className="stg:flex stg:min-h-10 stg:items-center stg:justify-between stg:gap-3 stg:bg-destructive-subtle stg:px-3.5 stg:py-2.5">
-        <div className="stg:min-w-0 stg:flex-1">
-          <p className="stg:text-xs stg:text-foreground">
-            Delete <span className="stg:font-medium">{name}</span>?
-          </p>
-          {error && (
-            <p className="stg:mt-0.5 stg:text-2xs stg:text-destructive">
-              {getUserMessage(error)}
-            </p>
-          )}
-        </div>
-
-        <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">
-          <Button
-            variant="destructive"
-            size="xs"
-            onClick={handleDelete}
-            disabled={isDeleting}
-            icon={isDeleting ? <SpinnerIcon size={12} /> : undefined}
-          >
-            Delete
-          </Button>
-          <Button variant="ghost" size="xs" onClick={onCancelDelete} disabled={isDeleting}>
-            Cancel
-          </Button>
-        </div>
-      </li>
-    );
-  }
 
   return (
     <ListRow
@@ -249,7 +212,7 @@ function IssuerRow({
               <IconButton
                 label={`Delete ${name}`}
                 size="xs"
-                onClick={onConfirmDelete}
+                onClick={() => onDelete(id, name)}
                 icon={<TrashIcon />}
                 className="stg:hover:bg-destructive-subtle stg:hover:text-destructive"
               />

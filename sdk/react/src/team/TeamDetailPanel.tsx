@@ -28,6 +28,8 @@ import { TeamMembersPanel } from "./TeamMembersPanel.js";
 import { useDeleteTeam, useUpdateTeam } from "./useTeamMutations.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { Button } from "../button/Button.js";
+import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
+import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { Field, FieldError, TextArea, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link TeamDetailPanel}. */
@@ -212,58 +214,34 @@ function DeleteTeam({
   readonly name: string;
   readonly onDeleted?: () => void;
 }) {
-  const { deleteTeam, isDeleting, error } = useDeleteTeam();
-  const [confirming, setConfirming] = useState(false);
+  const { deleteTeam } = useDeleteTeam();
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
 
-  const handleDelete = useCallback(async () => {
-    try {
-      await deleteTeam({ resourceId: teamId });
-      onDeleted?.();
-    } catch {
-      // error state is managed by useDeleteTeam
-    }
-  }, [deleteTeam, teamId, onDeleted]);
-
-  if (!confirming) {
-    return (
-      <div className="stg:border-t stg:border-border stg:pt-4">
-        <Button
-          variant="ghost"
-          size="xs"
-          onClick={() => setConfirming(true)}
-          className="stg:text-destructive stg:hover:bg-destructive-subtle"
-        >
-          Delete team
-        </Button>
-      </div>
-    );
-  }
+  const askToDelete = useCallback(async () => {
+    const deleted = await confirm({
+      title: `Delete the team ${name}?`,
+      description: `Everyone in ${name} loses what was shared with the team. Access granted to them directly stays, and nothing they made is deleted.`,
+      confirmLabel: "Delete team",
+      variant: "destructive",
+      action: async () => {
+        await deleteTeam({ resourceId: teamId });
+      },
+      failureTitle: `Couldn't delete ${name}.`,
+    });
+    if (deleted) onDeleted?.();
+  }, [confirm, deleteTeam, teamId, name, onDeleted]);
 
   return (
-    <div className="stg:space-y-2 stg:rounded-lg stg:border stg:border-border stg:bg-destructive-subtle stg:px-3 stg:py-2.5">
-      <p className="stg:text-xs stg:text-foreground">
-        Delete <span className="stg:font-medium">{name}</span>? Everyone in {name} loses
-        the access shared with the team. Access granted to them directly stays.
-      </p>
-      {error && (
-        <FieldError>
-          {getUserMessage(error)}
-        </FieldError>
-      )}
-      <div className="stg:flex stg:items-center stg:gap-1.5">
-        <Button
-          variant="destructive"
-          size="xs"
-          onClick={handleDelete}
-          disabled={isDeleting}
-          icon={isDeleting ? <SpinnerIcon size={12} /> : undefined}
-        >
-          Delete team
-        </Button>
-        <Button variant="ghost" size="xs" onClick={() => setConfirming(false)} disabled={isDeleting}>
-          Cancel
-        </Button>
-      </div>
+    <div className="stg:border-t stg:border-border stg:pt-4">
+      <Button
+        variant="ghost"
+        size="xs"
+        onClick={() => void askToDelete()}
+        className="stg:text-destructive stg:hover:bg-destructive-subtle"
+      >
+        Delete team
+      </Button>
+      <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 }
