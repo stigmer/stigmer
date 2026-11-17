@@ -45,7 +45,12 @@ export interface UseAutoScrollReturn {
  * State transitions are driven by an `IntersectionObserver` on a
  * bottom sentinel element. A `ResizeObserver` on the content wrapper
  * detects height growth and triggers rAF-batched scroll writes when
- * in the Following state.
+ * in the Following state. A second `ResizeObserver` watches the scroller
+ * itself for the hook's whole life: the host's layout can resize the
+ * pane with no content change (a notice arriving above it, the reply box
+ * below it growing a line), and a pane 20px shorter otherwise leaves the
+ * view 20px short with follow still on, since the sentinel stays inside
+ * the near-bottom margin. Both observers share one pin write.
  *
  * Ref contract (asymmetric on purpose): the scroller and sentinel must
  * exist from the first render — every thread renders its scroll pane
@@ -83,7 +88,33 @@ export function useAutoScroll(): UseAutoScrollReturn {
     isFollowingRef.current = isFollowing;
   }, [isFollowing]);
 
-  // --- IntersectionObserver: sentinel visibility drives state ---
+  // The one pin write, shared by both ResizeObservers (content and pane).
+  // The reader-took-control guard is decided at WRITE time: a frame can
+  // lag (headless and busy tabs throttle rAF) long enough for the reader
+  // to scroll up between scheduling and writing, and a stale pin then
+  // yanks them back to the bottom (the late-mount suite's scrolled-up
+  // case, flaking ~1-in-5 under real Chromium). The discriminator is
+  // scrollTop itself: neither content growth nor a pane resize moves it
+  // away from the reader (a pane that grows clamps scrollTop before the
+  // observer runs, so `scheduledAt` already holds the clamped value);
+  // only the reader does. `isFollowingRef` cannot arbitrate here because
+  // growth makes the sentinel leave the viewport transiently, so the flag
+  // reads false mid-pin by design.
+  const schedulePin = useCallback(() => {
+    if (!isFollowingRef.current) return;
+    cancelAnimationFrame(rafIdRef.current);
+    const scheduledAt = scrollRef.current?.scrollTop ?? null;
+    rafIdRef.current = requestAnimationFrame(() => {
+      const el = scrollRef.current;
+      if (!el) return;
+      if (scheduledAt !== null && el.scrollTop !== scheduledAt) return;
+      el.scrollTop = el.scrollHeight;
+      lastSystemScrollTopRef.current = el.scrollTop;
+    });
+  }, []);
+
+  // --- IntersectionObserver: sentinel visibility drives state; and the
+  // pane's ResizeObserver, re-pinning when the scroller itself resizes ---
   useEffect(() => {
     const sentinel = sentinelRef.current;
     const scroller = scrollRef.current;
@@ -132,8 +163,18 @@ export function useAutoScroll(): UseAutoScrollReturn {
     );
 
     io.observe(sentinel);
-    return () => io.disconnect();
-  }, []);
+
+    // The scroller exists from the first render (the ref contract), so
+    // its observer lives as long as the hook; the content wrapper's has
+    // its own late-mount lifecycle below.
+    const paneObserver = new ResizeObserver(schedulePin);
+    paneObserver.observe(scroller);
+
+    return () => {
+      io.disconnect();
+      paneObserver.disconnect();
+    };
+  }, [schedulePin]);
 
   // --- ResizeObserver: scroll on content height growth while following ---
   // Lifecycle lives in the callback ref (not a run-once effect): the
@@ -149,30 +190,10 @@ export function useAutoScroll(): UseAutoScrollReturn {
     cancelAnimationFrame(rafIdRef.current);
     if (!node) return;
 
-    const ro = new ResizeObserver(() => {
-      if (!isFollowingRef.current) return;
-      cancelAnimationFrame(rafIdRef.current);
-      // The reader-took-control guard, decided at WRITE time: a frame
-      // can lag (headless and busy tabs throttle rAF) long enough for
-      // the reader to scroll up between scheduling and writing, and a
-      // stale pin then yanks them back to the bottom (the late-mount suite's
-      // scrolled-up case, flaking ~1-in-5 under real Chromium). The
-      // discriminator is scrollTop itself: content growth never moves
-      // it, only the reader does — `isFollowingRef` cannot arbitrate
-      // here because growth makes the sentinel leave the viewport
-      // transiently, so the flag reads false mid-pin by design.
-      const scheduledAt = scrollRef.current?.scrollTop ?? null;
-      rafIdRef.current = requestAnimationFrame(() => {
-        const el = scrollRef.current;
-        if (!el) return;
-        if (scheduledAt !== null && el.scrollTop !== scheduledAt) return;
-        el.scrollTop = el.scrollHeight;
-        lastSystemScrollTopRef.current = el.scrollTop;
-      });
-    });
+    const ro = new ResizeObserver(schedulePin);
     ro.observe(node);
     resizeObserverRef.current = ro;
-  }, []);
+  }, [schedulePin]);
 
   const jumpToLatest = useCallback(() => {
     const el = scrollRef.current;
