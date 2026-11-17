@@ -9,7 +9,6 @@
 // ---------------------------------------------------------------------------
 
 import { useCallback } from "react";
-import { cn } from "@stigmer/design-tokens";
 import { isPermissionDenied, isUnimplemented } from "@stigmer/client";
 import type { ModelPricingBaseline } from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { Button } from "../button/index.js";
@@ -20,8 +19,7 @@ import { MODEL_CATALOG_DENIAL } from "./OperatorAccessNotice.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { SettingsPage } from "../settings/SettingsPage.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
-import { UNSTYLED_LIST } from "../internal/element-resets.js";
-import { cardClasses } from "../internal/surface/Card.js";
+import { Table, type TableColumn } from "../internal/surface/Table.js";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { ZERO, formatRate } from "./pricing-format.js";
 import { useRetireModelPricingBaseline } from "./useRetireModelPricingBaseline.js";
@@ -109,19 +107,53 @@ export function ModelCatalogConsole({ className }: ModelCatalogConsoleProps) {
   const unavailable = view.error !== null && isUnimplemented(view.error);
   const denied = view.error !== null && isPermissionDenied(view.error);
   const listing = view.flow.phase === "list";
+  const { flow, selected } = view;
+  // A model open in place names the page, with the way back to the list.
+  const open = flow.phase === "detail" && selected ? selected.baseline : null;
+  const openName = open ? open.displayName || open.modelId : null;
+  const title =
+    flow.phase === "create"
+      ? "Add model"
+      : open && flow.phase === "detail" && flow.mode === "edit"
+        ? `Edit prices: ${openName}`
+        : (openName ?? "Model catalog");
+  const back =
+    flow.phase === "create"
+      ? { label: "Model catalog", onBack: handleCancelEdit }
+      : open && flow.phase === "detail" && flow.mode === "edit"
+        ? { label: openName ?? "", onBack: handleCancelEdit }
+        : open
+          ? { label: "Model catalog", onBack: view.backToList }
+          : undefined;
+  const description = open
+    ? flow.phase === "detail" && flow.mode === "edit"
+      ? "A new revision with these prices. The registry serves it as soon as you confirm."
+      : `${open.modelId} on the ${open.harness} harness, from ${open.provider}.`
+    : flow.phase === "create"
+      ? "A new model with its list prices. The registry serves it as soon as you confirm."
+      : "Every model the registry serves, at the provider's list prices before any markup. Open one to see its record, edit its prices or retire it.";
+  const viewing = open !== null && flow.phase === "detail" && flow.mode === "view";
 
   return (
     <SettingsPage
-      title="Model catalog"
-      description="Every model the registry serves, at the provider's list prices before any markup. Open one to see its record, edit its prices or retire it."
+      title={title}
+      back={back}
+      description={description}
       actions={
-        listing &&
-        !view.isLoading &&
-        view.error === null && (
+        listing && !view.isLoading && view.error === null ? (
           <Button size="sm" onClick={view.openCreate}>
             Add model
           </Button>
-        )
+        ) : viewing ? (
+          <>
+            <Button size="sm" variant="outline" onClick={view.openEdit}>
+              Edit prices
+            </Button>
+            <Button size="sm" variant="outline" onClick={view.openRetire}>
+              Retire
+            </Button>
+          </>
+        ) : undefined
       }
       unavailable={
         unavailable &&
@@ -215,14 +247,7 @@ function ModelCatalogBody({
         />
       );
     }
-    return (
-      <ModelCatalogDetail
-        row={selected}
-        onEdit={view.openEdit}
-        onRetire={view.openRetire}
-        onBack={view.backToList}
-      />
-    );
+    return <ModelCatalogDetail row={selected} />;
   }
 
   return (
@@ -236,99 +261,73 @@ function ModelCatalogBody({
         aria-label="Search models"
       />
 
-      <div className={cardClasses({ flush: true })}>
-        {/* Presentational column guide — each row is a self-describing
-            button (its full text content is its accessible name), so
-            the header is a visual aid, not an ARIA table header. */}
-        <div
-          aria-hidden="true"
-          className="stg:grid stg:grid-cols-[2fr_1fr_1fr_1fr_0.7fr] stg:gap-2 stg:border-b stg:border-border stg:px-3.5 stg:py-2.5 stg:text-2xs stg:font-medium stg:text-muted-foreground"
-        >
-          <span>Model</span>
-          <span>Harness</span>
-          <span className="stg:text-right">Input</span>
-          <span className="stg:text-right">Output</span>
-          <span className="stg:text-right">Variants</span>
-        </div>
-        {view.models.length === 0 ? (
-          view.modelQuery.trim() !== "" ? (
-            <EmptyState
-              variant="zero-results"
-              size="inline"
-              resourceLabel="models"
-              query={view.modelQuery.trim()}
-              action={{ label: "Clear search", onClick: () => view.setModelQuery("") }}
-            />
-          ) : (
-            <EmptyState
-              variant="first-use"
-              size="inline"
-              title="The catalog is empty — has the baseline seed migration run?"
-              action={{ label: "Add model", onClick: view.openCreate }}
-            />
-          )
+      {view.models.length === 0 ? (
+        view.modelQuery.trim() !== "" ? (
+          <EmptyState
+            variant="zero-results"
+            size="inline"
+            resourceLabel="models"
+            query={view.modelQuery.trim()}
+            action={{ label: "Clear search", onClick: () => view.setModelQuery("") }}
+          />
         ) : (
-          <ul role="list" aria-label="Models" className={UNSTYLED_LIST}>
-            {view.models.map((row) => (
-              <ModelRow key={row.key} row={row} onOpen={() => view.openDetail(row.key)} />
-            ))}
-          </ul>
-        )}
-      </div>
+          <EmptyState
+            variant="first-use"
+            title="No models in the catalog yet"
+            description="Add the first model with its list prices, or start the server with its standard catalog."
+            action={{ label: "Add model", onClick: view.openCreate }}
+          />
+        )
+      ) : (
+        <Table
+          aria-label="Models"
+          columns={MODEL_COLUMNS}
+          rows={view.models}
+          rowKey={(row) => row.key}
+          onRowClick={(row) => view.openDetail(row.key)}
+        />
+      )}
     </div>
   );
 }
 
-/**
- * One model row: a real button (keyboard + AT support for "open the
- * record" for free) laid out on the shared column grid. Its full text
- * content is its accessible name, so AT users hear the same facts the
- * columns show.
- */
-function ModelRow({
-  row,
-  onOpen,
-}: {
-  readonly row: ModelCatalogRow;
-  readonly onOpen: () => void;
-}) {
-  const { baseline } = row;
-  const variantCount = Object.keys(baseline.pricingVariants).length;
-
-  return (
-    <li className="stg:border-b stg:border-border-muted stg:last:border-b-0">
-      <button
-        type="button"
-        onClick={onOpen}
-        className={cn(
-          "stg:grid stg:w-full stg:grid-cols-[2fr_1fr_1fr_1fr_0.7fr] stg:items-center stg:gap-2 stg:px-3.5 stg:py-2.5 stg:text-left stg:text-xs",
-          "stg:transition-colors stg:hover:bg-accent",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-        )}
-      >
-        <span className="stg:min-w-0">
-          {/* The display name needs no tooltip: the model id is printed
-              on the line below, which shows its own
-              tooltip when clipped. */}
-          <span className="stg:block stg:truncate stg:font-medium stg:text-foreground">
-            {baseline.displayName || baseline.modelId}
-          </span>
-          <TruncatedText
-            text={`${baseline.modelId}${baseline.featured ? " · featured" : ""}`}
-            className="stg:block stg:text-2xs stg:text-muted-foreground"
-          />
-        </span>
-        <span className="stg:text-muted-foreground">{baseline.harness}</span>
-        <span className="stg:text-right stg:text-foreground">
-          {formatRate(baseline.pricing?.inputPriceMicrosPerMillion ?? ZERO)}
-        </span>
-        <span className="stg:text-right stg:text-foreground">
-          {formatRate(baseline.pricing?.outputPriceMicrosPerMillion ?? ZERO)}
-        </span>
-        <span className="stg:text-right stg:text-muted-foreground">
-          {variantCount > 0 ? variantCount : "—"}
-        </span>
-      </button>
-    </li>
-  );
-}
+/** The catalog's columns: a model's name and id, its harness, its list rates and its variants. */
+const MODEL_COLUMNS: readonly TableColumn<ModelCatalogRow>[] = [
+  {
+    id: "model",
+    header: "Model",
+    cell: ({ baseline }) => (
+      <span className="stg:flex stg:min-w-0 stg:flex-col">
+        <span className="stg:truncate">{baseline.displayName || baseline.modelId}</span>
+        {/* The id needs a tooltip only when it is clipped. */}
+        <TruncatedText
+          text={`${baseline.modelId}${baseline.featured ? " · featured" : ""}`}
+          className="stg:block stg:text-xs stg:font-normal stg:text-muted-foreground"
+        />
+      </span>
+    ),
+  },
+  { id: "harness", header: "Harness", cell: ({ baseline }) => baseline.harness },
+  {
+    id: "input",
+    header: "Input",
+    align: "end",
+    cell: ({ baseline }) => formatRate(baseline.pricing?.inputPriceMicrosPerMillion ?? ZERO),
+  },
+  {
+    id: "output",
+    header: "Output",
+    align: "end",
+    cell: ({ baseline }) => formatRate(baseline.pricing?.outputPriceMicrosPerMillion ?? ZERO),
+  },
+  {
+    id: "variants",
+    header: "Variants",
+    align: "end",
+    narrow: "hidden",
+    cell: ({ baseline }) => {
+      const count = Object.keys(baseline.pricingVariants).length;
+      return count > 0 ? count : "—";
+    },
+  },
+];

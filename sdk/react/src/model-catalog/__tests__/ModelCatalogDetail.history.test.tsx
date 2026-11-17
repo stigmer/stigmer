@@ -1,15 +1,21 @@
 /**
  * Pins ModelCatalogDetail's revision history: each earlier revision of the
  * model reads as one line naming whether it was superseded or retired, its
- * input and output rates, who decided it and the note they left.
+ * input and output rates, who decided it and the note they left. And the
+ * long-prompt step (stigmer#3138): a model priced by prompt length shows the
+ * higher rates under its own, headed by the threshold grouped by thousands,
+ * on the base block and on each variant; a model without one shows nothing
+ * more.
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
+  LongContextPricingSchema,
   ModelPricingBaselineSchema,
   ModelPricingBaselineStatus,
   PricingBlockSchema,
+  PricingVariantSchema,
 } from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { ModelCatalogDetail } from "../ModelCatalogDetail";
 import type { ModelCatalogRow } from "../useModelCatalogView";
@@ -44,9 +50,9 @@ afterEach(cleanup);
 
 describe("ModelCatalogDetail revision history", () => {
   it("reads each earlier revision as its fate, rates, decider and note", () => {
-    render(<ModelCatalogDetail row={ROW} onEdit={vi.fn()} onRetire={vi.fn()} onBack={vi.fn()} />);
+    render(<ModelCatalogDetail row={ROW} />);
 
-    const history = screen.getByRole("region", { name: "Revision history" });
+    const history = screen.getByRole("list", { name: "Revision history" });
     expect(within(history).queryByText(/No previous revisions/)).toBeNull();
     expect(within(history).getByText(/^Superseded/).textContent).toBe(
       "Superseded · $2.50/M in / $15.00/M out · ops@acme — vendor price rise",
@@ -54,5 +60,59 @@ describe("ModelCatalogDetail revision history", () => {
     expect(within(history).getByText(/^Retired/).textContent).toBe(
       "Retired · $2.00/M in / $15.00/M out · finance@acme",
     );
+  });
+});
+
+describe("ModelCatalogDetail long-prompt step", () => {
+  const step = (input: bigint) =>
+    create(LongContextPricingSchema, {
+      thresholdTokens: 100_000,
+      inputPriceMicrosPerMillion: input,
+      outputPriceMicrosPerMillion: input * 5n,
+      cacheWritePriceMicrosPerMillion: (input * 5n) / 4n,
+      cacheReadPriceMicrosPerMillion: input / 10n,
+    });
+  const STEPPED: ModelCatalogRow = {
+    ...ROW,
+    history: [],
+    baseline: create(ModelPricingBaselineSchema, {
+      ...ROW.baseline,
+      pricing: create(PricingBlockSchema, {
+        inputPriceMicrosPerMillion: 1_000_000n,
+        outputPriceMicrosPerMillion: 5_000_000n,
+        longContext: step(5_000_000n),
+      }),
+      pricingVariants: {
+        batch: create(PricingVariantSchema, {
+          pricing: create(PricingBlockSchema, {
+            inputPriceMicrosPerMillion: 2_000_000n,
+            outputPriceMicrosPerMillion: 10_000_000n,
+            longContext: step(10_000_000n),
+          }),
+          wireIds: ["claude-haiku-5.5-batch"],
+        }),
+      },
+    }),
+  };
+
+  it("shows the step's rates under the four rates, on the base block and each variant", () => {
+    render(<ModelCatalogDetail row={STEPPED} />);
+
+    const base = screen.getByRole("table", { name: "Baseline rates, above 100,000 prompt tokens" });
+    expect(within(base).getAllByRole("cell").map((cell) => cell.textContent)).toEqual([
+      "$5.00/M",
+      "$25.00/M",
+      "$6.25/M",
+      "$0.5000/M",
+    ]);
+    const variant = screen.getByRole("table", { name: "Variant batch rates, above 100,000 prompt tokens" });
+    expect(within(variant).getAllByRole("cell")[0]!.textContent).toBe("$10.00/M");
+    expect(screen.getAllByText("Above 100,000 prompt tokens")).toHaveLength(2);
+  });
+
+  it("shows nothing more for a model without a step", () => {
+    render(<ModelCatalogDetail row={ROW} />);
+    expect(screen.getByRole("table", { name: "Baseline rates" })).toBeTruthy();
+    expect(screen.queryByText(/prompt tokens/)).toBeNull();
   });
 });

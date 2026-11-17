@@ -154,9 +154,12 @@ describe("ModelCatalogConsole — detail view", () => {
 
     render(<ModelCatalogConsole />, { wrapper: wrapper(client) });
     await user.click(await screen.findByRole("button", { name: /Claude Sonnet/ }));
-    await user.click(screen.getByRole("button", { name: "Edit" }));
+    // The open model names the page, with the way back to the list.
+    expect(screen.getByRole("heading", { name: "Claude Sonnet" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Model catalog" })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Edit prices" }));
 
-    expect(screen.getByText("Edit claude-sonnet-4-6")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Edit prices: Claude Sonnet" })).toBeTruthy();
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     // Back on the read-only record, not the list.
@@ -206,7 +209,8 @@ describe("ModelCatalogConsole — detail view", () => {
     await screen.findByText("Claude Sonnet");
 
     await user.click(screen.getByRole("button", { name: "Add model" }));
-    expect(screen.getByText("Add model", { selector: "h4" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Add model" })).toBeTruthy();
+    expect(screen.getByLabelText("Model id")).toBeTruthy();
   });
 });
 

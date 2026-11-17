@@ -6,9 +6,11 @@ import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import { create } from "@bufbuild/protobuf";
 import { getUserMessage } from "@stigmer/client";
 import {
+  LongContextPricingSchema,
   ModelPricingBaselineSchema,
   PricingBlockSchema,
   PricingVariantSchema,
+  type LongContextPricing,
   type ModelPricingBaseline,
 } from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { Button } from "../button/index.js";
@@ -18,14 +20,20 @@ import {
   ZERO,
   dollarsToMicros,
   formatRate,
+  formatTokens,
   microsToDollarString,
 } from "./pricing-format.js";
+import { Table, type TableColumn } from "../internal/surface/Table.js";
 import { Checkbox, Field, FieldError, Select, TextInput } from "../internal/form/index.js";
 
 // ---------------------------------------------------------------------------
 // BaselineEditor — the add/edit form for model registry baselines, with an
 // explicit old→new rate confirmation step (a billing-critical edit is never
-// submitted without the operator seeing exactly which rates move).
+// submitted without the operator seeing exactly which rates move). The
+// base block and each variant carry an optional "Long prompts" group: the
+// prompt length above which a call pays higher rates, and those four rates.
+// Every field empty means one price at every length; a group partly filled
+// is one form error. The page's title names what is edited.
 //
 // Internal to the model-catalog module: rendered by ModelCatalogConsole,
 // never exported from the barrel.
@@ -66,6 +74,61 @@ function RateField({
 // errors surface before the RPC.
 // ---------------------------------------------------------------------------
 
+/** The long-prompt step's fields, strings while editing; all empty means no step. */
+interface LongForm {
+  readonly threshold: string;
+  readonly input: string;
+  readonly output: string;
+  readonly cacheWrite: string;
+  readonly cacheRead: string;
+}
+
+const EMPTY_LONG: LongForm = { threshold: "", input: "", output: "", cacheWrite: "", cacheRead: "" };
+
+function longFromStep(step: LongContextPricing | undefined): LongForm {
+  if (!step || step.thresholdTokens <= 0) return EMPTY_LONG;
+  return {
+    threshold: String(step.thresholdTokens),
+    input: microsToDollarString(step.inputPriceMicrosPerMillion),
+    output: microsToDollarString(step.outputPriceMicrosPerMillion),
+    cacheWrite: microsToDollarString(step.cacheWritePriceMicrosPerMillion),
+    cacheRead: microsToDollarString(step.cacheReadPriceMicrosPerMillion),
+  };
+}
+
+/** The most prompt tokens a step's threshold may name (the wire's int32). */
+const MAX_THRESHOLD = 2_147_483_647;
+
+/** The step a group's fields make, or none; a group partly filled is one error. */
+function buildLong(long: LongForm, prefix: string, errors: string[]): LongContextPricing | undefined {
+  const values = [long.threshold, long.input, long.output, long.cacheWrite, long.cacheRead].map((v) => v.trim());
+  if (values.every((v) => v === "")) return undefined;
+  if (values.some((v) => v === "")) {
+    errors.push(`${prefix}Fill every long-prompt field, or none.`);
+    return undefined;
+  }
+  const threshold = /^\d+$/.test(values[0]!) ? Number(values[0]) : NaN;
+  if (!Number.isSafeInteger(threshold) || threshold <= 0 || threshold > MAX_THRESHOLD) {
+    errors.push(`${prefix}Prompt tokens above must be a whole number above 0.`);
+    return undefined;
+  }
+  const rate = (value: string, label: string): bigint => {
+    const micros = dollarsToMicros(value);
+    if (micros === null) {
+      errors.push(`${prefix}The long-prompt ${label} rate must be a non-negative dollar amount.`);
+      return ZERO;
+    }
+    return micros;
+  };
+  return create(LongContextPricingSchema, {
+    thresholdTokens: threshold,
+    inputPriceMicrosPerMillion: rate(long.input, "input"),
+    outputPriceMicrosPerMillion: rate(long.output, "output"),
+    cacheWritePriceMicrosPerMillion: rate(long.cacheWrite, "cache-write"),
+    cacheReadPriceMicrosPerMillion: rate(long.cacheRead, "cache-read"),
+  });
+}
+
 interface VariantForm {
   readonly key: string;
   readonly input: string;
@@ -74,6 +137,7 @@ interface VariantForm {
   readonly cacheRead: string;
   /** Comma-separated wire ids. */
   readonly wireIds: string;
+  readonly long: LongForm;
 }
 
 interface CatalogForm {
@@ -92,6 +156,7 @@ interface CatalogForm {
   readonly output: string;
   readonly cacheWrite: string;
   readonly cacheRead: string;
+  readonly long: LongForm;
   readonly variants: readonly VariantForm[];
   readonly revisionNote: string;
 }
@@ -111,6 +176,7 @@ const EMPTY_FORM: CatalogForm = {
   output: "",
   cacheWrite: "0",
   cacheRead: "0",
+  long: EMPTY_LONG,
   variants: [],
   revisionNote: "",
 };
@@ -132,6 +198,7 @@ function formFromBaseline(baseline: ModelPricingBaseline): CatalogForm {
     output: microsToDollarString(pricing?.outputPriceMicrosPerMillion ?? ZERO),
     cacheWrite: microsToDollarString(pricing?.cacheWritePriceMicrosPerMillion ?? ZERO),
     cacheRead: microsToDollarString(pricing?.cacheReadPriceMicrosPerMillion ?? ZERO),
+    long: longFromStep(pricing?.longContext),
     variants: Object.entries(baseline.pricingVariants).map(([key, variant]) => ({
       key,
       input: microsToDollarString(variant.pricing?.inputPriceMicrosPerMillion ?? ZERO),
@@ -139,6 +206,7 @@ function formFromBaseline(baseline: ModelPricingBaseline): CatalogForm {
       cacheWrite: microsToDollarString(variant.pricing?.cacheWritePriceMicrosPerMillion ?? ZERO),
       cacheRead: microsToDollarString(variant.pricing?.cacheReadPriceMicrosPerMillion ?? ZERO),
       wireIds: variant.wireIds.join(", "),
+      long: longFromStep(variant.pricing?.longContext),
     })),
     revisionNote: "",
   };
@@ -150,7 +218,8 @@ function formFromBaseline(baseline: ModelPricingBaseline): CatalogForm {
  * When editing, runtime metadata the form does not surface (context
  * window, summarization, capabilities, per-block provenance) is carried
  * over from the previous revision so a price edit never erases catalog
- * documentation.
+ * documentation. The long-prompt step is the form's own: shown filled
+ * from the previous revision, so an edit that leaves it alone keeps it.
  */
 function buildBaseline(
   form: CatalogForm,
@@ -179,6 +248,7 @@ function buildBaseline(
   const output = requireRate(form.output, "Output rate");
   const cacheWrite = requireRate(form.cacheWrite, "Cache-write rate");
   const cacheRead = requireRate(form.cacheRead, "Cache-read rate");
+  const longContext = buildLong(form.long, "", errors);
 
   const seenKeys = new Set<string>();
   const variants: Record<string, ReturnType<typeof buildVariant>> = {};
@@ -223,9 +293,7 @@ function buildBaseline(
       // never blanked by a UI edit. effective_at is server-stamped.
       source: previousPricing?.source ?? "operator_console",
       sourceNote: previousPricing?.sourceNote ?? "",
-      // The long-prompt step is not editable here yet: carry it, so an
-      // edit never erases the rates a long prompt pays.
-      longContext: previousPricing?.longContext,
+      longContext,
     }),
     pricingVariants: variants,
     // Runtime metadata is not editable here — carry the previous
@@ -262,7 +330,7 @@ function buildVariant(
       cacheReadPriceMicrosPerMillion: rate(variant.cacheRead, "cache-read rate"),
       source: previous?.source ?? "operator_console",
       sourceNote: previous?.sourceNote ?? "",
-      longContext: previous?.longContext,
+      longContext: buildLong(variant.long, `Variant "${key}": `, errors),
     }),
     wireIds: variant.wireIds
       .split(",")
@@ -302,6 +370,7 @@ function diffRates(
   compare("Output", previous?.pricing?.outputPriceMicrosPerMillion, next.pricing?.outputPriceMicrosPerMillion);
   compare("Cache write", previous?.pricing?.cacheWritePriceMicrosPerMillion, next.pricing?.cacheWritePriceMicrosPerMillion);
   compare("Cache read", previous?.pricing?.cacheReadPriceMicrosPerMillion, next.pricing?.cacheReadPriceMicrosPerMillion);
+  diffStep("", previous?.pricing?.longContext, next.pricing?.longContext, changes);
 
   const variantKeys = new Set([
     ...Object.keys(previous?.pricingVariants ?? {}),
@@ -318,9 +387,57 @@ function diffRates(
     compare(`Variant "${key}" output`, before?.outputPriceMicrosPerMillion, after.outputPriceMicrosPerMillion);
     compare(`Variant "${key}" cache write`, before?.cacheWritePriceMicrosPerMillion, after.cacheWritePriceMicrosPerMillion);
     compare(`Variant "${key}" cache read`, before?.cacheReadPriceMicrosPerMillion, after.cacheReadPriceMicrosPerMillion);
+    diffStep(`Variant "${key}" `, before?.longContext, after.longContext, changes);
   }
   return changes;
 }
+
+/**
+ * The long-prompt step's moves, one line each: its threshold, then each
+ * rate "above" it ("Input above 100,000"), a side without a step as "—".
+ */
+function diffStep(
+  prefix: string,
+  before: LongContextPricing | undefined,
+  after: LongContextPricing | undefined,
+  changes: RateChange[],
+) {
+  const had = before !== undefined && before.thresholdTokens > 0;
+  const has = after !== undefined && after.thresholdTokens > 0;
+  if (!had && !has) return;
+  const line = (label: string) => (prefix === "" ? label : `${prefix}${label.charAt(0).toLowerCase()}${label.slice(1)}`);
+  if (before?.thresholdTokens !== after?.thresholdTokens) {
+    changes.push({
+      label: line("Prompt tokens above"),
+      before: had ? formatTokens(before.thresholdTokens) : "—",
+      after: has ? formatTokens(after.thresholdTokens) : "—",
+    });
+  }
+  const at = formatTokens((has ? after : before)?.thresholdTokens ?? 0);
+  const rates: readonly (readonly [string, (step: LongContextPricing) => bigint])[] = [
+    ["Input", (step) => step.inputPriceMicrosPerMillion],
+    ["Output", (step) => step.outputPriceMicrosPerMillion],
+    ["Cache write", (step) => step.cacheWritePriceMicrosPerMillion],
+    ["Cache read", (step) => step.cacheReadPriceMicrosPerMillion],
+  ];
+  for (const [label, read] of rates) {
+    const b = had ? read(before) : null;
+    const a = has ? read(after) : null;
+    if (b !== a) {
+      changes.push({
+        label: line(`${label} above ${at}`),
+        before: b === null ? "—" : formatRate(b),
+        after: a === null ? "—" : formatRate(a),
+      });
+    }
+  }
+}
+
+const CHANGE_COLUMNS: readonly TableColumn<RateChange>[] = [
+  { id: "rate", header: "Rate", cell: (change) => change.label },
+  { id: "now", header: "Now", align: "end", cell: (change) => change.before },
+  { id: "new", header: "New", align: "end", cell: (change) => change.after },
+];
 
 // ---------------------------------------------------------------------------
 // BaselineEditor — form step, then an explicit confirm step
@@ -370,34 +487,24 @@ export function BaselineEditor({
   // ── confirm step ──────────────────────────────────────────────────────────
   if (pendingBaseline) {
     const changes = diffRates(initial, pendingBaseline);
+    const name = pendingBaseline.displayName || pendingBaseline.modelId;
     return (
-      <Card className="stg:space-y-3">
-        <h4 className="stg:text-xs stg:font-semibold stg:text-foreground">
-          {initial ? "Confirm baseline revision" : "Confirm new catalog entry"}
-          {" · "}
-          <span className="stg:font-normal stg:text-muted-foreground">
-            {pendingBaseline.modelId} / {pendingBaseline.provider} / {pendingBaseline.harness}
-          </span>
-        </h4>
+      <Card className="stg:flex stg:flex-col stg:gap-3">
+        <div className="stg:flex stg:flex-col stg:gap-1">
+          <p className="stg:m-0 stg:text-sm stg:font-semibold stg:text-foreground">
+            {initial ? `Save these prices for ${name}?` : `Add ${name} to the catalog?`}
+          </p>
+          <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
+            The registry serves the new revision at once; runs priced after that use it. Charges already made keep
+            their rates.
+          </p>
+        </div>
         {changes.length === 0 ? (
-          <p className="stg:text-xs stg:text-muted-foreground">
+          <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
             No rate changes — only catalog fields move. Billing is unaffected.
           </p>
         ) : (
-          <div className="stg:space-y-1" role="table" aria-label="Rate changes">
-            {changes.map((change) => (
-              <p key={change.label} className="stg:text-xs stg:text-foreground" role="row">
-                <span className="stg:text-muted-foreground">{change.label}: </span>
-                <span className="stg:line-through">{change.before}</span>
-                {" → "}
-                <span className="stg:font-medium">{change.after}</span>
-              </p>
-            ))}
-            <p className="stg:text-2xs stg:text-muted-foreground">
-              New rates govern charges from the moment this revision is applied
-              (forward-only; already-billed records keep their stamps).
-            </p>
-          </div>
+          <Table aria-label="Rate changes" columns={CHANGE_COLUMNS} rows={changes} rowKey={(change) => change.label} />
         )}
         {submitError && (
           <FieldError>
@@ -405,12 +512,12 @@ export function BaselineEditor({
           </FieldError>
         )}
         <div className="stg:flex stg:gap-2">
-          <Button size="sm" disabled={isSubmitting} onClick={handleConfirm}>
-            {isSubmitting ? "Applying…" : "Apply revision"}
+          <Button size="sm" disabled={isSubmitting} aria-busy={isSubmitting || undefined} onClick={handleConfirm}>
+            {isSubmitting ? "Saving…" : initial ? "Save prices" : "Add model"}
           </Button>
           <Button
             size="sm"
-            variant="outline"
+            variant="ghost"
             disabled={isSubmitting}
             onClick={() => setPendingBaseline(null)}
           >
@@ -427,10 +534,6 @@ export function BaselineEditor({
       onSubmit={handleReview}
       className={cn(cardClasses(), "stg:space-y-3")}
     >
-      <h4 className="stg:text-xs stg:font-semibold stg:text-foreground">
-        {initial ? `Edit ${initial.modelId}` : "Add model"}
-      </h4>
-
       <div className="stg:grid stg:grid-cols-2 stg:gap-2">
         <Field label="Model id">
           <TextInput
@@ -546,6 +649,12 @@ export function BaselineEditor({
         </div>
       </fieldset>
 
+      <LongPromptsGroup
+        long={form.long}
+        disabled={isSubmitting}
+        onChange={(patch) => setForm((f) => ({ ...f, long: { ...f.long, ...patch } }))}
+      />
+
       <fieldset className={`${UNSTYLED_FIELDSET} stg:space-y-2`}>
         <legend className="stg:text-xs stg:font-medium stg:text-foreground">Pricing variants</legend>
         {form.variants.map((variant, index) => (
@@ -587,6 +696,11 @@ export function BaselineEditor({
               <RateField label="Cache write" value={variant.cacheWrite} disabled={isSubmitting} onChange={(v) => updateVariant(setForm, index, { cacheWrite: v })} />
               <RateField label="Cache read" value={variant.cacheRead} disabled={isSubmitting} onChange={(v) => updateVariant(setForm, index, { cacheRead: v })} />
             </div>
+            <LongPromptsGroup
+              long={variant.long}
+              disabled={isSubmitting}
+              onChange={(patch) => updateVariant(setForm, index, { long: { ...variant.long, ...patch } })}
+            />
           </div>
         ))}
         <Button
@@ -598,7 +712,7 @@ export function BaselineEditor({
               ...f,
               variants: [
                 ...f.variants,
-                { key: "", input: "", output: "", cacheWrite: "0", cacheRead: "0", wireIds: "" },
+                { key: "", input: "", output: "", cacheWrite: "0", cacheRead: "0", wireIds: "", long: EMPTY_LONG },
               ],
             }))
           }
@@ -617,11 +731,9 @@ export function BaselineEditor({
       </Field>
 
       {validationErrors.length > 0 && (
-        <div role="alert" className="stg:space-y-0.5">
+        <div className="stg:flex stg:flex-col stg:gap-1">
           {validationErrors.map((message) => (
-            <p key={message} className="stg:text-destructive stg:text-xs">
-              {message}
-            </p>
+            <FieldError key={message}>{message}</FieldError>
           ))}
         </div>
       )}
@@ -635,6 +747,48 @@ export function BaselineEditor({
         </Button>
       </div>
     </form>
+  );
+}
+
+/**
+ * The optional long-prompt step: the prompt length above which a call
+ * pays higher rates, and those four rates. Empty means one price at every
+ * length.
+ */
+function LongPromptsGroup({
+  long,
+  disabled,
+  onChange,
+}: {
+  readonly long: LongForm;
+  readonly disabled: boolean;
+  readonly onChange: (patch: Partial<LongForm>) => void;
+}) {
+  return (
+    <fieldset className={`${UNSTYLED_FIELDSET} stg:flex stg:flex-col stg:gap-2`}>
+      <legend className="stg:text-sm stg:font-medium stg:text-foreground">
+        Long prompts <span className="stg:font-normal stg:text-muted-foreground">(optional)</span>
+      </legend>
+      <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
+        A higher price once a prompt is longer than the number below. Leave every field empty for one price at
+        every length.
+      </p>
+      <Field label="Prompt tokens above" className="stg:max-w-48">
+        <TextInput
+          inputMode="numeric"
+          value={long.threshold}
+          onChange={(e) => onChange({ threshold: e.target.value })}
+          placeholder="100000"
+          disabled={disabled}
+        />
+      </Field>
+      <div className="stg:grid stg:grid-cols-2 stg:gap-2 stg:sm:grid-cols-4">
+        <RateField label="Input above" value={long.input} disabled={disabled} onChange={(v) => onChange({ input: v })} />
+        <RateField label="Output above" value={long.output} disabled={disabled} onChange={(v) => onChange({ output: v })} />
+        <RateField label="Cache write above" value={long.cacheWrite} disabled={disabled} onChange={(v) => onChange({ cacheWrite: v })} />
+        <RateField label="Cache read above" value={long.cacheRead} disabled={disabled} onChange={(v) => onChange({ cacheRead: v })} />
+      </div>
+    </fieldset>
   );
 }
 
