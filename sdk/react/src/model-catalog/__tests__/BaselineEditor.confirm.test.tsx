@@ -165,3 +165,67 @@ describe("BaselineEditor and the long-prompt step (#3138)", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 });
+
+describe("BaselineEditor's long-prompt rules", () => {
+  const STEPPED = create(ModelPricingBaselineSchema, {
+    ...SONNET,
+    pricing: create(PricingBlockSchema, {
+      inputPriceMicrosPerMillion: 3_000_000n,
+      outputPriceMicrosPerMillion: 15_000_000n,
+      longContext: step(6_000_000n),
+    }),
+    pricingVariants: {
+      fast: create(PricingVariantSchema, {
+        pricing: create(PricingBlockSchema, {
+          inputPriceMicrosPerMillion: 6_000_000n,
+          outputPriceMicrosPerMillion: 30_000_000n,
+          longContext: step(12_000_000n),
+        }),
+      }),
+    },
+  });
+
+  function fillBaseGroup(threshold: string, input = "6") {
+    fireEvent.change(screen.getByLabelText("Prompt tokens above"), { target: { value: threshold } });
+    fireEvent.change(screen.getByLabelText("Input above"), { target: { value: input } });
+    fireEvent.change(screen.getByLabelText("Output above"), { target: { value: "30" } });
+    fireEvent.change(screen.getByLabelText("Cache write above"), { target: { value: "6" } });
+    fireEvent.change(screen.getByLabelText("Cache read above"), { target: { value: "0.6" } });
+    fireEvent.click(screen.getByRole("button", { name: "Review changes" }));
+  }
+
+  it.each(["1.5", "0", "3000000000", "100k"])("refuses %s as the prompt length", (threshold) => {
+    const onSubmit = renderEditor(SONNET);
+    fillBaseGroup(threshold);
+    expect(screen.getByText("Prompt tokens above must be a whole number above 0.")).toBeTruthy();
+    expect(screen.queryByRole("table", { name: "Rate changes" })).toBeNull();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("refuses a long-prompt rate that is not a dollar amount", () => {
+    renderEditor(SONNET);
+    fillBaseGroup("100000", "six");
+    expect(screen.getByText("The long-prompt input rate must be a non-negative dollar amount.")).toBeTruthy();
+    expect(screen.queryByRole("table", { name: "Rate changes" })).toBeNull();
+  });
+
+  it("names the variant whose group is partly filled", () => {
+    renderEditor(STEPPED);
+    // The variant's group is the second.
+    fireEvent.change(screen.getAllByLabelText("Output above")[1]!, { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Review changes" }));
+    expect(screen.getByText('Variant "fast": Fill every long-prompt field, or none.')).toBeTruthy();
+  });
+
+  it("lists a moved threshold, and one rate moved inside a step, base and variant", () => {
+    renderEditor(STEPPED);
+    fireEvent.change(screen.getAllByLabelText("Prompt tokens above")[0]!, { target: { value: "150000" } });
+    fireEvent.change(screen.getAllByLabelText("Output above")[1]!, { target: { value: "70" } });
+    fireEvent.click(screen.getByRole("button", { name: "Review changes" }));
+
+    expect(changeLines()).toEqual([
+      "Prompt tokens above: 100,000 → 150,000",
+      'Variant "fast" output above 100,000: $60.00/M → $70.00/M',
+    ]);
+  });
+});

@@ -56,6 +56,7 @@ function sonnetBaseline(overrides: Record<string, unknown> = {}) {
     provider: "anthropic",
     harness: "stigmer",
     displayName: "Claude Sonnet",
+    shortDescription: "Best for most tasks",
     apiModelId: "claude-sonnet-4-6",
     costTier: "standard",
     speedTier: "fast",
@@ -138,6 +139,8 @@ describe("ModelCatalogConsole — detail view", () => {
     // Read-only record: rate card, variant wire ids, catalog metadata,
     // revision history — all without entering the edit form.
     expect(screen.getByRole("table", { name: "Baseline rates" })).toBeTruthy();
+    // Its one-line pitch leads the page's description.
+    expect(screen.getByText("Best for most tasks. claude-sonnet-4-6 on the stigmer harness, from anthropic.")).toBeTruthy();
     expect(screen.getByText(/claude-sonnet-4-6-fast/)).toBeTruthy();
     expect(screen.getByText("Provider API id")).toBeTruthy();
     expect(screen.getByText(/No previous revisions/)).toBeTruthy();
@@ -195,6 +198,30 @@ describe("ModelCatalogConsole — detail view", () => {
         }),
       ),
     );
+  });
+
+  it("leaves a failed retire behind when the page goes back to the catalog", async () => {
+    const user = userEvent.setup();
+    const retireModelPricingBaseline = vi.fn().mockRejectedValue(new Error("the model is still featured"));
+    const client = createMockStigmer({
+      listModelPricingBaselines: vi
+        .fn()
+        .mockResolvedValue({ entries: [sonnetBaseline()], nextPageToken: "" }),
+      retireModelPricingBaseline,
+    });
+
+    render(<ModelCatalogConsole />, { wrapper: wrapper(client) });
+    await user.click(await screen.findByRole("button", { name: /Claude Sonnet/ }));
+    await user.click(screen.getByRole("button", { name: "Retire" }));
+    await user.type(screen.getByLabelText("Type the model id to confirm retirement"), "claude-sonnet-4-6");
+    await user.click(screen.getByRole("button", { name: "Retire model" }));
+    expect(await screen.findByText(/still featured/)).toBeTruthy();
+
+    // The page's way back, then the same model's Retire again: no stale failure.
+    await user.click(screen.getByRole("button", { name: "Model catalog" }));
+    await user.click(await screen.findByRole("button", { name: /Claude Sonnet/ }));
+    await user.click(screen.getByRole("button", { name: "Retire" }));
+    expect(screen.queryByText(/still featured/)).toBeNull();
   });
 
   it("creates a new model through the add-model editor", async () => {

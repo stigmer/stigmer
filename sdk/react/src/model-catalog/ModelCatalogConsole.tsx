@@ -20,7 +20,6 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { SettingsPage } from "../settings/SettingsPage.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { Table, type TableColumn } from "../internal/surface/Table.js";
-import { TruncatedText } from "../internal/truncated-text.js";
 import { ZERO, formatRate } from "./pricing-format.js";
 import { useRetireModelPricingBaseline } from "./useRetireModelPricingBaseline.js";
 import { useUpsertModelPricingBaseline } from "./useUpsertModelPricingBaseline.js";
@@ -100,6 +99,11 @@ export function ModelCatalogConsole({ className }: ModelCatalogConsoleProps) {
     view.backToDetail();
   }, [clearRetireError, view.backToDetail]);
 
+  const handleLeaveRetire = useCallback(() => {
+    clearRetireError();
+    view.backToList();
+  }, [clearRetireError, view.backToList]);
+
   // On an edition that keeps no model catalogue the server answers
   // Unimplemented, and a person who is not a platform operator is refused:
   // the frame says either in words, never as the transport's error
@@ -117,18 +121,21 @@ export function ModelCatalogConsole({ className }: ModelCatalogConsoleProps) {
       : open && flow.phase === "detail" && flow.mode === "edit"
         ? `Edit prices: ${openName}`
         : (openName ?? "Model catalog");
+  // Each way back leaves the step's own failure behind, as its Cancel does.
   const back =
     flow.phase === "create"
       ? { label: "Model catalog", onBack: handleCancelEdit }
       : open && flow.phase === "detail" && flow.mode === "edit"
         ? { label: openName ?? "", onBack: handleCancelEdit }
-        : open
-          ? { label: "Model catalog", onBack: view.backToList }
-          : undefined;
+        : open && flow.phase === "detail" && flow.mode === "retire"
+          ? { label: "Model catalog", onBack: handleLeaveRetire }
+          : open
+            ? { label: "Model catalog", onBack: view.backToList }
+            : undefined;
   const description = open
     ? flow.phase === "detail" && flow.mode === "edit"
       ? "A new revision with these prices. The registry serves it as soon as you confirm."
-      : `${open.modelId} on the ${open.harness} harness, from ${open.provider}.`
+      : `${open.shortDescription ? `${open.shortDescription}. ` : ""}${open.modelId} on the ${open.harness} harness, from ${open.provider}.`
     : flow.phase === "create"
       ? "A new model with its list prices. The registry serves it as soon as you confirm."
       : "Every model the registry serves, at the provider's list prices before any markup. Open one to see its record, edit its prices or retire it.";
@@ -297,10 +304,8 @@ const MODEL_COLUMNS: readonly TableColumn<ModelCatalogRow>[] = [
     id: "model",
     header: "Model",
     cell: ({ baseline }) => baseline.displayName || baseline.modelId,
-    // The id needs a tooltip only when it is clipped.
-    detail: ({ baseline }) => (
-      <TruncatedText text={`${baseline.modelId}${baseline.featured ? " · featured" : ""}`} className="stg:block" />
-    ),
+    // A plain line: it joins the line under the name when the table draws as rows.
+    detail: ({ baseline }) => `${baseline.modelId}${baseline.featured ? " · featured" : ""}`,
   },
   { id: "harness", header: "Harness", cell: ({ baseline }) => baseline.harness },
   {

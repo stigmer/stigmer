@@ -103,7 +103,8 @@ describe("LicensesConsole column budget", () => {
     const name = screen.getByRole("button", { name: "Northwind Logistics International" });
     const cell = name.closest("td") as HTMLElement;
     expect(cell.getBoundingClientRect().width).toBeGreaterThan(160);
-    // The address truncates rather than wraps: one line.
+    // The name and the address hold one line each at the settings canvas.
+    expect(lineCount(name)).toBe(1);
     expect(lineCount(screen.getByText("procurement.licensing@northwind-logistics.test"))).toBe(1);
     // The in-grace deadline holds on one line.
     expect(lineCount(screen.getByText("Grace ends 2026-10-19"))).toBe(1);

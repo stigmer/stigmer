@@ -666,6 +666,8 @@ export const SETTINGS_ROUTE_DRAWINGS = {
   // A model without a step, its Long prompts group given a threshold and one rate only.
   "settings-model-catalog-editor-partial": () => modelCatalogScene("rows"),
   "settings-model-catalog-confirm": () => modelCatalogScene("stepped"),
+  // A model without a step, given one: the confirm lists the step's five lines.
+  "settings-model-catalog-confirm-step": () => modelCatalogScene("rows"),
   "settings-model-catalog-retire": () => modelCatalogScene("rows"),
   "settings-model-catalog-empty": () => modelCatalogScene("none"),
   "settings-model-catalog-failed": () => modelCatalogScene("failed"),

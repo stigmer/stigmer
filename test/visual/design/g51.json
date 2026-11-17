@@ -383,7 +383,7 @@
       "narrow": false,
       "built": [
         {
-          "scene": "settings-model-catalog-confirm",
+          "scene": "settings-model-catalog-confirm-step",
           "width": "desktop"
         }
       ],
@@ -532,20 +532,12 @@
         }
       ],
       "sample": {
-        "word Save these prices for Claude Haiku 5.5?": "The drawing's example data; the scene shows its own fixture's",
-        "word Prompt tokens above": "The drawing's example data; the scene shows its own fixture's",
-        "word Input above 100,000": "The drawing's example data; the scene shows its own fixture's",
-        "word $5.00/M": "The drawing's example data; the scene shows its own fixture's",
-        "word Output above 100,000": "The drawing's example data; the scene shows its own fixture's",
-        "word $25.00/M": "The drawing's example data; the scene shows its own fixture's",
-        "word Cache write above 100,000": "The drawing's example data; the scene shows its own fixture's",
-        "word $6.25/M": "The drawing's example data; the scene shows its own fixture's",
-        "word Cache read above 100,000": "The drawing's example data; the scene shows its own fixture's",
-        "word $0.50/M": "The drawing's example data; the scene shows its own fixture's"
+        "word Save these prices for Claude Haiku 5.5?": "The drawing's example model; the scene's fixture is Claude Sonnet 4.6"
       },
       "ruled": {},
       "pending": {
-        "button Close": "When its page is redesigned again: the settings Built look's fixes (the confirm as a dialog over the editor; it stays in the page)"
+        "button Close": "When its page is redesigned again: the settings Built look's fixes (the confirm as a dialog over the editor; it stays in the page)",
+        "word $0.50/M": "When its page is redesigned again: the settings Built look's fixes (a rate under $1 shows four decimals today, \"$0.5000/M\"; the drawing shows two)"
       }
     },
     {
