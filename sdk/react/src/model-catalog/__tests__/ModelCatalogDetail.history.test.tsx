@@ -10,6 +10,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
+import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import {
   LongContextPricingSchema,
   ModelPricingBaselineSchema,
@@ -114,5 +115,25 @@ describe("ModelCatalogDetail long-prompt step", () => {
     render(<ModelCatalogDetail row={ROW} />);
     expect(screen.getByRole("table", { name: "Baseline rates" })).toBeTruthy();
     expect(screen.queryByText(/prompt tokens/)).toBeNull();
+  });
+});
+
+describe("ModelCatalogDetail provenance", () => {
+  it("says where the rates came from and when, in one quiet line", () => {
+    const sourced: ModelCatalogRow = {
+      ...ROW,
+      history: [],
+      baseline: create(ModelPricingBaselineSchema, {
+        ...ROW.baseline,
+        pricing: create(PricingBlockSchema, {
+          inputPriceMicrosPerMillion: 3_000_000n,
+          outputPriceMicrosPerMillion: 15_000_000n,
+          source: "anthropic.com/pricing",
+          effectiveAt: timestampFromDate(new Date(Date.UTC(2026, 0, 2))),
+        }),
+      }),
+    };
+    render(<ModelCatalogDetail row={sourced} />);
+    expect(screen.getByText("Source: anthropic.com/pricing · Jan 2, 2026")).toBeTruthy();
   });
 });

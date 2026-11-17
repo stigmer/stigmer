@@ -71,6 +71,17 @@ async function save() {
 
 afterEach(cleanup);
 
+describe("BaselineEditor variants", () => {
+  it("adds an empty variant, with its key and four rates, on Add variant", () => {
+    renderEditor(SONNET);
+    const before = screen.queryAllByLabelText("Variant key").length;
+    fireEvent.click(screen.getByRole("button", { name: "Add variant" }));
+    const keys = screen.getAllByLabelText("Variant key");
+    expect(keys).toHaveLength(before + 1);
+    expect((keys[keys.length - 1] as HTMLInputElement).value).toBe("");
+  });
+});
+
 describe("BaselineEditor confirm step", () => {
   it("lists the moving rate, now and new, and sends nothing until saved", () => {
     const onSubmit = renderEditor(SONNET);
