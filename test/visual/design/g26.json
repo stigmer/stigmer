@@ -384,10 +384,10 @@
         "word My vault": "the scene's data differs (routine-new)",
         "word Default: data-science (the agent's default)": "the scene's data differs (routine-new)"
       },
-      "ruled": {},
-      "pending": {
-        "type Connect GitHub": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "type Connect GitHub": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     },
     {
       "caption": "New routine: An agent the person can't change: said under the field, Create held",
@@ -771,10 +771,10 @@
         "word Default: data-science (the agent's default)": "the scene's data differs (routine-new-agent-refused)",
         "word Asia/Kolkata": "the scene's data differs (routine-new-agent-refused)"
       },
-      "ruled": {},
-      "pending": {
-        "type Connect GitHub": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "type Connect GitHub": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     },
     {
       "caption": "New routine: The message left empty",
@@ -1162,14 +1162,14 @@
         "word Variance reporter": "the scene's data differs (routine-new-message-empty)",
         "word Asia/Kolkata": "the scene's data differs (routine-new-message-empty)"
       },
-      "ruled": {},
-      "pending": {
-        "word Write the message the agent gets on every run.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "type Connect GitHub": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word My vault": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Every day at 09:00 (Asia/Kolkata).": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Default: data-science (the agent's default)": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Write the message the agent gets on every run.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Connect GitHub": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word My vault": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Every day at 09:00 (Asia/Kolkata).": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Default: data-science (the agent's default)": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "New routine: At 390 wide",
@@ -1545,15 +1545,15 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "word daily-variance-report": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Variance reporter": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Every day at 09:00 (Asia/Kolkata).": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type Connect GitHub": "When its page is redesigned: built 14/20 weight 400, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
-        "word My vault": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Default: data-science (the agent's default)": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word daily-variance-report": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Variance reporter": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Every day at 09:00 (Asia/Kolkata).": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Connect GitHub": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word My vault": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Default: data-science (the agent's default)": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     }
   ]
 }

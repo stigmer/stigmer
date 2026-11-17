@@ -226,26 +226,26 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "word Active": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Run now": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word When it runs": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Runs": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Next run": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Tomorrow at 09:00, in 14h": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type Last run": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "word Finished 6m": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word What it runs": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Agent": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Variance reporter": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type Message": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "type Environment": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "word data-science": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type Budget per run": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "button Edit when it runs": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)",
-        "button Edit what it runs": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Active": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Run now": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word When it runs": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Runs": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Next run": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Tomorrow at 09:00, in 14h": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Last run": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word Finished 6m": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word What it runs": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Agent": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Variance reporter": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Message": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "type Environment": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word data-science": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Budget per run": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Edit when it runs": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Edit what it runs": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     },
     {
       "caption": "A routine: API",
@@ -385,17 +385,17 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "word Active": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Run now": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Start it from another system": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Call this address with an API key that may run the routine. Each call starts one run, as if you pressed Run now.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "type Copy": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "button Copy": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word POST https://api.stigmer.ai/v1/routines/acme/daily-variance-report:fire": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word curl -X POST \\ -H \"Authorization: Bearer $STIGMER_API_KEY\" \\ https://api.stigmer.ai/v1/routines/acme/daily-variance-report:fire": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Active": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Run now": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Start it from another system": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Call this address with an API key that may run the routine. Each call starts one run, as if you pressed Run now.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Copy": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Copy": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word POST https://api.stigmer.ai/v1/routines/acme/daily-variance-report:fire": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word curl -X POST \\ -H \"Authorization: Bearer $STIGMER_API_KEY\" \\ https://api.stigmer.ai/v1/routines/acme/daily-variance-report:fire": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "A routine: Run now, asked first (Run a routine)",
@@ -482,12 +482,12 @@
         "word Run daily-variance-report now?": "the scene's data differs (routine-run-dialog)",
         "word Report yesterday's ledger variances against budget, and save the report as variances.csv.": "the scene's data differs (routine-run-dialog)"
       },
-      "ruled": {},
-      "pending": {
-        "word One run starts now with the routine's message. Its schedule doesn't change.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Message (optional)": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Leave empty to send the routine's own message.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word One run starts now with the routine's message. Its schedule doesn't change.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Message (optional)": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Leave empty to send the routine's own message.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "A routine: At 390 wide",
@@ -715,23 +715,23 @@
         "word Variance reporter": "the scene's data differs (routine-disabled)",
         "word data-science": "the scene's data differs (routine-disabled)"
       },
-      "ruled": {},
-      "pending": {
-        "word Active": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Run now": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word When it runs": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Runs": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Next run": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "type Last run": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Finished 6m": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word What it runs": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Agent": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "type Message": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "type Environment": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "type Budget per run": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "button Edit when it runs": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "button Edit what it runs": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Active": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Run now": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word When it runs": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Runs": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Next run": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Last run": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word Finished 6m": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word What it runs": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Agent": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Message": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "type Environment": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "type Budget per run": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Edit when it runs": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Edit what it runs": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     }
   ]
 }

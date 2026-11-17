@@ -3,6 +3,7 @@
 import { ChoiceGroup } from "../internal/form/index.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
+import { Upload } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
@@ -27,6 +28,7 @@ import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea.js";
 import type { TabItem } from "../tabs/Tabs.js";
 import type { StatusPhase } from "../resource-workbench/types.js";
 import { useSkillVersions } from "./useSkillVersions.js";
+import { useCanCreateSkill } from "./useCanCreateSkill.js";
 import { VersionTimeline } from "../version-history/VersionTimeline.js";
 import { SkillDiffDialog, type SkillDiffDialogState } from "./SkillDiffDialog.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
@@ -103,6 +105,14 @@ export interface SkillDetailViewProps {
    */
   readonly onVersionSelect?: (versionHash: string) => void;
   /**
+   * Called when the person chooses "Upload a new version"; the host owns the
+   * route to its Upload skill page, where a skill of the same name is a new
+   * version. Given, the header offers the act to someone the server lets
+   * upload to the organization (`can_create_skill`, asked fail closed), and
+   * only when no `primaryAction` is passed.
+   */
+  readonly onUploadNewVersion?: () => void;
+  /**
    * When `true`, this host allows editing: metadata fields (description,
    * tag) become click-to-edit for a person the server lets edit the skill
    * (`can_edit`, asked by the view; a reader sees a read-only page from the
@@ -166,6 +176,7 @@ export function SkillDetailView({
   onTabChange,
   defaultTab,
   onVersionSelect,
+  onUploadNewVersion,
   editable: editableProp = false,
   onResourceUpdated,
   className,
@@ -179,6 +190,20 @@ export function SkillDetailView({
   // page from the first frame, never a pencil while the check is in flight.
   const editCheck = useCheckPermission(editableProp ? resourceRef : null, "can_edit", { fail: "closed" });
   const editable = editableProp && editCheck.allowed;
+  // A new version is a fresh upload of the same name, which the server allows
+  // only to who may upload to the organization.
+  const uploadCheck = useCanCreateSkill(onUploadNewVersion ? org : null);
+  const headerPrimary = useMemo<DetailAction | undefined>(() => {
+    if (primaryAction) return primaryAction;
+    if (!onUploadNewVersion || !uploadCheck.allowed) return undefined;
+    return {
+      id: "upload-new-version",
+      label: "Upload a new version",
+      icon: <Upload className="stg:size-3.5" aria-hidden="true" />,
+      buttonVariant: "outline",
+      onAction: onUploadNewVersion,
+    };
+  }, [primaryAction, onUploadNewVersion, uploadCheck.allowed]);
   const versionPages = useSkillVersions(org, slug);
   const { versions, isEmpty: noVersions, getArtifactKey } = versionPages;
   const [diffState, setDiffState] = useState<SkillDiffDialogState | null>(null);
@@ -322,7 +347,7 @@ export function SkillDetailView({
         header={headerMeta}
         headingLevel={headingLevel}
         visibilityControl={visibilityControl}
-        primaryAction={primaryAction}
+        primaryAction={headerPrimary}
         actions={mergedActions}
         resource={resourceRef}
         tabs={effectiveTabs}

@@ -267,13 +267,13 @@
         "word “Can I talk to someone before we close the quarter?”": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
         "type Agent": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
       },
-      "ruled": {},
-      "pending": {
-        "word The customer asked for a person.": "#3210: the notice says \"The agent asked for a person.\": the flag is the agent's escalation and its reason is the agent's own words; shown at his Built look.",
-        "type Dismiss": "#3210: Dismiss is the notice's link beside Take over, not a second button; shown at his Built look.",
-        "word Take over to reply": "#3210: the composer keeps its own words (\"Reply as your business…\") while the agent holds the conversation.",
-        "button Dismiss": "#3210: Dismiss is the notice's link beside Take over, not a second button; shown at his Built look."
-      }
+      "ruled": {
+        "word The customer asked for a person.": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen (the notice says \"The agent asked for a person.\": the flag is the agent's escalation and its reason is the agent's own words).",
+        "type Dismiss": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen (Dismiss is the notice's link beside Take over, not a second button).",
+        "word Take over to reply": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen (the composer keeps its own words (\"Reply as your business…\") while the agent holds the conversation).",
+        "button Dismiss": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen (Dismiss is the notice's link beside Take over, not a second button)."
+      },
+      "pending": {}
     },
     {
       "caption": "Conversations: You took it over",
@@ -493,19 +493,19 @@
         "word Jul 19": "the scene's data differs (conversations-taken-over)",
         "word +1 555 010 0142 · WhatsApp · Variance reporter": "the scene's data differs (conversations-taken-over)"
       },
-      "ruled": {},
-      "pending": {
-        "word All channels": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word 13m": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Harbor Dental": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word #billing · Slack": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word 1h": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Sam Okafor": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Chat link": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "type Northwind Books": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "type Agent": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Reply as Acme Books…": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word All channels": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word 13m": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Harbor Dental": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word #billing · Slack": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word 1h": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Sam Okafor": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Chat link": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Northwind Books": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "type Agent": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word Reply as Acme Books…": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "Conversations: Nothing chosen yet",
@@ -726,11 +726,11 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "word Open Channels": "#3210: the empty conversations page offers no way to the channels yet: the workbench gets no channels address from its host.",
-        "button Open Channels": "#3210: the empty conversations page offers no way to the channels yet: the workbench gets no channels address from its host."
-      }
+      "ruled": {
+        "word Open Channels": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen (the empty conversations page offers no way to the channels yet: the workbench gets no channels address from its host).",
+        "button Open Channels": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen (the empty conversations page offers no way to the channels yet: the workbench gets no channels address from its host)."
+      },
+      "pending": {}
     },
     {
       "caption": "Conversations: Didn't load",
@@ -1133,13 +1133,13 @@
         "word “Can I talk to someone before we close the quarter?”": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
         "type Agent": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
       },
-      "ruled": {},
-      "pending": {
-        "word The customer asked for a person.": "#3210: the notice says \"The agent asked for a person.\": the flag is the agent's escalation and its reason is the agent's own words; shown at his Built look.",
-        "type Dismiss": "#3210: Dismiss is the notice's link beside Take over, not a second button; shown at his Built look.",
-        "word Take over to reply": "#3210: the composer keeps its own words (\"Reply as your business…\") while the agent holds the conversation.",
-        "button Dismiss": "#3210: Dismiss is the notice's link beside Take over, not a second button; shown at his Built look."
-      }
+      "ruled": {
+        "word The customer asked for a person.": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen (the notice says \"The agent asked for a person.\": the flag is the agent's escalation and its reason is the agent's own words).",
+        "type Dismiss": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen (Dismiss is the notice's link beside Take over, not a second button).",
+        "word Take over to reply": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen (the composer keeps its own words (\"Reply as your business…\") while the agent holds the conversation).",
+        "button Dismiss": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen (Dismiss is the notice's link beside Take over, not a second button)."
+      },
+      "pending": {}
     }
   ]
 }

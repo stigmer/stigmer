@@ -427,16 +427,16 @@
         "word The month-end checklist, in order.": "the scene's data differs (agent-profile-owner)",
         "word MCP servers 1": "the scene's data differs (agent-profile-owner)"
       },
-      "ruled": {},
-      "pending": {
-        "word In your app": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Name": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type Slug": "When its page is redesigned: built 14/20 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "word The conversation's harness": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word None: the server's standard sandbox.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "button Edit slug": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)",
-        "button Edit instructions": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word In your app": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Name": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Slug": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word The conversation's harness": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word None: the server's standard sandbox.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "button Edit slug": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Edit instructions": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     },
     {
       "caption": "An agent: Overview, as someone who may only use it",
@@ -809,14 +809,14 @@
         "word The month-end checklist, in order.": "the scene's data differs (agent-profile-viewer)",
         "word MCP servers 1": "the scene's data differs (agent-profile-viewer)"
       },
-      "ruled": {},
-      "pending": {
-        "word Name": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Slug": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word The conversation's harness": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Environment": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word None: the server's standard sandbox.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Name": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Slug": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word The conversation's harness": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Environment": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word None: the server's standard sandbox.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "An agent: Installed by a plugin: read here, changed in the plugin",
@@ -1513,15 +1513,15 @@
         "word 3 versions": "the scene's data differs (agent-make-it-yours)",
         "word You review a customer's quarterly ledger. Each row has an account, its budget and its actual amount. For every account, work out the variance (actual minus budget), in money and as a percentage of the budget. Flag each account that is more than 10% over or under budget.": "the scene's data differs (agent-make-it-yours)"
       },
-      "ruled": {},
-      "pending": {
-        "type Choose a file": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
-        "type Add it": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
-        "type Put it in your app": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
-        "button Choose a file": "When its page is redesigned: built 28px tall, drawn 32px; the Library pages' remaining differences (stigmer#3210)",
-        "button Add it": "When its page is redesigned: built 28px tall, drawn 32px; the Library pages' remaining differences (stigmer#3210)",
-        "button Put it in your app": "When its page is redesigned: built 28px tall, drawn 32px; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "type Choose a file": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "type Add it": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "type Put it in your app": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Choose a file": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Add it": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Put it in your app": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     },
     {
       "caption": "An agent: In your app, on the parts",
@@ -1889,19 +1889,19 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "type Your backend": "When its page is redesigned: built 14/20 weight 400, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
-        "type Next.js": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
-        "type Node": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
-        "type Python": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
-        "type Go": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
-        "type Java": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
-        "type Create accounts on sign-in": "When its page is redesigned: built 14/20 weight 400, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
-        "type Install": "When its page is redesigned: built 11/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "type npm install @stigmer/client": "When its page is redesigned: built 11/17.88 weight 400, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "word Want a public helper anyone on your site can use without signing in? A chat link's Embed tab gives you one line to paste. Open Channels": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "type Your backend": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "type Next.js": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "type Node": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "type Python": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "type Go": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "type Java": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "type Create accounts on sign-in": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "type Install": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "type npm install @stigmer/client": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word Want a public helper anyone on your site can use without signing in? A chat link's Embed tab gives you one line to paste. Open Channels": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "An agent: Channels, none yet",
@@ -2105,13 +2105,13 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "word In your app": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Connect Slack or WhatsApp, or make a chat link, so your customers can talk to Ledger reviewer where they already are.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Connect a channel": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "button Connect a channel": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word In your app": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Connect Slack or WhatsApp, or make a chat link, so your customers can talk to Ledger reviewer where they already are.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Connect a channel": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "button Connect a channel": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     },
     {
       "caption": "An agent: Evals, didn't load",
@@ -2335,12 +2335,12 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "word In your app": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word the eval store did not answer": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Stuck? Ask IT on Slack": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word In your app": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word the eval store did not answer": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Stuck? Ask IT on Slack": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "An agent: Versions",
@@ -2596,19 +2596,19 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "word In your app": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Version 3": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Changed the instructions \u00b7 Ada Lovelace \u00b7 2d": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Current": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Version 2": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Added the skill month-end-close \u00b7 Ada Lovelace \u00b7 Jul 12": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Restore": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Version 1": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Created \u00b7 Ada Lovelace \u00b7 Jul 2": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "button Restore": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word In your app": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Version 3": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Changed the instructions · Ada Lovelace · 2d": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Current": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Version 2": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Added the skill month-end-close · Ada Lovelace · Jul 12": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Restore": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Version 1": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Created · Ada Lovelace · Jul 2": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "button Restore": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     },
     {
       "caption": "An agent: At 390 wide",
@@ -3033,16 +3033,16 @@
         "word The month-end checklist, in order.": "the scene's data differs (agent-profile-owner)",
         "word MCP servers 1": "the scene's data differs (agent-profile-owner)"
       },
-      "ruled": {},
-      "pending": {
-        "word In your app": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Name": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type Slug": "When its page is redesigned: built 14/20 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "word The conversation's harness": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word None: the server's standard sandbox.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "button Edit slug": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)",
-        "button Edit instructions": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word In your app": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Name": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Slug": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word The conversation's harness": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word None: the server's standard sandbox.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "button Edit slug": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Edit instructions": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     }
   ]
 }

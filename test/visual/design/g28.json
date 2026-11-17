@@ -88,15 +88,15 @@
       "sample": {
         "word Drop a plugin's .zip here": "the scene's data differs (plugin-upload-first)"
       },
-      "ruled": {},
-      "pending": {
-        "word Upload plugin": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Install a plugin you have on your computer. An agent that uses it gets its skills, agents, hooks and MCP servers.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word A folder with a plugin.json at its top, zipped. Up to 50 MB.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Choose a file": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "button Choose a file": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)",
-        "button Upload plugin": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Upload plugin": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Install a plugin you have on your computer. An agent that uses it gets its skills, agents, hooks and MCP servers.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word A folder with a plugin.json at its top, zipped. Up to 50 MB.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Choose a file": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "button Choose a file": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Upload plugin": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     },
     {
       "caption": "Upload plugin: Chosen, before upload",
@@ -230,19 +230,19 @@
       "sample": {
         "word Ledger reviewer": "the scene's data differs (plugin-upload-chosen)"
       },
-      "ruled": {},
-      "pending": {
-        "word Upload plugin": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Install a plugin you have on your computer. An agent that uses it gets its skills, agents, hooks and MCP servers.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word What it brings": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Skill": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word MCP server": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Cancel": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "button Remove the file": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "button Upload plugin": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "button Cancel": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word 88 KB \u00b7 plugin.json and 4 more": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Upload plugin": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Install a plugin you have on your computer. An agent that uses it gets its skills, agents, hooks and MCP servers.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word What it brings": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Skill": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word MCP server": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Cancel": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "button Remove the file": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Upload plugin": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Cancel": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word 88 KB · plugin.json and 4 more": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "Upload plugin: Refused: not a plugin",
@@ -334,17 +334,17 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "word Upload plugin": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Install a plugin you have on your computer. An agent that uses it gets its skills, agents, hooks and MCP servers.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word A folder with a plugin.json at its top, zipped. Up to 50 MB.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Choose a file": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "button Choose a file": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "button Upload plugin": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Drop a plugin's .zip here": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word This isn't a plugin: there's no plugin.json at the top of ledger-tools.zip.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Upload plugin": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Install a plugin you have on your computer. An agent that uses it gets its skills, agents, hooks and MCP servers.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word A folder with a plugin.json at its top, zipped. Up to 50 MB.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Choose a file": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "button Choose a file": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Upload plugin": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word Drop a plugin's .zip here": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word This isn't a plugin: there's no plugin.json at the top of ledger-tools.zip.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "Upload plugin: A version already installed",
@@ -494,20 +494,20 @@
       "sample": {
         "word Ledger reviewer": "the scene's data differs (plugin-upload-installed)"
       },
-      "ruled": {},
-      "pending": {
-        "word Upload plugin": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Install a plugin you have on your computer. An agent that uses it gets its skills, agents, hooks and MCP servers.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word What it brings": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Skill": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word MCP server": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Cancel": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "button Remove the file": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "button Cancel": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word 88 KB \u00b7 plugin.json and 4 more": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word acme already has Ledger tools 1.2.0.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Uploading replaces it with 1.3.0 for every agent that uses it. 1.2.0 stays under its Versions.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Upload plugin": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Install a plugin you have on your computer. An agent that uses it gets its skills, agents, hooks and MCP servers.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word What it brings": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Skill": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word MCP server": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Cancel": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "button Remove the file": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Cancel": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word 88 KB · plugin.json and 4 more": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word acme already has Ledger tools 1.2.0.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Uploading replaces it with 1.3.0 for every agent that uses it. 1.2.0 stays under its Versions.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "Upload plugin: At 390 wide",
@@ -641,19 +641,19 @@
       "sample": {
         "word Ledger reviewer": "the scene's data differs (plugin-upload-chosen)"
       },
-      "ruled": {},
-      "pending": {
-        "word Upload plugin": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Install a plugin you have on your computer. An agent that uses it gets its skills, agents, hooks and MCP servers.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word What it brings": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Skill": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word MCP server": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Cancel": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "button Remove the file": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "button Upload plugin": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "button Cancel": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word 88 KB \u00b7 plugin.json and 4 more": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Upload plugin": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Install a plugin you have on your computer. An agent that uses it gets its skills, agents, hooks and MCP servers.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word What it brings": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Skill": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word MCP server": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Cancel": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "button Remove the file": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Upload plugin": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Cancel": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word 88 KB · plugin.json and 4 more": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     }
   ]
 }

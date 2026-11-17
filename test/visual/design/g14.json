@@ -317,13 +317,13 @@
         "button Actions for receipts-sweep": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
         "button Actions for vendor-intake": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
       },
-      "ruled": {},
-      "pending": {
-        "word Search routines": "#3210: this kind's list backend has no text search, so the drawn search box is not built; it waits on one.",
-        "word Finished 6m": "#3210: the Last run column says when, not how the run ended; the outcome pill waits on the last run's outcome in the routine list's read.",
-        "word Finished 16d": "#3210: the Last run column says when, not how the run ended; the outcome pill waits on the last run's outcome in the routine list's read.",
-        "word Didn't finish 2d": "#3210: the Last run column says when, not how the run ended; the outcome pill waits on the last run's outcome in the routine list's read."
-      }
+      "ruled": {
+        "word Search routines": "His Built look, 2026-11-17: search leaves this list's drawing; its list backend has none.",
+        "word Finished 6m": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen (the Last run column says when, not how the run ended; the outcome pill waits on the last run's outcome in the routine list's read).",
+        "word Finished 16d": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen (the Last run column says when, not how the run ended; the outcome pill waits on the last run's outcome in the routine list's read).",
+        "word Didn't finish 2d": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen (the Last run column says when, not how the run ended; the outcome pill waits on the last run's outcome in the routine list's read)."
+      },
+      "pending": {}
     },
     {
       "caption": "Routines: None yet, for someone who may add one",
@@ -406,7 +406,7 @@
       "caption": "Routines: A search that matches nothing",
       "narrow": false,
       "built": [],
-      "unbuilt": "This kind's list has no text search: its list backend has none (the workbench's searchable is off), so the drawn search box and its no-match state are not built (#3210).",
+      "unbuilt": "This kind's list has no text search: its list backend has none, so the drawn search box and its no-match state left the drawing at his Built look, 2026-11-17.",
       "words": [
         {
           "text": "Routines",
@@ -579,7 +579,7 @@
       "caption": "Routines: Loading",
       "narrow": false,
       "built": [],
-      "unbuilt": "Not pictured for this kind: the gallery pictures this state once, on the Agents list (the same part), so its facts are read there (#3210).",
+      "unbuilt": "Not pictured for this kind: the gallery pictures this state once, on the Agents list (the same part), so its facts are read there.",
       "words": [
         {
           "text": "Routines",
@@ -807,10 +807,10 @@
         "button Actions for receipts-sweep": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
         "button Actions for vendor-intake": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
       },
-      "ruled": {},
-      "pending": {
-        "word Search routines": "#3210: this kind's list backend has no text search, so the drawn search box is not built; it waits on one."
-      }
+      "ruled": {
+        "word Search routines": "His Built look, 2026-11-17: search leaves this list's drawing; its list backend has none."
+      },
+      "pending": {}
     }
   ]
 }

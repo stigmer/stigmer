@@ -220,15 +220,13 @@
         "word Post the accruals the controller approved.": "the scene's data differs (skill-files)",
         "word Run the variance report and explain anything over 10%.": "the scene's data differs (skill-files)"
       },
-      "ruled": {},
-      "pending": {
-        "word Upload a new version": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Content": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Versions": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type references": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "type scripts": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "button Upload a new version": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Content": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Versions": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type references": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "type scripts": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     },
     {
       "caption": "A skill: Content: a script open (no Rendered and Source for code)",
@@ -402,15 +400,13 @@
         "word Updated Jul 18, 2026": "the scene's data differs (skill-files-script)",
         "word Python \u00b7 10 lines": "the scene's data differs (skill-files-script)"
       },
-      "ruled": {},
-      "pending": {
-        "word Upload a new version": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Content": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Versions": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type references": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "type scripts": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "button Upload a new version": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Content": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Versions": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type references": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "type scripts": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     },
     {
       "caption": "A skill: Versions",
@@ -541,18 +537,16 @@
         "word month-end-close": "the scene's data differs (skill-files-versions)",
         "word The month-end checklist, in order, with who signs off each step.": "the scene's data differs (skill-files-versions)"
       },
-      "ruled": {},
-      "pending": {
-        "word Upload a new version": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Version 2": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Current": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Version 1": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "button Upload a new version": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Uploaded by Ada Lovelace": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Updated Jul 18, 2026": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Uploaded by Ada Lovelace \u00b7 Jul 18": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Uploaded by Ada Lovelace \u00b7 Jul 2": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Version 2": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Current": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Version 1": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Uploaded by Ada Lovelace": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Updated Jul 18, 2026": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Uploaded by Ada Lovelace · Jul 18": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Uploaded by Ada Lovelace · Jul 2": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "A skill: Content, didn't load",
@@ -691,16 +685,14 @@
         "word month-end-close": "the scene's data differs (skill-files-failed)",
         "word The month-end checklist, in order, with who signs off each step.": "the scene's data differs (skill-files-failed)"
       },
-      "ruled": {},
-      "pending": {
-        "word Upload a new version": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Content": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Versions": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Stuck? Ask IT on Slack": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "button Upload a new version": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Uploaded by Ada Lovelace": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Updated Jul 18, 2026": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Content": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Versions": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Stuck? Ask IT on Slack": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Uploaded by Ada Lovelace": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Updated Jul 18, 2026": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "A skill: At 390 wide: the file picked from a list above it",
@@ -886,13 +878,11 @@
         "word Post the accruals the controller approved.": "the scene's data differs (skill-files)",
         "word Run the variance report and explain anything over 10%.": "the scene's data differs (skill-files)"
       },
-      "ruled": {},
-      "pending": {
-        "word Upload a new version": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Content": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Versions": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "button Upload a new version": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Content": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Versions": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     }
   ]
 }

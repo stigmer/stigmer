@@ -190,16 +190,16 @@
         "button Actions for ledger-locked": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
         "button Actions for open-web": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
       },
-      "ruled": {},
-      "pending": {
-        "word Search environments": "#3210: this kind's list backend has no text search, so the drawn search box is not built; it waits on one."
-      }
+      "ruled": {
+        "word Search environments": "His Built look, 2026-11-17: search leaves this list's drawing; its list backend has none."
+      },
+      "pending": {}
     },
     {
       "caption": "Environments: A row's acts, for someone who may delete it (someone who may not sees Copy ID only)",
       "narrow": false,
       "built": [],
-      "unbuilt": "An Environment's row offers Copy ID only: its delete stays on its own page, where it names the agents and routines that use it, so the drawn row Delete is not built (#3210).",
+      "unbuilt": "An Environment's row offers Copy ID only: its delete stays on its own page, where it names the agents and routines that use it, so the drawn row Delete is not built (his Built look, 2026-11-17: kept as built).",
       "words": [
         {
           "text": "Environments",
@@ -507,16 +507,16 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "button Apply YAML": "#3210: the drawing offers a member Apply YAML for Environments; the kit offers it only to someone who may create one (CON-01), so the drawing is redrawn at the Library page's next version."
-      }
+      "ruled": {
+        "button Apply YAML": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen (the drawing offers a member Apply YAML for Environments; the kit offers it only to someone who may create one (CON-01), so the drawing is redrawn at the Library page's next version)."
+      },
+      "pending": {}
     },
     {
       "caption": "Environments: A search that matches nothing",
       "narrow": false,
       "built": [],
-      "unbuilt": "This kind's list has no text search: its list backend has none (the workbench's searchable is off), so the drawn search box and its no-match state are not built (#3210).",
+      "unbuilt": "This kind's list has no text search: its list backend has none, so the drawn search box and its no-match state left the drawing at his Built look, 2026-11-17.",
       "words": [
         {
           "text": "Environments",
@@ -689,7 +689,7 @@
       "caption": "Environments: Loading",
       "narrow": false,
       "built": [],
-      "unbuilt": "Not pictured for this kind: the gallery pictures this state once, on the Agents list (the same part), so its facts are read there (#3210).",
+      "unbuilt": "Not pictured for this kind: the gallery pictures this state once, on the Agents list (the same part), so its facts are read there.",
       "words": [
         {
           "text": "Environments",
@@ -897,10 +897,10 @@
         "button Actions for ledger-locked": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
         "button Actions for open-web": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
       },
-      "ruled": {},
-      "pending": {
-        "word Search environments": "#3210: this kind's list backend has no text search, so the drawn search box is not built; it waits on one."
-      }
+      "ruled": {
+        "word Search environments": "His Built look, 2026-11-17: search leaves this list's drawing; its list backend has none."
+      },
+      "pending": {}
     }
   ]
 }

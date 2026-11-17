@@ -208,10 +208,10 @@
         "button Actions for chart-of-accounts.xlsx": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
         "button Actions for vendor-w9-template.pdf": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
       },
-      "ruled": {},
-      "pending": {
-        "word Search files": "#3210: this kind's list backend has no text search, so the drawn search box is not built; it waits on one."
-      }
+      "ruled": {
+        "word Search files": "His Built look, 2026-11-17: search leaves this list's drawing; its list backend has none."
+      },
+      "pending": {}
     },
     {
       "caption": "Files: None yet, for someone who may add one",
@@ -290,7 +290,7 @@
       "caption": "Files: A search that matches nothing",
       "narrow": false,
       "built": [],
-      "unbuilt": "This kind's list has no text search: its list backend has none (the workbench's searchable is off), so the drawn search box and its no-match state are not built (#3210).",
+      "unbuilt": "This kind's list has no text search: its list backend has none, so the drawn search box and its no-match state left the drawing at his Built look, 2026-11-17.",
       "words": [
         {
           "text": "Files",
@@ -455,7 +455,7 @@
       "caption": "Files: Loading",
       "narrow": false,
       "built": [],
-      "unbuilt": "Not pictured for this kind: the gallery pictures this state once, on the Agents list (the same part), so its facts are read there (#3210).",
+      "unbuilt": "Not pictured for this kind: the gallery pictures this state once, on the Agents list (the same part), so its facts are read there.",
       "words": [
         {
           "text": "Files",
@@ -620,10 +620,10 @@
         "button Actions for chart-of-accounts.xlsx": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
         "button Actions for vendor-w9-template.pdf": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
       },
-      "ruled": {},
-      "pending": {
-        "word Search files": "#3210: this kind's list backend has no text search, so the drawn search box is not built; it waits on one."
-      }
+      "ruled": {
+        "word Search files": "His Built look, 2026-11-17: search leaves this list's drawing; its list backend has none."
+      },
+      "pending": {}
     }
   ]
 }

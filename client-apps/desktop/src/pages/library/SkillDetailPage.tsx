@@ -101,6 +101,7 @@ export default function SkillDetailPage() {
         slug={slug}
         editable
         onResourceLoad={handleResourceLoad}
+        onUploadNewVersion={() => navigate("/library/skills/new")}
         actions={actions}
       />
       <ConfirmDialog
