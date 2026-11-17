@@ -334,15 +334,23 @@ describe("hasDesktopInstaller", () => {
     expect(fetchStub).toHaveBeenCalledTimes(1);
   });
 
-  it("ignores a remembered value that is not an answer", async () => {
-    localStorage.setItem(INSTALLER_KEY, "{not json");
-    const { hasDesktopInstaller } = await load();
-    setUserAgent(UA.windows);
-    const fetchStub = stubRelease(releaseAnswer(RELEASE));
+  it.each([
+    "{not json",
+    "42",
+    "null",
+    JSON.stringify({ installer: "yes", checkedAt: 1 }),
+  ])(
+    "ignores a remembered value that is not an answer (%s)",
+    async (stored) => {
+      localStorage.setItem(INSTALLER_KEY, stored);
+      const { hasDesktopInstaller } = await load();
+      setUserAgent(UA.windows);
+      const fetchStub = stubRelease(releaseAnswer(RELEASE));
 
-    expect(await hasDesktopInstaller()).toBe(true);
-    expect(fetchStub).toHaveBeenCalledTimes(1);
-  });
+      expect(await hasDesktopInstaller()).toBe(true);
+      expect(fetchStub).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it("still answers when storage is blocked, remembering it for the page load", async () => {
     const refuse = () => {

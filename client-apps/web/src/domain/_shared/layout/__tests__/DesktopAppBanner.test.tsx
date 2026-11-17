@@ -240,6 +240,22 @@ describe("ShellDesktopBanner", () => {
     ).toBeTruthy();
   });
 
+  it("stays hidden when the installer question itself fails", async () => {
+    localStorage.setItem(FIRST_SEEN_KEY, "2026-11-01T00:00:00.000Z");
+    download.hasInstaller.mockRejectedValue(
+      new Error("release API unreachable"),
+    );
+    const ShellDesktopBanner = await loadShellBanner();
+
+    render(<ShellDesktopBanner />);
+    await waitFor(() => expect(download.hasInstaller).toHaveBeenCalledTimes(1));
+    await flush();
+
+    expect(
+      screen.queryByRole("complementary", { name: "Desktop app" }),
+    ).toBeNull();
+  });
+
   it("stays hidden when the release has no installer for this platform", async () => {
     localStorage.setItem(FIRST_SEEN_KEY, "2026-11-01T00:00:00.000Z");
     download.hasInstaller.mockResolvedValue(false);
