@@ -622,7 +622,7 @@ function OutputRefText({ view, className }: { view: OutputRefView; className?: s
           <button
             type="button"
             onClick={() => setExpanded(true)}
-            // eslint-disable-next-line stigmer/no-handrolled-button -- the session viewer's own output controls, which passed as built
+            // eslint-disable-next-line stigmer/no-handrolled-button -- the session viewer's own output controls, which passed as built; their redraw is #3251
             className="stg:inline-block stg:text-xs stg:font-medium stg:text-primary stg:underline-offset-2 stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
           >
             View full output{sizeSuffix}
@@ -640,7 +640,7 @@ function OutputRefText({ view, className }: { view: OutputRefView; className?: s
               type="button"
               onClick={() => download(view.storageKey)}
               disabled={isDownloading}
-              // eslint-disable-next-line stigmer/no-handrolled-button -- the session viewer's own output controls, which passed as built
+              // eslint-disable-next-line stigmer/no-handrolled-button -- the session viewer's own output controls, which passed as built; their redraw is #3251
               className="stg:inline-block stg:text-xs stg:font-medium stg:text-primary stg:underline-offset-2 stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:disabled:opacity-50"
             >
               {isDownloading ? "Preparing download…" : `Output truncated — download full file${sizeSuffix}`}

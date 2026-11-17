@@ -110,6 +110,9 @@ describe("CON-09 every action button is the kit's Button, IconButton or LinkButt
       { code: '<button className="stg:bg-primary" />', filename: "/repo/client-apps/web/src/components/button/X.tsx", errors: primary },
       // A <button> in the link colour is an act dressed as a link, whatever its hover.
       { code: '<button className="stg:text-primary stg:hover:underline">Load more</button>', errors: linkStyled },
+      // A width or theme variant is still at rest: only a state (hover, focus, aria-*) is not.
+      { code: '<button className="stg:md:text-primary">Load more</button>', errors: linkStyled },
+      { code: '<button className="stg:dark:text-primary">Load more</button>', errors: linkStyled },
       { code: '<button className="stg:text-primary stg:hover:text-foreground">Download</button>', errors: linkStyled },
       { code: '<button className="text-primary text-xs">View</button>', errors: linkStyled },
       { code: '<motion.button className="stg:text-primary" />', errors: linkStyled },
