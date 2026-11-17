@@ -16,14 +16,16 @@ import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Button } from "../button/Button.js";
+import { FieldError } from "../internal/form/Field.js";
+import { Section } from "../resource-detail/Section.js";
 
 /** The memory row's copy where each member's own switch must also be on. */
 const MEMBER_CONSENT_MEMORY_HELPER_TEXT =
-  "Allow agents to remember confirmed facts about members of this organization. Each member must also turn memory on in their own account preferences; once a member has many memories, each conversation recalls their most relevant ones, shown on the run. Changes apply immediately.";
+  "Each member must also turn memory on in their own preferences. Once a member has many memories, each conversation recalls the most relevant ones, shown on the run. Saves as you switch it.";
 
 /** The memory row's copy on a server where this switch alone decides memory. */
 const ORG_ALONE_MEMORY_HELPER_TEXT =
-  "Allow agents to remember confirmed facts. On this server this switch alone decides memory; once there are many memories, each conversation recalls the most relevant ones, shown on the run. Changes apply immediately.";
+  "On this server this switch alone decides memory. Once there are many memories, each conversation recalls the most relevant ones, shown on the run. Saves as you switch it.";
 
 /** Props for {@link OrgPreferencesPanel}. */
 export interface OrgPreferencesPanelProps {
@@ -210,63 +212,71 @@ export function OrgPreferencesPanel({
   // Render
   // -----------------------------------------------------------------------
 
+  const orgName = organization.metadata?.slug || "this organization";
   return (
-    <form onSubmit={handleSubmit} className={cn("stg:space-y-4", className)}>
-      <StandingContextField
-        id={`${baseId}-standing-context`}
-        value={standingContext}
-        onChange={setStandingContext}
-        disabled={isUpdating}
-        readOnly={!canEdit}
-        placeholder={
-          "e.g. We deploy to us-east-1. Our stack is Go and TypeScript. Prefer concise answers."
-        }
-        helperText="Shared with agents as background context — not instructions. Applies to runs started by signed-in members of this organization and is visible on their run records."
-      />
-
-      <MemoryEnabledRow
-        id={`${baseId}-memory-enabled`}
-        checked={organization.spec?.preferences?.memoryEnabled ?? false}
-        onToggle={(next) => void handleMemoryToggle(next)}
-        saving={isSavingMemoryFlag}
-        readOnly={!canEdit}
-        error={memoryFlagError}
-        helperText={memoryHelperText}
-      />
-
-      <DefaultEnvironmentRow
-        id={`${baseId}-default-environment`}
-        organization={organization}
-        readOnly={!canEdit}
-        onSaved={handleDefaultEnvironmentSaved}
-      />
-
+    <form onSubmit={handleSubmit} className={cn("stg:flex stg:flex-col stg:gap-4", className)}>
       {editDenied && (
-        <p className="stg:text-2xs stg:text-muted-foreground">
-          Only organization admins can edit these preferences.
-        </p>
+        <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">Only admins of {orgName} change these.</p>
       )}
       {checkFailed && <EditCheckFailed what="edit these preferences" onRetry={editCheck.refetch} />}
 
-      {updateError && (
-        <p className="stg:text-destructive stg:text-2xs" role="alert">
-          {saveErrorMessage(updateError, "organization")}
-        </p>
-      )}
+      <Section title={`What agents should know about ${orgName}`}>
+        <div className="stg:flex stg:flex-col stg:gap-3 stg:p-4">
+          <StandingContextField
+            id={`${baseId}-standing-context`}
+            value={standingContext}
+            onChange={setStandingContext}
+            disabled={isUpdating}
+            readOnly={!canEdit}
+            placeholder={
+              "e.g. We deploy to us-east-1. Our stack is Go and TypeScript. Prefer concise answers."
+            }
+            helperText={`Shared with agents as background, not as instructions. Applies to runs started by signed-in members of ${orgName} and shows on their run records.`}
+          />
 
-      {canEdit && (
-        <div className="stg:flex stg:items-center stg:gap-2">
-          <Button type="submit" disabled={!canSubmit} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>
-            Save changes
-          </Button>
+          {updateError && <FieldError>{saveErrorMessage(updateError, "organization")}</FieldError>}
 
-          {hasChanges && !isUpdating && (
-            <Button variant="ghost" onClick={handleDiscard}>
-              Discard
-            </Button>
+          {canEdit && (
+            <div className="stg:flex stg:items-center stg:gap-2">
+              <Button type="submit" disabled={!canSubmit} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>
+                Save
+              </Button>
+
+              {hasChanges && !isUpdating && (
+                <Button variant="ghost" onClick={handleDiscard}>
+                  Discard
+                </Button>
+              )}
+            </div>
           )}
         </div>
-      )}
+      </Section>
+
+      <Section title="Memory">
+        <div className="stg:p-4">
+          <MemoryEnabledRow
+            id={`${baseId}-memory-enabled`}
+            label="Agents may remember confirmed facts"
+            checked={organization.spec?.preferences?.memoryEnabled ?? false}
+            onToggle={(next) => void handleMemoryToggle(next)}
+            saving={isSavingMemoryFlag}
+            readOnly={!canEdit}
+            error={memoryFlagError}
+            helperText={memoryHelperText}
+          />
+        </div>
+      </Section>
+
+      <Section title="Default environment">
+        <div className="stg:p-4">
+          <DefaultEnvironmentRow
+            id={`${baseId}-default-environment`}
+            organization={organization}
+            readOnly={!canEdit}
+            onSaved={handleDefaultEnvironmentSaved}
+          />
+        </div>
+      </Section>
     </form>
   );
 }

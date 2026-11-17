@@ -1,9 +1,9 @@
 "use client";
 
-import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
 import { Switch } from "../switch/Switch.js";
 import { SpinnerIcon } from "./SpinnerIcon.js";
+import { FieldError } from "./form/Field.js";
 
 /** Props for {@link MemoryEnabledRow}. */
 export interface MemoryEnabledRowProps {
@@ -25,6 +25,8 @@ export interface MemoryEnabledRowProps {
    * accessible description.
    */
   readonly helperText: string;
+  /** The switch's name, under its section's title. Defaults to "Memory". */
+  readonly label?: string;
 }
 
 /**
@@ -49,6 +51,7 @@ export function MemoryEnabledRow({
   readOnly = false,
   error,
   helperText,
+  label = "Memory",
 }: MemoryEnabledRowProps) {
   const titleId = `${id}-title`;
   const descriptionId = `${id}-description`;
@@ -59,13 +62,13 @@ export function MemoryEnabledRow({
         <div className="stg:min-w-0 stg:flex-1">
           <span
             id={titleId}
-            className="stg:block stg:text-xs stg:font-medium stg:text-foreground"
+            className="stg:block stg:text-sm stg:font-medium stg:text-foreground"
           >
-            Memory
+            {label}
           </span>
           <p
             id={descriptionId}
-            className="stg:text-2xs stg:leading-snug stg:text-muted-foreground"
+            className="stg:m-0 stg:mt-1 stg:text-xs stg:text-muted-foreground"
           >
             {helperText}
           </p>
@@ -82,11 +85,7 @@ export function MemoryEnabledRow({
           />
         </span>
       </div>
-      {error && (
-        <p className="stg:text-2xs stg:text-destructive" role="alert">
-          {getUserMessage(error)}
-        </p>
-      )}
+      {error && <FieldError>{getUserMessage(error)}</FieldError>}
     </div>
   );
 }

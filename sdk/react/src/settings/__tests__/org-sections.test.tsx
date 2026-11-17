@@ -36,6 +36,7 @@ function recordingPanel(panel: string) {
 }
 
 vi.mock("../../organization/OrgPreferencesPanel.js", () => ({ OrgPreferencesPanel: recordingPanel("preferences") }));
+vi.mock("../../organization/OrgPoliciesPanel.js", () => ({ OrgPoliciesPanel: recordingPanel("policies") }));
 vi.mock("../../organization/OrgProfilePanel.js", () => ({ OrgProfilePanel: recordingPanel("profile") }));
 // The profile section's child-organization list asks the server on its own;
 // this suite is about which organization each section hands its panels.
@@ -73,7 +74,17 @@ describe("the organization settings sections", () => {
   ] as const)("%s hands the active organization to its panel as org", (panel, Section) => {
     state.activeId = "acme";
     render(<Section />);
-    expect(state.given).toEqual([{ panel, org: "acme" }]);
+    expect(state.given).toEqual(
+      // Policies are a section of the preferences page, not a page of their own.
+      panel === "preferences" ? [{ panel, org: "acme" }, { panel: "policies", org: "acme" }] : [{ panel, org: "acme" }],
+    );
+  });
+
+  it("preferences draws Policies as its own section, saying the switch saves as it flips", () => {
+    state.activeId = "acme";
+    render(<OrgPreferencesSection />);
+    expect(screen.getByRole("heading", { name: "Policies" })).toBeTruthy();
+    expect(screen.getByText("What acme's members may do. Saves as you switch it.")).toBeTruthy();
   });
 
   it.each([

@@ -1,12 +1,17 @@
 "use client";
 
-// The Notifications settings page: whether this device tells the person
-// when a conversation they started needs them. Nothing here is read from
-// the server; the choice is this browser's.
+// The person's notifications on this device: whether it tells them when a
+// conversation they started needs them. Nothing here is read from the
+// server; the choice is this browser's. Account preferences draws it as one
+// of its sections; `NotificationsSection` keeps it as a page of its own for
+// a host that mounts it alone.
 
-import { useId, useState } from "react";
-import { Switch } from "../switch/Switch.js";
-import { Card } from "../internal/surface/Card.js";
+import { useState } from "react";
+import { getUserMessage } from "@stigmer/client";
+import { SwitchField } from "../internal/form/SwitchField.js";
+import { FieldError } from "../internal/form/Field.js";
+import { Notice } from "../internal/surface/Notice.js";
+import { Section } from "../resource-detail/Section.js";
 import { SettingsPage } from "./SettingsPage.js";
 import { useAttentionNotificationsSetting } from "../session/attentionNotificationsSetting.js";
 
@@ -23,20 +28,21 @@ export interface NotificationsSectionProps {
 }
 
 /**
- * Settings section for the person's choice to be told when a conversation
- * they started finishes, fails, or waits for their answer. Turning it on asks
- * the system's permission first, so a page never asks on load; a refusal
- * leaves it off and says where to allow it. The choice is this browser's
- * ({@link useAttentionNotificationsSetting}).
+ * The switch that tells the person when a conversation they started needs
+ * them, with what stops it: a browser that blocked notifications, one that
+ * cannot show them, or a permission request that failed.
+ *
+ * @internal Drawn by {@link NotificationsSection} and Account preferences.
  */
-export function NotificationsSection({ requestPermission, unsupported = false }: NotificationsSectionProps) {
-  const switchId = useId();
+export function NotificationsSwitch({ requestPermission, unsupported = false }: NotificationsSectionProps) {
   const { on, set } = useAttentionNotificationsSetting();
   const [asking, setAsking] = useState(false);
   const [refused, setRefused] = useState(false);
+  const [failure, setFailure] = useState<unknown>(null);
 
   async function onToggle(next: boolean) {
     setRefused(false);
+    setFailure(null);
     if (!next) {
       set(false);
       return;
@@ -46,45 +52,56 @@ export function NotificationsSection({ requestPermission, unsupported = false }:
       const allowed = await requestPermission();
       setRefused(!allowed);
       set(allowed);
+    } catch (err) {
+      // The request itself failed (a plugin error, a browser that threw):
+      // the switch stays off and says why, rather than silently undoing the
+      // flip (stigmer#2857).
+      set(false);
+      setFailure(err);
     } finally {
       setAsking(false);
     }
   }
 
   return (
+    <div className="stg:flex stg:flex-col stg:gap-3">
+      <SwitchField
+        label="Tell me when a conversation needs me"
+        hint="A notification when a conversation you started finishes, stops with an error, or waits for your answer, unless you're looking at it. On this device only."
+        checked={on && !unsupported}
+        onCheckedChange={(next) => void onToggle(next)}
+        disabled={asking || unsupported}
+      />
+      {unsupported && <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">This browser can&apos;t show notifications.</p>}
+      {refused && (
+        <Notice tone="paused" role="status" headline="Your browser blocked notifications for this site.">
+          Allow them for this site in your browser&apos;s or your system&apos;s settings, then turn this on again.
+        </Notice>
+      )}
+      {failure !== null && (
+        <FieldError>Couldn&apos;t ask to show notifications: {getUserMessage(failure)} Try again.</FieldError>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Settings section for the person's choice to be told when a conversation
+ * they started finishes, fails, or waits for their answer, as a page of its
+ * own. Turning it on asks the system's permission first, so a page never
+ * asks on load; a refusal leaves it off and says where to allow it. The
+ * choice is this browser's ({@link useAttentionNotificationsSetting}).
+ * The console draws the same switch as a section of Account preferences
+ * (`AccountPreferencesSection`'s `requestPermission`).
+ */
+export function NotificationsSection(props: NotificationsSectionProps) {
+  return (
     <SettingsPage title="Notifications" description="When this device tells you about your conversations. Applies on this device only.">
-      <Card className="stg:space-y-1">
-        <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
-          <div className="stg:min-w-0 stg:flex-1">
-            <span id={`${switchId}-title`} className="stg:block stg:text-xs stg:font-medium stg:text-foreground">
-              Tell me when a conversation needs me
-            </span>
-            <p
-              id={`${switchId}-description`}
-              className="stg:text-2xs stg:leading-snug stg:text-muted-foreground"
-            >
-              A notification when a conversation you started finishes, stops with an error, or waits for your
-              answer, unless you are looking at it.
-            </p>
-          </div>
-          <Switch
-            id={switchId}
-            checked={on && !unsupported}
-            onCheckedChange={(next) => void onToggle(next)}
-            disabled={asking || unsupported}
-            aria-labelledby={`${switchId}-title`}
-            aria-describedby={`${switchId}-description`}
-          />
+      <Section title="Conversations">
+        <div className="stg:p-4">
+          <NotificationsSwitch {...props} />
         </div>
-        {unsupported && (
-          <p className="stg:text-2xs stg:text-muted-foreground">This browser cannot show notifications.</p>
-        )}
-        {refused && (
-          <p className="stg:text-2xs stg:text-destructive" role="alert">
-            Notifications are blocked. Allow them for this site in your browser or system settings, then turn this on.
-          </p>
-        )}
-      </Card>
+      </Section>
     </SettingsPage>
   );
 }

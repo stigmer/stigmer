@@ -2,12 +2,12 @@ import { lazy, Suspense } from "react";
 import {
   createHashRouter,
   matchRoutes,
+  Navigate,
   type RouteObject,
 } from "react-router-dom";
 import {
   AccessHistorySection,
   AccountPreferencesSection,
-  NotificationsSection,
   ApiKeysSection,
   ChannelAppsSection,
   VaultsSection,
@@ -16,7 +16,6 @@ import {
   MemorySection,
   OAuthAppsSection,
   OrgPreferencesSection,
-  OrgPoliciesSection,
   OrgEmbeddingSection,
   ServiceAccountsSection,
   SettingsSkeleton,
@@ -329,19 +328,23 @@ const routes: RouteObject[] = [
                 ),
               },
               { path: "org-preferences", element: <OrgPreferencesSection /> },
-              { path: "org-policies", element: <OrgPoliciesSection /> },
+              // Policies and Notifications are sections of the two preferences
+              // pages now; their old addresses forward, so no link breaks.
+              { path: "org-policies", element: <Navigate to="/settings/org-preferences" replace /> },
               {
                 path: "org-embedding",
                 element: <OrgEmbeddingSection serviceAccountsHref="#/settings/service-accounts" />,
               },
               {
                 path: "account-preferences",
-                element: <AccountPreferencesSection modelsHubHref="#/models" />,
+                element: (
+                  <AccountPreferencesSection
+                    modelsHubHref="#/models"
+                    requestPermission={requestDesktopNotificationPermission}
+                  />
+                ),
               },
-              {
-                path: "notifications",
-                element: <NotificationsSection requestPermission={requestDesktopNotificationPermission} />,
-              },
+              { path: "notifications", element: <Navigate to="/settings/account-preferences" replace /> },
               { path: "memory", element: <MemorySection /> },
               { path: "invitations", element: <DesktopInvitationsSection /> },
               { path: "bring-others-in", element: <DesktopBringOthersIn /> },
