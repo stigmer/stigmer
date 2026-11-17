@@ -174,7 +174,7 @@ function SharedVaultRow({
         <div className="stg:space-y-4">
           <SharedVaultEntries vault={vault} org={org} readOnly={readOnly} onChanged={onChanged} />
           {!readOnly && (
-            <PermissionGate resource={{ kind: "vault", id }} relation="can_edit">
+            <PermissionGate fail="closed" resource={{ kind: "vault", id }} relation="can_edit">
               <VaultDetailsForm vault={vault} onChanged={onChanged} />
             </PermissionGate>
           )}
@@ -220,6 +220,7 @@ function SharedVaultEntries({
   if (readOnly) return editor;
   return (
     <PermissionGate
+      fail="closed"
       resource={{ kind: "vault", id: vault.metadata?.id ?? "" }}
       relation="can_edit"
       fallback={editor}
@@ -307,7 +308,7 @@ function VaultDetailsForm({
         <Button size="xs" disabled={!dirty || isUpdating || name.trim() === ""} onClick={() => void save()}>
           Save details
         </Button>
-        <PermissionGate resource={{ kind: "vault", id: vault.metadata?.id ?? "" }} relation="can_delete">
+        <PermissionGate fail="closed" resource={{ kind: "vault", id: vault.metadata?.id ?? "" }} relation="can_delete">
           {confirmingDelete ? (
             <>
               <span className="stg:text-xs stg:text-muted-foreground">

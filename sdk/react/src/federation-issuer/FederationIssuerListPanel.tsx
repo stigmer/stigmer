@@ -234,6 +234,7 @@ function IssuerRow({
           <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
             {onEdit && (
               <PermissionGate
+                fail="closed"
                 resource={{ kind: "federation_issuer", id }}
                 relation="can_edit"
               >
@@ -241,6 +242,7 @@ function IssuerRow({
               </PermissionGate>
             )}
             <PermissionGate
+              fail="closed"
               resource={{ kind: "federation_issuer", id }}
               relation="can_delete"
             >

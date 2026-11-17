@@ -177,6 +177,7 @@ export function FederationIssuerDetailPanel({
 
         {mode === "view" && (
           <PermissionGate
+            fail="closed"
             resource={{ kind: "federation_issuer", id: meta?.id ?? "" }}
             relation="can_edit"
           >

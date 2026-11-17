@@ -148,6 +148,7 @@ export function ChannelAppDetailPanel({
 
       {/* Deletion */}
       <PermissionGate
+        fail="closed"
         resource={{ kind: "channel_app", id: appId }}
         relation="can_delete"
       >
@@ -297,6 +298,7 @@ function SlackAppDetail({
 
       {/* Credential rotation */}
       <PermissionGate
+        fail="closed"
         resource={{ kind: "channel_app", id: appId }}
         relation="can_edit"
       >
@@ -471,6 +473,7 @@ function WhatsAppAppDetail({
 
       {/* Credential rotation */}
       <PermissionGate
+        fail="closed"
         resource={{ kind: "channel_app", id: appId }}
         relation="can_edit"
       >

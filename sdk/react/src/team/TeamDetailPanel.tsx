@@ -88,7 +88,7 @@ export function TeamDetailPanel({
           )}
         </div>
         {!editing && (
-          <PermissionGate resource={gate} relation="can_edit">
+          <PermissionGate fail="closed" resource={gate} relation="can_edit">
             <Button variant="ghost" size="xs" onClick={() => setEditing(true)}>
               Edit
             </Button>
@@ -121,7 +121,7 @@ export function TeamDetailPanel({
         <TeamMembersPanel teamId={teamId} org={org} />
       </section>
 
-      <PermissionGate resource={gate} relation="can_delete">
+      <PermissionGate fail="closed" resource={gate} relation="can_delete">
         <DeleteTeam teamId={teamId} name={name} onDeleted={onDeleted} />
       </PermissionGate>
     </div>

@@ -237,6 +237,7 @@ export function OAuthAppDetailPanel({
         {mode === "view" && (
           <div className="stg:flex stg:items-center stg:gap-1">
             <PermissionGate
+              fail="closed"
               resource={{ kind: "oauth_app", id: meta?.id ?? "" }}
               relation="can_edit"
             >
@@ -245,6 +246,7 @@ export function OAuthAppDetailPanel({
               </Button>
             </PermissionGate>
             <PermissionGate
+              fail="closed"
               resource={{ kind: "oauth_app", id: meta?.id ?? "" }}
               relation="can_delete"
             >

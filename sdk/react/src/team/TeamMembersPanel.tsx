@@ -132,7 +132,7 @@ export function TeamMembersPanel({ teamId, org, className }: TeamMembersPanelPro
         </p>
       )}
 
-      <PermissionGate resource={grantGate} relation="can_grant_access">
+      <PermissionGate fail="closed" resource={grantGate} relation="can_grant_access">
         <div className="stg:mt-4 stg:flex stg:items-end stg:gap-2 stg:border-t stg:border-border stg:pt-4">
           <PrincipalPicker
             org={org}
