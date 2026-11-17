@@ -252,6 +252,64 @@ describe("useSessionEvents", () => {
     expect(result.current.isStreaming).toBe(false);
   });
 
+  it("never returns another session's fold, not even in the render that carries the new id", async () => {
+    const renders: { id: string | null; turns: number | null; isConnecting: boolean; isStreaming: boolean }[] = [];
+    const { result, rerender } = renderHook(
+      ({ id }: { id: string | null }) => {
+        const events = useSessionEvents(id, QUICK);
+        renders.push({
+          id,
+          turns: events.fold?.turns.length ?? null,
+          isConnecting: events.isConnecting,
+          isStreaming: events.isStreaming,
+        });
+        return events;
+      },
+      { wrapper: Wrapper, initialProps: { id: "ses_1" as string | null } },
+    );
+    await waitFor(() => expect(streams).toHaveLength(1));
+    act(() => send(...samples.turnEvents()));
+    await waitFor(() => expect(result.current.fold).not.toBeNull());
+
+    renders.length = 0;
+    rerender({ id: "ses_2" });
+    await waitFor(() => expect(streams).toHaveLength(2));
+    // The render that switches already reads as a follow starting for ses_2.
+    expect(renders[0]).toEqual({ id: "ses_2", turns: null, isConnecting: true, isStreaming: false });
+    expect(renders.every((render) => render.turns === null)).toBe(true);
+
+    act(() => send(...samples.turnEvents({ runId: "run_2", message: "next" })));
+    await waitFor(() => expect(result.current.fold).not.toBeNull());
+
+    renders.length = 0;
+    rerender({ id: null });
+    await waitFor(() => expect(result.current.isConnecting).toBe(false));
+    expect(renders[0]).toEqual({ id: null, turns: null, isConnecting: false, isStreaming: false });
+    expect(renders.every((render) => render.turns === null && !render.isStreaming)).toBe(true);
+  });
+
+  it("keeps the fold through a reconnect of the same session, in every render", async () => {
+    const renders: (number | null)[] = [];
+    const { result } = renderHook(
+      () => {
+        const events = useSessionEvents("ses_1", QUICK);
+        renders.push(events.fold?.turns.length ?? null);
+        return events;
+      },
+      { wrapper: Wrapper },
+    );
+    await waitFor(() => expect(streams).toHaveLength(1));
+    act(() => send(...samples.turnEvents()));
+    await waitFor(() => expect(result.current.fold).not.toBeNull());
+
+    renders.length = 0;
+    act(() => result.current.reconnect());
+    await waitFor(() => expect(streams).toHaveLength(2));
+    expect(streams[1]!.request).toMatchObject({ sessionId: "ses_1", afterSeq: 4n });
+    expect(renders.length).toBeGreaterThan(0);
+    expect(renders.every((turns) => turns === 1)).toBe(true);
+  });
+
   it("is slow only while the newest turn works", async () => {
     const working = follow("ses_1", { ...QUICK, slowThresholdMs: 30 });
     await waitFor(() => expect(streams).toHaveLength(1));

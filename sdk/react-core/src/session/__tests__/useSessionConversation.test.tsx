@@ -31,6 +31,7 @@ import {
   SessionEventSchema,
   type SessionEvent,
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import type { StreamSessionEventsRequest } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import type { Stigmer, TurnPhase } from "@stigmer/client";
 import { StigmerContext } from "../../context";
 import { ExecutionTargetContext } from "../../execution-target-context";
@@ -943,5 +944,142 @@ describe("useSessionConversation — a message sent while a turn works", () => {
     act(() => events.push(samples.runStatusEvent("paused", { runId: "run_live" })));
     await waitFor(() => expect(result.current.activePhase).toBe("paused"));
     expect(result.current.canSendFollowUp).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Switching conversations
+// ---------------------------------------------------------------------------
+
+describe("useSessionConversation — switching conversations", () => {
+  interface Seen {
+    readonly id: string;
+    readonly asks: number;
+    readonly pendingUserMessage: string | null;
+    readonly sendError: string | null;
+    readonly isSending: boolean;
+    readonly canSendFollowUp: boolean;
+  }
+
+  /**
+   * Two conversations behind one client, each with its own event log, run
+   * list and session read, opened in one hook instance that stays mounted
+   * while the id changes (as the kit's session viewer does), recording every
+   * render.
+   */
+  function twoConversations(eventsB: SessionEventStream) {
+    const eventsA = events;
+    methods.sessionGet.mockImplementation((id: string) =>
+      Promise.resolve(create(SessionSchema, { metadata: { id, org: "" } })),
+    );
+    events = {
+      ...eventsA,
+      streamEvents: vi.fn((input: StreamSessionEventsRequest, signal?: AbortSignal) =>
+        (input.sessionId === "session-2" ? eventsB : eventsA).streamEvents(input, signal),
+      ),
+    };
+    stigmerClient = client();
+
+    const seen: Seen[] = [];
+    const rendered = renderHook(
+      ({ id }: { id: string }) => {
+        const conv = useSessionConversation(id, "org");
+        seen.push({
+          id,
+          asks: conv.asks.length,
+          pendingUserMessage: conv.pendingUserMessage,
+          sendError: conv.sendError?.message ?? null,
+          isSending: conv.isSending,
+          canSendFollowUp: conv.canSendFollowUp,
+        });
+        return conv;
+      },
+      { wrapper, initialProps: { id: "session-1" } },
+    );
+    return { ...rendered, seen };
+  }
+
+  async function loaded(result: { current: ReturnType<typeof useSessionConversation> }, id: string) {
+    await waitFor(() => expect(result.current.session?.metadata?.id).toBe(id));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+  }
+
+  it("carries none of the conversation just left into the render that switches: no asks", async () => {
+    events.push(...turnOpen("run_live", "waiting"), ...waitingCall("run_live", "shell"));
+    const { result, rerender, seen } = twoConversations(sessionEventStream());
+    await waitFor(() => expect(result.current.asks).toHaveLength(1));
+
+    seen.length = 0;
+    rerender({ id: "session-2" });
+    await loaded(result, "session-2");
+    expect(seen.filter((render) => render.id === "session-2").every((render) => render.asks === 0)).toBe(true);
+  });
+
+  it("keeps a failed send with its conversation: the next one starts clean, Retry there sends nothing, and it waits on return", async () => {
+    methods.runSend.mockRejectedValueOnce(new Error("create boom"));
+    methods.runSend.mockResolvedValue(makeRun("run_retry", RunPhase.RUN_PENDING));
+    const { result, rerender, seen } = twoConversations(sessionEventStream());
+    await loaded(result, "session-1");
+    await act(async () => {
+      await result.current.sendFollowUp("keep me");
+    });
+    expect(result.current.sendError?.message).toBe("create boom");
+
+    seen.length = 0;
+    rerender({ id: "session-2" });
+    await loaded(result, "session-2");
+    expect(
+      seen.every((render) => render.pendingUserMessage === null && render.sendError === null),
+    ).toBe(true);
+    await act(async () => {
+      result.current.retryLastSend();
+    });
+    expect(methods.runSend).toHaveBeenCalledTimes(1);
+
+    rerender({ id: "session-1" });
+    await loaded(result, "session-1");
+    expect(result.current.pendingUserMessage).toBe("keep me");
+    expect(result.current.sendError?.message).toBe("create boom");
+    await act(async () => {
+      result.current.retryLastSend();
+    });
+    await waitFor(() => expect(methods.runSend).toHaveBeenCalledTimes(2));
+    expect(methods.runSend).toHaveBeenLastCalledWith(
+      expect.objectContaining({ sessionId: "session-1", message: "keep me" }),
+    );
+  });
+
+  it("lands a send that resolves after the switch on its own conversation, and leaves the next one free to send", async () => {
+    let resolveSend: (run: Run) => void = () => {};
+    methods.runSend.mockReturnValueOnce(new Promise<Run>((resolve) => (resolveSend = resolve)));
+    const { result, rerender, seen } = twoConversations(sessionEventStream());
+    await loaded(result, "session-1");
+
+    let sending: Promise<void> = Promise.resolve();
+    act(() => {
+      sending = result.current.sendFollowUp("hello");
+    });
+    await waitFor(() => expect(result.current.isSending).toBe(true));
+    expect(result.current.canSendFollowUp).toBe(false);
+
+    seen.length = 0;
+    rerender({ id: "session-2" });
+    await loaded(result, "session-2");
+    await act(async () => {
+      resolveSend(makeRun("run_new", RunPhase.RUN_PENDING));
+      await sending;
+    });
+    const onB = seen.filter((render) => render.id === "session-2");
+    expect(onB.length).toBeGreaterThan(0);
+    expect(
+      onB.every((render) => render.pendingUserMessage === null && !render.isSending && render.canSendFollowUp),
+    ).toBe(true);
+
+    rerender({ id: "session-1" });
+    await loaded(result, "session-1");
+    expect(result.current.pendingUserMessage).toBe("hello");
+    act(() => events.push(...turnOpen("run_new", "pending", "hello")));
+    await waitFor(() => expect(result.current.pendingUserMessage).toBeNull());
+    expect(result.current.activeTurn?.runId).toBe("run_new");
   });
 });
