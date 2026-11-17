@@ -90,7 +90,7 @@ export function ApiKeyListPanel({
       onDeleted={refetch}
       onRetry={refetch}
       emptyText="No API keys yet"
-      emptyDescription="Make one for the CLI on a server, a CI job or a script. You see its value once, when it is made."
+      emptyDescription="A key lets the CLI on a server, a CI job or a script act as you. You see its value once, when it's made."
       emptyAction={emptyAction}
       className={className}
       now={now}
