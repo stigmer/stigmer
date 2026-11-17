@@ -68,9 +68,25 @@
  * another, and on a large enough install the last of them can still be
  * lost; the self-hosting guide says so.
  *
- * The suspend itself, and every pass's upkeep (egress
- * made current, a sleeping sandbox moved to the current template, unused
- * templates retired, a stuck delete repeated), are the driver's lifecycle
+ * An older configuration. A sandbox awake on another template than the
+ * driver's current one was started under another configuration, which
+ * may have granted it network lanes this server no longer does: a release
+ * or a development build that narrowed them, or an operator who did
+ * (template.ts names the template by those lanes too). The decision
+ * suspends it as soon as its session is not busy, whatever its idle
+ * window, and logs it apart from an idle suspend, naming both templates.
+ * The next pass's upkeep moves it to the current template, and its next
+ * wake writes the current policy (stigmer#2984). The pass and the act
+ * each read the template from the actor they judge, so one a turn moved
+ * in between is left alone. During a rolling update a replica still on
+ * the old configuration sees the new template as the other one and may
+ * put a sandbox to sleep that a new replica woke; it costs that sandbox a
+ * wake, never its files, as a turn's move between configurations does
+ * (driver.ts).
+ *
+ * The suspend itself, and every pass's upkeep (a sleeping sandbox moved
+ * to the current template, unused templates retired, a stuck delete
+ * repeated; no egress policy, which only an ensure writes), are the driver's lifecycle
  * operations, the same ones a composition with its own sweep calls
  * (driver.ts); this sweep holds only the decision of what is idle and the
  * map from sandboxes to sessions. Upkeep returns the sandboxes it failed
@@ -209,7 +225,7 @@ export async function runSweepPass(
       const action = decide(
         actor,
         await sessions.recentActivity(sessionId),
-        driver,
+        options,
         now(),
         drain?.since,
       );
@@ -305,13 +321,19 @@ async function scanSessions(
   });
 }
 
+/**
+ * The decision for one sandbox as `actor` shows it: the pass's listing, or
+ * the act's fresh read inside the queue, so a sandbox a turn moved to the
+ * current template in between is no longer outdated.
+ */
 function decide(
   actor: SubstrateActorSummary,
   activity: SessionActivity,
-  driver: SubstrateDriverInternals,
+  options: SubstrateSweepOptions,
   now: number,
   drainingSince: Date | undefined,
 ): IdleAction {
+  const { driver, lifecycle } = options;
   const stamps = [
     activity.lastActiveAt?.getTime(),
     driver.lastEnsuredAt(actor.name)?.getTime(),
@@ -324,6 +346,7 @@ function decide(
     now: new Date(now),
     suspendAfterMs: driver.settings.suspendAfterSeconds * 1000,
     ...(drainingSince !== undefined ? { drainingSince } : {}),
+    outdated: actor.template !== lifecycle.currentTemplate(),
   });
 }
 
@@ -339,20 +362,23 @@ async function act(
   options: SubstrateSweepOptions,
   now: () => number,
 ): Promise<void> {
-  const { driver, lifecycle, sessions, logger } = options;
+  const { lifecycle, sessions, logger } = options;
   const actor = sandboxBaseName("session", sessionId);
   // A store decided while the session was busy is forced (the deadline
   // passed): it ends that turn, so the turn is no reason to thaw.
   let forced = false;
+  // The template the sandbox was on when the act re-decided, for the log.
+  let template: string | undefined;
   const proceed = async (fresh: SubstrateActorSummary): Promise<boolean> => {
     const activity = await sessions.activity(sessionId);
     forced = planned === "store" && activity.busy;
+    template = fresh.template;
     // Still on the worker that was draining, or the drain no longer applies.
     const since =
       drain !== undefined && fresh.worker === drain.worker
         ? drain.since
         : undefined;
-    return decide(fresh, activity, driver, now(), since) === planned;
+    return decide(fresh, activity, options, now(), since) === planned;
   };
   const outcome = await lifecycle.suspend(
     "session",
@@ -375,6 +401,11 @@ async function act(
       sessionId,
       endedTurn: forced,
     });
+  } else if (outcome === "done" && template !== lifecycle.currentTemplate()) {
+    logger.info(
+      "Substrate sandbox suspended: it ran under an older configuration, whose network lanes this server may no longer grant; its next wake starts on the current one",
+      { actor, sessionId, template, current: lifecycle.currentTemplate() },
+    );
   } else if (outcome === "done") {
     logger.info("Substrate sandbox suspended (idle)", { actor, sessionId });
   }
