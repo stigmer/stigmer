@@ -29,6 +29,16 @@ export interface UseDeleteResourceReturn {
   readonly error: Error | null;
 }
 
+/** Options for {@link useDeleteResource}. */
+export interface UseDeleteResourceOptions {
+  /**
+   * Whether a failed delete raises an error toast. Turn it off where the
+   * caller says the failure itself, as a `ConfirmDialog` given the delete
+   * as its `action` does. @default true
+   */
+  readonly toastOnFailure?: boolean;
+}
+
 /**
  * Mutation hook for deleting a resource from its detail page.
  *
@@ -54,7 +64,9 @@ export function useDeleteResource(
   kind: DeletableResourceKind,
   resourceId: string | null,
   resourceName?: string,
+  options: UseDeleteResourceOptions = {},
 ): UseDeleteResourceReturn {
+  const toastOnFailure = options.toastOnFailure ?? true;
   const stigmer = useStigmer();
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -99,12 +111,14 @@ export function useDeleteResource(
     } catch (err) {
       const wrapped = toError(err);
       setError(wrapped);
-      toast.error(`Failed to delete ${kindLabel(kind)}`, { description: getUserMessage(wrapped) });
+      if (toastOnFailure) {
+        toast.error(`Failed to delete ${kindLabel(kind)}`, { description: getUserMessage(wrapped) });
+      }
       throw wrapped;
     } finally {
       setIsDeleting(false);
     }
-  }, [stigmer, kind, resourceId, resourceName]);
+  }, [stigmer, kind, resourceId, resourceName, toastOnFailure]);
 
   return useMemo(
     () => ({ deleteResource, isDeleting, error }),

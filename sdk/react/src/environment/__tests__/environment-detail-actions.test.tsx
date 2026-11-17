@@ -245,15 +245,18 @@ describe("deleting from the Environment page", () => {
     expect(onDeleted).not.toHaveBeenCalled();
   });
 
-  it("stays on the page when the server refuses, its sentence in the toast", async () => {
+  it("stays on the page when the server refuses, its sentence said in the confirm dialog", async () => {
     const s = server();
     s.deleteRefusal = "environment 'data-science' is still named by agent 'reviewer'; remove it from them first";
     const onDeleted = vi.fn();
     await renderPage(s, { onDeleted });
     await chooseFromMenu("Delete");
     fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Delete" }));
-    await waitFor(() => expect(toastMock.error).toHaveBeenCalled());
-    expect(toastMock.error).toHaveBeenCalledWith("Failed to delete environment", { description: s.deleteRefusal });
+    const dialog = await screen.findByRole("dialog");
+    await within(dialog).findByRole("button", { name: "Try again" });
+    expect(within(dialog).getByText(/Couldn.t delete/)).toBeTruthy();
+    expect(within(dialog).getByText(/still named by agent 'reviewer'/)).toBeTruthy();
+    expect(toastMock.error).not.toHaveBeenCalled();
     expect(s.deletes).toEqual(["env_ds"]);
     expect(onDeleted).not.toHaveBeenCalled();
   });

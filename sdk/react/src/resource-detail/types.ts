@@ -157,12 +157,31 @@ export interface ConfirmOptions {
   readonly cancelLabel?: string;
   /** Visual variant for the confirm button. @default "destructive" */
   readonly variant?: "default" | "destructive";
+  /**
+   * The act itself, run when the person confirms. Given, the dialog stays
+   * open while it runs (the confirm button waits with a spinner, Cancel and
+   * the close button are held), says a failure inside the dialog with the
+   * confirm button reading "Try again", and closes only once the act
+   * succeeds, so `confirm()` resolves `true` only after it is done.
+   * Omitted, the dialog closes on confirm and the caller acts, as before.
+   */
+  readonly action?: () => Promise<void>;
+  /**
+   * The failure's headline when `action` fails, in the page's words
+   * ("Couldn't remove Grace Hopper."). When omitted, a plain sentence for
+   * the failure's kind.
+   */
+  readonly failureTitle?: string;
 }
 
 /** Internal state of a pending confirmation. */
 export interface ConfirmState extends ConfirmOptions {
   /** Resolves the promise returned by `confirm()`. */
   readonly resolve: (confirmed: boolean) => void;
+  /** The confirmation's `action` is running. */
+  readonly busy?: boolean;
+  /** The last run of the confirmation's `action` failed with this. */
+  readonly error?: Error | null;
 }
 
 // ---------------------------------------------------------------------------

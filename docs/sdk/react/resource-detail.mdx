@@ -14,7 +14,10 @@ Import from `@stigmer/react-sdk`. The hooks and helpers on this page also import
 State management hook for confirmation dialogs.
 
 Provides an imperative `confirm()` function that returns a promise,
-paired with `confirmState` for rendering a `ConfirmDialog`.
+paired with `confirmState` for rendering a `ConfirmDialog`. A
+confirmation that carries its `action` runs it here: busy while it
+runs, its failure kept on the state for the dialog to say, closed and
+resolved `true` only on success.
 
 Separates the state logic (this hook) from the visual presentation
 (ConfirmDialog component) following the headless-first architecture.
@@ -29,10 +32,10 @@ function useConfirmAction(): UseConfirmActionReturn
 
 <TypeTable
   type={{
-    confirm: { type: "(options: ConfirmOptions) => Promise<boolean>", description: "Trigger a confirmation prompt. Returns a promise that resolves to `true` when confirmed, `false` when cancelled." },
+    confirm: { type: "(options: ConfirmOptions) => Promise<boolean>", description: "Trigger a confirmation prompt. Returns a promise that resolves to `true` when confirmed, `false` when cancelled. With an `action` in the options, it resolves `true` only once the action succeeds: a failed action keeps the dialog open to try again or cancel." },
     confirmState: { type: "ConfirmState | null", description: "The pending confirmation state, or `null` when no confirmation is active. Pass this to a `ConfirmDialog` component to render the dialog UI." },
-    handleCancel: { type: "() => void", description: "Dismiss the pending confirmation." },
-    handleConfirm: { type: "() => void", description: "Accept the pending confirmation." },
+    handleCancel: { type: "() => void", description: "Dismiss the pending confirmation. Held while its `action` runs." },
+    handleConfirm: { type: "() => void", description: "Accept the pending confirmation (runs its `action`, when it has one)." },
   }}
 />
 
@@ -83,7 +86,7 @@ a no-op in that case.
 **Signature**
 
 ```tsx
-function useDeleteResource(kind: DeletableResourceKind, resourceId: string | null, resourceName?: string): UseDeleteResourceReturn
+function useDeleteResource(kind: DeletableResourceKind, resourceId: string | null, resourceName?: string, options?: UseDeleteResourceOptions): UseDeleteResourceReturn
 ```
 
 <TypeTable
@@ -91,6 +94,7 @@ function useDeleteResource(kind: DeletableResourceKind, resourceId: string | nul
     kind: { type: "DeletableResourceKind", description: "", required: true },
     resourceId: { type: "string | null", description: "", required: true },
     resourceName: { type: "string", description: "" },
+    options: { type: "UseDeleteResourceOptions", description: "" },
   }}
 />
 
@@ -167,7 +171,11 @@ Renders on `DialogShell` (native `<dialog>` + `showModal()` — focus
 trapping, Escape, token backdrop). Styled via `--stgm-*` design tokens.
 
 Pairs with [`useConfirmAction`](#useconfirmaction) which manages the imperative
-`confirm()` → Promise pattern.
+`confirm()` → Promise pattern. A confirmation given its `action` does
+the act from the dialog: while it runs, the confirm button waits with a
+spinner and Cancel, the close button and Escape are held; a failure is
+said in the dialog (the kit's `ErrorMessage`) with the confirm button
+reading "Try again"; the dialog closes once the act succeeds.
 
 **Props** — `ConfirmDialogProps`
 
@@ -180,11 +188,19 @@ Pairs with [`useConfirmAction`](#useconfirmaction) which manages the imperative
 />
 
 ```tsx
-function DeleteWithConfirm({ onDelete }: { onDelete: () => Promise<void> }) {
+function DeleteWithConfirm({ onDelete, onDeleted }: { onDelete: () => Promise<void>; onDeleted: () => void }) {
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
   const remove = async () => {
-    const ok = await confirm({ title: "Delete agent?", description: "This cannot be undone.", confirmLabel: "Delete", variant: "destructive" });
-    if (ok) await onDelete();
+    // The dialog deletes: it waits while onDelete runs and says a failure in place.
+    const deleted = await confirm({
+      title: "Delete agent?",
+      description: "This cannot be undone.",
+      confirmLabel: "Delete",
+      variant: "destructive",
+      action: onDelete,
+      failureTitle: "Couldn't delete the agent.",
+    });
+    if (deleted) onDeleted();
   };
   return (
     <>
@@ -409,9 +425,11 @@ Options passed to `confirm()` to show a confirmation prompt.
 
 <TypeTable
   type={{
+    action: { type: "() => Promise<void>", description: "The act itself, run when the person confirms. Given, the dialog stays open while it runs (the confirm button waits with a spinner, Cancel and the close button are held), says a failure inside the dialog with the confirm button reading \"Try again\", and closes only once the act succeeds, so `confirm()` resolves `true` only after it is done. Omitted, the dialog closes on confirm and the caller acts, as before." },
     cancelLabel: { type: "string", description: "Label for the cancel button." },
     confirmLabel: { type: "string", description: "Label for the confirm button." },
     description: { type: "string", description: "Descriptive body text explaining the consequences.", required: true },
+    failureTitle: { type: "string", description: "The failure's headline when `action` fails, in the page's words (\"Couldn't remove Grace Hopper.\"). When omitted, a plain sentence for the failure's kind." },
     title: { type: "string", description: "Dialog title (e.g. \"Delete agent?\").", required: true },
     variant: { type: "\"default\" | \"destructive\"", description: "Visual variant for the confirm button." },
   }}
@@ -424,9 +442,13 @@ Internal state of a pending confirmation.
 
 <TypeTable
   type={{
+    action: { type: "() => Promise<void>", description: "The act itself, run when the person confirms. Given, the dialog stays open while it runs (the confirm button waits with a spinner, Cancel and the close button are held), says a failure inside the dialog with the confirm button reading \"Try again\", and closes only once the act succeeds, so `confirm()` resolves `true` only after it is done. Omitted, the dialog closes on confirm and the caller acts, as before." },
+    busy: { type: "boolean", description: "The confirmation's `action` is running." },
     cancelLabel: { type: "string", description: "Label for the cancel button." },
     confirmLabel: { type: "string", description: "Label for the confirm button." },
     description: { type: "string", description: "Descriptive body text explaining the consequences.", required: true },
+    error: { type: "Error | null", description: "The last run of the confirmation's `action` failed with this." },
+    failureTitle: { type: "string", description: "The failure's headline when `action` fails, in the page's words (\"Couldn't remove Grace Hopper.\"). When omitted, a plain sentence for the failure's kind." },
     resolve: { type: "(confirmed: boolean) => void", description: "Resolves the promise returned by `confirm()`.", required: true },
     title: { type: "string", description: "Dialog title (e.g. \"Delete agent?\").", required: true },
     variant: { type: "\"default\" | \"destructive\"", description: "Visual variant for the confirm button." },
@@ -502,6 +524,17 @@ protobuf to this shape before passing it to the shell.
     status: { type: "StatusPhase", description: "Resource status phase for the status badge.", typeDescriptionLink: "/docs/sdk/react/resource-workbench#statusphase" },
     statusLabel: { type: "string", description: "Custom status label (overrides the default phase label)." },
     updatedAt: { type: "Date | null", description: "Last update timestamp." },
+  }}
+/>
+
+
+### UseDeleteResourceOptions
+
+Options for [`useDeleteResource`](#usedeleteresource).
+
+<TypeTable
+  type={{
+    toastOnFailure: { type: "boolean", description: "Whether a failed delete raises an error toast. Turn it off where the caller says the failure itself, as a `ConfirmDialog` given the delete as its `action` does." },
   }}
 />
 

@@ -437,6 +437,35 @@ describe("ChannelsPanel", () => {
     await waitFor(() => expect(del).toHaveBeenCalledWith("chn_1"));
   });
 
+  it("says a failed disconnect in the confirm dialog, offers Try again, and raises no toast", async () => {
+    // The toast stand-ins are shared across this file's tests.
+    vi.mocked(toast.error).mockClear();
+    vi.mocked(toast.success).mockClear();
+    const del = vi.fn().mockRejectedValue(new ConnectError("the channel's app is unreachable", Code.Unavailable));
+    const client = createMockStigmer({
+      channels: [makeChannel({ teamName: "Acme HQ" })],
+      delete: del,
+    });
+    render(
+      <Providers client={client}>
+        <ChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
+    await openMenu(screen.getByRole("button", { name: /actions for/i }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Disconnect" }));
+    const title = await screen.findByText("Disconnect channel?");
+    const confirmDialog = title.closest("dialog") as HTMLElement;
+    fireEvent.click(within(confirmDialog).getByRole("button", { name: "Disconnect", hidden: true }));
+
+    await within(confirmDialog).findByRole("button", { name: "Try again", hidden: true });
+    expect(within(confirmDialog).getByText("Couldn't disconnect Support Slack.")).toBeTruthy();
+    expect(del).toHaveBeenCalledWith("chn_1");
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
   it("names the serving app on each card — platform vs your own app", async () => {
     const client = createMockStigmer({
       channels: [
