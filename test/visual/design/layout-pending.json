@@ -30,23 +30,6 @@
   "channel-chat-link-embed": {
     "type-off-scale pre \"<script src=\"https://app.stigmer.ai/embed.js\" async></script\": 12px on 19.5px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
-  "help": {
-    "type-off-scale a \"Conversations\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
-    "type-off-scale a \"Dashboard\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
-    "type-off-scale a \"Library\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
-    "type-off-scale a \"Marketplace\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
-    "type-off-scale a \"Models & providers\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
-    "type-off-scale a \"New Session\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
-    "type-off-scale span \"Ask IT on Slack\": 14px on 16px lines, its step pairs 20px": "The help row takes the sidebar rows' recipe, so it moves with them: stigmer#3037"
-  },
-  "help-none": {
-    "type-off-scale a \"Conversations\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
-    "type-off-scale a \"Dashboard\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
-    "type-off-scale a \"Library\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
-    "type-off-scale a \"Marketplace\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
-    "type-off-scale a \"Models & providers\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037",
-    "type-off-scale a \"New Session\": 14px on 16px lines, its step pairs 20px": "The workspace sidebar's rows: 14px on 16px lines by its recipe (sidebar/chrome.tsx navRowClassName), moved onto the scale with stigmer#3037"
-  },
   "launcher-coding-agent": {
     "type-off-scale dd \"A contract\": 12px on 20px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale dd \"A drafted reply for each, ready to review\": 12px on 20px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
@@ -873,23 +856,6 @@
     "type-off-scale p \"Conversations in sandboxes this server starts use it when ne\": 11px on 15.125px lines, its step pairs 16px": "On the scale where the settings pages are redrawn (stigmer#3239)"
   },
   "settings-sidebar": {
-    "type-off-scale a \"API Keys\": 14px on 16px lines, its step pairs 20px": "On the scale where the settings pages are redrawn (stigmer#3239)",
-    "type-off-scale a \"Back to Sessions\": 14px on 16px lines, its step pairs 20px": "On the scale where the settings pages are redrawn (stigmer#3239)",
-    "type-off-scale a \"Billing\": 14px on 16px lines, its step pairs 20px": "On the scale where the settings pages are redrawn (stigmer#3239)",
-    "type-off-scale a \"Channel Apps\": 14px on 16px lines, its step pairs 20px": "On the scale where the settings pages are redrawn (stigmer#3239)",
-    "type-off-scale a \"Embedding\": 14px on 16px lines, its step pairs 20px": "On the scale where the settings pages are redrawn (stigmer#3239)",
-    "type-off-scale a \"Federation Issuers\": 14px on 16px lines, its step pairs 20px": "On the scale where the settings pages are redrawn (stigmer#3239)",
-    "type-off-scale a \"Invitations\": 14px on 16px lines, its step pairs 20px": "On the scale where the settings pages are redrawn (stigmer#3239)",
-    "type-off-scale a \"Members\": 14px on 16px lines, its step pairs 20px": "On the scale where the settings pages are redrawn (stigmer#3239)",
-    "type-off-scale a \"Memory\": 14px on 16px lines, its step pairs 20px": "On the scale where the settings pages are redrawn (stigmer#3239)",
-    "type-off-scale a \"Notifications\": 14px on 16px lines, its step pairs 20px": "On the scale where the settings pages are redrawn (stigmer#3239)",
-    "type-off-scale a \"OAuth Apps\": 14px on 16px lines, its step pairs 20px": "On the scale where the settings pages are redrawn (stigmer#3239)",
-    "type-off-scale a \"Org Profile\": 14px on 16px lines, its step pairs 20px": "On the scale where the settings pages are redrawn (stigmer#3239)",
-    "type-off-scale a \"Policies\": 14px on 16px lines, its step pairs 20px": "On the scale where the settings pages are redrawn (stigmer#3239)",
-    "type-off-scale a \"Preferences\": 14px on 16px lines, its step pairs 20px": "On the scale where the settings pages are redrawn (stigmer#3239)",
-    "type-off-scale a \"Teams\": 14px on 16px lines, its step pairs 20px": "On the scale where the settings pages are redrawn (stigmer#3239)",
-    "type-off-scale a \"Usage\": 14px on 16px lines, its step pairs 20px": "On the scale where the settings pages are redrawn (stigmer#3239)",
-    "type-off-scale a \"Vaults\": 14px on 16px lines, its step pairs 20px": "On the scale where the settings pages are redrawn (stigmer#3239)",
     "type-off-scale span \"Acme Corp\": 14px on 17.5px lines, its step pairs 20px": "On the scale where the settings pages are redrawn (stigmer#3239)",
     "type-off-scale span \"acme\": 12px on 15px lines, its step pairs 16px": "On the scale where the settings pages are redrawn (stigmer#3239)"
   }
