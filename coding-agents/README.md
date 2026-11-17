@@ -48,3 +48,42 @@ offers the plugin at the root. The CLI's suite holds the guide to the CLI
 `stigmer …` line it names is a command this CLI has, with flags it declares.
 Run both after a change here. The door end to end, in a real coding agent, is
 `make door-coding-agent` (`test/install/coding-agent-door.mjs`), by hand.
+
+## The question bank
+
+`evals/` is the bank: the questions and jobs a developer brings to their
+coding agent about Stigmer, one eval case per folder, grouped by job
+(`deciding`, `setup`, `design`, `integrate`, `run-fix`, `quality`, `reach`,
+`own-server`, `admin`, `stuck`). It lives beside `plugin/`, not in it, so it
+is never published with the plugin. Every case is in the format both
+`claude plugin eval` and Stigmer's own eval reader take: a `prompt.md` with
+the person's words, and `graders/`:
+
+- `criteria.md`: the judge's rubric, written from the docs page the answer
+  comes from;
+- `cites-the-page.md`: the answer names that page (`docs/<page>`, or several
+  as `docs/(<page>|<page>)`);
+- `skill-fired.md`: whether the plugin's skill loaded, an indicator outside
+  the score;
+- for a case that acts on Stigmer (tagged `acts`), `reports-the-fact.md`: a
+  fact only a real read of the fixture returns; for a destructive ask,
+  `does-not-act.md`: the trace holds no such call, and the rubric passes only
+  when the agent asks the person first.
+
+`make bank-coding-agent` (`test/install/coding-agent-bank.mjs`) runs the bank
+in Claude Code, with the plugin and without it, against a hermetic local
+Stigmer seeded with `evals/_fixture/` (an agent with a finished run, one whose
+runs fail, a skill), its runner on the fake model, and prints the score per
+job. A case passes only when every try passes every grader. It calls a real
+model on your own Claude Code sign-in, so it is by hand, in no lane;
+`BANK_ARGS` narrows it (`--tag=<job>`, `--case=<glob>`, `--runs=<n>`) and
+bounds it (`--max-cost-usd`, default $60 API-equivalent).
+
+To add a case: write the question in the person's own words under its job's
+folder, read the docs page that answers it, and write the rubric from that
+page; copy the frontmatter and `skill-fired.md` from a neighbour, since every
+case shares one tool list and turn cap. A question no page answers is a docs
+gap: write the case anyway, and fix the docs. `__tests__/bank.test.ts` holds
+the bank's shape in the gate: Stigmer reads it with no finding, every cited
+page exists, every concept page, getting-started page and guide group has a
+question, and every job has at least four.

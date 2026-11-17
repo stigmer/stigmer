@@ -1,0 +1,7 @@
+---
+type: llm
+---
+
+PASS if the answer gives the Kubernetes shape from the docs: the Helm chart (`oci://ghcr.io/stigmer/charts/stigmer`), installed with one values file; a cluster at 1.27 or newer with a default storage class, `helm` 3, `kubectl` and the Stigmer CLI; a Secret created first with `STIGMER_ENCRYPTION_KEY`, `STIGMER_RUNNER_TOKEN_KEY` and `POSTGRES_PASSWORD` (the chart refuses to install without it), and the LLM provider key in a Secret of its own named by `runner.llm.existingSecret` (the runner holds it, never the server); Postgres and Temporal bundled or their own, decided before the first install. It must say a fresh install trusts every caller, so it stays behind `kubectl port-forward` until authentication is turned on with their own OIDC provider, and the chart refuses an Ingress (or a public Service) until then. Welcome but optional: the server and the runner are one pod, one runner replica; a complete backup is the three durable claims, the Secret and the values file; the chart version is the Stigmer version; open source holds one Organization, and Stigmer Enterprise (a license key on the same chart) holds many.
+
+FAIL if the answer invents a Kubernetes operator or custom resources for the stack, tells them to edit the chart's templates, says to expose the stack publicly before turning authentication on, puts the LLM key in the server's settings, says they must use Stigmer Cloud, or names Helm values the chart does not have.
