@@ -12,11 +12,13 @@ import {
 import type { ResolvedColorMode } from "@stigmer/react-sdk";
 import { HelpLink } from "@stigmer/react-sdk/console";
 import type { Invitation } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
+import type { SigninRedirectArgs } from "oidc-client-ts";
 import { getApiBaseUrl } from "@/config/env";
 import { resolveAuthConfig } from "@/auth/config";
-import { createUserManager } from "@/auth/oidc/oidc-manager";
+import { createUserManager, signupRedirectArgs } from "@/auth/oidc/oidc-manager";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 import { StigmerLogo } from "@/auth/StigmerLogo";
+import { rememberJoinedOrg } from "@/domain/session/joined-org";
 
 const REDIRECT_PATH_KEY = "stigmer:auth:redirect_path";
 const AUTO_ACCEPT_KEY = "stigmer:invite:auto_accept";
@@ -32,14 +34,22 @@ const AUTO_ACCEPT_KEY = "stigmer:invite:auto_accept";
  *
  * 1. First visit (unauthenticated) — creates a Stigmer client with no
  *    token. The `getByToken` RPC is public (`is_public` in proto), so
- *    the invite preview renders without authentication. The user sees
- *    "Accept Invitation".
+ *    the invite preview renders without authentication. Someone arriving
+ *    through an invite link is most often new (stigmer#3204), so when the
+ *    issuer can be asked for its create-account screen (the console's
+ *    sign-up arguments, `signupRedirectArgs`, the same `/login?signup=1`
+ *    uses), the user sees "Create your account and join" first and "I
+ *    already have an account" under it. Those arguments may need the
+ *    issuer's discovery, so they are read on mount; until they answer,
+ *    and on an issuer that offers no sign-up, the user sees one "Accept
+ *    invitation" that signs in.
  *
- * 2. After clicking "Accept Invitation" — the current path and an
- *    auto-accept flag are saved in sessionStorage and the user is
- *    redirected to the OIDC provider. If the user already has an
- *    active IdP session (e.g. logged in on another tab), the
- *    redirect round-trip is near-instant.
+ * 2. After either act — the current path and an auto-accept flag are
+ *    saved in sessionStorage and the user is redirected to the OIDC
+ *    provider, to sign up or to sign in; both come back here through
+ *    the console's callback. If the user already has an active IdP
+ *    session (e.g. logged in on another tab), the redirect round-trip
+ *    is near-instant.
  *
  * 3. Return visit (after OIDC callback) — the page detects the OIDC
  *    session in sessionStorage via `UserManager.getUser()`, extracts
@@ -57,6 +67,9 @@ const AUTO_ACCEPT_KEY = "stigmer:invite:auto_accept";
  *    edition that greets a new account (Cloud makes a first organization
  *    for one with no role anywhere) sees the role already in place. A
  *    failed account step still navigates: the console's gate retries it.
+ *    The organization joined is also left for this tab's launcher, which
+ *    welcomes the person to it with the team's agents (stigmer#3208,
+ *    `domain/session/joined-org.ts`).
  *
  * This follows the same self-contained pattern as `LoginPageView`.
  */
@@ -68,6 +81,7 @@ export default function InvitePageClient() {
     resolvedTheme === "dark" ? "dark" : "light";
 
   const { accessToken, isAuthenticated, autoAccept } = useInviteAuth();
+  const signupArgs = useSignupArgs();
 
   const client = useMemo(
     () =>
@@ -85,7 +99,9 @@ export default function InvitePageClient() {
         // owns its failure words.
         .catch(() => undefined)
         .then(() => {
-          rememberActiveOrg(invitation.metadata?.org ?? "");
+          const org = invitation.metadata?.org ?? "";
+          rememberActiveOrg(org);
+          rememberJoinedOrg(org);
           router.push("/");
         });
     },
@@ -93,12 +109,12 @@ export default function InvitePageClient() {
   );
 
   const handleAuthRequired = useCallback(() => {
-    const config = resolveAuthConfig();
-    if (config.mode !== "oidc") return;
-    sessionStorage.setItem(REDIRECT_PATH_KEY, window.location.pathname);
-    sessionStorage.setItem(AUTO_ACCEPT_KEY, "1");
-    createUserManager(config.oidc).signinRedirect();
+    startRedirect();
   }, []);
+
+  const handleSignUp = useCallback(() => {
+    if (signupArgs !== null) startRedirect(signupArgs);
+  }, [signupArgs]);
 
   return (
     <StigmerProvider client={client} colorMode={colorMode}>
@@ -116,6 +132,7 @@ export default function InvitePageClient() {
             autoAccept={autoAccept}
             onAccepted={handleAccepted}
             onAuthRequired={handleAuthRequired}
+            onSignUp={signupArgs !== null ? handleSignUp : undefined}
           />
           {/* Where to ask when the invitation doesn't work: the server's own link, or nothing. */}
           <HelpLink className="text-center" />
@@ -123,6 +140,20 @@ export default function InvitePageClient() {
       </div>
     </StigmerProvider>
   );
+}
+
+/**
+ * Leave the way back to this invite page and the auto-accept flag, then
+ * go to the issuer: to sign in, or, with the sign-up arguments, to its
+ * create-account screen. Either way the person returns here, signed in,
+ * and the invitation is redeemed without a second click.
+ */
+function startRedirect(args?: SigninRedirectArgs): void {
+  const config = resolveAuthConfig();
+  if (config.mode !== "oidc") return;
+  sessionStorage.setItem(REDIRECT_PATH_KEY, window.location.pathname);
+  sessionStorage.setItem(AUTO_ACCEPT_KEY, "1");
+  void createUserManager(config.oidc).signinRedirect(args);
 }
 
 // ---------------------------------------------------------------------------
@@ -181,4 +212,33 @@ function useInviteAuth(): InviteAuthState {
   }, []);
 
   return state;
+}
+
+/**
+ * The issuer's sign-up arguments (`signupRedirectArgs`), or `null` while
+ * they are read, when sign-in is off, when the issuer offers no sign-up
+ * (an empty answer is an ordinary sign-in), or when reading them failed.
+ * Only a non-empty answer offers "Create your account and join".
+ */
+function useSignupArgs(): SigninRedirectArgs | null {
+  const [args, setArgs] = useState<SigninRedirectArgs | null>(null);
+
+  useEffect(() => {
+    const config = resolveAuthConfig();
+    if (config.mode !== "oidc") return;
+
+    let current = true;
+    signupRedirectArgs(config.oidc, createUserManager(config.oidc))
+      .then((resolved) => {
+        if (current && Object.keys(resolved).length > 0) setArgs(resolved);
+      })
+      .catch(() => {
+        // No sign-up to offer: the one sign-in button stays.
+      });
+    return () => {
+      current = false;
+    };
+  }, []);
+
+  return args;
 }
