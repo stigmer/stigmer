@@ -14,11 +14,11 @@
  * The data hooks and the permission check are stubbed; the panels are real.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { TeamSchema, type Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 import type { DeploymentMode } from "@stigmer/client";
-import { DeploymentModeContext } from "@stigmer/react-core";
+import { DeploymentModeContext, StigmerContext } from "@stigmer/react-core";
 
 const stubs = vi.hoisted(() => ({
   listedOrg: undefined as string | null | undefined,
@@ -79,6 +79,16 @@ function renderSection(mode: DeploymentMode) {
     </DeploymentModeContext.Provider>,
   );
 }
+
+/** A client for the open detail, whose panel reads and checks through it. */
+const CLIENT = {
+  baseUrl: "https://api.stigmer.ai",
+  grant: {
+    checkMyPermission: async () => ({ isAuthorized: false }),
+    listResourceAccessByPrincipal: async () => ({ entries: [] }),
+    listResourceAccess: async () => ({ entries: [] }),
+  },
+} as never;
 
 afterEach(() => {
   cleanup();
@@ -142,5 +152,20 @@ describe("TeamsSection", () => {
     expect(screen.getAllByRole("button", { name: /New team/ })).toHaveLength(2);
     expect(stubs.entitlementsRead.every((read) => read.enabled === false)).toBe(true);
     expect(stubs.catalogReads.every((enabled) => enabled === false)).toBe(true);
+  });
+
+  it("names the open team on the page, with a way back to the list", () => {
+    stubs.teams = [create(TeamSchema, { metadata: { id: "tm_sre", name: "Site Reliability" } })];
+    render(
+      <StigmerContext.Provider value={CLIENT}>
+        <DeploymentModeContext.Provider value={"enterprise"}>
+          <TeamsSection />
+        </DeploymentModeContext.Provider>
+      </StigmerContext.Provider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Site Reliability/ }));
+    expect(screen.getByRole("heading", { level: 2, name: "Site Reliability" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Teams" }));
+    expect(screen.getByRole("heading", { level: 2, name: "Teams" })).toBeTruthy();
   });
 });

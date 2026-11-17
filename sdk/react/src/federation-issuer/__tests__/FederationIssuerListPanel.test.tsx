@@ -50,4 +50,23 @@ describe("FederationIssuerListPanel delete dialog", () => {
     expect(within(dialog).getByRole("button", { name: "Cancel" })).toBeTruthy();
     expect(list).toHaveBeenCalledTimes(1);
   });
+
+  it("deletes from the dialog and reads the list again", async () => {
+    const list = vi.fn(async () => ({ entries: [ISSUER], nextPageToken: "" }));
+    const remove = vi.fn(async (): Promise<FederationIssuer> => ISSUER);
+    const client = {
+      federationIssuer: { list, delete: remove },
+      grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: true })) },
+    } as never;
+    render(
+      <StigmerContext.Provider value={client}>
+        <FederationIssuerListPanel org="acme" />
+      </StigmerContext.Provider>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Delete Acme Okta" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete issuer" }));
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
+    expect(remove).toHaveBeenCalledWith({ resourceId: "issuer-1" });
+  });
 });

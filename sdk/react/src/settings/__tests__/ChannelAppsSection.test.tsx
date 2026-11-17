@@ -20,14 +20,14 @@
  * it (channel-app/__tests__/ChannelAppDetailPanel.test.tsx).
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
   ChannelAppSchema,
   type ChannelApp,
 } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
 import type { DeploymentMode } from "@stigmer/client";
-import { DeploymentModeContext } from "@stigmer/react-core";
+import { DeploymentModeContext, StigmerContext } from "@stigmer/react-core";
 
 const stubs = vi.hoisted(() => ({
   listedOrg: undefined as string | null | undefined,
@@ -92,6 +92,12 @@ function renderSection(mode: DeploymentMode = "cloud") {
     </DeploymentModeContext.Provider>,
   );
 }
+
+/** A client for the open detail, whose panel reads and checks through it. */
+const CLIENT = {
+  baseUrl: "https://api.stigmer.ai",
+  grant: { checkMyPermission: async () => ({ isAuthorized: false }) },
+} as never;
 
 afterEach(() => {
   cleanup();
@@ -160,5 +166,21 @@ describe("ChannelAppsSection", () => {
       screen.queryByText("Channel apps are managed by your organization's admins."),
     ).toBeNull();
     expect(screen.getByText("No channel apps registered yet.")).toBeTruthy();
+  });
+
+  it("names the open app on the page, with a way back to the list", () => {
+    stubs.apps = [SLACK];
+    stubs.allowed = new Set(["can_edit"]);
+    render(
+      <StigmerContext.Provider value={CLIENT}>
+        <DeploymentModeContext.Provider value={"cloud"}>
+          <ChannelAppsSection />
+        </DeploymentModeContext.Provider>
+      </StigmerContext.Provider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Edit Acme Slack/ }));
+    expect(screen.getByRole("heading", { level: 2, name: "Acme Slack" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Channel apps" }));
+    expect(screen.getByRole("heading", { level: 2, name: "Channel apps" })).toBeTruthy();
   });
 });

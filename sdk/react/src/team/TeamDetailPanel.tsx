@@ -16,6 +16,7 @@
  * every membership and every grant made to the team with it, and the
  * confirmation says exactly that, so no one reads it as deleting people.
  */
+import { ArrowLeft } from "lucide-react";
 import { useCallback, useState, type FormEvent } from "react";
 import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 import { cn } from "@stigmer/design-tokens";
@@ -71,7 +72,7 @@ export function TeamDetailPanel({
       <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
         <div className="stg:min-w-0">
           {onBack && (
-            <Button variant="ghost" size="xs" icon={<ArrowLeftIcon />} onClick={onBack}>
+            <Button variant="ghost" size="xs" icon={<ArrowLeft className="stg:size-3" aria-hidden="true" />} onClick={onBack}>
               Back to teams
             </Button>
           )}
@@ -238,13 +239,5 @@ function DeleteTeam({
       </Button>
       <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
-  );
-}
-
-function ArrowLeftIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M10 3L5 8l5 5" />
-    </svg>
   );
 }

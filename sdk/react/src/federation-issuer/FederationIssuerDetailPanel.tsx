@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
 import { type FormEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { buildFederationIssuerProto } from "@stigmer/client";
@@ -153,7 +154,7 @@ export function FederationIssuerDetailPanel({
       <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
         <div className="stg:min-w-0">
           {onBack && (
-            <Button variant="ghost" size="xs" icon={<ArrowLeftIcon />} onClick={onBack}>
+            <Button variant="ghost" size="xs" icon={<ArrowLeft className="stg:size-3" aria-hidden="true" />} onClick={onBack}>
               Back to list
             </Button>
           )}
@@ -432,22 +433,4 @@ function formatDate(date: Date): string {
 // ---------------------------------------------------------------------------
 // Icons
 // ---------------------------------------------------------------------------
-
-function ArrowLeftIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M10 3L5 8l5 5" />
-    </svg>
-  );
-}
 

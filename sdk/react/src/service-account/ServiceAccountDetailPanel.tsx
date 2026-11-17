@@ -11,6 +11,7 @@
  * delete, and the delete is the account's delete, which ends every key at
  * once. Owner is never offered: the server refuses it for a service account.
  */
+import { ArrowLeft } from "lucide-react";
 import { useCallback, useId, useRef, useState, type FormEvent } from "react";
 import { create } from "@bufbuild/protobuf";
 import { cn } from "@stigmer/design-tokens";
@@ -96,7 +97,7 @@ export function ServiceAccountDetailPanel({
   return (
     <div className={cn("stg:space-y-5", className)}>
       {onBack && (
-        <Button variant="ghost" size="xs" icon={<ArrowLeftIcon />} onClick={onBack}>
+        <Button variant="ghost" size="xs" icon={<ArrowLeft className="stg:size-3" aria-hidden="true" />} onClick={onBack}>
           Service accounts
         </Button>
       )}
@@ -416,13 +417,5 @@ function DeleteSection({
       </Button>
       <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
-  );
-}
-
-function ArrowLeftIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M10 3L5 8l5 5" />
-    </svg>
   );
 }

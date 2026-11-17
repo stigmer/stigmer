@@ -143,21 +143,18 @@ export function InvitationManager({
 
   const askToRevoke = useCallback(
     async (invitationId: string, label: string) => {
-      let answer: Invitation | null = null;
       const done = await confirm({
         title: `Revoke ${label}?`,
         description: "The link stops working at once. People who already joined with it stay in the organization.",
         confirmLabel: "Revoke link",
         variant: "destructive",
         action: async () => {
-          answer = await revoke(invitationId);
+          const invitation = await revoke(invitationId);
+          setRevoked((previous) => new Map(previous).set(invitation.metadata?.id ?? "", invitation));
         },
         failureTitle: "Couldn't revoke the link.",
       });
-      if (!done || answer === null) return;
-      const invitation: Invitation = answer;
-      setRevoked((previous) => new Map(previous).set(invitation.metadata?.id ?? "", invitation));
-      refetch();
+      if (done) refetch();
     },
     [confirm, revoke, refetch],
   );

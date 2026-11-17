@@ -144,6 +144,21 @@ describe("ChannelAppDetailPanel delete dialog", () => {
     expect(deleteApp).not.toHaveBeenCalled();
   });
 
+  it("deletes from the dialog and hands the deletion to the host", async () => {
+    const deleteApp = vi.fn(async () => SLACK_APP);
+    const onDeleted = vi.fn();
+    renderPanel(
+      vi.fn(async (_input: CheckMyPermissionInput) => ({ isAuthorized: true })),
+      deleteApp,
+      onDeleted,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Delete channel app" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete app" }));
+    await waitFor(() => expect(onDeleted).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
   it("says a refused delete in the dialog and deletes nothing more", async () => {
     const deleteApp = vi.fn(async () => {
       throw new Error("a channel still installs through this app");

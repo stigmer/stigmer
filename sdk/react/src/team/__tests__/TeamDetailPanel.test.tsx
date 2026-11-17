@@ -134,4 +134,21 @@ describe("TeamDetailPanel delete refusal", () => {
     expect(screen.getAllByRole("button", { name: "Delete team" })).toHaveLength(1);
     expect(del).not.toHaveBeenCalled();
   });
+
+  it("deletes from the dialog and hands the deletion to the host", async () => {
+    const del = vi.fn(async () => TEAM);
+    const onDeleted = vi.fn();
+    render(
+      <StigmerContext.Provider
+        value={{ team: { delete: del }, grant: { checkMyPermission: async () => ({ isAuthorized: false }) } } as never}
+      >
+        <TeamDetailPanel team={TEAM} org="org_acme" onDeleted={onDeleted} />
+      </StigmerContext.Provider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete team" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete team" }));
+    await waitFor(() => expect(onDeleted).toHaveBeenCalledTimes(1));
+    expect(del).toHaveBeenCalledWith({ resourceId: "tm_sre" });
+  });
 });

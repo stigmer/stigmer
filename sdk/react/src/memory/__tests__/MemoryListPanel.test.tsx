@@ -283,4 +283,21 @@ describe("MemoryListPanel", () => {
 
     await waitFor(() => expect(screen.getByRole("alert")).toBeTruthy());
   });
+
+  it("edits a remembered fact in place, and Cancel puts the row back", async () => {
+    const client = makeClient([CONFIRMED]);
+    const user = userEvent.setup();
+    render(
+      <Providers client={client}>
+        <MemoryListPanel org="test-org" />
+      </Providers>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: /Edit memory: Deploys to us-east-1./ }));
+    expect(screen.getByLabelText("Edit memory text")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Cancel editing" }));
+    expect(screen.queryByLabelText("Edit memory text")).toBeNull();
+    expect(screen.getByText("Deploys to us-east-1.")).toBeTruthy();
+    expect(client.memory.update).not.toHaveBeenCalled();
+  });
 });
