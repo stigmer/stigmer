@@ -35,6 +35,7 @@ import { type Command, Option } from "commander";
 import {
   contextOrganizationLabel,
   ensureAuthenticated,
+  knownConsoleURL,
   resolveContextOrganization,
   resolveOrganization,
 } from "../../config/index.js";
@@ -114,7 +115,12 @@ export function registerProviderKey(program: Command): void {
         openSession(command, "writes keys"),
         import("../../output/command-result.js"),
       ]);
-      const apiKey = await resources.readProviderKey(provider, options.keyStdin === true, await keyIo());
+      const apiKey = await resources.readProviderKey(
+        provider,
+        options.keyStdin === true,
+        await keyIo(),
+        knownConsoleURL(session.client.config),
+      );
       renderResult(
         await resources.setProviderKey(session.client.stigmer, session.org, provider, apiKey, baseUrl),
         format,

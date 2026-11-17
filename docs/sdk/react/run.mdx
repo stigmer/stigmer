@@ -1688,6 +1688,23 @@ function TurnTodos({ turn }: { turn: Turn }) {
 ```
 
 
+### TodoRow
+
+One to-do checklist row: the plan's mark plus the task description,
+rendered as an `<li>` in the plan card's row look. The default row for
+[`TodoList`](#todolist) — replace it via the `TodoRow` prop (or
+`MessageThread`'s `slots.TodoRow`) to restyle rows or bring host
+iconography while keeping the built-in card chrome.
+
+**Props** — `TodoRowProps`
+
+<TypeTable
+  type={{
+    item: { type: "Todo", description: "The to-do item to render.", required: true },
+  }}
+/>
+
+
 ### ToolArgsView
 
 Unified tool-arguments renderer used by both [`ApprovalCard`](#approvalcard)

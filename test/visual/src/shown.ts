@@ -341,7 +341,7 @@ export const SHOWN: readonly Shown[] = [
     scene: "channel-conversations-needs-human",
     title: "Conversations on Needs a person: Northwind Books, its escalation notice with Take over, and the conversation as the customer's phone shows it",
     // Narrow enough to show near 1:1 in the docs column; as tall as the
-    // scene's workbench, which fits the whole conversation (stigmer#2911).
+    // scene's workbench, which fits the whole conversation.
     viewport: { width: 1000, height: 1048 },
     // The workbench: x 24 to 976, y 24 to 1024.
     clip: { x: 24, y: 24, width: 952, height: 1000 },

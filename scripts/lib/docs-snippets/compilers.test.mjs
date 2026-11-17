@@ -203,7 +203,7 @@ test("LIB-04 SDK-03 the code the console hands a builder for their app compiles 
   // The real writer, as this tree's build emits it.
   const run = await gate([], ["typescript", "go", "python", "java"], false, { withHandover: true, root: repoRoot });
   const languages = run.units.map((u) => u.language).sort();
-  assert.deepEqual(languages, ["go", "go", "java", "java", "python", "python", "typescript", "typescript", "typescript", "typescript", "typescript", "typescript"]);
+  assert.deepEqual(languages, ["go", "go", "java", "java", "python", "python", ...Array(8).fill("typescript")]);
   assert.deepEqual(run.errors, []);
 });
 

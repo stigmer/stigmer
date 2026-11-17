@@ -45,10 +45,38 @@ export const CODING_AGENT_PROMPT =
 /**
  * The prompt a person pastes into their coding agent: {@link CODING_AGENT_PROMPT},
  * then, when the console knows its public address, one sentence that sends
- * the coding agent to this server rather than asking where Stigmer runs.
+ * the coding agent to this server rather than asking where Stigmer runs. When
+ * the console is served from another address than the server's API (a hosted
+ * deployment's `app.` beside its `api.`), the sentence names it too: the
+ * guide sends the person to the console's own pages, the model key's above
+ * all, and could not tell that address from the API's (stigmer#3229).
  */
-export function codingAgentPrompt(address: string | null | undefined): string {
-  return address ? `${CODING_AGENT_PROMPT} Use the Stigmer at ${address}.` : CODING_AGENT_PROMPT;
+export function codingAgentPrompt(
+  address: string | null | undefined,
+  consoleAddress?: string | null,
+): string {
+  if (!address) return CODING_AGENT_PROMPT;
+  const consoleClause = consoleAddress ? `; its console is ${consoleAddress}` : "";
+  return `${CODING_AGENT_PROMPT} Use the Stigmer at ${address}${consoleClause}.`;
+}
+
+/**
+ * The console's own address for {@link codingAgentPrompt}: the page's origin,
+ * when it is served over https from another origin than the server's
+ * `address`, otherwise `null`. Only https counts: a hosted console is served
+ * over it, while a desktop app's page origin (a webview's own scheme, or
+ * `http://tauri.localhost` on Windows) is no address anyone can open, and a
+ * console served by the server itself shares its origin.
+ */
+export function consoleAddressFor(pageOrigin: string | null | undefined, address: string | null | undefined): string | null {
+  if (!pageOrigin || !address || !pageOrigin.startsWith("https://")) return null;
+  let apiOrigin: string;
+  try {
+    apiOrigin = new URL(address).origin;
+  } catch {
+    return null;
+  }
+  return apiOrigin === pageOrigin ? null : pageOrigin;
 }
 
 /** Props for {@link FirstQuestion}. */
@@ -195,11 +223,16 @@ function DescribeOwn({ pending, failure, onDescribe, onJustChat }: Pick<FirstQue
 /**
  * The coding-agent door: the line under the cards, and the prompt with Copy
  * once opened, naming this console's public API address (`usePublicBaseUrl`)
- * when it knows one, so the coding agent sets up against this server.
+ * when it knows one, so the coding agent sets up against this server, and
+ * the console's own address when it differs ({@link consoleAddressFor}).
  */
 function CodingAgentDoor({ disabled, onJustChat }: { readonly disabled: boolean; readonly onJustChat: () => void }) {
   const [open, setOpen] = useState(false);
-  const prompt = codingAgentPrompt(usePublicBaseUrl());
+  const address = usePublicBaseUrl();
+  const prompt = codingAgentPrompt(
+    address,
+    consoleAddressFor(typeof window === "undefined" ? null : window.location.origin, address),
+  );
   const { copied, copy } = useCopy(prompt);
   const panelId = useId();
   const labelId = useId();

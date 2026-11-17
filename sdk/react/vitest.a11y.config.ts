@@ -1,4 +1,15 @@
+/// <reference types="@vitest/browser/providers/playwright" />
 import { defineConfig } from "vitest/config";
+import type { BrowserCommand } from "vitest/node";
+
+/**
+ * Emulates the system's light or dark for the page the tests run in, so a
+ * suite can hold what a host's `prefers-color-scheme` stylesheet and the
+ * provider's `colorMode="system"` do; `null` restores the browser's own.
+ */
+const emulateColorScheme: BrowserCommand<[scheme: "light" | "dark" | null]> = async (context, scheme) => {
+  await context.page.emulateMedia({ colorScheme: scheme });
+};
 
 /**
  * Browser-mode test config: suites that need REAL layout, paint, or pixels.
@@ -48,6 +59,7 @@ export default defineConfig({
       provider: "playwright",
       headless: true,
       instances: [{ browser: "chromium" }],
+      commands: { emulateColorScheme },
     },
   },
 });

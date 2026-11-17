@@ -105,9 +105,8 @@ function northwindTimeline(holder: Holder): ConversationTimelineItem[] {
 
 /**
  * The workbench's height for each holder: tall enough, at the shown
- * pictures' 1000 px width, that Northwind's whole conversation fits. A
- * timeline with nothing to scroll draws the same every run, where the kit's
- * pin to the latest message can land a row short under load (stigmer#2911).
+ * pictures' 1000 px width, that Northwind's whole conversation fits, so the
+ * docs show a reader the conversation from its first message to its last.
  */
 const WORKBENCH_HEIGHT: Record<Holder, number> = { agent: 1000, ada: 1140 };
 

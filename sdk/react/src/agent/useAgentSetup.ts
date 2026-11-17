@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { ResourceRef, Stigmer } from "@stigmer/client";
 import { GetMyVaultInputSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
+import { CheckMyPermissionInputSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
+import { ApiResourceRefSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 import type { EnvVarInput } from "../vault/types.js";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
@@ -12,6 +14,7 @@ import type { EnvVarDeclaration } from "@stigmer/apis/ai/stigmer/agentic/vault/v
 import { useStigmer } from "@stigmer/react-core";
 import { toError } from "@stigmer/react-core/internal";
 import { useMyVault } from "../vault/useMyVault.js";
+import { isMyVault } from "../vault/useVaultList.js";
 import { valuesOf } from "../vault/types.js";
 import { toolLoginKeyOf, vaultLoginServes } from "../vault/address.js";
 import { MY_VAULT_ONLY, conversationVaultsKey, type ConversationVaults } from "../vault/conversationVaults.js";
@@ -26,6 +29,8 @@ import {
   type AgentSetupReadyResult,
   type AgentSetupState,
   type PendingSignIn,
+  type SignInVault,
+  type SignInVaults,
 } from "./agentSetupReducer.js";
 
 /** What the servers a run of the agent dials say about its readiness. */
@@ -56,7 +61,9 @@ interface ServerReadings {
  *
  * `readVaults` are the vaults the run reads, as the person can see them
  * (My vault first when the conversation includes it, then the listed
- * vaults). Every sign-in still owed is saved in My vault.
+ * vaults). A sign-in still owed is saved in a vault the run reads: My
+ * vault, or, for a run that never reads it, a listed vault the person may
+ * edit ({@link signInVaultsOf}).
  */
 async function readServers(
   stigmer: Stigmer,
@@ -94,6 +101,39 @@ async function readableVaults(stigmer: Stigmer, refs: readonly ResourceRef[]): P
     }
   }
   return vaults;
+}
+
+/** Where a run that may read My vault saves its sign-ins: one value, so the state that keeps it never changes it. */
+const MY_VAULT: SignInVaults = Object.freeze({ kind: "my-vault" });
+
+/**
+ * Where a run that never reads My vault can save its owed sign-ins: the
+ * listed vaults the person may edit (`can_edit`, the permission the
+ * server asks before it saves a sign-in into a shared vault), asked of
+ * each in parallel. With none editable, the listed vaults are named so
+ * the panel can say who can sign in. A check that fails is thrown: the
+ * resolution's error, never an answer that sends the person to someone
+ * else.
+ */
+async function signInVaultsOf(stigmer: Stigmer, listed: readonly Vault[]): Promise<SignInVaults> {
+  const vaults: SignInVault[] = listed.map((vault) => ({
+    org: vault.metadata?.org ?? "",
+    id: vault.metadata?.id ?? "",
+    name: vault.metadata?.name || vault.metadata?.slug || "",
+  }));
+  const editable = await Promise.all(
+    vaults.map(async ({ id }) => {
+      const answer = await stigmer.grant.checkMyPermission(
+        create(CheckMyPermissionInputSchema, {
+          resource: create(ApiResourceRefSchema, { kind: "vault", id }),
+          relation: "can_edit",
+        }),
+      );
+      return answer.isAuthorized;
+    }),
+  );
+  const shared = vaults.filter((_, index) => editable[index]);
+  return shared.length > 0 ? { kind: "shared", vaults: shared } : { kind: "nowhere", listed: vaults };
 }
 
 /** The keys `vaults` fill: their secret names, and the login key of each of `servers` a login of theirs serves. */
@@ -139,6 +179,8 @@ export type {
   AgentSetupState,
   AgentSetupPhase,
   PendingSignIn,
+  SignInVault,
+  SignInVaults,
 } from "./agentSetupReducer.js";
 
 /** Return value of {@link useAgentSetup}. */
@@ -165,7 +207,9 @@ export interface UseAgentSetupReturn {
    * sign-ins of every server and plugin they use. Diffs them against the
    * user's vaults and the session's variables. A subagent that cannot be
    * read is left out; an agent or subagent of another organization closes
-   * My vault to the whole run, as the server does.
+   * My vault to the whole run, as the server does, so its owed sign-ins
+   * are offered to the listed vaults the person may edit
+   * (`signInVaults`).
    * Returns `"ready"` when the agent can be used immediately,
    * or `"needsEnvVars"` when the caller should present {@link AgentEnvForm}.
    * A resolution that a newer one (or {@link reset}) overtakes still returns
@@ -190,10 +234,11 @@ export interface UseAgentSetupReturn {
 
   /**
    * Record that one of the pending sign-ins completed (the row's own
-   * sign-in landed), by the address it saved its login at. When it was
-   * the last one, the agent is resolved again through {@link resolveAgent},
-   * which now finds the login and lands in `ready` or in `needsEnvVars`
-   * for its variables alone.
+   * sign-in landed, in My vault or in the shared vault `signInVaults`
+   * offered), by the address it saved its login at. When it was the last
+   * one, the agent is resolved again through {@link resolveAgent}, which
+   * now finds the login and lands in `ready` or in `needsEnvVars` for its
+   * variables alone.
    *
    * Must only be called when `state.status === "needsEnvVars"`.
    */
@@ -330,14 +375,16 @@ export function useAgentSetup(
         // once here for its logins and its secret names alike: My vault
         // first when included, unless the agent or a subagent it lists is
         // of another organization, whose runs never read it; then the
-        // listed vaults.
+        // listed vaults. A My vault listed by reference is My vault all
+        // the same: such a run skips it, as the server does.
         const agentOrg = agent.metadata?.org ?? "";
         const foreign = agentOrg !== orgId || subagentOrgs(agent.spec, agentOrg).some((subagentOrg) => subagentOrg !== orgId);
         const readsMyVault = choice.includeMyVault && !foreign;
-        const listed = await readableVaults(
+        const readable = await readableVaults(
           stigmer,
           choice.vaults.map((v) => ({ org: v.org || org, slug: v.slug })),
         );
+        const listed = foreign ? readable.filter((vault) => !isMyVault(vault)) : readable;
         const mine = latestMyVaultRef.current.current;
         const readVaults = readsMyVault && mine !== null ? [mine, ...listed] : listed;
         const { servers, pendingSignIns, declarations, signInVariables } = await readServers(stigmer, agent, readVaults);
@@ -348,6 +395,11 @@ export function useAgentSetup(
           const missingVariables = envDeclarations
             ? diffEnv(envDeclarations, existingKeys, coveredKeys)
             : [];
+          // A sign-in must land where the run reads it. A run that never
+          // reads My vault reads only the listed vaults, so its sign-ins go
+          // to one the person may edit; a run that may read My vault saves
+          // there, and the composer includes My vault when it was left out.
+          const signInVaults = foreign ? await signInVaultsOf(stigmer, listed) : MY_VAULT;
           settle({
             type: "RESOLVE_NEEDS_ENV",
             agentRef: ref,
@@ -355,6 +407,7 @@ export function useAgentSetup(
             agentName,
             missingVariables,
             pendingSignIns,
+            signInVaults,
           });
           return {
             status: "needsEnvVars",
@@ -362,6 +415,7 @@ export function useAgentSetup(
             agentName,
             missingVariables,
             pendingSignIns,
+            signInVaults,
           };
         }
 
@@ -417,6 +471,7 @@ export function useAgentSetup(
           agentName,
           missingVariables,
           pendingSignIns: [],
+          signInVaults: MY_VAULT,
         });
         return {
           status: "needsEnvVars",
@@ -424,6 +479,7 @@ export function useAgentSetup(
           agentName,
           missingVariables,
           pendingSignIns: [],
+          signInVaults: MY_VAULT,
         };
       } catch (err) {
         settle({ type: "ERROR", error: toError(err) });
@@ -546,9 +602,11 @@ export function useAgentSetup(
     [org, myVault, state, resolveAgent],
   );
 
-  // The sign-in was saved into My vault by the row's own hook, so this
-  // hook's read of My vault predates it: My vault is read again before the
-  // agent is, and the reload is started for every other reader.
+  // A sign-in saved into My vault by the row's own hook postdates this
+  // hook's read of My vault: My vault is read again before the agent is,
+  // and the reload is started for every other reader. (A listed vault,
+  // where a run that never reads My vault saves, is read fresh by every
+  // resolution.)
   const refetchMyVault = myVault.refetch;
   const refreshMyVault = useCallback(async (): Promise<void> => {
     if (!org) return;

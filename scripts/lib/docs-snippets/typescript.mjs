@@ -14,6 +14,8 @@
  * Each unit compiles in a folder of its own, under its title when it has
  * one, beside a copy of every titled fence above it that it imports
  * (`./client.js`), so a page's files resolve as a reader's project would.
+ * That folder is the reader's project root: `@/x` names its `x`, as a
+ * Next.js app's default alias does.
  *
  * On a kit's pages, a fence may import only what the kit's reader installs:
  * the kit's own package and its peer dependencies, read from the kit's
@@ -27,7 +29,7 @@
 
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
+import { dirname, join, relative, sep } from "node:path";
 
 import { Assembly, located } from "./assemble.mjs";
 import { conventionFor } from "./preludes.mjs";
@@ -77,7 +79,7 @@ export function checkTypeScript(units, { repoRoot, ts = require(join(repoRoot, "
     for (const sibling of unit.siblings) texts.set(join(folder, sibling.path), assembled.get(byId.get(sibling.id).id).text());
   }
 
-  const host = virtualHost(ts, options, texts);
+  const host = virtualHost(ts, options, texts, dir);
   const program = ts.createProgram([...files.keys()], options, host);
   const errors = uninstalledImports(ts, units, repoRoot);
   for (const [fileName, { unit, assembly }] of files) {
@@ -179,8 +181,9 @@ function uninstalledImports(ts, units, repoRoot) {
   return errors;
 }
 
-function virtualHost(ts, options, files) {
+function virtualHost(ts, options, files, unitsDir) {
   const host = ts.createCompilerHost(options, true);
+  if (unitsDir !== undefined) projectRootAlias(ts, host, options, unitsDir);
   const getSourceFile = host.getSourceFile.bind(host);
   const fileExists = host.fileExists.bind(host);
   const readFile = host.readFile.bind(host);
@@ -198,6 +201,26 @@ function virtualHost(ts, options, files) {
   host.directoryExists = (dir) => folders.has(dir) || (directoryExists === undefined ? true : directoryExists(dir));
   host.readFile = (fileName) => files.get(fileName) ?? readFile(fileName);
   return host;
+}
+
+/**
+ * Resolves `@/x` from a unit's file as `x` under the unit's own folder (its
+ * project root, `<unitsDir>/u<id>`), as a Next.js app's default alias does;
+ * every other specifier resolves as the compiler's own resolution would.
+ */
+function projectRootAlias(ts, host, compilerOptions, unitsDir) {
+  const cache = ts.createModuleResolutionCache(host.getCurrentDirectory(), (f) => host.getCanonicalFileName(f), compilerOptions);
+  host.resolveModuleNameLiterals = (literals, containingFile, redirected, options, sourceFile) =>
+    literals.map((literal) => {
+      let name = literal.text;
+      const rel = relative(unitsDir, containingFile);
+      if (name.startsWith("@/") && !rel.startsWith("..")) {
+        const root = join(unitsDir, rel.split(sep)[0]);
+        const target = relative(dirname(containingFile), join(root, name.slice(2)));
+        name = target.startsWith(".") ? target : `./${target}`;
+      }
+      return ts.resolveModuleName(name, containingFile, options, host, cache, redirected, ts.getModeForUsageLocation(sourceFile, literal, options));
+    });
 }
 
 /** What a fence's body imports, declares and uses, read from its syntax alone. */

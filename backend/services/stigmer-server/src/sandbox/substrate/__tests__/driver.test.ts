@@ -63,7 +63,10 @@
  *     same facts writes no policy, and one with a changed host list
  *     replaces it at that ensure; a wake from storage always reconciles;
  *     the attach push carries the runner's half (network and packages,
- *     never the hosts), and a push without an Environment carries none.
+ *     never the hosts), and a push without an Environment carries none;
+ *   - `currentTemplate` names the template of the configuration the driver
+ *     booted with, so a driver booted with narrower lanes lists a sandbox
+ *     from wider ones on another template (stigmer#2984).
  */
 import { describe, expect, it } from "vitest";
 
@@ -1485,6 +1488,49 @@ describe("the egress policy of an existing sandbox", () => {
     expect(
       h.substrate.calls.filter((c) => c === `ensureEgressPolicy ${ACTOR}`),
     ).toHaveLength(2);
+  });
+});
+
+describe("a driver booted with narrower lanes over a sandbox from wider ones (stigmer#2984)", () => {
+  it("names another current template, so the sandbox lists as started under another configuration", async () => {
+    let t = Date.parse("2026-10-03T12:00:00Z");
+    const now = () => t;
+    const substrate = new FakeSubstrate(now);
+    const boot = (lanes: SubstrateDriverSettings) =>
+      newSubstrateSandboxDriverOverGateway({
+        config,
+        settings: lanes,
+        logger: silentLogger,
+        gateway: substrate,
+        fetch: fakeRouter().fetch,
+        now,
+        sleep: async (ms) => {
+          t += ms;
+        },
+      });
+    const wide = boot({
+      ...settings,
+      extraHttpEgress: [{ host: "temporal-frontend.temporal.svc", port: 7233 }],
+    });
+    await wide.provisioner.ensureSessionSandbox(SESSION, facts);
+    const narrow = boot(settings);
+    const other = sandboxBaseName("session", "ses_02new");
+    await narrow.provisioner.ensureSessionSandbox("ses_02new", {
+      ...facts,
+      taskQueue: "session:ses_02new",
+    });
+
+    expect(narrow.lifecycle.currentTemplate()).not.toBe(
+      wide.lifecycle.currentTemplate(),
+    );
+    const listed = new Map(
+      (await narrow.lifecycle.list()).map((actor) => [actor.name, actor]),
+    );
+    expect(listed.get(ACTOR)?.state).toBe("running");
+    expect(listed.get(ACTOR)?.template).toBe(wide.lifecycle.currentTemplate());
+    expect(listed.get(other)?.template).toBe(
+      narrow.lifecycle.currentTemplate(),
+    );
   });
 });
 

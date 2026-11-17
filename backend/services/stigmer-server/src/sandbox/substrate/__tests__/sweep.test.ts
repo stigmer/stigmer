@@ -29,7 +29,13 @@
  *     new turn) is not stored again; one on an active
  *     worker follows the ladder, suspended asynchronously; an orphan on a
  *     draining worker is stored; a worker read that fails is one warning
- *     and the ladder runs as before.
+ *     and the ladder runs as before;
+ *   - a sandbox awake on an older template (started under another
+ *     configuration) is suspended at the next pass whatever its idle
+ *     window, logged with both templates, moved at the pass after and woken
+ *     under the current policy; a busy one finishes its turn first; one a
+ *     turn moved to the current template before the act is left alone
+ *     (stigmer#2984).
  */
 import { describe, expect, it, vi } from "vitest";
 
@@ -153,6 +159,8 @@ function harness(logger = silentLogger) {
   const state = newSweepState();
   return {
     t: () => t,
+    /** The template this server's sandboxes are created on. */
+    current: driver.lifecycle.currentTemplate(),
     advance: (ms: number) => {
       t += ms;
     },
@@ -172,12 +180,13 @@ function known(
   state: SubstrateSandboxState,
   idleMs: number,
   busy = false,
+  template = h.current,
 ) {
   const name = sandboxBaseName("session", sessionId);
   h.substrate.put({
     name,
     state,
-    template: "t",
+    template,
     createTime: new Date(h.t() - idleMs),
   });
   h.driver.internals.sessionByActor.set(name, sessionId);
@@ -211,13 +220,13 @@ describe("the ladder", () => {
     h.substrate.put({
       name: running,
       state: "running",
-      template: "t",
+      template: h.current,
       createTime: new Date(h.t() - 600 * MIN),
     });
     h.substrate.put({
       name: mcp,
       state: "suspended",
-      template: "t",
+      template: h.current,
       createTime: new Date(h.t() - 600 * MIN),
     });
     await h.pass();
@@ -311,7 +320,7 @@ describe("sandboxes this process never ensured", () => {
     h.substrate.put({
       name,
       state: "running",
-      template: "t",
+      template: h.current,
       createTime: new Date(h.t() - 60 * MIN),
     });
     h.sessions.ids.push("ses_old");
@@ -330,7 +339,7 @@ describe("sandboxes this process never ensured", () => {
     h.substrate.put({
       name,
       state: "running",
-      template: "t",
+      template: h.current,
       createTime: new Date(h.t() - 60 * MIN),
     });
     await h.pass();
@@ -347,7 +356,7 @@ describe("sandboxes this process never ensured", () => {
     h.substrate.put({
       name,
       state: "running",
-      template: "t",
+      template: h.current,
       createTime: new Date(h.t()),
     });
     await h.pass();
@@ -370,7 +379,7 @@ describe("sandboxes this process never ensured", () => {
     h.substrate.put({
       name,
       state: "running",
-      template: "t",
+      template: h.current,
       createTime: new Date(h.t() - CLOCK_SKEW_ALLOWANCE_MS + 1_000),
     });
     await h.pass();
@@ -384,7 +393,7 @@ describe("sandboxes this process never ensured", () => {
     h.substrate.put({
       name,
       state: "running",
-      template: "t",
+      template: h.current,
       createTime: new Date(h.t()),
     });
     h.sessions.ids.push("ses_elsewhere");
@@ -405,14 +414,14 @@ describe("housekeeping", () => {
     h.substrate.put({
       name: awake,
       state: "running",
-      template: "t",
+      template: h.current,
       policy: [],
     });
     const asleep = sandboxBaseName("session", "ses_s");
     h.substrate.put({
       name: asleep,
       state: "suspended",
-      template: "t",
+      template: h.current,
       policy: [],
     });
     await h.pass();
@@ -425,7 +434,7 @@ describe("housekeeping", () => {
   it("deletes a sandbox left DELETING again", async () => {
     const h = harness();
     const name = sandboxBaseName("connect", "mcx_1");
-    h.substrate.put({ name, state: "deleting", template: "t" });
+    h.substrate.put({ name, state: "deleting", template: h.current });
     await h.pass();
     expect(h.substrate.actors.has(name)).toBe(false);
   });
@@ -528,7 +537,7 @@ describe("failures and races", () => {
         h.substrate.put({
           name: sandboxBaseName("connect", `mcx_${i}`),
           state: "deleting",
-          template: "t",
+          template: h.current,
           updateTime: stuckSince,
         });
         h.substrate.fail(
@@ -591,7 +600,7 @@ describe("failures and races", () => {
     h.substrate.put({
       name,
       state: "running",
-      template: "t",
+      template: h.current,
       createTime: new Date(h.t() - 60 * MIN),
     });
     // An ensure holds the actor's queue when the pass reads it as an
@@ -650,6 +659,95 @@ describe("failures and races", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("a sandbox started under an older configuration (stigmer#2984)", () => {
+  const OLD = "stigmer-runner-aaaaaaaaaaaa";
+
+  async function older(h: ReturnType<typeof harness>) {
+    await h.driver.internals.keeper.ready();
+    h.substrate.putTemplate(OLD, { createTime: new Date(h.t() - 60 * MIN) });
+  }
+
+  it("is suspended at the next pass inside its idle window, moved at the one after, and woken under the current policy", async () => {
+    const logged: LogEntry[] = [];
+    const h = harness(
+      createLogger({
+        level: "info",
+        pretty: false,
+        write: () => {},
+        sink: (entry) => logged.push(entry),
+      }),
+    );
+    await older(h);
+    const name = known(h, "ses_a", "running", 1 * MIN, false, OLD);
+
+    await h.pass();
+    expect(h.substrate.actors.get(name)?.state).toBe("suspended");
+    expect(h.substrate.suspensions).toEqual([{ name, durable: false }]);
+    const line = logged.find((entry) =>
+      entry.message.startsWith(
+        "Substrate sandbox suspended: it ran under an older configuration",
+      ),
+    );
+    expect(line?.fields).toMatchObject({
+      actor: name,
+      sessionId: "ses_a",
+      template: OLD,
+      current: h.current,
+    });
+
+    await h.pass();
+    expect(h.substrate.actors.get(name)?.template).toBe(h.current);
+
+    h.substrate.calls.length = 0;
+    await h.driver.provisioner.ensureSessionSandbox("ses_a", {
+      taskQueue: "session:ses_a",
+      stigmerToken: "",
+      callerClass: "user",
+      executionId: "aex_test",
+    });
+    expect(h.substrate.actors.get(name)?.state).toBe("running");
+    expect(h.substrate.calls).toContain(`ensureEgressPolicy ${name}`);
+  });
+
+  it("finishes a turn in flight first, and is suspended at the pass after it ends", async () => {
+    const h = harness();
+    await older(h);
+    const name = known(h, "ses_a", "running", 0, true, OLD);
+    await h.pass();
+    expect(h.substrate.actors.get(name)?.state).toBe("running");
+    expect(h.substrate.calls).not.toContain(`suspendActor ${name}`);
+
+    h.sessions.activities.set("ses_a", {
+      busy: false,
+      lastActiveAt: new Date(h.t()),
+    });
+    await h.pass();
+    expect(h.substrate.actors.get(name)?.state).toBe("suspended");
+  });
+
+  it("is left alone when a turn moved it to the current template before the act", async () => {
+    const h = harness();
+    await older(h);
+    const name = known(h, "ses_a", "running", 1 * MIN, false, OLD);
+    // The pass decides from its listing (read 1); a turn moves the sandbox
+    // before the act's fresh read in the queue.
+    h.sessions.onRead = (_id, read) => {
+      const actor = h.substrate.actors.get(name);
+      if (read === 1 && actor !== undefined) actor.template = h.current;
+    };
+    await h.pass();
+    expect(h.substrate.calls).not.toContain(`suspendActor ${name}`);
+    expect(h.substrate.actors.get(name)?.state).toBe("running");
+  });
+
+  it("leaves one on the current template to its idle window", async () => {
+    const h = harness();
+    const name = known(h, "ses_a", "running", 1 * MIN);
+    await h.pass();
+    expect(h.substrate.actors.get(name)?.state).toBe("running");
   });
 });
 
@@ -745,7 +843,7 @@ describe("a worker leaving", () => {
     h.substrate.put({
       name,
       state: "running",
-      template: "t",
+      template: h.current,
       createTime: new Date(h.t() - 60 * MIN),
       worker: "w-1",
     });

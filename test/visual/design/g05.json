@@ -129,7 +129,9 @@
       ],
       "buttons": [],
       "sample": {},
-      "ruled": {},
+      "ruled": {
+        "word What your organization's agents did this week.": "2026-11-17, the owner's look on the drawn change: all good. The subtitle reads \"What your organization's agents did this week, in conversations you can see.\": the figures count only the runs the viewer can see (stigmer#3207)."
+      },
       "pending": {}
     }
   ]

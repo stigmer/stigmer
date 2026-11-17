@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { EXAMPLES, SKILLS, exampleById, skillById } from "@stigmer/examples";
 import { describe, expect, it } from "vitest";
 import { CliExitError } from "../../errors/index.js";
-import { exampleListResult, writeExample, writeSkill } from "../example.js";
+import { exampleListResult, skillRefsLines, writeExample, writeSkill } from "../example.js";
 
 const invoice = exampleById("invoice-match");
 const spreadsheet = skillById("spreadsheet-export");
@@ -56,5 +56,19 @@ describe("writeSkill", () => {
     const result = writeSkill(spreadsheet!, dir, false);
     expect(readFileSync(join(dir, "SKILL.md"), "utf8")).toBe(spreadsheet!.text);
     expect(result.hints[0]).toMatch(/^Push it to your organization:  stigmer push skill /);
+    expect(result.hints[1]).toBe("Then add these lines under the agent's spec: and apply it again:");
+  });
+
+  it("gives the exact skill_refs lines, indented as the hint renders them under spec:", () => {
+    const dir = join(mkdtempSync(join(tmpdir(), "stigmer-skill-")), "spreadsheet-export");
+    const result = writeSkill(spreadsheet!, dir, false);
+    // The renderer indents each hint two spaces, so the YAML reads as it sits
+    // under `spec:` in the manifest.
+    expect(result.hints[2]).toBe(skillRefsLines("spreadsheet-export"));
+    expect(`  ${skillRefsLines("spreadsheet-export")}`.split("\n")).toEqual([
+      "  skill_refs:",
+      "    - kind: skill",
+      "      slug: spreadsheet-export",
+    ]);
   });
 });

@@ -34,6 +34,7 @@ import {
   settingsVaultsOpenScene,
   settingsVaultsScene,
 } from "./settings-pages.tsx";
+import { SETTINGS_ROUTE_DRAWINGS } from "./settings-routes.tsx";
 import { partsScene } from "./parts.tsx";
 import { helpNoneScene, helpScene } from "./help.tsx";
 import type { Drawing } from "./drawing.ts";
@@ -45,6 +46,7 @@ import {
   launcherScene,
   runRefusal,
   modelSelectorNotReadyScene,
+  modelsHubKeyRejectedScene,
   modelsHubLocalScene,
   modelsHubScene,
 } from "./models.tsx";
@@ -107,6 +109,8 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "models-hub-connected": () => modelsHubScene(CONNECTED, [ownAnthropicKey(), inheritedOpenAiKey()], "admin"),
   "models-hub-local": modelsHubLocalScene,
   "models-hub-member": () => modelsHubScene(NOTHING_CONNECTED, [], "member"),
+  "models-hub-key-rejected": modelsHubKeyRejectedScene,
+  "models-hub-remove": () => modelsHubScene(CONNECTED, [ownAnthropicKey(), inheritedOpenAiKey()], "admin"),
   "launcher-ready": () => launcherScene(ANTHROPIC_ONLY, "admin"),
   "launcher-key-missing": () =>
     launcherRefusedScene(
@@ -145,6 +149,7 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "dashboard-journey-new": () => dashboardJourneyScene(PICKED_NOT_RUN),
   "dashboard-journey-mid": () => dashboardJourneyScene(MADE_YOURS),
   "dashboard-journey-folded": dashboardJourneyFoldedScene,
+  "dashboard-failures-failed": () => dashboardPageScene("busy", "failed"),
   "settings-landing": settingsLandingScene,
   "settings-members": settingsMembersScene,
   "settings-api-keys": settingsApiKeysScene,
@@ -157,6 +162,7 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "settings-teams-oss": settingsTeamsOssScene,
   "settings-model-catalog": settingsModelCatalogScene,
   "settings-loading": settingsLoadingScene,
+  ...SETTINGS_ROUTE_DRAWINGS,
   "agent-profile-owner": () => agentProfileScene("owner"),
   "agent-profile-viewer": () => agentProfileScene("reader"),
   "agent-profile-channels": () => agentProfileScene("owner"),
@@ -243,6 +249,9 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "marketplace-admin": () => marketplaceScene("admin"),
   "marketplace-member": () => marketplaceScene("member"),
   "marketplace-no-match": () => marketplaceScene("admin"),
+  "marketplace-source-failed": () => marketplaceScene("admin", "failed"),
+  "marketplace-install": () => marketplaceScene("admin"),
+  "marketplace-upload": () => marketplaceScene("admin"),
   "session-waiting-for-sandbox": () => sessionScene("waiting-for-sandbox", { inspector: true }),
   "session-thinking": () => sessionScene("thinking", { inspector: true }),
   "session-busy": () => sessionScene("busy", { inspector: true }),

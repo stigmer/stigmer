@@ -53,7 +53,7 @@ function failedRuns(week: DashboardWeek): Run[] {
   ];
 }
 
-function dashboardRoutes(week: DashboardWeek) {
+function dashboardRoutes(week: DashboardWeek, failures: "read" | "failed" = "read") {
   return (router: ConnectRouter) => {
     // The journey is the organization's onboarding: the new organization's
     // admin is answered with nothing done yet; the busy week's member is
@@ -69,7 +69,10 @@ function dashboardRoutes(week: DashboardWeek) {
     router.service(RunQueryController, {
       getRunSummary: () => (week === "busy" ? BUSY_WEEK_RUNS : NO_RUNS),
       getOrgUsageReport: () => (week === "busy" ? BUSY_WEEK_USAGE : EMPTY_USAGE),
-      list: () => samples.runList(failedRuns(week)),
+      list: () => {
+        if (failures === "failed") throw new ConnectError("the run service did not answer", Code.Unavailable);
+        return samples.runList(failedRuns(week));
+      },
     });
     router.service(PlatformQueryController, { getModelReadiness: () => NOTHING_CONNECTED });
     // The busy week's viewer is a member, no admin and here one who may not
@@ -81,15 +84,15 @@ function dashboardRoutes(week: DashboardWeek) {
   };
 }
 
-/** The dashboard page, as the web console draws it. */
-export function dashboardPageScene(week: DashboardWeek): Drawing {
+/** The dashboard page, as the web console draws it; `failures` says whether its recent failures could be read. */
+export function dashboardPageScene(week: DashboardWeek, failures: "read" | "failed" = "read"): Drawing {
   return {
     inOrganization: true,
-    routes: dashboardRoutes(week),
+    routes: dashboardRoutes(week, failures),
     render: () => (
       <div style={{ maxWidth: "64rem", margin: "0 auto", padding: "2rem 1.5rem" }}>
         <div style={{ marginBottom: "2rem" }}>
-          <PageHeader title="Dashboard" description="What your organization's agents did this week." />
+          <PageHeader title="Dashboard" description="What your organization's agents did this week, in conversations you can see." />
         </div>
         <OperationalDashboard
           org={ORG_ID}

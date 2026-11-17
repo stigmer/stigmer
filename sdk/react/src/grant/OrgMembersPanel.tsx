@@ -18,6 +18,7 @@ import {
   isServiceAccount,
 } from "@stigmer/client";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
+import { useCheckPermission } from "./useCheckPermission.js";
 import { useOwnerAssignment } from "./useOwnerAssignment.js";
 import { useResourceAccess } from "./useResourceAccess.js";
 import { useWhoAmI } from "@stigmer/react-core";
@@ -111,6 +112,10 @@ export function OrgMembersPanel({
   const { account: currentAccount } = useWhoAmI();
   const currentAccountId = currentAccount?.metadata?.id ?? null;
   const { canAssignOwner, unassignable } = useOwnerAssignment(orgId || null);
+  // Every change here (a role, a removal) is a grant or a revocation, which
+  // the server asks `can_grant_access` on the organization for: offered only
+  // on its yes, so a member reading the list meets no act it would refuse.
+  const { allowed: canGrant } = useCheckPermission(resource, "can_grant_access", { fail: "closed" });
 
   const [actionMemberId, setActionMemberId] = useState<string | null>(null);
   const [productUsersOpen, setProductUsersOpen] = useState(false);
@@ -147,6 +152,7 @@ export function OrgMembersPanel({
         orgId={orgId}
         audience={audience}
         isSelf={memberId === currentAccountId}
+        canGrant={canGrant}
         canAssignOwner={canAssignOwner}
         unassignable={unassignable}
         isActioning={actionMemberId === memberId}
@@ -307,6 +313,7 @@ function MemberRow({
   orgId,
   audience,
   isSelf,
+  canGrant,
   canAssignOwner,
   unassignable,
   isActioning,
@@ -318,6 +325,8 @@ function MemberRow({
   orgId: string;
   audience: MemberAudience;
   isSelf: boolean;
+  /** Whether the caller may grant and revoke roles here at all. */
+  canGrant: boolean;
   /** Whether the caller may grant, revoke or remove the owner role here. */
   canAssignOwner: boolean;
   /** The roles the caller may not assign, left out of the role picker. */
@@ -341,7 +350,7 @@ function MemberRow({
     (grant) => grant.role?.code === iamRoleToString(IamRole.owner),
   );
   // Changing or removing an owner changes the owner role: an owner's act.
-  const mayAct = !isSelf && (canAssignOwner || !holdsOwner);
+  const mayAct = canGrant && !isSelf && (canAssignOwner || !holdsOwner);
 
   const startAction = (type: "remove" | "change-role") => {
     setActionType(type);
