@@ -125,6 +125,7 @@ export function skillFilesScene(state: "files" | "versions" | "failed" = "files"
           org={ORGANIZATION.metadata?.slug ?? ""}
           slug={PACKAGED_SKILL.metadata?.slug ?? ""}
           defaultTab={state === "versions" ? "versions" : undefined}
+          onUploadNewVersion={() => undefined}
         />
       </div>
     ),

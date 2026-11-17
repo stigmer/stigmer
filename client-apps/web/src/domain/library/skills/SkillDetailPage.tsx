@@ -96,6 +96,7 @@ export function SkillDetailPageInner({ org, slug }: SkillDetailPageInnerProps) {
         editable
         onResourceLoad={handleResourceLoad}
         onPluginClick={({ org: o, slug: s }) => navigateToDetail("plugins", o, s)}
+        onUploadNewVersion={() => router.push("/library/skills/new")}
         actions={actions}
       />
       <ConfirmDialog

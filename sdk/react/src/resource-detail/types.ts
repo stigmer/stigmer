@@ -81,6 +81,13 @@ export interface DetailAction {
    * change nothing (copy, export), which every reader is offered.
    */
   readonly requires?: string;
+  /**
+   * How the act draws when it is a page's primary action: `"primary"` for the
+   * page's main act, `"outline"` for a visible act that is not the page's
+   * main one (a skill's "Upload a new version"). Ignored in the overflow menu.
+   * @default "primary"
+   */
+  readonly buttonVariant?: "primary" | "outline";
 }
 
 // ---------------------------------------------------------------------------

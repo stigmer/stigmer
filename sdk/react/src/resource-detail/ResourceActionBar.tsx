@@ -89,7 +89,7 @@ export function ResourceActionBar({
   return (
     <div className={cn("stg:flex stg:items-center stg:gap-2", className)}>
       {primaryAction && (
-        <Button onClick={primaryAction.onAction} disabled={primaryAction.disabled} icon={primaryAction.icon}>
+        <Button variant={primaryAction.buttonVariant ?? "primary"} onClick={primaryAction.onAction} disabled={primaryAction.disabled} icon={primaryAction.icon}>
           {primaryAction.label}
         </Button>
       )}
