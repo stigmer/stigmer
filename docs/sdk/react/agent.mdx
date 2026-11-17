@@ -260,8 +260,8 @@ function useAgentSetup(org: string | null, poolKeys?: Set<string>, conversationV
   type={{
     clearError: { type: "() => void", description: "Clear the error without changing the current phase." },
     reset: { type: "() => void", description: "Reset to `idle` state, clearing all phase data and errors." },
-    resolveAgent: { type: "(ref: ResourceRef) => Promise<AgentSetupResult>", description: "Evaluate whether an agent is ready to use or needs env var collection.  Fetches the full agent to read what a run of it asks for: its `env` declarations, its subagents' at the versions it pins, and the keys and sign-ins of every server and plugin they use. Diffs them against the user's vaults and the session's variables. A subagent that cannot be read is left out; an agent or subagent of another organization closes My vault to the whole run, as the server does. Returns `\"ready\"` when the agent can be used immediately, or `\"needsEnvVars\"` when the caller should present AgentEnvForm. A resolution that a newer one (or reset) overtakes still returns its answer, but leaves `state` to the newer one." },
-    signInCompleted: { type: "(address: string) => Promise<void>", description: "Record that one of the pending sign-ins completed (the row's own sign-in landed), by the address it saved its login at. When it was the last one, the agent is resolved again through resolveAgent, which now finds the login and lands in `ready` or in `needsEnvVars` for its variables alone.  Must only be called when `state.status === \"needsEnvVars\"`." },
+    resolveAgent: { type: "(ref: ResourceRef) => Promise<AgentSetupResult>", description: "Evaluate whether an agent is ready to use or needs env var collection.  Fetches the full agent to read what a run of it asks for: its `env` declarations, its subagents' at the versions it pins, and the keys and sign-ins of every server and plugin they use. Diffs them against the user's vaults and the session's variables. A subagent that cannot be read is left out; an agent or subagent of another organization closes My vault to the whole run, as the server does, so its owed sign-ins are offered to the listed vaults the person may edit (`signInVaults`). Returns `\"ready\"` when the agent can be used immediately, or `\"needsEnvVars\"` when the caller should present AgentEnvForm. A resolution that a newer one (or reset) overtakes still returns its answer, but leaves `state` to the newer one." },
+    signInCompleted: { type: "(address: string) => Promise<void>", description: "Record that one of the pending sign-ins completed (the row's own sign-in landed, in My vault or in the shared vault `signInVaults` offered), by the address it saved its login at. When it was the last one, the agent is resolved again through resolveAgent, which now finds the login and lands in `ready` or in `needsEnvVars` for its variables alone.  Must only be called when `state.status === \"needsEnvVars\"`." },
     state: { type: "AgentSetupState", description: "Current state of the agent setup flow.  A discriminated union on `status`: - `\"idle\"` — no agent selected - `\"resolving\"` — evaluating an agent's requirements - `\"needsEnvVars\"` — waiting for user to provide missing variables - `\"submitting\"` — saving in My vault - `\"ready\"` — agent resolved, `resolution` describes how to proceed  `error` is available on all variants (orthogonal to phase).", typeDescriptionLink: "#agentsetupstate" },
     submitEnvVars: { type: "(values: Record<string, EnvVarInput>) => Promise<AgentSetupResult>", description: "Complete the env var collection flow for the pending agent: the values are saved in My vault, the one place a value the person types goes, and the agent is resolved again over the conversation's vault choice, counting what the save wrote. A conversation that includes My vault resolves `ready` (`{ mode: \"saved\" }`); one that leaves it out stays in `needsEnvVars` until it includes My vault, which the composer does for the person who may change the conversation's vaults.  Must only be called when `state.status === \"needsEnvVars\"`." },
   }}
@@ -1070,7 +1070,9 @@ One MCP server of a plugin the agent lists that signs in and has no
 login in the vaults the run reads. The agent is not ready until each is
 signed in: a run would start and fail at the first tool call, so the
 composer asks first, the way it asks for a missing variable. A sign-in
-is saved in the person's My vault, at the server's address.
+is saved, at the server's address, in a vault the run reads: My vault,
+or, for a run that never reads it, a listed shared vault the person may
+edit ([`SignInVaults`](#signinvaults)).
 
 <TypeTable
   type={{
@@ -1081,6 +1083,37 @@ is saved in the person's My vault, at the server's address.
     server: { type: "McpServerEntry", description: "The server, from the plugin's status.", required: true },
   }}
 />
+
+
+### SignInVault
+
+A shared vault the conversation lists: one a sign-in can be saved to, or one named to say who can.
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "The vault's id.", required: true },
+    name: { type: "string", description: "The vault's display name.", required: true },
+    org: { type: "string", description: "The organization the vault belongs to: a sign-in saved to it names this organization.", required: true },
+  }}
+/>
+
+
+### SignInVaults
+
+Where a run's owed sign-ins can be saved so that the run reads them.
+
+- `"my-vault"` — the run may read the person's My vault: a sign-in is
+  saved there (a conversation that leaves My vault out includes it to
+  read the login).
+- `"shared"` — the run never reads My vault (the agent, or a subagent
+  it lists, is another organization's), and the person may edit at
+  least one of the vaults the conversation lists: `vaults`, in the
+  order listed. A sign-in saved to any of them satisfies the run.
+- `"nowhere"` — the run never reads My vault and the person may edit
+  none of the listed vaults. `listed` names the ones they can read, so
+  the panel can say who must sign in: someone who can edit one of them.
+  With none listed, a shared vault holding the logins must be added to
+  the conversation.
 
 
 ### UseAgentCountOptions

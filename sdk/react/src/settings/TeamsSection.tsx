@@ -62,7 +62,7 @@ export function TeamsSection() {
   const startCreate = useCallback(() => setFlow({ phase: "creating" }), []);
   // One answer offers both acts: the header's "New team" and the empty
   // list's.
-  const createCheck = useCheckPermission(orgId ? { kind: "organization", id: orgId } : null, "can_create_team");
+  const createCheck = useCheckPermission(orgId ? { kind: "organization", id: orgId } : null, "can_create_team", { fail: "closed" });
   const canCreate = !createCheck.isLoading && createCheck.allowed && !planLacksTeams;
 
   const handleCreated = useCallback(

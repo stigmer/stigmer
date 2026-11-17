@@ -46,6 +46,7 @@ function catalogueFiles(): Map<string, string> {
     files.set(
       `${name}/plugin.json`,
       json({
+        $schema: "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
         name,
         version: "1.0.0",
         description,
@@ -54,7 +55,7 @@ function catalogueFiles(): Map<string, string> {
         extensions: { "ai.stigmer": { displayName, category: "integrations" } },
       }),
     );
-    files.set(`${name}/mcp.json`, json({ mcpServers: { [name]: { type: "streamable-http", url } } }));
+    files.set(`${name}/mcp.json`, json({ $schema: "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json", mcpServers: { [name]: { type: "streamable-http", url } } }));
   }
   return files;
 }

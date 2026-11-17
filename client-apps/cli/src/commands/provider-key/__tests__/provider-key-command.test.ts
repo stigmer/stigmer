@@ -434,11 +434,45 @@ describe("stigmer provider-key set", () => {
     expect(backend.prompts).toEqual([]);
   });
 
-  it("refuses to read a key off a terminal without --key-stdin", async () => {
+  it("refuses to read a key off a terminal without --key-stdin, sending the person to the console's key page", async () => {
     pipedStdin("sk-ant-api03-secret-1234");
     const failure = await failureOf(["provider-key", "set", "anthropic"]);
     expect(failure.exitCode).toBe(ExitCode.Usage);
-    expect(failure.message).toContain("stigmer provider-key set anthropic --key-stdin");
+    // A coding agent runs commands with no terminal (stigmer#3229): the
+    // console's page comes first, the pipe last.
+    expect(failure.message).toBe(
+      "no terminal to type the Anthropic key at\n\n" +
+        "Add it in the console: https://app.stigmer.ai/models\n" +
+        "Or pipe it in: stigmer provider-key set anthropic --key-stdin",
+    );
+    nothingSent();
+  });
+
+  it("names the console's page, not a guessed address, for a server registered by its address", async () => {
+    // A hosted deployment added with `config backend add`: its console may
+    // sit on another origin than the API, so no address is offered.
+    backend.config = {
+      backend: {},
+      backends: { dev: { type: "selfhost", endpoint: "api.dev.example.com:443", token: "test-token" } },
+      current_backend: "dev",
+      context: { org: "org_ctx", org_slug: "acme" },
+    };
+    pipedStdin();
+    const failure = await failureOf(["provider-key", "set", "openai"]);
+    expect(failure.message).toBe(
+      "no terminal to type the OpenAI key at\n\n" +
+        "Add it on the console's Models & providers page.\n" +
+        "Or pipe it in: stigmer provider-key set openai --key-stdin",
+    );
+    expect(failure.message).not.toContain("api.dev.example.com");
+    nothingSent();
+  });
+
+  it("names the console the person set with STIGMER_CONSOLE_URL", async () => {
+    vi.stubEnv("STIGMER_CONSOLE_URL", "https://console.example.com/");
+    pipedStdin();
+    const failure = await failureOf(["provider-key", "set", "anthropic"]);
+    expect(failure.message).toContain("Add it in the console: https://console.example.com/models\n");
     nothingSent();
   });
 

@@ -54,6 +54,8 @@ export type SceneId =
   | "models-hub-connected"
   | "models-hub-local"
   | "models-hub-member"
+  | "models-hub-key-rejected"
+  | "models-hub-remove"
   | "launcher-ready"
   | "launcher-key-missing"
   | "launcher-hours-used"
@@ -77,6 +79,7 @@ export type SceneId =
   | "dashboard-journey-new"
   | "dashboard-journey-mid"
   | "dashboard-journey-folded"
+  | "dashboard-failures-failed"
   | `settings-${SettingsSceneName}`
   | "agent-profile-owner"
   | "agent-profile-channels"
@@ -114,6 +117,9 @@ export type SceneId =
   | "marketplace-admin"
   | "marketplace-member"
   | "marketplace-no-match"
+  | "marketplace-source-failed"
+  | "marketplace-install"
+  | "marketplace-upload"
   | `session-${SessionSceneName}`
   | `story-${StorySceneName}`
   | "agent-chat-page"
@@ -550,10 +556,10 @@ const STORY_SCENES = [
 export type SettingsSceneName = (typeof SETTINGS_SCENES)[number]["id"] extends `settings-${infer Name}` ? Name : never;
 
 const SETTINGS_SCENES = [
-  { id: "settings-landing", title: "Settings: every group of the navigation an owner sees, each page a link", widths: ["desktop"] },
+  { id: "settings-landing", title: "Settings: every group of the navigation an owner sees, each page a link", widths: ["desktop", "narrow"] },
   { id: "settings-members", title: "Settings, Members: the owner and the people the organization holds", widths: ["desktop", "narrow"] },
   { id: "settings-api-keys", title: "Settings, API keys: Stigmer Cloud, before the first key", widths: ["desktop"] },
-  { id: "settings-vaults", title: "Settings, Vaults: the organization's vaults", widths: ["desktop"] },
+  { id: "settings-vaults", title: "Settings, Vaults: the organization's vaults", widths: ["desktop", "narrow"] },
   {
     id: "settings-vaults-open",
     title: "Settings, Vaults: eight shared vaults, the first opened to its secrets",
@@ -562,16 +568,136 @@ const SETTINGS_SCENES = [
   },
   { id: "settings-vaults-failed", title: "Settings, Vaults: the server did not answer, so neither list could be read", widths: ["desktop"] },
   { id: "settings-service-accounts-denied", title: "Settings, Service accounts: a member who may not manage them", widths: ["desktop"] },
-  { id: "settings-billing", title: "Settings, Billing: Stigmer Cloud's plan and payment", widths: ["desktop"] },
-  { id: "settings-usage", title: "Settings, Usage: the organization's figures", widths: ["desktop"] },
+  { id: "settings-billing", title: "Settings, Billing: Stigmer Cloud's plan and payment", widths: ["desktop", "narrow"] },
+  { id: "settings-usage", title: "Settings, Usage: the organization's figures", widths: ["desktop", "narrow"] },
   { id: "settings-teams-oss", title: "Settings, Teams: the open-source server, which serves none", widths: ["desktop"] },
   { id: "settings-model-catalog", title: "Settings, Model catalogue: a platform operator's console", widths: ["desktop"] },
   { id: "settings-loading", title: "Settings, any page while its rows are read", widths: ["desktop"] },
+  { id: "settings-sidebar", title: "Settings sidebar: every group an owner sees, Members the page open", widths: ["desktop"] },
+  { id: "settings-access-history", title: "Settings, Access history: an organization's access changes, newest first", widths: ["desktop", "narrow"] },
+  { id: "settings-access-history-empty", title: "Settings, Access history: no change recorded yet", widths: ["desktop"] },
+  { id: "settings-access-history-failed", title: "Settings, Access history: the history could not be read", widths: ["desktop"] },
+  { id: "settings-access-history-denied", title: "Settings, Access history: a person who may not read it", widths: ["desktop"] },
+  { id: "settings-access-history-plan", title: "Settings, Access history: a Stigmer Cloud plan that does not carry it", widths: ["desktop"] },
+  { id: "settings-access-history-oss", title: "Settings, Access history: the open-source server, which keeps none", widths: ["desktop"] },
+  { id: "settings-account-preferences", title: "Settings, Account preferences: the person's own settings", widths: ["desktop", "narrow"] },
+  { id: "settings-channel-apps", title: "Settings, Channel apps: a Slack app and a WhatsApp line", widths: ["desktop", "narrow"] },
+  { id: "settings-channel-apps-empty", title: "Settings, Channel apps: none yet, for an admin who may add one", widths: ["desktop"] },
+  { id: "settings-channel-apps-empty-member", title: "Settings, Channel apps: none yet, for a member who may not add one", widths: ["desktop"] },
+  { id: "settings-channel-apps-failed", title: "Settings, Channel apps: the list could not be read", widths: ["desktop"] },
+  { id: "settings-channel-apps-oss", title: "Settings, Channel apps: the open-source server, which serves none", widths: ["desktop"] },
+  { id: "settings-oauth-apps", title: "Settings, OAuth apps: GitHub and Linear registered", widths: ["desktop", "narrow"] },
+  { id: "settings-oauth-apps-empty-member", title: "Settings, OAuth apps: none yet, for a member who may not add one", widths: ["desktop"] },
+  { id: "settings-oauth-apps-failed", title: "Settings, OAuth apps: the list could not be read", widths: ["desktop"] },
+  { id: "settings-federation-issuers", title: "Settings, Federation issuers: Okta and GitHub Actions trusted", widths: ["desktop", "narrow"] },
+  { id: "settings-federation-issuers-empty", title: "Settings, Federation issuers: none yet, for an admin who may add one", widths: ["desktop"] },
+  { id: "settings-federation-issuers-empty-member", title: "Settings, Federation issuers: none yet, for a member who may not add one", widths: ["desktop"] },
+  { id: "settings-federation-issuers-failed", title: "Settings, Federation issuers: the list could not be read", widths: ["desktop"] },
+  { id: "settings-federation-issuers-oss", title: "Settings, Federation issuers: the open-source server, which serves none", widths: ["desktop"] },
+  { id: "settings-invitations", title: "Settings, Invitations: two invite links live", widths: ["desktop", "narrow"] },
+  { id: "settings-invitations-empty", title: "Settings, Invitations: no invite link yet", widths: ["desktop"] },
+  { id: "settings-invitations-failed", title: "Settings, Invitations: the links could not be read", widths: ["desktop"] },
+  { id: "settings-invitations-denied", title: "Settings, Invitations: a person who may not manage them", widths: ["desktop"] },
+  { id: "settings-invitations-oss", title: "Settings, Invitations: the open-source server, where people join on first sign-in", widths: ["desktop"] },
+  { id: "settings-licenses", title: "Settings, Licenses: three customers' licenses, for a platform operator", widths: ["desktop", "narrow"] },
+  { id: "settings-licenses-empty", title: "Settings, Licenses: none issued yet", widths: ["desktop"] },
+  { id: "settings-licenses-failed", title: "Settings, Licenses: the list could not be read", widths: ["desktop"] },
+  { id: "settings-licenses-denied", title: "Settings, Licenses: a person the server refuses", widths: ["desktop"] },
+  { id: "settings-licenses-oss", title: "Settings, Licenses: a server that issues none", widths: ["desktop"] },
+  { id: "settings-memory", title: "Settings, Memory: one proposal waiting and two remembered", widths: ["desktop", "narrow"] },
+  { id: "settings-memory-empty", title: "Settings, Memory: nothing remembered yet", widths: ["desktop"] },
+  { id: "settings-memory-failed", title: "Settings, Memory: the memories could not be read", widths: ["desktop"] },
+  { id: "settings-teams", title: "Settings, Teams: Finance and Platform, on Stigmer Cloud", widths: ["desktop", "narrow"] },
+  { id: "settings-teams-empty", title: "Settings, Teams: none yet, for an admin who may add one", widths: ["desktop"] },
+  { id: "settings-teams-empty-member", title: "Settings, Teams: none yet, for a member who may not add one", widths: ["desktop"] },
+  { id: "settings-teams-failed", title: "Settings, Teams: the list could not be read", widths: ["desktop"] },
+  { id: "settings-teams-plan", title: "Settings, Teams: a Stigmer Cloud plan that does not carry teams", widths: ["desktop"] },
+  { id: "settings-plans", title: "Settings, Plans: the plan catalogue, for a platform operator", widths: ["desktop", "narrow"] },
+  { id: "settings-plans-empty", title: "Settings, Plans: no plan yet", widths: ["desktop"] },
+  { id: "settings-plans-failed", title: "Settings, Plans: the catalogue could not be read", widths: ["desktop"] },
+  { id: "settings-plans-denied", title: "Settings, Plans: a person who may not manage plans", widths: ["desktop"] },
+  { id: "settings-plans-oss", title: "Settings, Plans: the open-source server, which sells none", widths: ["desktop"] },
+  { id: "settings-org-profile", title: "Settings, Organization profile: its name, address and logo", widths: ["desktop", "narrow"] },
+  { id: "settings-org-preferences", title: "Settings, Organization preferences: standing context, memory, the default environment", widths: ["desktop", "narrow"] },
+  { id: "settings-org-policies", title: "Settings, Organization policies: its one switch", widths: ["desktop", "narrow"] },
+  { id: "settings-org-embedding", title: "Settings, Embedding: where the organization's agents may be embedded", widths: ["desktop", "narrow"] },
+  { id: "settings-notifications", title: "Settings, Notifications: its one switch, off", widths: ["desktop", "narrow"] },
+  { id: "settings-notifications-unsupported", title: "Settings, Notifications: a browser that cannot show them", widths: ["desktop"] },
+  { id: "settings-channel-apps-detail", title: "Settings, Channel apps: the Slack app's page open", widths: ["desktop"], opens: "Edit Acme Slack" },
+  { id: "settings-channel-apps-delete", title: "Settings, Channel apps: Delete asked first, on the Slack app's page", widths: ["desktop"], opens: ["Edit Acme Slack", "Delete channel app"] },
+  {
+    id: "settings-channel-apps-new-error",
+    title: "Settings, Channel apps: a new Slack app the server refused to register",
+    widths: ["desktop"],
+    opens: [
+      { press: "New channel app", role: "button", first: true },
+      { fill: "Name", with: "Acme Slack", exact: true },
+      { fill: "Client ID", with: "1234.5678", exact: true },
+      { fill: "Client secret", with: "8f2c41d09a", exact: true },
+      { fill: "Signing secret", with: "4be1c07f22", exact: true },
+      "Register channel app",
+    ],
+  },
+  { id: "settings-oauth-apps-detail", title: "Settings, OAuth apps: the GitHub app's page open", widths: ["desktop"], opens: "Edit github" },
+  { id: "settings-oauth-apps-delete", title: "Settings, OAuth apps: Delete asked first, on the GitHub app's page", widths: ["desktop"], opens: ["Edit github", { press: "Delete", role: "button", exact: true }] },
+  { id: "settings-federation-issuers-detail", title: "Settings, Federation issuers: Acme Okta's page open", widths: ["desktop"], opens: "Edit Acme Okta" },
+  { id: "settings-federation-issuers-delete", title: "Settings, Federation issuers: Delete asked first, in Acme Okta's row", widths: ["desktop"], opens: "Delete Acme Okta" },
+  { id: "settings-federation-issuers-new", title: "Settings, Federation issuers: the new issuer's first step, its provider", widths: ["desktop"], opens: "New federation issuer" },
+  { id: "settings-invitations-new", title: "Settings, Invitations: the new invite link's form", widths: ["desktop"], opens: { press: "Create invite link", role: "button", first: true } },
+  { id: "settings-invitations-revoke", title: "Settings, Invitations: Revoke asked first, in the Finance team link's row", widths: ["desktop"], opens: "Revoke Finance team" },
+  { id: "settings-licenses-detail", title: "Settings, Licenses: Northwind Traders' license open", widths: ["desktop", "narrow"], opens: { press: "Northwind Traders", role: "button" } },
+  { id: "settings-licenses-new", title: "Settings, Licenses: the Issue license form", widths: ["desktop"], opens: { press: "Issue license", role: "button", first: true } },
+  { id: "settings-memory-delete", title: "Settings, Memory: Delete asked first, in a remembered fact's row", widths: ["desktop"], opens: "Delete memory: Report variances" },
+  { id: "settings-teams-detail", title: "Settings, Teams: the Finance team's page open", widths: ["desktop", "narrow"], opens: { press: "Finance", role: "button" } },
+  { id: "settings-teams-delete", title: "Settings, Teams: Delete asked first, on the Finance team's page", widths: ["desktop"], opens: [{ press: "Finance", role: "button" }, "Delete team"] },
+  {
+    id: "settings-teams-new-error",
+    title: "Settings, Teams: a new team the server refused to make",
+    widths: ["desktop"],
+    opens: [{ press: "New team", role: "button", first: true }, { fill: "Name", with: "Support", exact: true }, "Create team"],
+  },
+  { id: "settings-plans-new", title: "Settings, Plans: the New plan form", widths: ["desktop"], opens: "New plan" },
+  { id: "settings-plans-retire", title: "Settings, Plans: Retire asked first, in the confirm dialog", widths: ["desktop"], opens: { press: "Retire", role: "button", first: true } },
+  { id: "settings-api-keys-full", title: "Settings, API keys: two keys, one never expiring", widths: ["desktop", "narrow"] },
+  { id: "settings-api-keys-failed", title: "Settings, API keys: the keys could not be read", widths: ["desktop"] },
+  { id: "settings-api-keys-revoke", title: "Settings, API keys: Revoke asked first, in a key's row", widths: ["desktop"], opens: { press: "Laptop CLI", role: "button" } },
+  {
+    id: "settings-api-keys-new-failed",
+    title: "Settings, API keys: a new key the server refused to make",
+    widths: ["desktop"],
+    opens: [{ press: "New API key", role: "button", first: true }, { fill: "Name", with: "Release pipeline", exact: true }, "Create API key"],
+  },
+  { id: "settings-members-remove", title: "Settings, Members: Remove asked first, in Katherine Johnson's row", widths: ["desktop"], opens: "Remove Katherine Johnson" },
+  { id: "settings-members-failed", title: "Settings, Members: the people could not be read", widths: ["desktop"] },
+  { id: "settings-members-member", title: "Settings, Members: as a member, who may not change roles", widths: ["desktop"] },
+  { id: "settings-vaults-member", title: "Settings, Vaults: as a member, who may not make a shared vault", widths: ["desktop"] },
+  { id: "settings-vaults-delete", title: "Settings, Vaults: Delete asked first, on the Production vault", widths: ["desktop"], opens: [{ press: "Production", role: "button" }, "Delete vault"] },
+  { id: "settings-service-accounts", title: "Settings, Service accounts: the CI deploy account", widths: ["desktop", "narrow"] },
+  { id: "settings-service-accounts-empty", title: "Settings, Service accounts: none yet", widths: ["desktop"] },
+  { id: "settings-service-accounts-delete", title: "Settings, Service accounts: Delete asked first, on the CI account's page", widths: ["desktop"], opens: [{ press: "ci-deploy", role: "button" }, "Delete service account"] },
+  { id: "settings-billing-failed", title: "Settings, Billing: the plan could not be read", widths: ["desktop"] },
+  { id: "settings-billing-oss", title: "Settings, Billing: the open-source server, which bills nothing", widths: ["desktop"] },
+  { id: "settings-usage-empty", title: "Settings, Usage: nothing run yet this period", widths: ["desktop"] },
+  { id: "settings-usage-failed", title: "Settings, Usage: the figures could not be read", widths: ["desktop"] },
+  { id: "settings-model-catalog-detail", title: "Settings, Model catalogue: Claude Sonnet 4.6's rate card", widths: ["desktop", "narrow"], opens: { press: "Claude Sonnet 4.6", role: "button", first: true } },
+  { id: "settings-model-catalog-stepped", title: "Settings, Model catalogue: a model whose price steps up past 200,000 prompt tokens, as today's rate card shows it", widths: ["desktop"], opens: { press: "Claude Sonnet 4.6", role: "button", first: true } },
+  { id: "settings-model-catalog-editor", title: "Settings, Model catalogue: the stepped model's editor", widths: ["desktop"], opens: [{ press: "Claude Sonnet 4.6", role: "button", first: true }, "Edit"] },
+  {
+    id: "settings-model-catalog-confirm",
+    title: "Settings, Model catalogue: a price change's confirm, its differences listed",
+    widths: ["desktop"],
+    opens: [{ press: "Claude Sonnet 4.6", role: "button", first: true }, "Edit", { fill: "Input", with: "3.50", exact: true }, { fill: "Revision note", with: "Provider list price, November", exact: true }, "Review changes"],
+  },
+  { id: "settings-model-catalog-retire", title: "Settings, Model catalogue: Retire asked first, with its reason", widths: ["desktop"], opens: [{ press: "Claude Sonnet 4.6", role: "button", first: true }, "Retire"] },
+  { id: "settings-model-catalog-empty", title: "Settings, Model catalogue: no model priced yet", widths: ["desktop"] },
+  { id: "settings-model-catalog-failed", title: "Settings, Model catalogue: the catalogue could not be read", widths: ["desktop"] },
+  { id: "settings-model-catalog-denied", title: "Settings, Model catalogue: a person the server refuses", widths: ["desktop"] },
+  { id: "settings-model-catalog-oss", title: "Settings, Model catalogue: a server that keeps no catalogue", widths: ["desktop"] },
 ] as const satisfies readonly {
   readonly id: `settings-${string}`;
   readonly title: string;
   readonly widths: readonly WidthName[];
-  readonly opens?: Act;
+  readonly opens?: Act | readonly Act[];
 }[];
 
 /**
@@ -1048,9 +1174,23 @@ function whole<S extends Scene>(scene: S): S & { readonly whole: true } {
 /**
  * The scene groups pictured whole: the session view, whose thread scrolls
  * inside it, and the console pages the shared parts are drawn on, whose
- * lower halves scroll under the console's frame.
+ * lower halves scroll under the console's frame. `channel-app-` and
+ * `access-` are settings pages too (Channel apps, Service accounts, OAuth
+ * apps), named for the docs pages that show them.
  */
-const WHOLE_PREFIXES = ["session-", "settings-", "models-hub-", "dashboard-", "marketplace-", "routine-", "agent-profile-", "library-", "conversations-"] as const;
+const WHOLE_PREFIXES = [
+  "session-",
+  "settings-",
+  "models-hub-",
+  "dashboard-",
+  "marketplace-",
+  "routine-",
+  "agent-profile-",
+  "library-",
+  "conversations-",
+  "channel-app-",
+  "access-",
+] as const;
 
 /**
  * The scenes of those groups kept at their viewport's height: the session
@@ -1075,6 +1215,13 @@ const LISTED: readonly Scene[] = [
   },
   { id: "models-hub-local", title: "Models & providers: a laptop whose runner has no key", widths: ["desktop"] },
   { id: "models-hub-member", title: "Models & providers: a member, nothing connected yet", widths: ["desktop"] },
+  {
+    id: "models-hub-key-rejected",
+    title: "Models & providers: an Anthropic key the provider rejects",
+    widths: ["desktop", "narrow"],
+    opens: ["Connect Anthropic", { fill: "Anthropic API key", with: "sk-ant-api03-gallery", exact: true }, { press: "Connect Anthropic", role: "button", first: true }],
+  },
+  { id: "models-hub-remove", title: "Models & providers: Remove asked first, on the organization's Anthropic key", widths: ["desktop"], opens: "Remove" },
   { id: "launcher-ready", title: "Launcher: a model provider connected, ready to send", widths: ["desktop", "narrow"] },
   {
     id: "launcher-key-missing",
@@ -1181,6 +1328,7 @@ const LISTED: readonly Scene[] = [
     widths: ["desktop"],
   },
   { id: "dashboard-journey-folded", title: "Dashboard: every step of the journey done, the card folded to one line", widths: ["desktop"] },
+  { id: "dashboard-failures-failed", title: "Dashboard: a busy week whose recent failures could not be read", widths: ["desktop", "narrow"] },
   {
     id: "bring-others-in",
     title: "Bring others in: an organization named from the email at sign-up, asked for its company's name before the invite",
@@ -1311,6 +1459,9 @@ const LISTED: readonly Scene[] = [
     widths: ["desktop"],
     opens: { fill: "Search plugins", with: "ledgr" },
   },
+  { id: "marketplace-source-failed", title: "Marketplace: the official catalogue could not be read", widths: ["desktop"] },
+  { id: "marketplace-install", title: "Marketplace: Install Notion asked first, in the install dialog", widths: ["desktop", "narrow"], opens: "Install notion" },
+  { id: "marketplace-upload", title: "Marketplace: the Upload a plugin dialog", widths: ["desktop"], opens: "Upload a plugin" },
   ...SESSION_SCENES,
   ...STORY_SCENES,
   ...ROUTINE_SCENES,

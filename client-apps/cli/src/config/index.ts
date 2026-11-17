@@ -20,6 +20,7 @@ export {
 export {
   DEFAULT_CLOUD_CONSOLE_URL,
   ensureAuthenticated,
+  knownConsoleURL,
   resolveConsoleURL,
   contextOrganizationId,
   contextOrganizationLabel,
