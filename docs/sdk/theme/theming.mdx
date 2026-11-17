@@ -295,11 +295,13 @@ declare function AcmeCheckIcon(props: { done: boolean }): null;
 declare const id: string;
 declare const org: string;
 // ---cut---
-import type { ComponentProps } from "react";
-import { MessageEntry, SessionViewer, type MessageEntryProps } from "@stigmer/react-sdk";
-import type { MessageThreadSlots } from "@stigmer/react-sdk/headless";
-
-type TodoRowProps = ComponentProps<NonNullable<MessageThreadSlots["TodoRow"]>>;
+import {
+  MessageEntry,
+  SessionViewer,
+  type MessageEntryProps,
+  type MessageThreadSlots,
+  type TodoRowProps,
+} from "@stigmer/react-sdk";
 
 // Restyle only user bubbles; every other message keeps the built-in.
 function BrandedMessageEntry(props: MessageEntryProps) {
@@ -328,9 +330,14 @@ const THREAD_SLOTS: MessageThreadSlots = {
 ```
 
 Available slots: `MessageEntry`, `ApprovalCard`, `TodoCard`, `TodoRow`,
-`PlanFileCard`, `PlanCompletionCard`, `PlanStreamingCard`, and
-`SetupProgress` (the pre-first-token "Thinking…" indicator). See the
-[run reference](/docs/sdk/react/run) for each slot's props.
+`PlanFileCard`, `PlanCompletionCard`, `PlanStreamingCard`, `SetupProgress`
+(the pre-first-token "Thinking…" indicator), `RecalledMemoriesCard` (the
+"Recalled N of M memories" card), `RunErrorNotice` (the notice when a turn
+fails) and `LivenessStatusLine` (the line that shows the agent is still
+working between visible steps). Each slot's props type is exported from
+`@stigmer/react-sdk` under the built-in's name plus `Props`, beside the
+built-in itself. See the [run reference](/docs/sdk/react/run) for each
+slot's props.
 
 ## Token reference
 

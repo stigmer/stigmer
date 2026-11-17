@@ -13,6 +13,7 @@ import {
   supersededRunIds,
   buildSessionProto,
   getErrorReason,
+  resolvedSubject,
   type FileReviewSet,
   type QueuedMessage,
   type ResourceRef,
@@ -55,6 +56,14 @@ import { useLocalSessionWorker } from "./useLocalSessionWorker.js";
  * events, never from this read.
  */
 const LIVE_RUN_REFRESH_MS = 3_000;
+
+/**
+ * How long after a turn ends its session is read once more for the generated
+ * subject, when the turn's phase changes did not bring it: the title is made
+ * by one short model call that starts with the turn, so a turn that ends
+ * first is usually overtaken within seconds.
+ */
+const SUBJECT_SETTLE_MS = 6_000;
 
 /** The phases a turn can be stopped from: every unfinished one (the session's interrupt stops them all). */
 const STOPPABLE_PHASES: ReadonlySet<TurnPhase> = new Set<TurnPhase>([
@@ -1040,6 +1049,30 @@ export function useSessionConversation(
       refetchLiveRun();
     }
   }, [liveRunId, livePhase, refetchLiveRun]);
+
+  // The session's subject is written by an activity the run's workflow
+  // starts beside the turn and never waits on, and no stream carries it, so a
+  // conversation left open would keep the placeholder (stigmer#3199). While
+  // the session still holds it, the session is read again whenever the live
+  // turn changes phase, and once more SUBJECT_SETTLE_MS after a turn seen
+  // live ends; then it is left alone.
+  const subjectPending = session !== null && resolvedSubject(session.spec?.subject) === null;
+  const refetchSessionRef = useRef(refetchSession);
+  refetchSessionRef.current = refetchSession;
+  const previousSubjectPhaseRef = useRef<TurnPhase | undefined>(undefined);
+  useEffect(() => {
+    const previous = previousSubjectPhaseRef.current;
+    previousSubjectPhaseRef.current = livePhase;
+    if (subjectPending && livePhase !== undefined && previous !== livePhase) refetchSessionRef.current();
+  }, [livePhase, subjectPending]);
+  const previousSubjectRunRef = useRef<string | null>(null);
+  useEffect(() => {
+    const previous = previousSubjectRunRef.current;
+    previousSubjectRunRef.current = liveRunId;
+    if (!subjectPending || previous === null || previous === liveRunId) return;
+    const timer = setTimeout(() => refetchSessionRef.current(), SUBJECT_SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, [liveRunId, subjectPending]);
 
   // A session whose runs are listed has events to show: it loads until the
   // first of them is folded (or the follow fails or times out). A session
