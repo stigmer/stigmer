@@ -242,7 +242,7 @@ function linesOf(name) {
 
 test("the walk's fake gives the invoice example's true answer, in the file its instructions name", () => {
   const instructions = readFileSync(new URL("../../../examples/invoice-match/invoice-matcher.yaml", import.meta.url), "utf8");
-  assert.match(instructions, new RegExp(`Save the result as ${DOOR_FILE.replace(".", "\\.")}`));
+  assert.match(instructions, new RegExp(`Hand back the result as a file named ${DOOR_FILE.replace(".", "\\.")}`));
   // The agent's rule, recomputed from the samples: what the invoice charges beyond what the order agreed.
   const invoice = linesOf("invoice-4471.csv");
   const order = linesOf("po-2210.csv");

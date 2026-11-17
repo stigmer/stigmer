@@ -67,6 +67,11 @@
  *   golden, the everything shape with the roots' files, whose section
  *   follows the workspace section; every other shape reads no file, and no
  *   existing golden moved.
+ * - 2026-11-17 (stigmer#3200: agents told the person a file was "saved to
+ *   your outputs folder"): the outputs folder's instruction gains one
+ *   sentence, that its files reach the person beside the reply and are
+ *   called by their file names, never by the folder or its path; every
+ *   golden that carries the instruction moves by that sentence alone.
  */
 
 import { describe, it, expect } from "vitest";

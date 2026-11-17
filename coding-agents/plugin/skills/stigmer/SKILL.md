@@ -90,7 +90,7 @@ The person chooses. Then:
   spec:
     description: <one line>
     instructions: |
-      <what it reads, what it does, and the file it saves in its outputs folder>
+      <what it reads, what it does, and the file it hands back, by its name>
   ```
 
 Make it with `stigmer apply -f <the manifest>`. Their agent is now a file in

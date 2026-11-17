@@ -189,8 +189,14 @@ export const BOUNDARY_STOP_REASON = "The turn paused at this step's boundary.";
 /** What a call from a sub-agent the gate cannot name is refused with. */
 export const UNKNOWN_CALLER_MESSAGE = "This call came from a helper this turn did not start; it was not run.";
 
-/** What a call that writes platform content or the engine's own files is refused with. */
-export const READ_ONLY_MESSAGE = "This path holds the platform's own files, which are read-only; it was not run. Save files for the person in the outputs folder.";
+/**
+ * What a call that writes platform content or the engine's own files is
+ * refused with. It points at the prompt's own heading (`prompt.ts`, "Files
+ * for the person") rather than naming the folder: agents repeat the words
+ * they are handed, and "the outputs folder" is a place the person never
+ * sees (stigmer#3200).
+ */
+export const READ_ONLY_MESSAGE = "This path holds the platform's own files, which are read-only; it was not run. Save files for the person as the Files for the person section says.";
 
 /** What a read outside the platform's content is refused with when the caller's lists exclude `Read`. */
 export const PLATFORM_READ_ONLY_MESSAGE =
