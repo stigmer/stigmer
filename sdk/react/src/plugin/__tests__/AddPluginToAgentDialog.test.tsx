@@ -5,7 +5,8 @@
  * with the plugin appended to the agent's `plugins` and says it was added;
  * an agent that already lists it is told so and nothing is saved; an agent
  * whose tool list leaves the plugin's servers out is told before Add; an
- * agent a plugin installed is refused before Add is offered; "Open agent"
+ * agent carrying a `stigmer.ai/plugin` label is picked and added like any
+ * other (stigmer/stigmer#2818); "Open agent"
  * hands the host the updated agent's reference; a refused save is shown
  * as an error.
  */
@@ -125,11 +126,12 @@ describe("AddPluginToAgentDialog", () => {
     expect(await screen.findByText(/its list leaves this plugin's servers out/)).toBeTruthy();
   });
 
-  it("refuses an agent a plugin installed before Add is offered", async () => {
+  it("lets a labelled agent be picked, with Add enabled and no refusal", async () => {
     renderDialog();
     fireEvent.click(screen.getByRole("button", { name: "Pick assistant" }));
-    expect(await screen.findByText(/was installed by a plugin/)).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Add" })).toHaveProperty("disabled", true);
+    const add = await screen.findByRole("button", { name: "Add" });
+    await waitFor(() => expect(add).toHaveProperty("disabled", false));
+    expect(screen.queryByText(/installed by a plugin/)).toBeNull();
   });
 
   it("shows a refused save and keeps Add on offer", async () => {

@@ -1,8 +1,8 @@
 /**
  * Adding a plugin to an agent, against an in-memory Connect backend. Pins:
- * the pick is fetched and an agent a plugin installed is refused before any
- * update, in the `managed` phase, from its `stigmer.ai/plugin` label; a
- * plain agent is updated with the plugin appended to its `plugins` after
+ * the pick is fetched, and an agent carrying a `stigmer.ai/plugin` label
+ * reads `ready` and is updated like any other, since the server accepts that
+ * edit (stigmer/stigmer#2818); a plain agent is updated with the plugin appended to its `plugins` after
  * the ones it had, every other field kept; an agent that lists the plugin
  * already is not updated and says so; an agent whose tool list leaves the
  * plugin's servers out is told so before the add (`toolsLeaveOut`), and one
@@ -62,7 +62,7 @@ function setup(agents: Record<string, Agent>, refuseUpdate = false) {
     });
     service(AgentCommandController, {
       update: (req) => {
-        if (refuseUpdate) throw new ConnectError("agent 'reviewer' is managed by plugin 'toolbox'", Code.FailedPrecondition);
+        if (refuseUpdate) throw new ConnectError("you may not edit agent 'reviewer'", Code.PermissionDenied);
         const resource = req.resource ?? create(AgentSchema);
         updates.push(resource);
         masks.push([...(req.updateMask?.paths ?? [])]);
@@ -77,12 +77,16 @@ function setup(agents: Record<string, Agent>, refuseUpdate = false) {
 }
 
 describe("useAddPluginToAgent", () => {
-  it("refuses an agent a plugin installed before any update, from its label", async () => {
+  it("reads a labelled agent ready and adds the plugin to it, the label locking nothing", async () => {
     const { hook, updates } = setup({ assistant: agent("assistant", { "stigmer.ai/plugin": "plg_1" }, []) });
     act(() => hook.result.current.pick({ org: ORG, slug: "assistant" }));
-    await waitFor(() => expect(hook.result.current.phase.status).toBe("managed"));
-    expect(await hook.result.current.add()).toEqual({ added: false });
-    expect(updates).toEqual([]);
+    await waitFor(() => expect(hook.result.current.phase.status).toBe("ready"));
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await hook.result.current.add();
+    });
+    expect(outcome).toEqual({ added: true });
+    expect(updates.map((sent) => sent.spec?.plugins.map((ref) => ref.slug))).toEqual([["linear"]]);
   });
 
   it("appends the plugin after the ones the agent lists, naming the plugins alone on the agent as read", async () => {
@@ -129,10 +133,10 @@ describe("useAddPluginToAgent", () => {
     act(() => hook.result.current.pick({ org: ORG, slug: "reviewer" }));
     await waitFor(() => expect(hook.result.current.phase.status).toBe("ready"));
     await act(async () => {
-      await expect(hook.result.current.add()).rejects.toThrow(/managed by plugin 'toolbox'/);
+      await expect(hook.result.current.add()).rejects.toThrow(/may not edit agent 'reviewer'/);
     });
     expect(hook.result.current.phase.status).toBe("ready");
-    expect(hook.result.current.error?.message).toMatch(/managed by plugin 'toolbox'/);
+    expect(hook.result.current.error?.message).toMatch(/may not edit agent 'reviewer'/);
   });
 
   it("returns to picking on a cleared pick, and on a failed read with its error held until reset", async () => {

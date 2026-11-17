@@ -2,7 +2,8 @@
 // (../tool-rendering-primitives.tsx): closed, it names its label and how many
 // lines it holds, in the readable muted foreground (the subtle one fell
 // under WCAG AA's 4.5:1 in dark mode, stigmer#3040); opened, it shows the
-// content and drops the count.
+// content and drops the count. Its toggle tells a screen reader whether the
+// block is open and names the block it opens (stigmer/stigmer#2909).
 import { describe, it, expect, afterEach } from "vitest";
 import { render, cleanup, screen, fireEvent } from "@testing-library/react";
 import { CollapsibleJsonBlock } from "../tool-rendering-primitives";
@@ -18,6 +19,18 @@ describe("CollapsibleJsonBlock", () => {
     fireEvent.click(screen.getByRole("button", { name: /labels/ }));
     expect(screen.queryByText("(4 lines)")).toBeNull();
     expect(screen.getByText(/"rounding"/)).toBeTruthy();
+  });
+
+  it("says whether the block is open, and names the block it opens", () => {
+    render(<CollapsibleJsonBlock label="labels" content={'["bug"]'} />);
+    const toggle = screen.getByRole("button", { name: /labels/ });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+
+    fireEvent.click(toggle);
+
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    const block = document.getElementById(toggle.getAttribute("aria-controls") ?? "");
+    expect(block?.textContent).toBe('["bug"]');
   });
 
   it("names no count for a short block", () => {
