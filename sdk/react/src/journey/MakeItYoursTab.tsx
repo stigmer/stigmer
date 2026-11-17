@@ -6,9 +6,8 @@
 // 1. Change what it does: the instructions in the same click-to-edit field
 //    the Overview uses, saved through the page's own save (one copy of the
 //    agent, one etag, so Overview shows the change at once). A save is a new
-//    version; the card says so and offers a run on the sample (on their own
-//    file, for an agent described in their own words, which has none).
-//    Every save is kept under Versions; nothing here promises a way back.
+//    version. Every save is kept under Versions; nothing here promises a way
+//    back.
 // 2. Try your own file: the launcher, on this agent, with the message for a
 //    file of their own written and the composer's attach invited.
 // 3. Give it a skill: "Spreadsheet export", from `@stigmer/examples`. An
@@ -18,6 +17,12 @@
 //    make skills (`can_create_skill`, asked fail closed); anyone else is told
 //    an admin adds skills, with no button. Then the reference is added to
 //    the agent through the page's save.
+//
+// A change made on this visit (instructions saved, or the skill turned on)
+// earns one row under the cards: what the last change did, and the one run
+// that shows it, on the sample (on their own file, for an agent described in
+// their own words, which has none). Two changes still make one row, about
+// the later one; a later visit with nothing changed shows none.
 //
 // The page draws the tab only for a host that opts in, a journey agent and
 // a person who may edit it (`AgentDetailView`'s `makeItYours`).
@@ -76,13 +81,17 @@ export interface MakeItYoursTabProps {
   readonly onOpenVersions: () => void;
 }
 
-// Every act here is an outlined Button or LinkButton: the page's one filled
-// action is its header's Start session.
+// Every act in the cards is an outlined Button or LinkButton: beside the
+// page's header's Start session, the one filled action is the run a change
+// leads to, in the row under them.
 
 /** The example whose agent this is, or undefined for an agent described in the person's own words. */
 function exampleOf(slug: string): Example | undefined {
   return EXAMPLES.find((example) => example.agent.slug === slug);
 }
+
+/** What was changed last on this visit, for the run row under the cards. */
+type LastChange = "instructions" | "skill";
 
 /** The "Make it yours" tab's body: three acts on the agent, and the next step. */
 export function MakeItYoursTab({ agent, links, saveField, isSaving, saveError, onOpenVersions }: MakeItYoursTabProps) {
@@ -90,16 +99,17 @@ export function MakeItYoursTab({ agent, links, saveField, isSaving, saveError, o
   const ref: ResourceRef = { org: agent.metadata?.org ?? "", slug };
   const example = exampleOf(slug);
   const render = links.renderLink ?? anchorLink;
-  const [saved, setSaved] = useState(false);
+  const [lastChange, setLastChange] = useState<LastChange | null>(null);
 
   const saveInstructions = useCallback(
     async (value: string) => {
       const ok = await saveField("instructions", value || undefined);
-      if (ok) setSaved(true);
+      if (ok) setLastChange("instructions");
       return ok;
     },
     [saveField],
   );
+  const skillAdded = useCallback(() => setLastChange("skill"), []);
 
   const rerun = example
     ? { href: links.launch({ agent: ref, example: example.id, mode: "sample" }), words: "Run it on the sample" }
@@ -123,16 +133,6 @@ export function MakeItYoursTab({ agent, links, saveField, isSaving, saveError, o
             />
           </div>
           <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-3">
-            {saved && (
-              <>
-                <span role="status" className="stg:text-sm stg:font-medium stg:text-foreground">
-                  Saved as a new version.
-                </span>
-                <LinkButton href={rerun.href} variant="outline" size="xs" renderLink={render}>
-                  {rerun.words}
-                </LinkButton>
-              </>
-            )}
             <span className="stg:text-xs stg:text-muted-foreground">
               Every save is kept under{" "}
               <button type="button" onClick={onOpenVersions} className="stg:p-0 stg:text-xs stg:text-foreground stg:underline stg:underline-offset-2">
@@ -152,8 +152,20 @@ export function MakeItYoursTab({ agent, links, saveField, isSaving, saveError, o
             </LinkButton>
           </div>
         </Card>
-        <SkillCard agent={agent} saveField={saveField} isSaving={isSaving} saveError={saveError} sample={example ? rerun : undefined} renderLink={render} />
+        <SkillCard agent={agent} saveField={saveField} isSaving={isSaving} saveError={saveError} onAdded={skillAdded} />
       </div>
+      {lastChange !== null && (
+        <div className={cn(cardClasses(), "stg:flex stg:flex-wrap stg:items-center stg:gap-3")}>
+          <span role="status" className="stg:min-w-[12rem] stg:flex-1 stg:text-sm stg:font-medium stg:text-foreground">
+            {lastChange === "instructions"
+              ? "Saved as a new version."
+              : `${OFFERED_SKILL?.name ?? "The skill"} is on. From now on every run also hands back a .csv beside the report.`}
+          </span>
+          <LinkButton href={rerun.href} size="xs" renderLink={render}>
+            {rerun.words}
+          </LinkButton>
+        </div>
+      )}
       {links.putInApp && (
         <div className={cn(cardClasses(), "stg:flex stg:flex-wrap stg:items-center stg:gap-3")}>
           <span className="stg:min-w-[12rem] stg:flex-1 stg:text-sm stg:text-muted-foreground">
@@ -206,15 +218,14 @@ function SkillCard({
   saveField,
   isSaving,
   saveError,
-  sample,
-  renderLink,
+  onAdded,
 }: {
   readonly agent: Agent;
   readonly saveField: MakeItYoursTabProps["saveField"];
   readonly isSaving: boolean;
   readonly saveError: MakeItYoursTabProps["saveError"];
-  readonly sample: { readonly href: string; readonly words: string } | undefined;
-  readonly renderLink: RenderJourneyLink;
+  /** Called once the agent has the skill, saved. */
+  readonly onAdded: () => void;
 }) {
   const stigmer = useStigmer();
   const skill = OFFERED_SKILL;
@@ -239,13 +250,13 @@ function SkillCard({
         recheck();
       }
       const kept = refs.map((ref) => keptReference({ org: ref.org || org, slug: ref.slug, ...(ref.id ? { id: ref.id } : {}), ...(ref.version ? { version: ref.version } : {}) }));
-      await saveField("skillRefs", [...kept, { org, slug: OFFERED_SKILL_ID }]);
+      if (await saveField("skillRefs", [...kept, { org, slug: OFFERED_SKILL_ID }])) onAdded();
     } catch (err) {
       setFailure(`${offered.name} wasn't added. ${serverSentence(err)} Try again.`);
     } finally {
       setAdding(false);
     }
-  }, [exists, stigmer, org, refs, saveField, recheck]);
+  }, [exists, stigmer, org, refs, saveField, recheck, onAdded]);
 
   /* v8 ignore next -- @preserve: examples/scripts/generate.test.mjs holds the id spreadsheet-export in the shipped catalogue */
   if (skill === undefined) return null;
@@ -256,18 +267,9 @@ function SkillCard({
   return (
     <Card title="Give it a skill" className="stg:md:col-span-3 stg:lg:col-span-2">
       {has ? (
-        <>
-          <p role="status" className="stg:m-0 stg:text-sm stg:text-foreground">
-            <span className="stg:font-medium">{skill.name}</span> is on. Its runs hand back a .csv beside the report.
-          </p>
-          {sample && (
-            <div className="stg:mt-auto">
-              <LinkButton href={sample.href} variant="outline" size="xs" renderLink={renderLink}>
-                {sample.words}
-              </LinkButton>
-            </div>
-          )}
-        </>
+        <p className="stg:m-0 stg:text-sm stg:text-foreground">
+          <span className="stg:font-medium">{skill.name}</span> is on for this agent.
+        </p>
       ) : (
         <>
           <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">

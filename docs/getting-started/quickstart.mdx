@@ -118,7 +118,7 @@ spec:
     more than 10% over or under budget, and say in one line what could
     explain it.
 
-    Save the report as variance-report.md in your outputs folder: a
+    Hand back the report as a file named variance-report.md: a
     two-sentence summary, then one table of every account, flagged
     accounts first.
   disallowed_tools: [Bash]
@@ -130,11 +130,11 @@ Send it to Stigmer:
 stigmer apply -f variance-reporter.yaml
 ```
 
-The last instruction is the one that matters for this page: whatever the Agent
-saves in its outputs folder comes back to whoever started the job. The job needs
-no shell, so `disallowed_tools` leaves the Agent without one. A shell command
-would otherwise wait for a person to say yes first, and nobody is watching this
-job.
+The last instruction is the one that matters for this page: it names the file
+the Agent hands back, and whatever the Agent saves in its outputs folder comes
+back to whoever started the job. The job needs no shell, so `disallowed_tools`
+leaves the Agent without one. A shell command would otherwise wait for a person
+to say yes first, and nobody is watching this job.
 
 </Step>
 <Step>

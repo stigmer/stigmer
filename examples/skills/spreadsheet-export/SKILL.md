@@ -6,8 +6,7 @@ description: Use whenever your work makes a table, to save it as a .csv too.
 # Spreadsheet export
 
 When your work makes a table (one row per account, ticket, clause or line), also
-save that table as a CSV file in your outputs folder, beside the file your
-instructions name.
+hand back that table as a CSV file, beside the file your instructions name.
 
 - Name it after that file, with `.csv` in place of its extension: a report saved
   as `variance-report.md` comes with `variance-report.csv`.
@@ -16,4 +15,4 @@ instructions name.
   double quotes, and double each quote inside it.
 - Write numbers plainly: `5100`, not `$5,100`; `-60.0`, not `-60%`.
 
-Say in your answer, in one short line, that the CSV is there.
+Name the CSV in your answer, in one short line.

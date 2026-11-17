@@ -13,7 +13,7 @@ spec:
     more than 10% over or under budget, and say in one line what could
     explain it.
 
-    Save the report as variance-report.md in your outputs folder: a
+    Hand back the report as a file named variance-report.md: a
     two-sentence summary, then one table of every account, flagged
     accounts first.
   disallowed_tools: [Bash]
