@@ -185,7 +185,7 @@ export function InvitationManager({
           )}
         </div>
         {flow.phase === "idle" && (
-          <Button variant="ghost" size="xs" onClick={startCreate} icon={<Plus className="stg:size-3.5" aria-hidden="true" />}>
+          <Button onClick={startCreate} icon={<Plus className="stg:size-4" aria-hidden="true" />}>
             New invite link
           </Button>
         )}

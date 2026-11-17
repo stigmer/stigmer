@@ -30,7 +30,8 @@ export interface MemoryEnabledRowProps {
 }
 
 /**
- * The `memory_enabled` consent toggle — one row, shared verbatim by
+ * The `memory_enabled` consent toggle, its switch leading as every settings
+ * switch's does — one row, shared verbatim by
  * {@link OrgPreferencesPanel} and {@link AccountPreferencesPanel} so the
  * two scopes of the double opt-in present identically.
  *
@@ -58,7 +59,18 @@ export function MemoryEnabledRow({
 
   return (
     <div className="stg:space-y-1">
-      <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
+      <div className="stg:flex stg:items-start stg:gap-3">
+        <span className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">
+          <Switch
+            id={id}
+            checked={checked}
+            onCheckedChange={onToggle}
+            disabled={saving || readOnly}
+            aria-labelledby={titleId}
+            aria-describedby={descriptionId}
+          />
+          {saving && <SpinnerIcon size={12} />}
+        </span>
         <div className="stg:min-w-0 stg:flex-1">
           <span
             id={titleId}
@@ -73,17 +85,6 @@ export function MemoryEnabledRow({
             {helperText}
           </p>
         </div>
-        <span className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">
-          {saving && <SpinnerIcon size={12} />}
-          <Switch
-            id={id}
-            checked={checked}
-            onCheckedChange={onToggle}
-            disabled={saving || readOnly}
-            aria-labelledby={titleId}
-            aria-describedby={descriptionId}
-          />
-        </span>
       </div>
       {error && <FieldError>{getUserMessage(error)}</FieldError>}
     </div>

@@ -7,12 +7,7 @@
     {
       "caption": "Organization profile: As an admin: the profile, then the child organizations on the table part",
       "narrow": false,
-      "built": [
-        {
-          "scene": "settings-org-profile",
-          "width": "desktop"
-        }
-      ],
+      "built": [],
       "words": [
         {
           "text": "Organization profile",
@@ -255,7 +250,8 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {},
+      "unbuilt": "When its page is redesigned: the settings Built look's fixes build the profile's form as drawn, and its scene's organization gets child organizations."
     },
     {
       "caption": "Organization profile: As a member: the same, read only",
@@ -557,12 +553,7 @@
     {
       "caption": "Organization profile: At 390 wide: the table's rows become list rows",
       "narrow": true,
-      "built": [
-        {
-          "scene": "settings-org-profile",
-          "width": "narrow"
-        }
-      ],
+      "built": [],
       "words": [
         {
           "text": "Organization profile",
@@ -765,7 +756,8 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {},
+      "unbuilt": "When its page is redesigned: the settings Built look's fixes build the profile's form as drawn, and its scene's organization gets child organizations."
     }
   ]
 }

@@ -165,9 +165,13 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word I work in finance at Acme. Write amounts in USD with two decimals. Prefer short answers.": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Platform default (Stigmer)": "When its page is redesigned: the settings Built look's fixes draw the harness as a select; today it is radio rows"
+      }
     },
     {
       "caption": "Account preferences: Kept separate: as today, on sections",
@@ -475,9 +479,13 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word I work in finance at Acme. Write amounts in USD with two decimals. Prefer short answers.": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Platform default (Stigmer)": "When its page is redesigned: the settings Built look's fixes draw the harness as a select; today it is radio rows"
+      }
     },
     {
       "caption": "Account preferences: Didn't load",
@@ -717,9 +725,13 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word I work in finance at Acme. Write amounts in USD with two decimals. Prefer short answers.": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Platform default (Stigmer)": "When its page is redesigned: the settings Built look's fixes draw the harness as a select; today it is radio rows"
+      }
     }
   ]
 }

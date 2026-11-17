@@ -734,7 +734,9 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Remove Grace Hopper from acme?": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
       "pending": {
         "word Grace Hopper loses the Admin role and everything shared through acme. The conversations Grace started stay Grace's. You can invite Grace again.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"

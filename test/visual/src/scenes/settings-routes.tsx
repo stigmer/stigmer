@@ -90,7 +90,7 @@ import { DATA_SCIENCE } from "../docs-fixtures.ts";
 import { ACCOUNT, BILLING_ACCOUNT, BUSY_WEEK_USAGE, EMPTY_USAGE, ORGANIZATION, PLANS, PRICING_BASELINES, TEAM_AGENT_HOURS, TEAM_ESTIMATE, TEAM_SUBSCRIPTION } from "../fixtures.ts";
 import type { Drawing } from "./drawing.ts";
 import { serviceAccountsScene } from "./access.tsx";
-import { settingsScene as frame } from "./settings-pages.tsx";
+import { OWNER_SETTINGS_NAV_GROUPS, settingsScene as frame } from "./settings-pages.tsx";
 
 const ORG_ID = ORGANIZATION.metadata?.id ?? "";
 const ORG_SLUG = ORGANIZATION.metadata?.slug ?? "";
@@ -160,7 +160,7 @@ export function settingsSidebarScene(): Drawing {
       <div style={{ display: "flex", minHeight: 800 }}>
         <div style={{ width: 240, flex: "none", display: "flex" }}>
           <SettingsSidebar
-            groups={SETTINGS_NAV_GROUPS}
+            groups={OWNER_SETTINGS_NAV_GROUPS}
             activePath="/settings/members"
             renderLink={({ href, children, id: _id, active: _active, ...rest }) => (
               <a href={href} {...rest} style={{ textDecoration: "none" }} onClick={(event) => event.preventDefault()}>

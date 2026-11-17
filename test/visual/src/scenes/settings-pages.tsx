@@ -34,7 +34,9 @@ import {
   MembersSection,
   ModelCatalogConsole,
   PageFrame,
+  ORG_ADMIN_SETTINGS_NAV_ITEMS,
   SETTINGS_NAV_GROUPS,
+  type SettingsNavGroup,
   SettingsOverview,
   SettingsPage,
   ServiceAccountsSection,
@@ -126,10 +128,21 @@ export function settingsMembersScene(): Drawing {
 }
 
 /** The settings landing: every group of the navigation an organization's owner sees, each page a link. */
+/**
+ * The navigation an owner sees: the base groups with the admin pages after
+ * Teams, where the permission-aware navigation places them once the server
+ * says yes. Drawn deterministically, so a picture never waits on a check.
+ */
+export const OWNER_SETTINGS_NAV_GROUPS: SettingsNavGroup[] = SETTINGS_NAV_GROUPS.map((group, index) => {
+  if (index !== 0) return group;
+  const at = group.items.findIndex((item) => item.href === "/settings/teams") + 1;
+  return { ...group, items: [...group.items.slice(0, at), ...ORG_ADMIN_SETTINGS_NAV_ITEMS, ...group.items.slice(at)] };
+});
+
 export function settingsLandingScene(): Drawing {
   return settingsScene(() => (
     <SettingsOverview
-      groups={SETTINGS_NAV_GROUPS}
+      groups={OWNER_SETTINGS_NAV_GROUPS}
       renderLink={({ id, href, className, children }) => (
         <a key={id} href={href} className={className} onClick={(event) => event.preventDefault()}>
           {children}

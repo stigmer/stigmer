@@ -165,9 +165,14 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word We close the books on the 3rd business day. Our ledger is in NetSuite; amounts are in USD unless an account says otherwise.": "The drawing's example data; the scene shows its own fixture's",
+        "word data-science": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word The sandbox a run gets when its agent doesn't name one.": "When its page is redesigned: the settings Built look's fixes; the kit's line says more exactly which runs use it (a conversation, its routine or its agent may name one, and a run on a person's own machine ignores it)"
+      }
     },
     {
       "caption": "Organization preferences: Kept separate: the three controls as today, on sections",
@@ -861,9 +866,14 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word We close the books on the 3rd business day. Our ledger is in NetSuite; amounts are in USD unless an account says otherwise.": "The drawing's example data; the scene shows its own fixture's",
+        "word data-science": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word The sandbox a run gets when its agent doesn't name one.": "When its page is redesigned: the settings Built look's fixes; the kit's line says more exactly which runs use it (a conversation, its routine or its agent may name one, and a run on a person's own machine ignores it)"
+      }
     }
   ]
 }

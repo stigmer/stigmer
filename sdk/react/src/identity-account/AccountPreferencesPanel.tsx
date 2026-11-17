@@ -278,7 +278,7 @@ export function AccountPreferencesPanel({
             placeholder={
               "e.g. Keep answers terse. I prefer TypeScript examples. My timezone is IST."
             }
-            helperText="Shared with agents as background, not as instructions. Applies only to runs you start and is shown on those runs' records."
+            helperText="Shared with agents as background, not as instructions. Applies only to runs you start and shows on those run records."
           />
         </div>
       </Section>
@@ -334,25 +334,22 @@ export function AccountPreferencesPanel({
             disabled={isUpdating}
           />
         </fieldset>
+        {/* Save holds the standing context and the defaults above it; memory saves as it flips. */}
+        <div className="stg:flex stg:flex-col stg:gap-3 stg:px-4 stg:pb-4">
+          {updateError && <FieldError>{saveErrorMessage(updateError, "account")}</FieldError>}
+          <div className="stg:flex stg:items-center stg:gap-2">
+            <Button type="submit" disabled={!canSubmit} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>
+              Save
+            </Button>
+            {hasChanges && !isUpdating && (
+              <Button variant="ghost" onClick={handleDiscard}>
+                Discard
+              </Button>
+            )}
+          </div>
+        </div>
       </Section>
 
-      {updateError && (
-        <FieldError>
-          {saveErrorMessage(updateError, "account")}
-        </FieldError>
-      )}
-
-      <div className="stg:flex stg:items-center stg:gap-2">
-        <Button type="submit" disabled={!canSubmit} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>
-          Save
-        </Button>
-
-        {hasChanges && !isUpdating && (
-          <Button variant="ghost" onClick={handleDiscard}>
-            Discard
-          </Button>
-        )}
-      </div>
 
       {memoryGovernance !== null && (
         <Section title="Memory">
@@ -367,7 +364,7 @@ export function AccountPreferencesPanel({
                 saving={isSavingMemoryFlag}
                 error={memoryFlagError}
                 label="Agents may remember confirmed facts about me"
-                helperText="Agents may propose facts to remember; only facts you confirm are kept, under Memory. Requires your organization to have memory on. Saves as you switch it."
+                helperText="Agents may propose facts to remember; only facts you confirm are kept, under Memory. Saves as you switch it."
               />
             )}
           </div>
@@ -438,13 +435,13 @@ function HarnessOptionRow({
         <span className="stg:min-w-0 stg:flex-1">
           <span
             id={titleId}
-            className="stg:block stg:text-xs stg:font-medium stg:text-foreground"
+            className="stg:block stg:text-sm stg:font-medium stg:text-foreground"
           >
             {label}
           </span>
           <span
             id={descriptionId}
-            className="stg:block stg:text-2xs stg:leading-snug stg:text-muted-foreground"
+            className="stg:block stg:text-xs stg:text-muted-foreground"
           >
             {description}
           </span>
