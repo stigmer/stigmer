@@ -41,10 +41,10 @@ describe("AgentBreakdownList", () => {
     const table = screen.getByRole("table", { name: "Agent token breakdown" });
     const rows = within(table).getAllByRole("row").slice(1);
     expect(rows.map((r) => within(r).getAllByRole("cell").map((c) => c.textContent))).toEqual([
-      ["Support Bot", "42", "2h 3m", "1.3M63%"],
-      ["agt_2", "7", "4m 12s", "250.0k13%"],
+      ["Support Bot", "42", "2h 3m", "1.3M", "63%"],
+      ["agt_2", "7", "4m 12s", "250.0k", "13%"],
     ]);
-    expect(screen.getByText("Top Agents by Tokens")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Top agents by tokens" })).toBeTruthy();
     expect(container.textContent).not.toContain("$");
     expect(screen.queryByRole("link")).toBeNull();
   });
