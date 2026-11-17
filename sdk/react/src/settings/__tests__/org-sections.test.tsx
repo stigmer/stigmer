@@ -16,9 +16,12 @@ const state = vi.hoisted(() => ({
   onUpdated: undefined as ((org: { metadata: { id: string; slug: string } }) => void) | undefined,
   refreshed: [] as Array<string | undefined>,
   serviceAccountsHref: undefined as string | undefined,
+  singleOrg: false as boolean | undefined,
 }));
 
+vi.mock("../../server-info.js", () => ({ useSingleOrg: () => state.singleOrg }));
 vi.mock("../../organization/OrgProvider.js", () => ({
+  useOptionalOrg: () => (state.activeId === "" ? null : { activeOrg: { metadata: { id: state.activeId, slug: state.activeId } } }),
   useOrg: () => ({
     activeOrg: state.activeId === "" ? undefined : { metadata: { id: state.activeId, slug: state.activeId } },
     refresh: (target?: string) => {
@@ -63,6 +66,7 @@ afterEach(() => {
   state.onUpdated = undefined;
   state.refreshed = [];
   state.serviceAccountsHref = undefined;
+  state.singleOrg = false;
 });
 
 describe("the organization settings sections", () => {
@@ -85,6 +89,14 @@ describe("the organization settings sections", () => {
     render(<OrgPreferencesSection />);
     expect(screen.getByRole("heading", { name: "Policies" })).toBeTruthy();
     expect(screen.getByText("What acme's members may do. Saves as you switch it.")).toBeTruthy();
+  });
+
+  it("preferences names no organization in the Policies line on a server that holds one", () => {
+    state.activeId = "acme";
+    state.singleOrg = true;
+    render(<OrgPreferencesSection />);
+    expect(screen.getByText("What this organization's members may do. Saves as you switch it.")).toBeTruthy();
+    expect(screen.queryByText(/acme's members/)).toBeNull();
   });
 
   it.each([

@@ -32,7 +32,9 @@ export interface OrgPoliciesPanelProps {
   /**
    * Drawn inside another page's section (Organization preferences), which
    * says once who may change it: the panel then leaves out its own
-   * "only admins" line.
+   * "only admins" line. A permission check of its own that fails is still
+   * said here, with its Try again, since it can fail while the host page's
+   * check succeeds.
    */
   readonly embedded?: boolean;
   /** Additional CSS class names for the root container. */
@@ -120,7 +122,8 @@ export function OrgPoliciesPanel({ org, onUpdated, embedded = false, className }
           Only organization admins can change these policies.
         </p>
       )}
-      {checkFailed && !embedded && <EditCheckFailed what="change these policies" onRetry={editCheck.refetch} />}
+      {/* Its own check can fail while the host page's succeeds: always said here, with Try again. */}
+      {checkFailed && <EditCheckFailed what="change these policies" onRetry={editCheck.refetch} />}
     </div>
   );
 }

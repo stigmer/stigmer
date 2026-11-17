@@ -18,9 +18,10 @@ import { useDeploymentMode } from "@stigmer/react-core";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { Button } from "../button/Button.js";
 import { Card } from "../internal/surface/Card.js";
-import { useActiveOrgId, useOptionalOrg } from "../organization/OrgProvider.js";
+import { useActiveOrgId } from "../organization/OrgProvider.js";
 import { ASK_AN_ADMIN, NoOrganization } from "./NoOrganization.js";
 import { SettingsPage } from "./SettingsPage.js";
+import { useOrgDisplayName } from "../organization/useOrgDisplayName.js";
 
 type FlowState =
   | { phase: "idle" }
@@ -56,7 +57,7 @@ type FlowState =
  */
 export function ChannelAppsSection() {
   const org = useActiveOrgId();
-  const orgName = useOptionalOrg()?.activeOrg?.metadata?.slug || "this organization";
+  const orgName = useOrgDisplayName();
   // Channel installs (the consumer of these credentials) are cloud-only;
   // gate the whole section the way the Channels tab gates connects.
   const installsAvailable = useDeploymentMode() === "cloud";

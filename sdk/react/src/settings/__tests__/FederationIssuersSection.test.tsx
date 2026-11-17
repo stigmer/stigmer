@@ -35,6 +35,7 @@ const stubs = vi.hoisted(() => ({
   allowed: new Set<string>(),
   checked: [] as Array<[string, string, string]>,
   checkError: null as Error | null,
+  singleOrg: false as boolean | undefined,
 }));
 
 function verdict(kind: string, id: string, relation: string): boolean {
@@ -46,6 +47,11 @@ vi.mock("../../organization/OrgProvider.js", () => ({
   useOrg: () => ({
     activeOrg: { metadata: { id: "org_acme", slug: "acme", name: "Acme" } },
   }),
+  useOptionalOrg: () => ({ activeOrg: { metadata: { id: "org_acme", slug: "acme", name: "Acme" } } }),
+}));
+vi.mock("../../server-info.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../server-info.js")>()),
+  useSingleOrg: () => stubs.singleOrg,
 }));
 vi.mock("../../federation-issuer/useFederationIssuerList.js", () => ({
   useFederationIssuerList: (org: string | null) => {
@@ -131,6 +137,7 @@ afterEach(() => {
   stubs.providers = [];
   stubs.allowed = new Set();
   stubs.checkError = null;
+  stubs.singleOrg = false;
   stubs.checked = [];
 });
 
@@ -210,5 +217,17 @@ describe("FederationIssuersSection", () => {
       screen.queryByText("Federation issuers are managed by your organization's admins."),
     ).toBeNull();
     expect(screen.getByText("No federation issuers yet")).toBeTruthy();
+  });
+
+  it("names the organization in the empty list's line only where the server holds several", () => {
+    stubs.allowed = new Set(["can_create_federation_issuer"]);
+    renderSection("cloud");
+    expect(screen.getByText("Add one when another platform signs people in to acme for you, such as the platform that manages it.")).toBeTruthy();
+    cleanup();
+
+    // A server that holds one organization never names it.
+    stubs.singleOrg = true;
+    renderSection("cloud");
+    expect(screen.getByText("Add one when another platform signs people in to this organization for you, such as the platform that manages it.")).toBeTruthy();
   });
 });

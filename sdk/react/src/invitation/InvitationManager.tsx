@@ -36,7 +36,7 @@ import { StatusBadge } from "../status/StatusBadge.js";
 import type { StatusPhase } from "../resource-workbench/types.js";
 import { List, ListRow } from "../internal/surface/List.js";
 import { FIELD_LABEL_CLASSES, FieldError, Radio, TextInput } from "../internal/form/index.js";
-import { useOptionalOrg } from "../organization/OrgProvider.js";
+import { useOrgDisplayName } from "../organization/useOrgDisplayName.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -124,7 +124,7 @@ export function InvitationManager({
   const [revoked, setRevoked] = useState<ReadonlyMap<string, Invitation>>(new Map());
   useEffect(() => setRevoked(new Map()), [org]);
   // The organization by its slug where the console knows it.
-  const orgName = useOptionalOrg()?.activeOrg?.metadata?.slug || "this organization";
+  const orgName = useOrgDisplayName();
   const invitations = useMemo(
     () => loaded.map((inv) => revoked.get(inv.metadata?.id ?? "") ?? inv),
     [loaded, revoked],

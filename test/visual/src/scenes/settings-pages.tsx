@@ -127,7 +127,6 @@ export function settingsMembersScene(): Drawing {
   );
 }
 
-/** The settings landing: every group of the navigation an organization's owner sees, each page a link. */
 /**
  * The navigation an owner sees: the base groups with the admin pages after
  * Teams, where the permission-aware navigation places them once the server
@@ -139,6 +138,7 @@ export const OWNER_SETTINGS_NAV_GROUPS: SettingsNavGroup[] = SETTINGS_NAV_GROUPS
   return { ...group, items: [...group.items.slice(0, at), ...ORG_ADMIN_SETTINGS_NAV_ITEMS, ...group.items.slice(at)] };
 });
 
+/** The settings landing: every group of the navigation an organization's owner sees, each page a link. */
 export function settingsLandingScene(): Drawing {
   return settingsScene(() => (
     <SettingsOverview

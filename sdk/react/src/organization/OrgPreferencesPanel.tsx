@@ -18,6 +18,7 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Button } from "../button/Button.js";
 import { FieldError } from "../internal/form/Field.js";
 import { Section } from "../resource-detail/Section.js";
+import { useOrgDisplayName } from "./useOrgDisplayName.js";
 
 /** The memory row's copy where each member's own switch must also be on. */
 const MEMBER_CONSENT_MEMORY_HELPER_TEXT =
@@ -90,6 +91,8 @@ export function OrgPreferencesPanel({
   // On a server that trusts every request, this switch alone decides memory:
   // there is no person's switch to also turn on (the account panel says so
   // in its place).
+  // Named by its slug only where the server holds several organizations.
+  const orgName = useOrgDisplayName(organization?.metadata?.slug);
   const { serverInfo } = useServerInfo();
   const memoryHelperText =
     serverInfo?.authenticationRequired === false
@@ -212,7 +215,6 @@ export function OrgPreferencesPanel({
   // Render
   // -----------------------------------------------------------------------
 
-  const orgName = organization.metadata?.slug || "this organization";
   return (
     <form onSubmit={handleSubmit} className={cn("stg:flex stg:flex-col stg:gap-4", className)}>
       {editDenied && (

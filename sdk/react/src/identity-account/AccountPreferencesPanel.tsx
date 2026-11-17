@@ -364,7 +364,7 @@ export function AccountPreferencesPanel({
                 saving={isSavingMemoryFlag}
                 error={memoryFlagError}
                 label="Agents may remember confirmed facts about me"
-                helperText="Agents may propose facts to remember; only facts you confirm are kept, under Memory. Saves as you switch it."
+                helperText="Agents may propose facts to remember; only facts you confirm are kept, under Memory, and they show on the records of the runs that use them. Your organization's memory must be on too. Saves as you switch it."
               />
             )}
           </div>

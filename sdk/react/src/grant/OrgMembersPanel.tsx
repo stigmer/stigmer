@@ -39,7 +39,7 @@ import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { List, ListRow } from "../internal/surface/List.js";
 import { Tag, tagClasses } from "../internal/surface/Tag.js";
 import { SERVICE_ACCOUNTS_SETTINGS_HREF } from "../service-account/copy.js";
-import { useOptionalOrg } from "../organization/OrgProvider.js";
+import { useOrgDisplayName } from "../organization/useOrgDisplayName.js";
 
 /**
  * A row that turns into an inline act (a remove confirmation, a role
@@ -120,6 +120,9 @@ export function OrgMembersPanel({
   // the server asks `can_grant_access` on the organization for: offered only
   // on its yes, so a member reading the list meets no act it would refuse.
   const { allowed: canGrant } = useCheckPermission(resource, "can_grant_access", { fail: "closed" });
+  // Where service accounts are is said to who may open that page (the
+  // navigation offers it only then), or wherever some are listed here.
+  const { allowed: mayOpenServiceAccounts } = useCheckPermission(resource, "can_create_identity_account", { fail: "closed" });
 
   const [actionMemberId, setActionMemberId] = useState<string | null>(null);
   const [productUsersOpen, setProductUsersOpen] = useState(false);
@@ -257,6 +260,7 @@ export function OrgMembersPanel({
       )}
 
       {/* Where service accounts are: they hold roles too, managed on their own page. */}
+      {(mayOpenServiceAccounts || serviceAccounts.length > 0) && (
       <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
         Service accounts hold roles too; they&apos;re listed under{" "}
         <a
@@ -267,6 +271,7 @@ export function OrgMembersPanel({
         </a>
         .
       </p>
+      )}
     </div>
   );
 }
@@ -368,11 +373,11 @@ function MemberRow({
     onEndAction();
   };
 
-  // The organization is named by its slug where the console knows it.
-  const orgSlug = useOptionalOrg()?.activeOrg?.metadata?.slug;
+  // Named by its slug only where the server holds several organizations.
+  const orgName = useOrgDisplayName();
   const askToRemove = async () => {
     const removed = await confirm({
-      ...removeCopy(audience, name, orgSlug),
+      ...removeCopy(audience, name, orgName),
       confirmLabel: "Remove",
       variant: "destructive",
       action: async () => {
@@ -484,12 +489,12 @@ function RoleBadge({ grant }: { grant: RoleGrant }) {
 function removeCopy(
   audience: MemberAudience,
   memberName: string,
-  orgSlug: string | undefined,
+  orgName: string,
 ): { title: string; description: string } {
   switch (audience) {
     case "member":
       return {
-        title: `Remove ${memberName} from ${orgSlug || "this organization"}?`,
+        title: `Remove ${memberName} from ${orgName}?`,
         description:
           "They lose access to everything in it, including what was shared with them and their teams. What they created stays with the organization.",
       };

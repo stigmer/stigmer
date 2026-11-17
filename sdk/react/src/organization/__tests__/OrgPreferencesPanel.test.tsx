@@ -41,6 +41,8 @@ let serverInfo: UseServerInfoReturn = SIGN_IN_SERVER;
 
 vi.mock("../../server-info.js", () => ({
   useServerInfo: () => serverInfo,
+  // As the real hook reads the same answer.
+  useSingleOrg: () => (serverInfo.isLoading ? undefined : serverInfo.serverInfo?.singleOrg === true),
   useEnvironmentAvailability: () => serverInfo.serverInfo?.environments,
 }));
 
@@ -169,6 +171,24 @@ describe("OrgPreferencesPanel", () => {
       screen.getByText("Only admins of acme change these."),
     ).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+  });
+
+  it("names the organization only where the server holds several", async () => {
+    renderPanel(createMockStigmer({ canEdit: false }));
+    expect(await screen.findByText("Only admins of acme change these.")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "What agents should know about acme" })).toBeTruthy();
+    cleanup();
+
+    // A server that holds one organization never names it.
+    serverInfo = { ...SIGN_IN_SERVER, serverInfo: { ...SIGN_IN_SERVER.serverInfo!, singleOrg: true } };
+    try {
+      renderPanel(createMockStigmer({ canEdit: false }));
+      expect(await screen.findByText("Only admins of this organization change these.")).toBeTruthy();
+      expect(screen.getByRole("heading", { name: "What agents should know about this organization" })).toBeTruthy();
+      expect(screen.queryByText(/acme/)).toBeNull();
+    } finally {
+      serverInfo = SIGN_IN_SERVER;
+    }
   });
 
   it("memory toggle applies instantly, naming the flag alone", async () => {

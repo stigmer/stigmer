@@ -35,11 +35,16 @@ const stubs = vi.hoisted(() => ({
   allowed: new Set<string>(),
   checked: [] as Array<[string, string, string]>,
   checkError: null as Error | null,
+  singleOrg: false as boolean | undefined,
 }));
 
 vi.mock("../../organization/OrgProvider.js", () => ({
   useActiveOrgId: () => "org_acme",
   useOptionalOrg: () => ({ activeOrg: { metadata: { id: "org_acme", slug: "acme" } } }),
+}));
+vi.mock("../../server-info.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../server-info.js")>()),
+  useSingleOrg: () => stubs.singleOrg,
 }));
 vi.mock("../../channel-app/useChannelAppList.js", () => ({
   useChannelAppList: (org: string | null) => {
@@ -106,6 +111,7 @@ afterEach(() => {
   stubs.apps = [];
   stubs.allowed = new Set();
   stubs.checkError = null;
+  stubs.singleOrg = false;
   stubs.checked = [];
 });
 
@@ -185,5 +191,17 @@ describe("ChannelAppsSection", () => {
     expect(screen.queryByRole("heading", { level: 3, name: "Acme Slack" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Channel apps" }));
     expect(screen.getByRole("heading", { level: 2, name: "Channel apps" })).toBeTruthy();
+  });
+
+  it("names the organization in the empty list's line only where the server holds several", () => {
+    stubs.allowed = new Set(["can_create_channel_app"]);
+    renderSection();
+    expect(screen.getByText("Add your own Slack app to give the bot acme's name and icon, or a Meta app to connect WhatsApp.")).toBeTruthy();
+    cleanup();
+
+    // A server that holds one organization never names it.
+    stubs.singleOrg = true;
+    renderSection();
+    expect(screen.getByText("Add your own Slack app to give the bot this organization's name and icon, or a Meta app to connect WhatsApp.")).toBeTruthy();
   });
 });

@@ -19,6 +19,7 @@ import { Card } from "../internal/surface/Card.js";
 import { useOrg } from "../organization/OrgProvider.js";
 import { ASK_AN_ADMIN, NoOrganization } from "./NoOrganization.js";
 import { SettingsPage } from "./SettingsPage.js";
+import { useOrgDisplayName } from "../organization/useOrgDisplayName.js";
 
 type FlowState =
   | { phase: "idle" }
@@ -40,7 +41,7 @@ export function FederationIssuersSection() {
   const issuerAvailable = useResourceAvailable(ApiResourceKind.federation_issuer);
   // Requests name the org by its id.
   const orgId = activeOrg?.metadata?.id ?? "";
-  const orgName = activeOrg?.metadata?.slug || "this organization";
+  const orgName = useOrgDisplayName(activeOrg?.metadata?.slug);
   const createCheck = useCheckPermission(
     issuerAvailable && orgId ? { kind: "organization", id: orgId } : null,
     "can_create_federation_issuer",

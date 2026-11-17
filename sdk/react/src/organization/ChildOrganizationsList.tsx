@@ -11,7 +11,6 @@ import { useOptionalOrg } from "./OrgProvider.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Button } from "../button/Button.js";
 import { Table } from "../internal/surface/Table.js";
-import { Tag } from "../internal/surface/Tag.js";
 import { FieldError } from "../internal/form/Field.js";
 
 /** Props for {@link ChildOrganizationsList}. */
@@ -84,8 +83,8 @@ export function ChildOrganizationsList({
 
   return (
     <section aria-labelledby={headingId} className={cn("stg:mt-8", className)}>
-      <h3 id={headingId} className="stg:m-0 stg:mb-1 stg:flex stg:items-center stg:gap-2 stg:text-sm stg:font-semibold stg:text-foreground">
-        Child organizations <Tag>{children.length}</Tag>
+      <h3 id={headingId} className="stg:m-0 stg:mb-1 stg:text-sm stg:font-semibold stg:text-foreground">
+        Child organizations
       </h3>
       <p className="stg:m-0 stg:mb-3 stg:text-xs stg:text-muted-foreground">
         Organizations under this one. This organization&apos;s admins are admins in each of them, as their own

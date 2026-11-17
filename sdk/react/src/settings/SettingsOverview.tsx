@@ -15,8 +15,7 @@ import type { ReactElement } from "react";
 import { ChevronRight } from "lucide-react";
 import { List, ListRow } from "../internal/surface/List.js";
 import type { RenderLink } from "../button/LinkButton.js";
-import { useOptionalOrg } from "../organization/OrgProvider.js";
-import { useSingleOrg } from "../server-info.js";
+import { useOrgDisplayName } from "../organization/useOrgDisplayName.js";
 import type { RenderSidebarLink } from "../sidebar/types.js";
 import type { SettingsNavGroup, SettingsNavItem } from "./settings-nav.js";
 import { SettingsPage } from "./SettingsPage.js";
@@ -59,9 +58,9 @@ function PermissionAwareOverview({ renderLink, className }: { readonly renderLin
   return <OverviewBody groups={groups} renderLink={renderLink} className={className} />;
 }
 
-/** A page's line, with `{org}` read as the active organization's slug. */
-export function settingsNavDescription(item: SettingsNavItem, orgSlug: string | undefined): string | undefined {
-  return item.description?.replaceAll("{org}", orgSlug || "this organization");
+/** A page's line, with `{org}` read as the organization's name for a sentence. */
+function settingsNavDescription(item: SettingsNavItem, orgName: string): string | undefined {
+  return item.description?.replaceAll("{org}", orgName);
 }
 
 function OverviewBody({
@@ -74,9 +73,7 @@ function OverviewBody({
   readonly className?: string;
 }): ReactElement {
   // A server that holds one organization never names it.
-  const singleOrg = useSingleOrg();
-  const activeSlug = useOptionalOrg()?.activeOrg?.metadata?.slug;
-  const orgSlug = singleOrg === false ? activeSlug : undefined;
+  const orgName = useOrgDisplayName();
   return (
     <SettingsPage
       title="Settings"
@@ -107,7 +104,7 @@ function OverviewBody({
                     renderLink={link}
                     leading={<item.icon className="stg:size-4 stg:shrink-0 stg:text-muted-foreground" aria-hidden="true" />}
                     name={item.label}
-                    description={settingsNavDescription(item, orgSlug)}
+                    description={settingsNavDescription(item, orgName)}
                     trailing={<ChevronRight className="stg:size-4 stg:shrink-0 stg:text-muted-foreground" aria-hidden="true" />}
                   />
                 );

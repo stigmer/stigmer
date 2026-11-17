@@ -486,7 +486,9 @@
         "word Viewer": "The drawing's example data; the scene shows its own fixture's"
       },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Service accounts hold roles too; they're listed under Service accounts.": "When its page is redesigned: the settings Built look decides; the line shows only to who may open Service accounts (or where some are listed), as the navigation offers that page"
+      }
     },
     {
       "caption": "Members: With a federation issuer that grants a sign-in role (today's bordered note, as a Notice)",

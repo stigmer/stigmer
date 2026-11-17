@@ -12,12 +12,13 @@ import { useOrg } from "../organization/OrgProvider.js";
 import { Section } from "../resource-detail/Section.js";
 import { NoOrganization } from "./NoOrganization.js";
 import { SettingsPage } from "./SettingsPage.js";
+import { useOrgDisplayName } from "../organization/useOrgDisplayName.js";
 
 /** Settings section for editing the active organization's declared preferences and its policies. */
 export function OrgPreferencesSection() {
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.metadata?.id ?? "";
-  const orgName = activeOrg?.metadata?.slug || "this organization";
+  const orgName = useOrgDisplayName(activeOrg?.metadata?.slug);
 
   return (
     <SettingsPage
