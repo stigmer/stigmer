@@ -232,11 +232,17 @@ from another runner image, moves to the server's current runner at its Session's
 next message, keeping its files. One that is asleep moves as it wakes. One that
 is awake is restarted just before that message's turn starts, so that one turn
 waits for a restart. A rollback moves sandboxes back the same way. With the
-`substrate` driver, a sandbox whose files Substrate can't move to the new
-runner's template (a release that changed the sandbox's disk layout) is never
-woken on its old runner: the message ends at once with a line saying the
-conversation's sandbox is from another release, and the person starts a new
-conversation.
+`substrate` driver, an awake sandbox that is not running a turn doesn't wait for
+a message: the idle sweep puts it to sleep at its next pass, inside its idle
+window, so it never keeps network access the new server no longer grants. One
+running a turn finishes that turn first. For this, a change to the sandboxes'
+network settings (`STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTP`,
+`STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTPS` and
+`STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTPS_PLATFORM`) counts as another release. A
+`substrate` sandbox whose files Substrate can't move to the new runner's
+template (a release that changed the sandbox's disk layout) is never woken on
+its old runner: the message ends at once with a line saying the conversation's
+sandbox is from another release, and the person starts a new conversation.
 
 **On Kubernetes, through agent-sandbox.** The `agent-sandbox` driver hands each
 sandbox to Kubernetes SIG Apps' agent-sandbox, which you install in the cluster

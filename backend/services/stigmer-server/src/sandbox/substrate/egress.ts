@@ -75,6 +75,13 @@
  * host is kept once per port, from whichever source names it first, and
  * the HTTPS hosts are split into rules of at most 256. A person lists at
  * most 100 hosts, so a policy stays far inside the rule cap.
+ *
+ * A policy so has two parts: the configuration's (the runner's lanes, the
+ * operator's destinations, the HTTPS wildcard, the platform hosts a
+ * limited Environment keeps) and the session's Environment's (its hosts,
+ * the apt archives). configurationEgressDigest names the first, for the
+ * template's name (template.ts): a change to how the rules are built from
+ * the configuration belongs beside it, and moves it.
  */
 import { createHash } from "node:crypto";
 
@@ -245,6 +252,45 @@ function isIpAddress(host: string): boolean {
     host.includes(":") ||
     host.startsWith("[")
   );
+}
+
+/** No packages: the Environment configurationEgressDigest's limited probe stands for. */
+const NO_PACKAGES = {
+  apt: [],
+  cargo: [],
+  gem: [],
+  go: [],
+  npm: [],
+  pip: [],
+} as const;
+
+/**
+ * A digest of the configuration's part of every policy (module header):
+ * the rules a session with no Environment gets (the runner's lanes, the
+ * public MCP lane, the operator's cleartext destinations and the HTTPS
+ * wildcard), and those a limited Environment that lists no host gets
+ * (the same lanes, the runner's own HTTPS hosts and the operator's
+ * EGRESS_HTTPS_PLATFORM). What an Environment adds is a session's, not
+ * the configuration's, so it is not here and cannot be: this takes no
+ * Environment. The template's name carries it (template.ts), so a
+ * configuration that decides a sandbox's lanes differently is another
+ * template, and an awake sandbox started under the old one is put to
+ * sleep by the sweep (sweep.ts). Throws as buildEgressRules does.
+ */
+export function configurationEgressDigest(
+  config: SandboxDriverConfig,
+  settings: SubstrateDriverSettings,
+): string {
+  const limitedToNothing: EnvironmentFacts = {
+    id: "",
+    network: { mode: "limited", hosts: [] },
+    packages: NO_PACKAGES,
+  };
+  return createHash("sha256")
+    .update(egressDigest(buildEgressRules(config, settings)))
+    .update("\n")
+    .update(egressDigest(buildEgressRules(config, settings, limitedToNothing)))
+    .digest("hex");
 }
 
 /** A digest of a policy's rules, in order: what the driver compares before it writes one. */
