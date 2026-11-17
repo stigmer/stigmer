@@ -30,7 +30,6 @@
  */
 import { useCallback, useState } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { cn } from "@stigmer/design-tokens";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   AccessChange,
@@ -43,7 +42,6 @@ import {
   accessHistoryJsonLine,
   deletedReferenceLabel,
   exportAccessHistory,
-  getUserMessage,
   isDeletedReference,
 } from "@stigmer/client";
 import { UpgradeNotice, planUpgradeFeature } from "../billing/UpgradeNotice.js";
@@ -59,8 +57,7 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Button } from "../button/Button.js";
 import { downloadTextFile } from "../internal/download.js";
 import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
-import { UNSTYLED_LIST } from "../internal/element-resets.js";
-import { cardClasses } from "../internal/surface/Card.js";
+import { List, ListRow } from "../internal/surface/List.js";
 import { useOrg } from "../organization/OrgProvider.js";
 import { NoOrganization } from "./NoOrganization.js";
 import { SettingsPage } from "./SettingsPage.js";
@@ -147,9 +144,7 @@ function AccessHistoryList({ org }: { readonly org: string }) {
         </Button>
       </div>
       {download.error !== null && (
-        <p className="stg:text-destructive stg:text-xs" role="alert">
-          {getUserMessage(download.error)}
-        </p>
+        <ErrorMessage error={download.error} title="Couldn't download the access history." retry={download.run} />
       )}
 
       {history.entries.length === 0 ? (
@@ -159,16 +154,11 @@ function AccessHistoryList({ org }: { readonly org: string }) {
           description="When someone is given or loses access, it is written here."
         />
       ) : (
-        // A change is a sentence that wraps, not a name that truncates, so
-        // the rows keep their own markup inside the list's card and dividers.
-        <ol
-          aria-label="Access changes"
-          className={cn(UNSTYLED_LIST, cardClasses({ flush: true }), "stg:divide-y stg:divide-border-muted")}
-        >
+        <List aria-label="Access changes">
           {history.entries.map((entry) => (
             <AccessHistoryRow key={entry.sequence.toString()} entry={entry} />
           ))}
-        </ol>
+        </List>
       )}
 
       <LoadMoreFooter
@@ -192,14 +182,11 @@ function AccessHistoryRow({ entry }: { readonly entry: AccessHistoryEntry }) {
       ? `${actorName(entry)} removed ${grantee}'s ${role} role on ${what}`
       : `${actorName(entry)} gave ${grantee} the ${role} role on ${what}`;
   return (
-    <li className="stg:px-3.5 stg:py-2.5">
-      <p className="stg:text-foreground stg:text-xs">{sentence}</p>
-      <p className="stg:text-muted-foreground stg:text-2xs">
-        {when ? `${when} · ` : ""}
-        {CAUSE_WORDS[entry.cause] ?? CAUSE_WORDS[AccessChangeCause.access_change_cause_unspecified]}
-        {` · #${entry.sequence.toString()}`}
-      </p>
-    </li>
+    <ListRow
+      // A change is a sentence that wraps, not a name that truncates.
+      name={<span className="stg:whitespace-normal stg:font-normal">{sentence}</span>}
+      description={`${when ? `${when} · ` : ""}${CAUSE_WORDS[entry.cause] ?? CAUSE_WORDS[AccessChangeCause.access_change_cause_unspecified]} · #${entry.sequence.toString()}`}
+    />
   );
 }
 
