@@ -34,14 +34,21 @@ let latest: UseAutoScrollReturn;
  * content wrapper only once items exist (the loading branch renders a
  * skeleton instead).
  */
-function AsyncThread({ items }: { readonly items: readonly string[] }) {
+function AsyncThread({
+  items,
+  height = VIEWPORT_PX,
+}: {
+  readonly items: readonly string[];
+  /** The scroller's own height: a host resizes the pane around the thread. */
+  readonly height?: number;
+}) {
   const hook = useAutoScroll();
   latest = hook;
   return (
     <div
       ref={hook.scrollRef}
       data-testid="scroller"
-      style={{ height: VIEWPORT_PX, overflowY: "auto" }}
+      style={{ height, overflowY: "auto" }}
     >
       {items.length === 0 ? (
         <div data-testid="skeleton" style={{ height: 100 }} />
@@ -146,6 +153,74 @@ describe("useAutoScroll under real layout", () => {
       expect(isPinnedToBottom(scroller())).toBe(true);
       expect(latest.isFollowing).toBe(true);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The pane resizes around a pinned thread
+// ---------------------------------------------------------------------------
+
+// The host's layout can change the scroller's own size after the first pin:
+// a notice arrives above it, or the reply box below it grows a line as the
+// reader types. The content does not change, so nothing the content wrapper
+// observes moves; a pane 20px shorter leaves the view 20px short of the
+// bottom with follow still on, because the sentinel stays inside the
+// near-bottom margin and the IntersectionObserver reports nothing
+// (stigmer/stigmer#2911, measured in the visual suite's taken-over scene).
+
+describe("useAutoScroll when the pane changes size", () => {
+  it("stays at the newest content when the pane shrinks after the first pin", async () => {
+    const { rerender } = render(<AsyncThread items={[]} />);
+    rerender(<AsyncThread items={messages(30)} />);
+    await settled(() => {
+      expect(isPinnedToBottom(scroller())).toBe(true);
+      expect(latest.isFollowing).toBe(true);
+    });
+
+    rerender(<AsyncThread items={messages(30)} height={VIEWPORT_PX - 20} />);
+
+    await settled(() => {
+      expect(scroller().clientHeight).toBe(VIEWPORT_PX - 20);
+      expect(isPinnedToBottom(scroller()), "a shorter pane must still end at the newest message").toBe(true);
+      expect(latest.isFollowing).toBe(true);
+    });
+  });
+
+  it("stays at the newest content when the pane grows after the first pin", async () => {
+    const { rerender } = render(<AsyncThread items={[]} />);
+    rerender(<AsyncThread items={messages(30)} />);
+    await settled(() => {
+      expect(isPinnedToBottom(scroller())).toBe(true);
+      expect(latest.isFollowing).toBe(true);
+    });
+
+    rerender(<AsyncThread items={messages(30)} height={VIEWPORT_PX + 60} />);
+
+    await settled(() => {
+      expect(scroller().clientHeight).toBe(VIEWPORT_PX + 60);
+      expect(isPinnedToBottom(scroller())).toBe(true);
+      expect(latest.isFollowing).toBe(true);
+    });
+  });
+
+  it("leaves a reader who scrolled up where they are when the pane shrinks", async () => {
+    const { rerender } = render(<AsyncThread items={[]} />);
+    rerender(<AsyncThread items={messages(30)} />);
+    await settled(() => {
+      expect(isPinnedToBottom(scroller())).toBe(true);
+      // Follow-state quiescence before the reader scrolls (the late-mount
+      // suite's discipline above).
+      expect(latest.isFollowing).toBe(true);
+    });
+
+    scroller().scrollTop = 0;
+    await settled(() => expect(latest.isFollowing).toBe(false));
+
+    rerender(<AsyncThread items={messages(30)} height={VIEWPORT_PX - 20} />);
+    await settled(() => expect(scroller().clientHeight).toBe(VIEWPORT_PX - 20));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(scroller().scrollTop).toBe(0);
+    expect(latest.isFollowing).toBe(false);
   });
 });
 
