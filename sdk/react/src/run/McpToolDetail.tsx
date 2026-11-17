@@ -187,6 +187,7 @@ function McpOffloadedText({
           {preview && (
             <CollapsiblePre content={preview} className={previewClass} />
           )}
+          {/* eslint-disable-next-line stigmer/no-handrolled-button -- the session viewer's own output controls, which passed as built */}
           <button type="button" onClick={() => setExpanded(true)} className={linkClass}>
             View full output{sizeSuffix}
           </button>
@@ -203,6 +204,7 @@ function McpOffloadedText({
               type="button"
               onClick={() => download(fullOutput.storageKey)}
               disabled={isDownloading}
+              // eslint-disable-next-line stigmer/no-handrolled-button -- the session viewer's own output controls, which passed as built
               className={cn(linkClass, "stg:disabled:opacity-50")}
             >
               {isDownloading ? "Preparing download…" : `Output truncated — download full file${sizeSuffix}`}

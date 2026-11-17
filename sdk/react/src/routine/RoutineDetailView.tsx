@@ -782,16 +782,9 @@ export function RoutineDetailView({
         title="Recent fires"
         headerActions={
           olderFiresFollow ? (
-            <button
-              type="button"
-              onClick={() => effectiveOnTabChange(HISTORY_TAB_ID)}
-              className={cn(
-                "stg:text-xs stg:font-medium stg:text-primary stg:underline-offset-2 stg:hover:underline",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded-sm",
-              )}
-            >
+            <Button variant="ghost" size="xs" onClick={() => effectiveOnTabChange(HISTORY_TAB_ID)}>
               View all fires
-            </button>
+            </Button>
           ) : undefined
         }
       >
@@ -1756,6 +1749,7 @@ function ReferenceLink({
       onClick={onNavigate}
       className={cn(
         textClass,
+        // eslint-disable-next-line stigmer/no-handrolled-button -- goes somewhere (the run's session) through the host's callback: a link drawn as a button, not an act
         "stg:text-primary stg:underline-offset-2 stg:hover:underline",
         "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded-sm",
       )}
