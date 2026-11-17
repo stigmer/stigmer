@@ -758,8 +758,9 @@ Conditionally renders children based on the current user's
 permission on a resource.
 
 Uses [`useCheckPermission`](#usecheckpermission) under the hood, so the check runs in
-every edition and the gate fails open: a check that errors renders
-the children. Until the server answers, the gate renders `loading`,
+every edition, and by default the gate fails open: a check that errors
+renders the children. Pass `fail="closed"` around an act so a check
+that errors renders `fallback` instead. Until the server answers, the gate renders `loading`,
 from its first render. Gated content never mounts before the answer,
 so content that fetches when it mounts is never fetched for a caller
 the server refuses. A `null` resource skips the check and renders the
@@ -775,6 +776,7 @@ what the client renders.
 <TypeTable
   type={{
     children: { type: "ReactNode", description: "Content rendered when the user has the required permission.", required: true },
+    fail: { type: "\"open\" | \"closed\"", description: "What a check that errors renders. `\"open\"` (the default) renders the children, right for content a person reads. `\"closed\"` renders `fallback`, right for an act the server checks: the console offers it only after the server's yes, so a button is never shown that fails on press." },
     fallback: { type: "ReactNode", description: "Optional content rendered when the user lacks permission. Defaults to rendering nothing (null)." },
     loading: { type: "ReactNode", description: "Optional content rendered while the permission check is in flight. Defaults to rendering nothing (null) to avoid UI flicker." },
     relation: { type: "string", description: "The permission relation to check (e.g. \"can_edit\", \"can_delete\").", required: true },

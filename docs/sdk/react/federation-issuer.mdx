@@ -315,12 +315,13 @@ function IssuerDetail({ issuer, onUpdated, onBack }: Props) {
 ### FederationIssuerListPanel
 
 Displays a list of `FederationIssuer` resources for an
-organization with inline delete confirmation.
+organization, each deleted after a confirm dialog that does the delete.
 
 Each issuer is rendered as a row showing name, slug, a JIT badge
 (when a first sign-in creates the person's account), and creation date. The edit and
 delete buttons appear only on rows the caller may edit or delete
-(`can_edit`, `can_delete`); delete opens an inline confirmation.
+(`can_edit`, `can_delete`), each only after the server's yes; delete
+opens a confirm dialog that runs the delete and says a refusal there.
 
 Federation issuers are admin-level resources with small cardinality
 (typically 1–3 per org), so the list is rendered without pagination.
