@@ -37,7 +37,8 @@
  *   SignalWorkflow . when the run has no open ask left (filereview/gate.ts,
  *                    counted under the write's lock), the turn's workflow
  *                    is told to resume. A workflow that no longer runs
- *                    fails the run (reconcileStaleExecution).
+ *                    fails the run, if it still waits
+ *                    (run/workflow-gone.ts).
  *
  * The log is the one source of every decision here. What an ask is comes
  * from events that never change once written (the tool use and its
@@ -100,8 +101,8 @@ import type { LeaseScope } from "../../run/approval/lease-scope.js";
 import type { ExecutionEngineStateProvider } from "../../run/engine.js";
 import { EngineWorkflowNotFoundError } from "../../run/engine.js";
 import { gateResolved } from "../../run/filereview/gate.js";
-import { isTerminalExecutionPhase } from "../../run/phases.js";
-import { notifyStatusObservers } from "../../run/status-observers.js";
+import { isTerminalExecutionPhase, WAITING_PHASES } from "../../run/phases.js";
+import { failRunWithoutWorkflow } from "../../run/workflow-gone.js";
 import type { SessionEventBroker } from "../events/broker.js";
 import { SESSION_EVENT_ID_PREFIX } from "../events/catalog.js";
 import { eventOf } from "../events/codec.js";
@@ -109,7 +110,6 @@ import { ASK_PERMISSION } from "../events/gates.js";
 import { runIdOfToolUse } from "../events/ids.js";
 import {
   openAsksOf,
-  overwriteRunAppendingEvents,
   updateRunAppendingEvents,
 } from "../events/run-writes.js";
 import { sessionIdOfRun } from "../events/transitions.js";
@@ -780,38 +780,16 @@ async function signalWhenResolved(deps: AnswerDeps, run: Run, openAsks: number):
   deps.logger.info("the turn's workflow was signalled to resume", { runId });
 }
 
-
 /**
- * Terminalizes an execution stuck in WAITING_FOR_APPROVAL because the
- * backing workflow no longer runs. Best-effort: a failed persist is
- * logged and the caller still surfaces the refusal. The FAILED phase and
- * its error are the explanation: a tool call the turn never finished is
- * read as stopped from the turn's end in the session's log. The run's
- * file record is kept, so an undo of its files can still be put back.
- * Whole-resource save is intentional: this writes a terminal state with no
- * live appender racing the stream.
+ * Ends a run stuck in WAITING_FOR_APPROVAL because the backing workflow no
+ * longer runs (run/workflow-gone.ts): conditional on the stored run still
+ * waiting, so a run that ended meanwhile is left as it ended. Best-effort:
+ * a failed persist is logged and the caller still surfaces the refusal.
  */
-export async function reconcileStaleExecution(deps: AnswerDeps, execution: Run): Promise<void> {
+async function reconcileStaleExecution(deps: AnswerDeps, execution: Run): Promise<void> {
   const executionId = execution.metadata?.id ?? "";
-
-  const reconciled = create(RunSchema, {
-    apiVersion: execution.apiVersion,
-    kind: execution.kind,
-    metadata: execution.metadata,
-    spec: execution.spec,
-    status: {
-      phase: RunPhase.RUN_FAILED,
-      error:
-        "Workflow backing this execution is no longer running. Execution has been marked as failed.",
-      audit: execution.status?.audit,
-      fileChanges: execution.status?.fileChanges ?? [],
-    },
-  });
-
   try {
-    // The whole-resource save stays; the session's events come from the
-    // committed row, not the copy this reconcile started from.
-    await overwriteRunAppendingEvents(deps, reconciled);
+    await failRunWithoutWorkflow(deps, executionId, WAITING_PHASES, "not_found");
   } catch (error) {
     deps.logger.error(
       "Failed to reconcile stale execution status - execution will remain in WAITING_FOR_APPROVAL until next attempt",
@@ -820,19 +798,5 @@ export async function reconcileStaleExecution(deps: AnswerDeps, execution: Run):
         error: error instanceof Error ? error.message : String(error),
       },
     );
-    return;
   }
-
-  deps.logger.info("RECONCILIATION: Updated stale execution status to FAILED", {
-    executionId,
-  });
-
-  // A notifying site (run/status-observers.ts): the reconcile's FAILED
-  // stamp is a persisted terminal transition.
-  await notifyStatusObservers(
-    deps,
-    reconciled,
-    execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED,
-    RunPhase.RUN_FAILED,
-  );
 }

@@ -13,6 +13,9 @@
  *   - lifecycle ops signal/cancel/terminate the pinned workflow ID and
  *     map the SDK's workflow-not-found onto EngineWorkflowNotFoundError
  *     (the seam's sentinel);
+ *   - workflowLiveness describes the pinned workflow ID: running and
+ *     paused are open, every ending is closed, a workflow the engine does
+ *     not hold is not_found, and a status it cannot name throws;
  *   - the engine-state provider: DISCONNECTED until the first connect,
  *     memoized per client instance, re-built on client swap (reconnect);
  *   - the run credential on the input: minted through the
@@ -32,7 +35,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { create } from "@bufbuild/protobuf";
-import type { Client } from "@temporalio/client";
+import type { Client, WorkflowExecutionStatusName } from "@temporalio/client";
 import { WorkflowNotFoundError } from "@temporalio/common";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -135,7 +138,7 @@ interface HandleCall {
   readonly args: unknown[];
 }
 
-function stubClient(behavior?: { handleError?: Error }) {
+function stubClient(behavior?: { handleError?: Error; status?: WorkflowExecutionStatusName }) {
   const startCalls: StartCall[] = [];
   const handleCalls: HandleCall[] = [];
   const client = {
@@ -158,6 +161,11 @@ function stubClient(behavior?: { handleError?: Error }) {
         terminate: async (reason: string) => {
           handleCalls.push({ workflowId, method: "terminate", args: [reason] });
           if (behavior?.handleError) throw behavior.handleError;
+        },
+        describe: async () => {
+          handleCalls.push({ workflowId, method: "describe", args: [] });
+          if (behavior?.handleError) throw behavior.handleError;
+          return { status: { name: behavior?.status ?? "RUNNING" } };
         },
       }),
     },
@@ -403,6 +411,51 @@ describe("TemporalExecutionEngine lifecycle operations", () => {
     const { client } = stubClient({ handleError: new Error("connection reset") });
     const engine = newEngine(client);
     await expect(engine.signalResume("run_4")).rejects.toThrow("connection reset");
+  });
+});
+
+describe("TemporalExecutionEngine.workflowLiveness", () => {
+  it("describes the pinned workflow ID", async () => {
+    const { client, handleCalls } = stubClient();
+    await newEngine(client).workflowLiveness("run_5");
+    expect(handleCalls.map((call) => [call.workflowId, call.method])).toEqual([
+      ["stigmer/agent-execution/invoke/run_5", "describe"],
+    ]);
+  });
+
+  it("answers open for a running or paused workflow and closed for every ending", async () => {
+    const cases: ReadonlyArray<readonly [WorkflowExecutionStatusName, string]> = [
+      ["RUNNING", "open"],
+      ["PAUSED", "open"],
+      ["COMPLETED", "closed"],
+      ["FAILED", "closed"],
+      ["CANCELLED", "closed"],
+      ["TERMINATED", "closed"],
+      ["TIMED_OUT", "closed"],
+      ["CONTINUED_AS_NEW", "closed"],
+    ];
+    for (const [status, liveness] of cases) {
+      const { client } = stubClient({ status });
+      expect([status, await newEngine(client).workflowLiveness("run_6")]).toEqual([status, liveness]);
+    }
+  });
+
+  it("throws on a status it cannot name, so no run is ended on it", async () => {
+    // ARCHIVED: a name a later SDK could add, which this code has never seen.
+    const unnamed: WorkflowExecutionStatusName[] = ["UNSPECIFIED", "UNKNOWN", "ARCHIVED" as WorkflowExecutionStatusName];
+    for (const status of unnamed) {
+      const { client } = stubClient({ status });
+      await expect(newEngine(client).workflowLiveness("run_7")).rejects.toThrow(
+        `workflow status ${status} for execution run_7 cannot be read`,
+      );
+    }
+  });
+
+  it("answers not_found for a workflow the engine does not hold, and passes other errors through", async () => {
+    const gone = stubClient({ handleError: new WorkflowNotFoundError("nope", "wf", undefined) });
+    expect(await newEngine(gone.client).workflowLiveness("run_8")).toBe("not_found");
+    const down = stubClient({ handleError: new Error("connection reset") });
+    await expect(newEngine(down.client).workflowLiveness("run_8")).rejects.toThrow("connection reset");
   });
 });
 
