@@ -112,12 +112,12 @@ export function SidebarSeparator() {
 }
 
 /**
- * The one nav-row class recipe both sidebars share: 13px/16px regular
- * labels, 16px icons (sized by callers), 8px/4px padding — 24px rows.
- * The explicit `leading-4` is load-bearing: without it the inherited
- * line-height (~1.5) pads every row to ~28px, and across a full column
- * of rows that difference alone decides whether the sidebar breathes.
- * 24px also stays exactly at the WCAG 2.5.8 minimum pointer-target size.
+ * The one nav-row class recipe both sidebars share: 14px/20px regular
+ * labels, 16px icons (sized by callers), 8px/6px padding — 32px rows
+ * (stigmer#3037: at 24px a full column of rows read cramped). The explicit
+ * `leading-5` is load-bearing: the row's height is its line plus its
+ * padding, so an inherited line-height would change every row at once.
+ * 32px is above the WCAG 2.5.8 minimum pointer-target size (24px).
  *
  * Resting rows are muted so the navigation recedes and the content leads;
  * the active row carries the accent fill, hover brightens to the accent
@@ -128,7 +128,7 @@ export function SidebarSeparator() {
  */
 export function navRowClassName(active: boolean): string {
   return cn(
-    "stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:px-2 stg:py-1 stg:text-sm stg:leading-4 stg:transition-colors",
+    "stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:px-2 stg:py-1.5 stg:text-sm stg:leading-5 stg:transition-colors",
     active
       ? "stg:bg-sidebar-accent stg:text-sidebar-accent-foreground"
       : "stg:text-sidebar-muted-foreground stg:hover:bg-sidebar-accent stg:hover:text-sidebar-accent-foreground",
