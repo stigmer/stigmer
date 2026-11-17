@@ -29,6 +29,8 @@ import { RoleSelector } from "./RoleSelector.js";
 import { ProviderBadge } from "./ProviderBadge.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { Button } from "../button/Button.js";
+import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
+import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { IconButton } from "../button/IconButton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
@@ -336,9 +338,9 @@ function MemberRow({
   onEndAction: () => void;
   onMutated: () => void;
 }) {
-  const [actionType, setActionType] = useState<"remove" | "change-role" | null>(
-    null,
-  );
+  const [actionType, setActionType] = useState<"change-role" | null>(null);
+  const { revoke } = useRevokeOrgAccess();
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
 
   const principal = entry.principal;
   const memberId = principal?.id ?? "";
@@ -352,7 +354,7 @@ function MemberRow({
   // Changing or removing an owner changes the owner role: an owner's act.
   const mayAct = canGrant && !isSelf && (canAssignOwner || !holdsOwner);
 
-  const startAction = (type: "remove" | "change-role") => {
+  const startAction = (type: "change-role") => {
     setActionType(type);
     onStartAction();
   };
@@ -362,21 +364,18 @@ function MemberRow({
     onEndAction();
   };
 
-  if (isActioning && actionType === "remove") {
-    return (
-      <RemoveConfirmation
-        memberId={memberId}
-        memberName={name}
-        orgId={orgId}
-        audience={audience}
-        onDone={() => {
-          cancelAction();
-          onMutated();
-        }}
-        onCancel={cancelAction}
-      />
-    );
-  }
+  const askToRemove = async () => {
+    const removed = await confirm({
+      ...removeCopy(audience, name),
+      confirmLabel: "Remove",
+      variant: "destructive",
+      action: async () => {
+        await revoke(memberId, orgId);
+      },
+      failureTitle: `Couldn't remove ${name}.`,
+    });
+    if (removed) onMutated();
+  };
 
   if (isActioning && actionType === "change-role") {
     return (
@@ -432,9 +431,10 @@ function MemberRow({
                 size="xs"
                 label={`Remove ${name}`}
                 icon={<TrashIcon />}
-                onClick={() => startAction("remove")}
+                onClick={askToRemove}
                 className="stg:hover:text-destructive stg:hover:bg-destructive-subtle"
               />
+              <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
             </div>
           )}
         </>
@@ -470,97 +470,25 @@ function RoleBadge({ grant }: { grant: RoleGrant }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// RemoveConfirmation (internal)
-// ---------------------------------------------------------------------------
-
-function RemoveConfirmation({
-  memberId,
-  memberName,
-  orgId,
-  audience,
-  onDone,
-  onCancel,
-}: {
-  memberId: string;
-  memberName: string;
-  orgId: string;
-  audience: MemberAudience;
-  onDone: () => void;
-  onCancel: () => void;
-}) {
-  const { revoke, isRevoking, error } = useRevokeOrgAccess();
-
-  const handleConfirm = useCallback(async () => {
-    try {
-      await revoke(memberId, orgId);
-      onDone();
-    } catch {
-      // error state is surfaced via the hook
-    }
-  }, [memberId, orgId, revoke, onDone]);
-
-  return (
-    <li className={cn(ACTION_ROW, "stg:flex stg:items-center stg:justify-between stg:bg-destructive-subtle")}>
-      <div className="stg:min-w-0 stg:flex-1">
-        <p className="stg:text-xs stg:text-foreground">
-          <RemoveCopy audience={audience} memberName={memberName} />
-        </p>
-        {error && (
-          <p className="stg:mt-0.5 stg:text-2xs stg:text-destructive">
-            {getUserMessage(error)}
-          </p>
-        )}
-      </div>
-
-      <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:ml-3">
-        <Button
-          variant="destructive"
-          size="xs"
-          onClick={handleConfirm}
-          disabled={isRevoking}
-          icon={isRevoking ? <SpinnerIcon size={12} /> : undefined}
-        >
-          Remove
-        </Button>
-        <Button variant="ghost" size="xs" onClick={onCancel} disabled={isRevoking}>
-          Cancel
-        </Button>
-      </div>
-    </li>
-  );
-}
-
 /**
  * What removing someone does, said before it is done. A product user's
  * account keeps existing after the revoke, and the product's next sign-in
  * reuses it as it is, so the access does not come back on its own.
  */
-function RemoveCopy({
-  audience,
-  memberName,
-}: {
-  audience: MemberAudience;
-  memberName: string;
-}) {
-  const name = <span className="stg:font-medium">{memberName}</span>;
+function removeCopy(audience: MemberAudience, memberName: string): { title: string; description: string } {
   switch (audience) {
     case "member":
-      return (
-        <>
-          Remove {name} from this organization? They lose access to everything
-          in it, including what was shared with them and their teams. What
-          they created stays with the organization.
-        </>
-      );
+      return {
+        title: `Remove ${memberName} from this organization?`,
+        description:
+          "They lose access to everything in it, including what was shared with them and their teams. What they created stays with the organization.",
+      };
     case "productUser":
-      return (
-        <>
-          Remove {name}? They lose access to this organization through your
-          product, and signing in through it again does not restore it. Grant
-          them a role to bring them back.
-        </>
-      );
+      return {
+        title: `Remove ${memberName}?`,
+        description:
+          "They lose access to this organization through your product, and signing in through it again does not restore it. Grant them a role to bring them back.",
+      };
     default: {
       const unreachable: never = audience;
       return unreachable;
