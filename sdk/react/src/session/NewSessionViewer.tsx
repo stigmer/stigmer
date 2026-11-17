@@ -112,8 +112,10 @@ export interface NewSessionViewerProps {
    * pinned agent (when `initialAgentRef` is set) and hides the
    * plugin, skill, and vault pickers — for product-embedded
    * chat where the agent is configured upstream by the platform. The
-   * model selector, interaction mode, harness selector, file uploads,
-   * and workspace picker remain.
+   * model selector, interaction mode, file uploads, and workspace
+   * picker remain; the harness selector is the `"integrator"`
+   * audience's only, so an end user's conversation runs the agent's
+   * own harness and no harness name shows beside the model.
    *
    * `"guest"` (anonymous visitor with a guest token) is pure chat: it
    * additionally hides the model/harness/mode pickers, file uploads,
@@ -149,6 +151,14 @@ export interface NewSessionViewerProps {
    * @default true
    */
   readonly showModelSelector?: boolean;
+
+  /**
+   * Whether the composer offers the Agent/Plan mode toggle. Same contract
+   * as {@link SessionViewerProps.showInteractionModePicker}: on for every
+   * audience but `"guest"`; `false` hides it, and a guest never has it.
+   * @default true
+   */
+  readonly showInteractionModePicker?: boolean;
 
   /**
    * Harness pre-selected for new sessions when the user has not made
@@ -317,6 +327,7 @@ export function NewSessionViewer({
   audience = "integrator",
   runConfig,
   showModelSelector = true,
+  showInteractionModePicker,
   inspector,
   defaultHarness,
   accountDefaults,
@@ -599,12 +610,12 @@ export function NewSessionViewer({
       onPluginRefsChange: isCurated ? undefined : flow.setPluginRefs,
       skillRefs: isCurated ? undefined : flow.skillRefs,
       onSkillRefsChange: isCurated ? undefined : flow.setSkillRefs,
-      showHarnessSelector: !isGuest,
+      showHarnessSelector: audience === "integrator",
       harness: flow.harness,
       onHarnessChange: flow.setHarness,
       interactionMode,
       onInteractionModeChange: setInteractionMode,
-      showInteractionModePicker: !isGuest,
+      showInteractionModePicker: !isGuest && (showInteractionModePicker ?? true),
       showModelSelector: modelSelectorVisible,
       enableFiles: !isGuest,
       defaultModelId: flow.modelId,

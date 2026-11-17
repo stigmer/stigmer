@@ -164,6 +164,15 @@ describe("useNewSessionFlow", () => {
       expect(result.current.harness).toBe("claude");
     });
 
+    it("ignores a stored pick for an app's own users, who are never offered the harness", () => {
+      localStorage.setItem(STORAGE_KEY_HARNESS, "claude");
+      const { result } = renderHook(
+        () => useNewSessionFlow({ ...defaultOptions(), audience: "endUser" as const }),
+        { wrapper: createWrapper() },
+      );
+      expect(result.current.harness).toBe("stigmer");
+    });
+
     it("falls back to Stigmer for unknown localStorage values", () => {
       localStorage.setItem(STORAGE_KEY_HARNESS, "unknown-value");
       const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });

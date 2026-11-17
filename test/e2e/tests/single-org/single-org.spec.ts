@@ -82,7 +82,7 @@ test.describe("the console on a server that holds one organization", () => {
       await page.goto(`/library/agents/${agent.metadata?.org ?? ""}/variance-reporter?tab=in-app`);
       await expect(page.getByRole("tab", { name: "In your app", selected: true })).toBeVisible({ timeout: 15_000 });
       await expect(page.getByText(/trusts every caller, so your app talks to it with no sign-in/)).toBeVisible();
-      const chat = page.getByRole("region", { name: "StigmerAgentChat.tsx" });
+      const chat = page.getByRole("region", { name: "src/StigmerAgentChat.tsx" });
       await expect(chat).toContainText("getAccessToken: () => null");
       await expect(chat).toContainText("/variance-reporter\"}");
       await expect(page.getByText("A service account for your backend")).toHaveCount(0);
