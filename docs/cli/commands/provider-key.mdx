@@ -65,11 +65,14 @@ last used it. `-o json` and `-o yaml` print the same as data.
 
 A key is never taken on the command line, where it would stay in your shell
 history and show in the process list. Type it at the hidden prompt, or pipe it
-in with `--key-stdin`. Saving replaces any key your Organization holds for that
-provider. Stigmer asks the provider once whether it accepts the key: a key it
-refuses is not saved; `Saved; checked with Anthropic` means it accepted it; and
-`Saved, not checked` means it did not answer, so the first run that needs it
-says whether it works.
+in with `--key-stdin`. Where there is no terminal to type it at, as when a
+coding agent runs the command, `set` refuses and sends you to the console's
+Models & providers page (`https://app.stigmer.ai/models` on Stigmer Cloud):
+paste the key there, never into a coding agent's chat. Saving replaces any key
+your Organization holds for that provider. Stigmer asks the provider once
+whether it accepts the key: a key it refuses is not saved;
+`Saved; checked with Anthropic` means it accepted it; and `Saved, not checked`
+means it did not answer, so the first run that needs it says whether it works.
 
 `--base-url` points an Anthropic or OpenAI key at an endpoint that speaks that
 provider's API, such as a gateway or Azure OpenAI. It takes an `https` URL, as

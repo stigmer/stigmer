@@ -11,7 +11,9 @@ import type { EnvVarFormVariable } from "../vault/EnvVarForm.js";
  * login in the vaults the run reads. The agent is not ready until each is
  * signed in: a run would start and fail at the first tool call, so the
  * composer asks first, the way it asks for a missing variable. A sign-in
- * is saved in the person's My vault, at the server's address.
+ * is saved, at the server's address, in a vault the run reads: My vault,
+ * or, for a run that never reads it, a listed shared vault the person may
+ * edit ({@link SignInVaults}).
  */
 export interface PendingSignIn {
   /** The plugin the server belongs to. */
@@ -25,6 +27,50 @@ export interface PendingSignIn {
   /** The row's display name. */
   readonly name: string;
 }
+
+/** A shared vault the conversation lists: one a sign-in can be saved to, or one named to say who can. */
+export interface SignInVault {
+  /** The organization the vault belongs to: a sign-in saved to it names this organization. */
+  readonly org: string;
+  /** The vault's id. */
+  readonly id: string;
+  /** The vault's display name. */
+  readonly name: string;
+}
+
+/**
+ * Where a run's owed sign-ins can be saved so that the run reads them.
+ *
+ * - `"my-vault"` — the run may read the person's My vault: a sign-in is
+ *   saved there (a conversation that leaves My vault out includes it to
+ *   read the login).
+ * - `"shared"` — the run never reads My vault (the agent, or a subagent
+ *   it lists, is another organization's), and the person may edit at
+ *   least one of the vaults the conversation lists: `vaults`, in the
+ *   order listed. A sign-in saved to any of them satisfies the run.
+ * - `"nowhere"` — the run never reads My vault and the person may edit
+ *   none of the listed vaults. `listed` names the ones they can read, so
+ *   the panel can say who must sign in: someone who can edit one of them.
+ *   With none listed, a shared vault holding the logins must be added to
+ *   the conversation.
+ */
+export type SignInVaults =
+  | {
+      /** Sign-ins are saved in My vault. */
+      readonly kind: "my-vault";
+    }
+  | {
+      /** Sign-ins are saved in one of these listed vaults. */
+      readonly kind: "shared";
+      /** The listed vaults the person may edit; never empty. */
+      readonly vaults: readonly SignInVault[];
+    }
+  | {
+      /** No vault the person may edit is one the run reads. */
+      readonly kind: "nowhere";
+      /** The listed vaults the person can read, none of which they may edit. */
+      readonly listed: readonly SignInVault[];
+    };
 
 // ---------------------------------------------------------------------------
 // Resolution — the outcome of agent setup, consumed by session creation
@@ -95,6 +141,8 @@ export type AgentSetupPhase =
       readonly missingVariables: EnvVarFormVariable[];
       /** Servers of the agent's plugins that sign in and have no login where the run reads. */
       readonly pendingSignIns: readonly PendingSignIn[];
+      /** Where `pendingSignIns` can be saved so that the run reads them. */
+      readonly signInVaults: SignInVaults;
     }
   | {
       /** Environment variables are being saved to the My vault. */
@@ -109,6 +157,8 @@ export type AgentSetupPhase =
       readonly missingVariables: EnvVarFormVariable[];
       /** Carried so a failed submission returns to the same waiting state. */
       readonly pendingSignIns: readonly PendingSignIn[];
+      /** Carried with `pendingSignIns`. */
+      readonly signInVaults: SignInVaults;
     }
   | {
       /** The agent is fully resolved and ready for session creation. */
@@ -181,6 +231,8 @@ export type AgentSetupResult =
       readonly missingVariables: EnvVarFormVariable[];
       /** Servers of the agent's plugins that sign in and have no login where the run reads. */
       readonly pendingSignIns: readonly PendingSignIn[];
+      /** Where `pendingSignIns` can be saved so that the run reads them. */
+      readonly signInVaults: SignInVaults;
     };
 
 // ---------------------------------------------------------------------------
@@ -208,6 +260,8 @@ export type AgentSetupAction =
       readonly missingVariables: EnvVarFormVariable[];
       /** Servers the user must sign in to. */
       readonly pendingSignIns: readonly PendingSignIn[];
+      /** Where those sign-ins can be saved. */
+      readonly signInVaults: SignInVaults;
     }
   | {
       /** One of the pending sign-ins completed; the hook re-resolves the agent when the last one does. */
@@ -292,6 +346,7 @@ export function agentSetupReducer(
         agentName: action.agentName,
         missingVariables: action.missingVariables,
         pendingSignIns: action.pendingSignIns,
+        signInVaults: action.signInVaults,
         error: null,
       };
 
@@ -341,6 +396,7 @@ export function agentSetupReducer(
         agentName: state.agentName,
         missingVariables: state.missingVariables,
         pendingSignIns: state.pendingSignIns,
+        signInVaults: state.signInVaults,
         error: null,
       };
     }
@@ -363,6 +419,7 @@ export function agentSetupReducer(
           agentName: state.agentName,
           missingVariables: state.missingVariables,
           pendingSignIns: state.pendingSignIns,
+          signInVaults: state.signInVaults,
           error: action.error,
         };
       }

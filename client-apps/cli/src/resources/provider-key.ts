@@ -231,9 +231,19 @@ export function refuseKeyOnCommandLine(provider: Provider): never {
 /**
  * The key, read from stdin under `--key-stdin`, otherwise from a hidden
  * prompt on a terminal. Off a terminal without `--key-stdin` there is no
- * one to type it, so the command says how to pipe it in.
+ * one to type it: a coding agent runs commands with no terminal, and a key
+ * typed into its chat would land in its transcript (stigmer#3229). So the
+ * refusal sends the person to the console's key page first, where the key
+ * goes from their browser to the server and is checked live, then says how
+ * to pipe it in. `consoleUrl` is the console's address when the CLI knows it
+ * for certain (`knownConsoleURL`); otherwise the page is named.
  */
-export async function readProviderKey(provider: Provider, keyStdin: boolean, io: KeyIo): Promise<string> {
+export async function readProviderKey(
+  provider: Provider,
+  keyStdin: boolean,
+  io: KeyIo,
+  consoleUrl: string | undefined,
+): Promise<string> {
   const name = providerDisplayName(provider);
   let raw: string;
   if (keyStdin) {
@@ -241,13 +251,24 @@ export async function readProviderKey(provider: Provider, keyStdin: boolean, io:
   } else if (io.stdinIsTty) {
     raw = await io.promptHidden(`${name} key`);
   } else {
+    const consoleLine =
+      consoleUrl === undefined
+        ? "Add it on the console's Models & providers page."
+        : `Add it in the console: ${withoutTrailingSlashes(consoleUrl)}/models`;
     throw new UsageError(
-      `no terminal to type the ${name} key at\n\nPipe it in: stigmer provider-key set ${provider} --key-stdin`,
+      `no terminal to type the ${name} key at\n\n${consoleLine}\nOr pipe it in: stigmer provider-key set ${provider} --key-stdin`,
     );
   }
   const key = raw.trim();
   if (key === "") throw new UsageError(`no ${name} key given`);
   return key;
+}
+
+/** `url` without trailing slashes, so a path joins it with one. */
+function withoutTrailingSlashes(url: string): string {
+  let end = url.length;
+  while (end > 0 && url[end - 1] === "/") end--;
+  return url.slice(0, end);
 }
 
 /** Save the organization's key for `provider`, and say whether the provider confirmed it. */

@@ -38,7 +38,7 @@ import { BUSINESS, FREE_HOURS, NOW, RETIRED, TEAM, TEAM_ESTIMATE, USD, notFound,
 
 afterEach(cleanup);
 
-function mockClient(options: { admin?: boolean; subscribed?: ReturnType<typeof subscription> } = {}) {
+function mockClient(options: { admin?: boolean; checkFails?: boolean; subscribed?: ReturnType<typeof subscription> } = {}) {
   return {
     plan: { list: vi.fn().mockResolvedValue({ entries: [TEAM, BUSINESS, RETIRED], nextPageToken: "" }) },
     subscription: {
@@ -53,7 +53,11 @@ function mockClient(options: { admin?: boolean; subscribed?: ReturnType<typeof s
     billing: {
       createPaymentMethodSetupSession: vi.fn().mockResolvedValue({ setupUrl: "https://checkout.stripe.com/c/setup_1" }),
     },
-    grant: { checkMyPermission: vi.fn().mockResolvedValue({ isAuthorized: options.admin ?? true }) },
+    grant: {
+      checkMyPermission: options.checkFails
+        ? vi.fn().mockRejectedValue(new Error("the self-check did not answer"))
+        : vi.fn().mockResolvedValue({ isAuthorized: options.admin ?? true }),
+    },
   };
 }
 
@@ -147,6 +151,15 @@ describe("PlanSection", () => {
     renderSection(mockClient({ admin: false }));
     await screen.findByRole("list", { name: "Plans" });
     await waitFor(() => expect(screen.queryByRole("button", { name: "Subscribe" })).toBeNull());
+  });
+
+  it("offers no choice while it cannot learn whether the person may manage billing", async () => {
+    const client = mockClient({ checkFails: true });
+    renderSection(client);
+    await screen.findByRole("list", { name: "Plans" });
+    await waitFor(() => expect(client.grant.checkMyPermission).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.queryByRole("button", { name: "Subscribe" })).toBeNull();
   });
 
   it("sends a subscriber without a card to Stripe's page through the host, to come back to the plan", async () => {

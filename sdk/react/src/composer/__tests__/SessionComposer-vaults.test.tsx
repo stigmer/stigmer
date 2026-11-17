@@ -352,6 +352,7 @@ describe("SessionComposer — a key or sign-in saved in My vault includes My vau
       agentName: "Reviewer",
       missingVariables: [{ key: "API_TOKEN", isSecret: true }],
       pendingSignIns: [],
+      signInVaults: { kind: "my-vault" },
     };
     mockAgentSetup.submitEnvVars.mockResolvedValue({
       status: "ready",
@@ -409,6 +410,7 @@ describe("SessionComposer — a key or sign-in saved in My vault includes My vau
       agentName: "Reviewer",
       missingVariables: [{ key: "API_TOKEN", isSecret: true }],
       pendingSignIns: [],
+      signInVaults: { kind: "my-vault" },
     };
     mockAgentSetup.submitEnvVars.mockResolvedValue({
       status: "needsEnvVars",
@@ -416,6 +418,7 @@ describe("SessionComposer — a key or sign-in saved in My vault includes My vau
       agentName: "Reviewer",
       missingVariables: [{ key: "API_TOKEN", isSecret: true }],
       pendingSignIns: [],
+      signInVaults: { kind: "my-vault" },
     });
     const onAgentResolutionChange = vi.fn();
     const onSubmit = vi.fn();

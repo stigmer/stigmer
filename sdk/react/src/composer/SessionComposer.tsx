@@ -24,11 +24,12 @@ import { WorkspaceEditor } from "../workspace/WorkspaceEditor.js";
 import { AgentPicker } from "../agent/AgentPicker.js";
 import { AgentEnvForm } from "../agent/AgentEnvForm.js";
 import { PluginServerSignIn } from "../plugin/PluginServerSignIn.js";
+import { SharedVaultSignIn } from "./SharedVaultSignIn.js";
 import { PluginServerSignIns } from "../plugin/PluginServerSignIns.js";
 import { PluginPicker } from "../plugin/PluginPicker.js";
 import { PluginIcon } from "../plugin/PluginIcon.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
-import { useAgentSetup, type AgentResolution } from "../agent/useAgentSetup.js";
+import { useAgentSetup, type AgentResolution, type PendingSignIn, type SignInVaults } from "../agent/useAgentSetup.js";
 import type { AgentRunDefaults } from "../agent/run-defaults.js";
 import { PersonalKeyDisclosure } from "./PersonalKeyDisclosure.js";
 import { SecretFlowErrorGuide, isSecretFlowError } from "../error/SecretFlowErrorGuide.js";
@@ -63,7 +64,7 @@ import {
   XIcon,
 } from "./icons.js";
 import { Button } from "../button/Button.js";
-import { HiddenFileInput } from "../internal/form/index.js";
+import { HiddenFileInput, Select } from "../internal/form/index.js";
 
 /**
  * Imperative handle exposed by {@link SessionComposer} via `ref`.
@@ -996,8 +997,10 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   const canChangeVaults =
     !continuesConversation || (viewerId !== "" && viewerId === (vaultPickCreatorId ?? ""));
 
-  // A value the person types, and a sign-in they make, are saved in My
-  // vault. A conversation that leaves My vault out would never read them,
+  // A value the person types, and a sign-in they make for a run that may
+  // read My vault, are saved in My vault (a run that never reads it signs
+  // in into a listed vault instead, `ClosedMyVaultSignIns`). A
+  // conversation that leaves My vault out would never read them,
   // so the picker ticks My vault for its creator: the very next turn (which
   // carries the pick) uses them, and the person sees the tick and can undo
   // it. Without the picker the host decides, and nothing is ticked. A save
@@ -1800,20 +1803,31 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         case "agent":
           return showEnvForm && agentSetup.state.status === "needsEnvVars" ? (
             <div className="stg:flex stg:flex-col stg:gap-3">
-              {!shownVaults.includeMyVault && (
+              {/* Including My vault helps only a run that may read it. */}
+              {!shownVaults.includeMyVault && agentSetup.state.signInVaults.kind === "my-vault" && (
                 <MyVaultLeftOutNote
                   onInclude={showVaults && canChangeVaults ? includeMyVaultForSave : undefined}
                 />
               )}
-              {agentSetup.state.pendingSignIns.length > 0 && (
+              {agentSetup.state.pendingSignIns.length > 0 && agentSetup.state.signInVaults.kind !== "my-vault" && (
+                <ClosedMyVaultSignIns
+                  agentName={agentSetup.state.agentName}
+                  signIns={agentSetup.state.pendingSignIns}
+                  signInVaults={agentSetup.state.signInVaults}
+                  onSignedIn={(address) => {
+                    void agentSetup.signInCompleted(address);
+                  }}
+                />
+              )}
+              {agentSetup.state.pendingSignIns.length > 0 && agentSetup.state.signInVaults.kind === "my-vault" && (
                 <div className="stg:flex stg:flex-col stg:gap-2">
                   <p className="stg:text-sm stg:text-foreground">
                     {agentSetup.state.agentName} uses tools you have not signed in to yet.
                   </p>
-                  <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:divide-y stg:divide-border stg:rounded-md stg:border stg:border-border")} aria-label="Sign-ins this agent needs">
+                  <ul className={cn(UNSTYLED_LIST, SIGN_IN_LIST)} aria-label="Sign-ins this agent needs">
                     {agentSetup.state.pendingSignIns.map((signIn) => (
-                      <li key={signIn.address} className="stg:flex stg:items-center stg:justify-between stg:gap-3 stg:px-3 stg:py-2">
-                        <span className="stg:text-sm stg:font-medium stg:text-foreground">{signIn.name}</span>
+                      <li key={signIn.address} className={SIGN_IN_ROW}>
+                        <span className={SIGN_IN_NAME}>{signIn.name}</span>
                         <PluginServerSignIn
                           org={org!}
                           server={signIn.server}
@@ -2212,12 +2226,92 @@ export const SessionComposer = memo(SessionComposerInner);
 
 
 // ---------------------------------------------------------------------------
+// The agent's owed sign-ins — the list both kinds of panel draw
+// ---------------------------------------------------------------------------
+
+/** Composed with `UNSTYLED_LIST` at each `<ul>`, where the list-reset lint reads it. */
+const SIGN_IN_LIST = "stg:flex stg:flex-col stg:divide-y stg:divide-border stg:rounded-md stg:border stg:border-border";
+const SIGN_IN_ROW = "stg:flex stg:items-center stg:justify-between stg:gap-3 stg:px-3 stg:py-2";
+const SIGN_IN_NAME = "stg:text-sm stg:font-medium stg:text-foreground";
+
+/** "A", "A or B", "A, B or C". */
+function orList(names: readonly string[]): string {
+  return names.length <= 1 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} or ${names[names.length - 1]}`;
+}
+
+/**
+ * The owed sign-ins of a run that never reads My vault (`signInVaults`
+ * is `shared` or `nowhere`; `useAgentSetup` decides it). A sign-in into My
+ * vault would land where the run never looks, so no row here saves there,
+ * and none shows a My vault login's "Signed in".
+ *
+ * - `shared`: the heading names the vault the sign-ins are saved to, and
+ *   each row signs in into it. The logins of one conversation go
+ *   together, so with several vaults one select above the rows chooses
+ *   for all of them, the first listed chosen until the person picks.
+ * - `nowhere`: the rows name the tools, with nothing to click, and the
+ *   heading says who can sign in: someone who can edit a listed vault, or,
+ *   with none listed, a shared vault holding the logins added to the
+ *   conversation.
+ */
+function ClosedMyVaultSignIns({
+  agentName,
+  signIns,
+  signInVaults,
+  onSignedIn,
+}: {
+  readonly agentName: string;
+  readonly signIns: readonly PendingSignIn[];
+  readonly signInVaults: Exclude<SignInVaults, { readonly kind: "my-vault" }>;
+  readonly onSignedIn: (address: string) => void;
+}) {
+  const [chosenId, setChosenId] = useState<string | null>(null);
+  const editable = signInVaults.kind === "shared" ? signInVaults.vaults : [];
+  const chosen = editable.find((vault) => vault.id === chosenId) ?? editable[0];
+  const heading =
+    chosen !== undefined
+      ? `${agentName} needs you to sign in to these tools. Sign-ins are saved to ${chosen.name}.`
+      : signInVaults.kind === "nowhere" && signInVaults.listed.length > 0
+        ? `${agentName}'s conversations never use your personal vault. Someone who can edit ${orList(signInVaults.listed.map((vault) => vault.name))} needs to sign in to these tools there.`
+        : `${agentName}'s conversations never use your personal vault. Add a shared vault that holds these sign-ins to this conversation.`;
+  return (
+    <div className="stg:flex stg:flex-col stg:gap-2">
+      <p className="stg:text-sm stg:text-foreground">{heading}</p>
+      {chosen !== undefined && editable.length > 1 && (
+        <Select
+          aria-label="Vault for these sign-ins"
+          value={chosen.id}
+          onChange={(event) => setChosenId(event.target.value)}
+          wrapperClassName="stg:self-start"
+        >
+          {editable.map((vault) => (
+            <option key={vault.id} value={vault.id}>
+              {vault.name}
+            </option>
+          ))}
+        </Select>
+      )}
+      <ul className={cn(UNSTYLED_LIST, SIGN_IN_LIST)} aria-label="Sign-ins this agent needs">
+        {signIns.map((signIn) => (
+          <li key={signIn.address} className={SIGN_IN_ROW}>
+            <span className={SIGN_IN_NAME}>{signIn.name}</span>
+            {chosen !== undefined && <SharedVaultSignIn signIn={signIn} vault={chosen} onSignedIn={onSignedIn} />}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // My vault left out — where a typed key or a sign-in goes, and how to use it
 // ---------------------------------------------------------------------------
 
 /**
- * Said above the agent's setup when the conversation leaves My vault out:
- * every key and sign-in the setup asks for is saved in My vault, which the
+ * Said above the agent's setup when the conversation leaves My vault out
+ * and the run may read My vault (never for a run that never reads it,
+ * where including My vault would not help): every key and sign-in the
+ * setup asks for is saved in My vault, which the
  * conversation then does not read. A sign-in row reads My vault's own
  * grant, so a tool can read "Signed in" there and still be owed here; the
  * note says why. Its creator can include My vault here (saving or signing

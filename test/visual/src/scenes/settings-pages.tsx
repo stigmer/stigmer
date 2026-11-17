@@ -1,6 +1,5 @@
 // The settings pages, each framed as the console's settings layout frames
-// it (a centred 64rem column, `max-w-5xl`, under a hidden "Settings"
-// heading): the landing, and the pages that stand for the shapes Settings
+// it (the kit's wide `PageFrame`, under a hidden "Settings" heading): the landing, and the pages that stand for the shapes Settings
 // has. A collection with rows (Members), a collection with none yet (API
 // keys on Stigmer Cloud), a collection of cards (Vaults), a plan and its
 // figures (Billing, Usage), what this edition does not offer (Teams on open
@@ -34,6 +33,7 @@ import {
   ApiKeysSection,
   MembersSection,
   ModelCatalogConsole,
+  PageFrame,
   SETTINGS_NAV_GROUPS,
   SettingsOverview,
   SettingsPage,
@@ -101,13 +101,13 @@ export function settingsScene(
   };
 }
 
-/** The console's settings layout: a centred `max-w-5xl` column, its page heading read by assistive technology only. */
+/** The console's settings layout (`client-apps/web/src/app/settings/layout.tsx`): the kit's wide page frame, its page heading read by assistive technology only. */
 function SettingsColumn({ children }: { readonly children: ReactNode }) {
   return (
-    <div style={{ maxWidth: "64rem", margin: "0 auto", padding: "2rem 1.5rem" }}>
+    <PageFrame width="wide">
       <h1 className="gallery-visually-hidden">Settings</h1>
       {children}
-    </div>
+    </PageFrame>
   );
 }
 

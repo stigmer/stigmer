@@ -46,13 +46,19 @@ with Homebrew).
 
 ## 1. Where it runs, and signing in
 
-If the prompt named a Stigmer address, use it: an address on `stigmer.ai`
-(`https://api.stigmer.ai`) is Stigmer Cloud; any other is their own server, or
-this computer when it is `localhost:7234`. Otherwise ask: Stigmer Cloud, their
-own Stigmer server (its address), or this computer.
+If the prompt named a Stigmer address, use it: `https://api.stigmer.ai` is
+Stigmer Cloud; `localhost:7234` is this computer; any other is a server at its
+own address. Otherwise ask: Stigmer Cloud, their own Stigmer server (its
+address), or this computer.
+
+Later steps send the person to pages of Stigmer's console, written here as
+`<console>`. Its address is the console the prompt named ("its console is
+…"); otherwise `https://app.stigmer.ai` on Stigmer Cloud,
+`http://localhost:7234` on this computer, and the server's own address for a
+server at its own address.
 
 - **Stigmer Cloud**: `stigmer config backend set cloud`.
-- **Their own server**: `stigmer config backend add <name> --endpoint <host:port>`
+- **A server at its own address**: `stigmer config backend add <name> --endpoint <host:port>`
   (port 443 for https), then `stigmer config backend use <name>`.
 - **This computer**: `stigmer up` (it starts Stigmer locally, with a console at
   http://localhost:7234). Nothing to sign in to: skip to choosing the
@@ -90,7 +96,7 @@ The person chooses. Then:
   spec:
     description: <one line>
     instructions: |
-      <what it reads, what it does, and the file it saves in its outputs folder>
+      <what it reads, what it does, and the file it hands back: "Hand back the summary as a file named summary.md">
   ```
 
 Make it with `stigmer apply -f <the manifest>`. Their agent is now a file in
@@ -101,25 +107,35 @@ exists, ask before applying over it.
 
 Run `stigmer provider-key list`. If a provider is ready, this step is done.
 
-Otherwise, by where it runs. In every case the key goes from the person's
-environment or their own keyboard straight to the CLI, never through you:
+If `ANTHROPIC_API_KEY` is set in your environment, pipe it to the CLI:
+`printenv ANTHROPIC_API_KEY | stigmer provider-key set anthropic --key-stdin`
+(on this computer, `printenv ANTHROPIC_API_KEY | stigmer setup --api-key-stdin`,
+then `stigmer down` and `stigmer up`, so the runner takes the key).
 
-- **Stigmer Cloud**: if `ANTHROPIC_API_KEY` is set in your environment, run
-  `printenv ANTHROPIC_API_KEY | stigmer provider-key set anthropic --key-stdin`.
-  If not, ask the person to run `stigmer provider-key set anthropic` themselves
-  (in Claude Code they can type `! stigmer provider-key set anthropic`;
-  elsewhere, in their own terminal). It asks for the key at a hidden prompt.
-- **This computer**: the same two ways, with
-  `printenv ANTHROPIC_API_KEY | stigmer setup --api-key-stdin` or the person
-  running `stigmer setup` themselves. Then `stigmer down` and `stigmer up`, so
-  the runner takes the key.
-- **Their own server**: it keeps no keys; its runners use the keys whoever
-  runs them gives them. Say so, and who runs them. When
+Otherwise the person enters the key themselves, where you never see it. Never
+ask them for it, and never suggest typing it, or a command that asks for it,
+into this chat: what is typed here lands in your transcript. Ask the command
+line where the key goes: `stigmer provider-key set anthropic < /dev/null`.
+With nothing to read it asks for nothing and sends nothing, and says where:
+
+- **The console**: it names the page, as `Add it in the console: …/models` or
+  as the console's Models & providers page, which is `<console>/models`. Give
+  the person that address, and open it for them with the system's opener (`open`
+  on a Mac, `xdg-open` on Linux, `start` on Windows) when you can. They paste
+  the key there, and the console checks it with the provider as they save it.
+  Wait for them to say it is saved, then run `stigmer provider-key list` and go
+  on when it reads "connected".
+- **This computer**: it names `stigmer setup`. Ask the person to run
+  `stigmer setup` in a terminal window of their own, outside this coding agent:
+  it asks for the key at a hidden prompt. When they say it is done, run
+  `stigmer down` and `stigmer up`, so the runner takes the key.
+- **The runners**: it says "This server's runners use the keys whoever runs them gives them".
+  The server keeps no keys. Say so, and who runs them. When
   `stigmer provider-key list` reads "not known", the server cannot see its
   runners' keys: go on to step 4, whose run shows whether a runner has one.
 
-The CLI checks the key with the provider. A key it rejects: quote the CLI's
-words, and offer the same two ways again.
+The key is checked with the provider. A key it rejects: quote the words the
+person saw, and send them back to the same place.
 
 ## 4. Watch it work
 
@@ -131,16 +147,27 @@ stigmer run <slug> -m "<the example's first message>" --attach <each sample> --d
 
 `stigmer example get` printed the exact command for an example. For their own
 agent with no sample, write a small made-up one in the shape their app uses,
-and say it is made up. Add `stigmer-output/` to `.gitignore`. Then open the
-file it saved and say in one line what it shows.
+and say it is made up. Add `stigmer-output/` to `.gitignore`.
+
+Then show the person what came back: name the file it saved by its path
+(`stigmer-output/variance-report.md`), offer to open it with the system's
+opener, read it, and say in one line what it shows.
 
 ## 5. Make it yours
 
 Offer one change, and make it if they want it: sharper instructions in the
 manifest, a run on one of their own files, or the ready-made Spreadsheet export
-skill (`stigmer example get spreadsheet-export`, then
-`stigmer push skill stigmer/skills/spreadsheet-export`, then add it to the
-agent's `skill_refs`). Apply the manifest again and run again.
+skill. For the skill, run `stigmer example get spreadsheet-export`, then
+`stigmer push skill stigmer/skills/spreadsheet-export`, then add these lines to
+the agent's manifest, under `spec:`:
+
+```yaml
+  skill_refs:
+    - kind: skill
+      slug: spreadsheet-export
+```
+
+Apply the manifest again and run again; its runs now also hand back a `.csv`.
 
 ## 6. Put it in your app
 
@@ -175,7 +202,7 @@ agent's `skill_refs`). Apply the manifest again and run again.
 ## 7. Bring others in
 
 The last step is the person's, in the console: send them to
-`<console>/settings/bring-others-in`, the console address from step 1. There
+`<console>/settings/bring-others-in` (`<console>` is from step 1). There
 they name their organization (Stigmer Cloud named it from their email), then
 copy an invite link for their team and send it in their own chat or email. The
 team sees the same agent, its runs and the files it made. On this computer
