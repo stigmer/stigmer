@@ -74,12 +74,16 @@ jobs:
       - name: Regenerate and verify Python SDK client code
         run: make -C sdk/python codegen-verify
 
+      # The Python package's __init__.py is handwritten apart from the one
+      # region `make -C sdk/python codegen` writes (every resource's client
+      # and inputs), so a hand edit inside it or a stale region fails here.
       - name: Verify committed generated code is fresh
         run: |
           git diff --exit-code \
             mcp-server/src/gen \
             sdk/typescript/src/gen \
-            sdk/python/src/stigmer/_gen
+            sdk/python/src/stigmer/_gen \
+            sdk/python/src/stigmer/__init__.py
 
       # After the freshness check, so a stale _gen dir fails with that
       # check's plainer message first and the tests read code known to match

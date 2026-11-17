@@ -1,8 +1,10 @@
 // sdk-client-python target: typed resource clients for the Python SDK
-// (sdk/python/src/stigmer/_gen). Byte-parity port of sdk_client_python.go —
-// per resource: the client class over the gRPC stubs, the @dataclass input
-// types with self-contained _to_proto methods, plus the static modules
-// (_errors, _types, _bidi), the aggregate _client.py, and __init__.py.
+// (sdk/python/src/stigmer/_gen). Per resource: the client class over the gRPC
+// stubs and the @dataclass input types with self-contained _to_proto methods;
+// plus the static modules (_errors, _types, _bidi), the aggregate _client.py,
+// and _gen/__init__.py. Given the package's own __init__.py, it also rewrites
+// the one generated region of that otherwise handwritten file, which exports
+// every resource's client and inputs from `stigmer` (writePythonPackageExports).
 
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -373,10 +375,16 @@ class PyImports {
 // Entry point
 // =========================================================================
 
-/** Port of runSDKClientPythonGeneration. */
-export function runSDKClientPythonGeneration(schemaDir: string, outputDir: string): void {
+/**
+ * Writes the generated modules into outputDir. With packageInit (the
+ * package's handwritten __init__.py, which the target passes as the parent of
+ * outputDir), it also rewrites that file's generated export region; a file
+ * without the region's markers fails before anything is written.
+ */
+export function runSDKClientPythonGeneration(schemaDir: string, outputDir: string, packageInit?: string): void {
   const servicesDir = path.join(schemaDir, "services");
   const entries = readDirSorted(servicesDir);
+  const initRegion = packageInit === undefined ? null : splitPythonExportRegion(packageInit);
   fs.mkdirSync(outputDir, { recursive: true });
 
   generatePythonErrors(outputDir);
@@ -409,6 +417,9 @@ export function runSDKClientPythonGeneration(schemaDir: string, outputDir: strin
 
   generatePythonClientFile(outputDir, allResources);
   generatePythonInit(outputDir, allResources);
+  if (packageInit !== undefined && initRegion !== null) {
+    writePythonPackageExports(packageInit, initRegion, allResources);
+  }
   process.stderr.write(`sdk-client-python: generated ${allResources.length} resource clients in ${outputDir}\n`);
 }
 
@@ -1379,4 +1390,105 @@ function generatePythonInit(outputDir: string, resources: ResourceGenInfo[]): vo
   buf.push("]\n");
 
   fs.writeFileSync(path.join(outputDir, "__init__.py"), buf.join(""));
+}
+
+// =========================================================================
+// The package's export region (sdk/python/src/stigmer/__init__.py)
+// =========================================================================
+//
+// The package's __init__.py is handwritten apart from one region, which
+// exports every resource's client and inputs from `stigmer`, so a reader
+// imports `from stigmer import TeamInput` and a new resource exports itself
+// on `make codegen`. The region is explicit imports, then `__all__ += [...]`
+// with one quoted name per line: mypy collects a module's exports only from
+// a literal list on the right of `__all__ +=`, and hides every name a defined
+// `__all__` leaves out; pyright reads the same form. Internals (the base
+// client, the stream and error helpers) stay in stigmer._gen. The CI codegen
+// lane diffs the file after regenerating, so a hand edit inside the region
+// fails it.
+
+/** The line that opens the generated region. */
+export const PY_EXPORTS_BEGIN =
+  "# --- BEGIN stigmer-codegen: resource clients and inputs (generated; do not edit) ---";
+/** The line that closes it. */
+export const PY_EXPORTS_END = "# --- END stigmer-codegen ---";
+
+/** A package init cut around its region: the text up to and including the
+ *  begin line, and the text from the end line on. */
+export interface PythonExportRegionSplit {
+  readonly head: string;
+  readonly tail: string;
+}
+
+/**
+ * Reads the package init and cuts it at its markers. Throws, naming the file,
+ * when the file is missing, a marker is missing or written more than once, or
+ * the end comes before the begin: the region's place is the file's author's
+ * to give, never guessed or appended.
+ */
+export function splitPythonExportRegion(file: string): PythonExportRegionSplit {
+  let text: string;
+  try {
+    text = fs.readFileSync(file, "utf8");
+  } catch (err) {
+    throw new Error(`sdk-client-python: cannot read the package init ${file}: ${(err as Error).message}`);
+  }
+  const lines = text.split("\n");
+  const at = (marker: string): number => {
+    const found = lines.flatMap((line, i) => (line === marker ? [i] : []));
+    if (found.length !== 1) {
+      throw new Error(
+        `sdk-client-python: ${file} must hold the line "${marker}" exactly once (found ${found.length})`,
+      );
+    }
+    return found[0];
+  };
+  const begin = at(PY_EXPORTS_BEGIN);
+  const end = at(PY_EXPORTS_END);
+  if (end < begin) {
+    throw new Error(`sdk-client-python: ${file} closes its generated region before opening it`);
+  }
+  return {
+    head: lines.slice(0, begin + 1).join("\n") + "\n",
+    tail: lines.slice(end).join("\n"),
+  };
+}
+
+/** The longest single-line import; a longer one lists one name per line. */
+const PY_EXPORTS_LINE_MAX = 88;
+
+/** The region's body: one import per resource, then the literal list. */
+export function renderPythonExportRegion(resources: readonly ResourceGenInfo[]): string {
+  const buf: string[] = [];
+  buf.push("# `make -C sdk/python codegen` writes this region from the API's resources:\n");
+  buf.push("# each resource's client and input types. Every other line of this file is\n");
+  buf.push("# handwritten.\n\n");
+  const names: string[] = [];
+  for (const r of resources) {
+    const exports = [r.clientName, ...r.inputTypes];
+    const line = `from ._gen._${r.resource} import ${exports.join(", ")}`;
+    if (line.length <= PY_EXPORTS_LINE_MAX) {
+      buf.push(line + "\n");
+    } else {
+      buf.push(`from ._gen._${r.resource} import (\n`);
+      for (const name of exports) buf.push(`    ${name},\n`);
+      buf.push(")\n");
+    }
+    names.push(...exports);
+  }
+  buf.push("\n__all__ += [\n");
+  for (const name of names) {
+    buf.push(`    ${goQuote(name)},\n`);
+  }
+  buf.push("]\n");
+  return buf.join("");
+}
+
+/** Rewrites the region between the markers; the text outside is kept byte for byte. */
+export function writePythonPackageExports(
+  file: string,
+  split: PythonExportRegionSplit,
+  resources: readonly ResourceGenInfo[],
+): void {
+  fs.writeFileSync(file, split.head + renderPythonExportRegion(resources) + split.tail);
 }

@@ -4,6 +4,8 @@
 // guessed at. docs-yaml-check is not here: it reads no schemas and has its
 // own flag contract (main.ts).
 
+import { dirname, join } from "node:path";
+
 import { runMCPTSGeneration } from "./mcp-ts.js";
 import { runSDKClientGeneration } from "./sdk-client-go.js";
 import { runSDKClientJavaGeneration } from "./sdk-client-java.js";
@@ -28,7 +30,13 @@ export function runGenerationTarget(target: string, paths: TargetPaths): void {
       runSDKClientTSGeneration(paths.schemaDir, paths.outputDir);
       return;
     case "sdk-client-python":
-      runSDKClientPythonGeneration(paths.schemaDir, paths.outputDir);
+      // The output is the package's _gen; the package's own __init__.py,
+      // beside it, carries the generated export region.
+      runSDKClientPythonGeneration(
+        paths.schemaDir,
+        paths.outputDir,
+        join(dirname(paths.outputDir), "__init__.py"),
+      );
       return;
     case "sdk-client-java":
       runSDKClientJavaGeneration(paths.schemaDir, paths.outputDir);

@@ -38,7 +38,6 @@ import {
   javaResultType,
   javaStream,
   goStd,
-  readPythonPublicNames,
   sdkDeleteInput,
   sdkResourceRef,
   TS_MESSAGE_PARAMS,
@@ -81,10 +80,6 @@ export function runSDKDocsGeneration(schemaDir: string, outputDir: string, apisD
   }
 
   const slugs: string[] = [];
-  // The names the Python package exports: an example imports an SDK type
-  // from `stigmer` when it does.
-  const pyPublic = readPythonPublicNames(apisDir);
-
   for (const entry of entries) {
     if (entry.isDirectory() || !entry.name.endsWith(".json")) continue;
     const resource = entry.name.slice(0, -".json".length);
@@ -101,7 +96,7 @@ export function runSDKDocsGeneration(schemaDir: string, outputDir: string, apisD
       [specSchema, specTypes] = loadSpecSchemaWithTypes(path.join(schemaDir, cfg.specSchema));
     }
 
-    const page = generateSDKDocPage(schema, cfg, specSchema, specTypes, apisDir, commonsTypes, pyPublic);
+    const page = generateSDKDocPage(schema, cfg, specSchema, specTypes, apisDir, commonsTypes);
     const slug = docSlug(cfg.protoResType);
     fs.writeFileSync(path.join(outputDir, slug + ".mdx"), page);
     slugs.push(slug);
@@ -327,7 +322,6 @@ function generateSDKDocPage(
   specTypes: TypeSchema[],
   apisDir: string,
   commonsTypes: Set<string>,
-  pyPublic: ReadonlySet<string> | null,
 ): string {
   const displayName = docDisplayName(cfg.protoResType);
   const hasInputType = specSchema !== null;
@@ -386,7 +380,6 @@ function generateSDKDocPage(
     specTypes: new Map(specTypes.map((t) => [t.name, t])),
     methodTypes: methodTypeMap,
     pyModules: pyMethodTypePb2Map(schema),
-    pyPublic,
     imports: new DocImports(),
   };
   // The methods are written first: the imports block "Client Access"

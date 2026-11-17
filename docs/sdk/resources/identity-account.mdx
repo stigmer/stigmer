@@ -52,8 +52,7 @@ identityAccount, err := client.IdentityAccount.Get(ctx, "ida_01j5q3k7m8r2s4tnz2h
 </Tab>
 <Tab value="Python">
 ```python prelude
-from stigmer import IdentityAccountInput, ResourceRef
-from stigmer._gen import IdentityAccountPreferencesInput
+from stigmer import IdentityAccountInput, IdentityAccountPreferencesInput, ResourceRef
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.iam.identityaccount.v1 import enum_pb2, io_pb2
 from ai.stigmer.iam.v1 import enum_pb2 as iam_enum_pb2
