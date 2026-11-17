@@ -1,7 +1,7 @@
 /**
  * The Marketplace page's retry acts, against a fetch fake whose GitHub
  * listing is down for the first read and back for every read after: among
- * all sources the unreadable one is a line whose "Try again" reads it again,
+ * all sources the unreadable one is a notice whose "Try again" reads it again,
  * and with that source's chip chosen its refusal is the page's whole body,
  * whose own "Try again" does the same. Either way the source's cards appear.
  */
@@ -80,18 +80,18 @@ describe("MarketplaceCatalog: reading a source again", () => {
   it("among all sources, the unreadable source's Try again reads it again and its cards appear", async () => {
     renderCatalog();
 
-    const button = await screen.findByRole("button", { name: `Try again to load ${HOSTED_MARKETPLACE_NAME}` });
+    const notice = (await screen.findByText(`Couldn't read ${HOSTED_MARKETPLACE_NAME}.`)).closest("[role]") as HTMLElement;
     expect(screen.queryByRole("button", { name: "Install thermos" })).toBeNull();
 
-    fireEvent.click(button);
+    fireEvent.click(within(notice).getByRole("button", { name: "Try again" }));
 
     expect(await screen.findByRole("button", { name: "Install thermos" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: `Try again to load ${HOSTED_MARKETPLACE_NAME}` })).toBeNull();
+    expect(screen.queryByText(`Couldn't read ${HOSTED_MARKETPLACE_NAME}.`)).toBeNull();
   });
 
   it("with the source chosen, its whole-page refusal's Try again reads it again and its cards appear", async () => {
     renderCatalog();
-    await screen.findByRole("button", { name: `Try again to load ${HOSTED_MARKETPLACE_NAME}` });
+    await screen.findByText(`Couldn't read ${HOSTED_MARKETPLACE_NAME}.`);
 
     fireEvent.click(within(screen.getByRole("radiogroup", { name: "Sources" })).getByRole("radio", { name: HOSTED_MARKETPLACE_NAME }));
     const refusal = screen.getByText(`Couldn't load ${HOSTED_MARKETPLACE_NAME}.`).closest("[role=alert]") as HTMLElement;

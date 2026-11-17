@@ -116,7 +116,9 @@ describe("PluginInstallDialog", () => {
     expect(backend.pushes).toHaveLength(1);
     // What was pushed is what the preview described: the digest matches a fresh read of the same entry.
     expect(await digestArchive(backend.pushes[0]!)).toMatch(/^[a-f0-9]{64}$/);
-    expect(screen.getByRole("status").textContent).toContain("Installed plugin 'thermos' (1 skill, 1 MCP server, 1 agent)");
+    const done = screen.getByRole("status");
+    expect(done.textContent).toContain("is installed.");
+    expect(done.textContent).toContain("It brings 1 skill, 1 MCP server, 1 agent to");
   });
 
   it("says when this exact version is already installed and disables Install", async () => {

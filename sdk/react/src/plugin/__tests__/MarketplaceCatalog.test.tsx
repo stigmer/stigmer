@@ -100,6 +100,12 @@ function chip(name: string) {
   return within(screen.getByRole("radiogroup", { name: "Sources" })).getByRole("radio", { name });
 }
 
+/** The notice that says which sources could not be read, found by its headline. */
+async function unreadNotice(headline: string): Promise<HTMLElement> {
+  const words = await screen.findByText(headline);
+  return words.closest("[role]") as HTMLElement;
+}
+
 describe("MarketplaceCatalog: the sources first", () => {
   it("lists All sources, the official catalogue and the added one as chips; the page stands when one cannot be read", async () => {
     renderCatalog();
@@ -111,17 +117,17 @@ describe("MarketplaceCatalog: the sources first", () => {
     expect(screen.getByRole("button", { name: "Install github" })).toBeTruthy();
     await waitFor(() => expect(chip(HOSTED_MARKETPLACE_NAME).textContent).toContain("2"));
 
-    // A source that cannot be read says so in one line, with a retry; the official one names the development build.
-    await waitFor(() => expect(screen.getByRole("list", { name: "Sources that cannot be read" })).toBeTruthy());
-    const failed = within(screen.getByRole("list", { name: "Sources that cannot be read" })).getAllByRole("listitem");
-    expect(failed.map((item) => item.textContent)).toEqual([expect.stringMatching(/^stigmer.*development build/)]);
-    expect(screen.getByRole("button", { name: "Try again to load stigmer" })).toBeTruthy();
+    // A source that cannot be read is one notice, with a retry; the official one names the development build.
+    const notice = await unreadNotice("Couldn't read stigmer.");
+    expect(notice.textContent).toContain("development build");
+    expect(notice.textContent).toContain("The plugins below come from your other sources.");
+    expect(within(notice).getByRole("button", { name: "Try again" })).toBeTruthy();
   });
 
   it("choosing a chip narrows the grid to that source; a failed source shows its sentence whole with a retry", async () => {
     renderCatalog();
     await screen.findByRole("button", { name: "Install thermos" });
-    await waitFor(() => expect(screen.getByRole("list", { name: "Sources that cannot be read" })).toBeTruthy());
+    await unreadNotice("Couldn't read stigmer.");
 
     fireEvent.click(chip("stigmer"));
     expect(chip("stigmer").getAttribute("aria-checked")).toBe("true");
@@ -133,7 +139,7 @@ describe("MarketplaceCatalog: the sources first", () => {
 
     fireEvent.click(chip(HOSTED_MARKETPLACE_NAME));
     expect(screen.getByRole("button", { name: "Install thermos" })).toBeTruthy();
-    expect(screen.queryByRole("list", { name: "Sources that cannot be read" })).toBeNull();
+    expect(screen.queryByText("Couldn't read stigmer.")).toBeNull();
   });
 });
 
@@ -168,7 +174,8 @@ describe("MarketplaceCatalog: the grid", () => {
     expect(screen.getByRole("button", { name: "Install github" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Upload a plugin/ })).toBeNull();
     fireEvent.change(screen.getByLabelText("Search plugins"), { target: { value: "nothing-here" } });
-    expect(screen.getByRole("status").textContent).toContain("Nothing matches \u201cnothing-here\u201d");
+    // The unreadable source's notice is a status too; the empty state is the one that names the search.
+    expect(screen.getAllByRole("status").some((status) => status.textContent?.includes("Nothing matches \u201cnothing-here\u201d"))).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
     expect(screen.getByRole("button", { name: "Install thermos" })).toBeTruthy();
   });
