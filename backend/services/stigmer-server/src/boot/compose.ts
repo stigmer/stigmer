@@ -164,6 +164,7 @@ import {
   newShredStage,
 } from "../domain/organization/purge/core-stages.js";
 import { OrganizationPurgeRunner } from "../domain/organization/purge/runner.js";
+import { StalledRunChecker } from "../domain/run/stalled-runs.js";
 import { registerPlatformServices } from "../domain/platform/controller.js";
 import { SERVER_VERSION } from "../domain/platform/version.js";
 import { registerSessionServices } from "../domain/session/controller.js";
@@ -308,6 +309,7 @@ import {
 import { temporalAddressThroughServer } from "../transport/temporal-worker-door/address.js";
 import { newReceiptKeySource } from "../transport/temporal-worker-door/receipt-key.js";
 import { initWorkQueueMetrics } from "../observability/runner-work-queue-metrics.js";
+import { initRunWorkflowGoneMetrics } from "../observability/run-workflow-gone-metrics.js";
 import { observeStorePool } from "../observability/store-pool-metrics.js";
 import { chooseListenHost } from "./listen-host.js";
 import { registerExtensionServicesUnshadowed } from "./route-shadowing.js";
@@ -388,6 +390,12 @@ export interface ComposedServer {
    * runs one pass over the deletion table now, as the interval would.
    */
   organizationPurge: Pick<OrganizationPurgeRunner, "runPass">;
+  /**
+   * The stalled-run checker (domain/run/stalled-runs.ts), exposed for
+   * composed tests: `runPass` ends now, as the interval would, every
+   * working run whose workflow is gone.
+   */
+  stalledRuns: Pick<StalledRunChecker, "runPass">;
   /** Completes wiring, flips SERVING, binds the port; returns the bound port. */
   start(): Promise<number>;
   /**
@@ -1830,6 +1838,17 @@ export async function composeServer(
       }),
     }),
   });
+  // The stalled-run checker: a working run whose workflow is gone is
+  // ended, so its session moves on and its sandbox may sleep
+  // (stigmer#3120). Its write notifies the same observers every phase
+  // write does, the queued-turn starter among them.
+  const stalledRuns = new StalledRunChecker({
+    store,
+    logger,
+    sessionEventBroker,
+    statusObservers: runStatusObservers,
+    engineState: executionEngineState,
+  });
   // Access-history retention, only when a host declares a window
   // (`ServerExtension.accessHistoryRetentionDays`; the registry refuses one
   // on open source): the composed grant store's history, the library's
@@ -2622,6 +2641,7 @@ export async function composeServer(
     identityVerifiers,
     routes,
     organizationPurge,
+    stalledRuns,
 
     boundPorts(): BoundPorts | undefined {
       // Both are recorded inside start(): the lane binds before the
@@ -2688,6 +2708,8 @@ export async function composeServer(
       // The organization purge: a first pass over the deletion table now
       // (a purge a stopped server left unfinished resumes), then its loop.
       organizationPurge.start();
+      // The stalled-run checker's loop: its first pass is one interval in.
+      stalledRuns.start();
       // Access-history retention: a first pass now, then hourly.
       historyRetention?.start();
       // The sandbox driver's background work, when it has any: it reads the
@@ -2743,6 +2765,7 @@ export async function composeServer(
       // two states an operator must be able to tell apart in the log.
       await initRpcMetrics();
       await initWorkQueueMetrics();
+      await initRunWorkflowGoneMetrics();
       if (pgStore !== undefined) {
         const observed = pgStore;
         stopStorePoolMetrics = await observeStorePool(() => observed.poolStats());
@@ -2803,6 +2826,9 @@ export async function composeServer(
       // The purge stops before the manager and the store: a stage in
       // flight may still terminate a run or write through the store.
       await organizationPurge.stop();
+      // The checker stops before the manager and the store: a pass in
+      // flight may still ask the engine or end a run through the store.
+      await stalledRuns.stop();
       // Retention stops before the store too: a batch in flight deletes
       // through it.
       await historyRetention?.stop();

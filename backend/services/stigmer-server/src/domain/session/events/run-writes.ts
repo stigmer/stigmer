@@ -10,12 +10,13 @@
  *   update ............ a row-locked change: updateStatus' merge, the
  *                       lifecycle transition, an answer, a file decision,
  *                       the next turn's close of the previous turn's file
- *                       review (updateRunAppendingEvents)
- *   overwrite ......... the two writes that save a copy held in memory:
- *                       the start failure, and the stale reconcile
- *                       (overwriteRunAppendingEvents). Their overwrite is
- *                       kept, but their events are computed from the
- *                       committed row, never the copy, which may be stale.
+ *                       review, the end of a run whose workflow is gone
+ *                       (updateRunAppendingEvents)
+ *   overwrite ......... the one write that saves a copy held in memory:
+ *                       the start failure (overwriteRunAppendingEvents).
+ *                       Its overwrite is kept, but its events are computed
+ *                       from the committed row, never the copy, which may
+ *                       be stale.
  *   remove ............ the run chain's DeleteResource step
  *                       (removeRunAppendingEvents). A removed run's own
  *                       events go with it; its status events stay, because

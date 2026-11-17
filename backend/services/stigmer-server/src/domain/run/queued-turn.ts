@@ -35,8 +35,8 @@
  *     (temporal/agentexecution, StartQueuedTurn): the durable start
  *   - a status observer on every turn that ends (`newQueuedTurnObserver`):
  *     the prompt start, and the start for a turn that ends outside its
- *     workflow (a failed workflow start, the stale reconcile of a turn
- *     whose workflow is gone)
+ *     workflow (a failed workflow start, the end of a turn whose
+ *     workflow is gone, workflow-gone.ts)
  *   - sendMessage itself, when its message was queued with nothing working
  *
  * Nothing queued, or a turn of the session still unfinished: nothing

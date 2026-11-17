@@ -14,7 +14,9 @@
  *                               (cancel, run by the session's interrupt;
  *                               terminate/pause/resume/recover);
  *   3. create-steps.ts        — the StartWorkflow failure arm (FAILED);
- *   4. session/hitl/answer.ts — reconcileStaleExecution (FAILED).
+ *   4. workflow-gone.ts       — failRunWithoutWorkflow (FAILED): the
+ *                               stalled-run checker and an answer whose
+ *                               workflow cannot be signalled.
  * A file decision changes no phase: it signals no workflow, so it has no
  * workflow-gone reconcile (domain/session/filereview/decide.ts).
  * Initial-phase stamping at creation (SetInitialPhase → PENDING) is by

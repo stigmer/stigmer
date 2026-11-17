@@ -20,7 +20,10 @@
  * while the run waits for a person's answer, by which the same write finds
  * the session's waiting runs and their open asks; `paused_session` is the
  * session while the run is paused, by which a session's queue knows a
- * message cannot wait for it (domain/run/send-message.ts); `agent` is the agent the
+ * message cannot wait for it (domain/run/send-message.ts); `working` is
+ * held by every working run, whatever its session, with the one value
+ * `Run`, by which the stalled-run checker reads the server's working runs
+ * (stalled-runs.ts, stigmer#3120); `agent` is the agent the
  * run recorded (status.agent_id), by which the agent usage report reads one
  * agent's runs in an organization (usage.ts); the organization and the
  * creation order are every declaration's. Revision 2 added `grades`,
@@ -28,9 +31,9 @@
  * `schedule`, revision 6 took waiting runs out of `working_session` into
  * `waiting_session`, revision 7 added `agent`, and revision 8 renamed
  * `plugin_eval` to `eval_run` with its label, revision 9 renamed
- * `schedule` to `routine` with its label, and revision 10 added
- * `paused_session`: the store derives every existing
- * run's keys again once, at open.
+ * `schedule` to `routine` with its label, revision 10 added
+ * `paused_session`, and revision 11 `working`: the store derives every
+ * existing run's keys again once, at open.
  *
  * A change to `keys` bumps `revision` (boot/__tests__/list-indexes.test.ts
  * pins the pair).
@@ -47,7 +50,7 @@ import { PAUSED_PHASES, WAITING_PHASES, WORKING_PHASES } from "./phases.js";
 export const agentExecutionListIndex = declareListIndex({
   kind: ApiResourceKind.run,
   schema: RunSchema,
-  revision: 10,
+  revision: 11,
   keys: {
     session: field("spec.session_id"),
     grades: label(GRADES_RUN_LABEL),
@@ -57,5 +60,11 @@ export const agentExecutionListIndex = declareListIndex({
     waiting_session: fieldWhen("spec.session_id", "status.phase", WAITING_PHASES),
     paused_session: fieldWhen("spec.session_id", "status.phase", PAUSED_PHASES),
     agent: field("status.agent_id"),
+    // Every working run on the server, whatever its organization or
+    // session: the stalled-run checker's read (stalled-runs.ts). The value
+    // is the constant `Run` (`kind`): a query matches a key by its value
+    // and has no "holds this key" predicate (store/list-index.ts), so the
+    // one value every working run holds is how it reads them all.
+    working: fieldWhen("kind", "status.phase", WORKING_PHASES),
   },
 });
