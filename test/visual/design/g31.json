@@ -7,8 +7,12 @@
     {
       "caption": "Teams: Teams",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-teams",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Teams",
@@ -113,15 +117,28 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word The month-end close and the ledger agents": "The drawing's example data; the scene shows its own fixture's",
+        "word 4 people": "The drawing's example data; the scene shows its own fixture's",
+        "word Support": "The drawing's example data; the scene shows its own fixture's",
+        "word Answers customers on Slack and WhatsApp": "The drawing's example data; the scene shows its own fixture's",
+        "word 6 people": "The drawing's example data; the scene shows its own fixture's",
+        "word Engineering": "The drawing's example data; the scene shows its own fixture's",
+        "word No description": "The drawing's example data; the scene shows its own fixture's",
+        "word 9 people": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "Teams: A team open: its people, what's shared with it, Delete",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-teams-detail",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Teams",
@@ -302,9 +319,29 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word The month-end close and the ledger agents.": "The drawing's example data; the scene shows its own fixture's",
+        "word Ada Lovelace": "The drawing's example data; the scene shows its own fixture's",
+        "word Alan Turing": "The drawing's example data; the scene shows its own fixture's",
+        "word Ledger reviewer": "The drawing's example data; the scene shows its own fixture's",
+        "word Agent": "The drawing's example data; the scene shows its own fixture's",
+        "word Production": "The drawing's example data; the scene shows its own fixture's",
+        "word Vault": "The drawing's example data; the scene shows its own fixture's",
+        "button Take Ada Lovelace out of Finance": "The drawing's example data; the scene shows its own fixture's",
+        "button Take Grace Hopper out of Finance": "The drawing's example data; the scene shows its own fixture's",
+        "button Take Katherine Johnson out of Finance": "The drawing's example data; the scene shows its own fixture's",
+        "button Take Alan Turing out of Finance": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Members 4": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "type Add a person": "When its page is redesigned: the settings forms PR draws a team's people as rows with Add a person",
+        "type Grace Hopper": "When its page is redesigned: the settings forms PR draws a team's people as rows with Add a person",
+        "type Katherine Johnson": "When its page is redesigned: the settings forms PR draws a team's people as rows with Add a person",
+        "word Shared with Finance": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Its four people lose what was shared with Finance. Nothing they made is deleted.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "button Add a person": "When its page is redesigned: the settings forms PR draws a team's people as rows with Add a person"
+      }
     },
     {
       "caption": "Teams: New team, its name taken",
@@ -414,8 +451,12 @@
     {
       "caption": "Teams: Delete, asked first",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-teams-delete",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Delete the team Finance?",
@@ -466,13 +507,15 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Its four people lose what was shared with Finance. Nothing they made is deleted.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
     },
     {
       "caption": "Teams: Delete, working: the act busy, Cancel held",
       "narrow": false,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
       "words": [
         {
           "text": "Delete the team Finance?",
@@ -529,7 +572,7 @@
       "caption": "Teams: Delete, didn't go through: said in the dialog, the act is Try again",
       "narrow": false,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
       "words": [
         {
           "text": "Delete the team Finance?",
@@ -621,8 +664,12 @@
     {
       "caption": "Teams: None yet, for someone who may create one",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-teams-empty",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Teams",
@@ -690,8 +737,12 @@
     {
       "caption": "Teams: None yet, for a member",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-teams-empty-member",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Teams",
@@ -729,13 +780,19 @@
       "buttons": [],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Admins of acme make teams. Once one adds you to a team, what's shared with it reaches you.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
     },
     {
       "caption": "Teams: On the open-source edition",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-teams-oss",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Teams",
@@ -778,8 +835,12 @@
     {
       "caption": "Teams: Didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-teams-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Teams",
@@ -860,15 +921,22 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "The drawing's example data; the scene shows its own fixture's",
+        "word Stuck? Ask IT on Slack": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "Teams: At 390 wide",
       "narrow": true,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-teams",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Teams",
@@ -973,7 +1041,16 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word The month-end close and the ledger agents": "The drawing's example data; the scene shows its own fixture's",
+        "word 4 people": "The drawing's example data; the scene shows its own fixture's",
+        "word Support": "The drawing's example data; the scene shows its own fixture's",
+        "word Answers customers on Slack and WhatsApp": "The drawing's example data; the scene shows its own fixture's",
+        "word 6 people": "The drawing's example data; the scene shows its own fixture's",
+        "word Engineering": "The drawing's example data; the scene shows its own fixture's",
+        "word No description": "The drawing's example data; the scene shows its own fixture's",
+        "word 9 people": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
       "pending": {}
     }

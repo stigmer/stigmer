@@ -472,7 +472,7 @@ function InvitationRow({
             {isActive && (
               <IconButton
                 size="xs"
-                label={copied ? "Link copied" : `Copy invite link for ${label}`}
+                label={copied ? "Link copied" : `Copy the link ${label}`}
                 icon={copied ? <CheckIcon /> : <CopyIcon />}
                 onClick={handleCopy}
                 className={copied ? "stg:text-primary" : undefined}

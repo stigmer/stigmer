@@ -7,8 +7,12 @@
     {
       "caption": "Plans: The plans, a retired one marked",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-plans",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Plans",
@@ -149,7 +153,15 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Free": "The drawing's example data; the scene shows its own fixture's",
+        "word $0/month · 30 agent hours, then pauses · 12 organizations": "The drawing's example data; the scene shows its own fixture's",
+        "word $99/month · unlimited hours · 40 organizations": "The drawing's example data; the scene shows its own fixture's",
+        "word $499/month · 5 child organizations, then $25/month each · 7 organizations": "The drawing's example data; the scene shows its own fixture's",
+        "word Team 2025": "The drawing's example data; the scene shows its own fixture's",
+        "word Retired": "The drawing's example data; the scene shows its own fixture's",
+        "word $79/month · 3 organizations": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
       "pending": {}
     },
@@ -157,7 +169,7 @@
       "caption": "Plans: New plan, a handle already used",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
       "words": [
         {
           "text": "Plans",
@@ -301,8 +313,12 @@
     {
       "caption": "Plans: Retire, asked first",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-plans-retire",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Retire Team?",
@@ -353,13 +369,15 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word No new organization can subscribe to it. The 40 on it stay until they move.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
     },
     {
       "caption": "Plans: Retire, working: the act busy, Cancel held",
       "narrow": false,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
       "words": [
         {
           "text": "Retire Team?",
@@ -416,7 +434,7 @@
       "caption": "Plans: Retire, didn't go through: said in the dialog, the act is Try again",
       "narrow": false,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
       "words": [
         {
           "text": "Retire Team?",
@@ -508,8 +526,12 @@
     {
       "caption": "Plans: None yet",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-plans-empty",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Plans",
@@ -577,8 +599,12 @@
     {
       "caption": "Plans: Didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-plans-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Plans",
@@ -659,15 +685,22 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "The drawing's example data; the scene shows its own fixture's",
+        "word Stuck? Ask IT on Slack": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "Plans: At 390 wide",
       "narrow": true,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-plans",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Plans",
@@ -808,7 +841,15 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Free": "The drawing's example data; the scene shows its own fixture's",
+        "word $0/month · 30 agent hours, then pauses · 12 organizations": "The drawing's example data; the scene shows its own fixture's",
+        "word $99/month · unlimited hours · 40 organizations": "The drawing's example data; the scene shows its own fixture's",
+        "word $499/month · 5 child organizations, then $25/month each · 7 organizations": "The drawing's example data; the scene shows its own fixture's",
+        "word Team 2025": "The drawing's example data; the scene shows its own fixture's",
+        "word Retired": "The drawing's example data; the scene shows its own fixture's",
+        "word $79/month · 3 organizations": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
       "pending": {}
     }

@@ -97,7 +97,7 @@ export function TeamDetailPanel({
         </div>
         {!editing && (
           <PermissionGate fail="closed" resource={gate} relation="can_edit">
-            <Button variant="outline" size="xs" onClick={() => setEditing(true)}>
+            <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
               Edit
             </Button>
           </PermissionGate>

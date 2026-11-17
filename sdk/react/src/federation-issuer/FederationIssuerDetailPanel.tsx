@@ -187,7 +187,7 @@ export function FederationIssuerDetailPanel({
             resource={{ kind: "federation_issuer", id: meta?.id ?? "" }}
             relation="can_edit"
           >
-            <Button variant="outline" size="xs" onClick={enterEdit}>
+            <Button variant="outline" size="sm" onClick={enterEdit}>
               Edit
             </Button>
           </PermissionGate>

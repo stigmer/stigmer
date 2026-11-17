@@ -7,8 +7,12 @@
     {
       "caption": "API keys: Three keys, one expired",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-api-keys-full",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "API keys",
@@ -109,7 +113,18 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word laptop-cli": "The drawing's example data; the scene shows its own fixture's",
+        "word …9f2c · All your organizations · Expires Oct 16, 2026 · Used 1h ago": "The drawing's example data; the scene shows its own fixture's",
+        "word nightly-export": "The drawing's example data; the scene shows its own fixture's",
+        "word …a1b2 · Only in acme · Never expires · Used 9h ago": "The drawing's example data; the scene shows its own fixture's",
+        "word old-ci": "The drawing's example data; the scene shows its own fixture's",
+        "word Expired": "The drawing's example data; the scene shows its own fixture's",
+        "word …77de · Only in acme · Expired Jul 2, 2026 · Never used": "The drawing's example data; the scene shows its own fixture's",
+        "button Revoke laptop-cli": "The drawing's example data; the scene shows its own fixture's",
+        "button Revoke nightly-export": "The drawing's example data; the scene shows its own fixture's",
+        "button Revoke old-ci": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
       "pending": {}
     },
@@ -563,8 +578,12 @@
     {
       "caption": "API keys: Revoke, asked first",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-api-keys-revoke",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Revoke laptop-cli?",
@@ -615,13 +634,15 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Revoke laptop-cli?": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
     },
     {
       "caption": "API keys: Revoke, working: the act busy, Cancel held",
       "narrow": false,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
       "words": [
         {
           "text": "Revoke laptop-cli?",
@@ -678,7 +699,7 @@
       "caption": "API keys: Revoke, didn't go through: said in the dialog, the act is Try again",
       "narrow": false,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
       "words": [
         {
           "text": "Revoke laptop-cli?",
@@ -770,8 +791,12 @@
     {
       "caption": "API keys: Didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-api-keys-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "API keys",
@@ -852,15 +877,22 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "The drawing's example data; the scene shows its own fixture's",
+        "word Stuck? Ask IT on Slack": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "API keys: At 390 wide",
       "narrow": true,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-api-keys-full",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "API keys",
@@ -961,7 +993,18 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word laptop-cli": "The drawing's example data; the scene shows its own fixture's",
+        "word …9f2c · All your organizations · Expires Oct 16, 2026 · Used 1h ago": "The drawing's example data; the scene shows its own fixture's",
+        "word nightly-export": "The drawing's example data; the scene shows its own fixture's",
+        "word …a1b2 · Only in acme · Never expires · Used 9h ago": "The drawing's example data; the scene shows its own fixture's",
+        "word old-ci": "The drawing's example data; the scene shows its own fixture's",
+        "word Expired": "The drawing's example data; the scene shows its own fixture's",
+        "word …77de · Only in acme · Expired Jul 2, 2026 · Never used": "The drawing's example data; the scene shows its own fixture's",
+        "button Revoke laptop-cli": "The drawing's example data; the scene shows its own fixture's",
+        "button Revoke nightly-export": "The drawing's example data; the scene shows its own fixture's",
+        "button Revoke old-ci": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
       "pending": {}
     }

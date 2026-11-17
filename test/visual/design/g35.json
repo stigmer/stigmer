@@ -7,8 +7,12 @@
     {
       "caption": "Federation issuers: One issuer",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-federation-issuers",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Federation issuers",
@@ -57,15 +61,25 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Northwind platform": "The drawing's example data; the scene shows its own fixture's",
+        "word https://auth.northwind.example · creates accounts on sign-in as Member": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word New issuer": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "button New issuer": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
     },
     {
       "caption": "Federation issuers: One open: how tokens are checked, as read-only fields",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-federation-issuers-detail",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Federation issuers",
@@ -250,9 +264,26 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Northwind platform": "The drawing's example data; the scene shows its own fixture's",
+        "word Issuer": "The drawing's example data; the scene shows its own fixture's",
+        "word https://auth.northwind.example": "The drawing's example data; the scene shows its own fixture's",
+        "word Keys (JWKS)": "The drawing's example data; the scene shows its own fixture's",
+        "word https://auth.northwind.example/.well-known/jwks.json": "The drawing's example data; the scene shows its own fixture's",
+        "word stigmer-acme": "The drawing's example data; the scene shows its own fixture's",
+        "word Customer id claim": "The drawing's example data; the scene shows its own fixture's",
+        "word sub": "The drawing's example data; the scene shows its own fixture's",
+        "word On": "The drawing's example data; the scene shows its own fixture's",
+        "word Member": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word acme accepts sign-in tokens Northwind's platform issues.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Delete this issuer": "When its page is redesigned: the settings forms PR adds the open issuer's Delete card (Delete stays on its list row today)",
+        "word Tokens from Northwind stop working at once. People who joined through it keep their accounts and roles.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Delete issuer": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "button Delete issuer": "When its page is redesigned: the settings forms PR adds the open issuer's Delete card (Delete stays on its list row today)"
+      }
     },
     {
       "caption": "Federation issuers: New issuer, an address the server refuses",
@@ -426,8 +457,12 @@
     {
       "caption": "Federation issuers: Delete, asked first",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-federation-issuers-delete",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Delete Northwind platform?",
@@ -478,13 +513,16 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Delete Northwind platform?": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Tokens from Northwind stop working at once. People who joined through it keep their accounts and roles.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
     },
     {
       "caption": "Federation issuers: Delete, working: the act busy, Cancel held",
       "narrow": false,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
       "words": [
         {
           "text": "Delete Northwind platform?",
@@ -541,7 +579,7 @@
       "caption": "Federation issuers: Delete, didn't go through: said in the dialog, the act is Try again",
       "narrow": false,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
       "words": [
         {
           "text": "Delete Northwind platform?",
@@ -633,8 +671,12 @@
     {
       "caption": "Federation issuers: None yet",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-federation-issuers-empty",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Federation issuers",
@@ -697,13 +739,22 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word New issuer": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word No federation issuers yet": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Add one when another platform signs people in to acme for you, such as the platform that manages it.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "button New issuer": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
     },
     {
       "caption": "Federation issuers: Didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-federation-issuers-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Federation issuers",
@@ -784,15 +835,21 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "The drawing's example data; the scene shows its own fixture's",
+        "word Stuck? Ask IT on Slack": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word New issuer": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "button New issuer": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
     },
     {
       "caption": "Federation issuers: At 390 wide, one open",
       "narrow": true,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene pictures this state yet.",
       "words": [
         {
           "text": "Federation issuers",

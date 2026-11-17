@@ -116,10 +116,11 @@ describe("OAuthAppDetailPanel endpoints", () => {
     expect(await screen.findByText("Its endpoints")).toBeTruthy();
     cleanup();
 
-    const plain = create(OAuthAppSchema, {
-      metadata: APP.metadata,
-      spec: { ...APP.spec, authorizationUrl: "", tokenUrl: "" },
-    });
+    const plain = clone(OAuthAppSchema, APP);
+    if (plain.spec !== undefined) {
+      plain.spec.authorizationUrl = "";
+      plain.spec.tokenUrl = "";
+    }
     renderPanel(vi.fn(), undefined, plain);
     await screen.findByText("The app");
     expect(screen.queryByText("Its endpoints")).toBeNull();

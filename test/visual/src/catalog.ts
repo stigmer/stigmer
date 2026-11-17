@@ -624,7 +624,7 @@ const SETTINGS_SCENES = [
   { id: "settings-notifications", title: "Settings, Notifications: its one switch, off", widths: ["desktop", "narrow"] },
   { id: "settings-notifications-unsupported", title: "Settings, Notifications: a browser that cannot show them", widths: ["desktop"] },
   { id: "settings-channel-apps-detail", title: "Settings, Channel apps: the Slack app's page open", widths: ["desktop"], opens: "Edit Acme Slack" },
-  { id: "settings-channel-apps-delete", title: "Settings, Channel apps: Delete asked first, on the Slack app's page", widths: ["desktop"], opens: ["Edit Acme Slack", "Delete channel app"] },
+  { id: "settings-channel-apps-delete", title: "Settings, Channel apps: Delete asked first, on the Slack app's page", widths: ["desktop"], opens: ["Edit Acme Slack", "Delete app"] },
   {
     id: "settings-channel-apps-new-error",
     title: "Settings, Channel apps: a new Slack app the server refused to register",

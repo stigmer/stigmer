@@ -70,7 +70,7 @@ describe("ChannelAppDetailPanel credentials and delete gates", () => {
     }));
     renderPanel(checkMyPermission);
 
-    await screen.findByRole("button", { name: "Delete channel app" });
+    await screen.findByRole("button", { name: "Delete app" });
     expect(
       screen.queryByRole("button", { name: "Save credentials" }),
     ).toBeNull();
@@ -107,7 +107,7 @@ describe("ChannelAppDetailPanel credentials and delete gates", () => {
       ).toBeNull(),
     );
     expect(
-      screen.queryByRole("button", { name: "Delete channel app" }),
+      screen.queryByRole("button", { name: "Delete app" }),
     ).toBeNull();
   });
 
@@ -121,7 +121,7 @@ describe("ChannelAppDetailPanel credentials and delete gates", () => {
       await screen.findByRole("button", { name: "Save credentials" }),
     ).toBeTruthy();
     expect(
-      await screen.findByRole("button", { name: "Delete channel app" }),
+      await screen.findByRole("button", { name: "Delete app" }),
     ).toBeTruthy();
   });
 });
@@ -134,13 +134,13 @@ describe("ChannelAppDetailPanel delete dialog", () => {
       deleteApp,
     );
 
-    fireEvent.click(await screen.findByRole("button", { name: "Delete channel app" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Delete app" }));
     const dialog = screen.getByRole("dialog");
     expect(dialog.textContent).toMatch(/Channels that use it stop answering/);
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(screen.getByRole("button", { name: "Delete channel app" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Delete app" })).toBeTruthy();
     expect(deleteApp).not.toHaveBeenCalled();
   });
 
@@ -153,7 +153,7 @@ describe("ChannelAppDetailPanel delete dialog", () => {
       onDeleted,
     );
 
-    fireEvent.click(await screen.findByRole("button", { name: "Delete channel app" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Delete app" }));
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete app" }));
     await waitFor(() => expect(onDeleted).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -170,7 +170,7 @@ describe("ChannelAppDetailPanel delete dialog", () => {
       onDeleted,
     );
 
-    fireEvent.click(await screen.findByRole("button", { name: "Delete channel app" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Delete app" }));
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete app" }));
     expect(await within(screen.getByRole("dialog")).findByText(/Couldn't delete/)).toBeTruthy();
     expect(screen.getByRole("dialog").textContent).toMatch(/still installs through this app/);

@@ -144,7 +144,12 @@
     {
       "caption": "Members: As an owner, redrawn: each person's address, and where service accounts are",
       "narrow": false,
-      "built": [],
+      "built": [
+        {
+          "scene": "settings-members",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Members",
@@ -309,16 +314,30 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word ada@acme.example": "The drawing's example data; the scene shows its own fixture's",
+        "word Owner": "The drawing's example data; the scene shows its own fixture's",
+        "word grace@acme.example": "The drawing's example data; the scene shows its own fixture's",
+        "word Admin": "The drawing's example data; the scene shows its own fixture's",
+        "word katherine@acme.example": "The drawing's example data; the scene shows its own fixture's",
+        "word Member": "The drawing's example data; the scene shows its own fixture's",
+        "word alan@acme.example": "The drawing's example data; the scene shows its own fixture's",
+        "word Viewer": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {},
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build."
+      "pending": {
+        "word Service accounts hold roles too; they're listed under Service accounts.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
     },
     {
       "caption": "Members: As a member: the roles, nothing to change",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-members-member",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Members",
@@ -458,15 +477,26 @@
         }
       ],
       "buttons": [],
-      "sample": {},
+      "sample": {
+        "word ada@acme.example": "The drawing's example data; the scene shows its own fixture's",
+        "word Owner": "The drawing's example data; the scene shows its own fixture's",
+        "word grace@acme.example": "The drawing's example data; the scene shows its own fixture's",
+        "word Admin": "The drawing's example data; the scene shows its own fixture's",
+        "word katherine@acme.example": "The drawing's example data; the scene shows its own fixture's",
+        "word Member": "The drawing's example data; the scene shows its own fixture's",
+        "word alan@acme.example": "The drawing's example data; the scene shows its own fixture's",
+        "word Viewer": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Service accounts hold roles too; they're listed under Service accounts.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
     },
     {
       "caption": "Members: With a federation issuer that grants a sign-in role (today's bordered note, as a Notice)",
       "narrow": false,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene pictures this state yet.",
       "words": [
         {
           "text": "Members",
@@ -654,8 +684,12 @@
     {
       "caption": "Members: Remove, asked first",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-members-remove",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Remove Grace Hopper from acme?",
@@ -706,13 +740,16 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Remove Grace Hopper from acme?": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Grace Hopper loses the Admin role and everything shared through acme. The conversations Grace started stay Grace's. You can invite Grace again.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
     },
     {
       "caption": "Members: Remove, working: the act busy, Cancel held",
       "narrow": false,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
       "words": [
         {
           "text": "Remove Grace Hopper from acme?",
@@ -769,7 +806,7 @@
       "caption": "Members: Remove, didn't go through: said in the dialog, the act is Try again",
       "narrow": false,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
       "words": [
         {
           "text": "Remove Grace Hopper from acme?",
@@ -861,8 +898,12 @@
     {
       "caption": "Members: Didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-members-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Members",
@@ -931,7 +972,10 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "The drawing's example data; the scene shows its own fixture's",
+        "word Stuck? Ask IT on Slack": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
       "pending": {}
     },
@@ -1109,10 +1153,10 @@
         }
       ],
       "sample": {
-        "word ada@acme.example": "The scene's people carry no email; the drawing invents one under each name",
-        "word grace@acme.example": "The scene's people carry no email; the drawing invents one under each name",
-        "word katherine@acme.example": "The scene's people carry no email; the drawing invents one under each name",
-        "word alan@acme.example": "The scene's people carry no email; the drawing invents one under each name"
+        "word ada@acme.example": "The drawing's example data; the scene shows its own fixture's",
+        "word grace@acme.example": "The drawing's example data; the scene shows its own fixture's",
+        "word katherine@acme.example": "The drawing's example data; the scene shows its own fixture's",
+        "word alan@acme.example": "The drawing's example data; the scene shows its own fixture's"
       },
       "ruled": {},
       "pending": {
@@ -1120,7 +1164,7 @@
         "word Admin": "At 390 the role sits under the name, as the drawing shows; the row hides it below sm today. Built with the settings forms PR",
         "word Member": "At 390 the role sits under the name, as the drawing shows; the row hides it below sm today. Built with the settings forms PR",
         "word Viewer": "At 390 the role sits under the name, as the drawing shows; the row hides it below sm today. Built with the settings forms PR",
-        "word Service accounts hold roles too; they're listed under Service accounts.": "The note under the people list; built with the settings forms PR"
+        "word Service accounts hold roles too; they're listed under Service accounts.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
       }
     }
   ]

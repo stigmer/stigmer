@@ -7,8 +7,12 @@
     {
       "caption": "OAuth apps: Two apps",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-oauth-apps",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "OAuth apps",
@@ -73,15 +77,24 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Linear (acme)": "The drawing's example data; the scene shows its own fixture's",
+        "word Linear · linear.app, mcp.linear.app": "The drawing's example data; the scene shows its own fixture's",
+        "word GitHub Enterprise": "The drawing's example data; the scene shows its own fixture's",
+        "word GitHub · github.acme.example": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "OAuth apps: One open: its fields as read-only pairs",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-oauth-apps-detail",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "OAuth apps",
@@ -282,9 +295,24 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Linear (acme)": "The drawing's example data; the scene shows its own fixture's",
+        "word Sign-ins at linear.app and mcp.linear.app use this app.": "The drawing's example data; the scene shows its own fixture's",
+        "word Linear": "The drawing's example data; the scene shows its own fixture's",
+        "word Addresses": "The drawing's example data; the scene shows its own fixture's",
+        "word linear.app, mcp.linear.app": "The drawing's example data; the scene shows its own fixture's",
+        "word lin_7c2e…91af": "The drawing's example data; the scene shows its own fixture's",
+        "word Saved; never shown again": "The drawing's example data; the scene shows its own fixture's",
+        "word read, write": "The drawing's example data; the scene shows its own fixture's",
+        "word Authorization URL": "The drawing's example data; the scene shows its own fixture's",
+        "word https://linear.app/oauth/authorize": "The drawing's example data; the scene shows its own fixture's",
+        "word Token URL": "The drawing's example data; the scene shows its own fixture's",
+        "word https://api.linear.app/oauth/token": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Its endpoints": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
     },
     {
       "caption": "OAuth apps: New OAuth app, a field missing (Advanced stays a disclosure)",
@@ -458,8 +486,12 @@
     {
       "caption": "OAuth apps: Delete, asked first",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-oauth-apps-delete",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Delete Linear (acme)?",
@@ -508,15 +540,19 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Sign-ins at linear.app and mcp.linear.app go back to Stigmer's own app, if there is one.": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Delete Linear (acme)?": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
     },
     {
       "caption": "OAuth apps: Delete, working: the act busy, Cancel held",
       "narrow": false,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
       "words": [
         {
           "text": "Delete Linear (acme)?",
@@ -573,7 +609,7 @@
       "caption": "OAuth apps: Delete, didn't go through: said in the dialog, the act is Try again",
       "narrow": false,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
       "words": [
         {
           "text": "Delete Linear (acme)?",
@@ -666,7 +702,7 @@
       "caption": "OAuth apps: None yet",
       "narrow": false,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene pictures this state yet.",
       "words": [
         {
           "text": "OAuth apps",
@@ -734,8 +770,12 @@
     {
       "caption": "OAuth apps: Didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-oauth-apps-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "OAuth apps",
@@ -816,7 +856,10 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "The drawing's example data; the scene shows its own fixture's",
+        "word Stuck? Ask IT on Slack": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
       "pending": {}
     },
@@ -824,7 +867,7 @@
       "caption": "OAuth apps: At 390 wide, one open",
       "narrow": true,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene pictures this state yet.",
       "words": [
         {
           "text": "OAuth apps",

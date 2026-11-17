@@ -188,7 +188,7 @@ function NameSection({
         </div>
         <Button
           variant="outline"
-          size="xs"
+          size="sm"
           onClick={() => {
             setDraft(current);
             setEditing(true);

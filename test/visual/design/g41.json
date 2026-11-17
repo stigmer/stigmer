@@ -7,8 +7,12 @@
     {
       "caption": "Vaults: My vault, then the shared vaults as rows you open",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-vaults",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Vaults",
@@ -237,15 +241,38 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word My own key for experiments": "The drawing's example data; the scene shows its own fixture's",
+        "word Replace": "The drawing's example data; the scene shows its own fixture's",
+        "word The keys the production agents run with · 3 entries": "The drawing's example data; the scene shows its own fixture's",
+        "word Payroll": "The drawing's example data; the scene shows its own fixture's",
+        "word The payroll provider's API · 1 entry": "The drawing's example data; the scene shows its own fixture's",
+        "word Support desk": "The drawing's example data; the scene shows its own fixture's",
+        "word The helpdesk's API · 1 entry": "The drawing's example data; the scene shows its own fixture's",
+        "word Staging": "The drawing's example data; the scene shows its own fixture's",
+        "word Keys for the staging agents · 2 entries": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word My vault You": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Your own logins and secrets. A chat that includes My vault uses them for the messages you send, never a teammate's. Saved values can be replaced but are never shown again.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "type NAME": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type Value": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type What it is for (optional)": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "word Shared vaults 4": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "button Replace": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "button Remove OPENAI_API_KEY": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form"
+      }
     },
     {
       "caption": "Vaults: A shared vault open: its secrets, logins, details",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-vaults-open",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Vaults",
@@ -586,9 +613,44 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word The keys the production agents run with.": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "type Vaults": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type Production": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type Who can use": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "word Secrets 3": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "type Matched by name, such as OPENAI_API_KEY. Saved values are never shown again.": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type LEDGER_TOKEN": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type Reads the general ledger": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type SLACK_BOT_TOKEN": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type Posts the daily report": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type STRIPE_KEY": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type Charges and refunds": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type NAME": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type Value": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type What it is for (optional)": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type Logins": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "word Matched by the address of the tool or Git host they're for.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "type https://mcp.example.com/mcp or github.com": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type Token": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type Details": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "word Name": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Description (optional)": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "type The keys the production agents run with": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "word External id (optional)": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word An id in your own system": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "type Save details": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "word Delete this vault": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Runs that name Production lose its keys at once.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "type Delete vault": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "button Vaults": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "button Who can use": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "button Save details": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "button Delete vault": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form"
+      }
     },
     {
       "caption": "Vaults: New shared vault, its name taken",
@@ -699,7 +761,7 @@
       "caption": "Vaults: Remove a secret, asked first",
       "narrow": false,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene pictures this state yet.",
       "words": [
         {
           "text": "Remove STRIPE_KEY from Production?",
@@ -756,7 +818,7 @@
       "caption": "Vaults: Remove a secret, working: the act busy, Cancel held",
       "narrow": false,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
       "words": [
         {
           "text": "Remove STRIPE_KEY from Production?",
@@ -813,7 +875,7 @@
       "caption": "Vaults: Remove a secret, didn't go through: said in the dialog, the act is Try again",
       "narrow": false,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
       "words": [
         {
           "text": "Remove STRIPE_KEY from Production?",
@@ -905,8 +967,12 @@
     {
       "caption": "Vaults: No shared vaults, for a member",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-vaults-member",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Vaults",
@@ -1035,15 +1101,28 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word My own key for experiments": "The drawing's example data; the scene shows its own fixture's",
+        "word Replace": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word My vault You": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Your own logins and secrets. A chat that includes My vault uses them for the messages you send, never a teammate's. Saved values can be replaced but are never shown again.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "type NAME": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type Value": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type What it is for (optional)": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "word No shared vaults yet": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Admins of acme create shared vaults and choose who may use them.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "button Replace": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "button Remove OPENAI_API_KEY": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form"
+      }
     },
     {
       "caption": "Vaults: At 390 wide, a vault open",
       "narrow": true,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene pictures this state yet.",
       "words": [
         {
           "text": "Vaults",

@@ -174,7 +174,7 @@ export function ChannelAppDetailPanel({
               Channels that use it stop answering.
             </p>
             <Button variant="outline" size="sm" onClick={() => void askToDelete()}>
-              Delete channel app
+              Delete app
             </Button>
           </div>
         </Section>

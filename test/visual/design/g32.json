@@ -7,8 +7,12 @@
     {
       "caption": "Invitations: Two links",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-invitations",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Invitations",
@@ -105,15 +109,29 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Engineering team invite": "The drawing's example data; the scene shows its own fixture's",
+        "word Member · Anyone with the link · 3 joined": "The drawing's example data; the scene shows its own fixture's",
+        "word Expires Aug 1": "The drawing's example data; the scene shows its own fixture's",
+        "word For Katherine": "The drawing's example data; the scene shows its own fixture's",
+        "word Expires Jul 27": "The drawing's example data; the scene shows its own fixture's",
+        "button Copy the link Engineering team invite": "The drawing's example data; the scene shows its own fixture's",
+        "button Revoke Engineering team invite": "The drawing's example data; the scene shows its own fixture's",
+        "button Copy the link For Katherine": "The drawing's example data; the scene shows its own fixture's",
+        "button Revoke For Katherine": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word New invite link": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Admin · One person only · not used yet": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "button New invite link": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
     },
     {
       "caption": "Invitations: A link just made: copy it now",
       "narrow": false,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
       "words": [
         {
           "text": "Invitations",
@@ -442,8 +460,12 @@
     {
       "caption": "Invitations: Revoke, asked first",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-invitations-revoke",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Revoke Engineering team invite?",
@@ -494,13 +516,16 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Revoke Engineering team invite?": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word The link stops working at once. The three people who joined with it stay in acme.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
     },
     {
       "caption": "Invitations: Revoke, working: the act busy, Cancel held",
       "narrow": false,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
       "words": [
         {
           "text": "Revoke Engineering team invite?",
@@ -557,7 +582,7 @@
       "caption": "Invitations: Revoke, didn't go through: said in the dialog, the act is Try again",
       "narrow": false,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
       "words": [
         {
           "text": "Revoke Engineering team invite?",
@@ -649,8 +674,12 @@
     {
       "caption": "Invitations: None yet",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-invitations-empty",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Invitations",
@@ -713,13 +742,21 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word New invite link": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Make a link to bring people into acme with the role you choose.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "button New invite link": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
     },
     {
       "caption": "Invitations: On the open-source edition",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-invitations-oss",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Invitations",
@@ -762,8 +799,12 @@
     {
       "caption": "Invitations: Didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-invitations-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Invitations",
@@ -844,15 +885,25 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "The drawing's example data; the scene shows its own fixture's",
+        "word Stuck? Ask IT on Slack": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word New invite link": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "button New invite link": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
     },
     {
       "caption": "Invitations: At 390 wide",
       "narrow": true,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-invitations",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Invitations",
@@ -949,9 +1000,23 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Engineering team invite": "The drawing's example data; the scene shows its own fixture's",
+        "word Member · Anyone with the link · 3 joined": "The drawing's example data; the scene shows its own fixture's",
+        "word Expires Aug 1": "The drawing's example data; the scene shows its own fixture's",
+        "word For Katherine": "The drawing's example data; the scene shows its own fixture's",
+        "word Expires Jul 27": "The drawing's example data; the scene shows its own fixture's",
+        "button Copy the link Engineering team invite": "The drawing's example data; the scene shows its own fixture's",
+        "button Revoke Engineering team invite": "The drawing's example data; the scene shows its own fixture's",
+        "button Copy the link For Katherine": "The drawing's example data; the scene shows its own fixture's",
+        "button Revoke For Katherine": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word New invite link": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Admin · One person only · not used yet": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "button New invite link": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
     }
   ]
 }

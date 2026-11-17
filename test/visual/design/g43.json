@@ -7,8 +7,12 @@
     {
       "caption": "Channel apps: Two apps, one waiting for setup",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-channel-apps",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Channel apps",
@@ -89,15 +93,26 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Acme bot": "The drawing's example data; the scene shows its own fixture's",
+        "word Ready": "The drawing's example data; the scene shows its own fixture's",
+        "word Slack · serves Ledger reviewer": "The drawing's example data; the scene shows its own fixture's",
+        "word Acme support": "The drawing's example data; the scene shows its own fixture's",
+        "word Finish setup": "The drawing's example data; the scene shows its own fixture's",
+        "word Meta · WhatsApp": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "Channel apps: One open: finish setup in Meta, then its credentials",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-channel-apps-detail",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Channel apps",
@@ -298,9 +313,27 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Acme support": "The drawing's example data; the scene shows its own fixture's",
+        "word Callback URL": "The drawing's example data; the scene shows its own fixture's",
+        "word https://stigmer.example/hooks/meta/acme-support": "The drawing's example data; the scene shows its own fixture's",
+        "word Verify token": "The drawing's example data; the scene shows its own fixture's",
+        "word vt_3e8b…0c41": "The drawing's example data; the scene shows its own fixture's",
+        "word App ID": "The drawing's example data; the scene shows its own fixture's",
+        "word App secret": "The drawing's example data; the scene shows its own fixture's",
+        "word Saved; paste a new one to replace it": "The drawing's example data; the scene shows its own fixture's",
+        "word Access token": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word A Meta app for acme's WhatsApp channels.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Finish setup in Meta": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Paste these two into your app's WhatsApp settings at developers.facebook.com.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "type Copy": "When its page is redesigned: the settings forms PR draws the copy rows and the credentials form at 32px",
+        "word WhatsApp channels that use it stop answering.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "button Copy": "When its page is redesigned: the settings forms PR draws the copy rows and the credentials form at 32px",
+        "button Save": "When its page is redesigned: the settings forms PR draws the copy rows and the credentials form at 32px"
+      }
     },
     {
       "caption": "Channel apps: New channel app, a field missing",
@@ -458,8 +491,12 @@
     {
       "caption": "Channel apps: Delete, asked first",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-channel-apps-delete",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Delete Acme support?",
@@ -510,13 +547,16 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Delete Acme support?": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word WhatsApp channels that use it stop answering.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
     },
     {
       "caption": "Channel apps: Delete, working: the act busy, Cancel held",
       "narrow": false,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
       "words": [
         {
           "text": "Delete Acme support?",
@@ -573,7 +613,7 @@
       "caption": "Channel apps: Delete, didn't go through: said in the dialog, the act is Try again",
       "narrow": false,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
       "words": [
         {
           "text": "Delete Acme support?",
@@ -665,8 +705,12 @@
     {
       "caption": "Channel apps: None yet",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-channel-apps-empty",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Channel apps",
@@ -729,13 +773,20 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word No channel apps yet": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Add your own Slack app to give the bot acme's name and icon, or a Meta app to connect WhatsApp.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
     },
     {
       "caption": "Channel apps: Didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-channel-apps-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Channel apps",
@@ -816,7 +867,10 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "The drawing's example data; the scene shows its own fixture's",
+        "word Stuck? Ask IT on Slack": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
       "pending": {}
     },
@@ -824,7 +878,7 @@
       "caption": "Channel apps: At 390 wide, one open",
       "narrow": true,
       "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "unbuilt": "No scene pictures this state yet.",
       "words": [
         {
           "text": "Channel apps",

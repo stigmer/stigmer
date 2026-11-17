@@ -7,8 +7,12 @@
     {
       "caption": "Access history: The history, newest first; Download and Load more on the kit's button",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-access-history",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Access history",
@@ -125,15 +129,31 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Kept for 400 days.": "The drawing's example data; the scene shows its own fixture's",
+        "word Grace Hopper was made Admin of acme": "The drawing's example data; the scene shows its own fixture's",
+        "word By Ada Lovelace · Runs the month-end close · Jul 20, 2026, 09:12": "The drawing's example data; the scene shows its own fixture's",
+        "word Finance was given Use on the agent Ledger reviewer": "The drawing's example data; the scene shows its own fixture's",
+        "word By Grace Hopper · Jul 19, 2026, 16:40": "The drawing's example data; the scene shows its own fixture's",
+        "word Alan Turing lost Member on acme": "The drawing's example data; the scene shows its own fixture's",
+        "word By Ada Lovelace · Moved to the auditors' organization · Jul 18, 2026, 11:05": "The drawing's example data; the scene shows its own fixture's",
+        "word ci-deploy was made Member of acme": "The drawing's example data; the scene shows its own fixture's",
+        "word By Grace Hopper · Jul 18, 2026, 10:58": "The drawing's example data; the scene shows its own fixture's",
+        "word Load more": "The drawing's example data; the scene shows its own fixture's",
+        "button Load more": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "Access history: Nothing recorded yet",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-access-history-empty",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Access history",
@@ -176,8 +196,12 @@
     {
       "caption": "Access history: Not allowed: a member who isn't an owner or admin",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-access-history-denied",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Access history",
@@ -215,13 +239,20 @@
       "buttons": [],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Only an owner or admin can open Access history": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Your organization's owners and admins read who was given or lost access.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
     },
     {
       "caption": "Access history: On the open-source edition",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-access-history-oss",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Access history",
@@ -264,8 +295,12 @@
     {
       "caption": "Access history: Didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-access-history-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Access history",
@@ -334,15 +369,22 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "The drawing's example data; the scene shows its own fixture's",
+        "word Stuck? Ask IT on Slack": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "Access history: At 390 wide",
       "narrow": true,
-      "built": [],
-      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "built": [
+        {
+          "scene": "settings-access-history",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Access history",
@@ -459,7 +501,19 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Kept for 400 days.": "The drawing's example data; the scene shows its own fixture's",
+        "word Grace Hopper was made Admin of acme": "The drawing's example data; the scene shows its own fixture's",
+        "word By Ada Lovelace · Runs the month-end close · Jul 20, 2026, 09:12": "The drawing's example data; the scene shows its own fixture's",
+        "word Finance was given Use on the agent Ledger reviewer": "The drawing's example data; the scene shows its own fixture's",
+        "word By Grace Hopper · Jul 19, 2026, 16:40": "The drawing's example data; the scene shows its own fixture's",
+        "word Alan Turing lost Member on acme": "The drawing's example data; the scene shows its own fixture's",
+        "word By Ada Lovelace · Moved to the auditors' organization · Jul 18, 2026, 11:05": "The drawing's example data; the scene shows its own fixture's",
+        "word ci-deploy was made Member of acme": "The drawing's example data; the scene shows its own fixture's",
+        "word By Grace Hopper · Jul 18, 2026, 10:58": "The drawing's example data; the scene shows its own fixture's",
+        "word Load more": "The drawing's example data; the scene shows its own fixture's",
+        "button Load more": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
       "pending": {}
     }
