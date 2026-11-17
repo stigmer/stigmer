@@ -80,8 +80,10 @@ describe("MarketplaceCatalog: reading a source again", () => {
   it("among all sources, the unreadable source's Try again reads it again and its cards appear", async () => {
     renderCatalog();
 
-    const notice = (await screen.findByText(`Couldn't read ${HOSTED_MARKETPLACE_NAME}.`)).closest("[role]") as HTMLElement;
+    const notice = (await screen.findByText(/^Couldn't read /)).closest("[role]") as HTMLElement;
     expect(screen.queryByRole("button", { name: "Install thermos" })).toBeNull();
+    // No source's plugins are on the page, so the notice does not point at them.
+    expect(notice.textContent).not.toContain("The plugins below come from your other sources.");
 
     fireEvent.click(within(notice).getByRole("button", { name: "Try again" }));
 

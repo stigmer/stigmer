@@ -3,11 +3,12 @@
 // The dashboard's recent failures: a card with its header bar ("Recent
 // failures" and how many), one row per failed run newest first (its name,
 // the failure's own line, when, and a quiet View), the kit's inline empty
-// line when nothing failed, and the failure said with Try again when the
-// failures could not be read. A read that failed is never drawn as "No
-// recent failures": that is the one card whose job is to say something went
-// wrong (stigmer#3235). While the first read is on its way the card keeps
-// its shape: its header, three rows' outlines.
+// line when nothing failed, and, on the page in the card's place, the
+// failure said with Try again when the failures could not be read. A read
+// that failed is never drawn as "No recent failures": that is the one card
+// whose job is to say something went wrong (stigmer#3235). While the first
+// read is on its way the card keeps its shape: its header, three rows'
+// outlines.
 
 import { memo } from "react";
 import { Button } from "../button/Button.js";
@@ -69,18 +70,17 @@ export const DashboardFailedRuns = memo(function DashboardFailedRuns({
     );
   }
 
+  // Said on the page, as the figures' failure is: the failed tint inside a
+  // card would put its muted line under the contrast floor in dark.
   if (error) {
     return (
-      <Section title={TITLE} className={className}>
-        <div className="stg:p-3">
-          <ErrorMessage
-            error={error}
-            title="Couldn't load recent failures."
-            comfort="This week's figures above are unaffected."
-            retry={onRetry}
-          />
-        </div>
-      </Section>
+      <ErrorMessage
+        error={error}
+        title="Couldn't load recent failures."
+        comfort="This week's figures above are unaffected."
+        retry={onRetry}
+        className={className}
+      />
     );
   }
 

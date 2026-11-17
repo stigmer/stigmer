@@ -157,7 +157,14 @@ export function MarketplaceCatalog({ org, onInstalled, fetchImpl, className }: M
         />
       </div>
 
-      {failed.length > 0 && <FailedSources failed={failed} refetch={refetch} whole={selected !== null} />}
+      {failed.length > 0 && (
+        <FailedSources
+          failed={failed}
+          refetch={refetch}
+          whole={selected !== null}
+          othersShown={shownReads.some((read) => read.state.kind === "ready" && read.state.opened.marketplace.plugins.length > 0)}
+        />
+      )}
 
       {settling && <CatalogSkeleton label={`Reading ${selected ?? "the sources"}`} />}
 
@@ -288,11 +295,14 @@ function FailedSources({
   failed,
   refetch,
   whole,
+  othersShown,
 }: {
   readonly failed: readonly SourceRead[];
   readonly refetch: (name: string) => void;
   /** When one source is chosen its refusal is the page's whole body; among many it is one line. */
   readonly whole: boolean;
+  /** Another source's plugins are on the page, so the notice can say where they come from. */
+  readonly othersShown: boolean;
 }) {
   if (whole) {
     const [read] = failed;
@@ -316,7 +326,7 @@ function FailedSources({
           {unread.length === 1 ? error.message : `${name}: ${error.message}`}
         </p>
       ))}
-      <p className="stg:m-0">The plugins below come from your other sources.</p>
+      {othersShown && <p className="stg:m-0">The plugins below come from your other sources.</p>}
     </Notice>
   );
 }
