@@ -296,15 +296,10 @@ const MODEL_COLUMNS: readonly TableColumn<ModelCatalogRow>[] = [
   {
     id: "model",
     header: "Model",
-    cell: ({ baseline }) => (
-      <span className="stg:flex stg:min-w-0 stg:flex-col">
-        <span className="stg:truncate">{baseline.displayName || baseline.modelId}</span>
-        {/* The id needs a tooltip only when it is clipped. */}
-        <TruncatedText
-          text={`${baseline.modelId}${baseline.featured ? " · featured" : ""}`}
-          className="stg:block stg:text-xs stg:font-normal stg:text-muted-foreground"
-        />
-      </span>
+    cell: ({ baseline }) => baseline.displayName || baseline.modelId,
+    // The id needs a tooltip only when it is clipped.
+    detail: ({ baseline }) => (
+      <TruncatedText text={`${baseline.modelId}${baseline.featured ? " · featured" : ""}`} className="stg:block" />
     ),
   },
   { id: "harness", header: "Harness", cell: ({ baseline }) => baseline.harness },

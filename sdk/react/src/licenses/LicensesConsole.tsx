@@ -16,7 +16,7 @@ import { useResourceAvailable } from "@stigmer/react-core";
 import { ApiResourceKind } from "@stigmer/react-core/internal";
 import { EmptyState } from "../empty-state/index.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
-import { cardClasses } from "../internal/surface/Card.js";
+import { Table, type TableColumn } from "../internal/surface/Table.js";
 import { SettingsPage } from "../settings/SettingsPage.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { StatusBadge } from "../status/StatusBadge.js";
@@ -60,24 +60,6 @@ type Flow =
   | { readonly phase: "list" }
   | { readonly phase: "issue"; readonly renewingId?: string }
   | { readonly phase: "detail"; readonly licenseId: string; readonly issued?: License };
-
-/**
- * One grid template shared by the header and every row so the columns
- * can never drift apart: Customer · Term · Entitlements · Covered through ·
- * Standing.
- *
- * The budget was sized for the narrowest column a host gives it: about
- * 720px of content (both client apps now give settings `max-w-5xl`). Fixed tracks total 19rem (the
- * covered-through track holds "Grace ends YYYY-MM-DD" on one line), leaving
- * the two flexible columns about 340px between them, weighted to the
- * customer (the name identifies the row, so it is the last to truncate)
- * over the entitlement parts, stacked one per line (the grid-collapse class of
- * stigmer#929 is what this guards against). Below the grid's legible
- * minimum (42rem, which still leaves the customer column about 150px) the
- * table scrolls instead of crushing a column.
- */
-const ROW_GRID =
-  "stg:grid stg:grid-cols-[minmax(0,2fr)_4rem_minmax(0,1.4fr)_9rem_6rem] stg:items-center stg:gap-3 stg:px-3.5 stg:py-2.5";
 
 /**
  * The platform-operator console for Stigmer licenses: the renewal calendar
@@ -219,34 +201,13 @@ export function LicensesConsole({ className, now }: LicensesConsoleProps) {
         }}
       />
     ) : (
-      // Narrow-host guard (the ResourceTable idiom): the scroll container
-      // carries the card chrome and the ARIA table starts inside it, so
-      // rows stay directly owned by the table.
-      <div className={cn(cardClasses({ flush: true }), "stg:overflow-x-auto")}>
-        <div role="table" aria-label="Licenses" className="stg:min-w-[42rem]">
-          <div
-            role="row"
-            className={cn(ROW_GRID, "stg:border-b stg:border-border stg:text-xs stg:font-medium stg:text-muted-foreground")}
-          >
-            <span role="columnheader">Customer</span>
-            <span role="columnheader">Term</span>
-            <span role="columnheader">Entitlements</span>
-            <span role="columnheader">Covered through</span>
-            <span role="columnheader">Standing</span>
-          </div>
-          <div role="rowgroup">
-            {sorted.map((license) => (
-              <LicenseRow
-                key={license.metadata?.id}
-                license={license}
-                standing={standings.get(license.metadata?.id ?? "")}
-                now={renderNow}
-                onOpen={() => setFlow({ phase: "detail", licenseId: license.metadata?.id ?? "" })}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
+      <Table
+        aria-label="Licenses"
+        columns={licenseColumns(standings, renderNow)}
+        rows={sorted}
+        rowKey={(license) => license.metadata?.id ?? ""}
+        onRowClick={(license) => setFlow({ phase: "detail", licenseId: license.metadata?.id ?? "" })}
+      />
     ),
     licenses.length > 0
       ? {
@@ -261,79 +222,85 @@ export function LicensesConsole({ className, now }: LicensesConsoleProps) {
   );
 }
 
-function LicenseRow({
-  license,
-  standing,
-  now,
-  onOpen,
-}: {
-  readonly license: License;
-  readonly standing: LicenseStanding | undefined;
-  readonly now: Date;
-  readonly onOpen: () => void;
-}) {
-  const customer = license.spec?.customer;
-  const expiresAt = toDate(license.spec?.expiresAt);
-  const through = expiresAt ? coveredThroughDay(expiresAt) : undefined;
-  const graceUntil = toDate(license.spec?.graceUntil);
-  // Expired and renewed licenses are history: muted, so what needs action reads first.
-  const history = standing?.phase === "disabled";
-  // In grace, the deadline that matters is when the customer's server stops:
-  // the grace end, not the coverage that already lapsed.
-  const inGrace = standing?.timeState === LicenseState.grace && !standing.renewedBy && graceUntil;
-
-  return (
-    <div
-      role="row"
-      className={cn(
-        ROW_GRID,
-        "stg:relative stg:border-b stg:border-border-muted stg:text-xs stg:text-muted-foreground stg:last:border-b-0",
-        "stg:transition-colors stg:hover:bg-accent stg:motion-reduce:transition-none",
-      )}
-    >
-      <span role="cell" className="stg:min-w-0">
-        {/* One tab stop per row: the customer's name is the row's button,
-            stretched over the whole row so any click opens the license. */}
-        <button
-          type="button"
-          onClick={onOpen}
-          className={cn(
-            "stg:block stg:max-w-full stg:cursor-pointer stg:truncate stg:text-left stg:text-sm stg:font-medium",
-            history ? "stg:text-muted-foreground" : "stg:text-foreground",
-            "stg:after:absolute stg:after:inset-0",
-            "stg:focus-visible:outline-none stg:focus-visible:after:ring-1 stg:focus-visible:after:ring-ring",
-          )}
-        >
-          {customer?.displayName ?? "Unknown customer"}
-        </button>
-        <span className="stg:block stg:truncate">{customer?.contactEmail}</span>
-      </span>
-      <span role="cell">{license.spec ? termLabel(license.spec.term) : "—"}</span>
-      <span role="cell" className="stg:min-w-0">
-        {/* One part per line: at this column's width the parts wrap anyway,
-            and a deliberate stack keeps every row's rhythm the same. */}
-        {entitlementParts(license.spec?.entitlements).map((part) => (
-          <span key={part} className="stg:block stg:truncate">
-            {part}
-          </span>
-        ))}
-      </span>
-      <span role="cell" className="stg:min-w-0">
-        <span className={cn("stg:block stg:text-sm", history ? "stg:text-muted-foreground" : "stg:text-foreground")}>
-          {through ?? "Unknown"}
+/**
+ * The calendar's columns: the customer and its address, the term, what the
+ * license allows, the day it is covered through (or, in grace, the day the
+ * grace ends), and its standing. A renewed or expired license is history,
+ * drawn muted so what needs action reads first.
+ */
+function licenseColumns(
+  standings: ReadonlyMap<string, LicenseStanding>,
+  now: Date,
+): readonly TableColumn<License>[] {
+  const standingOf = (license: License) => standings.get(license.metadata?.id ?? "");
+  const history = (license: License) => standingOf(license)?.phase === "disabled";
+  return [
+    {
+      id: "customer",
+      header: "Customer",
+      cell: (license) => (
+        <span className={cn(history(license) && "stg:text-muted-foreground")}>
+          {license.spec?.customer?.displayName ?? "Unknown customer"}
         </span>
-        {inGrace ? (
-          <span className="stg:block stg:font-medium stg:text-destructive">
-            {`Grace ends ${coveredThroughDay(inGrace)}`}
+      ),
+      detail: (license) => license.spec?.customer?.contactEmail,
+    },
+    {
+      id: "term",
+      header: "Term",
+      cell: (license) => (license.spec ? termLabel(license.spec.term) : "—"),
+    },
+    {
+      id: "limits",
+      header: "Limits",
+      cell: (license) => (
+        <span className="stg:text-muted-foreground">{entitlementParts(license.spec?.entitlements).join(" · ")}</span>
+      ),
+    },
+    {
+      id: "through",
+      header: "Covered through",
+      cell: (license) => {
+        const standing = standingOf(license);
+        const expiresAt = toDate(license.spec?.expiresAt);
+        const through = expiresAt ? coveredThroughDay(expiresAt) : undefined;
+        const graceUntil = toDate(license.spec?.graceUntil);
+        // In grace, the deadline that matters is when growth stops: the
+        // grace end, not the coverage that already lapsed.
+        const inGrace = standing?.timeState === LicenseState.grace && !standing.renewedBy && graceUntil;
+        return (
+          <span className="stg:flex stg:flex-col">
+            <span className={cn("stg:whitespace-nowrap", history(license) && "stg:text-muted-foreground")}>
+              {through ?? "Unknown"}
+            </span>
+            {inGrace ? (
+              <span className="stg:whitespace-nowrap stg:text-xs stg:font-medium stg:text-destructive">
+                {`Grace ends ${coveredThroughDay(inGrace)}`}
+              </span>
+            ) : (
+              through && (
+                <span className="stg:whitespace-nowrap stg:text-xs stg:text-muted-foreground">
+                  {formatDayFromToday(through, now)}
+                </span>
+              )
+            )}
           </span>
-        ) : (
-          through && <span className="stg:block">{formatDayFromToday(through, now)}</span>
-        )}
-      </span>
-      {/* Above the stretched button so the badge's tooltip stays reachable. */}
-      <span role="cell" className="stg:relative stg:z-10 stg:justify-self-start">
-        {standing && <StatusBadge phase={standing.phase} label={standing.label} tooltip={standing.reason} />}
-      </span>
-    </div>
-  );
+        );
+      },
+    },
+    {
+      id: "standing",
+      header: "Standing",
+      narrow: "trailing",
+      cell: (license) => {
+        const standing = standingOf(license);
+        return standing ? (
+          // Above the row's stretched button, so the badge's tooltip stays reachable.
+          <span className="stg:relative stg:z-10">
+            <StatusBadge phase={standing.phase} label={standing.label} tooltip={standing.reason} />
+          </span>
+        ) : null;
+      },
+    },
+  ];
 }
