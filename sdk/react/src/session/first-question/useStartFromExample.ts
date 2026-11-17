@@ -25,8 +25,13 @@ import { OWN_AGENT_TRIES, ownAgentSlug } from "@stigmer/examples/journey";
 
 export { OWN_AGENT_TRIES };
 
-/** The sentence added to an agent described in the person's own words, so what it makes comes back as a file. */
-export const OWN_AGENT_FILE_LINE = "When you make something for the person you're helping, save it as a file in your outputs folder.";
+/**
+ * The sentence added to an agent described in the person's own words, so what
+ * it makes comes back as a file. It says what to hand back, never where: the
+ * runner's prompt names the place, and an agent told of a folder repeats it to
+ * a person who never sees one (stigmer#3200).
+ */
+export const OWN_AGENT_FILE_LINE = "When you make something for the person you're helping, hand it back as a file.";
 
 /** The name an agent described in the person's own words is made under, before any number. */
 export const OWN_AGENT_NAME = "Your agent";

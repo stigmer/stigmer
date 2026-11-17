@@ -37,6 +37,7 @@ import type { ProvisionResult } from "../../../shared/workspace/types.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
 import type { SubagentSpec } from "../agents.js";
 import { composeSubagentPrompt, composeSystemAppend, composeTurnMessage, instructionRoots, skillsSection, workspaceInstructionReader } from "../prompt.js";
+import { READ_ONLY_MESSAGE } from "../gate.js";
 import { engineSkillOf } from "../skill-plugins.js";
 
 const PRIMARY = "/work/primary";
@@ -164,6 +165,13 @@ describe("composeSystemAppend", () => {
     const append = composeSystemAppend(input(), undefined, "");
     expect(append).toContain(outputsFolderInstruction("/work/primary/.stigmer/outputs/"));
     expect(append).not.toContain("## Plan mode");
+  });
+
+  it("is the section the gate's read-only refusal sends the agent to, by its heading and never by the folder (stigmer#3200)", () => {
+    const append = composeSystemAppend(input(), undefined, "");
+    expect(append).toContain("\n\n## Files for the person\n\n");
+    expect(READ_ONLY_MESSAGE).toContain("as the Files for the person section says");
+    expect(READ_ONLY_MESSAGE).not.toMatch(/outputs/i);
   });
 
   it("builds from a plan only in the conversation when the message carried no plan file", () => {
