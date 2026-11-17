@@ -34,6 +34,7 @@ import {
 } from "../../models/__tests__/readiness-fixture";
 import type { UseNewSessionFlowOptions } from "../useNewSessionFlow";
 import { OWN_AGENT_FILE_LINE } from "../first-question/useStartFromExample";
+import { CODING_AGENT_PROMPT, codingAgentPrompt, consoleAddressFor } from "../first-question/FirstQuestion";
 
 const flow = vi.hoisted(() => ({ setAgentRef: vi.fn(), setResolution: vi.fn() }));
 
@@ -551,6 +552,33 @@ describe("CON-11 the console offers the coding-agent door from the first questio
     launch({ ...client, baseUrl: "https://stigmer.acme.test" });
     expect(await screen.findByRole("heading", { level: 1, name: TODAY })).toBeTruthy();
     expect(screen.queryByRole("button", { name: LINK })).toBeNull();
+  });
+});
+
+describe("the coding-agent prompt names the console when it is not the server's own address (stigmer#3229)", () => {
+  it("adds the console's address to the server's sentence only when they differ", () => {
+    expect(codingAgentPrompt("https://api.dev.stigmer.ai", "https://app.dev.stigmer.ai")).toBe(
+      `${CODING_AGENT_PROMPT} Use the Stigmer at https://api.dev.stigmer.ai; its console is https://app.dev.stigmer.ai.`,
+    );
+    expect(codingAgentPrompt("https://stigmer.acme.test", null)).toBe(
+      `${CODING_AGENT_PROMPT} Use the Stigmer at https://stigmer.acme.test.`,
+    );
+    // No server address, no console sentence: the guide's defaults apply.
+    expect(codingAgentPrompt(null, "https://app.dev.stigmer.ai")).toBe(CODING_AGENT_PROMPT);
+  });
+
+  it("takes the page's https origin as the console only when the API is elsewhere", () => {
+    expect(consoleAddressFor("https://app.dev.stigmer.ai", "https://api.dev.stigmer.ai")).toBe(
+      "https://app.dev.stigmer.ai",
+    );
+    // One origin for both, as an open-source server serves its console.
+    expect(consoleAddressFor("https://stigmer.acme.test", "https://stigmer.acme.test/")).toBeNull();
+    // A desktop app's webview and a local development page are no address to open.
+    expect(consoleAddressFor("http://tauri.localhost", "http://localhost:7234")).toBeNull();
+    expect(consoleAddressFor("tauri://localhost", "http://localhost:7234")).toBeNull();
+    expect(consoleAddressFor("http://localhost:3000", "http://localhost:7234")).toBeNull();
+    expect(consoleAddressFor("https://app.stigmer.ai", null)).toBeNull();
+    expect(consoleAddressFor("https://app.stigmer.ai", "not a url")).toBeNull();
   });
 });
 

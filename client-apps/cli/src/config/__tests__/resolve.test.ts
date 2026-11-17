@@ -9,6 +9,7 @@ import type { Config, NamedBackendConfig } from "../config.js";
 import {
   DEFAULT_CLOUD_CONSOLE_URL,
   ensureAuthenticated,
+  knownConsoleURL,
   resolveConsoleURL,
   resolveContextOrganization,
   resolveEndpoint,
@@ -238,5 +239,22 @@ describe("ensureAuthenticated", () => {
   it("passes with STIGMER_API_KEY in the environment", () => {
     process.env.STIGMER_API_KEY = "stk_env";
     expect(() => ensureAuthenticated(cloudConfig())).not.toThrow();
+  });
+});
+
+describe("knownConsoleURL", () => {
+  it("prefers the STIGMER_CONSOLE_URL override", () => {
+    expect(
+      knownConsoleURL(selfhostConfig(), { STIGMER_CONSOLE_URL: "https://console.example" } as NodeJS.ProcessEnv),
+    ).toBe("https://console.example");
+  });
+
+  it("knows Stigmer Cloud's console for the cloud backend", () => {
+    expect(knownConsoleURL(cloudConfig(), {} as NodeJS.ProcessEnv)).toBe(DEFAULT_CLOUD_CONSOLE_URL);
+  });
+
+  it("knows no console for an address entry or the local daemon, where it would only guess", () => {
+    expect(knownConsoleURL(selfhostConfig(), {} as NodeJS.ProcessEnv)).toBeUndefined();
+    expect(knownConsoleURL(localConfig(), {} as NodeJS.ProcessEnv)).toBeUndefined();
   });
 });

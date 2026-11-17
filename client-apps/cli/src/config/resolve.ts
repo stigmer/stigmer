@@ -139,6 +139,23 @@ export function resolveConsoleURL(
 }
 
 /**
+ * The console's address when the CLI knows it for certain, or `undefined`:
+ * the `STIGMER_CONSOLE_URL` override, or Stigmer Cloud's own console for the
+ * `cloud` entry. Where a person is sent to a page, a guess must not stand in
+ * for it: a hosted deployment registered by its API address (an address
+ * entry) can serve its console from another origin, so the one-origin rule
+ * {@link resolveConsoleURL} applies there would name the API's host.
+ */
+export function knownConsoleURL(
+  config: Config,
+  env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
+  const override = env.STIGMER_CONSOLE_URL;
+  if (override !== undefined && override !== "") return override;
+  return activeBackend(config).entry?.type === "cloud" ? DEFAULT_CLOUD_CONSOLE_URL : undefined;
+}
+
+/**
  * The configured organization, with the active entry's org_id fallback.
  * Reports only what is explicitly set (no implicit local default) so
  * config/context display can faithfully show "(not set)".
