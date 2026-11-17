@@ -51,6 +51,7 @@ function renderPanel(
   checkMyPermission: ReturnType<typeof vi.fn> = vi.fn(async () => ({
     isAuthorized: true,
   })),
+  oauthApp: OAuthApp = APP,
 ) {
   const client = {
     oauthapp: { update },
@@ -58,7 +59,7 @@ function renderPanel(
   } as never;
   return render(
     <StigmerContext.Provider value={client}>
-      <OAuthAppDetailPanel oauthApp={APP} />
+      <OAuthAppDetailPanel oauthApp={oauthApp} />
     </StigmerContext.Provider>,
   );
 }
@@ -106,6 +107,22 @@ describe("OAuthAppDetailPanel save payload", () => {
     const sent = sentUpdate<OAuthApp>(update);
     expect(sent.paths).toContain("spec.client_secret");
     expect(sent.resource.spec?.clientSecret).toBe("new-secret");
+  });
+});
+
+describe("OAuthAppDetailPanel endpoints", () => {
+  it("shows Its endpoints only when the app overrides the provider's addresses", async () => {
+    renderPanel(vi.fn());
+    expect(await screen.findByText("Its endpoints")).toBeTruthy();
+    cleanup();
+
+    const plain = create(OAuthAppSchema, {
+      metadata: APP.metadata,
+      spec: { ...APP.spec, authorizationUrl: "", tokenUrl: "" },
+    });
+    renderPanel(vi.fn(), undefined, plain);
+    await screen.findByText("The app");
+    expect(screen.queryByText("Its endpoints")).toBeNull();
   });
 });
 

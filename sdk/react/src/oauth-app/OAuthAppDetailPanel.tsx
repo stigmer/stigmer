@@ -601,12 +601,15 @@ function ViewMode({
           </>
         </ReadOnlyFields>
       </Section>
-      <Section title="Its endpoints">
-        <ReadOnlyFields className="stg:p-4">
-          <Field label="Authorization URL" value={spec?.authorizationUrl} mono />
-          <Field label="Token URL" value={spec?.tokenUrl} mono />
-        </ReadOnlyFields>
-      </Section>
+      {/* A provider's own addresses are the default; the card shows only an override. */}
+      {(spec?.authorizationUrl || spec?.tokenUrl) && (
+        <Section title="Its endpoints">
+          <ReadOnlyFields className="stg:p-4">
+            <Field label="Authorization URL" value={spec?.authorizationUrl} mono />
+            <Field label="Token URL" value={spec?.tokenUrl} mono />
+          </ReadOnlyFields>
+        </Section>
+      )}
     </>
   );
 }

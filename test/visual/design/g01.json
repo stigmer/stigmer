@@ -1108,9 +1108,20 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word ada@acme.example": "The scene's people carry no email; the drawing invents one under each name",
+        "word grace@acme.example": "The scene's people carry no email; the drawing invents one under each name",
+        "word katherine@acme.example": "The scene's people carry no email; the drawing invents one under each name",
+        "word alan@acme.example": "The scene's people carry no email; the drawing invents one under each name"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Owner": "At 390 the role sits under the name, as the drawing shows; the row hides it below sm today. Built with the settings forms PR",
+        "word Admin": "At 390 the role sits under the name, as the drawing shows; the row hides it below sm today. Built with the settings forms PR",
+        "word Member": "At 390 the role sits under the name, as the drawing shows; the row hides it below sm today. Built with the settings forms PR",
+        "word Viewer": "At 390 the role sits under the name, as the drawing shows; the row hides it below sm today. Built with the settings forms PR",
+        "word Service accounts hold roles too; they're listed under Service accounts.": "The note under the people list; built with the settings forms PR"
+      }
     }
   ]
 }

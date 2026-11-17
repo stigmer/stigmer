@@ -639,7 +639,7 @@ const SETTINGS_SCENES = [
     ],
   },
   { id: "settings-oauth-apps-detail", title: "Settings, OAuth apps: the GitHub app's page open", widths: ["desktop"], opens: "Edit github" },
-  { id: "settings-oauth-apps-delete", title: "Settings, OAuth apps: Delete asked first, on the GitHub app's page", widths: ["desktop"], opens: ["Edit github", { press: "Delete", role: "button", exact: true }] },
+  { id: "settings-oauth-apps-delete", title: "Settings, OAuth apps: Delete asked first, on the GitHub app's page", widths: ["desktop"], opens: ["Edit github", { press: "Delete app", role: "button", exact: true }] },
   { id: "settings-federation-issuers-detail", title: "Settings, Federation issuers: Acme Okta's page open", widths: ["desktop"], opens: "Edit Acme Okta" },
   { id: "settings-federation-issuers-delete", title: "Settings, Federation issuers: Delete asked first, in Acme Okta's row", widths: ["desktop"], opens: "Delete Acme Okta" },
   { id: "settings-federation-issuers-new", title: "Settings, Federation issuers: the new issuer's first step, its provider", widths: ["desktop"], opens: "New federation issuer" },
