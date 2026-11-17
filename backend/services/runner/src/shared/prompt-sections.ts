@@ -163,11 +163,17 @@ export function visionPromptInfoOf(files: {
  * Sonnet 4.6 on the Claude engine saved such files in the outputs folder on
  * five tries of six, where neither the person nor a grader looks for them
  * (stigmer#2661).
+ *
+ * It then says how to speak of those files: they reach the person beside
+ * the reply, so the agent names each by its file name. Told only where the
+ * folder is, agents echoed it ("saved to your outputs folder"), a place the
+ * person never sees (stigmer#3200).
  */
 export function outputsFolderInstruction(folderPath: string): string {
   return (
     "When the user asks for a file at a path, write it at that path in the workspace. " +
     `To hand the user a file that has no place in the workspace, save it in \`${folderPath}\`; everything there is returned to them when the turn ends. ` +
+    "Those files reach the person beside your reply: call each one by its file name, never by this folder or its path. " +
     "Files you edit in the workspace are not returned this way."
   );
 }

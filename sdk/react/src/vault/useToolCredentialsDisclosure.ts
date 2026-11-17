@@ -12,7 +12,8 @@
  * paint, the section opens then, once, unless the person has already
  * opened or shut it: their choice stands. It never shuts by itself. With
  * the reading cached across mounts, a late opening happens only on the
- * first reading of an agent's subagents.
+ * first reading of an agent's subagents. For a surface pinned to an agent
+ * version (an existing chat link), the reading is of that version.
  *
  * Internal: each section draws its own body.
  *
@@ -34,10 +35,16 @@ export interface ToolCredentialsDisclosure {
 
 /**
  * Behaviour hook for a "Tool credentials" section of `agent`'s surface;
- * `hasVaults` is whether the surface names a vault when the section mounts.
+ * `hasVaults` is whether the surface names a vault when the section mounts,
+ * and `agentVersion` the agent version the surface runs (none or
+ * `"latest"`: the current one).
  */
-export function useToolCredentialsDisclosure(agent: Agent, hasVaults: boolean): ToolCredentialsDisclosure {
-  const usesTools = useRunUsesTools(agent);
+export function useToolCredentialsDisclosure(
+  agent: Agent,
+  hasVaults: boolean,
+  agentVersion = "",
+): ToolCredentialsDisclosure {
+  const usesTools = useRunUsesTools(agent, agentVersion);
   const [expanded, setExpanded] = useState(usesTools === true || hasVaults);
   // Settled once the person opens or shuts it, or it has opened by itself.
   const [settled, setSettled] = useState(false);

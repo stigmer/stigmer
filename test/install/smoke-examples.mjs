@@ -70,6 +70,9 @@ function missing(text, items) {
   return items.filter((item) => !text.includes(item)).map((item) => `does not name ${item}`);
 }
 
+/** How a reply would speak of the runner's outputs folder instead of the file (#3200). */
+export const FOLDER_WORDS = /outputs folder|\.stigmer\/outputs/i;
+
 /** What the fake model saves for an example in the offline mode: a file that keeps its structure. */
 export function scriptedOutput(example) {
   const items = {
@@ -177,7 +180,15 @@ async function main() {
       const attach = example.samples.map((sample) => `--attach ${shellQuote(sample)}`).join(" ");
       const pin = args.live ? ` --model ${LIVE_MODEL}` : "";
       const started = Date.now();
-      await run(`${stigmer} run ${slug} ${attach} --download ./out --until turn${pin} -m ${shellQuote(example.message)}`, folder);
+      const ran = await run(`${stigmer} run ${slug} ${attach} --download ./out --until turn${pin} -m ${shellQuote(example.message)}`, folder);
+      // On a real model the reply must call the file by its name and never
+      // by the runner's outputs folder, which the person never sees (#3200).
+      if (args.live) {
+        const reply = `${ran.stdout}${ran.stderr}`;
+        if (!reply.includes(example.output)) throw new Error(`${example.id}: the reply never names ${example.output}:\n${reply}`);
+        if (FOLDER_WORDS.test(reply)) throw new Error(`${example.id}: the reply names the outputs folder:\n${reply}`);
+        console.log(`----- ${example.id} reply -----\n${reply.trim()}\n-----`);
+      }
       const path = join(folder, "out", example.output);
       if (!existsSync(path)) throw new Error(`${example.id}: the run left no out/${example.output}`);
       const text = readFileSync(path, "utf8");

@@ -35,7 +35,7 @@ function makeAgent(withTools = true) {
   });
 }
 
-function makeChannel(vaults: { org: string; slug: string }[] = []) {
+function makeChannel(vaults: { org: string; slug: string }[] = [], agentVersion = "") {
   return {
     metadata: {
       id: "chn_1",
@@ -45,7 +45,7 @@ function makeChannel(vaults: { org: string; slug: string }[] = []) {
       labels: {},
     },
     spec: {
-      agentRef: { org: "acme", slug: "support-agent" },
+      agentRef: { org: "acme", slug: "support-agent", version: agentVersion },
       enabled: true,
       type: { case: "slack", value: {} },
       vaults,
@@ -58,6 +58,15 @@ function createMockStigmer(overrides: {
   update?: (resource: Channel, paths: string[]) => Promise<unknown>;
 } = {}) {
   return {
+    agent: {
+      // The agent at the version "stable" uses a GitHub plugin; any other
+      // version is refused.
+      getByReference: vi.fn().mockImplementation(({ version }: { version?: string }) =>
+        version === "stable"
+          ? Promise.resolve(create(AgentSchema, { spec: { instructions: "help", plugins: [{ org: "acme", slug: "github" }] } }))
+          : Promise.reject(new Error("not found")),
+      ),
+    },
     channel: {
       update: overrides.update ?? vi.fn().mockResolvedValue({}),
     },
@@ -212,5 +221,20 @@ describe("ChannelCredentialsDialog", () => {
 
     await screen.findByLabelText("Add vault");
     expect(screen.queryByText(/this channel names no vault/i)).toBeNull();
+  });
+
+  it("judges the version the channel runs: a pinned version with tools gets the hint, though the agent has none today", async () => {
+    render(
+      <Providers client={createMockStigmer()}>
+        <ChannelCredentialsDialog
+          open
+          onOpenChange={() => {}}
+          agent={makeAgent(false)}
+          channel={makeChannel([], "stable")}
+        />
+      </Providers>,
+    );
+
+    expect(await screen.findByText(/this channel names no vault/i)).toBeTruthy();
   });
 });

@@ -2,7 +2,8 @@
 
 // The launcher's two readiness faces. When nothing on any engine can run,
 // the connect panel takes the composer's place: the provider the chosen
-// model needs, as Models & providers draws it, with the act this person can
+// model needs, as Models & providers draws it less the models it unlocks
+// (a newcomer needs the key, not the catalogue), with the act this person can
 // take right there (an admin saves the key, a member learns who does, a
 // laptop gets its command), so a new person's first screen is the step that
 // gets them a first answer. To the person who adds the key it first says

@@ -5,13 +5,16 @@
  * unlocks no model (no models row); a provider served while the key list
  * cannot be read (it says whose key serves, the parent's unnamed one
  * included); a key on an endpoint that is not a full address (shown as
- * saved); the check's words for a value newer than this build (none); and
- * where to get a key, on every face where the reader adds one and no other.
+ * saved); the check's words for a value newer than this build (none);
+ * where to get a key, on every face where the reader adds one and no other;
+ * and the card that stands before a run (`prominent`): the key form open,
+ * where to get a key beside the closed endpoint link, and no models it
+ * unlocks.
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { ProviderKeyCheck } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/api_pb";
-import { ProviderCard, checkWords, type ProviderCardProps } from "../hub/ProviderCard";
+import { ProviderCard, checkWords, type NamedModelReadiness, type ProviderCardProps } from "../hub/ProviderCard";
 import { ORG_ID, fakeClient, readinessWrapper, server, storedKey } from "./readiness-fixture";
 
 afterEach(cleanup);
@@ -87,6 +90,29 @@ describe("ProviderCard", () => {
     expect(within(card).getByRole("link", { name: /Get a key at console\.anthropic\.com/ }).getAttribute("href")).toBe(
       "https://console.anthropic.com/settings/keys",
     );
+  });
+
+  it("before a run, opens on the key alone: where to get one beside the closed endpoint link, and no models it unlocks", async () => {
+    const missing = { state: "missing", scope: "organization" } as const;
+    const models: NamedModelReadiness[] = [
+      { harness: "stigmer", modelId: "claude-sonnet-4.6", provider: "anthropic", availability: missing, displayName: "Claude Sonnet 4.6" },
+      { harness: "claude", modelId: "claude-sonnet-5", provider: "anthropic", availability: missing, displayName: "Claude Sonnet 5" },
+    ];
+    const card = renderCard({ report: { provider: "anthropic", availability: missing }, models, prominent: true, initiallyEditing: true });
+
+    expect(await within(card).findByLabelText("Anthropic API key")).toBeTruthy();
+    expect(within(card).getByRole("link", { name: /Get a key at console\.anthropic\.com/ })).toBeTruthy();
+    expect(within(card).getAllByRole("link", { name: /Get a key/ })).toHaveLength(1);
+    expect(within(card).getByRole("button", { name: "Use your own endpoint" }).getAttribute("aria-expanded")).toBe("false");
+    expect(within(card).queryByLabelText("Base URL (optional)")).toBeNull();
+    expect(within(card).queryByText("Unlocks")).toBeNull();
+    expect(within(card).queryByText("Claude Sonnet 4.6")).toBeNull();
+    cleanup();
+
+    // The same provider on Models & providers names what it unlocks.
+    const hub = renderCard({ report: { provider: "anthropic", availability: missing }, models });
+    expect(within(hub).getByText("Unlocks")).toBeTruthy();
+    expect(within(hub).getByText("Claude Sonnet 4.6")).toBeTruthy();
   });
 
   it("offers no key link to someone who cannot add the key: a member, or a remote server's user", () => {

@@ -344,7 +344,7 @@ person looking can take.
     org: { type: "string", description: "", required: true },
     orgName: { type: "string", description: "The organization's name, for the member's line and the removal's warning.", required: true },
     parentOrgName: { type: "string", description: "The parent organization's name when its key serves; the report's own id otherwise." },
-    prominent: { type: "boolean", description: "Drawn as the launcher's first step: more room, its name as a second-level heading, fewer models named." },
+    prominent: { type: "boolean", description: "Drawn as the one card that stands before a run (the launcher's key step): more room, its name as a second-level heading, and no models it unlocks, since the person there needs only the key; Models & providers draws them." },
     report: { type: "ProviderReadiness", description: "", required: true, typeDescriptionLink: "#providerreadiness" },
     storedKey: { type: "ProviderKey", description: "The key that serves it, own or inherited, when the key list is readable (Stigmer Cloud)." },
     viewer: { type: "ProviderViewer", description: "", required: true, typeDescriptionLink: "#providerviewer" },
@@ -371,13 +371,15 @@ function ProviderCards() {
 
 ### ProviderKeyForm
 
-Saves an organization's key for one provider, optionally against its own endpoint. The caller needs `can_manage_billing`.
+Saves an organization's key for one provider, optionally against its own
+endpoint (behind "Use your own endpoint"), and says where to get a key.
+The caller needs `can_manage_billing`.
 
 **Props** — `ProviderKeyFormProps`
 
 <TypeTable
   type={{
-    initialBaseUrl: { type: "string", description: "The endpoint the saved key uses, when replacing one." },
+    initialBaseUrl: { type: "string", description: "The endpoint the saved key uses, when replacing one; a non-empty one opens the endpoint field from the start." },
     onCancel: { type: "() => void", description: "" },
     onSaved: { type: "() => void", description: "", required: true },
     org: { type: "string", description: "", required: true },

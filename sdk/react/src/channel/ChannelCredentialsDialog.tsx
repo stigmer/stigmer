@@ -139,6 +139,7 @@ function ChannelCredentialsDialogBody({
           onChange={setDraft}
           disabled={isPending}
           enabled={channel.spec?.enabled ?? false}
+          agentVersion={channel.spec?.agentRef?.version ?? ""}
         />
 
         {error && (
