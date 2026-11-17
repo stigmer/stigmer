@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { getUserMessage } from "@stigmer/client";
+import { useCallback } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { ApiKey } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -9,8 +8,8 @@ import { findOrgByRef, useKnownOrgs } from "../organization/OrgProvider.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useApiKeyList } from "./useApiKeyList.js";
 import { useDeleteApiKey } from "./useDeleteApiKey.js";
-import { SpinnerIcon } from "../internal/SpinnerIcon.js";
-import { Button } from "../button/Button.js";
+import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
+import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { IconButton } from "../button/IconButton.js";
 import { LastUsedLabel } from "../internal/LastUsedLabel.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
@@ -47,11 +46,11 @@ export interface ApiKeyListPanelProps {
 
 /**
  * Displays a list of {@link ApiKey} resources for the authenticated
- * identity with inline delete confirmation.
+ * identity, each revoked after a confirm dialog that does the revoke.
  *
  * Each key is rendered as a row showing name, fingerprint, scope,
- * creation date, expiry, and last-used time. A delete button triggers
- * an inline confirmation — the row transforms to show confirm/cancel
+ * creation date, expiry, and last-used time. A revoke button opens a
+ * confirm dialog that runs the revoke, says a refusal in the dialog
  * actions.
  *
  * API keys belong to the authenticated user: the server returns all of
@@ -136,7 +135,7 @@ export interface KeyListPager {
 }
 
 /**
- * The rows of a key list with their inline revoke confirmation, whoever's
+ * The rows of a key list with their revoke confirmation, whoever's
  * keys they are: the caller's own ({@link ApiKeyListPanel}) or a service
  * account's (`ServiceAccountKeyListPanel`). Revoking is the ordinary
  * `apiKey.delete` either way. Not exported from the package barrel.
@@ -155,7 +154,24 @@ export function ApiKeyListView({
   pager,
 }: ApiKeyListViewProps) {
   const orgs = useKnownOrgs() ?? NO_ORGS;
-  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const { deleteKey } = useDeleteApiKey();
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
+  const revoke = useCallback(
+    async (id: string, name: string) => {
+      const revoked = await confirm({
+        title: `Revoke ${name}?`,
+        description: "Anything signed in with it stops working at once. This can't be undone; make a new key if you need one.",
+        confirmLabel: "Revoke key",
+        variant: "destructive",
+        action: async () => {
+          await deleteKey(id);
+        },
+        failureTitle: `Couldn't revoke ${name}.`,
+      });
+      if (revoked) onDeleted();
+    },
+    [confirm, deleteKey, onDeleted],
+  );
 
   if (isLoading) {
     return <SettingsSkeleton label="Loading API keys" rows={3} className={className} />;
@@ -188,18 +204,13 @@ export function ApiKeyListView({
               apiKey={key}
               scope={describeKeyScope(key, orgs)}
               now={now}
-              isConfirming={confirmingId === id}
-              onConfirmDelete={() => setConfirmingId(id)}
-              onCancelDelete={() => setConfirmingId(null)}
-              onDeleted={() => {
-                setConfirmingId(null);
-                onDeleted();
-              }}
+              onRevoke={revoke}
             />
           );
         })}
       </List>
       <LoadMoreFooter hasMore={pager.hasMore} loadMore={pager.loadMore} isLoadingMore={pager.isLoadingMore} loadMoreError={pager.loadMoreError} />
+      <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 }
@@ -212,21 +223,13 @@ function ApiKeyRow({
   apiKey,
   scope,
   now,
-  isConfirming,
-  onConfirmDelete,
-  onCancelDelete,
-  onDeleted,
+  onRevoke,
 }: {
   apiKey: ApiKey;
   scope: string;
   now?: Date;
-  isConfirming: boolean;
-  onConfirmDelete: () => void;
-  onCancelDelete: () => void;
-  onDeleted: () => void;
+  onRevoke: (id: string, name: string) => void;
 }) {
-  const { deleteKey, isDeleting, error } = useDeleteApiKey();
-
   const id = apiKey.metadata?.id ?? "";
   const name = apiKey.metadata?.name || apiKey.metadata?.slug || "Unnamed key";
   const fingerprint = apiKey.spec?.fingerprint;
@@ -234,55 +237,6 @@ function ApiKeyRow({
   const expiresAt = apiKey.spec?.expiresAt;
   const lastUsedAt = apiKey.status?.lastUsedAt;
   const createdAt = apiKey.status?.audit?.specAudit?.createdAt;
-
-  const handleDelete = useCallback(async () => {
-    try {
-      await deleteKey(id);
-      onDeleted();
-    } catch {
-      // error state is surfaced via the hook
-    }
-  }, [id, deleteKey, onDeleted]);
-
-  if (isConfirming) {
-    return (
-      // The confirmation's sentence wraps, so it keeps its own markup on the
-      // list's row padding rather than a ListRow's one truncated line.
-      <li className="stg:flex stg:min-h-10 stg:items-center stg:justify-between stg:gap-3 stg:bg-destructive-subtle stg:px-3.5 stg:py-2.5">
-        <div className="stg:min-w-0 stg:flex-1">
-          <p className="stg:text-xs stg:text-foreground">
-            Delete <span className="stg:font-medium">{name}</span>?
-            {fingerprint && (
-              <span className="stg:text-muted-foreground">
-                {" "}
-                (…{fingerprint})
-              </span>
-            )}
-          </p>
-          {error && (
-            <p className="stg:mt-0.5 stg:text-2xs stg:text-destructive">
-              {getUserMessage(error)}
-            </p>
-          )}
-        </div>
-
-        <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">
-          <Button
-            variant="destructive"
-            size="xs"
-            onClick={handleDelete}
-            disabled={isDeleting}
-            icon={isDeleting ? <SpinnerIcon size={12} /> : undefined}
-          >
-            Delete
-          </Button>
-          <Button variant="ghost" size="xs" onClick={onCancelDelete} disabled={isDeleting}>
-            Cancel
-          </Button>
-        </div>
-      </li>
-    );
-  }
 
   return (
     <ListRow
@@ -320,12 +274,11 @@ function ApiKeyRow({
             <LastUsedLabel at={lastUsedAt} now={now} />
           </div>
 
-          {/* Delete button */}
           <IconButton
-            label={`Delete ${name}`}
+            label={`Revoke ${name}`}
             size="xs"
             icon={<TrashIcon />}
-            onClick={onConfirmDelete}
+            onClick={() => onRevoke(id, name)}
             className="stg:hover:text-destructive stg:hover:bg-destructive-subtle"
           />
         </>

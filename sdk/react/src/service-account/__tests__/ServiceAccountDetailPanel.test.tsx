@@ -184,8 +184,8 @@ describe("ServiceAccountDetailPanel", () => {
     expect(await screen.findByText("stk_new_raw")).toBeTruthy();
     expect(calls.keys.map((k) => [k.serviceAccountId, k.name])).toEqual([["ida_sa_ci", "nightly"]]);
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete github-actions" }));
-    fireEvent.click(within(screen.getByRole("list", { name: "API keys" })).getByRole("button", { name: "Delete" }));
+    fireEvent.click(screen.getByRole("button", { name: "Revoke github-actions" }));
+    fireEvent.click(screen.getByRole("button", { name: "Revoke key" }));
     await waitFor(() => expect(calls.log).toContain("revoke key key_old"));
   });
 
@@ -193,11 +193,11 @@ describe("ServiceAccountDetailPanel", () => {
     const onDeleted = vi.fn();
     renderPanel({ onDeleted });
     fireEvent.click(screen.getByRole("button", { name: "Delete service account" }));
-    const confirm = screen.getByRole("alertdialog", { name: "Delete ci-deploy" });
-    expect(confirm.textContent).toMatch(/Its API keys stop working at once/);
+    expect(screen.getByRole("heading", { name: "Delete ci-deploy?" })).toBeTruthy();
+    expect(screen.getByText(/Its keys stop working at once/)).toBeTruthy();
     expect(calls.log.some((l) => l.startsWith("delete account"))).toBe(false);
 
-    fireEvent.click(within(confirm).getByRole("button", { name: "Delete" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete service account" }));
     await waitFor(() => expect(onDeleted).toHaveBeenCalled());
     expect(calls.log).toContain("delete account ida_sa_ci");
   });
@@ -220,8 +220,8 @@ describe("ServiceAccountDetailPanel", () => {
     expect(screen.queryByLabelText("Key name")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Delete service account" }));
-    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancel" }));
-    expect(screen.queryByRole("alertdialog")).toBeNull();
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
 
     expect(calls.updates).toEqual([]);
     expect(calls.keys).toEqual([]);
@@ -253,11 +253,13 @@ describe("ServiceAccountDetailPanel", () => {
     const onDeleted = vi.fn();
     renderPanel({ onDeleted });
     fireEvent.click(screen.getByRole("button", { name: "Delete service account" }));
-    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Delete" }));
-    await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/still being created/));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete service account" }));
+    expect(await within(screen.getByRole("dialog")).findByText("Couldn't delete ci-deploy.")).toBeTruthy();
+    expect(screen.getByRole("dialog").textContent).toMatch(/still being created/);
+    expect(within(screen.getByRole("dialog")).getByRole("button", { name: "Try again" })).toBeTruthy();
     expect(onDeleted).not.toHaveBeenCalled();
 
-    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancel" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" }));
     fireEvent.click(screen.getByRole("button", { name: "Delete service account" }));
     expect(screen.queryByText(/still being created/)).toBeNull();
   });

@@ -41,6 +41,8 @@ import { orgRoleOf } from "./org-role.js";
 import { ServiceAccountKeyListPanel } from "./ServiceAccountKeyListPanel.js";
 import { useDeleteServiceAccount } from "./useDeleteServiceAccount.js";
 import { Button } from "../button/Button.js";
+import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
+import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { FieldError, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link ServiceAccountDetailPanel}. */
@@ -389,73 +391,34 @@ function DeleteSection({
   readonly name: string;
   readonly onDeleted?: () => void;
 }) {
-  const { deleteServiceAccount, isDeleting, error, clearError } = useDeleteServiceAccount();
-  const [confirming, setConfirming] = useState(false);
+  const { deleteServiceAccount } = useDeleteServiceAccount();
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
 
-  const handleDelete = useCallback(async () => {
-    try {
-      await deleteServiceAccount(accountId);
-      onDeleted?.();
-    } catch {
-      // error state is surfaced via the hook
-    }
-  }, [deleteServiceAccount, accountId, onDeleted]);
-
-  if (!confirming) {
-    return (
-      <div className="stg:border-t stg:border-border stg:pt-4">
-        <Button
-          variant="ghost"
-          size="xs"
-          onClick={() => setConfirming(true)}
-          className="stg:text-destructive stg:hover:bg-destructive-subtle"
-        >
-          Delete service account
-        </Button>
-      </div>
-    );
-  }
+  const askToDelete = useCallback(async () => {
+    const deleted = await confirm({
+      title: `Delete ${name}?`,
+      description: `Its keys stop working at once. What it created stays, still saying ${name} created it.`,
+      confirmLabel: "Delete service account",
+      variant: "destructive",
+      action: async () => {
+        await deleteServiceAccount(accountId);
+      },
+      failureTitle: `Couldn't delete ${name}.`,
+    });
+    if (deleted) onDeleted?.();
+  }, [confirm, deleteServiceAccount, accountId, name, onDeleted]);
 
   return (
-    // eslint-disable-next-line stigmer/no-handrolled-dialog -- An inline confirm in the panel, not a modal: its role tells assistive technology the row asks for an answer, and focus stays in the panel.
-    <div
-      role="alertdialog"
-      aria-label={`Delete ${name}`}
-      className="stg:space-y-2 stg:rounded-lg stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:px-3 stg:py-2.5"
-    >
-      <p className="stg:text-xs stg:text-foreground">
-        Delete <span className="stg:font-medium">{name}</span>? Its API keys
-        stop working at once, and anything still using them is refused. What it
-        created stays with the organization.
-      </p>
-      {error && (
-        <FieldError>
-          {getUserMessage(error)}
-        </FieldError>
-      )}
-      <div className="stg:flex stg:items-center stg:gap-1.5">
-        <Button
-          variant="destructive"
-          size="xs"
-          onClick={handleDelete}
-          disabled={isDeleting}
-          icon={isDeleting ? <SpinnerIcon size={12} /> : undefined}
-        >
-          Delete
-        </Button>
-        <Button
-          variant="ghost"
-          size="xs"
-          onClick={() => {
-            // A refused delete's reason belongs to that attempt, not the next.
-            clearError();
-            setConfirming(false);
-          }}
-          disabled={isDeleting}
-        >
-          Cancel
-        </Button>
-      </div>
+    <div className="stg:border-t stg:border-border stg:pt-4">
+      <Button
+        variant="ghost"
+        size="xs"
+        onClick={askToDelete}
+        className="stg:text-destructive stg:hover:bg-destructive-subtle"
+      >
+        Delete service account
+      </Button>
+      <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 }
