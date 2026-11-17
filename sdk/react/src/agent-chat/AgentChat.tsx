@@ -146,6 +146,14 @@ export interface AgentChatProps {
    */
   readonly showModelSelector?: boolean;
   /**
+   * Whether the composer offers the Agent/Plan mode toggle, on the first
+   * message and on every reply. Your users have it by default; `false`
+   * hides it, for a host that wants a bare chat, and every turn runs in
+   * Agent mode. A chat-link guest never has it.
+   * @default true
+   */
+  readonly showInteractionModePicker?: boolean;
+  /**
    * Called when the first message could not be sent, after the chat shows
    * the message under its box.
    */
@@ -188,6 +196,7 @@ export function AgentChat({
   includeMyVault,
   fileReview,
   showModelSelector,
+  showInteractionModePicker,
   onError,
   className,
 }: AgentChatProps) {
@@ -266,6 +275,7 @@ export function AgentChat({
           threadSlots={threadSlots}
           enableGitHub={enableGitHub}
           showModelSelector={showModelSelector}
+          showInteractionModePicker={showInteractionModePicker}
         />
       </ChatActivityReporterContext.Provider>
     ) : (
@@ -281,6 +291,7 @@ export function AgentChat({
         includeMyVault={includeMyVault}
         fileReview={fileReview}
         showModelSelector={showModelSelector}
+        showInteractionModePicker={showInteractionModePicker}
         // A panel or popup never takes focus from the host's page by itself.
         autoFocus={variant === "page"}
         onSessionCreated={handleCreated}

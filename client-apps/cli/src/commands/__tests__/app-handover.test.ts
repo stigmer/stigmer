@@ -77,6 +77,15 @@ describe("writeHandover", () => {
     expect(result.hints.filter((hint) => hint.startsWith("For "))).toEqual([]);
     expect(result.hints).toContain("Put the admin service account's key in STIGMER_API_KEY in .env.local, and keep that file out of git.");
   });
+  it("tells a Python, Go or Java backend how its settings reach it, and a Next.js or Node one nothing", () => {
+    const how = "Your backend reads these from its environment: load .env the way your framework does, or export them in the shell you start it from.";
+    for (const [stack, says] of [["node", false], ["python", true], ["go", true], ["java", true]] as const) {
+      const handover = buildAppHandover({ mode: "sign-in", stack, baseUrl: "https://api.stigmer.ai", org: "acme", agent: "invoice-matcher" });
+      const result = writeHandover(handover, "sign-in", mkdtempSync(join(tmpdir(), "stigmer-handover-")), false);
+      expect(result.hints.includes(how), stack).toBe(says);
+    }
+    expect(writeHandover(signIn, "sign-in", mkdtempSync(join(tmpdir(), "stigmer-handover-")), false).hints.some((hint) => hint.includes("from its environment"))).toBe(false);
+  });
   it("writes only the chat on a server that trusts every caller", () => {
     const root = mkdtempSync(join(tmpdir(), "stigmer-handover-"));
     writeHandover(local, "local", root, false);

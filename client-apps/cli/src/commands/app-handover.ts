@@ -162,6 +162,11 @@ export function writeHandover(handover: AppHandover, mode: AppHandoverMode, root
     result
       .hint("Replace currentUser in the route with your app's own sign-in.")
       .hint(`Put the admin service account's key in STIGMER_API_KEY in ${handover.settingsFile ?? ".env"}, and keep that file out of git.`);
+    if (handover.readsSettingsFile === false) {
+      result.hint(
+        `Your backend reads these from its environment: load ${handover.settingsFile ?? ".env"} the way your framework does, or export them in the shell you start it from.`,
+      );
+    }
   } else {
     result.hint("This is the development chat: it sends no token, for a server that trusts every caller.");
   }

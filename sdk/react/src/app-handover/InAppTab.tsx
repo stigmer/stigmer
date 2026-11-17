@@ -255,6 +255,7 @@ function SignInHandover({
           org={orgId}
           access={access}
           settingsFile={handover.settingsFile ?? ".env"}
+          readsSettingsFile={handover.readsSettingsFile ?? true}
           devUser={devUser}
           serviceAccountsHref={links.serviceAccounts}
           renderLink={render}
@@ -369,14 +370,24 @@ function TryItPage({ handover }: { readonly handover: AppHandover }) {
   );
 }
 
-/** The backend's settings file, with Copy, and what to keep in mind about it. */
-function SettingsBlock({ file, text }: { readonly file: string; readonly text: string }) {
+/**
+ * The backend's settings file, with Copy, and what to keep in mind about
+ * it: for a backend that does not read the file as handed over, how the
+ * values reach it.
+ */
+function SettingsBlock({ file, text, readsFile }: { readonly file: string; readonly text: string; readonly readsFile: boolean }) {
   return (
     <div className="stg:flex stg:flex-col stg:gap-2">
       <CopyBlock label={file} value={text} />
       <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
         Keep this file out of git. <code className="stg:font-mono stg:text-2xs">{APP_DEV_USER_VARIABLE}</code> signs you in while your app has no
         sign-in of its own.
+        {!readsFile && (
+          <>
+            {" "}
+            Your backend reads these from its environment: load {file} the way your framework does, or export them in the shell you start it from.
+          </>
+        )}
       </p>
     </div>
   );
@@ -393,6 +404,7 @@ function ServiceAccountRow({
   org,
   access,
   settingsFile,
+  readsSettingsFile,
   devUser,
   serviceAccountsHref,
   renderLink,
@@ -401,6 +413,8 @@ function ServiceAccountRow({
   readonly access: ReturnType<typeof useAppAccess>;
   /** The backend's settings file, which holds the key. */
   readonly settingsFile: string;
+  /** Whether the backend reads that file as handed over. */
+  readonly readsSettingsFile: boolean;
   /** The person viewing, as the settings' development user, when known. */
   readonly devUser: string | undefined;
   readonly serviceAccountsHref: string | undefined;
@@ -449,7 +463,7 @@ function ServiceAccountRow({
   const keyMissing = made !== null && revealed === null;
 
   // Without the key on screen, the same settings say where the key goes.
-  const keylessSettings = <SettingsBlock file={settingsFile} text={appSettingsText({ devUser })} />;
+  const keylessSettings = <SettingsBlock file={settingsFile} text={appSettingsText({ devUser })} readsFile={readsSettingsFile} />;
 
   if (revealed !== null) {
     return (
@@ -461,7 +475,7 @@ function ServiceAccountRow({
             instruction="Copy your settings now. The key is shown once."
             onDismiss={() => setRevealed({ key: null, name: revealed.name })}
           >
-            <SettingsBlock file={settingsFile} text={appSettingsText({ apiKey: revealed.key, devUser })} />
+            <SettingsBlock file={settingsFile} text={appSettingsText({ apiKey: revealed.key, devUser })} readsFile={readsSettingsFile} />
           </ApiKeyCreatedAlert>
         )}
         <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">

@@ -347,6 +347,20 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
     expect(createForServiceAccount).toHaveBeenCalledTimes(2);
   });
 
+  it("tells a Python, Go or Java backend how its settings reach it, and says nothing of it for Next.js or Node", async () => {
+    const how = /Your backend reads these from its environment: load \.env the way your framework does, or export them in the shell you start it from\./;
+    const existing = [{ id: "ida_rb", name: "report-backend", mode: IdentityAccountProvisioningMode.service_account, role: "admin" }];
+    renderPage({ defaultTab: "in-app" }, { access: existing });
+    const account = await row("A service account for your backend");
+    await within(account).findByRole("region", { name: ".env.local" });
+    expect(within(account).queryByText(/reads these from its environment/)).toBeNull();
+    for (const [stack, says] of [["Node", false], ["Python", true], ["Go", true], ["Java", true]] as const) {
+      fireEvent.click(screen.getByRole("radio", { name: stack }));
+      await within(account).findByRole("region", { name: ".env" });
+      expect(within(account).queryByText(how) !== null, stack).toBe(says);
+    }
+  });
+
   it("names an admin service account the organization already has, and offers another", async () => {
     renderPage(
       { defaultTab: "in-app" },

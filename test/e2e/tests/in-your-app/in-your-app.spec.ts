@@ -10,7 +10,9 @@
 // account creation on there, and copies the route, the chat and the page
 // that tries it from the page's own code blocks. A Vite app is built from
 // that text alone (test/e2e/helpers/embed-tutorial.ts `runHandedOverApp`),
-// its route started with the key and STIGMER_DEV_USER. A person in the app
+// its route started with the run line its own comment names, which reads
+// the handed-over .env (the key, and STIGMER_DEV_USER set to the person the
+// app signs in). A person in the app
 // attaches the ledger, sends, and sees the report among what the turn made.
 // Back in the console, the tab's last row names that person, and the
 // dashboard's card marks "Put it in your app" done.
@@ -129,7 +131,8 @@ test.describe("CON-10 a scratch app built from exactly what the In your app tab 
     await account.getByRole("button", { name: "Make it" }).click();
     const settings = account.getByRole("alert").getByRole("region", { name: ".env" });
     await expect(settings).toBeVisible({ timeout: 15_000 });
-    const apiKey = keyIn((await settings.textContent()) ?? "");
+    const settingsFile = (await settings.textContent()) ?? "";
+    const apiKey = keyIn(settingsFile);
     expect(apiKey, "the key is shown once").not.toBe("");
     expect(apiKey).not.toContain("<");
     await embedding.getByRole("switch").click();
@@ -140,10 +143,11 @@ test.describe("CON-10 a scratch app built from exactly what the In your app tab 
     const chat = (await page.getByRole("region", { name: "src/StigmerAgentChat.tsx" }).textContent()) ?? "";
     const tryIt = (await page.getByRole("region", { name: "src/App.tsx" }).textContent()) ?? "";
     expect(route).toContain(`const ORG = "${orgSlug}";`);
+    expect(route).toContain("Run it with: npx tsx --env-file=.env server.ts");
     expect(chat).toContain(`agent={"${orgSlug}/variance-reporter"}`);
 
     folder = mkdtempSync(join(tmpdir(), "stigmer-in-your-app-"));
-    app = await runHandedOverApp(folder, packKit(join(folder, "tarballs")), { route, chat, page: tryIt }, { apiKey, devUser: DEV_USER });
+    app = await runHandedOverApp(folder, packKit(join(folder, "tarballs")), { route, chat, page: tryIt, settings: settingsFile }, { devUser: DEV_USER });
 
     // The model: the report into the outputs folder, then a closing line.
     const control = new MockControl(mockUrl!);

@@ -107,6 +107,14 @@ export interface AppHandover {
    * {@link appSettingsText}'s. Absent for a local server, which needs none.
    */
   readonly settingsFile?: string;
+  /**
+   * Whether the backend reads {@link settingsFile} as handed over: Next.js
+   * loads `.env.local` itself, and the Node route's run line passes
+   * `--env-file=.env`. Python's, Go's and Java's routes read their
+   * environment, so the values must reach it some other way. Absent for a
+   * local server.
+   */
+  readonly readsSettingsFile?: boolean;
 }
 
 /** What {@link buildAppHandover} writes the code for. */
@@ -210,6 +218,7 @@ export function buildAppHandover(input: AppHandoverInput): AppHandover {
     chat: signInChat(code, app.chatFile),
     ...where,
     settingsFile: app.settingsFile,
+    readsSettingsFile: READS_SETTINGS_FILE[input.stack],
   };
 }
 
@@ -266,6 +275,15 @@ const BACKENDS: Record<AppHandoverStack, (code: Code, sdkVersion: string | undef
 function backendFor(stack: AppHandoverStack, code: Code, sdkVersion: string | undefined): AppHandoverFile {
   return BACKENDS[stack](code, sdkVersion);
 }
+
+/** Whether each stack's route, run as it says, reads the settings file itself. */
+const READS_SETTINGS_FILE: Record<AppHandoverStack, boolean> = {
+  nextjs: true,
+  node: true,
+  python: false,
+  go: false,
+  java: false,
+};
 
 /** Where a stack's app keeps the chat and the page that tries it, and the settings file its backend reads. */
 interface AppSide {
@@ -355,7 +373,7 @@ const REFUSED = "Stigmer refused the token; the reason is in your server's log."
 function nodeRoute({ org, server }: Code): string {
   return `// Your backend's Stigmer token route. GET /api/stigmer-token answers the
 // signed-in person's token, { accessToken, expiresAt }, which the chat in
-// your app asks for. Run it with: npx tsx server.ts
+// your app asks for. Run it with: npx tsx --env-file=.env server.ts
 import { createServer, type IncomingMessage } from "node:http";
 import { createNodeClient } from "@stigmer/client/node";
 

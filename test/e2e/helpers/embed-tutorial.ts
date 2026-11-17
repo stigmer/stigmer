@@ -261,6 +261,15 @@ export interface HandedOver {
   readonly chat: string;
   /** The page that tries it, `src/App.tsx`. */
   readonly page: string;
+  /** The settings file, `.env`, as the tab held it with the key on screen. */
+  readonly settings: string;
+}
+
+/** The command a handed-over route's own comment says to run it with. */
+export function runLineOf(route: string): string {
+  const line = /Run it with: (.+)$/m.exec(route)?.[1]?.trim();
+  if (line === undefined) throw new Error("the handed-over route names no run line");
+  return line;
 }
 
 /**
@@ -268,25 +277,25 @@ export interface HandedOver {
  * route as `server.ts` beside it, the chat as `src/StigmerAgentChat.tsx`,
  * mounted by the page it hands over to try it, `src/App.tsx`), installs the
  * kit this checkout packs, checks it builds and typechecks (strict), and
- * starts the route with the service account's key and the person it signs
- * in, and the app, with the app's `/api` proxied to the route as the tab
- * says.
+ * starts the route with the line its own comment names, reading the
+ * handed-over `.env` and nothing from the environment, and the app, with
+ * the app's `/api` proxied to the route as the tab says. The settings'
+ * development user is `devUser`: the person the run signs in, as a builder
+ * names the one they try their app as.
  */
 export async function runHandedOverApp(
   folder: string,
   tarballs: readonly string[],
   handedOver: HandedOver,
-  env: { readonly apiKey: string; readonly devUser: string },
+  env: { readonly devUser: string },
 ): Promise<TutorialRun> {
   const appDir = join(folder, "my-app");
   viteApp(appDir);
-  const shellEnv: NodeJS.ProcessEnv = {
-    ...process.env,
-    STIGMER_API_KEY: env.apiKey,
-    STIGMER_DEV_USER: env.devUser,
-    npm_config_yes: "true",
-  };
+  const shellEnv: NodeJS.ProcessEnv = { ...process.env, npm_config_yes: "true" };
+  delete shellEnv.STIGMER_API_KEY;
+  delete shellEnv.STIGMER_DEV_USER;
   const files: Record<string, string> = {
+    ".env": handedOver.settings.replace(/^STIGMER_DEV_USER=.*$/m, `STIGMER_DEV_USER=${env.devUser}`),
     "server.ts": handedOver.route,
     "src/StigmerAgentChat.tsx": handedOver.chat,
     "src/App.tsx": handedOver.page,
@@ -304,7 +313,7 @@ export async function runHandedOverApp(
     run("npm install", appDir, shellEnv);
     run(`npm install ${[...tarballs, "@bufbuild/protobuf"].map((arg) => JSON.stringify(arg)).join(" ")}`, appDir, shellEnv);
     run("npm run build", appDir, shellEnv);
-    running.push(await background("npx tsx server.ts", appDir, shellEnv, BACKEND_PORT));
+    running.push(await background(runLineOf(handedOver.route), appDir, shellEnv, BACKEND_PORT));
     running.push(await background("npm run dev", appDir, shellEnv, APP_PORT));
   } catch (error) {
     stop();

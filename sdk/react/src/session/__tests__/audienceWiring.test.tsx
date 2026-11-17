@@ -775,6 +775,36 @@ describe("owner-pinned runConfig wiring (#664)", () => {
   });
 });
 
+describe("the mode toggle: kept for an app's users, the host's to turn off, never a guest's", () => {
+  it("SessionViewer keeps it for endUser, hides it on showInteractionModePicker={false}, and never gives it to a guest", () => {
+    render(<SessionViewer sessionId="ses_1" org="acme" audience="endUser" />);
+    expect(lastComposerProps().showInteractionModePicker).toBe(true);
+    cleanup();
+
+    render(<SessionViewer sessionId="ses_1" org="acme" audience="endUser" showInteractionModePicker={false} />);
+    expect(lastComposerProps().showInteractionModePicker).toBe(false);
+    cleanup();
+
+    render(<SessionViewer sessionId="ses_1" org="acme" audience="guest" showInteractionModePicker />);
+    expect(lastComposerProps().showInteractionModePicker).toBe(false);
+  });
+
+  it("NewSessionViewer keeps it for endUser, hides it on showInteractionModePicker={false}, and never gives it to a guest", () => {
+    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} audience="endUser" initialAgentRef={AGENT_REF} />);
+    expect(lastComposerProps().showInteractionModePicker).toBe(true);
+    cleanup();
+
+    render(
+      <NewSessionViewer org="acme" onSessionCreated={vi.fn()} audience="endUser" initialAgentRef={AGENT_REF} showInteractionModePicker={false} />,
+    );
+    expect(lastComposerProps().showInteractionModePicker).toBe(false);
+    cleanup();
+
+    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} audience="guest" initialAgentRef={AGENT_REF} showInteractionModePicker />);
+    expect(lastComposerProps().showInteractionModePicker).toBe(false);
+  });
+});
+
 describe("SessionViewer — the agent version notice and the personal-key disclosure", () => {
   const outdated = {
     ...stubSessionPageFlow.agentVersion,

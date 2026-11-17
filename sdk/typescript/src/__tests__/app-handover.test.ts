@@ -158,6 +158,20 @@ describe("buildAppHandover, where each file goes", () => {
     expect(handover.settingsFile).toBe(settingsFile);
   });
 
+  it.each([
+    ["nextjs", true],
+    ["node", true],
+    ["python", false],
+    ["go", false],
+    ["java", false],
+  ] as const)("%s reads the settings file as handed over: %s", (stack, reads) => {
+    expect(buildAppHandover({ ...CLOUD, stack }).readsSettingsFile).toBe(reads);
+  });
+
+  it("the Node route's run line loads its .env", () => {
+    expect(backend("node").code).toContain("Run it with: npx tsx --env-file=.env server.ts");
+  });
+
   it("Next.js is one app: one install covers the route, the chat and the page", () => {
     const { backend, chat, oneApp } = buildAppHandover({ ...CLOUD, stack: "nextjs" });
     expect(oneApp).toBe(true);
