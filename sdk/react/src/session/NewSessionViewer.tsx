@@ -247,6 +247,16 @@ export interface NewSessionViewerProps {
   readonly autoFocus?: boolean;
 
   /**
+   * Slot for host-injected content rendered above the launcher's heading
+   * ("What would you like to work on?"): a host's welcome, for one (the
+   * console greets a teammate who has just joined with the organization's
+   * agents). Shown with the plain composer only, never over the first
+   * question or the connect step. Keeps the SDK organism free of a host's
+   * onboarding.
+   */
+  readonly headerContent?: ReactNode;
+
+  /**
    * Slot for host-injected actions rendered below the composer
    * (e.g., submit error messages). Keeps the SDK organism unopinionated
    * about Console-specific error rendering.
@@ -332,6 +342,7 @@ export function NewSessionViewer({
   placeholder = "Describe what you need help with\u2026",
   initialRows = 3,
   autoFocus = true,
+  headerContent,
   footerContent,
   modelsHubHref = DEFAULT_MODELS_HUB_HREF,
   className,
@@ -711,6 +722,7 @@ export function NewSessionViewer({
           />
         ) : (
           <>
+          {headerContent}
           <h1 className="stg:text-center stg:text-lg stg:font-medium stg:text-foreground">
             {activeLaunch?.heading ?? heading}
           </h1>
