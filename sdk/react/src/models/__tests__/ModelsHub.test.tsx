@@ -255,24 +255,51 @@ describe("ModelsHub", () => {
     expect(within(openai).getByRole("button", { name: "Replace key" })).toBeTruthy();
   });
 
-  it("removes an own key after a confirmation, and asks the server again", async () => {
+  it("removes an own key after a confirmation in the dialog that does it, and asks the server again", async () => {
     const fake = server({ readiness: ANTHROPIC_CONNECTED, keys: [storedKey("anthropic")] });
     const calls = renderHub(fake);
     const anthropic = await card("Anthropic");
     await waitFor(() => expect(within(anthropic).getByRole("button", { name: "Remove" })).toBeTruthy());
 
     fireEvent.click(within(anthropic).getByRole("button", { name: "Remove" }));
+    const dialog = await screen.findByRole("dialog", { name: "Remove the Anthropic key?" });
     expect(
-      within(anthropic).getByText(
-        "Remove the Anthropic key? Runs that need Anthropic are refused until a key serves Acme Research again.",
-      ),
+      within(dialog).getByText("Runs that need Anthropic are refused until a key serves Acme Research again."),
     ).toBeTruthy();
     fake.readiness = NOTHING_CONNECTED;
     fake.keys = [];
-    fireEvent.click(within(anthropic).getByRole("button", { name: "Remove key" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Remove key" }));
 
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     await waitFor(() => expect(within(anthropic).getByText("Not connected")).toBeTruthy());
     expect(calls.deleteKey.mock.calls[0][0]).toMatchObject({ org: ORG_ID, provider: "anthropic" });
+  });
+
+  it("says a refused removal in the dialog and keeps the key", async () => {
+    const calls = renderHub(server({ readiness: ANTHROPIC_CONNECTED, keys: [storedKey("anthropic")] }));
+    calls.deleteKey.mockRejectedValueOnce(new Error("the billing service did not answer in time"));
+    const anthropic = await card("Anthropic");
+    await waitFor(() => expect(within(anthropic).getByRole("button", { name: "Remove" })).toBeTruthy());
+
+    fireEvent.click(within(anthropic).getByRole("button", { name: "Remove" }));
+    const dialog = await screen.findByRole("dialog", { name: "Remove the Anthropic key?" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Remove key" }));
+
+    expect(await within(dialog).findByText("Couldn't remove the key.")).toBeTruthy();
+    expect(within(dialog).getByText(/did not answer in time/)).toBeTruthy();
+    expect(within(anthropic).getByText("Connected")).toBeTruthy();
+  });
+
+  it("offers no act on a key when the check of who may manage keys fails, and says so with a retry", async () => {
+    const fake = server();
+    const calls = fakeClient(fake);
+    calls.checkMyPermission.mockRejectedValue(new Error("the permission service did not answer"));
+    render(<ModelsHub org={ORG_ID} />, { wrapper: readinessWrapper(calls.client) });
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Couldn't check who may change the keys.");
+    const anthropic = await card("Anthropic");
+    expect(within(anthropic).queryByRole("button", { name: "Connect Anthropic" })).toBeNull();
   });
 
   it("offers an own key's endpoint on a replace, with the endpoint field's hint, and saves against it", async () => {
@@ -318,7 +345,7 @@ describe("ModelsHub", () => {
     await waitFor(() => expect(within(anthropic).getByRole("button", { name: "Remove" })).toBeTruthy());
 
     fireEvent.click(within(anthropic).getByRole("button", { name: "Remove" }));
-    fireEvent.click(within(anthropic).getByRole("button", { name: "Cancel" }));
+    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Cancel" }));
 
     expect(within(anthropic).getByRole("button", { name: "Remove" })).toBeTruthy();
     expect(within(anthropic).getByText("Connected")).toBeTruthy();

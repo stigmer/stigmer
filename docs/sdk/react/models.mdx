@@ -614,6 +614,7 @@ What the hub and the launcher's connect step draw from.
     error: { type: "Error | null", description: "The readiness read's error, or `null`.", required: true },
     isLoading: { type: "boolean", description: "`true` until the readiness answer and, where it matters, the permission check have settled.", required: true },
     keyOf: { type: "(provider: string) => ProviderKey | undefined", description: "The key that serves a provider, own or inherited, when the key list is readable (Stigmer Cloud).", required: true },
+    manageError: { type: "Error | null", description: "Why the check of who may save and remove keys failed, or `null`. The acts on keys wait for the server's yes, so a failed check hides them and is said, never shown as a member's line." },
     models: { type: "readonly NamedModelReadiness[] | null", description: "Every model on every engine, named by the registry; `null` until the server answers.", required: true },
     org: { type: "string", description: "", required: true },
     orgName: { type: "string", description: "The organization's name as people read it.", required: true },
@@ -622,6 +623,7 @@ What the hub and the launcher's connect step draw from.
     readinessLoading: { type: "boolean", description: "`true` until the readiness answer alone has settled. What can run is known before who may connect a provider, so a face that chooses by readiness (the launcher's composer or connect step) chooses on this.", required: true },
     readinessOf: { type: "ModelReadinessLookup", description: "", required: true, typeDescriptionLink: "#modelreadinesslookup" },
     refresh: { type: "() => void", description: "Asks the server again for readiness and the key list, after a key is saved or removed.", required: true },
+    retryManage: { type: "() => void", description: "Asks the server again who may save and remove keys." },
     viewer: { type: "ProviderViewer", description: "Who is looking: whether they may manage keys, and whether the server runs on this machine.", required: true, typeDescriptionLink: "#providerviewer" },
   }}
 />
