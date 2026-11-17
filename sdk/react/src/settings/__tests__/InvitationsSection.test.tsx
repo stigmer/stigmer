@@ -27,7 +27,7 @@
  * transport that records what the server was asked.
  */
 import { describe, it, expect, afterEach } from "vitest";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
 import { Stigmer, type DeploymentMode } from "@stigmer/client";
@@ -290,7 +290,7 @@ describe("InvitationsSection", () => {
       screen.getByRole("button", { name: "Revoke Oldest" }).click();
     });
     await act(async () => {
-      screen.getByRole("button", { name: "Revoke" }).click();
+      within(screen.getByRole("dialog")).getByRole("button", { name: "Revoke link" }).click();
     });
     await settle();
 
