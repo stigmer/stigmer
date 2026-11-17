@@ -121,7 +121,18 @@ export function writeSkill(skill: ExampleSkill, dir: string, force: boolean): Co
   return CommandResult.success(`Wrote the ${skill.name} skill into ${shown}`)
     .withData({ dir: shown, files: written, skill: skill.id })
     .hint(`Push it to your organization:  stigmer push skill ${shown}`)
-    .hint(`Then add it to an agent's skill_refs and apply the agent again.`);
+    .hint(`Then add these lines under the agent's spec: and apply it again:`)
+    .hint(skillRefsLines(skill.id));
+}
+
+/**
+ * The exact `skill_refs` lines that turn a pushed skill on for an agent, as
+ * its manifest carries them under `spec:` (a relative reference, so the
+ * manifest works in any organization). Spelled out because a bare
+ * "add it to skill_refs" left coding agents guessing the shape (stigmer#3233).
+ */
+export function skillRefsLines(slug: string): string {
+  return `skill_refs:\n    - kind: skill\n      slug: ${slug}`;
 }
 
 function writeFiles(dir: string, files: readonly { name: string; text: string }[], force: boolean): string[] {
