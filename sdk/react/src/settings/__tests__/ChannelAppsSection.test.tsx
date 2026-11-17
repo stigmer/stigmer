@@ -180,6 +180,8 @@ describe("ChannelAppsSection", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: /Edit Acme Slack/ }));
     expect(screen.getByRole("heading", { level: 2, name: "Acme Slack" })).toBeTruthy();
+    // The panel draws no second name under the page's title.
+    expect(screen.queryByRole("heading", { level: 3, name: "Acme Slack" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Channel apps" }));
     expect(screen.getByRole("heading", { level: 2, name: "Channel apps" })).toBeTruthy();
   });

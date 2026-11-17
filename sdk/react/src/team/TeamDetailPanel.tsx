@@ -29,6 +29,7 @@ import { TeamMembersPanel } from "./TeamMembersPanel.js";
 import { useDeleteTeam, useUpdateTeam } from "./useTeamMutations.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { Button } from "../button/Button.js";
+import { Section } from "../resource-detail/Section.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { Field, FieldError, TextArea, TextInput } from "../internal/form/index.js";
@@ -44,6 +45,12 @@ export interface TeamDetailPanelProps {
   readonly onDeleted?: () => void;
   /** Return to the list. */
   readonly onBack?: () => void;
+  /**
+   * Draw the team's name as the panel's heading. `true` (the default) where
+   * the panel stands alone; `false` where the page's own title already
+   * names the team (the settings page while one is open).
+   */
+  readonly showName?: boolean;
   readonly className?: string;
 }
 
@@ -58,6 +65,7 @@ export function TeamDetailPanel({
   onUpdated,
   onDeleted,
   onBack,
+  showName = true,
   className,
 }: TeamDetailPanelProps) {
   const teamId = team.metadata?.id ?? "";
@@ -68,7 +76,7 @@ export function TeamDetailPanel({
   const [editing, setEditing] = useState(false);
 
   return (
-    <div className={cn("stg:space-y-5", className)}>
+    <div className={cn("stg:space-y-4", className)}>
       <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
         <div className="stg:min-w-0">
           {onBack && (
@@ -78,16 +86,18 @@ export function TeamDetailPanel({
           )}
           {!editing && (
             <>
-              <h3 className="stg:text-foreground stg:truncate stg:text-sm stg:font-semibold">{name}</h3>
+              {showName && (
+                <h3 className="stg:text-foreground stg:truncate stg:text-sm stg:font-semibold">{name}</h3>
+              )}
               {description && (
-                <p className="stg:text-muted-foreground stg:mt-0.5 stg:text-xs">{description}</p>
+                <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">{description}</p>
               )}
             </>
           )}
         </div>
         {!editing && (
           <PermissionGate fail="closed" resource={gate} relation="can_edit">
-            <Button variant="ghost" size="xs" onClick={() => setEditing(true)}>
+            <Button variant="outline" size="xs" onClick={() => setEditing(true)}>
               Edit
             </Button>
           </PermissionGate>
@@ -115,9 +125,11 @@ export function TeamDetailPanel({
         />
       )}
 
-      <section aria-label="Members">
-        <TeamMembersPanel teamId={teamId} org={org} />
-      </section>
+      <Section title="Members">
+        <div className="stg:p-4">
+          <TeamMembersPanel teamId={teamId} org={org} showHeading={false} />
+        </div>
+      </Section>
 
       <PermissionGate fail="closed" resource={gate} relation="can_delete">
         <DeleteTeam teamId={teamId} name={name} onDeleted={onDeleted} />
@@ -228,16 +240,16 @@ function DeleteTeam({
   }, [confirm, deleteTeam, teamId, name, onDeleted]);
 
   return (
-    <div className="stg:border-t stg:border-border stg:pt-4">
-      <Button
-        variant="ghost"
-        size="xs"
-        onClick={() => void askToDelete()}
-        className="stg:text-destructive stg:hover:bg-destructive-subtle"
-      >
-        Delete team
-      </Button>
+    <Section title="Delete this team">
+      <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-3 stg:p-4">
+        <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
+          Everyone in {name} loses what was shared with the team. Nothing they made is deleted.
+        </p>
+        <Button variant="outline" size="sm" onClick={() => void askToDelete()}>
+          Delete team
+        </Button>
+      </div>
       <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
-    </div>
+    </Section>
   );
 }

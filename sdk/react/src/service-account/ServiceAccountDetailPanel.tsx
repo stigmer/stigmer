@@ -42,6 +42,7 @@ import { orgRoleOf } from "./org-role.js";
 import { ServiceAccountKeyListPanel } from "./ServiceAccountKeyListPanel.js";
 import { useDeleteServiceAccount } from "./useDeleteServiceAccount.js";
 import { Button } from "../button/Button.js";
+import { Section } from "../resource-detail/Section.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { FieldError, TextInput } from "../internal/form/index.js";
@@ -64,6 +65,12 @@ export interface ServiceAccountDetailPanelProps {
    * (documentation embeds) pass a frozen instant.
    */
   readonly now?: Date;
+  /**
+   * Draw the account's name as the panel's heading. `true` (the default)
+   * where the panel stands alone; `false` where the page's own title
+   * already names the account (the settings page while one is open).
+   */
+  readonly showName?: boolean;
 }
 
 /**
@@ -90,19 +97,20 @@ export function ServiceAccountDetailPanel({
   onBack,
   className,
   now,
+  showName = true,
 }: ServiceAccountDetailPanelProps) {
   const id = serviceAccount.metadata?.id ?? "";
   const name = serviceAccount.metadata?.name || id;
 
   return (
-    <div className={cn("stg:space-y-5", className)}>
+    <div className={cn("stg:space-y-4", className)}>
       {onBack && (
         <Button variant="ghost" size="xs" icon={<ArrowLeft className="stg:size-3" aria-hidden="true" />} onClick={onBack}>
           Service accounts
         </Button>
       )}
 
-      <NameSection serviceAccount={serviceAccount} onRenamed={onUpdated} />
+      <NameSection serviceAccount={serviceAccount} onRenamed={onUpdated} showName={showName} />
       <RoleSection
         accountId={id}
         name={name}
@@ -124,9 +132,11 @@ const SECTION_HEADING = "stg:text-xs stg:font-semibold stg:text-foreground";
 function NameSection({
   serviceAccount,
   onRenamed,
+  showName,
 }: {
   readonly serviceAccount: IdentityAccount;
   readonly onRenamed?: (serviceAccount: IdentityAccount) => void;
+  readonly showName: boolean;
 }) {
   const baseId = useId();
   const current = serviceAccount.metadata?.name ?? "";
@@ -167,15 +177,17 @@ function NameSection({
     return (
       <div className="stg:flex stg:items-center stg:justify-between stg:gap-3">
         <div className="stg:min-w-0">
-          <h3 className="stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">
-            {current}
-          </h3>
-          <p className="stg:text-xs stg:text-muted-foreground">
+          {showName && (
+            <h3 className="stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">
+              {current}
+            </h3>
+          )}
+          <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
             What its keys create says it was created by {current}.
           </p>
         </div>
         <Button
-          variant="ghost"
+          variant="outline"
           size="xs"
           onClick={() => {
             setDraft(current);
@@ -273,43 +285,44 @@ function RoleSection({
   }, [accountId, org, grant, current, revoke, refetchAccess, onChanged]);
 
   return (
-    <div className="stg:space-y-2">
-      <h4 className={SECTION_HEADING}>Organization role</h4>
-      <p className="stg:text-xs stg:text-muted-foreground">
-        {access.isLoading
-          ? "Reading its role…"
-          : current
-            ? `${name} acts with the ${iamRoleDisplayName(current.role)} role in this organization.`
-            : `${name} holds no role in this organization. Give it one so its keys can act.`}
-      </p>
-      <RoleSelector
-        kind={ApiResourceKind.organization}
-        selected={chosen}
-        onSelect={setSelected}
-        omitRoles={SERVICE_ACCOUNT_OMITTED_ROLES}
-        disabled={isWorking || access.isLoading}
-      />
-      {error && (
-        <FieldError>
-          {getUserMessage(error)}
-        </FieldError>
-      )}
-      {selected !== null && selected !== current?.role && (
-        <div className="stg:flex stg:items-center stg:gap-2">
-          <Button
-            size="xs"
-            onClick={() => void handleSave(selected)}
-            disabled={isWorking}
-            icon={isWorking ? <SpinnerIcon size={12} /> : undefined}
-          >
-            {isWorking ? "Changing role…" : "Save role"}
-          </Button>
-          <Button variant="ghost" size="xs" onClick={() => setSelected(null)} disabled={isWorking}>
-            Cancel
-          </Button>
-        </div>
-      )}
-    </div>
+    <Section title="Organization role">
+      <div className="stg:space-y-3 stg:p-4">
+        <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
+          {access.isLoading
+            ? "Reading its role…"
+            : current
+              ? `${name} acts with the ${iamRoleDisplayName(current.role)} role in this organization.`
+              : `${name} holds no role in this organization. Give it one so its keys can act.`}
+        </p>
+        <RoleSelector
+          kind={ApiResourceKind.organization}
+          selected={chosen}
+          onSelect={setSelected}
+          omitRoles={SERVICE_ACCOUNT_OMITTED_ROLES}
+          disabled={isWorking || access.isLoading}
+        />
+        {error && (
+          <FieldError>
+            {getUserMessage(error)}
+          </FieldError>
+        )}
+        {selected !== null && selected !== current?.role && (
+          <div className="stg:flex stg:items-center stg:gap-2">
+            <Button
+              size="xs"
+              onClick={() => void handleSave(selected)}
+              disabled={isWorking}
+              icon={isWorking ? <SpinnerIcon size={12} /> : undefined}
+            >
+              {isWorking ? "Changing role…" : "Save role"}
+            </Button>
+            <Button variant="ghost" size="xs" onClick={() => setSelected(null)} disabled={isWorking}>
+              Cancel
+            </Button>
+          </div>
+        )}
+      </div>
+    </Section>
   );
 }
 
@@ -334,48 +347,50 @@ function KeysSection({
   }, []);
 
   return (
-    <div className="stg:space-y-2">
-      <div className="stg:flex stg:items-center stg:justify-between">
-        <h4 className={SECTION_HEADING}>API keys</h4>
-        {flow.phase === "idle" && (
-          <Button variant="ghost" size="xs" onClick={() => setFlow({ phase: "creating" })}>
+    <Section
+      title="API keys"
+      headerActions={
+        flow.phase === "idle" && (
+          <Button variant="outline" size="xs" onClick={() => setFlow({ phase: "creating" })}>
             + New key
           </Button>
+        )
+      }
+    >
+      <div className="stg:space-y-3 stg:p-4">
+        {flow.phase === "creating" && (
+          <Card>
+            <CreateServiceAccountKeyForm
+              serviceAccountId={accountId}
+              serviceAccountName={name}
+              onCreated={(apiKey) => {
+                refetchRef.current?.();
+                setFlow({
+                  phase: "revealed",
+                  rawKey: apiKey.spec?.keyHash ?? "",
+                  keyName: apiKey.metadata?.name ?? "API key",
+                });
+              }}
+              onCancel={() => setFlow({ phase: "idle" })}
+            />
+          </Card>
         )}
-      </div>
 
-      {flow.phase === "creating" && (
-        <Card>
-          <CreateServiceAccountKeyForm
-            serviceAccountId={accountId}
-            serviceAccountName={name}
-            onCreated={(apiKey) => {
-              refetchRef.current?.();
-              setFlow({
-                phase: "revealed",
-                rawKey: apiKey.spec?.keyHash ?? "",
-                keyName: apiKey.metadata?.name ?? "API key",
-              });
-            }}
-            onCancel={() => setFlow({ phase: "idle" })}
+        {flow.phase === "revealed" && (
+          <ApiKeyCreatedAlert
+            rawKey={flow.rawKey}
+            keyName={flow.keyName}
+            onDismiss={() => setFlow({ phase: "idle" })}
           />
-        </Card>
-      )}
+        )}
 
-      {flow.phase === "revealed" && (
-        <ApiKeyCreatedAlert
-          rawKey={flow.rawKey}
-          keyName={flow.keyName}
-          onDismiss={() => setFlow({ phase: "idle" })}
+        <ServiceAccountKeyListPanel
+          serviceAccountId={accountId}
+          onRefetchRef={handleRefetchRef}
+          now={now}
         />
-      )}
-
-      <ServiceAccountKeyListPanel
-        serviceAccountId={accountId}
-        onRefetchRef={handleRefetchRef}
-        now={now}
-      />
-    </div>
+      </div>
+    </Section>
   );
 }
 
@@ -406,16 +421,16 @@ function DeleteSection({
   }, [confirm, deleteServiceAccount, accountId, name, onDeleted]);
 
   return (
-    <div className="stg:border-t stg:border-border stg:pt-4">
-      <Button
-        variant="ghost"
-        size="xs"
-        onClick={askToDelete}
-        className="stg:text-destructive stg:hover:bg-destructive-subtle"
-      >
-        Delete service account
-      </Button>
+    <Section title="Delete this service account">
+      <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-3 stg:p-4">
+        <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
+          Its keys stop working at once. What it created stays, still saying {name} created it.
+        </p>
+        <Button variant="outline" size="sm" onClick={askToDelete}>
+          Delete service account
+        </Button>
+      </div>
       <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
-    </div>
+    </Section>
   );
 }

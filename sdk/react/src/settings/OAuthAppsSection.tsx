@@ -94,13 +94,12 @@ export function OAuthAppsSection() {
           <CreateOAuthAppForm org={org} onCreated={handleCreated} onCancel={() => setFlow({ phase: "idle" })} />
         </Card>
       ) : flow.phase === "editing" ? (
-        <Card>
-          <OAuthAppDetailPanel
-            oauthApp={flow.oauthApp}
-            onUpdated={handleUpdated}
-            onDeleted={handleDeleted}
-          />
-        </Card>
+        <OAuthAppDetailPanel
+          showName={false}
+          oauthApp={flow.oauthApp}
+          onUpdated={handleUpdated}
+          onDeleted={handleDeleted}
+        />
       ) : (
         <OAuthAppListPanel
           org={org}

@@ -43,6 +43,11 @@ export interface TeamMembersPanelProps {
   readonly teamId: string;
   /** The organization's id (`metadata.id`), whose members can be added. */
   readonly org: string;
+  /**
+   * Draw the "Members" heading with its count. `true` (the default) where
+   * the panel stands alone; `false` inside a card whose header names it.
+   */
+  readonly showHeading?: boolean;
   readonly className?: string;
 }
 
@@ -52,7 +57,7 @@ export interface TeamMembersPanelProps {
  *
  * All visual properties flow through `--stgm-*` design tokens.
  */
-export function TeamMembersPanel({ teamId, org, className }: TeamMembersPanelProps) {
+export function TeamMembersPanel({ teamId, org, showHeading = true, className }: TeamMembersPanelProps) {
   const team = useMemo(
     () => ({ kind: "team", id: teamId, resourceKind: ApiResourceKind.team }),
     [teamId],
@@ -95,12 +100,14 @@ export function TeamMembersPanel({ teamId, org, className }: TeamMembersPanelPro
 
   return (
     <div className={cn("stg:space-y-3", className)}>
-      <div className="stg:flex stg:items-center stg:gap-2">
-        <h4 className="stg:text-xs stg:font-semibold stg:text-foreground">Members</h4>
-        {!isLoading && accessList.length > 0 && (
-          <Tag>{accessList.length}</Tag>
-        )}
-      </div>
+      {showHeading && (
+        <div className="stg:flex stg:items-center stg:gap-2">
+          <h4 className="stg:text-xs stg:font-semibold stg:text-foreground">Members</h4>
+          {!isLoading && accessList.length > 0 && (
+            <Tag>{accessList.length}</Tag>
+          )}
+        </div>
+      )}
 
       {isLoading && <p className="stg:text-xs stg:text-muted-foreground">Loading members...</p>}
 

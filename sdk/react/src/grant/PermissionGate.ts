@@ -75,7 +75,9 @@ export function PermissionGate({
   loading = null,
   fail = "open",
 }: PermissionGateProps): ReactNode {
-  const { allowed, isLoading } = useCheckPermission(resource, relation, { fail });
+  const { allowed, isLoading } = useCheckPermission(resource, relation, {
+    fail,
+  });
 
   if (isLoading) return loading;
   if (!allowed) return fallback;

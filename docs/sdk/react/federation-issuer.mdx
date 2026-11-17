@@ -298,6 +298,7 @@ All visual properties flow through `--stgm-*` design tokens.
     federationIssuer: { type: "FederationIssuer", description: "The federation issuer resource to display and edit.", required: true, typeDescriptionLink: "/docs/sdk/resources/federation-issuer" },
     onBack: { type: "() => void", description: "Fired when the user clicks the back button." },
     onUpdated: { type: "(issuer: FederationIssuer) => void", description: "Fired with the updated resource after a successful save." },
+    showName: { type: "boolean", description: "Draw the issuer's name and handle as the panel's heading. `true` (the default) where the panel stands alone; `false` where the page's own title already names the issuer (the settings page while one is open)." },
   }}
 />
 

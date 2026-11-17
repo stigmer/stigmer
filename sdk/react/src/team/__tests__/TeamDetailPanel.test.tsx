@@ -127,10 +127,10 @@ describe("TeamDetailPanel delete refusal", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Delete team" }));
-    expect(screen.getByText(/loses what was shared with the team/)).toBeTruthy();
+    expect(within(screen.getByRole("dialog")).getByText(/loses what was shared with the team/)).toBeTruthy();
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" }));
 
-    expect(screen.queryByText(/loses what was shared with the team/)).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.getAllByRole("button", { name: "Delete team" })).toHaveLength(1);
     expect(del).not.toHaveBeenCalled();
   });

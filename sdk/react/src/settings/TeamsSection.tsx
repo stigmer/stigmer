@@ -116,15 +116,14 @@ export function TeamsSection() {
           <CreateTeamForm org={orgId} onCreated={handleCreated} onCancel={() => setFlow({ phase: "idle" })} />
         </Card>
       ) : flow.phase === "viewing" ? (
-        <Card>
-          <TeamDetailPanel
-            key={flow.team.metadata?.id}
-            team={flow.team}
-            org={orgId}
-            onUpdated={handleUpdated}
-            onDeleted={handleDeleted}
-          />
-        </Card>
+        <TeamDetailPanel
+          showName={false}
+          key={flow.team.metadata?.id}
+          team={flow.team}
+          org={orgId}
+          onUpdated={handleUpdated}
+          onDeleted={handleDeleted}
+        />
       ) : (
         <TeamListPanel
           teams={list.teams}

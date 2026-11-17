@@ -120,15 +120,14 @@ export function ServiceAccountsSection() {
           <ServiceAccountListPanel org={org} onRefetchRef={handleRefetchRef} />
         </div>
       ) : flow.phase === "viewing" ? (
-        <Card>
-          <ServiceAccountDetailPanel
-            key={flow.serviceAccount.metadata?.id ?? ""}
-            serviceAccount={flow.serviceAccount}
-            org={org}
-            onUpdated={(serviceAccount) => setFlow({ phase: "viewing", serviceAccount })}
-            onDeleted={backToList}
-          />
-        </Card>
+        <ServiceAccountDetailPanel
+          showName={false}
+          key={flow.serviceAccount.metadata?.id ?? ""}
+          serviceAccount={flow.serviceAccount}
+          org={org}
+          onUpdated={(serviceAccount) => setFlow({ phase: "viewing", serviceAccount })}
+          onDeleted={backToList}
+        />
       ) : (
         <ServiceAccountListPanel
           org={org}

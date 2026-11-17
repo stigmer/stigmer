@@ -20,6 +20,7 @@ import { PermissionGate } from "../grant/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { Button } from "../button/Button.js";
+import { Section } from "../resource-detail/Section.js";
 import { Tag } from "../internal/surface/Tag.js";
 import { FIELD_LABEL_CLASSES, FieldError, TextInput, ReadOnlyField, ReadOnlyFields } from "../internal/form/index.js";
 
@@ -33,6 +34,12 @@ export interface FederationIssuerDetailPanelProps {
   readonly onBack?: () => void;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
+  /**
+   * Draw the issuer's name and handle as the panel's heading. `true` (the
+   * default) where the panel stands alone; `false` where the page's own
+   * title already names the issuer (the settings page while one is open).
+   */
+  readonly showName?: boolean;
 }
 
 /**
@@ -66,6 +73,7 @@ export function FederationIssuerDetailPanel({
   onUpdated,
   onBack,
   className,
+  showName = true,
 }: FederationIssuerDetailPanelProps) {
   const baseId = useId();
   const spec = federationIssuer.spec;
@@ -158,11 +166,13 @@ export function FederationIssuerDetailPanel({
               Back to list
             </Button>
           )}
-          <h3 className="stg:text-foreground stg:truncate stg:text-sm stg:font-semibold">
-            {spec?.displayName || meta?.name || "Federation Issuer"}
-          </h3>
+          {showName && (
+            <h3 className="stg:text-foreground stg:truncate stg:text-sm stg:font-semibold">
+              {spec?.displayName || meta?.name || "Federation Issuer"}
+            </h3>
+          )}
           <div className="stg:flex stg:items-center stg:gap-2">
-            {meta?.slug && (
+            {showName && meta?.slug && (
               <span className="stg:text-muted-foreground stg:font-mono stg:text-xs">
                 {meta.slug}
               </span>
@@ -177,7 +187,7 @@ export function FederationIssuerDetailPanel({
             resource={{ kind: "federation_issuer", id: meta?.id ?? "" }}
             relation="can_edit"
           >
-            <Button variant="ghost" onClick={enterEdit}>
+            <Button variant="outline" size="xs" onClick={enterEdit}>
               Edit
             </Button>
           </PermissionGate>
@@ -293,53 +303,25 @@ function ViewMode({
   updatedAt?: Timestamp;
 }) {
   return (
-    <ReadOnlyFields>
-      <Field label="JWKS URI" value={spec?.jwksUri} mono />
-      <Field
-        label="Allowed issuers"
-        value={spec?.allowedIssuers.join(", ")}
-        mono
-      />
-      <Field label="Expected audience" value={spec?.expectedAudience} mono />
-      {spec?.userinfoEndpoint && (
-        <Field label="Userinfo endpoint" value={spec.userinfoEndpoint} mono />
-      )}
-      {/* Sign-in settings */}
-      {spec && (
-        <>
-          <Field
-            label="Create accounts on sign-in"
-            value={spec.createAccountsOnSignIn ? "On" : "Off"}
-          />
-          <Field
-            label="Sign-in role"
-            value={formatSignInRole(spec.signInRole)}
-          />
-          {spec.externalIdClaim && (
-            <Field
-              label="Customer id claim"
-              value={spec.externalIdClaim}
-              mono
-            />
-          )}
-        </>
-      )}
-
-      <>
-        {createdAt && (
-          <Field
-            label="Created"
-            value={formatDate(timestampDate(createdAt))}
-          />
-        )}
-        {updatedAt && (
-          <Field
-            label="Updated"
-            value={formatDate(timestampDate(updatedAt))}
-          />
-        )}
-      </>
-    </ReadOnlyFields>
+    <>
+      <Section title="How tokens are checked">
+        <ReadOnlyFields className="stg:p-4">
+          <Field label="JWKS URI" value={spec?.jwksUri} mono />
+          <Field label="Allowed issuers" value={spec?.allowedIssuers.join(", ")} mono />
+          <Field label="Expected audience" value={spec?.expectedAudience} mono />
+          {spec?.userinfoEndpoint && <Field label="Userinfo endpoint" value={spec.userinfoEndpoint} mono />}
+          {spec?.externalIdClaim && <Field label="Customer id claim" value={spec.externalIdClaim} mono />}
+        </ReadOnlyFields>
+      </Section>
+      <Section title="When someone signs in">
+        <ReadOnlyFields className="stg:p-4">
+          {spec && <Field label="Create accounts on sign-in" value={spec.createAccountsOnSignIn ? "On" : "Off"} />}
+          {spec && <Field label="Sign-in role" value={formatSignInRole(spec.signInRole)} />}
+          {createdAt && <Field label="Created" value={formatDate(timestampDate(createdAt))} />}
+          {updatedAt && <Field label="Updated" value={formatDate(timestampDate(updatedAt))} />}
+        </ReadOnlyFields>
+      </Section>
+    </>
   );
 }
 

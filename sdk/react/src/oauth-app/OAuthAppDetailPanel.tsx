@@ -18,6 +18,7 @@ import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { parseAddressList } from "./addresses.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { Button } from "../button/Button.js";
+import { Section } from "../resource-detail/Section.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { FIELD_LABEL_CLASSES, FieldError, Select, TextInput, ReadOnlyField, ReadOnlyFields } from "../internal/form/index.js";
@@ -38,6 +39,12 @@ export interface OAuthAppDetailPanelProps {
   readonly onBack?: () => void;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
+  /**
+   * Draw the app's name and handle as the panel's heading. `true` (the
+   * default) where the panel stands alone; `false` where the page's own
+   * title already names the app (the settings page while one is open).
+   */
+  readonly showName?: boolean;
 }
 
 /**
@@ -79,6 +86,7 @@ export function OAuthAppDetailPanel({
   onDeleted,
   onBack,
   className,
+  showName = true,
 }: OAuthAppDetailPanelProps) {
   const baseId = useId();
   const spec = oauthApp.spec;
@@ -225,13 +233,17 @@ export function OAuthAppDetailPanel({
               Back to list
             </Button>
           )}
-          <h3 className="stg:text-foreground stg:truncate stg:text-sm stg:font-semibold">
-            {spec?.provider || meta?.name || "OAuth App"}
-          </h3>
-          {meta?.slug && (
-            <span className="stg:text-muted-foreground stg:font-mono stg:text-xs">
-              {meta.slug}
-            </span>
+          {showName && (
+            <>
+              <h3 className="stg:text-foreground stg:truncate stg:text-sm stg:font-semibold">
+                {spec?.provider || meta?.name || "OAuth App"}
+              </h3>
+              {meta?.slug && (
+                <span className="stg:text-muted-foreground stg:font-mono stg:text-xs">
+                  {meta.slug}
+                </span>
+              )}
+            </>
           )}
         </div>
 
@@ -242,22 +254,8 @@ export function OAuthAppDetailPanel({
               resource={{ kind: "oauth_app", id: meta?.id ?? "" }}
               relation="can_edit"
             >
-              <Button variant="ghost" size="xs" onClick={enterEdit}>
+              <Button variant="outline" size="xs" onClick={enterEdit}>
                 Edit
-              </Button>
-            </PermissionGate>
-            <PermissionGate
-              fail="closed"
-              resource={{ kind: "oauth_app", id: meta?.id ?? "" }}
-              relation="can_delete"
-            >
-              <Button
-                variant="ghost"
-                size="xs"
-                onClick={() => void askToDelete()}
-                className="stg:text-destructive stg:hover:bg-destructive-subtle"
-              >
-                Delete
               </Button>
             </PermissionGate>
           </div>
@@ -279,11 +277,29 @@ export function OAuthAppDetailPanel({
 
       {/* Body */}
       {mode === "view" ? (
-        <ViewMode
-          spec={spec}
-          createdAt={createdAt}
-          updatedAt={updatedAt}
-        />
+        <>
+          <ViewMode
+            spec={spec}
+            createdAt={createdAt}
+            updatedAt={updatedAt}
+          />
+          <PermissionGate
+            fail="closed"
+            resource={{ kind: "oauth_app", id: meta?.id ?? "" }}
+            relation="can_delete"
+          >
+            <Section title="Delete this app">
+              <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-3 stg:p-4">
+                <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
+                  Sign-ins at its addresses go back to Stigmer&apos;s own app, if there is one.
+                </p>
+                <Button variant="outline" size="sm" onClick={() => void askToDelete()}>
+                  Delete app
+                </Button>
+              </div>
+            </Section>
+          </PermissionGate>
+        </>
       ) : (
         <form onSubmit={handleSave} className="stg:space-y-3">
           <FieldInput
@@ -524,66 +540,74 @@ function ViewMode({
   updatedAt?: Timestamp;
 }) {
   return (
-    <ReadOnlyFields>
-      <Field label="Provider" value={spec?.provider} />
-      <Field label="Client ID" value={spec?.clientId} mono />
-      <Field label="Client secret" value="••••••••" />
-      <Field label="Authorization URL" value={spec?.authorizationUrl} mono />
-      <Field label="Token URL" value={spec?.tokenUrl} mono />
-      <Field label="Addresses" value={spec?.addresses.join(", ")} mono />
-      {spec?.scopes && spec.scopes.length > 0 && (
-        <Field label="Scopes" value={spec.scopes.join(", ")} mono />
-      )}
-      {spec?.userinfoUrl && (
-        <Field label="Userinfo URL" value={spec.userinfoUrl} mono />
-      )}
-      {spec?.scopeParameterName && (
-        <Field
-          label="Scope parameter name"
-          value={spec.scopeParameterName}
-          mono
-        />
-      )}
-      {spec?.tokenEndpointAuthMethod !== undefined &&
-        spec.tokenEndpointAuthMethod !==
-          TokenEndpointAuthMethod.UNSPECIFIED && (
-          <Field
-            label="Token endpoint auth method"
-            value={
-              TOKEN_AUTH_METHOD_LABELS[spec.tokenEndpointAuthMethod] ??
-              "Unknown"
-            }
-            mono
-          />
-        )}
-      {spec?.vendorApprovalStatus !== undefined &&
-        spec.vendorApprovalStatus !== VendorApprovalStatus.UNSPECIFIED && (
-          <Field
-            label="Vendor approval"
-            value={
-              APPROVAL_STATUS_LABELS[spec.vendorApprovalStatus] ??
-              "Unknown"
-            }
-          />
-        )}
-      {spec?.vendorApprovalDocsUrl && (
-        <Field label="Approval docs" value={spec.vendorApprovalDocsUrl} mono />
-      )}
-      <>
-        {createdAt && (
-          <Field
-            label="Created"
-            value={formatDate(timestampDate(createdAt))}
-          />
-        )}
-        {updatedAt && (
-          <Field
-            label="Updated"
-            value={formatDate(timestampDate(updatedAt))}
-          />
-        )}
-      </>
-    </ReadOnlyFields>
+    <>
+      <Section title="The app">
+        <ReadOnlyFields className="stg:p-4">
+          <Field label="Provider" value={spec?.provider} />
+          <Field label="Client ID" value={spec?.clientId} mono />
+          <Field label="Client secret" value="••••••••" />
+          <Field label="Addresses" value={spec?.addresses.join(", ")} mono />
+          {spec?.scopes && spec.scopes.length > 0 && (
+            <Field label="Scopes" value={spec.scopes.join(", ")} mono />
+          )}
+          {spec?.userinfoUrl && (
+            <Field label="Userinfo URL" value={spec.userinfoUrl} mono />
+          )}
+          {spec?.scopeParameterName && (
+            <Field
+              label="Scope parameter name"
+              value={spec.scopeParameterName}
+              mono
+            />
+          )}
+          {spec?.tokenEndpointAuthMethod !== undefined &&
+            spec.tokenEndpointAuthMethod !==
+              TokenEndpointAuthMethod.UNSPECIFIED && (
+              <Field
+                label="Token endpoint auth method"
+                value={
+                  TOKEN_AUTH_METHOD_LABELS[spec.tokenEndpointAuthMethod] ??
+                  "Unknown"
+                }
+                mono
+              />
+            )}
+          {spec?.vendorApprovalStatus !== undefined &&
+            spec.vendorApprovalStatus !== VendorApprovalStatus.UNSPECIFIED && (
+              <Field
+                label="Vendor approval"
+                value={
+                  APPROVAL_STATUS_LABELS[spec.vendorApprovalStatus] ??
+                  "Unknown"
+                }
+              />
+            )}
+          {spec?.vendorApprovalDocsUrl && (
+            <Field label="Approval docs" value={spec.vendorApprovalDocsUrl} mono />
+          )}
+          <>
+            {createdAt && (
+              <Field
+                label="Created"
+                value={formatDate(timestampDate(createdAt))}
+              />
+            )}
+            {updatedAt && (
+              <Field
+                label="Updated"
+                value={formatDate(timestampDate(updatedAt))}
+              />
+            )}
+          </>
+        </ReadOnlyFields>
+      </Section>
+      <Section title="Its endpoints">
+        <ReadOnlyFields className="stg:p-4">
+          <Field label="Authorization URL" value={spec?.authorizationUrl} mono />
+          <Field label="Token URL" value={spec?.tokenUrl} mono />
+        </ReadOnlyFields>
+      </Section>
+    </>
   );
 }
 

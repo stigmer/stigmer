@@ -26,6 +26,7 @@ import { PermissionGate } from "../grant/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { Button } from "../button/Button.js";
+import { Section } from "../resource-detail/Section.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 
@@ -59,6 +60,12 @@ export interface ChannelAppDetailPanelProps {
   readonly onBack?: () => void;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
+  /**
+   * Draw the app's name and id as the panel's heading. `true` (the default)
+   * where the panel stands alone; `false` where the page's own title
+   * already names the app (the settings page while one is open).
+   */
+  readonly showName?: boolean;
 }
 
 /**
@@ -91,6 +98,7 @@ export function ChannelAppDetailPanel({
   onDeleted,
   onBack,
   className,
+  showName = true,
 }: ChannelAppDetailPanelProps) {
   const { deleteApp } = useDeleteChannelApp();
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
@@ -115,12 +123,16 @@ export function ChannelAppDetailPanel({
   }, [confirm, deleteApp, appId, name, onDeleted]);
 
   return (
-    <div className={cn("stg:space-y-5", className)}>
+    <div className={cn("stg:space-y-4", className)}>
       <div className="stg:flex stg:items-center stg:justify-between">
-        <div className="stg:min-w-0">
-          <h3 className="stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">{name}</h3>
-          <p className="stg:font-mono stg:text-2xs stg:text-muted-foreground">{appId}</p>
-        </div>
+        {showName ? (
+          <div className="stg:min-w-0">
+            <h3 className="stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">{name}</h3>
+            <p className="stg:font-mono stg:text-2xs stg:text-muted-foreground">{appId}</p>
+          </div>
+        ) : (
+          <span />
+        )}
         {onBack && (
           <Button variant="ghost" size="xs" icon={<ArrowLeft className="stg:size-3" aria-hidden="true" />} onClick={onBack}>
             Back
@@ -156,16 +168,16 @@ export function ChannelAppDetailPanel({
         resource={{ kind: "channel_app", id: appId }}
         relation="can_delete"
       >
-        <section className="stg:border-t stg:border-border stg:pt-3" aria-label="Danger zone">
-          <Button
-            variant="ghost"
-            size="xs"
-            onClick={() => void askToDelete()}
-            className="stg:text-destructive stg:hover:bg-destructive-subtle"
-          >
-            Delete channel app
-          </Button>
-        </section>
+        <Section title="Delete this app">
+          <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-3 stg:p-4">
+            <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
+              Channels that use it stop answering.
+            </p>
+            <Button variant="outline" size="sm" onClick={() => void askToDelete()}>
+              Delete channel app
+            </Button>
+          </div>
+        </Section>
       </PermissionGate>
       <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
@@ -254,8 +266,8 @@ function SlackAppDetail({
   return (
     <>
       {/* Finish setup: the per-app webhook URL only exists after creation */}
-      <section className="stg:space-y-2" aria-label="Finish setup in Slack">
-        <p className="stg:text-xs stg:font-medium stg:text-foreground">Finish setup in Slack</p>
+      <Section title="Finish setup in Slack">
+        <div className="stg:space-y-3 stg:p-4">
         <p className="stg:text-2xs stg:text-muted-foreground">
           On the app&apos;s <span className="stg:font-medium">Event
           Subscriptions</span> page, enable events and set the request URL
@@ -273,7 +285,8 @@ function SlackAppDetail({
         )}
         <CopyRow label="OAuth redirect URL" value={redirectUrl} />
         <CopyBlock label="Completed app manifest" value={manifest} />
-      </section>
+      </div>
+      </Section>
 
       {/* Credential rotation */}
       <PermissionGate
@@ -281,9 +294,9 @@ function SlackAppDetail({
         resource={{ kind: "channel_app", id: appId }}
         relation="can_edit"
       >
-        <form onSubmit={handleSave} className="stg:space-y-3" aria-label="Credentials">
-          <p className="stg:text-xs stg:font-medium stg:text-foreground">Credentials</p>
-          <p className="stg:-mt-2 stg:text-2xs stg:text-muted-foreground">
+        <Section title="Credentials">
+          <form onSubmit={handleSave} className="stg:space-y-3 stg:p-4" aria-label="Credentials">
+          <p className="stg:m-0 stg:text-2xs stg:text-muted-foreground">
             Secrets show as <code className="stg:font-mono">***REDACTED***</code>;
             leave a field untouched to keep its stored value, or paste a new
             one to rotate it.
@@ -329,6 +342,7 @@ function SlackAppDetail({
             Save credentials
           </Button>
         </form>
+        </Section>
       </PermissionGate>
     </>
   );
@@ -411,8 +425,8 @@ function WhatsAppAppDetail({
     <>
       {/* Finish setup: the per-app webhook URL only exists after creation,
           and the verify token is only visible in the create handoff. */}
-      <section className="stg:space-y-2" aria-label="Finish setup in Meta">
-        <p className="stg:text-xs stg:font-medium stg:text-foreground">Finish setup in Meta</p>
+      <Section title="Finish setup in Meta">
+        <div className="stg:space-y-3 stg:p-4">
         <p className="stg:text-2xs stg:text-muted-foreground">
           On the app&apos;s <span className="stg:font-medium">WhatsApp →
           Configuration</span> page, set the callback URL and verify token
@@ -448,7 +462,8 @@ function WhatsAppAppDetail({
             </p>
           </div>
         )}
-      </section>
+      </div>
+      </Section>
 
       {/* Credential rotation */}
       <PermissionGate
@@ -456,9 +471,9 @@ function WhatsAppAppDetail({
         resource={{ kind: "channel_app", id: appId }}
         relation="can_edit"
       >
-        <form onSubmit={handleSave} className="stg:space-y-3" aria-label="Credentials">
-          <p className="stg:text-xs stg:font-medium stg:text-foreground">Credentials</p>
-          <p className="stg:-mt-2 stg:text-2xs stg:text-muted-foreground">
+        <Section title="Credentials">
+          <form onSubmit={handleSave} className="stg:space-y-3 stg:p-4" aria-label="Credentials">
+          <p className="stg:m-0 stg:text-2xs stg:text-muted-foreground">
             Secrets show as <code className="stg:font-mono">***REDACTED***</code>;
             leave a field untouched to keep its stored value, or paste a new
             one to rotate it.
@@ -515,6 +530,7 @@ function WhatsAppAppDetail({
             Save credentials
           </Button>
         </form>
+        </Section>
       </PermissionGate>
     </>
   );

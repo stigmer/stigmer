@@ -131,6 +131,17 @@ function renderPanel(props: Partial<Parameters<typeof ServiceAccountDetailPanel>
 }
 
 describe("ServiceAccountDetailPanel", () => {
+  it("names the account as its heading alone, unless the page already does, and groups its parts as cards", () => {
+    renderPanel();
+    expect(screen.getByRole("heading", { level: 3, name: "ci-deploy" })).toBeTruthy();
+    cleanup();
+    renderPanel({ showName: false });
+    expect(screen.queryByRole("heading", { level: 3, name: "ci-deploy" })).toBeNull();
+    for (const part of ["Organization role", "API keys", "Delete this service account"]) {
+      expect(screen.getByRole("heading", { level: 3, name: part })).toBeTruthy();
+    }
+  });
+
   it("renames through the account's own update, naming the display name alone on its id", async () => {
     const onUpdated = vi.fn();
     renderPanel({ onUpdated });
@@ -194,7 +205,7 @@ describe("ServiceAccountDetailPanel", () => {
     renderPanel({ onDeleted });
     fireEvent.click(screen.getByRole("button", { name: "Delete service account" }));
     expect(screen.getByRole("heading", { name: "Delete ci-deploy?" })).toBeTruthy();
-    expect(screen.getByText(/Its keys stop working at once/)).toBeTruthy();
+    expect(within(screen.getByRole("dialog")).getByText(/Its keys stop working at once/)).toBeTruthy();
     expect(calls.log.some((l) => l.startsWith("delete account"))).toBe(false);
 
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete service account" }));

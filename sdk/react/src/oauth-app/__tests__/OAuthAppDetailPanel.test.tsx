@@ -116,7 +116,7 @@ describe("OAuthAppDetailPanel edit and delete gates", () => {
     }));
     renderPanel(vi.fn(), checkMyPermission);
 
-    await screen.findByRole("button", { name: "Delete" });
+    await screen.findByRole("button", { name: "Delete app" });
     expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
     const asked = checkMyPermission.mock.calls.map(
       ([input]) =>
@@ -147,7 +147,7 @@ describe("OAuthAppDetailPanel edit and delete gates", () => {
     await waitFor(() =>
       expect(screen.queryByRole("button", { name: "Edit" })).toBeNull(),
     );
-    expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Delete app" })).toBeNull();
   });
 });
 
@@ -196,7 +196,7 @@ describe("OAuthAppDetailPanel delete", () => {
       </StigmerContext.Provider>,
     );
 
-    fireEvent.click(await screen.findByRole("button", { name: "Delete" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Delete app" }));
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByRole("heading", { name: "Delete github?" })).toBeTruthy();
     expect(remove).not.toHaveBeenCalled();

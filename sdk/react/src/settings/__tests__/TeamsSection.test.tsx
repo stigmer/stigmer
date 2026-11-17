@@ -165,6 +165,8 @@ describe("TeamsSection", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: /Site Reliability/ }));
     expect(screen.getByRole("heading", { level: 2, name: "Site Reliability" })).toBeTruthy();
+    // The panel draws no second name under the page's title.
+    expect(screen.queryByRole("heading", { level: 3, name: "Site Reliability" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Teams" }));
     expect(screen.getByRole("heading", { level: 2, name: "Teams" })).toBeTruthy();
   });

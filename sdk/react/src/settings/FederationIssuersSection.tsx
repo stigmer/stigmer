@@ -97,12 +97,11 @@ export function FederationIssuersSection() {
           <FederationIssuerWizard org={orgId} onCreated={handleCreated} onCancel={() => setFlow({ phase: "idle" })} />
         </Card>
       ) : flow.phase === "editing" ? (
-        <Card>
-          <FederationIssuerDetailPanel
-            federationIssuer={flow.federationIssuer}
-            onUpdated={handleUpdated}
-          />
-        </Card>
+        <FederationIssuerDetailPanel
+          showName={false}
+          federationIssuer={flow.federationIssuer}
+          onUpdated={handleUpdated}
+        />
       ) : (
         <FederationIssuerListPanel
           org={orgId}

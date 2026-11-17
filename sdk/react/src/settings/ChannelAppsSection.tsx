@@ -127,14 +127,13 @@ export function ChannelAppsSection() {
           <CreateChannelAppForm org={org} onCreated={handleCreated} onCancel={() => setFlow({ phase: "idle" })} />
         </Card>
       ) : flow.phase === "editing" ? (
-        <Card>
-          <ChannelAppDetailPanel
-            channelApp={flow.channelApp}
-            createHandoff={flow.createHandoff}
-            onUpdated={handleUpdated}
-            onDeleted={handleDeleted}
-          />
-        </Card>
+        <ChannelAppDetailPanel
+          showName={false}
+          channelApp={flow.channelApp}
+          createHandoff={flow.createHandoff}
+          onUpdated={handleUpdated}
+          onDeleted={handleDeleted}
+        />
       ) : (
         <ChannelAppListPanel
           org={org}

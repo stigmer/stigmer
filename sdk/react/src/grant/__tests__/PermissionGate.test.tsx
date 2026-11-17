@@ -11,9 +11,14 @@ import type { ReactNode } from "react";
 import { StigmerContext } from "@stigmer/react-core";
 import { PermissionGate } from "../PermissionGate";
 
-function renderGate(checkMyPermission: ReturnType<typeof vi.fn>, gate: ReactNode) {
+function renderGate(
+  checkMyPermission: ReturnType<typeof vi.fn>,
+  gate: ReactNode,
+) {
   const client = { grant: { checkMyPermission } } as never;
-  return render(<StigmerContext.Provider value={client}>{gate}</StigmerContext.Provider>);
+  return render(
+    <StigmerContext.Provider value={client}>{gate}</StigmerContext.Provider>,
+  );
 }
 
 const RESOURCE = { kind: "team", id: "team_1" } as const;
@@ -24,7 +29,11 @@ describe("PermissionGate", () => {
   it("renders its children when the check errors, by default", async () => {
     renderGate(
       vi.fn().mockRejectedValue(new Error("check timed out")),
-      <PermissionGate resource={RESOURCE} relation="can_edit" fallback={<span>fallback</span>}>
+      <PermissionGate
+        resource={RESOURCE}
+        relation="can_edit"
+        fallback={<span>fallback</span>}
+      >
         <button type="button">Edit</button>
       </PermissionGate>,
     );
@@ -34,7 +43,12 @@ describe("PermissionGate", () => {
   it("renders its fallback when the check errors under fail closed", async () => {
     renderGate(
       vi.fn().mockRejectedValue(new Error("check timed out")),
-      <PermissionGate resource={RESOURCE} relation="can_edit" fail="closed" fallback={<span>fallback</span>}>
+      <PermissionGate
+        resource={RESOURCE}
+        relation="can_edit"
+        fail="closed"
+        fallback={<span>fallback</span>}
+      >
         <button type="button">Edit</button>
       </PermissionGate>,
     );
@@ -55,7 +69,11 @@ describe("PermissionGate", () => {
   it("renders its fallback on the server's no in either mode", async () => {
     renderGate(
       vi.fn().mockResolvedValue({ isAuthorized: false }),
-      <PermissionGate resource={RESOURCE} relation="can_edit" fallback={<span>fallback</span>}>
+      <PermissionGate
+        resource={RESOURCE}
+        relation="can_edit"
+        fallback={<span>fallback</span>}
+      >
         <button type="button">Edit</button>
       </PermissionGate>,
     );

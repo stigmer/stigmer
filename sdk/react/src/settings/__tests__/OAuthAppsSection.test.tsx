@@ -159,6 +159,8 @@ describe("OAuthAppsSection", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Edit slack" }));
     expect(screen.getByRole("heading", { level: 2, name: "slack" })).toBeTruthy();
+    // The panel draws no second name under the page's title.
+    expect(screen.queryByRole("heading", { level: 3, name: "slack" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "OAuth apps" }));
     expect(screen.getByRole("heading", { level: 2, name: "OAuth apps" })).toBeTruthy();
   });
