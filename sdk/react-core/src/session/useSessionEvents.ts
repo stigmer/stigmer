@@ -149,7 +149,8 @@ const INTERRUPTED_MESSAGE = "The connection to the conversation was interrupted.
  * A session follow never completes on its own: a turn ending is read from
  * the fold (`Turn.ended`), never from the stream.
  *
- * Pass `null` to follow nothing. A new id resets the fold.
+ * Pass `null` to follow nothing. A new id starts from an empty fold, from
+ * the very render that carries it: no render returns another session's turns.
  *
  * @example
  * ```tsx
@@ -235,26 +236,20 @@ export function useSessionEvents(
   const configRef = useRef({ autoReconnect, reconnectOptions });
   configRef.current = { autoReconnect, reconnectOptions };
 
-  // The session the store holds, so another session resets it while a
-  // reconnect of the same one keeps the conversation on screen.
-  const prevSessionIdRef = useRef<string | null>(null);
-
   // controller, store and streamRate are ref-backed and deliberately absent
   // from the dependencies: useStreamRate returns a new object per render.
   // reconnect changes only with the store, so it is absent too.
   useEffect(() => {
+    // The store holds one session: another session (or none) starts it over,
+    // while a reconnect of the same one keeps the conversation on screen.
+    if (store.getSessionId() !== sessionId) {
+      store.reset(sessionId);
+      connectAutoRetriedRef.current = false;
+    }
     if (!sessionId) {
       controller.reset();
-      store.reset();
-      prevSessionIdRef.current = null;
-      connectAutoRetriedRef.current = false;
       return;
     }
-    if (prevSessionIdRef.current !== null && prevSessionIdRef.current !== sessionId) {
-      store.reset();
-      connectAutoRetriedRef.current = false;
-    }
-    prevSessionIdRef.current = sessionId;
 
     const abort = new AbortController();
     const { autoReconnect: auto, reconnectOptions: backoff } = configRef.current;
@@ -338,10 +333,31 @@ export function useSessionEvents(
     return onPageReturn(() => wakeRef.current());
   }, [sessionId]);
 
+  const heldSessionId = useSyncExternalStore(store.subscribe, store.getSessionId);
   const fold = useSyncExternalStore(store.subscribe, store.getFold);
   const streamState = useSyncExternalStore(store.subscribe, store.getStreamState);
   const connectTimedOut = useSyncExternalStore(store.subscribe, store.getConnectTimedOut);
   const quiet = useSyncExternalStore(store.subscribe, store.getSlow);
+
+  // The render that carries another session id runs before the effect that
+  // starts the store over, so it returns what that effect is about to leave:
+  // no fold, and a follow starting (or none, for no session). Never the
+  // previous session's turns under the new id (stigmer/stigmer#2921), the
+  // rule useFetch keeps for its own identity changes.
+  if (heldSessionId !== sessionId) {
+    return {
+      fold: null,
+      isStreaming: false,
+      isConnecting: sessionId !== null,
+      isReconnecting: false,
+      reconnectAttempt: 0,
+      error: null,
+      connectTimedOut: false,
+      isSlow: false,
+      reconnect,
+      wake,
+    };
+  }
 
   // A quiet idle session is not slow: only a turn that is working is.
   const newest = fold?.turns.at(-1);

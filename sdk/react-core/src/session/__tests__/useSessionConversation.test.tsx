@@ -1035,6 +1035,8 @@ describe("useSessionConversation — switching conversations", () => {
       result.current.retryLastSend();
     });
     expect(methods.runSend).toHaveBeenCalledTimes(1);
+    // Clearing the error here clears this conversation's, which has none.
+    act(() => result.current.clearSendError());
 
     rerender({ id: "session-1" });
     await loaded(result, "session-1");
