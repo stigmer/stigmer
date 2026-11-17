@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { FieldError } from "../internal/form/index.js";
 import { type FormEvent, useCallback, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { buildChannelAppProto, getUserMessage } from "@stigmer/client";
+import { buildChannelAppProto } from "@stigmer/client";
 import { maskedEdit, saveErrorMessage } from "@stigmer/react-core/internal";
 import type { ChannelApp } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { usePublicBaseUrl } from "../public-base-url-context.js";
@@ -111,7 +111,7 @@ export function ChannelAppDetailPanel({
     const label = name || "this channel app";
     const deleted = await confirm({
       title: `Delete ${label}?`,
-      description: "Channels that use it stop answering. The server refuses while a channel still installs through it; disconnect those first.",
+      description: "Disconnect every channel that installs through it first; the server refuses while one still does.",
       confirmLabel: "Delete app",
       variant: "destructive",
       action: async () => {
@@ -171,7 +171,7 @@ export function ChannelAppDetailPanel({
         <Section title="Delete this app">
           <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-3 stg:p-4">
             <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
-              Channels that use it stop answering.
+              Disconnect every channel that installs through it first.
             </p>
             <Button variant="outline" size="sm" onClick={() => void askToDelete()}>
               Delete app

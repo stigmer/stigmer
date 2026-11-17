@@ -311,14 +311,15 @@ describe("InvitationsSection", () => {
     expect(server.listedOrgs).toEqual([]);
   });
 
-  it("keeps the manager when the check itself fails", async () => {
+  it("says a check that failed, with Try again, and offers no create and no denial", async () => {
     const server = newServer(async () => {
       throw new ConnectError("authorization unavailable", Code.Unavailable);
     });
     renderSection("cloud", server);
 
-    // The manager offers it, and so does its empty list.
-    expect(await screen.findAllByRole("button", { name: /Create invite link/ })).toHaveLength(2);
+    expect(await screen.findByText("Couldn't check what you may do here.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Create invite link/ })).toBeNull();
     expect(screen.queryByText(MANAGED_BY_ADMINS)).toBeNull();
   });
 });

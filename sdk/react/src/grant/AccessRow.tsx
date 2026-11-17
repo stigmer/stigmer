@@ -85,7 +85,7 @@ export function AccessRow({
           </span>
         )}
         {grantee && (
-          <PermissionGate resource={grantGate} relation="can_grant_access">
+          <PermissionGate resource={grantGate} relation="can_grant_access" fail="closed">
             <IconButton
               size="xs"
               label={`Remove ${displayName}'s access`}

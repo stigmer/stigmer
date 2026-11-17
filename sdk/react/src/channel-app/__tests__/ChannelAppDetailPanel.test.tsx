@@ -136,7 +136,7 @@ describe("ChannelAppDetailPanel delete dialog", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Delete app" }));
     const dialog = screen.getByRole("dialog");
-    expect(dialog.textContent).toMatch(/Channels that use it stop answering/);
+    expect(dialog.textContent).toMatch(/Disconnect every channel that installs through it first/);
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
     expect(screen.queryByRole("dialog")).toBeNull();

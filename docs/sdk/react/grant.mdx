@@ -763,8 +763,8 @@ renders the children. Pass `fail="closed"` around an act so a check
 that errors renders `fallback` instead. Until the server answers, the gate renders `loading`,
 from its first render. Gated content never mounts before the answer,
 so content that fetches when it mounts is never fetched for a caller
-the server refuses. A `null` resource skips the check and renders the
-children.
+the server refuses. A `null` resource skips the check and follows the
+fail mode: the children when open, `fallback` when closed.
 
 This component is designed to hide UI elements (buttons, actions,
 controls) that the user cannot perform. It does NOT enforce
@@ -780,7 +780,7 @@ what the client renders.
     fallback: { type: "ReactNode", description: "Optional content rendered when the user lacks permission. Defaults to rendering nothing (null)." },
     loading: { type: "ReactNode", description: "Optional content rendered while the permission check is in flight. Defaults to rendering nothing (null) to avoid UI flicker." },
     relation: { type: "string", description: "The permission relation to check (e.g. \"can_edit\", \"can_delete\").", required: true },
-    resource: { type: "PermissionCheckResource | null", description: "The resource to check permission on, or `null` to skip (permissive).", required: true },
+    resource: { type: "PermissionCheckResource | null", description: "The resource to check permission on, or `null` to skip the check: then the gate follows `fail` (children when open, `fallback` when closed).", required: true },
   }}
 />
 

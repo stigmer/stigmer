@@ -8,7 +8,7 @@ import {
 
 /** Props for {@link PermissionGate}. */
 export interface PermissionGateProps {
-  /** The resource to check permission on, or `null` to skip (permissive). */
+  /** The resource to check permission on, or `null` to skip the check: then the gate follows `fail` (children when open, `fallback` when closed). */
   readonly resource: PermissionCheckResource | null;
   /** The permission relation to check (e.g. "can_edit", "can_delete"). */
   readonly relation: string;
@@ -44,8 +44,8 @@ export interface PermissionGateProps {
  * that errors renders `fallback` instead. Until the server answers, the gate renders `loading`,
  * from its first render. Gated content never mounts before the answer,
  * so content that fetches when it mounts is never fetched for a caller
- * the server refuses. A `null` resource skips the check and renders the
- * children.
+ * the server refuses. A `null` resource skips the check and follows the
+ * fail mode: the children when open, `fallback` when closed.
  *
  * This component is designed to hide UI elements (buttons, actions,
  * controls) that the user cannot perform. It does NOT enforce

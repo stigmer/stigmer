@@ -30,6 +30,7 @@ import { CreateServiceAccountForm } from "../service-account/CreateServiceAccoun
 import { ServiceAccountDetailPanel } from "../service-account/ServiceAccountDetailPanel.js";
 import { ServiceAccountListPanel } from "../service-account/ServiceAccountListPanel.js";
 import { Button } from "../button/Button.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Card } from "../internal/surface/Card.js";
 import { NoOrganization } from "./NoOrganization.js";
 import { SettingsPage } from "./SettingsPage.js";
@@ -51,9 +52,12 @@ export function ServiceAccountsSection() {
   const manageCheck = useCheckPermission(
     org ? { kind: "organization", id: org } : null,
     "can_create_identity_account",
+    { fail: "closed" },
   );
   const canManage = !manageCheck.isLoading && manageCheck.allowed;
-  const deniedManage = !manageCheck.isLoading && !manageCheck.allowed;
+  // A check that failed is not a denial: it is said, with Try again.
+  const checkFailed = !manageCheck.isLoading && manageCheck.error !== null;
+  const deniedManage = !manageCheck.isLoading && !manageCheck.allowed && !checkFailed;
 
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
   const startCreate = useCallback(() => setFlow({ phase: "creating" }), []);
@@ -105,6 +109,12 @@ export function ServiceAccountsSection() {
 
       {!org ? (
         <NoOrganization what="its service accounts" />
+      ) : checkFailed && manageCheck.error ? (
+        <ErrorMessage
+          error={manageCheck.error}
+          title="Couldn't check what you may do here."
+          retry={manageCheck.refetch}
+        />
       ) : !canManage ? (
         <SettingsSkeleton label="Loading service accounts" rows={3} />
       ) : flow.phase === "creating" ? (

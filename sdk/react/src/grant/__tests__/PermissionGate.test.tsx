@@ -66,12 +66,13 @@ describe("PermissionGate", () => {
     expect(await screen.findByRole("button", { name: "Edit" })).toBeTruthy();
   });
 
-  it("renders its fallback on the server's no in either mode", async () => {
+  it.each(["open", "closed"] as const)("renders its fallback on the server's no when %s", async (fail) => {
     renderGate(
       vi.fn().mockResolvedValue({ isAuthorized: false }),
       <PermissionGate
         resource={RESOURCE}
         relation="can_edit"
+        fail={fail}
         fallback={<span>fallback</span>}
       >
         <button type="button">Edit</button>

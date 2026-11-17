@@ -50,8 +50,7 @@ export interface ApiKeyListPanelProps {
  *
  * Each key is rendered as a row showing name, fingerprint, scope,
  * creation date, expiry, and last-used time. A revoke button opens a
- * confirm dialog that runs the revoke, says a refusal in the dialog
- * actions.
+ * confirm dialog that runs the revoke and says a refusal in the dialog.
  *
  * API keys belong to the authenticated user: the server returns all of
  * their keys, regardless of organization. A key's scope says where it

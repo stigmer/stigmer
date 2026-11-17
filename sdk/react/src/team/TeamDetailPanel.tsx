@@ -20,7 +20,7 @@ import { ArrowLeft } from "lucide-react";
 import { useCallback, useState, type FormEvent } from "react";
 import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 import { cn } from "@stigmer/design-tokens";
-import { buildTeamProto, getUserMessage } from "@stigmer/client";
+import { buildTeamProto } from "@stigmer/client";
 import { maskedEdit, saveErrorMessage } from "@stigmer/react-core/internal";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { PermissionGate } from "../grant/PermissionGate.js";
