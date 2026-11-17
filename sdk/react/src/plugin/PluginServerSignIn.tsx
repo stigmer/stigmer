@@ -14,6 +14,11 @@
  * `usePluginServerSignIn`; this file only renders it. Signing out asks
  * once inline, as removing any vault entry does, because the login cannot
  * be read back.
+ *
+ * The owed sign-in's look is {@link SignInNeededCell}, which the
+ * composer's row for a run that never reads My vault renders too (it saves
+ * into a shared vault instead), so the two never drift apart. The cell is
+ * the kit's own and not exported from its barrel.
  */
 
 import { useState } from "react";
@@ -59,6 +64,9 @@ export function PluginServerSignIn({ org, server, onSignedIn, optionalSignIn = f
   return <PluginServerSignInView name={server.name} signIn={signIn} className={className} />;
 }
 
+/** Every state of the cell sits in one right-aligned, wrapping row. */
+const CELL = "stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:justify-end stg:gap-2 stg:text-xs";
+
 function PluginServerSignInView({
   name,
   signIn,
@@ -69,7 +77,7 @@ function PluginServerSignInView({
   readonly className?: string;
 }) {
   const [confirming, setConfirming] = useState(false);
-  const root = cn("stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:justify-end stg:gap-2 stg:text-xs", className);
+  const root = cn(CELL, className);
   const failure = signIn.error && (
     <span role="alert" className="stg:text-destructive">
       {signIn.error.message}
@@ -128,15 +136,14 @@ function PluginServerSignInView({
       );
     case "sign-in-needed":
       return (
-        <span className={root}>
-          {failure}
-          {!signIn.isSigningIn && (
-            <StatusBadge phase="disabled" label="Not signed in" />
-          )}
-          <Button variant="primary" size="sm" onClick={signIn.signIn} disabled={signIn.isSigningIn} aria-label={`Sign in to ${name}`}>
-            {signIn.isSigningIn ? phaseLabel(signIn.phase) : "Sign in"}
-          </Button>
-        </span>
+        <SignInNeededCell
+          name={name}
+          isSigningIn={signIn.isSigningIn}
+          phase={signIn.phase}
+          error={signIn.error}
+          onSignIn={signIn.signIn}
+          className={className}
+        />
       );
     case "sign-in-available":
       return (
@@ -163,6 +170,44 @@ function PluginServerSignInView({
       return exhaustive;
     }
   }
+}
+
+/**
+ * A sign-in that stands between a server and its first tool call: the
+ * failure of the last try, "Not signed in", and Sign in (its phase while
+ * one runs). The one look for every owed sign-in, wherever it saves.
+ */
+export function SignInNeededCell({
+  name,
+  isSigningIn,
+  phase,
+  error,
+  onSignIn,
+  className,
+}: {
+  /** The server's name, for the button's accessible name. */
+  readonly name: string;
+  readonly isSigningIn: boolean;
+  readonly phase: VaultSignInPhase;
+  /** The last sign-in's failure, or `null`. */
+  readonly error: Error | null;
+  /** Starts the sign-in; called from the click, so a popup may open before any await. */
+  readonly onSignIn: () => void;
+  readonly className?: string;
+}) {
+  return (
+    <span className={cn(CELL, className)}>
+      {error && (
+        <span role="alert" className="stg:text-destructive">
+          {error.message}
+        </span>
+      )}
+      {!isSigningIn && <StatusBadge phase="disabled" label="Not signed in" />}
+      <Button variant="primary" size="sm" onClick={onSignIn} disabled={isSigningIn} aria-label={`Sign in to ${name}`}>
+        {isSigningIn ? phaseLabel(phase) : "Sign in"}
+      </Button>
+    </span>
+  );
 }
 
 /** The busy label for a sign-in's phase. */

@@ -264,7 +264,8 @@ describe("SessionComposer — sign-ins for a run that never reads My vault", () 
     fireEvent.change(textarea, { target: { value: "Go" } });
     fireEvent.keyDown(textarea, { key: "Enter", shiftKey: false });
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
-    expect(onSubmit.mock.calls[0][2]).toMatchObject({ includeMyVault: false });
+    // No vault pick is sent: the conversation's vaults stand, My vault unticked.
+    expect(onSubmit.mock.calls[0][2]?.includeMyVault).toBeUndefined();
   });
 
   it("chooses among several editable vaults with one select, the first chosen", async () => {
