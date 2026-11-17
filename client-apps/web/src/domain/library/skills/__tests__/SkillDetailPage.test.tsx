@@ -3,7 +3,9 @@
  * page allows editing (the view narrows it to people the server lets
  * edit), and Delete declares `can_delete` (CON-01), so the view offers it
  * only on the server's yes, while the copies declare nothing; Delete asks
- * first and returns to the skills list once confirmed. The view is pinned
+ * first and returns to the skills list once confirmed; "Upload a new
+ * version" goes to Upload skill (the view offers it only to who may
+ * upload to the organization). The view is pinned
  * in @stigmer/react-sdk; here it is stubbed to capture its props.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -15,6 +17,7 @@ interface ViewProps {
   slug: string;
   editable?: boolean;
   actions: DetailAction[];
+  onUploadNewVersion?: () => void;
 }
 
 const page = vi.hoisted(() => ({
@@ -77,6 +80,13 @@ beforeEach(() => {
 });
 
 describe("web SkillDetailPageInner", () => {
+  it("sends Upload a new version to the Upload skill page", () => {
+    render(<SkillDetailPageInner org="acme" slug="triage" />);
+
+    act(() => view().onUploadNewVersion?.());
+    expect(page.pushed).toEqual(["/library/skills/new"]);
+  });
+
   it("CON-01 allows editing and declares can_delete on Delete, and nothing on the copies", () => {
     render(<SkillDetailPageInner org="acme" slug="triage" />);
 
