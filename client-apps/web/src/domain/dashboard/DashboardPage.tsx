@@ -36,7 +36,7 @@ export function DashboardPage() {
       <PageHeader
         className="mb-8"
         title="Dashboard"
-        description="What your organization's agents did this week."
+        description="What your organization's agents did this week, in conversations you can see."
       />
 
       <OperationalDashboard
