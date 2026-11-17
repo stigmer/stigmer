@@ -254,7 +254,7 @@ export function OAuthAppDetailPanel({
                 variant="ghost"
                 size="xs"
                 onClick={() => void askToDelete()}
-                className="stg:text-destructive-muted stg:hover:text-destructive stg:hover:bg-destructive-subtle"
+                className="stg:text-destructive stg:hover:bg-destructive-subtle"
               >
                 Delete
               </Button>
