@@ -1,0 +1,861 @@
+{
+  "screen": "G37",
+  "title": "Organization preferences",
+  "source": "the Settings page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Organization preferences: Merged: Policies as a section of Organization preferences",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Organization preferences",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What agents know about this organization on every run its members start.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "What agents should know about acme",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Standing context",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "We close the books on the 3rd business day. Our ledger is in NetSuite; amounts are in USD unless an account says otherwise.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Shared with agents as background, not as instructions. Applies to runs started by signed-in members of acme and shows on their run records.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Save",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Memory",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Agents may remember confirmed facts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Each member must also turn memory on in their own preferences. Once a member has many memories, each conversation recalls the most relevant ones, shown on the run. Saves as you switch it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Default environment",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Environment",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "data-science",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The sandbox a run gets when its agent doesn't name one.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Policies",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "What acme's members may do. Saves as you switch it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Members can create agents",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "When on, every member can create agents. A member's agent is theirs to keep private or share with the organization. When off, only admins create agents.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Save",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Organization preferences: Kept separate: the three controls as today, on sections",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Organization preferences",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What agents know about this organization on every run its members start.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "What agents should know about acme",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Standing context",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "We close the books on the 3rd business day. Our ledger is in NetSuite; amounts are in USD unless an account says otherwise.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Shared with agents as background, not as instructions. Applies to runs started by signed-in members of acme and shows on their run records.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Save",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Memory",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Agents may remember confirmed facts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Each member must also turn memory on in their own preferences. Once a member has many memories, each conversation recalls the most relevant ones, shown on the run. Saves as you switch it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Default environment",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Environment",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "data-science",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The sandbox a run gets when its agent doesn't name one.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Save",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Organization preferences: As a member: read only, said once",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Organization preferences",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What agents know about this organization on every run its members start.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Only admins of acme change these.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "What agents should know about acme",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Standing context",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "We close the books on the 3rd business day. Our ledger is in NetSuite; amounts are in USD unless an account says otherwise.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Shared with agents as background, not as instructions. Applies to runs started by signed-in members of acme and shows on their run records.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Memory",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Agents may remember confirmed facts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Each member must also turn memory on in their own preferences. Once a member has many memories, each conversation recalls the most relevant ones, shown on the run. Saves as you switch it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Default environment",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Environment",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "data-science",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The sandbox a run gets when its agent doesn't name one.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Policies",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "What acme's members may do. Saves as you switch it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Members can create agents",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "When on, every member can create agents. A member's agent is theirs to keep private or share with the organization. When off, only admins create agents.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Organization preferences: The policy switch didn't save, said under it",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Organization preferences",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What agents know about this organization on every run its members start.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "What agents should know about acme",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Standing context",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "We close the books on the 3rd business day. Our ledger is in NetSuite; amounts are in USD unless an account says otherwise.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Shared with agents as background, not as instructions. Applies to runs started by signed-in members of acme and shows on their run records.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Save",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Memory",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Agents may remember confirmed facts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Each member must also turn memory on in their own preferences. Once a member has many memories, each conversation recalls the most relevant ones, shown on the run. Saves as you switch it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Default environment",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Environment",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "data-science",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The sandbox a run gets when its agent doesn't name one.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Policies",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "What acme's members may do. Saves as you switch it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Members can create agents",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "When on, every member can create agents. A member's agent is theirs to keep private or share with the organization. When off, only admins create agents.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't change the policy. It's still on; try again.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Save",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Organization preferences: Didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Organization preferences",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What agents know about this organization on every run its members start.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the preferences.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Organization preferences: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Organization preferences",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What agents know about this organization on every run its members start.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "What agents should know about acme",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Standing context",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "We close the books on the 3rd business day. Our ledger is in NetSuite; amounts are in USD unless an account says otherwise.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Shared with agents as background, not as instructions. Applies to runs started by signed-in members of acme and shows on their run records.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Save",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Memory",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Agents may remember confirmed facts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Each member must also turn memory on in their own preferences. Once a member has many memories, each conversation recalls the most relevant ones, shown on the run. Saves as you switch it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Default environment",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Environment",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "data-science",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The sandbox a run gets when its agent doesn't name one.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Policies",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "What acme's members may do. Saves as you switch it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Members can create agents",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "When on, every member can create agents. A member's agent is theirs to keep private or share with the organization. When off, only admins create agents.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Save",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

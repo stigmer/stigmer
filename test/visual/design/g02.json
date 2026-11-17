@@ -1,11 +1,11 @@
 {
   "screen": "G02",
   "title": "API keys, none yet",
-  "source": "the Console parts page, version 8",
+  "source": "the Settings page, version 1",
   "reader": "bf8cb5c94919",
   "drawings": [
     {
-      "caption": "API keys, none yet",
+      "caption": "API keys, none yet: None yet (as it passed your look)",
       "narrow": false,
       "built": [
         {

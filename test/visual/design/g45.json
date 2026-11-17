@@ -1,0 +1,967 @@
+{
+  "screen": "G45",
+  "title": "Usage",
+  "source": "the Settings page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Usage: Thirty days: the figures on the figure part, the tables on the table part",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Usage",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Tokens and runs across this organization, by model and by day.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "7 days",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "14 days",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "30 days",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Jun 21 to Jul 20",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Export",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Tokens",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "18.4M",
+          "type": [
+            24,
+            32,
+            600
+          ]
+        },
+        {
+          "text": "Runs",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Model calls",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "3.0k",
+          "type": [
+            24,
+            32,
+            600
+          ]
+        },
+        {
+          "text": "Working time",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "10h 46m",
+          "type": [
+            24,
+            32,
+            600
+          ]
+        },
+        {
+          "text": "Agents",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Sessions",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Tokens each day",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Jul 14",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 17",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 20",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "By harness",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Stigmer · 18.4M tokens · 3.0k calls · 100%",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Top agents by tokens",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Runs",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Working",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Tokens",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Share",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ledger reviewer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "5h 58m",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "9.1M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Receipts matcher",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "2h 46m",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "5.2M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Vendor onboarding",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "2h 2m",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "4.1M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "By model",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Model",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Provider",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Calls",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Input",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Output",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Total",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "claude-sonnet-4.6",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "1.9k",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "11.8M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "2.4M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "14.2M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "claude-haiku-4.5",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "1.1k",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "3.2M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "642.5k",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "3.8M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "claude-opus-4.8",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "330.0k",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "70.0k",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "400.0k",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Usage: Nothing yet",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Usage",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Tokens and runs across this organization, by model and by day.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No usage yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Tokens and runs show here once agents start runs in acme.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Usage: Didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Usage",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Tokens and runs across this organization, by model and by day.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the usage.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Usage: Loading: the figures' outline",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Usage",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Tokens and runs across this organization, by model and by day.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Usage: At 390 wide: the tables' rows become list rows",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Usage",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Tokens and runs across this organization, by model and by day.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "7 days",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "14 days",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "30 days",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Jun 21 to Jul 20",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Export",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Tokens",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "18.4M",
+          "type": [
+            24,
+            32,
+            600
+          ]
+        },
+        {
+          "text": "Runs",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Model calls",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "3.0k",
+          "type": [
+            24,
+            32,
+            600
+          ]
+        },
+        {
+          "text": "Working time",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "10h 46m",
+          "type": [
+            24,
+            32,
+            600
+          ]
+        },
+        {
+          "text": "Agents",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Sessions",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Tokens each day",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Jul 14",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 17",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Jul 20",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "By harness",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Stigmer · 18.4M tokens · 3.0k calls · 100%",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Top agents by tokens",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Ledger reviewer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "61 · 5h 58m · 9.1M · 49%",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Receipts matcher",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "38 · 2h 46m · 5.2M · 28%",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Vendor onboarding",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "29 · 2h 2m · 4.1M · 22%",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "By model",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "claude-sonnet-4.6",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic · 1.9k · 11.8M · 2.4M · 14.2M",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "claude-haiku-4.5",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic · 1.1k · 3.2M · 642.5k · 3.8M",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "claude-opus-4.8",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic · 41 · 330.0k · 70.0k · 400.0k",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

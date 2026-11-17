@@ -1,0 +1,985 @@
+{
+  "screen": "G35",
+  "title": "Federation issuers",
+  "source": "the Settings page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Federation issuers: One issuer",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Federation issuers",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New issuer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Other platforms whose sign-in tokens this organization accepts, such as the platform that manages it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Northwind platform",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "https://auth.northwind.example · creates accounts on sign-in as Member",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New issuer",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Federation issuers: One open: how tokens are checked, as read-only fields",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Federation issuers",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Northwind platform",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Edit",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "acme accepts sign-in tokens Northwind's platform issues.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "How tokens are checked",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Issuer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "https://auth.northwind.example",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Keys (JWKS)",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "https://auth.northwind.example/.well-known/jwks.json",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Expected audience",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "stigmer-acme",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Customer id claim",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "sub",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "When someone signs in",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Create accounts on sign-in",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "On",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Sign-in role",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Member",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Delete this issuer",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Tokens from Northwind stop working at once. People who joined through it keep their accounts and roles.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Delete issuer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Federation issuers",
+          "height": 28
+        },
+        {
+          "name": "Edit",
+          "height": 32
+        },
+        {
+          "name": "Delete issuer",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Federation issuers: New issuer, an address the server refuses",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Federation issuers",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "New federation issuer",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Other platforms whose sign-in tokens this organization accepts, such as the platform that manages it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Northwind platform",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Issuer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "auth.northwind.example",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Use the full address, starting with https://.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Keys (JWKS)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "https://auth.northwind.example/.well-known/jwks.json",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Expected audience",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "stigmer-acme",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Create accounts on sign-in",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Someone signing in for the first time gets an account in acme.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Sign-in role",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Member",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Add issuer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Federation issuers",
+          "height": 28
+        },
+        {
+          "name": "Add issuer",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Federation issuers: Delete, asked first",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Delete Northwind platform?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Tokens from Northwind stop working at once. People who joined through it keep their accounts and roles.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Delete issuer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Delete issuer",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Federation issuers: Delete, working: the act busy, Cancel held",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Delete Northwind platform?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Tokens from Northwind stop working at once. People who joined through it keep their accounts and roles.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Delete issuer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Delete issuer",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Federation issuers: Delete, didn't go through: said in the dialog, the act is Try again",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Delete Northwind platform?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Tokens from Northwind stop working at once. People who joined through it keep their accounts and roles.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't delete Northwind platform.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Federation issuers: None yet",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Federation issuers",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New issuer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Other platforms whose sign-in tokens this organization accepts, such as the platform that manages it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No federation issuers yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Add one when another platform signs people in to acme for you, such as the platform that manages it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "New issuer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New issuer",
+          "height": 32
+        },
+        {
+          "name": "New issuer",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Federation issuers: Didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Federation issuers",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New issuer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Other platforms whose sign-in tokens this organization accepts, such as the platform that manages it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the federation issuers.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New issuer",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Federation issuers: At 390 wide, one open",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Federation issuers",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Northwind platform",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Edit",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "acme accepts sign-in tokens Northwind's platform issues.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "How tokens are checked",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Issuer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "https://auth.northwind.example",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Keys (JWKS)",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "https://auth.northwind.example/.well-known/jwks.json",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Expected audience",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "stigmer-acme",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Customer id claim",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "sub",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "When someone signs in",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Create accounts on sign-in",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "On",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Sign-in role",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Member",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Delete this issuer",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Tokens from Northwind stop working at once. People who joined through it keep their accounts and roles.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Delete issuer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Federation issuers",
+          "height": 28
+        },
+        {
+          "name": "Edit",
+          "height": 32
+        },
+        {
+          "name": "Delete issuer",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

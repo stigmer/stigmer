@@ -1,0 +1,981 @@
+{
+  "screen": "G31",
+  "title": "Teams",
+  "source": "the Settings page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Teams: Teams",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Teams",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New team",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Groups of people you share agents and other resources with at once. Someone added to a team gets what is shared with it; leaving the team or the organization takes it away.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Finance",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The month-end close and the ledger agents",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "4 people",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Support",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Answers customers on Slack and WhatsApp",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "6 people",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Engineering",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "No description",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "9 people",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New team",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Teams: A team open: its people, what's shared with it, Delete",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Teams",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Finance",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Edit",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The month-end close and the ledger agents.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Members 4",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Add a person",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Grace Hopper",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Katherine Johnson",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Alan Turing",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Shared with Finance",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Ledger reviewer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Production",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Vault",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Delete this team",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Its four people lose what was shared with Finance. Nothing they made is deleted.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Delete team",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Teams",
+          "height": 28
+        },
+        {
+          "name": "Edit",
+          "height": 32
+        },
+        {
+          "name": "Add a person",
+          "height": 28
+        },
+        {
+          "name": "Take Ada Lovelace out of Finance",
+          "height": 28
+        },
+        {
+          "name": "Take Grace Hopper out of Finance",
+          "height": 28
+        },
+        {
+          "name": "Take Katherine Johnson out of Finance",
+          "height": 28
+        },
+        {
+          "name": "Take Alan Turing out of Finance",
+          "height": 28
+        },
+        {
+          "name": "Delete team",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Teams: New team, its name taken",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Teams",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "New team",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "A team is a group of people you share agents, vaults and other resources with at once.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Finance",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme already has a team named Finance.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Description (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The month-end close and the ledger agents",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Create team",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Teams",
+          "height": 28
+        },
+        {
+          "name": "Create team",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Teams: Delete, asked first",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Delete the team Finance?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Its four people lose what was shared with Finance. Nothing they made is deleted.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Delete team",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Delete team",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Teams: Delete, working: the act busy, Cancel held",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Delete the team Finance?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Its four people lose what was shared with Finance. Nothing they made is deleted.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Delete team",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Delete team",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Teams: Delete, didn't go through: said in the dialog, the act is Try again",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Delete the team Finance?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Its four people lose what was shared with Finance. Nothing they made is deleted.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't delete Finance.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Teams: None yet, for someone who may create one",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Teams",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New team",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Groups of people you share agents and other resources with at once. Someone added to a team gets what is shared with it; leaving the team or the organization takes it away.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No teams yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "A team is a group of people you share agents, vaults and other resources with at once.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "New team",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New team",
+          "height": 32
+        },
+        {
+          "name": "New team",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Teams: None yet, for a member",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Teams",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Groups of people you share agents and other resources with at once. Someone added to a team gets what is shared with it; leaving the team or the organization takes it away.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No teams yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Admins of acme make teams. Once one adds you to a team, what's shared with it reaches you.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Teams: On the open-source edition",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Teams",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Groups of people you share agents and other resources with at once. Someone added to a team gets what is shared with it; leaving the team or the organization takes it away.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Teams come with Stigmer Enterprise and Cloud.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "On this edition roles are granted on the organization only: people get access through their role in it, and nothing is shared with individual people or teams.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Teams: Didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Teams",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New team",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Groups of people you share agents and other resources with at once. Someone added to a team gets what is shared with it; leaving the team or the organization takes it away.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the teams.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New team",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Teams: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Teams",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New team",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Groups of people you share agents and other resources with at once. Someone added to a team gets what is shared with it; leaving the team or the organization takes it away.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Finance",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The month-end close and the ledger agents",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "4 people",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Support",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Answers customers on Slack and WhatsApp",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "6 people",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Engineering",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "No description",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "9 people",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New team",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

@@ -1,0 +1,1033 @@
+{
+  "screen": "G42",
+  "title": "OAuth apps",
+  "source": "the Settings page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "OAuth apps: Two apps",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "OAuth apps",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New OAuth app",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your organization's own login apps. A sign-in at an address uses the app that lists it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Linear (acme)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Linear · linear.app, mcp.linear.app",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "GitHub Enterprise",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "GitHub · github.acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New OAuth app",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "OAuth apps: One open: its fields as read-only pairs",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "OAuth apps",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Linear (acme)",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Edit",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Sign-ins at linear.app and mcp.linear.app use this app.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The app",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Provider",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Linear",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Addresses",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "linear.app, mcp.linear.app",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Client ID",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "lin_7c2e…91af",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Client secret",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Saved; never shown again",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Scopes",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "read, write",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Its endpoints",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Authorization URL",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "https://linear.app/oauth/authorize",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Token URL",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "https://api.linear.app/oauth/token",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Delete this app",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Sign-ins at its addresses go back to Stigmer's own app, if there is one.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Delete app",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "OAuth apps",
+          "height": 28
+        },
+        {
+          "name": "Edit",
+          "height": 32
+        },
+        {
+          "name": "Delete app",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "OAuth apps: New OAuth app, a field missing (Advanced stays a disclosure)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "OAuth apps",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "New OAuth app",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Your organization's own login apps. A sign-in at an address uses the app that lists it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Linear (acme)",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Provider",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Linear",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Addresses",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "linear.app, mcp.linear.app",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Sign-ins at these addresses use this app.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Client ID",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "lin_7c2e91af",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Client secret",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Paste the secret",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Paste the app's client secret.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Advanced",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Create app",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "OAuth apps",
+          "height": 28
+        },
+        {
+          "name": "Create app",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "OAuth apps: Delete, asked first",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Delete Linear (acme)?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Sign-ins at linear.app and mcp.linear.app go back to Stigmer's own app, if there is one.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Delete app",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Delete app",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "OAuth apps: Delete, working: the act busy, Cancel held",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Delete Linear (acme)?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Sign-ins at linear.app and mcp.linear.app go back to Stigmer's own app, if there is one.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Delete app",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Delete app",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "OAuth apps: Delete, didn't go through: said in the dialog, the act is Try again",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Delete Linear (acme)?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Sign-ins at linear.app and mcp.linear.app go back to Stigmer's own app, if there is one.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't delete Linear (acme).",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "OAuth apps: None yet",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "OAuth apps",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New OAuth app",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your organization's own login apps. A sign-in at an address uses the app that lists it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No OAuth apps yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Add your own app when a tool's sign-in should show acme's name, or when Stigmer has no app for it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "New OAuth app",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New OAuth app",
+          "height": 32
+        },
+        {
+          "name": "New OAuth app",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "OAuth apps: Didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "OAuth apps",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New OAuth app",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your organization's own login apps. A sign-in at an address uses the app that lists it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the OAuth apps.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New OAuth app",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "OAuth apps: At 390 wide, one open",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "OAuth apps",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Linear (acme)",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Edit",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Sign-ins at linear.app and mcp.linear.app use this app.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The app",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Provider",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Linear",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Addresses",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "linear.app, mcp.linear.app",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Client ID",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "lin_7c2e…91af",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Client secret",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Saved; never shown again",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Scopes",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "read, write",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Its endpoints",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Authorization URL",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "https://linear.app/oauth/authorize",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Token URL",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "https://api.linear.app/oauth/token",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Delete this app",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Sign-ins at its addresses go back to Stigmer's own app, if there is one.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Delete app",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "OAuth apps",
+          "height": 28
+        },
+        {
+          "name": "Edit",
+          "height": 32
+        },
+        {
+          "name": "Delete app",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

@@ -1,0 +1,467 @@
+{
+  "screen": "G34",
+  "title": "Access history",
+  "source": "the Settings page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Access history: The history, newest first; Download and Load more on the kit's button",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Access history",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Every time someone was given or lost access to this organization or anything in it: who did it, why, and when. The history starts when your server began keeping it; nothing earlier is filled in.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Kept for 400 days.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Download JSON Lines",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Grace Hopper was made Admin of acme",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "By Ada Lovelace · Runs the month-end close · Jul 20, 2026, 09:12",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Finance was given Use on the agent Ledger reviewer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "By Grace Hopper · Jul 19, 2026, 16:40",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Alan Turing lost Member on acme",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "By Ada Lovelace · Moved to the auditors' organization · Jul 18, 2026, 11:05",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "ci-deploy was made Member of acme",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "By Grace Hopper · Jul 18, 2026, 10:58",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Load more",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Download JSON Lines",
+          "height": 28
+        },
+        {
+          "name": "Load more",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Access history: Nothing recorded yet",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Access history",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Every time someone was given or lost access to this organization or anything in it: who did it, why, and when. The history starts when your server began keeping it; nothing earlier is filled in.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No access changes recorded yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "When someone is given or loses access, it is written here.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Access history: Not allowed: a member who isn't an owner or admin",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Access history",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Every time someone was given or lost access to this organization or anything in it: who did it, why, and when. The history starts when your server began keeping it; nothing earlier is filled in.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Only an owner or admin can open Access history",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Your organization's owners and admins read who was given or lost access.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Access history: On the open-source edition",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Access history",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Every time someone was given or lost access to this organization or anything in it: who did it, why, and when. The history starts when your server began keeping it; nothing earlier is filled in.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The access history comes with Stigmer Enterprise and Cloud.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "On this edition no record of access changes is kept.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Access history: Didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Access history",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Every time someone was given or lost access to this organization or anything in it: who did it, why, and when. The history starts when your server began keeping it; nothing earlier is filled in.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the access history.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Access history: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "Named once the settings pages' new pictures are minted: the lists, details and removals that draw it are built, and the gallery's shared port runs the mint apart from the build.",
+      "words": [
+        {
+          "text": "Access history",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Every time someone was given or lost access to this organization or anything in it: who did it, why, and when. The history starts when your server began keeping it; nothing earlier is filled in.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Kept for 400 days.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Download JSON Lines",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Grace Hopper was made Admin of acme",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "By Ada Lovelace · Runs the month-end close · Jul 20, 2026, 09:12",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Finance was given Use on the agent Ledger reviewer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "By Grace Hopper · Jul 19, 2026, 16:40",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Alan Turing lost Member on acme",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "By Ada Lovelace · Moved to the auditors' organization · Jul 18, 2026, 11:05",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "ci-deploy was made Member of acme",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "By Grace Hopper · Jul 18, 2026, 10:58",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Load more",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Download JSON Lines",
+          "height": 28
+        },
+        {
+          "name": "Load more",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}
