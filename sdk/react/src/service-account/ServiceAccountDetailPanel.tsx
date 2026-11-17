@@ -96,13 +96,9 @@ export function ServiceAccountDetailPanel({
   return (
     <div className={cn("stg:space-y-5", className)}>
       {onBack && (
-        <button
-          type="button"
-          onClick={onBack}
-          className="stg:text-xs stg:text-muted-foreground stg:hover:text-foreground stg:transition-colors"
-        >
-          ← Service accounts
-        </button>
+        <Button variant="ghost" size="xs" icon={<ArrowLeftIcon />} onClick={onBack}>
+          Service accounts
+        </Button>
       )}
 
       <NameSection serviceAccount={serviceAccount} onRenamed={onUpdated} />
@@ -420,5 +416,13 @@ function DeleteSection({
       </Button>
       <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
+  );
+}
+
+function ArrowLeftIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M10 3L5 8l5 5" />
+    </svg>
   );
 }

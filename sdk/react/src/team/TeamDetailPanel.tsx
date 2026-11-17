@@ -71,14 +71,9 @@ export function TeamDetailPanel({
       <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
         <div className="stg:min-w-0">
           {onBack && (
-            <button
-              type="button"
-              onClick={onBack}
-              className="stg:text-muted-foreground stg:hover:text-foreground stg:mb-1 stg:flex stg:items-center stg:gap-1 stg:text-xs stg:transition-colors"
-            >
-              <ArrowLeftIcon />
+            <Button variant="ghost" size="xs" icon={<ArrowLeftIcon />} onClick={onBack}>
               Back to teams
-            </button>
+            </Button>
           )}
           {!editing && (
             <>

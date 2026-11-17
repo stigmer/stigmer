@@ -121,13 +121,9 @@ export function ChannelAppDetailPanel({
           <p className="stg:font-mono stg:text-2xs stg:text-muted-foreground">{appId}</p>
         </div>
         {onBack && (
-          <button
-            type="button"
-            onClick={onBack}
-            className="stg:text-muted-foreground stg:hover:text-foreground stg:shrink-0 stg:text-xs stg:transition-colors"
-          >
-            ← Back
-          </button>
+          <Button variant="ghost" size="xs" icon={<ArrowLeftIcon />} onClick={onBack}>
+            Back
+          </Button>
         )}
       </div>
 
@@ -520,5 +516,13 @@ function WhatsAppAppDetail({
         </form>
       </PermissionGate>
     </>
+  );
+}
+
+function ArrowLeftIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M10 3L5 8l5 5" />
+    </svg>
   );
 }
