@@ -34,6 +34,7 @@ const stubs = vi.hoisted(() => ({
   apps: [] as ChannelApp[],
   allowed: new Set<string>(),
   checked: [] as Array<[string, string, string]>,
+  checkError: null as Error | null,
 }));
 
 vi.mock("../../organization/OrgProvider.js", () => ({
@@ -60,9 +61,9 @@ vi.mock("../../grant/useCheckPermission.js", () => ({
       stubs.checked.push([resource.kind, resource.id, relation]);
     }
     return {
-      allowed: resource === null ? true : stubs.allowed.has(relation),
+      allowed: stubs.checkError === null && (resource === null ? true : stubs.allowed.has(relation)),
       isLoading: false,
-      error: null,
+      error: stubs.checkError,
     };
   },
 }));
@@ -97,6 +98,7 @@ afterEach(() => {
   stubs.listedOrg = undefined;
   stubs.apps = [];
   stubs.allowed = new Set();
+  stubs.checkError = null;
   stubs.checked = [];
 });
 
@@ -150,5 +152,13 @@ describe("ChannelAppsSection", () => {
     expect(
       screen.getByText(/Channel apps come with Stigmer Cloud/),
     ).toBeTruthy();
+  });
+  it("does not call a failed permission check a denial", () => {
+    stubs.checkError = new Error("check timed out");
+    renderSection();
+    expect(
+      screen.queryByText("Channel apps are managed by your organization's admins."),
+    ).toBeNull();
+    expect(screen.getByText("No channel apps registered yet.")).toBeTruthy();
   });
 });

@@ -22,6 +22,10 @@
  *   - a role change grants the new role before it revokes the old one, so
  *     a refused grant leaves the member with the role they had.
  *
+ * Every change is a grant or a revocation, which the server asks
+ * `can_grant_access` on the organization for: a caller it refuses (a member
+ * reading the list) is offered no change and no removal on any row.
+ *
  * The data hooks are stubbed: each is proven by its own tests, and the
  * permission answer is the one question this panel adds.
  */
@@ -39,6 +43,8 @@ import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/id
 const state = vi.hoisted(() => ({
   members: [] as PrincipalAccess[],
   canAssignOwner: false,
+  canGrant: true,
+  checked: [] as string[],
   calls: [] as string[],
   createFails: false,
 }));
@@ -60,6 +66,12 @@ vi.mock("../useOwnerAssignment.js", () => ({
     canAssignOwner: state.canAssignOwner,
     unassignable: state.canAssignOwner ? [] : [IamRole.owner],
   }),
+}));
+vi.mock("../useCheckPermission.js", () => ({
+  useCheckPermission: (resource: { kind: string; id: string } | null, relation: string, options?: { fail?: string }) => {
+    state.checked.push(`${resource?.kind}:${resource?.id} ${relation} ${options?.fail ?? "open"}`);
+    return { allowed: relation === "can_grant_access" ? state.canGrant : true, isLoading: false, error: null, refetch: () => {} };
+  },
 }));
 vi.mock("../useRevokeOrgAccess.js", () => ({
   useRevokeOrgAccess: () => ({ revoke: async () => {}, isRevoking: false, error: null }),
@@ -131,6 +143,8 @@ afterEach(() => {
   cleanup();
   state.members = [];
   state.canAssignOwner = false;
+  state.canGrant = true;
+  state.checked = [];
   state.calls = [];
   state.createFails = false;
 });
@@ -269,6 +283,28 @@ describe("OrgMembersPanel and service accounts", () => {
     state.members = [member("ida_dave", "Dave", "member")];
     render(<OrgMembersPanel org="acme" />);
     expect(screen.queryByRole("button", { name: SERVICE_ACCOUNT_GROUP })).toBeNull();
+  });
+});
+
+describe("OrgMembersPanel and who may change roles", () => {
+  it("offers a caller the server refuses can_grant_access no change and no removal on any row", () => {
+    state.canGrant = false;
+    state.members = [member("ida_root", "Root", "owner"), member("ida_ann", "Ann", "admin"), member("ida_dave", "Dave", "member")];
+    render(<OrgMembersPanel org="acme" />);
+
+    expect(state.checked).toContain("organization:acme can_grant_access closed");
+    for (const name of ["Root", "Ann", "Dave"]) {
+      expect(screen.queryByRole("button", { name: `Remove ${name}` })).toBeNull();
+      expect(screen.queryByRole("button", { name: `Change ${name}'s role` })).toBeNull();
+    }
+  });
+
+  it("offers the same caller every control on a member's row once the server says yes", () => {
+    state.members = [member("ida_dave", "Dave", "member")];
+    render(<OrgMembersPanel org="acme" />);
+
+    expect(screen.getByRole("button", { name: "Remove Dave" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Change Dave's role" })).toBeTruthy();
   });
 });
 

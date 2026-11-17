@@ -95,7 +95,7 @@ export function PlanSection({
   const agentHours = useAgentHours(orgId, { enabled: available && !child });
   // A console ahead of its server: the read is not served yet, so the block is left out rather than shown failing.
   const agentHoursError = agentHours.error !== null && isUnimplemented(agentHours.error) ? null : agentHours.error;
-  const manage = useCheckPermission(available && orgId ? { kind: "organization", id: orgId } : null, "can_manage_billing");
+  const manage = useCheckPermission(available && orgId ? { kind: "organization", id: orgId } : null, "can_manage_billing", { fail: "closed" });
   const canManage = !child && !manage.isLoading && manage.allowed;
 
   const changer = useChangePlan();

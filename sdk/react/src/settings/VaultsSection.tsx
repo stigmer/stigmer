@@ -54,7 +54,7 @@ export function VaultsSection() {
   const startCreate = useCallback(() => setShowCreate(true), []);
   // One answer offers both acts: the header's "New shared vault" and the
   // empty list's.
-  const createCheck = useCheckPermission(org ? { kind: "organization", id: org } : null, "can_create_shared_vault");
+  const createCheck = useCheckPermission(org ? { kind: "organization", id: org } : null, "can_create_shared_vault", { fail: "closed" });
   const canCreate = !createCheck.isLoading && createCheck.allowed;
 
   return (

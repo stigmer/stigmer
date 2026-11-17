@@ -34,6 +34,7 @@ const stubs = vi.hoisted(() => ({
   providers: [] as FederationIssuer[],
   allowed: new Set<string>(),
   checked: [] as Array<[string, string, string]>,
+  checkError: null as Error | null,
 }));
 
 function verdict(kind: string, id: string, relation: string): boolean {
@@ -92,9 +93,9 @@ vi.mock("../../grant/useCheckPermission.js", () => ({
     resource: { kind: string; id: string } | null,
     relation: string,
   ) => ({
-    allowed: resource === null ? true : verdict(resource.kind, resource.id, relation),
+    allowed: stubs.checkError === null && (resource === null ? true : verdict(resource.kind, resource.id, relation)),
     isLoading: false,
-    error: null,
+    error: stubs.checkError,
   }),
 }));
 vi.mock("../../grant/PermissionGate.js", () => ({
@@ -129,6 +130,7 @@ afterEach(() => {
   stubs.listedOrg = undefined;
   stubs.providers = [];
   stubs.allowed = new Set();
+  stubs.checkError = null;
   stubs.checked = [];
 });
 
@@ -195,4 +197,12 @@ describe("FederationIssuersSection", () => {
     expect(screen.queryByRole("list", { name: "Federation issuers" })).toBeNull();
   });
 
+  it("does not call a failed permission check a denial", () => {
+    stubs.checkError = new Error("check timed out");
+    renderSection("cloud");
+    expect(
+      screen.queryByText("Federation issuers are managed by your organization's admins."),
+    ).toBeNull();
+    expect(screen.getByText("No federation issuers configured.")).toBeTruthy();
+  });
 });
