@@ -348,6 +348,40 @@ describe("useAutoScroll", () => {
     expect(requestAnimationFrame).not.toHaveBeenCalled();
   });
 
+  it("drops a pin when the reader scrolled between scheduling and the frame", () => {
+    render(<Harness />);
+    fireIO(true);
+    const frames: FrameRequestCallback[] = [];
+    vi.mocked(requestAnimationFrame).mockImplementation((cb) => frames.push(cb));
+
+    const scroller = screen.getByTestId("scroller");
+    Object.defineProperty(scroller, "scrollHeight", { value: 1500, configurable: true });
+    fireRO();
+    // The reader scrolls up before the frame runs: the write must not
+    // yank them back.
+    scroller.scrollTop = 300;
+    frames.forEach((frame) => frame(performance.now()));
+
+    expect(scroller.scrollTop).toBe(300);
+  });
+
+  it("writes nothing when a pane pin's frame lands after the thread unmounted", () => {
+    // Without a content wrapper nothing cancels the pane's pending frame on
+    // unmount, so the frame can still run once the scroller is gone.
+    const { unmount } = render(<LateContentHarness showContent={false} />);
+    const frames: FrameRequestCallback[] = [];
+    vi.mocked(requestAnimationFrame).mockImplementation((cb) => frames.push(cb));
+
+    const scroller = screen.getByTestId("scroller");
+    Object.defineProperty(scroller, "scrollHeight", { value: 500, configurable: true });
+    fireRO("scroller");
+    unmount();
+
+    expect(frames).toHaveLength(1);
+    expect(() => frames.forEach((frame) => frame(performance.now()))).not.toThrow();
+    expect(scroller.scrollTop).toBe(0);
+  });
+
   it("does not scroll on content resize while disengaged", () => {
     render(<Harness />);
     fireIO(false);
