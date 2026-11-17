@@ -169,6 +169,15 @@
       "outputs": [],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/sdk/ink/src/__tests__/__recordings__/**"]
     },
+    // The question bank's suite (__tests__/bank.test.ts) reads the bank's
+    // jobs from the runner's lib and checks every cited page and every
+    // concept page, getting-started page and guide group against docs/, so
+    // a change to either must invalidate the cached pass.
+    "@stigmer/coding-agent-plugin#test": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/test/install/lib/**", "$TURBO_ROOT$/docs/**"]
+    },
     // The client entry's parity test pins the digest of the official
     // catalogue's assistant plugin (the digest the live default plugin
     // carries), so a change to that tree must invalidate the cached pass.
