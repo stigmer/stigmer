@@ -107,7 +107,10 @@ test.describe("the console on a server that holds one organization", () => {
     await expect(page.getByText("General", { exact: true }).first()).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByRole("link", { name: "Org Profile" })).toHaveCount(0);
+    // The sidebar is drawn (Members is there), and the profile is not: naming
+    // the label the sidebar spells keeps this from passing on a rename.
+    await expect(page.getByRole("link", { name: "Members", exact: true }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "Organization profile" })).toHaveCount(0);
     await expect(page.getByText("Organization", { exact: true })).toHaveCount(0);
   });
 

@@ -208,7 +208,7 @@ describe("InvitationsSection", () => {
 
     expect(await screen.findByText(MANAGED_BY_ADMINS)).toBeTruthy();
     await settle();
-    expect(screen.queryByRole("button", { name: /Create invite link/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /New invite link/ })).toBeNull();
     expect(server.listedOrgs).toEqual([]);
   });
 
@@ -217,7 +217,7 @@ describe("InvitationsSection", () => {
     renderSection("enterprise", server);
 
     // The manager offers it, and so does its empty list.
-    expect(await screen.findAllByRole("button", { name: /Create invite link/ })).toHaveLength(2);
+    expect(await screen.findAllByRole("button", { name: /New invite link/ })).toHaveLength(2);
     await settle();
     expect(server.listedOrgs).toEqual(["org_acme"]);
     expect(screen.queryByText(MANAGED_BY_ADMINS)).toBeNull();
@@ -307,7 +307,7 @@ describe("InvitationsSection", () => {
     await waitFor(() => expect(server.checks).toHaveLength(1));
     await settle();
     expect(screen.queryByText(MANAGED_BY_ADMINS)).toBeNull();
-    expect(screen.queryByRole("button", { name: /Create invite link/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /New invite link/ })).toBeNull();
     expect(server.listedOrgs).toEqual([]);
   });
 
@@ -319,7 +319,7 @@ describe("InvitationsSection", () => {
 
     expect(await screen.findByText("Couldn't check what you may do here.")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /Create invite link/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /New invite link/ })).toBeNull();
     expect(screen.queryByText(MANAGED_BY_ADMINS)).toBeNull();
   });
 });

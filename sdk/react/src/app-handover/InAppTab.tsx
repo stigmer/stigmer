@@ -52,7 +52,7 @@ import {
 import { useWhoAmI } from "@stigmer/react-core";
 import { cn } from "@stigmer/design-tokens";
 import { ApiKeyCreatedAlert } from "../api-key/ApiKeyCreatedAlert.js";
-import { DEFAULT_KEY_EXPIRY, keyExpiryFields } from "../api-key/KeyExpiryFieldset.js";
+import { keyExpiryFields } from "../api-key/KeyExpiryFieldset.js";
 import { Button } from "../button/Button.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { serverSentence } from "../internal/server-words.js";
@@ -449,7 +449,10 @@ function ServiceAccountRow({
       // Made now: a retry after a failed key makes only the key.
       setMade(account);
       const name = account.metadata?.name ?? BACKEND_NAME;
-      const key = await createKey.create({ serviceAccountId: account.metadata?.id ?? "", name, ...keyExpiryFields(DEFAULT_KEY_EXPIRY) });
+      // The app's own server holds this key; one that stopped on its own would
+      // break the app it was made for, so it never expires (the forms' 90-day
+      // default is for a key a person makes by hand).
+      const key = await createKey.create({ serviceAccountId: account.metadata?.id ?? "", name, ...keyExpiryFields("never") });
       setRevealed({ key: key.spec?.keyHash ?? "", name });
       access.refetch();
     } catch (err) {

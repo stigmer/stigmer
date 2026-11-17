@@ -334,20 +334,20 @@
       },
       "ruled": {},
       "pending": {
-        "word Members 4": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "type Add a person": "When its page is redesigned: the settings forms PR draws a team's people as rows with Add a person",
-        "type Grace Hopper": "When its page is redesigned: the settings forms PR draws a team's people as rows with Add a person",
-        "type Katherine Johnson": "When its page is redesigned: the settings forms PR draws a team's people as rows with Add a person",
-        "word Shared with Finance": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Its four people lose what was shared with Finance. Nothing they made is deleted.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "button Add a person": "When its page is redesigned: the settings forms PR draws a team's people as rows with Add a person"
+        "word Members 4": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "type Add a person": "When its page is redesigned: the settings Built look's fixes draws a team's people as rows with Add a person",
+        "type Grace Hopper": "When its page is redesigned: the settings Built look's fixes draws a team's people as rows with Add a person",
+        "type Katherine Johnson": "When its page is redesigned: the settings Built look's fixes draws a team's people as rows with Add a person",
+        "word Shared with Finance": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Its four people lose what was shared with Finance. Nothing they made is deleted.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "button Add a person": "When its page is redesigned: the settings Built look's fixes draws a team's people as rows with Add a person"
       }
     },
     {
       "caption": "Teams: New team, its name taken",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "When its page is redesigned: the settings Built look's fixes build it.",
       "words": [
         {
           "text": "Teams",
@@ -508,7 +508,7 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "word Its four people lose what was shared with Finance. Nothing they made is deleted.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Its four people lose what was shared with Finance. Nothing they made is deleted.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
       }
     },
     {
@@ -781,7 +781,7 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "word Admins of acme make teams. Once one adds you to a team, what's shared with it reaches you.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Admins of acme make teams. Once one adds you to a team, what's shared with it reaches you.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
       }
     },
     {

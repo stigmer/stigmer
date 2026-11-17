@@ -7,8 +7,12 @@
     {
       "caption": "The landing: As an admin of acme (Policies and Notifications merged into their neighbours)",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "built": [
+        {
+          "scene": "settings-landing",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Settings",
@@ -340,7 +344,7 @@
       "caption": "The landing: As a member: the admin pages aren't listed",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "No scene draws this state yet; the settings Built look's fixes add it.",
       "words": [
         {
           "text": "Settings",
@@ -640,7 +644,7 @@
       "caption": "The landing: Kept separate (the other answer to the first call)",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "The other answer to the page's first call: Policies and Notifications were merged into their neighbours (2026-11-17), so this shape is not built.",
       "words": [
         {
           "text": "Settings",
@@ -1004,7 +1008,7 @@
       "caption": "The landing: On a server that holds one organization: General, no profile",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "No scene draws this state yet; the settings Built look's fixes add it.",
       "words": [
         {
           "text": "Settings",
@@ -1319,8 +1323,12 @@
     {
       "caption": "The landing: At 390 wide",
       "narrow": true,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "built": [
+        {
+          "scene": "settings-landing",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Settings",

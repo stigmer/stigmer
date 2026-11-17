@@ -7,9 +7,8 @@
  * organization (its admins); anyone else reads the switches, and nobody
  * can flip one until the server has said yes.
  */
-import { useCallback, useId } from "react";
+import { useCallback } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { getUserMessage } from "@stigmer/client";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { useOrganization } from "./useOrganization.js";
 import {
@@ -18,7 +17,8 @@ import {
 } from "./useUpdateOrganizationPolicies.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { EditCheckFailed } from "./EditCheckFailed.js";
-import { Switch } from "../switch/Switch.js";
+import { SwitchField } from "../internal/form/SwitchField.js";
+import { FieldError } from "../internal/form/Field.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
@@ -29,6 +29,14 @@ export interface OrgPoliciesPanelProps {
   readonly org: string;
   /** Fired with the updated resource after a successful save. */
   readonly onUpdated?: (org: Organization) => void;
+  /**
+   * Drawn inside another page's section (Organization preferences), which
+   * says once who may change it: the panel then leaves out its own
+   * "only admins" line. A permission check of its own that fails is still
+   * said here, with its Try again, since it can fail while the host page's
+   * check succeeds.
+   */
+  readonly embedded?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -45,11 +53,7 @@ export interface OrgPoliciesPanelProps {
  * <OrgPoliciesPanel org="org-id-123" />
  * ```
  */
-export function OrgPoliciesPanel({ org, onUpdated, className }: OrgPoliciesPanelProps) {
-  const baseId = useId();
-  const switchId = `${baseId}-members-create-agents`;
-  const titleId = `${switchId}-title`;
-  const descriptionId = `${switchId}-description`;
+export function OrgPoliciesPanel({ org, onUpdated, embedded = false, className }: OrgPoliciesPanelProps) {
 
   const { organization, isLoading, error: fetchError, refetch } = useOrganization(org || null);
   const { updatePolicies, isUpdating, error } = useUpdateOrganizationPolicies();
@@ -93,44 +97,32 @@ export function OrgPoliciesPanel({ org, onUpdated, className }: OrgPoliciesPanel
 
   if (!organization) return null;
 
+  const stillOn = policies.membersCanCreateAgents ? "on" : "off";
   return (
-    <div className={cn("stg:space-y-4", className)}>
-      <div className="stg:space-y-1">
-        <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
-          <div className="stg:min-w-0 stg:flex-1">
-            <span id={titleId} className="stg:block stg:text-xs stg:font-medium stg:text-foreground">
-              Members can create agents
-            </span>
-            <p id={descriptionId} className="stg:text-2xs stg:leading-snug stg:text-muted-foreground">
-              When on, every member can create agents. A member&apos;s agent is theirs to keep
-              private or share with the organization. When off, only admins create agents.
-              Changes apply immediately.
-            </p>
-          </div>
-          <span className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">
-            {isUpdating && <SpinnerIcon size={12} />}
-            <Switch
-              id={switchId}
-              checked={policies.membersCanCreateAgents}
-              onCheckedChange={(next) => void handleToggle(next)}
-              disabled={isUpdating || !canEdit}
-              aria-labelledby={titleId}
-              aria-describedby={descriptionId}
-            />
-          </span>
-        </div>
-        {error && (
-          <p className="stg:text-2xs stg:text-destructive" role="alert">
-            {getUserMessage(error)}
-          </p>
-        )}
+    <div className={cn("stg:flex stg:flex-col stg:gap-3", className)}>
+      <div className="stg:flex stg:items-start stg:gap-2">
+        <SwitchField
+          className="stg:flex-1"
+          label="Members can create agents"
+          hint="When on, every member can create agents. A member's agent is theirs to keep private or share with the organization. When off, only admins create agents."
+          checked={policies.membersCanCreateAgents}
+          onCheckedChange={(next) => void handleToggle(next)}
+          disabled={isUpdating || !canEdit}
+        />
+        {isUpdating && <SpinnerIcon size={12} />}
       </div>
+      {error && (
+        <FieldError>
+          Couldn&apos;t change the policy. It&apos;s still {stillOn}; try again.
+        </FieldError>
+      )}
 
-      {editDenied && (
-        <p className="stg:text-2xs stg:text-muted-foreground">
+      {editDenied && !embedded && (
+        <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
           Only organization admins can change these policies.
         </p>
       )}
+      {/* Its own check can fail while the host page's succeeds: always said here, with Try again. */}
       {checkFailed && <EditCheckFailed what="change these policies" onRetry={editCheck.refetch} />}
     </div>
   );

@@ -954,8 +954,8 @@ outside it sees them.
 - **Roles and policies**: Everyone in an Organization holds one role in it:
   Owner, Admin, Member or Viewer ([Role](#role)). The **Members can create
   agents** policy (`OrganizationPolicies.members_can_create_agents`, on by
-  default, under **Settings > Policies**) lets members create Agents; when it is
-  off, only admins do.
+  default, under **Settings > Organization preferences**) lets members create
+  Agents; when it is off, only admins do.
 - **Context rule**: `org` in identifiers, "Organization" in prose. Never call it
   a tenant, and never a Workspace, which is the folder a Session's repositories
   and files are given in. In docs for open source, do not make a reader name or

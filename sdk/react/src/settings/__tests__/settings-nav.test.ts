@@ -16,14 +16,11 @@ describe("SETTINGS_NAV_GROUPS preference entries", () => {
     ).toBe("Preferences");
   });
 
-  it("lists org policies in the Organization group", () => {
-    const organization = SETTINGS_NAV_GROUPS.find(
-      (g) => g.label === "Organization",
+  it("lists no Policies page: its switch is a section of the organization's preferences", () => {
+    const hrefs = SETTINGS_NAV_GROUPS.flatMap((g) =>
+      g.items.map((i) => i.href),
     );
-    expect(
-      organization!.items.find((i) => i.href === "/settings/org-policies")
-        ?.label,
-    ).toBe("Policies");
+    expect(hrefs).not.toContain("/settings/org-policies");
   });
 
   it("lists account preferences in the Account group", () => {
@@ -35,10 +32,37 @@ describe("SETTINGS_NAV_GROUPS preference entries", () => {
     ).toBe("Preferences");
   });
 
-  it("lists notifications in the Account group", () => {
-    const account = SETTINGS_NAV_GROUPS.find((g) => g.label === "Account");
-    expect(
-      account!.items.find((i) => i.href === "/settings/notifications")?.label,
-    ).toBe("Notifications");
+  it("lists no Notifications page: its switch is a section of the account's preferences", () => {
+    const hrefs = SETTINGS_NAV_GROUPS.flatMap((g) =>
+      g.items.map((i) => i.href),
+    );
+    expect(hrefs).not.toContain("/settings/notifications");
+  });
+});
+
+describe("SETTINGS_NAV_GROUPS words", () => {
+  it("spells each page as its own title does, in sentence case", () => {
+    const labels = SETTINGS_NAV_GROUPS.flatMap((g) =>
+      g.items.map((i) => i.label),
+    );
+    expect(labels).toEqual(
+      expect.arrayContaining([
+        "Organization profile",
+        "API keys",
+        "OAuth apps",
+        "Channel apps",
+        "Federation issuers",
+      ]),
+    );
+    expect(SETTINGS_NAV_GROUPS.map((g) => g.label)).toContain(
+      "Billing and usage",
+    );
+    for (const label of labels) expect(label).not.toMatch(/ [A-Z][a-z]/);
+  });
+
+  it("gives every page a line saying what it is for", () => {
+    for (const item of SETTINGS_NAV_GROUPS.flatMap((g) => g.items)) {
+      expect(item.description, item.href).toMatch(/\.$/);
+    }
   });
 });

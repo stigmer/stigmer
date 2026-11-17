@@ -133,7 +133,7 @@ describe("AccountPreferencesPanel", () => {
 
     const field = await findSyncedField("Keep answers terse.");
     fireEvent.change(field, { target: { value: "Prefer bullet points." } });
-    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
     const sent = sentUpdate<IdentityAccount>(update);
@@ -161,7 +161,7 @@ describe("AccountPreferencesPanel", () => {
     expect(toggle.getAttribute("aria-checked")).toBe("false");
 
     fireEvent.click(toggle);
-    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
     expect(sentUpdate<IdentityAccount>(update).resource.spec?.preferences?.defaultAutoApprove).toBe(true);
@@ -189,7 +189,7 @@ describe("AccountPreferencesPanel", () => {
     );
 
     fireEvent.click(toggle);
-    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
     // Off is the zero value at the named path, which clears it.
@@ -204,7 +204,7 @@ describe("AccountPreferencesPanel", () => {
 
     const field = await findSyncedField("Keep answers terse.");
     fireEvent.change(field, { target: { value: "New context" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     // Initial load + post-save refetch.
     await waitFor(() => expect(whoAmI).toHaveBeenCalledTimes(2));
@@ -229,7 +229,7 @@ describe("AccountPreferencesPanel", () => {
 
       // No Save click: consent applies the moment it is flipped (the
       // UX-checkpoint decision).
-      fireEvent.click(screen.getByRole("switch", { name: "Memory" }));
+      fireEvent.click(screen.getByRole("switch", { name: "Agents may remember confirmed facts about me" }));
 
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
       const sent = sentUpdate<IdentityAccount>(update);
@@ -259,7 +259,7 @@ describe("AccountPreferencesPanel", () => {
 
       const field = await findSyncedField("Keep answers terse.");
       fireEvent.change(field, { target: { value: "Terser still." } });
-      fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
       // The form names its own preferences only: the memory consent is not
@@ -280,7 +280,7 @@ describe("AccountPreferencesPanel", () => {
 
       await waitFor(() =>
         expect(
-          screen.getByRole("switch", { name: "Memory" }).getAttribute("aria-checked"),
+          screen.getByRole("switch", { name: "Agents may remember confirmed facts about me" }).getAttribute("aria-checked"),
         ).toBe("true"),
       );
     });
@@ -296,7 +296,7 @@ describe("AccountPreferencesPanel", () => {
       renderPanel(createMockStigmer());
       await findSyncedField("Keep answers terse.");
 
-      expect(screen.getByRole("switch", { name: "Memory" })).toBeTruthy();
+      expect(screen.getByRole("switch", { name: "Agents may remember confirmed facts about me" })).toBeTruthy();
       expect(screen.queryByText(ORGANIZATION_DECIDES)).toBeNull();
     });
 
@@ -306,7 +306,7 @@ describe("AccountPreferencesPanel", () => {
       await findSyncedField("Keep answers terse.");
 
       expect(screen.getByText(ORGANIZATION_DECIDES)).toBeTruthy();
-      expect(screen.queryByRole("switch", { name: "Memory" })).toBeNull();
+      expect(screen.queryByRole("switch", { name: "Agents may remember confirmed facts about me" })).toBeNull();
     });
 
     it("offers the switch on a server too old to report its posture", async () => {
@@ -314,7 +314,7 @@ describe("AccountPreferencesPanel", () => {
       renderPanel(createMockStigmer(), "local");
       await findSyncedField("Keep answers terse.");
 
-      expect(screen.getByRole("switch", { name: "Memory" })).toBeTruthy();
+      expect(screen.getByRole("switch", { name: "Agents may remember confirmed facts about me" })).toBeTruthy();
     });
 
     it("offers the switch when the posture could not be read: an unknown posture lets the server decide", async () => {
@@ -322,7 +322,7 @@ describe("AccountPreferencesPanel", () => {
       renderPanel(createMockStigmer(), "local");
       await findSyncedField("Keep answers terse.");
 
-      expect(screen.getByRole("switch", { name: "Memory" })).toBeTruthy();
+      expect(screen.getByRole("switch", { name: "Agents may remember confirmed facts about me" })).toBeTruthy();
     });
 
     it("renders neither while the server's answer is loading, so no switch flashes and disappears", async () => {
@@ -330,7 +330,7 @@ describe("AccountPreferencesPanel", () => {
       renderPanel(createMockStigmer(), "local");
       await findSyncedField("Keep answers terse.");
 
-      expect(screen.queryByRole("switch", { name: "Memory" })).toBeNull();
+      expect(screen.queryByRole("switch", { name: "Agents may remember confirmed facts about me" })).toBeNull();
       expect(screen.queryByText(ORGANIZATION_DECIDES)).toBeNull();
     });
   });
@@ -360,7 +360,7 @@ describe("AccountPreferencesPanel", () => {
       expect(screen.getAllByRole("radio")).toHaveLength(3);
       expect(screen.queryByRole("combobox")).toBeNull();
       expect(
-        screen.getByRole("link", { name: "Default models are in Models & providers" }).getAttribute("href"),
+        screen.getByRole("link", { name: "Models and providers" }).getAttribute("href"),
       ).toBe("/models");
     });
 
@@ -369,7 +369,7 @@ describe("AccountPreferencesPanel", () => {
       await findSyncedField("Keep answers terse.");
 
       expect(
-        screen.getByRole("link", { name: "Default models are in Models & providers" }).getAttribute("href"),
+        screen.getByRole("link", { name: "Models and providers" }).getAttribute("href"),
       ).toBe("#/models");
     });
 
@@ -390,7 +390,7 @@ describe("AccountPreferencesPanel", () => {
       await findSyncedField("Keep answers terse.");
 
       fireEvent.click(screen.getByRole("radio", { name: "Claude Agent" }));
-      fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
       const sent = sentUpdate<IdentityAccount>(update);
@@ -431,7 +431,7 @@ describe("AccountPreferencesPanel", () => {
 
       const field = await findSyncedField("Keep answers terse.");
       fireEvent.change(field, { target: { value: "Terser still." } });
-      fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
       const sent = sentUpdate<IdentityAccount>(update);
@@ -456,10 +456,10 @@ describe("AccountPreferencesPanel", () => {
 
         const field = await findSyncedField("Keep answers terse.");
         expect(screen.getByRole("radio", { name: "Platform default" })).toHaveProperty("checked", true);
-        expect(screen.getByRole("button", { name: "Save changes" })).toHaveProperty("disabled", true);
+        expect(screen.getByRole("button", { name: "Save" })).toHaveProperty("disabled", true);
 
         fireEvent.change(field, { target: { value: "Terser still." } });
-        fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+        fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
         await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
         expect(sentUpdate<IdentityAccount>(update).resource.spec?.preferences?.defaultHarness).toBe("");

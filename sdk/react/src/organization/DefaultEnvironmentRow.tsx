@@ -16,6 +16,7 @@
 import { useCallback } from "react";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { ResourceRef } from "@stigmer/client";
+import { FieldError } from "../internal/form/Field.js";
 import { EnvironmentPicker } from "../environment/EnvironmentPicker.js";
 import { ENVIRONMENTS_NOT_APPLYING_COPY } from "../environment/copy.js";
 import { environmentName, useEnvironmentList } from "../environment/useEnvironmentList.js";
@@ -77,15 +78,12 @@ export function DefaultEnvironmentRow({ id, organization, readOnly, onSaved }: D
   })();
 
   return (
-    <div className="stg:space-y-1" role="group" aria-labelledby={titleId} aria-describedby={descriptionId}>
-      <span id={titleId} className="stg:block stg:text-xs stg:font-medium stg:text-foreground">
-        Default environment
+    <div className="stg:flex stg:flex-col stg:gap-1.5" role="group" aria-labelledby={titleId} aria-describedby={descriptionId}>
+      <span id={titleId} className="stg:block stg:text-sm stg:font-medium stg:text-foreground">
+        Environment
       </span>
-      <p id={descriptionId} className="stg:text-2xs stg:leading-snug stg:text-muted-foreground">
-        {availability?.applies === false ? ENVIRONMENTS_NOT_APPLYING_COPY["not-on-server"] : DEFAULT_ENVIRONMENT_HELPER_TEXT}
-      </p>
       {readOnly ? (
-        <p className="stg:text-sm stg:text-foreground">{shownName}</p>
+        <p className="stg:m-0 stg:text-sm stg:text-foreground">{shownName}</p>
       ) : (
         <div className="stg:flex stg:items-center stg:gap-1.5">
           <EnvironmentPicker
@@ -100,11 +98,10 @@ export function DefaultEnvironmentRow({ id, organization, readOnly, onSaved }: D
           {isUpdating && <SpinnerIcon size={12} />}
         </div>
       )}
-      {error && (
-        <p className="stg:text-2xs stg:text-destructive" role="alert">
-          {saveErrorMessage(error, "organization")}
-        </p>
-      )}
+      <p id={descriptionId} className="stg:m-0 stg:text-xs stg:text-muted-foreground">
+        {availability?.applies === false ? ENVIRONMENTS_NOT_APPLYING_COPY["not-on-server"] : DEFAULT_ENVIRONMENT_HELPER_TEXT}
+      </p>
+      {error && <FieldError>{saveErrorMessage(error, "organization")}</FieldError>}
     </div>
   );
 }

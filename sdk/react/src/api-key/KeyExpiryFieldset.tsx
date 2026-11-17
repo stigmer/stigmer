@@ -5,20 +5,20 @@
  *
  * One control for a person's own key (`CreateApiKeyForm`) and a service
  * account's (`CreateServiceAccountKeyForm`), so the two forms cannot drift
- * in what lifetimes they offer. The radio-group name is minted per mount: a
- * fixed name would merge two mounted forms into one keyboard group. Not
- * exported from the package barrel.
+ * in what lifetimes they offer. Not exported from the package barrel.
  */
 import { useId } from "react";
-import { cn } from "@stigmer/design-tokens";
-import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
-import { Radio } from "../internal/form/index.js";
+import { ChoiceGroup } from "../internal/form/ChoiceGroup.js";
 
 /** A key lifetime the forms offer. */
 export type KeyExpiryOption = "30" | "60" | "90" | "never";
 
-/** The lifetime a key form starts on. */
-export const DEFAULT_KEY_EXPIRY: KeyExpiryOption = "never";
+/**
+ * The lifetime a key form starts on: 90 days, as the CLI and the service
+ * account guide make them, so a key made for a script and forgotten stops
+ * on its own. Never stays one click away (stigmer#2910).
+ */
+export const DEFAULT_KEY_EXPIRY: KeyExpiryOption = "90";
 
 const EXPIRY_OPTIONS: readonly { value: KeyExpiryOption; label: string }[] = [
   { value: "30", label: "30 days" },
@@ -44,45 +44,28 @@ export interface KeyExpiryFieldsetProps {
   readonly disabled?: boolean;
 }
 
-/** The "Expiration" radio group. */
+/** The "Expires" choice: the kit's segmented choice group in a field. */
 export function KeyExpiryFieldset({
   value,
   onChange,
   disabled = false,
 }: KeyExpiryFieldsetProps) {
-  const name = useId();
+  const labelId = useId();
   return (
-    <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-1.5")}>
-      <legend className="stg:text-xs stg:font-medium stg:text-foreground">
-        Expiration
-      </legend>
-      <div className="stg:flex stg:flex-wrap stg:gap-2">
-        {EXPIRY_OPTIONS.map((option) => {
-          const checked = value === option.value;
-          return (
-            <label
-              key={option.value}
-              className={cn(
-                "stg:inline-flex stg:cursor-pointer stg:items-center stg:rounded-md stg:border stg:px-2.5 stg:py-1 stg:text-xs stg:transition-colors",
-                checked
-                  ? "stg:border-primary stg:bg-primary-subtle stg:text-primary stg:font-medium"
-                  : "stg:border-input stg:bg-background stg:text-muted-foreground stg:hover:border-border stg:hover:text-foreground",
-                disabled && "stg:pointer-events-none stg:opacity-50",
-              )}
-            >
-              <Radio
-                visuallyHidden
-                name={name}
-                value={option.value}
-                checked={checked}
-                disabled={disabled}
-                onChange={() => onChange(option.value)}
-              />
-              {option.label}
-            </label>
-          );
-        })}
-      </div>
-    </fieldset>
+    <div className="stg:flex stg:flex-col stg:gap-1.5">
+      <span
+        id={labelId}
+        className="stg:text-sm stg:font-medium stg:text-foreground"
+      >
+        Expires
+      </span>
+      <ChoiceGroup
+        aria-labelledby={labelId}
+        value={value}
+        onChange={onChange}
+        options={EXPIRY_OPTIONS}
+        disabled={disabled}
+      />
+    </div>
   );
 }

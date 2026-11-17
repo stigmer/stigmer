@@ -1,9 +1,9 @@
 "use client";
 
-import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
 import { Switch } from "../switch/Switch.js";
 import { SpinnerIcon } from "./SpinnerIcon.js";
+import { FieldError } from "./form/Field.js";
 
 /** Props for {@link MemoryEnabledRow}. */
 export interface MemoryEnabledRowProps {
@@ -25,10 +25,13 @@ export interface MemoryEnabledRowProps {
    * accessible description.
    */
   readonly helperText: string;
+  /** The switch's name, under its section's title. Defaults to "Memory". */
+  readonly label?: string;
 }
 
 /**
- * The `memory_enabled` consent toggle — one row, shared verbatim by
+ * The `memory_enabled` consent toggle, its switch leading as every settings
+ * switch's does — one row, shared verbatim by
  * {@link OrgPreferencesPanel} and {@link AccountPreferencesPanel} so the
  * two scopes of the double opt-in present identically.
  *
@@ -49,29 +52,15 @@ export function MemoryEnabledRow({
   readOnly = false,
   error,
   helperText,
+  label = "Memory",
 }: MemoryEnabledRowProps) {
   const titleId = `${id}-title`;
   const descriptionId = `${id}-description`;
 
   return (
     <div className="stg:space-y-1">
-      <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
-        <div className="stg:min-w-0 stg:flex-1">
-          <span
-            id={titleId}
-            className="stg:block stg:text-xs stg:font-medium stg:text-foreground"
-          >
-            Memory
-          </span>
-          <p
-            id={descriptionId}
-            className="stg:text-2xs stg:leading-snug stg:text-muted-foreground"
-          >
-            {helperText}
-          </p>
-        </div>
+      <div className="stg:flex stg:items-start stg:gap-3">
         <span className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">
-          {saving && <SpinnerIcon size={12} />}
           <Switch
             id={id}
             checked={checked}
@@ -80,13 +69,24 @@ export function MemoryEnabledRow({
             aria-labelledby={titleId}
             aria-describedby={descriptionId}
           />
+          {saving && <SpinnerIcon size={12} />}
         </span>
+        <div className="stg:min-w-0 stg:flex-1">
+          <span
+            id={titleId}
+            className="stg:block stg:text-sm stg:font-medium stg:text-foreground"
+          >
+            {label}
+          </span>
+          <p
+            id={descriptionId}
+            className="stg:m-0 stg:mt-1 stg:text-xs stg:text-muted-foreground"
+          >
+            {helperText}
+          </p>
+        </div>
       </div>
-      {error && (
-        <p className="stg:text-2xs stg:text-destructive" role="alert">
-          {getUserMessage(error)}
-        </p>
-      )}
+      {error && <FieldError>{getUserMessage(error)}</FieldError>}
     </div>
   );
 }

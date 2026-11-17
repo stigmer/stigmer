@@ -7,8 +7,12 @@
     {
       "caption": "Policies, kept separate: Kept as its own page: one decision, with room",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "built": [
+        {
+          "scene": "settings-org-policies",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Policies",
@@ -60,7 +64,7 @@
       "caption": "Policies, kept separate: As a member: read only",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "No scene draws this state yet; the settings Built look's fixes add it.",
       "words": [
         {
           "text": "Policies",
@@ -120,7 +124,7 @@
       "caption": "Policies, kept separate: The switch didn't save",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "No scene draws this state yet; the settings Built look's fixes add it.",
       "words": [
         {
           "text": "Policies",

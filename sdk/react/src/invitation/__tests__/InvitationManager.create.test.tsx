@@ -10,7 +10,17 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { StigmerContext } from "@stigmer/react-core";
 import { InvitationManager } from "../InvitationManager";
 
-afterEach(cleanup);
+const server = vi.hoisted(() => ({ singleOrg: true }));
+// The active organization, for how the empty list names it.
+vi.mock("../../organization/OrgProvider.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../organization/OrgProvider.js")>()),
+  useOptionalOrg: () => ({ activeOrg: { metadata: { id: "org_acme", slug: "acme" } } }),
+}));
+
+afterEach(() => {
+  cleanup();
+  server.singleOrg = true;
+});
 
 function renderManager(createInvitation: () => Promise<never>) {
   const client = {
@@ -19,6 +29,7 @@ function renderManager(createInvitation: () => Promise<never>) {
       create: createInvitation,
     },
     grant: { checkMyPermission: async () => ({ isAuthorized: false }) },
+    platform: { getServerInfo: async () => ({ singleOrg: server.singleOrg }) },
   };
   render(
     <StigmerContext.Provider value={client as never}>
@@ -33,7 +44,7 @@ describe("InvitationManager create form", () => {
       throw new Error("unused");
     });
 
-    fireEvent.click(await screen.findByRole("button", { name: "+ Create invite link" }));
+    fireEvent.click((await screen.findAllByRole("button", { name: "New invite link" }))[0]!);
 
     const unlimited = screen.getByRole("radio", { name: /Unlimited/ });
     const single = screen.getByRole("radio", { name: /Single use/ });
@@ -48,7 +59,7 @@ describe("InvitationManager create form", () => {
     });
     renderManager(createInvitation);
 
-    fireEvent.click(await screen.findByRole("button", { name: "+ Create invite link" }));
+    fireEvent.click((await screen.findAllByRole("button", { name: "New invite link" }))[0]!);
     fireEvent.click(screen.getByRole("button", { name: "Create invite link" }));
 
     const alert = await screen.findByRole("alert");
@@ -56,5 +67,21 @@ describe("InvitationManager create form", () => {
     expect(createInvitation).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.getByRole("button", { name: "Cancel" })).toBeTruthy());
     expect(screen.getByText(/No invite links yet/)).toBeTruthy();
+  });
+
+  it("names the organization in the empty list's line only where the server holds several", async () => {
+    server.singleOrg = false;
+    renderManager(async () => {
+      throw new Error("unused");
+    });
+    expect(await screen.findByText("Make a link to bring people into acme with the role you choose.")).toBeTruthy();
+    cleanup();
+
+    // A server that holds one organization never names it.
+    server.singleOrg = true;
+    renderManager(async () => {
+      throw new Error("unused");
+    });
+    expect(await screen.findByText("Make a link to bring people into this organization with the role you choose.")).toBeTruthy();
   });
 });
