@@ -152,4 +152,31 @@ describe("ConversationStore", () => {
     store.setSlow(true);
     expect(listener).toHaveBeenCalledTimes(1);
   });
+
+  it("holds the session a reset names, and notifies when that session changes even if empty", () => {
+    const store = new ConversationStore();
+    const listener = vi.fn();
+    store.subscribe(listener);
+    expect(store.getSessionId()).toBeNull();
+
+    store.reset("s1");
+    expect(store.getSessionId()).toBe("s1");
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    store.reset("s1");
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    for (const frame of frames(samples.turnEvents())) store.applyFrame(frame);
+    store.publish();
+    listener.mockClear();
+
+    store.reset("s2");
+    expect(store.getSessionId()).toBe("s2");
+    expect(store.getFold()).toBeNull();
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    store.reset();
+    expect(store.getSessionId()).toBeNull();
+    expect(listener).toHaveBeenCalledTimes(2);
+  });
 });

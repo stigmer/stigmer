@@ -72,6 +72,55 @@ const STOPPABLE_PHASES: ReadonlySet<TurnPhase> = new Set<TurnPhase>([
  */
 const SESSION_EDIT_ATTEMPTS = 3;
 
+/**
+ * One conversation's send, from submit until its turn shows in the events,
+ * or until it fails and the person retries or moves on: what the thread
+ * shows before the events carry it, and what Retry sends again. Held per
+ * conversation, because the session viewer stays mounted while the person
+ * moves between conversations: a send belongs to the conversation it was
+ * written in, whichever one is on screen when it settles
+ * (stigmer/stigmer#3225).
+ */
+interface PendingSend {
+  /** Between submit and the server holding the message. */
+  readonly inFlight: boolean;
+  /** The run the send created, until its turn shows in the events. */
+  readonly runId: string | null;
+  /** The message the send queued for a working turn, until the events show it. */
+  readonly messageId: string | null;
+  /** The text shown before the events carry it; kept when the send fails. */
+  readonly userMessage: string | null;
+  /** The files sent with it, in lockstep with the text. */
+  readonly files: readonly MessageFileView[] | null;
+  /** Why the send failed, on either path: the session update or the send. */
+  readonly error: Error | null;
+  /** The send's arguments, for an exact Retry. */
+  readonly last: { readonly message: string; readonly options?: SendFollowUpOptions } | null;
+}
+
+const NO_PENDING_SEND: PendingSend = {
+  inFlight: false,
+  runId: null,
+  messageId: null,
+  userMessage: null,
+  files: null,
+  error: null,
+  last: null,
+};
+
+const NO_PENDING_SENDS: ReadonlyMap<string, PendingSend> = new Map();
+
+/** Whether nothing of a send is left to show or retry: its slot can go. */
+function isSettled(send: PendingSend): boolean {
+  return (
+    !send.inFlight &&
+    send.runId === null &&
+    send.messageId === null &&
+    send.userMessage === null &&
+    send.error === null
+  );
+}
+
 const EMPTY_ASKS: readonly ToolUse[] = [];
 const EMPTY_SETS: readonly FileReviewSet[] = [];
 const EMPTY_QUEUED: readonly QueuedMessage[] = [];
@@ -288,9 +337,16 @@ export interface UseSessionConversationReturn {
     message: string,
     options?: SendFollowUpOptions,
   ) => Promise<void>;
-  /** True when the input should be enabled (no live turn, not creating). */
+  /**
+   * True when the input should be enabled: this conversation's send is not
+   * on its way, and no turn waits for an answer or is paused.
+   */
   readonly canSendFollowUp: boolean;
-  /** True during the create RPC call (between submit and run ID). */
+  /**
+   * True while this conversation's send is on its way: from submit until the
+   * server holds the message, the session update a send may carry included.
+   * Another conversation's send never shows here.
+   */
   readonly isSending: boolean;
   /**
    * Error from the last `sendFollowUp` attempt, or `null`.
@@ -298,15 +354,18 @@ export interface UseSessionConversationReturn {
    * Covers **both** failing paths — the optional `session.update()` and the
    * `create()` RPC — so a follow-up never fails silently. When set, the user's
    * message is preserved (see {@link pendingUserMessage}) and can be re-sent
-   * via {@link retryLastSend}.
+   * via {@link retryLastSend}. It belongs to the conversation the send was
+   * written in: it waits there while the person is in another, and shows
+   * again on their return.
    */
   readonly sendError: Error | null;
   /** Reset `sendError` to `null` (keeps the preserved pending message). */
   readonly clearSendError: () => void;
   /**
-   * Re-send the most recent `sendFollowUp` (same message and options). No-op
-   * when nothing has been sent yet. Use as the "Retry" affordance on a failed
-   * turn; clears {@link sendError} for the new attempt.
+   * Re-send this conversation's most recent `sendFollowUp` (same message and
+   * options), into this conversation. No-op when it has none to retry: nothing
+   * sent, or the sent turn already arrived. Use as the "Retry" affordance on a
+   * failed turn; clears {@link sendError} for the new attempt.
    */
   readonly retryLastSend: () => void;
 
@@ -325,7 +384,7 @@ export interface UseSessionConversationReturn {
    * The user's message text, shown in the thread before the session's
    * events carry it. Retained when a send fails so the typed message is
    * never lost — pair with {@link sendError} to render the turn as failed
-   * with a retry control.
+   * with a retry control. This conversation's own, like the send's error.
    */
   readonly pendingUserMessage: string | null;
   /**
@@ -567,7 +626,6 @@ export function useSessionConversation(
   });
   const {
     send: sendMessage,
-    isCreating,
     clearError: clearCreateError,
   } = useCreateRun();
   const { update: updateSession } = useUpdateSession();
@@ -603,29 +661,25 @@ export function useSessionConversation(
   const foldTurns = events.fold?.turns;
   const wakeFollow = events.wake;
 
-  // The run a send just created, until its turn appears in the events: it
-  // holds the optimistic bubble up across the gap.
-  const [pendingRunId, setPendingRunId] = useState<string | null>(null);
-  // The message a send queued for the working turn, until the events show
-  // it (queued, or read by a turn): the optimistic bubble stays up till then.
-  const [pendingMessageId, setPendingMessageId] = useState<string | null>(null);
-  const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(
-    null,
-  );
-  // The pending message's files, kept in lockstep with the text: one
-  // pending turn, two facets. Held separately (not an object) so existing
-  // pendingUserMessage consumers keep their string contract.
-  const [pendingFiles, setPendingFiles] = useState<
-    readonly MessageFileView[] | null
-  >(null);
-  // Dedicated send-failure state, distinct from the create hook's internal
-  // error so it can also cover the session.update() path. The last send's
-  // arguments are captured for an exact retry.
-  const [sendError, setSendError] = useState<Error | null>(null);
-  const lastSendRef = useRef<{
-    message: string;
-    options?: SendFollowUpOptions;
-  } | null>(null);
+  // Each conversation's send, by session id (PendingSend). A render reads
+  // the slot of the session it shows, so another conversation's send never
+  // shows here; a write names the session it belongs to, so a send that
+  // settles after a switch lands on its own conversation. A slot goes once
+  // nothing of its send is left to show or retry.
+  const [pendingSends, setPendingSends] = useState(NO_PENDING_SENDS);
+  const updatePendingSend = useCallback((id: string, patch: Partial<PendingSend> | null) => {
+    setPendingSends((held) => {
+      const next = patch === null ? NO_PENDING_SEND : { ...(held.get(id) ?? NO_PENDING_SEND), ...patch };
+      if (isSettled(next) && !held.has(id)) return held;
+      const sends = new Map(held);
+      if (isSettled(next)) sends.delete(id);
+      else sends.set(id, next);
+      return sends;
+    });
+  }, []);
+  const pendingSend = (sessionId !== null ? pendingSends.get(sessionId) : undefined) ?? NO_PENDING_SEND;
+  const pendingRunId = pendingSend.runId;
+  const pendingMessageId = pendingSend.messageId;
 
   const listedById = useMemo(() => {
     const map = new Map<string, Run>();
@@ -671,13 +725,9 @@ export function useSessionConversation(
     (pendingRunId !== null && (foldTurns ?? []).some((turn) => turn.runId === pendingRunId)) ||
     (pendingMessageId !== null && holdsMessage(foldTurns, foldQueued, pendingMessageId));
   useEffect(() => {
-    if (!sentTurnArrived) return;
-    setPendingRunId(null);
-    setPendingMessageId(null);
-    setPendingUserMessage(null);
-    setPendingFiles(null);
-    setSendError(null);
-  }, [sentTurnArrived]);
+    if (!sentTurnArrived || sessionId === null) return;
+    updatePendingSend(sessionId, null);
+  }, [sentTurnArrived, sessionId, updatePendingSend]);
 
   // The run list is read again when, after it has loaded, the events show a
   // turn it does not hold (another client's message; a send reads the list
@@ -776,7 +826,7 @@ export function useSessionConversation(
   // queue, and the working turn reads it at its next step. Only a turn that
   // waits for an answer or is paused holds the composer closed (the server
   // takes only the answer, or the resume, then).
-  const canSendFollowUp = !isCreating && activePhase !== "waiting" && activePhase !== "paused";
+  const canSendFollowUp = !pendingSend.inFlight && activePhase !== "waiting" && activePhase !== "paused";
   const queued = foldQueued ?? EMPTY_QUEUED;
 
   const resources = useMemo<readonly SessionResource[]>(
@@ -802,18 +852,22 @@ export function useSessionConversation(
       // events arrive as they are written.
       wakeFollow();
 
+      // Every write below names `sessionId`, the conversation this send was
+      // written in (this callback's own), so a send that settles after the
+      // person moved to another conversation lands on its own.
+      //
       // Capture for retry and clear any prior failure before the new attempt.
-      lastSendRef.current = { message, options };
-      setSendError(null);
       // A Build-from-plan turn shows no optimistic bubble: its message is a
       // machine-written label, not user prose, and the thread hides the turn
       // entirely (the plan card's "Starting build…" state covers the send
       // window). It is still set on FAILURE below, so a failed build send
       // renders the failed-with-retry bubble instead of vanishing.
-      if (!options?.buildFromPlan) {
-        setPendingUserMessage(message);
-        setPendingFiles(options?.files ?? null);
-      }
+      updatePendingSend(sessionId, {
+        inFlight: true,
+        error: null,
+        last: { message, options },
+        ...(options?.buildFromPlan ? {} : { userMessage: message, files: options?.files ?? null }),
+      });
 
       try {
         const needsSessionUpdate =
@@ -867,10 +921,10 @@ export function useSessionConversation(
           supersedesRunId: options?.supersedesRunId,
         });
         if (result.runId === null) {
-          setPendingMessageId(result.messageId);
+          updatePendingSend(sessionId, { messageId: result.messageId });
         } else {
           requestedRunIdsRef.current.add(result.runId);
-          setPendingRunId(result.runId);
+          updatePendingSend(sessionId, { runId: result.runId });
           refetch();
         }
         // The run exists and names the Files: the originals the
@@ -883,15 +937,19 @@ export function useSessionConversation(
         // build turn this is the FIRST time the message is set — failure is
         // the one case where its label must become visible. The files
         // ride along: the failed bubble's chips are what Retry will re-send.
-        setPendingUserMessage(message);
-        setPendingFiles(options?.files ?? null);
-        setSendError(toError(err));
+        updatePendingSend(sessionId, {
+          userMessage: message,
+          files: options?.files ?? null,
+          error: toError(err),
+        });
         if (process.env.NODE_ENV !== "production") {
           console.error("[useSessionConversation] sendFollowUp failed:", err);
         }
+      } finally {
+        updatePendingSend(sessionId, { inFlight: false });
       }
     },
-    [sessionId, session, turnOrg, stigmer, sendMessage, updateSession, refetch, refetchSession, wakeFollow],
+    [sessionId, session, turnOrg, stigmer, sendMessage, updateSession, refetch, refetchSession, wakeFollow, updatePendingSend],
   );
 
   const moveToCurrentAgentVersion = useCallback(async (): Promise<void> => {
@@ -908,15 +966,15 @@ export function useSessionConversation(
     refetchSession();
   }, [sessionId, stigmer, updateSession, refetchSession]);
 
+  const lastSend = pendingSend.last;
   const retryLastSend = useCallback(() => {
-    const last = lastSendRef.current;
-    if (last) void sendFollowUp(last.message, last.options);
-  }, [sendFollowUp]);
+    if (lastSend) void sendFollowUp(lastSend.message, lastSend.options);
+  }, [lastSend, sendFollowUp]);
 
   const clearSendError = useCallback(() => {
-    setSendError(null);
+    if (sessionId !== null) updatePendingSend(sessionId, { error: null });
     clearCreateError();
-  }, [clearCreateError]);
+  }, [sessionId, updatePendingSend, clearCreateError]);
 
   const asks = liveTurn?.asks ?? EMPTY_ASKS;
 
@@ -1008,14 +1066,14 @@ export function useSessionConversation(
 
     sendFollowUp,
     canSendFollowUp,
-    isSending: isCreating,
-    sendError,
+    isSending: pendingSend.inFlight,
+    sendError: pendingSend.error,
     clearSendError,
     retryLastSend,
     moveToCurrentAgentVersion,
 
-    pendingUserMessage,
-    pendingFiles,
+    pendingUserMessage: pendingSend.userMessage,
+    pendingFiles: pendingSend.files,
     queued,
 
     resources,

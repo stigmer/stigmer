@@ -1,11 +1,14 @@
-// The conversation's live state for one session: the session's event log,
-// folded (`SessionLog` from @stigmer/client), plus the follow's lifecycle stage
-// and its two watchdog signals. Frames go into the log as they arrive; the
-// fold is published to React only when the stream controller flushes, so a
-// burst of frames commits once. The fold itself keeps every turn, item and
-// thread object no event touched, so a published snapshot shares unchanged
-// objects by reference with the one before it and only the changed rows
-// re-render. Implements the contract `useSyncExternalStore` reads.
+// The conversation's live state for one session: which session it holds, the
+// session's event log, folded (`SessionLog` from @stigmer/client), plus the
+// follow's lifecycle stage and its two watchdog signals. The session id is
+// read with the rest, so a reader can tell state that belongs to the session
+// it renders from state still left over from another (stigmer/stigmer#2921).
+// Frames go into the log as they arrive; the fold is published to React only
+// when the stream controller flushes, so a burst of frames commits once. The
+// fold itself keeps every turn, item and thread object no event touched, so a
+// published snapshot shares unchanged objects by reference with the one before
+// it and only the changed rows re-render. Implements the contract
+// `useSyncExternalStore` reads.
 
 import { useRef } from "react";
 import { SessionLog, type SessionFold } from "@stigmer/client";
@@ -56,6 +59,7 @@ export type Listener = () => void;
  * they can read changed; every getter returns a stable reference.
  */
 export class ConversationStore {
+  private _sessionId: string | null = null;
   private _log = new SessionLog();
   private _fold: SessionFold | null = null;
   private _streamState: StreamState = IDLE_STATE;
@@ -119,13 +123,19 @@ export class ConversationStore {
     this._notify();
   }
 
-  /** Start over with an empty log, for another session. */
-  reset(): void {
+  /**
+   * Start over with an empty log, holding `sessionId` (none when omitted).
+   * Listeners hear it when anything they can read changed, the held session
+   * included, even for a store that was already empty.
+   */
+  reset(sessionId: string | null = null): void {
     const wasClean =
+      this._sessionId === sessionId &&
       this._fold === null &&
       this._streamState.stage === "idle" &&
       !this._connectTimedOut &&
       !this._isSlow;
+    this._sessionId = sessionId;
     this._log = new SessionLog();
     this._fold = null;
     this._streamState = IDLE_STATE;
@@ -142,6 +152,11 @@ export class ConversationStore {
     return () => {
       this._listeners.delete(listener);
     };
+  };
+
+  /** The session the store holds, as the last {@link reset} named it. */
+  getSessionId = (): string | null => {
+    return this._sessionId;
   };
 
   /** The published fold, or `null` before the first publish. */
