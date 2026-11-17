@@ -27,11 +27,11 @@ export interface InvitationRedemptionProps {
   /**
    * Whether the current user is authenticated.
    *
-   * Controls the button's click behavior, not its label. Both
-   * states show "Accept Invitation". When `false`, clicking
-   * fires {@link onAuthRequired} to initiate the auth flow.
-   * When `true` or omitted, clicking redeems the invitation
-   * directly.
+   * When `true` or omitted, the button reads "Accept invitation" and
+   * redeems the invitation directly. When `false`, it fires
+   * {@link onAuthRequired} to initiate the auth flow, under the same
+   * words, or, when the host passes {@link onSignUp}, the visitor is
+   * offered a new account first and sign-in second.
    *
    * @default true
    */
@@ -41,7 +41,7 @@ export interface InvitationRedemptionProps {
    * on mount (requires `isAuthenticated` to also be `true`).
    *
    * Used by host applications to complete the acceptance flow
-   * after an OIDC redirect — the user clicked "Accept Invitation"
+   * after an OIDC redirect — the user clicked "Accept invitation"
    * before the redirect, so no second click should be required.
    *
    * @default false
@@ -56,13 +56,30 @@ export interface InvitationRedemptionProps {
    */
   readonly onAccepted?: (invitation: Invitation) => void;
   /**
-   * Fired when an unauthenticated user clicks "Accept Invitation".
+   * Fired when an unauthenticated user asks to sign in: "Accept
+   * invitation", or "I already have an account" when
+   * {@link onSignUp} is passed.
    *
    * The host application controls what happens next — this
    * callback typically triggers a redirect to the OIDC provider
    * with a return URL back to the invite page.
    */
   readonly onAuthRequired?: () => void;
+  /**
+   * Fired when an unauthenticated user asks to make an account:
+   * "Create your account and join".
+   *
+   * Someone arriving through an invite link is most often new, so
+   * when the host passes this, a signed-out visitor is offered a new
+   * account first ("Create your account and join") and sign-in second,
+   * as a quieter "I already have an account" that fires
+   * {@link onAuthRequired}. Without it, the visitor sees one "Accept
+   * invitation" button that fires {@link onAuthRequired}. Pass it only
+   * when the host can open its identity provider's sign-up screen; the
+   * callback typically redirects there with a return URL back to the
+   * invite page. Ignored for a signed-in visitor.
+   */
+  readonly onSignUp?: () => void;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -79,29 +96,38 @@ export interface InvitationRedemptionProps {
  * success, and error — with appropriate UX for each.
  *
  * The component is auth-agnostic: it delegates authentication
- * decisions to the host application via `isAuthenticated` and
- * `onAuthRequired` props. The button always reads "Accept Invitation"
- * regardless of auth state — `isAuthenticated` only controls whether
- * clicking redeems directly or triggers the auth flow first.
+ * decisions to the host application via `isAuthenticated`,
+ * `onAuthRequired` and `onSignUp` props. A signed-in visitor sees
+ * "Accept invitation", which redeems directly. A signed-out visitor
+ * sees the same button, which starts the host's sign-in, or, when the
+ * host passes `onSignUp`, "Create your account and join" first and a
+ * quieter "I already have an account" under it.
  *
  * When `autoAccept` is `true` and the user is authenticated, the
  * component automatically triggers redemption on mount. This enables
  * a seamless post-OIDC-redirect flow where the user doesn't need
- * to click "Accept Invitation" a second time.
+ * to click "Accept invitation" a second time.
  *
  * All visual properties flow through `--stgm-*` design tokens.
  *
  * @example
  * ```tsx
- * type JoinPageProps = { token: string; signedIn: boolean; onOpen: (href: string) => void; onSignIn: () => void };
+ * type JoinPageProps = {
+ *   token: string;
+ *   signedIn: boolean;
+ *   onOpen: (href: string) => void;
+ *   onSignIn: () => void;
+ *   onSignUp: () => void;
+ * };
  *
- * function JoinPage({ token, signedIn, onOpen, onSignIn }: JoinPageProps) {
+ * function JoinPage({ token, signedIn, onOpen, onSignIn, onSignUp }: JoinPageProps) {
  *   return (
  *     <InvitationRedemption
  *       token={token}
  *       isAuthenticated={signedIn}
  *       onAccepted={(invitation) => onOpen(`/org/${invitation.metadata?.org}`)}
  *       onAuthRequired={onSignIn}
+ *       onSignUp={onSignUp}
  *     />
  *   );
  * }
@@ -113,6 +139,7 @@ export function InvitationRedemption({
   autoAccept = false,
   onAccepted,
   onAuthRequired,
+  onSignUp,
   className,
 }: InvitationRedemptionProps) {
   const { preview, isLoading, error: fetchError, refetch } = useInvitationPreview(token);
@@ -260,7 +287,7 @@ export function InvitationRedemption({
                   icon={isRedeeming ? <SpinnerIcon size={14} /> : undefined}
                   className="stg:w-full"
                 >
-                  {isRedeeming ? "Accepting\u2026" : "Accept Invitation"}
+                  {isRedeeming ? "Accepting\u2026" : "Accept invitation"}
                 </Button>
                 {redeemError && (
                   <p className="stg:mt-2 stg:text-center stg:text-2xs stg:text-destructive" role="alert">
@@ -268,9 +295,20 @@ export function InvitationRedemption({
                   </p>
                 )}
               </>
+            ) : onSignUp ? (
+              // Someone arriving through an invite link is most often new:
+              // a new account first, sign-in second (stigmer#3204).
+              <div className="stg:flex stg:flex-col stg:gap-2">
+                <Button onClick={onSignUp} className="stg:w-full">
+                  Create your account and join
+                </Button>
+                <Button variant="ghost" onClick={onAuthRequired} className="stg:w-full">
+                  I already have an account
+                </Button>
+              </div>
             ) : (
               <Button onClick={onAuthRequired} className="stg:w-full">
-                Accept Invitation
+                Accept invitation
               </Button>
             )}
           </div>
