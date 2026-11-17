@@ -269,18 +269,18 @@
       },
       "ruled": {},
       "pending": {
-        "word Facts agents proposed to remember about you in acme. Confirmed ones are shared with agents in your future sessions and show on those runs' records. Only you see them here; edit or delete any of them at any time.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Waiting for you 2": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Remembered 3": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Rejected 1": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Kept so an agent doesn't propose them again. Delete one to clear it.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Facts agents proposed to remember about you in acme. Confirmed ones are shared with agents in your future sessions and show on those runs' records. Only you see them here; edit or delete any of them at any time.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Waiting for you 2": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Remembered 3": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Rejected 1": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Kept so an agent doesn't propose them again. Delete one to clear it.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
       }
     },
     {
       "caption": "Memory: Editing a memory in place",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "When its page is redesigned: the settings Built look's fixes build it.",
       "words": [
         {
           "text": "Memory",
@@ -593,7 +593,7 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "word “Works in finance at Acme” stops being shared with agents. It can't be brought back.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word “Works in finance at Acme” stops being shared with agents. It can't be brought back.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
       }
     },
     {
@@ -793,8 +793,8 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "word Facts agents proposed to remember about you in acme. Confirmed ones are shared with agents in your future sessions and show on those runs' records. Only you see them here; edit or delete any of them at any time.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word When an agent proposes a fact worth keeping, it shows here for you to confirm or reject.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Facts agents proposed to remember about you in acme. Confirmed ones are shared with agents in your future sessions and show on those runs' records. Only you see them here; edit or delete any of them at any time.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word When an agent proposes a fact worth keeping, it shows here for you to confirm or reject.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
       }
     },
     {
@@ -1145,7 +1145,7 @@
       },
       "ruled": {},
       "pending": {
-        "word Facts agents proposed to remember about you in acme. Confirmed ones are shared with agents in your future sessions and show on those runs' records. Only you see them here; edit or delete any of them at any time.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Facts agents proposed to remember about you in acme. Confirmed ones are shared with agents in your future sessions and show on those runs' records. Only you see them here; edit or delete any of them at any time.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
       }
     },
     {
@@ -1413,11 +1413,11 @@
       },
       "ruled": {},
       "pending": {
-        "word Facts agents proposed to remember about you in acme. Confirmed ones are shared with agents in your future sessions and show on those runs' records. Only you see them here; edit or delete any of them at any time.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Waiting for you 2": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Remembered 3": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Rejected 1": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Kept so an agent doesn't propose them again. Delete one to clear it.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Facts agents proposed to remember about you in acme. Confirmed ones are shared with agents in your future sessions and show on those runs' records. Only you see them here; edit or delete any of them at any time.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Waiting for you 2": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Remembered 3": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Rejected 1": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Kept so an agent doesn't propose them again. Delete one to clear it.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
       }
     }
   ]

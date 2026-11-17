@@ -325,9 +325,7 @@
         "word Viewer": "The drawing's example data; the scene shows its own fixture's"
       },
       "ruled": {},
-      "pending": {
-        "word Service accounts hold roles too; they're listed under Service accounts.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
-      }
+      "pending": {}
     },
     {
       "caption": "Members: As a member: the roles, nothing to change",
@@ -488,9 +486,7 @@
         "word Viewer": "The drawing's example data; the scene shows its own fixture's"
       },
       "ruled": {},
-      "pending": {
-        "word Service accounts hold roles too; they're listed under Service accounts.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
-      }
+      "pending": {}
     },
     {
       "caption": "Members: With a federation issuer that grants a sign-in role (today's bordered note, as a Notice)",
@@ -741,8 +737,7 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "word Remove Grace Hopper from acme?": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Grace Hopper loses the Admin role and everything shared through acme. The conversations Grace started stay Grace's. You can invite Grace again.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Grace Hopper loses the Admin role and everything shared through acme. The conversations Grace started stay Grace's. You can invite Grace again.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
       }
     },
     {
@@ -1160,11 +1155,10 @@
       },
       "ruled": {},
       "pending": {
-        "word Owner": "At 390 the role sits under the name, as the drawing shows; the row hides it below sm today. Built with the settings forms PR",
-        "word Admin": "At 390 the role sits under the name, as the drawing shows; the row hides it below sm today. Built with the settings forms PR",
-        "word Member": "At 390 the role sits under the name, as the drawing shows; the row hides it below sm today. Built with the settings forms PR",
-        "word Viewer": "At 390 the role sits under the name, as the drawing shows; the row hides it below sm today. Built with the settings forms PR",
-        "word Service accounts hold roles too; they're listed under Service accounts.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Owner": "At 390 the role sits under the name, as the drawing shows; the row hides it below sm today. Built with the settings Built look's fixes",
+        "word Admin": "At 390 the role sits under the name, as the drawing shows; the row hides it below sm today. Built with the settings Built look's fixes",
+        "word Member": "At 390 the role sits under the name, as the drawing shows; the row hides it below sm today. Built with the settings Built look's fixes",
+        "word Viewer": "At 390 the role sits under the name, as the drawing shows; the row hides it below sm today. Built with the settings Built look's fixes"
       }
     }
   ]

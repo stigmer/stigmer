@@ -7,8 +7,12 @@
     {
       "caption": "Organization preferences: Merged: Policies as a section of Organization preferences",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "built": [
+        {
+          "scene": "settings-org-preferences",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Organization preferences",
@@ -169,7 +173,7 @@
       "caption": "Organization preferences: Kept separate: the three controls as today, on sections",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "The other answer to the page's first call: Policies and Notifications were merged into their neighbours (2026-11-17), so this shape is not built.",
       "words": [
         {
           "text": "Organization preferences",
@@ -298,7 +302,7 @@
       "caption": "Organization preferences: As a member: read only, said once",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "No scene draws this state yet; the settings Built look's fixes add it.",
       "words": [
         {
           "text": "Organization preferences",
@@ -454,7 +458,7 @@
       "caption": "Organization preferences: The policy switch didn't save, said under it",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "No scene draws this state yet; the settings Built look's fixes add it.",
       "words": [
         {
           "text": "Organization preferences",
@@ -623,7 +627,7 @@
       "caption": "Organization preferences: Didn't load",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "No scene draws this state yet; the settings Built look's fixes add it.",
       "words": [
         {
           "text": "Organization preferences",
@@ -699,8 +703,12 @@
     {
       "caption": "Organization preferences: At 390 wide",
       "narrow": true,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "built": [
+        {
+          "scene": "settings-org-preferences",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Organization preferences",

@@ -7,8 +7,12 @@
     {
       "caption": "Organization profile: As an admin: the profile, then the child organizations on the table part",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "built": [
+        {
+          "scene": "settings-org-profile",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Organization profile",
@@ -257,7 +261,7 @@
       "caption": "Organization profile: As a member: the same, read only",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "No scene draws this state yet; the settings Built look's fixes add it.",
       "words": [
         {
           "text": "Organization profile",
@@ -477,7 +481,7 @@
       "caption": "Organization profile: Didn't load",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "No scene draws this state yet; the settings Built look's fixes add it.",
       "words": [
         {
           "text": "Organization profile",
@@ -553,8 +557,12 @@
     {
       "caption": "Organization profile: At 390 wide: the table's rows become list rows",
       "narrow": true,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "built": [
+        {
+          "scene": "settings-org-profile",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Organization profile",

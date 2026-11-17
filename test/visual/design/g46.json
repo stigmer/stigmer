@@ -7,8 +7,12 @@
     {
       "caption": "Account preferences: Merged: Notifications as a section of Account preferences",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "built": [
+        {
+          "scene": "settings-account-preferences",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Account preferences",
@@ -169,7 +173,7 @@
       "caption": "Account preferences: Kept separate: as today, on sections",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "The other answer to the page's first call: Policies and Notifications were merged into their neighbours (2026-11-17), so this shape is not built.",
       "words": [
         {
           "text": "Account preferences",
@@ -297,8 +301,12 @@
     {
       "caption": "Account preferences: Notifications blocked by the browser (stigmer#2857: today the switch says nothing)",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "built": [
+        {
+          "scene": "settings-account-preferences-blocked",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Account preferences",
@@ -475,7 +483,7 @@
       "caption": "Account preferences: Didn't load",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "No scene draws this state yet; the settings Built look's fixes add it.",
       "words": [
         {
           "text": "Account preferences",
@@ -551,8 +559,12 @@
     {
       "caption": "Account preferences: At 390 wide",
       "narrow": true,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "built": [
+        {
+          "scene": "settings-account-preferences",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Account preferences",

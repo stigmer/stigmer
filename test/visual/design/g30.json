@@ -7,8 +7,12 @@
     {
       "caption": "The sidebar: 32px rows, Members open",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "built": [
+        {
+          "scene": "settings-sidebar",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Back to Sessions",
@@ -357,7 +361,7 @@
       "caption": "The sidebar: A platform operator: the Platform group last",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "No scene draws this state yet; the settings Built look's fixes add it.",
       "words": [
         {
           "text": "Back to Sessions",

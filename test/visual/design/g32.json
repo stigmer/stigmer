@@ -122,16 +122,14 @@
       },
       "ruled": {},
       "pending": {
-        "word New invite link": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Admin · One person only · not used yet": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "button New invite link": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Admin · One person only · not used yet": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
       }
     },
     {
       "caption": "Invitations: A link just made: copy it now",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "When its page is redesigned: the settings Built look's fixes build it.",
       "words": [
         {
           "text": "Invitations",
@@ -276,7 +274,7 @@
       "caption": "Invitations: New invite link, the server refuses the date",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "When its page is redesigned: the settings Built look's fixes build it.",
       "words": [
         {
           "text": "Invitations",
@@ -517,8 +515,8 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "word Revoke Engineering team invite?": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word The link stops working at once. The three people who joined with it stay in acme.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Revoke Engineering team invite?": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word The link stops working at once. The three people who joined with it stay in acme.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
       }
     },
     {
@@ -742,11 +740,7 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {
-        "word New invite link": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Make a link to bring people into acme with the role you choose.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "button New invite link": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
-      }
+      "pending": {}
     },
     {
       "caption": "Invitations: On the open-source edition",
@@ -890,10 +884,7 @@
         "word Stuck? Ask IT on Slack": "The drawing's example data; the scene shows its own fixture's"
       },
       "ruled": {},
-      "pending": {
-        "word New invite link": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "button New invite link": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
-      }
+      "pending": {}
     },
     {
       "caption": "Invitations: At 390 wide",
@@ -1013,9 +1004,7 @@
       },
       "ruled": {},
       "pending": {
-        "word New invite link": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Admin · One person only · not used yet": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "button New invite link": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Admin · One person only · not used yet": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
       }
     }
   ]

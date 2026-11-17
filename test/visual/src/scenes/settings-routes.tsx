@@ -583,7 +583,16 @@ export const SETTINGS_ROUTE_DRAWINGS = {
   "settings-access-history-denied": () => accessHistoryScene("rows", false),
   "settings-access-history-oss": () => accessHistoryScene("rows", true, "local"),
   "settings-access-history-plan": () => accessHistoryScene("rows", true, undefined, Feature.access_history),
-  "settings-account-preferences": () => settingsScene(() => <AccountPreferencesSection />),
+  "settings-account-preferences": () => settingsScene(() => <AccountPreferencesSection requestPermission={async () => true} />),
+  "settings-account-preferences-blocked": () => settingsScene(() => <AccountPreferencesSection requestPermission={async () => false} />),
+  "settings-account-preferences-ask-failed": () =>
+    settingsScene(() => (
+      <AccountPreferencesSection
+        requestPermission={async () => {
+          throw new Error("the notifications plugin did not answer");
+        }}
+      />
+    )),
   "settings-channel-apps": () => channelAppsScene("rows"),
   "settings-channel-apps-empty": () => channelAppsScene("none"),
   "settings-channel-apps-empty-member": () => channelAppsScene("none", false),
