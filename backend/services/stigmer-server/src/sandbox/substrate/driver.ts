@@ -81,7 +81,16 @@
  * within its egress gateway's policy cache (`--egress-policy-cache-ttl`, 10 s by default;
  * at once on v0.3.0, measured 2026-10-18). The sweep writes no policy:
  * it does not know an awake sandbox's Environment, and the configuration's
- * bare rules would widen a limited one. The runner's own lanes are cleartext (egress.ts says
+ * bare rules would widen a limited one. So an upgrade, or an operator,
+ * that narrows the configuration's lanes reaches an awake sandbox another
+ * way (stigmer#2984): the configuration's part of the rules is in the
+ * template's name (template.ts), so such a sandbox runs on another
+ * template than `currentTemplate`, and the sweep puts it to sleep as soon
+ * as its session is not busy, whatever its idle window. Its next wake
+ * moves it to the current template and writes the current policy. A turn
+ * in flight keeps its lanes until it ends. A change in how an
+ * Environment's own part is built reaches a sandbox at its next turn, as
+ * an edit to the Environment does. The runner's own lanes are cleartext (egress.ts says
  * why), so the server's Temporal connection settings, every one of which
  * asks for TLS, are refused at boot rather than carried to the runner.
  *
@@ -305,10 +314,20 @@ export interface SubstrateSandboxLifecycle {
   ): Promise<SubstrateReattachResult>;
   list(): Promise<SubstrateActorSummary[]>;
   /**
+   * The name of the template this server creates and moves sandboxes to:
+   * its configuration's (template.ts). A listed sandbox on any other was
+   * started under another configuration, which may have granted it lanes
+   * this one does not, so a sweep puts an awake one to sleep as soon as it
+   * is not busy, and its next wake starts on this one.
+   */
+  currentTemplate(): string;
+  /**
    * One pass of upkeep over the caller's listing (list()): repeats a delete
    * left part-way, moves a sleeping sandbox on an older template to the
-   * current one, then retires unused templates. It writes no egress policy:
-   * an awake sandbox gets its own at its next ensure (module header). A
+   * current one, then retires unused templates. It writes no egress policy
+   * and leaves an awake sandbox alone: one on an older template is the
+   * sweep's to put to sleep, and its wake writes its policy (module
+   * header). A
    * sandbox whose upkeep fails is reported in `failed` and skipped, so the
    * caller can sum a pass's failures in one line. `stopping` ends the pass
    * after the sandbox in hand, before any template is retired, and returns
@@ -894,6 +913,7 @@ export function newSubstrateSandboxDriverOverGateway(
     async list() {
       return (await gateway.listActors()).map(summaryOf);
     },
+    currentTemplate: () => keeper.name,
     async draining() {
       let workers;
       try {

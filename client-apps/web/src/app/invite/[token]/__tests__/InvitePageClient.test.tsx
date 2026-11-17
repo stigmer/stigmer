@@ -13,9 +13,14 @@
 //     exactly once, on the return with a live session;
 //   - "sign in to accept" stores the way back and the flag, and redirects
 //     through the configured issuer;
+//   - sign-up is offered (stigmer#3204) only once the issuer's sign-up
+//     arguments answer with at least one, never before, never for an empty
+//     answer or a failed read, never with sign-in off; it stores the same
+//     way back and flag and redirects with those arguments;
 //   - an accepted invitation makes the visitor's account first (a first-time
 //     visitor has none yet), then remembers the organization joined as the
-//     active one and goes home, where the console restores it; a failed
+//     active one, leaves it for this tab's launcher to welcome them to
+//     (stigmer#3208), and goes home, where the console restores it; a failed
 //     account step still lands, since the console's gate retries it.
 // ---------------------------------------------------------------------------
 
@@ -27,6 +32,7 @@ import type { OidcConfig } from "@/auth/oidc/types";
 
 const REDIRECT_PATH_KEY = "stigmer:auth:redirect_path";
 const AUTO_ACCEPT_KEY = "stigmer:invite:auto_accept";
+const JOINED_ORG_KEY = "stigmer:invite:joined";
 
 const CONFIGURED: OidcConfig = {
   issuer: "https://auth.example.com/",
@@ -56,10 +62,28 @@ interface FakeUser {
   expired: boolean;
 }
 
+interface Deferred<T> {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+  reject: (reason: unknown) => void;
+}
+
+function deferred<T>(): Deferred<T> {
+  let resolve: (value: T) => void = () => {};
+  let reject: (reason: unknown) => void = () => {};
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 const oidc = vi.hoisted(() => ({
   built: [] as OidcConfig[],
   user: null as FakeUser | null,
   signinRedirect: vi.fn(),
+  // What the issuer's sign-up arguments answer: settled by each test.
+  signupArgs: null as Promise<Record<string, unknown>> | null,
 }));
 vi.mock("@/auth/oidc/oidc-manager", () => ({
   createUserManager: (config: OidcConfig) => {
@@ -69,6 +93,7 @@ vi.mock("@/auth/oidc/oidc-manager", () => ({
       signinRedirect: oidc.signinRedirect,
     };
   },
+  signupRedirectArgs: () => oidc.signupArgs ?? Promise.resolve({}),
 }));
 
 interface RedemptionProps {
@@ -77,6 +102,7 @@ interface RedemptionProps {
   autoAccept: boolean;
   onAccepted: (invitation: { metadata?: { org?: string } }) => void;
   onAuthRequired: () => void;
+  onSignUp?: () => void;
 }
 
 const page = vi.hoisted(() => ({
@@ -152,6 +178,7 @@ describe("InvitePageClient", () => {
     oidc.built = [];
     oidc.user = null;
     oidc.signinRedirect.mockReset();
+    oidc.signupArgs = null;
     nav.push.mockReset();
     page.redemption = [];
     page.clients = [];
@@ -191,6 +218,13 @@ describe("InvitePageClient", () => {
       expect(oidc.signinRedirect).not.toHaveBeenCalled();
       expect(sessionStorage.getItem(AUTO_ACCEPT_KEY)).toBeNull();
     });
+
+    it("offers no sign-up", async () => {
+      render(<InvitePageClient />);
+      await Promise.resolve();
+
+      expect(latest().onSignUp).toBeUndefined();
+    });
   });
 
   describe("OIDC", () => {
@@ -202,7 +236,8 @@ describe("InvitePageClient", () => {
       render(<InvitePageClient />);
 
       expect(latest().isAuthenticated).toBe(false);
-      await waitFor(() => expect(oidc.built).toEqual([CONFIGURED]));
+      await waitFor(() => expect(oidc.built.length).toBeGreaterThan(0));
+      expect(oidc.built.every((config) => config === CONFIGURED)).toBe(true);
     });
 
     it("signs in an unexpired user and sends their token", async () => {
@@ -249,6 +284,57 @@ describe("InvitePageClient", () => {
       );
       expect(sessionStorage.getItem(AUTO_ACCEPT_KEY)).toBe("1");
       expect(oidc.signinRedirect).toHaveBeenCalledTimes(1);
+      expect(oidc.signinRedirect.mock.calls[0]?.[0]).toBeUndefined();
+    });
+
+    describe("sign-up", () => {
+      it("offers one sign-in until the issuer's sign-up arguments answer", async () => {
+        const answer = deferred<Record<string, unknown>>();
+        oidc.signupArgs = answer.promise;
+        render(<InvitePageClient />);
+
+        await waitFor(() => expect(oidc.built.length).toBeGreaterThan(0));
+        expect(latest().onSignUp).toBeUndefined();
+
+        answer.resolve({ prompt: "create" });
+        await waitFor(() => expect(latest().onSignUp).toBeTypeOf("function"));
+      });
+
+      it("offers sign-up once the arguments answer, and redirects with them back to this invite", async () => {
+        const args = { extraQueryParams: { audience: CONFIGURED.audience, screen_hint: "signup" } };
+        oidc.signupArgs = Promise.resolve(args);
+        render(<InvitePageClient />);
+
+        await waitFor(() => expect(latest().onSignUp).toBeTypeOf("function"));
+        latest().onSignUp?.();
+
+        expect(sessionStorage.getItem(REDIRECT_PATH_KEY)).toBe(window.location.pathname);
+        expect(sessionStorage.getItem(AUTO_ACCEPT_KEY)).toBe("1");
+        expect(oidc.signinRedirect).toHaveBeenCalledTimes(1);
+        expect(oidc.signinRedirect).toHaveBeenCalledWith(args);
+      });
+
+      it("offers no sign-up when the issuer has none (an empty answer)", async () => {
+        const answer = deferred<Record<string, unknown>>();
+        oidc.signupArgs = answer.promise;
+        render(<InvitePageClient />);
+        answer.resolve({});
+        await answer.promise;
+        await Promise.resolve();
+
+        expect(latest().onSignUp).toBeUndefined();
+      });
+
+      it("offers no sign-up when the arguments cannot be read", async () => {
+        const answer = deferred<Record<string, unknown>>();
+        oidc.signupArgs = answer.promise;
+        render(<InvitePageClient />);
+        answer.reject(new Error("discovery unreachable"));
+        await answer.promise.catch(() => undefined);
+        await Promise.resolve();
+
+        expect(latest().onSignUp).toBeUndefined();
+      });
     });
   });
 
@@ -261,6 +347,34 @@ describe("InvitePageClient", () => {
       "remember:org_acme",
       "go:/",
     ]);
+  });
+
+  it("leaves the organization joined for this tab's launcher before going home", async () => {
+    let joinedAtNavigation: string | null = null;
+    nav.push.mockImplementation((path: string) => {
+      joinedAtNavigation = sessionStorage.getItem(JOINED_ORG_KEY);
+      page.steps.push(`go:${path}`);
+    });
+    render(<InvitePageClient />);
+    latest().onAccepted({ metadata: { org: "org_acme" } });
+    await waitFor(() => expect(page.steps).toHaveLength(3));
+
+    expect(joinedAtNavigation).toBe(JSON.stringify({ org: "org_acme" }));
+  });
+
+  it("still goes home when storage refuses the joined organization", async () => {
+    render(<InvitePageClient />);
+    // Storage is refused from here on, as on an origin that blocks it.
+    vi.stubGlobal("sessionStorage", {
+      getItem: () => null,
+      setItem: () => {
+        throw new DOMException("storage disabled", "QuotaExceededError");
+      },
+      removeItem: () => undefined,
+    });
+    latest().onAccepted({ metadata: { org: "org_acme" } });
+    await waitFor(() => expect(page.steps).toHaveLength(3));
+    expect(page.steps.slice(1)).toEqual(["remember:org_acme", "go:/"]);
   });
 
   it("still lands when the account step fails", async () => {
@@ -276,5 +390,6 @@ describe("InvitePageClient", () => {
     latest().onAccepted({});
     await waitFor(() => expect(page.steps).toHaveLength(3));
     expect(page.steps.slice(1)).toEqual(["remember:", "go:/"]);
+    expect(sessionStorage.getItem(JOINED_ORG_KEY)).toBeNull();
   });
 });

@@ -4,17 +4,22 @@
 // it unread: their organization and agent are in it and cannot break out of
 // their literals, the address reaches each SDK in the form that SDK takes
 // (a gRPC target, plaintext only for http://), no key is ever written into
-// it, and every route refuses when nobody is signed in. That the text
+// it, and every route refuses when nobody is signed in. Each file is named
+// by its path in the builder's project, with a page to try the chat and the
+// settings file the backend reads, and Next.js, one app, installs once. That the text
 // compiles in its language is the docs snippet gate's
 // (scripts/lib/docs-snippets/handover-snippets.mjs); that each route answers
 // a real token is the SDK quickstart smoke's.
 
 import { describe, expect, it } from "vitest";
 import {
+  APP_API_KEY_PLACEHOLDER,
   APP_CHAT_COMPONENT,
+  APP_DEV_USER_PLACEHOLDER,
   APP_DEV_USER_VARIABLE,
   APP_HANDOVER_STACKS,
   APP_TOKEN_ROUTE,
+  appSettingsText,
   buildAppHandover,
   type AppHandoverStack,
 } from "../app-handover";
@@ -34,7 +39,7 @@ describe("buildAppHandover, sign-in", () => {
   });
 
   it.each([
-    ["nextjs", "app/api/stigmer-token/route.ts", "typescript", "npm install @stigmer/client"],
+    ["nextjs", "app/api/stigmer-token/route.ts", "typescript", "npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf"],
     ["node", "server.ts", "typescript", "npm install @stigmer/client"],
     ["python", "stigmer_token.py", "python", "pip install stigmer-sdk"],
     ["go", "main.go", "go", "go get go.stigmer.ai/sdk"],
@@ -114,7 +119,7 @@ describe("buildAppHandover, sign-in", () => {
   it("the chat fetches the token route through a token cache and names the agent", () => {
     const { chat } = buildAppHandover({ ...CLOUD, stack: "python" });
     expect(chat).toMatchObject({
-      file: `${APP_CHAT_COMPONENT}.tsx`,
+      file: `src/${APP_CHAT_COMPONENT}.tsx`,
       language: "tsx",
       install: "npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf",
     });
@@ -125,9 +130,107 @@ describe("buildAppHandover, sign-in", () => {
     expect(chat.code).toContain(`export function ${APP_CHAT_COMPONENT}()`);
   });
 
+  it("the chat follows the person's system light or dark, in both kinds of server", () => {
+    const signedIn = buildAppHandover({ ...CLOUD, stack: "nextjs" }).chat.code;
+    const local = buildAppHandover({ ...CLOUD, mode: "local", stack: "nextjs", baseUrl: "http://localhost:7234" }).chat.code;
+    for (const code of [signedIn, local]) expect(code).toContain('<StigmerProvider client={stigmer} colorMode="system">');
+  });
+
   it("the chat is the same for every stack", () => {
     const chats = new Set(STACKS.map((stack) => buildAppHandover({ ...CLOUD, stack }).chat.code));
     expect(chats.size).toBe(1);
+  });
+});
+
+describe("buildAppHandover, where each file goes", () => {
+  it.each([
+    ["nextjs", "components/StigmerAgentChat.tsx", "app/agent/page.tsx", "/agent", ".env.local"],
+    ["node", "src/StigmerAgentChat.tsx", "src/App.tsx", "/", ".env"],
+    ["python", "src/StigmerAgentChat.tsx", "src/App.tsx", "/", ".env"],
+    ["go", "src/StigmerAgentChat.tsx", "src/App.tsx", "/", ".env"],
+    ["java", "src/StigmerAgentChat.tsx", "src/App.tsx", "/", ".env"],
+  ] as const)("%s: the chat at %s, a page to try it at %s (open %s), the settings in %s", (stack, chatFile, pageFile, pagePath, settingsFile) => {
+    const handover = buildAppHandover({ ...CLOUD, stack });
+    expect(handover.chat.file).toBe(chatFile);
+    expect(handover.page.file).toBe(pageFile);
+    expect(handover.page.language).toBe("tsx");
+    expect(handover.pagePath).toBe(pagePath);
+    expect(handover.settingsFile).toBe(settingsFile);
+  });
+
+  it.each([
+    ["nextjs", true],
+    ["node", true],
+    ["python", false],
+    ["go", false],
+    ["java", false],
+  ] as const)("%s reads the settings file as handed over: %s", (stack, reads) => {
+    expect(buildAppHandover({ ...CLOUD, stack }).readsSettingsFile).toBe(reads);
+  });
+
+  it("the Node route's run line loads its .env", () => {
+    expect(backend("node").code).toContain("Run it with: npx tsx --env-file=.env server.ts");
+  });
+
+  it("Next.js is one app: one install covers the route, the chat and the page", () => {
+    const { backend, chat, oneApp } = buildAppHandover({ ...CLOUD, stack: "nextjs" });
+    expect(oneApp).toBe(true);
+    expect(backend?.install).toBe("npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf");
+    expect(backend?.install).toBe(chat.install);
+  });
+
+  it.each(["node", "python", "go", "java"] as const)("%s's backend and its React app each install their own", (stack) => {
+    const { backend, chat, oneApp } = buildAppHandover({ ...CLOUD, stack });
+    expect(oneApp).toBe(false);
+    expect(backend?.install).not.toBe(chat.install);
+  });
+
+  it("the page mounts the chat as the chat file exports it, in a box with a height", () => {
+    const next = buildAppHandover({ ...CLOUD, stack: "nextjs" });
+    expect(next.chat.code).toContain(`export function ${APP_CHAT_COMPONENT}()`);
+    expect(next.page.code).toBe(
+      [
+        'import { StigmerAgentChat } from "@/components/StigmerAgentChat";',
+        "",
+        "export default function AgentPage() {",
+        "  return (",
+        '    <main style={{ height: "100vh" }}>',
+        "      <StigmerAgentChat />",
+        "    </main>",
+        "  );",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    expect(buildAppHandover({ ...CLOUD, stack: "go" }).page.code).toContain('import { StigmerAgentChat } from "./StigmerAgentChat";');
+  });
+
+  it("a local server's handover has the chat and its page, and no settings", () => {
+    const local = buildAppHandover({ ...CLOUD, mode: "local", stack: "nextjs", baseUrl: "http://localhost:7234" });
+    expect(local.chat.file).toBe("components/StigmerAgentChat.tsx");
+    expect(local.page.file).toBe("app/agent/page.tsx");
+    expect(local.settingsFile).toBeUndefined();
+  });
+});
+
+describe("appSettingsText", () => {
+  it("holds the key and the developer's email while they are known", () => {
+    expect(appSettingsText({ apiKey: "stk_live_secret", devUser: "ada@acme.example" })).toBe(
+      "STIGMER_API_KEY=stk_live_secret\nSTIGMER_DEV_USER=ada@acme.example\n",
+    );
+  });
+
+  it("says where each goes when it is not", () => {
+    expect(appSettingsText()).toBe(`STIGMER_API_KEY=${APP_API_KEY_PLACEHOLDER}\nSTIGMER_DEV_USER=${APP_DEV_USER_PLACEHOLDER}\n`);
+    expect(appSettingsText({ apiKey: " ", devUser: "" })).toBe(appSettingsText());
+  });
+
+  it("keeps each value on its line", () => {
+    expect(appSettingsText({ devUser: "ada@acme.example\nSTIGMER_API_KEY=stolen" }).split("\n")).toEqual([
+      `STIGMER_API_KEY=${APP_API_KEY_PLACEHOLDER}`,
+      "STIGMER_DEV_USER=ada@acme.exampleSTIGMER_API_KEY=stolen",
+      "",
+    ]);
   });
 });
 

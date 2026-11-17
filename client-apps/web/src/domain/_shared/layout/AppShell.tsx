@@ -12,7 +12,7 @@ import { AttentionNotifier } from "@/domain/session/AttentionNotifier";
 import { SessionPageInner } from "@/domain/session/SessionPage";
 import { RunLoadFailed } from "@/domain/runs/RunLoadFailed";
 import { RunNotFound } from "@/domain/runs/RunNotFound";
-import { DesktopAppBanner, useDesktopBannerState } from "./DesktopAppBanner";
+import { ShellDesktopBanner } from "./DesktopAppBanner";
 import { ManagementSidebar } from "./ManagementSidebar";
 import { Sidebar } from "./Sidebar";
 import { LG_BREAKPOINT, useSidebarOpen } from "./use-layout-state";
@@ -22,7 +22,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { activeSessionId, isSessionZone } = useSessionNavigation();
   const { activeRunId, isExecutionZone } = useRunNavigation();
-  const desktopBanner = useDesktopBannerState();
 
   const isManagementZone = pathname.startsWith("/settings");
   // The public routes render no sidebar: they hold no session (a Connect
@@ -115,9 +114,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Main content */}
         <main className="min-w-0 flex-1 flex flex-col overflow-hidden">
-          {desktopBanner.visible && (
-            <DesktopAppBanner onDismiss={desktopBanner.dismiss} />
-          )}
+          {/* Signed-in only: the banner reads the organization's journey,
+              and a public route must never seed its first-seen key. */}
+          <ShellDesktopBanner />
           <div className="min-w-0 flex-1 overflow-y-auto">
             {isManagementZone ? (
               children
