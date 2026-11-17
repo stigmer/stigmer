@@ -110,6 +110,9 @@ test("cases are read from <job>/<case>/prompt.md with their tags, the fixture le
   assert.ok(globMatches("*key*", "ci-key-least-privilege"));
   assert.ok(!globMatches("key", "ci-key"));
   assert.ok(globMatches("a.b", "a.b") && !globMatches("a.b", "axb"), "a dot is a dot");
+  assert.ok(globMatches("{who-pays,why-*-failed}", "why-reconciler-run-failed"));
+  assert.ok(globMatches("{who-pays,why-*-failed}", "who-pays"));
+  assert.ok(!globMatches("{who-pays,why-*-failed}", "who-pays-more"));
 });
 
 test("the fixture's script answers every try alike: the invoice agent saves its report then ends, the reconciler is refused for credit", () => {

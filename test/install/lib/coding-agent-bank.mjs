@@ -55,7 +55,8 @@ holds the fixture (coding-agents/evals/_fixture/), and prints the score per
 job. Needs \`claude\` signed in and \`make build-libs build-server build-runner\`.
 
   --tag=<job>          only the cases tagged <job> (repeatable; ${JOBS.join(", ")}, ${ACTS_TAG})
-  --case=<glob>        only the cases whose name matches <glob> (* matches anything)
+  --case=<glob>        only the cases whose name matches <glob> (* matches anything,
+                       {a,b} either name)
   --runs=<n>           tries per case per arm (default ${DEFAULT_RUNS})
   --model=<id>         the coding agent's model (default ${DEFAULT_MODEL})
   --judge-model=<id>   the llm graders' model (default: --model's)
@@ -183,9 +184,21 @@ export function readBankCases(evalsDir) {
   return cases;
 }
 
-/** Whether `name` matches `glob`, where `*` matches any run of characters and nothing else is special. */
+/**
+ * Whether `name` matches `glob`, where `*` matches any run of characters and
+ * `{a,b}` any one of its comma-separated choices (so one run can name several
+ * cases); nothing else is special.
+ */
 export function globMatches(glob, name) {
-  const pattern = glob.split("*").map((part) => part.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join(".*");
+  const escape = (text) => text.replace(/[.+?^$()|[\]\\]/g, "\\$&");
+  const pattern = glob
+    .split(/(\{[^{}]*\})/)
+    .map((part) =>
+      part.startsWith("{") && part.endsWith("}")
+        ? `(?:${part.slice(1, -1).split(",").map((choice) => escape(choice).replaceAll("*", ".*")).join("|")})`
+        : escape(part).replaceAll("*", ".*"),
+    )
+    .join("");
   return new RegExp(`^${pattern}$`).test(name);
 }
 
