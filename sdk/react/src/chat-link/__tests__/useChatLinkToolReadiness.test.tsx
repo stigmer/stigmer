@@ -54,9 +54,16 @@ function mockStigmer(overrides: {
   envError?: boolean;
   /** The pinned spec `agt_sub` reads as; `"pending"` never answers. */
   subagent?: { plugins?: { slug: string }[] } | "pending";
+  /** The spec the agent reads as at the version `stable` (the link's pin). */
+  stable?: { plugins?: { slug: string }[] };
 }) {
   return {
     agent: {
+      getByReference: vi.fn().mockImplementation(({ version }: { version?: string }) =>
+        version === "stable" && overrides.stable !== undefined
+          ? Promise.resolve(create(AgentSchema, { spec: create(AgentSpecSchema, overrides.stable) }))
+          : Promise.reject(new Error("not found")),
+      ),
       getVersion: vi.fn().mockImplementation(() =>
         overrides.subagent === "pending"
           ? new Promise(() => {})
@@ -271,6 +278,24 @@ describe("useChatLinkToolReadiness", () => {
   it("is n/a when no subagent uses tools either", async () => {
     const client = mockStigmer({ subagent: {} });
     const { result } = renderHook(() => useChatLinkToolReadiness(DELEGATING, makeDraft()), { wrapper: wrapper(client) });
+
+    await waitFor(() => expect(result.current).toEqual({ status: "na" }));
+    expect(envLookup(client)).not.toHaveBeenCalled();
+  });
+
+  it("judges the link's pinned version: tools there and no vault is needs-credentials, though the head has none", async () => {
+    const client = mockStigmer({ stable: { plugins: [{ slug: "github" }] } });
+    const { result } = renderHook(() => useChatLinkToolReadiness(toolAgent({ plugins: false }), makeDraft(), "stable"), {
+      wrapper: wrapper(client),
+    });
+
+    expect(result.current).toEqual({ status: "checking" });
+    await waitFor(() => expect(result.current).toEqual({ status: "needs-credentials" }));
+  });
+
+  it("judges the link's pinned version: no tools there is n/a, though the head has them", async () => {
+    const client = mockStigmer({ stable: {} });
+    const { result } = renderHook(() => useChatLinkToolReadiness(toolAgent(), makeDraft(), "stable"), { wrapper: wrapper(client) });
 
     await waitFor(() => expect(result.current).toEqual({ status: "na" }));
     expect(envLookup(client)).not.toHaveBeenCalled();
