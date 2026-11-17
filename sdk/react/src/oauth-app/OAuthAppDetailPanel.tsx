@@ -19,7 +19,7 @@ import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { Button } from "../button/Button.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
-import { FIELD_LABEL_CLASSES, FieldError, Select, TextInput } from "../internal/form/index.js";
+import { FIELD_LABEL_CLASSES, FieldError, Select, TextInput, ReadOnlyField, ReadOnlyFields } from "../internal/form/index.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -528,7 +528,7 @@ function ViewMode({
   updatedAt?: Timestamp;
 }) {
   return (
-    <dl className="stg:space-y-2.5">
+    <ReadOnlyFields>
       <Field label="Provider" value={spec?.provider} />
       <Field label="Client ID" value={spec?.clientId} mono />
       <Field label="Client secret" value="••••••••" />
@@ -573,7 +573,7 @@ function ViewMode({
       {spec?.vendorApprovalDocsUrl && (
         <Field label="Approval docs" value={spec.vendorApprovalDocsUrl} mono />
       )}
-      <div className="stg:flex stg:gap-6">
+      <>
         {createdAt && (
           <Field
             label="Created"
@@ -586,8 +586,8 @@ function ViewMode({
             value={formatDate(timestampDate(updatedAt))}
           />
         )}
-      </div>
-    </dl>
+      </>
+    </ReadOnlyFields>
   );
 }
 
@@ -595,6 +595,7 @@ function ViewMode({
 // Shared primitives
 // ---------------------------------------------------------------------------
 
+/** A read-only pair: the kit's `ReadOnlyField`. */
 function Field({
   label,
   value,
@@ -604,21 +605,10 @@ function Field({
   value?: string;
   mono?: boolean;
 }) {
-  if (!value) return null;
   return (
-    <div>
-      <dt className="stg:text-muted-foreground stg:text-2xs stg:font-medium">
-        {label}
-      </dt>
-      <dd
-        className={cn(
-          "stg:text-foreground stg:mt-0.5 stg:break-all stg:text-xs",
-          mono && "stg:font-mono",
-        )}
-      >
-        {value}
-      </dd>
-    </div>
+    <ReadOnlyField label={label} mono={mono}>
+      {value}
+    </ReadOnlyField>
   );
 }
 

@@ -12,7 +12,7 @@ import { useCreateOAuthApp } from "./useCreateOAuthApp.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { MAX_ADDRESSES, parseAddressList } from "./addresses.js";
 import { Button } from "../button/Button.js";
-import { FIELD_LABEL_CLASSES, FieldError, Select, TextInput } from "../internal/form/index.js";
+import { FIELD_LABEL_CLASSES, Field, FieldError, Select, TextInput } from "../internal/form/index.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -428,12 +428,8 @@ function FormField({
   required?: boolean;
 }) {
   return (
-    <div className="stg:space-y-1">
-      <label htmlFor={id} className={FIELD_LABEL_CLASSES}>
-        {label}
-      </label>
+    <Field id={id} label={label} hint={hint}>
       <TextInput
-        id={id}
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -442,10 +438,7 @@ function FormField({
         required={required}
         className="stg:w-full"
       />
-      {hint && (
-        <p className="stg:text-2xs stg:text-muted-foreground">{hint}</p>
-      )}
-    </div>
+    </Field>
   );
 }
 

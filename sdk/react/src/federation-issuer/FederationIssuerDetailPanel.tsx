@@ -20,7 +20,7 @@ import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { Button } from "../button/Button.js";
 import { Tag } from "../internal/surface/Tag.js";
-import { FIELD_LABEL_CLASSES, FieldError, TextInput } from "../internal/form/index.js";
+import { FIELD_LABEL_CLASSES, FieldError, TextInput, ReadOnlyField, ReadOnlyFields } from "../internal/form/index.js";
 
 /** Props for {@link FederationIssuerDetailPanel}. */
 export interface FederationIssuerDetailPanelProps {
@@ -297,7 +297,7 @@ function ViewMode({
   updatedAt?: Timestamp;
 }) {
   return (
-    <dl className="stg:space-y-2.5">
+    <ReadOnlyFields>
       <Field label="JWKS URI" value={spec?.jwksUri} mono />
       <Field
         label="Allowed issuers"
@@ -311,7 +311,6 @@ function ViewMode({
       {/* Sign-in settings */}
       {spec && (
         <>
-          <hr className="stg:border-border-muted" />
           <Field
             label="Create accounts on sign-in"
             value={spec.createAccountsOnSignIn ? "On" : "Off"}
@@ -330,7 +329,7 @@ function ViewMode({
         </>
       )}
 
-      <div className="stg:flex stg:gap-6">
+      <>
         {createdAt && (
           <Field
             label="Created"
@@ -343,11 +342,12 @@ function ViewMode({
             value={formatDate(timestampDate(updatedAt))}
           />
         )}
-      </div>
-    </dl>
+      </>
+    </ReadOnlyFields>
   );
 }
 
+/** A read-only pair: the kit's `ReadOnlyField`. */
 function Field({
   label,
   value,
@@ -357,21 +357,10 @@ function Field({
   value?: string;
   mono?: boolean;
 }) {
-  if (!value) return null;
   return (
-    <div>
-      <dt className="stg:text-muted-foreground stg:text-2xs stg:font-medium">
-        {label}
-      </dt>
-      <dd
-        className={cn(
-          "stg:text-foreground stg:mt-0.5 stg:break-all stg:text-xs",
-          mono && "stg:font-mono",
-        )}
-      >
-        {value}
-      </dd>
-    </div>
+    <ReadOnlyField label={label} mono={mono}>
+      {value}
+    </ReadOnlyField>
   );
 }
 
