@@ -38,6 +38,7 @@ import {
   summarizeResult,
   tracePlan,
 } from "./coding-agent-bank.mjs";
+import { listedSlugs } from "./bank-fixture.mjs";
 import { SANDBOX_HOME, stageShim } from "./hermetic-stage.mjs";
 import { connectRequest, isLoopback, proxyFromEnv } from "./loopback-through-proxy.mjs";
 
@@ -192,6 +193,13 @@ test("every try's trace is planned into traces/<job>/<case>/<arm>-<n>.jsonl, its
     { from: "/tmp/e-A/out/trace.jsonl", to: "traces/deciding/who-pays/with-1.jsonl", keptDir: "/tmp/e-A" },
     { from: "/tmp/e-B/out/trace.jsonl", to: "traces/deciding/who-pays/without-1.jsonl", keptDir: "/tmp/e-B" },
   ]);
+});
+
+test("the fixture's restore reads a list's slugs, whichever shape the answer has", () => {
+  assert.deepEqual(listedSlugs('[{"metadata":{"slug":"ci-runner"}},{"slug":"nightly"}]'), ["ci-runner", "nightly"]);
+  assert.deepEqual(listedSlugs('{"entries":[{"metadata":{"name":"ci-runner"}}]}'), ["ci-runner"]);
+  assert.deepEqual(listedSlugs('{"items":[{"name":"x"},{}]}'), ["x"]);
+  assert.deepEqual(listedSlugs("No service accounts"), []);
 });
 
 test("two with-plugin readings are compared per job, and a spread of more than one case is noisy", () => {

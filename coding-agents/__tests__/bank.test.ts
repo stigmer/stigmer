@@ -17,6 +17,9 @@
 //     `docs/<path>/index.mdx`), so a moved page reds here;
 //   - every concept page, getting-started page and guide group is cited by a
 //     case, so a page added to the docs adds its question to the bank;
+//   - every case that acts puts the bank's fixture back before each try
+//     (test/install/lib/bank-fixture.mjs), since a failed try may have
+//     deleted or changed what the next one reads;
 //   - every job holds at least four cases, and no case holds a key-shaped
 //     value.
 
@@ -25,6 +28,7 @@ import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { inMemoryPluginFiles, readEvalFolder, type EvalCase, type EvalGrader } from "@stigmer/plugin-package";
 import { beforeAll, describe, expect, it } from "vitest";
+import { RESTORE_COMMAND } from "../../test/install/lib/bank-fixture.mjs";
 import { ACTS_TAG, JOBS } from "../../test/install/lib/coding-agent-bank.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -123,6 +127,15 @@ describe("the question bank", () => {
         const fact = grader(c, "reports-the-fact")?.check;
         expect(fact, c.dir).toMatchObject({ type: "regex", match: { kind: "contains" } });
       }
+    }
+  });
+
+  it("puts the fixture back before every try of a case that acts, since a failed try may have deleted or changed it", () => {
+    for (const c of cases.filter((kase) => kase.tags.includes(ACTS_TAG))) {
+      const script = c.context.scaffoldScript;
+      expect(script, `${c.dir} has no scaffold_script`).toBeDefined();
+      const text = files.get(join(c.dir, script ?? "")) ?? "";
+      expect(text, c.dir).toContain(`command -v ${RESTORE_COMMAND} >/dev/null 2>&1; then ${RESTORE_COMMAND}; fi`);
     }
   });
 

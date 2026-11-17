@@ -27,10 +27,12 @@
  *     once per run, signed in as the organization's admin: the
  *     vendor-aliases skill; invoice-checker, with one finished run whose
  *     saved report starts with a known line; reconciler, whose runs the
- *     model provider refuses for want of credit. The fake model answers
- *     their runs the same way every try (lib/coding-agent-bank.mjs,
- *     fixtureScript), so the fixture costs nothing and a passing try changes
- *     nothing a later try reads.
+ *     model provider refuses for want of credit (lib/bank-fixture.mjs). The
+ *     fake model answers their runs the same way every time
+ *     (lib/coding-agent-bank.mjs, fixtureScript), so the fixture costs
+ *     nothing; and every acting case's scaffold puts back, before each try,
+ *     whatever an earlier try deleted or changed (`stigmer-bank-fixture`,
+ *     on the stage's PATH).
  * The plugin is the tree a release publishes (coding-agents/dist/plugin/),
  * copied with the bank as its evals/ into the stage's folder, since
  * `claude plugin eval` reads cases only below the plugin and the bank is
@@ -58,9 +60,9 @@ import { dirname, join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { anthropicText, anthropicToolUse } from "../support/src/llm-wire.ts";
+import { RESTORE_COMMAND, seedFixture } from "./lib/bank-fixture.mjs";
 import {
   BANK_REPLY,
-  FIXTURE,
   USAGE,
   evalArgs,
   fixtureScript,
@@ -78,7 +80,7 @@ import { stageBuildPaths, startHermeticStage } from "./lib/hermetic-stage.mjs";
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 const evalsDir = join(repoRoot, "coding-agents", "evals");
-const fixtureDir = join(evalsDir, "_fixture");
+const fixtureLib = fileURLToPath(new URL("./lib/bank-fixture.mjs", import.meta.url));
 const builtPlugin = join(repoRoot, "coding-agents", "dist", "plugin");
 const AUDIENCE = "https://bank.stigmer.test/api";
 const NATIVE_CLIENT = "stigmer-bank";
@@ -107,39 +109,6 @@ function run(command, args, { env, cwd, stdio = "pipe", signal }) {
   });
 }
 
-/** Signs the stage's CLI in and seeds the fixture; throws naming the step that failed. */
-async function seed(stage, root) {
-  const env = stage.env();
-  const stigmer = async (args, { mayFail = false } = {}) => {
-    const result = await run(stage.stigmer, args, { env, cwd: fixtureDir });
-    if (!mayFail) check(result.status === 0, `seed: \`stigmer ${args.join(" ")}\` exited ${result.status}:\n${result.output}`);
-    return result;
-  };
-  await stigmer(["config", "backend", "add", "bank", "--endpoint", new URL(stage.server.baseUrl).host]);
-  await stigmer(["config", "backend", "use", "bank"]);
-  await stigmer(["auth", "login"]);
-  await stigmer(["push", "skill", join(fixtureDir, "skills", FIXTURE.skill)]);
-  await stigmer(["apply", "-f", join(fixtureDir, "agents")]);
-
-  const downloads = join(root, "seed-outputs");
-  await stigmer(["run", FIXTURE.invoiceAgent, "--attach", join(fixtureDir, "samples", "march.csv"), "--download", downloads, "--until", "turn", "-m", "Check March's supplier invoices."]);
-  const saved = filesUnder(downloads).find((file) => file.endsWith(FIXTURE.invoiceFile));
-  check(saved !== undefined, `seed: ${FIXTURE.invoiceAgent}'s run saved no ${FIXTURE.invoiceFile} (found: ${filesUnder(downloads).join(", ") || "nothing"})`);
-  check(readFileSync(join(downloads, saved), "utf8").startsWith(FIXTURE.invoiceFirstLine), `seed: ${FIXTURE.invoiceFile} does not start with the fixture's line`);
-  log(`seeded ${FIXTURE.invoiceAgent}'s finished run (${FIXTURE.invoiceFile} saved)`);
-
-  const failed = await stigmer(["run", FIXTURE.reconcilerAgent, "--until", "turn", "-m", "Reconcile yesterday's statement."], { mayFail: true });
-  check(failed.status !== 0, `seed: ${FIXTURE.reconcilerAgent}'s run succeeded; the fixture needs it failed`);
-  check(/credit balance/i.test(failed.output), `seed: ${FIXTURE.reconcilerAgent}'s failed run does not say the provider's reason:\n${failed.output}`);
-  log(`seeded ${FIXTURE.reconcilerAgent}'s failed run (the provider's credit refusal)`);
-}
-
-function filesUnder(dir) {
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
-    entry.isDirectory() ? filesUnder(join(dir, entry.name)).map((f) => join(entry.name, f)) : [entry.name],
-  );
-}
 
 /** This checkout's CLI, packed as a release packs it and installed into `dir`; returns the shim's command for it. */
 function installPackedCli(dir, packDir) {
@@ -239,7 +208,11 @@ async function main() {
     });
     for (const script of fixtureScript({ isTitleCall, anthropicText, anthropicToolUse })) stage.fake.enqueue(script);
     log(`a server that signs its callers in is serving on ${stage.server.baseUrl}, its runner on the fake model`);
-    await seed(stage, root);
+    await seedFixture({ stigmer: stage.stigmer, env: stage.env(), serverUrl: stage.server.baseUrl, log });
+    // Each acting case's scaffold calls it before every try, outside the sandbox, to put back what an earlier try changed.
+    const restore = join(binDir, RESTORE_COMMAND);
+    writeFileSync(restore, `#!/bin/sh\nexec '${process.execPath}' '${fixtureLib}' --restore "$@"\n`);
+    chmodSync(restore, 0o755);
 
     // The shim first, then this Node, which the sandbox must be able to read to run the CLI.
     const env = stage.env(process.env, [dirname(process.execPath)]);
