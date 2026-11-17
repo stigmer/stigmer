@@ -253,8 +253,10 @@ describe("deleting from the Environment page", () => {
     await chooseFromMenu("Delete");
     fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Delete" }));
     const dialog = await screen.findByRole("dialog");
-    await within(dialog).findByRole("button", { name: "Try again" });
-    expect(within(dialog).getByText(/Couldn.t delete/)).toBeTruthy();
+    expect(await within(dialog).findByText(/Couldn.t delete/)).toBeTruthy();
+    // A refusal answers the same way every time: no Try again, the act keeps its word.
+    expect(within(dialog).queryByRole("button", { name: "Try again" })).toBeNull();
+    expect(within(dialog).getByRole("button", { name: "Delete" })).toBeTruthy();
     expect(within(dialog).getByText(/still named by agent 'reviewer'/)).toBeTruthy();
     expect(toastMock.error).not.toHaveBeenCalled();
     expect(s.deletes).toEqual(["env_ds"]);
