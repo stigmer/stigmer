@@ -18,6 +18,13 @@
  *   - the chat for their React app, `<AgentChat>` behind `createTokenCache`,
  *     in the light or dark of the person's system, as most apps start out.
  *
+ * Beside them, what the builder needs to see it run: a short page that shows
+ * the chat in a box with a height, and the settings file the backend reads
+ * its key and development user from (`appSettingsText`). Every file is named
+ * by its path in the builder's project: a Next.js app is one app, holding the
+ * route, the chat and the page, so one install covers it; the other stacks'
+ * backends serve a React app of its own, which holds the chat and the page.
+ *
  * Who is signed in is the one thing Stigmer cannot know. Every route asks one
  * function, `currentUser`, which the builder replaces with their own sign-in.
  * Until then it answers the person named by `STIGMER_DEV_USER` while that is
@@ -59,16 +66,20 @@ export type AppHandoverMode = "sign-in" | "local";
 /** The language a handed-over block is written in, for highlighting. */
 export type AppHandoverLanguage = "bash" | "xml" | "typescript" | "tsx" | "python" | "go" | "java";
 
-/** One file to add, and what to install for it. */
-export interface AppHandoverFile {
-  /** The install command (or, for Java, the Maven dependency). */
-  readonly install: string;
-  readonly installLanguage: "bash" | "xml";
+/** A whole file to add, at its path in the builder's project. */
+export interface AppHandoverSource {
   /** The file's path in the builder's project ("server.ts", "app/api/stigmer-token/route.ts"). */
   readonly file: string;
   readonly language: AppHandoverLanguage;
   /** The whole file. */
   readonly code: string;
+}
+
+/** One file to add, and what to install for it. */
+export interface AppHandoverFile extends AppHandoverSource {
+  /** The install command (or, for Java, the Maven dependency). */
+  readonly install: string;
+  readonly installLanguage: "bash" | "xml";
 }
 
 /** What the handover gives a builder. */
@@ -77,6 +88,25 @@ export interface AppHandover {
   readonly backend?: AppHandoverFile;
   /** The chat component for their React app. */
   readonly chat: AppHandoverFile;
+  /**
+   * A page to try it: the chat mounted in a box with a height, beside the
+   * chat in the same app (`app/agent/page.tsx` for Next.js, the React app's
+   * `src/App.tsx` otherwise).
+   */
+  readonly page: AppHandoverSource;
+  /** Where the page opens once the app runs: `"/agent"` for Next.js, `"/"` for a React app of its own. */
+  readonly pagePath: string;
+  /**
+   * Whether the backend and the chat are one app (Next.js), so one install
+   * covers both (`backend.install`); otherwise each file names its own.
+   */
+  readonly oneApp: boolean;
+  /**
+   * The settings file the backend reads (`.env.local` for Next.js, `.env`
+   * otherwise), for a server that signs people in; its text is
+   * {@link appSettingsText}'s. Absent for a local server, which needs none.
+   */
+  readonly settingsFile?: string;
 }
 
 /** What {@link buildAppHandover} writes the code for. */
@@ -113,6 +143,43 @@ export const APP_CHAT_COMPONENT = "StigmerAgentChat";
 /** The port a standard-library route listens on when `PORT` is unset. */
 export const APP_TOKEN_ROUTE_PORT = 3001;
 
+/** What the settings file holds in place of the key while the key is not on screen: where the key goes. */
+export const APP_API_KEY_PLACEHOLDER = "<paste your service account's key here>";
+
+/** What the settings file holds in place of the developer's email while it is not known. */
+export const APP_DEV_USER_PLACEHOLDER = "<your email>";
+
+/** The values {@link appSettingsText} writes, each a placeholder when absent. */
+export interface AppSettingsValues {
+  /** The service account's key, while it is on screen; never stored. */
+  readonly apiKey?: string;
+  /** The email of the person the route signs in until the app has a sign-in of its own. */
+  readonly devUser?: string;
+}
+
+/**
+ * The backend's settings file (`AppHandover.settingsFile`): the service
+ * account's key, and the person the route signs in while the app has no
+ * sign-in of its own. A value not given is a placeholder that says what
+ * goes there. A line break in a value is dropped, so a value is one line.
+ *
+ * @example
+ * ```typescript
+ * appSettingsText({ devUser: "ada@acme.example" });
+ * // STIGMER_API_KEY=<paste your service account's key here>
+ * // STIGMER_DEV_USER=ada@acme.example
+ * ```
+ */
+export function appSettingsText(values: AppSettingsValues = {}): string {
+  const line = (value: string | undefined, placeholder: string) =>
+    value === undefined || value.trim() === "" ? placeholder : value.replace(/[\r\n]/g, "");
+  return [
+    `${APP_API_KEY_VARIABLE}=${line(values.apiKey, APP_API_KEY_PLACEHOLDER)}`,
+    `${APP_DEV_USER_VARIABLE}=${line(values.devUser, APP_DEV_USER_PLACEHOLDER)}`,
+    "",
+  ].join("\n");
+}
+
 /**
  * The code that puts `org/agent`'s chat in a builder's app, for their stack.
  *
@@ -122,21 +189,28 @@ export const APP_TOKEN_ROUTE_PORT = 3001;
  * ```typescript
  * import { buildAppHandover } from "@stigmer/client";
  *
- * const { backend, chat } = buildAppHandover({
+ * const { backend, chat, page } = buildAppHandover({
  *   mode: "sign-in",
  *   stack: "node",
  *   baseUrl: "https://api.stigmer.ai",
  *   org: "acme",
  *   agent: "variance-reporter",
  * });
- * // backend.file === "server.ts"; chat.file === "StigmerAgentChat.tsx"
+ * // backend.file === "server.ts"; chat.file === "src/StigmerAgentChat.tsx"; page.file === "src/App.tsx"
  * ```
  */
 export function buildAppHandover(input: AppHandoverInput): AppHandover {
   const server = serverOf(input.baseUrl);
   const code: Code = { org: lit(input.org), agentRef: lit(`${input.org}/${input.agent}`), server };
-  if (input.mode === "local") return { chat: localChat(code) };
-  return { backend: backendFor(input.stack, code, input.sdkVersion), chat: signInChat(code) };
+  const app = APPS[input.stack];
+  const where = { page: app.page, pagePath: app.pagePath, oneApp: app.oneApp };
+  if (input.mode === "local") return { chat: localChat(code, app.chatFile), ...where };
+  return {
+    backend: backendFor(input.stack, code, input.sdkVersion),
+    chat: signInChat(code, app.chatFile),
+    ...where,
+    settingsFile: app.settingsFile,
+  };
 }
 
 /** What every file is written from, each value already a string literal. */
@@ -181,7 +255,8 @@ function lit(value: string): string {
 
 /** Each stack's route; a typed record, so a stack without one fails to compile. */
 const BACKENDS: Record<AppHandoverStack, (code: Code, sdkVersion: string | undefined) => AppHandoverFile> = {
-  nextjs: (code) => ({ install: "npm install @stigmer/client", installLanguage: "bash", file: "app/api/stigmer-token/route.ts", language: "typescript", code: nextRoute(code) }),
+  // One app: its one install covers the route, the chat and the page.
+  nextjs: (code) => ({ install: CHAT_INSTALL, installLanguage: "bash", file: "app/api/stigmer-token/route.ts", language: "typescript", code: nextRoute(code) }),
   node: (code) => ({ install: "npm install @stigmer/client", installLanguage: "bash", file: "server.ts", language: "typescript", code: nodeRoute(code) }),
   python: (code) => ({ install: "pip install stigmer-sdk", installLanguage: "bash", file: "stigmer_token.py", language: "python", code: pythonRoute(code) }),
   go: (code) => ({ install: "go get go.stigmer.ai/sdk", installLanguage: "bash", file: "main.go", language: "go", code: goRoute(code) }),
@@ -191,6 +266,68 @@ const BACKENDS: Record<AppHandoverStack, (code: Code, sdkVersion: string | undef
 function backendFor(stack: AppHandoverStack, code: Code, sdkVersion: string | undefined): AppHandoverFile {
   return BACKENDS[stack](code, sdkVersion);
 }
+
+/** Where a stack's app keeps the chat and the page that tries it, and the settings file its backend reads. */
+interface AppSide {
+  readonly oneApp: boolean;
+  readonly chatFile: string;
+  readonly page: AppHandoverSource;
+  readonly pagePath: string;
+  readonly settingsFile: string;
+}
+
+/** A Next.js app: the route, the chat and a page of its own, one app; Next.js reads `.env.local` itself. */
+const NEXT_APP: AppSide = {
+  oneApp: true,
+  chatFile: `components/${APP_CHAT_COMPONENT}.tsx`,
+  page: {
+    file: "app/agent/page.tsx",
+    language: "tsx",
+    code: `import { ${APP_CHAT_COMPONENT} } from "@/components/${APP_CHAT_COMPONENT}";
+
+export default function AgentPage() {
+  return (
+    <main style={{ height: "100vh" }}>
+      <${APP_CHAT_COMPONENT} />
+    </main>
+  );
+}
+`,
+  },
+  pagePath: "/agent",
+  settingsFile: ".env.local",
+};
+
+/** A React app of its own (as `npm create vite` makes one) beside a backend: the chat and its root page in `src`. */
+const REACT_APP: AppSide = {
+  oneApp: false,
+  chatFile: `src/${APP_CHAT_COMPONENT}.tsx`,
+  page: {
+    file: "src/App.tsx",
+    language: "tsx",
+    code: `import { ${APP_CHAT_COMPONENT} } from "./${APP_CHAT_COMPONENT}";
+
+export default function App() {
+  return (
+    <main style={{ height: "100vh" }}>
+      <${APP_CHAT_COMPONENT} />
+    </main>
+  );
+}
+`,
+  },
+  pagePath: "/",
+  settingsFile: ".env",
+};
+
+/** Each stack's app side; a typed record, so a stack without one fails to compile. */
+const APPS: Record<AppHandoverStack, AppSide> = {
+  nextjs: NEXT_APP,
+  node: REACT_APP,
+  python: REACT_APP,
+  go: REACT_APP,
+  java: REACT_APP,
+};
 
 /** A version is pinned only when it is a plain release; anything else (a dev build) is not on Maven Central. */
 const RELEASE = /^\d+\.\d+\.\d+$/;
@@ -274,7 +411,7 @@ function nextRoute({ org, server }: Code): string {
 // signed-in person's token, { accessToken, expiresAt }, which the chat asks for.
 import { createNodeClient } from "@stigmer/client/node";
 
-// Every request mints for whoever is signed in: never prerender it.
+// Every request answers for whoever is signed in: never prerender it.
 export const dynamic = "force-dynamic";
 
 const ORG = ${org};
@@ -537,11 +674,11 @@ ${CURRENT_USER_NOTE.map((l) => `    // ${l}`).join("\n")}
 
 const CHAT_INSTALL = "npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf";
 
-function signInChat({ agentRef, server }: Code): AppHandoverFile {
+function signInChat({ agentRef, server }: Code, file: string): AppHandoverFile {
   return {
     install: CHAT_INSTALL,
     installLanguage: "bash",
-    file: `${APP_CHAT_COMPONENT}.tsx`,
+    file,
     language: "tsx",
     code: `"use client";
 
@@ -579,11 +716,11 @@ export function ${APP_CHAT_COMPONENT}() {
   };
 }
 
-function localChat({ agentRef, server }: Code): AppHandoverFile {
+function localChat({ agentRef, server }: Code, file: string): AppHandoverFile {
   return {
     install: CHAT_INSTALL,
     installLanguage: "bash",
-    file: `${APP_CHAT_COMPONENT}.tsx`,
+    file,
     language: "tsx",
     code: `"use client";
 

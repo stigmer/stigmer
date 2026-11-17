@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, type ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { Button } from "../button/Button.js";
 import { IconButton } from "../button/IconButton.js";
@@ -19,6 +19,15 @@ export interface ApiKeyCreatedAlertProps {
   readonly keyName: string;
   /** Fired when the user dismisses the alert. */
   readonly onDismiss: () => void;
+  /**
+   * The line under the key's name telling the person what to copy, for a
+   * surface that hands the key over inside something else (a settings file
+   * in {@link children}).
+   * @default "Copy this key now. It will not be shown again."
+   */
+  readonly instruction?: string;
+  /** What else the key is shown in while it is held, under the key (a settings file to copy). */
+  readonly children?: ReactNode;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -47,6 +56,8 @@ export function ApiKeyCreatedAlert({
   rawKey,
   keyName,
   onDismiss,
+  instruction = "Copy this key now. It will not be shown again.",
+  children,
   className,
 }: ApiKeyCreatedAlertProps) {
   const { copy, copied } = useCopyFeedback();
@@ -72,7 +83,7 @@ export function ApiKeyCreatedAlert({
             API key created: {keyName}
           </p>
           <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
-            Copy this key now. It will not be shown again.
+            {instruction}
           </p>
         </div>
         <IconButton label="Dismiss" size="xs" icon={<CloseIcon />} onClick={onDismiss} />
@@ -94,6 +105,7 @@ export function ApiKeyCreatedAlert({
           {copied ? "Copied" : "Copy"}
         </Button>
       </div>
+      {children !== undefined && <div className="stg:mt-3">{children}</div>}
     </div>
   );
 }

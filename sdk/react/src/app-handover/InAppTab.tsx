@@ -8,12 +8,16 @@
 // (`useServerInfo().authenticationRequired`):
 //
 //   - A server that signs people in (Stigmer Cloud, or a self-hosted server
-//     with sign-in turned on) mints each user's token from the builder's
-//     backend. The tab is five rows: a service account for the backend (made
-//     here, as an admin, since minting is an admin's; its key shown once),
-//     accounts made on first sign-in (the organization's embedding settings),
-//     the token route for their stack, the chat for their React app, and the
-//     first person their app signs in, which ticks by itself. Rows 1, 2 and 5
+//     with sign-in turned on) has the builder's backend sign each user in
+//     with a service account's key. The tab is five rows: a service account
+//     for the backend (made here, as an admin, since signing users in needs
+//     admin rights; its key shown once, inside the backend's settings file
+//     ready to copy, and the same file without it afterwards), accounts made
+//     on first sign-in (the organization's embedding settings), the token
+//     route for their stack, the chat for their React app with a page to try
+//     it, each named by its path (one install for a Next.js app, which holds
+//     all three), and the first person their app signs in, which ticks by
+//     itself. Rows 1, 2 and 5
 //     are the organization's, not the agent's: each says so and links its
 //     settings page, and each is offered only to someone the server lets act
 //     (asked fail closed), with who can named otherwise.
@@ -33,15 +37,19 @@ import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization
 import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import {
+  APP_DEV_USER_VARIABLE,
   APP_HANDOVER_STACKS,
   APP_TOKEN_ROUTE,
   APP_TOKEN_ROUTE_PORT,
   StigmerError,
+  appSettingsText,
   buildAppHandover,
   iamRoleDisplayName,
+  type AppHandover,
   type AppHandoverFile,
   type AppHandoverStack,
 } from "@stigmer/client";
+import { useWhoAmI } from "@stigmer/react-core";
 import { cn } from "@stigmer/design-tokens";
 import { ApiKeyCreatedAlert } from "../api-key/ApiKeyCreatedAlert.js";
 import { DEFAULT_KEY_EXPIRY, keyExpiryFields } from "../api-key/KeyExpiryFieldset.js";
@@ -164,13 +172,14 @@ function LocalHandover({
   readonly baseUrl: string;
   readonly renderLink: RenderJourneyLink;
 }) {
-  const { chat } = buildAppHandover({
+  const handover = buildAppHandover({
     mode: "local",
     stack: "node",
     baseUrl,
     org: organization.metadata?.slug ?? "",
     agent: agent.metadata?.slug ?? "",
   });
+  const { chat } = handover;
   return (
     <>
       <Notice
@@ -185,10 +194,8 @@ function LocalHandover({
       </Notice>
       <section aria-label="Show the chat in your app" className={cn(cardClasses(), "stg:flex stg:flex-col stg:gap-3")}>
         <h4 className="stg:m-0 stg:text-sm stg:font-semibold stg:text-foreground">Show the chat in your app</h4>
-        <HandedOverFile file={chat} />
-        <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
-          Put <code className="stg:font-mono stg:text-xs">{"<StigmerAgentChat />"}</code> where the chat belongs.
-        </p>
+        <HandedOverFile file={chat} install="own" />
+        <TryItPage handover={handover} />
       </section>
     </>
   );
@@ -236,32 +243,40 @@ function SignInHandover({
   if (nowWaiting !== waiting) setWaiting(nowWaiting);
   const render = links.renderLink ?? anchorLink;
   const backend = handover.backend;
+  // The settings name the person here as the route's development user.
+  const { account: me } = useWhoAmI();
+  const devUser = me?.spec?.email || undefined;
 
   return (
     <>
       <StackPicker stack={stack} onPick={pickStack} />
       <ol className={cn(cardClasses({ flush: true }), "stg:m-0 stg:list-none stg:divide-y stg:divide-border stg:p-0")}>
-        <ServiceAccountRow org={orgId} access={access} serviceAccountsHref={links.serviceAccounts} renderLink={render} />
+        <ServiceAccountRow
+          org={orgId}
+          access={access}
+          settingsFile={handover.settingsFile ?? ".env"}
+          devUser={devUser}
+          serviceAccountsHref={links.serviceAccounts}
+          renderLink={render}
+        />
         <EmbeddingRow org={orgId} organization={organization} onSaved={onOrganizationSaved} embeddingHref={links.embedding} renderLink={render} />
         <Row number={3} state="todo" title="Add a token route to your backend">
-          {backend && <HandedOverFile file={backend} />}
+          {backend && <HandedOverFile file={backend} install={handover.oneApp ? "once" : "own"} />}
           <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
             Return your signed-in user from <code className="stg:font-mono stg:text-xs">currentUser</code>. Until then it signs in the
             email in <code className="stg:font-mono stg:text-xs">STIGMER_DEV_USER</code>, and nobody when that is unset.
           </p>
         </Row>
         <Row number={4} state="todo" title="Show the chat in your app">
-          <HandedOverFile file={handover.chat} />
-          <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
-            Put <code className="stg:font-mono stg:text-xs">{"<StigmerAgentChat />"}</code> where the chat belongs.
-            {stack !== "nextjs" && (
-              <>
-                {" "}
-                Your app reaches the route at <code className="stg:font-mono stg:text-xs">{APP_TOKEN_ROUTE}</code>: proxy that path to your backend
-                (port {APP_TOKEN_ROUTE_PORT} unless you set <code className="stg:font-mono stg:text-xs">PORT</code>).
-              </>
-            )}
-          </p>
+          {!handover.oneApp && (
+            <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
+              These go in your React app, which is apart from your backend. Your app reaches the route at{" "}
+              <code className="stg:font-mono stg:text-xs">{APP_TOKEN_ROUTE}</code>: proxy that path to your backend (port {APP_TOKEN_ROUTE_PORT}{" "}
+              unless you set <code className="stg:font-mono stg:text-xs">PORT</code>).
+            </p>
+          )}
+          <HandedOverFile file={handover.chat} install={handover.oneApp ? "none" : "own"} />
+          <TryItPage handover={handover} />
         </Row>
         <FirstUserRow access={access} />
       </ol>
@@ -327,12 +342,42 @@ function Row({ number, state, title, children }: { readonly number: number; read
   );
 }
 
-/** A file to add: its install line, then the file, each with Copy. */
-function HandedOverFile({ file }: { readonly file: AppHandoverFile }) {
+/**
+ * A file to add, each block with Copy: its install line first, unless
+ * another row's covers it (`"none"`), said to be the only one where the
+ * whole app installs once (`"once"`); then the file under its path.
+ */
+function HandedOverFile({ file, install }: { readonly file: AppHandoverFile; readonly install: "own" | "once" | "none" }) {
   return (
     <div className="stg:flex stg:flex-col stg:gap-2">
-      <CopyBlock label={file.installLanguage === "xml" ? "Add to pom.xml" : "Install"} value={file.install} />
+      {install !== "none" && (
+        <CopyBlock label={file.installLanguage === "xml" ? "Add to pom.xml" : install === "once" ? "Install, once" : "Install"} value={file.install} />
+      )}
       <CopyBlock label={file.file} value={file.code} tall />
+    </div>
+  );
+}
+
+/** The page that shows the chat, to try it, and where to open it. */
+function TryItPage({ handover }: { readonly handover: AppHandover }) {
+  const open = handover.pagePath === "/" ? "Start your React app and open it." : `Start your app and open ${handover.pagePath}.`;
+  return (
+    <>
+      <CopyBlock label={handover.page.file} caption="a page to try it" value={handover.page.code} />
+      <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">{open} To put the chat elsewhere, give it a box with a height.</p>
+    </>
+  );
+}
+
+/** The backend's settings file, with Copy, and what to keep in mind about it. */
+function SettingsBlock({ file, text }: { readonly file: string; readonly text: string }) {
+  return (
+    <div className="stg:flex stg:flex-col stg:gap-2">
+      <CopyBlock label={file} value={text} />
+      <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
+        Keep this file out of git. <code className="stg:font-mono stg:text-2xs">{APP_DEV_USER_VARIABLE}</code> signs you in while your app has no
+        sign-in of its own.
+      </p>
     </div>
   );
 }
@@ -347,11 +392,17 @@ export function backendNameFor(attempt: number): string {
 function ServiceAccountRow({
   org,
   access,
+  settingsFile,
+  devUser,
   serviceAccountsHref,
   renderLink,
 }: {
   readonly org: string;
   readonly access: ReturnType<typeof useAppAccess>;
+  /** The backend's settings file, which holds the key. */
+  readonly settingsFile: string;
+  /** The person viewing, as the settings' development user, when known. */
+  readonly devUser: string | undefined;
   readonly serviceAccountsHref: string | undefined;
   readonly renderLink: RenderJourneyLink;
 }) {
@@ -397,14 +448,26 @@ function ServiceAccountRow({
   const existing = access.adminServiceAccounts ?? [];
   const keyMissing = made !== null && revealed === null;
 
+  // Without the key on screen, the same settings say where the key goes.
+  const keylessSettings = <SettingsBlock file={settingsFile} text={appSettingsText({ devUser })} />;
+
   if (revealed !== null) {
     return (
       <Row number={1} state="done" title="A service account for your backend">
-        {revealed.key !== null && <ApiKeyCreatedAlert rawKey={revealed.key} keyName={revealed.name} onDismiss={() => setRevealed({ key: null, name: revealed.name })} />}
+        {revealed.key !== null && (
+          <ApiKeyCreatedAlert
+            rawKey={revealed.key}
+            keyName={revealed.name}
+            instruction="Copy your settings now. The key is shown once."
+            onDismiss={() => setRevealed({ key: null, name: revealed.name })}
+          >
+            <SettingsBlock file={settingsFile} text={appSettingsText({ apiKey: revealed.key, devUser })} />
+          </ApiKeyCreatedAlert>
+        )}
         <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
-          {revealed.key === null ? `${revealed.name} is made. ` : ""}Put its key in <code className="stg:font-mono stg:text-xs">STIGMER_API_KEY</code> in
-          your backend&apos;s environment. One key serves every agent in your app. It&apos;s an admin of this organization, which minting needs.
+          {revealed.key === null ? `${revealed.name} is made. ` : ""}Its key goes in your backend&apos;s settings. One key serves every agent in your app.
         </p>
+        {revealed.key === null && keylessSettings}
       </Row>
     );
   }
@@ -427,11 +490,12 @@ function ServiceAccountRow({
           </>
         ) : (
           <>
-            Your backend signs your users in with its key. It belongs to the organization and serves every agent, as an admin, which minting
-            needs. Its key is shown once.
+            Your backend signs your users in with its key, so the key needs admin rights. It belongs to the organization and serves every agent.
+            Its key is shown once.
           </>
         )}
       </p>
+      {done && keylessSettings}
       {canCreate ? (
         <div>
           {/* Outlined: the page's one filled act is its header's Start session. */}
@@ -494,19 +558,31 @@ function EmbeddingRow({
   );
 
   const settings = embeddingHref ? renderLink({ href: embeddingHref, className: LINK, children: "Embedding settings" }) : "Embedding settings";
-  const origins = stored.allowedOrigins.length === 0 ? "from any origin" : `from ${stored.allowedOrigins.join(", ")}`;
+  const anyAddress = stored.allowedOrigins.length === 0;
 
   let line: ReactNode;
   if (done) {
     line = (
       <>
-        On for this organization: they join as {iamRoleDisplayName(stored.signInRole)}, {origins}. Limit the origins in {settings} before you ship.
+        On for this organization: they join as {iamRoleDisplayName(stored.signInRole)}.{" "}
+        {anyAddress ? (
+          <>Any website address may host the chat; name yours in {settings} before you ship.</>
+        ) : (
+          <>
+            Only {stored.allowedOrigins.join(", ")} may host the chat; change that in {settings}.
+          </>
+        )}
       </>
     );
   } else if (on) {
     line = <>They&apos;d get accounts but couldn&apos;t chat: they join with no role that can. Let them chat as Member.</>;
   } else {
-    line = <>Off for this organization, so your backend can&apos;t sign anyone in yet. Turned on, they join as Member, from any origin.</>;
+    line = (
+      <>
+        Off for this organization, so your backend can&apos;t sign anyone in yet. Turned on, they join as Member.{" "}
+        {anyAddress ? "Any website address may host the chat; name yours before you ship." : `Only ${stored.allowedOrigins.join(", ")} may host the chat.`}
+      </>
+    );
   }
 
   return (

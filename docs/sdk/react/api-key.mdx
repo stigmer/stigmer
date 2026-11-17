@@ -160,7 +160,9 @@ All visual properties flow through `--stgm-*` design tokens.
 
 <TypeTable
   type={{
+    children: { type: "ReactNode", description: "What else the key is shown in while it is held, under the key (a settings file to copy)." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    instruction: { type: "string", description: "The line under the key's name telling the person what to copy, for a surface that hands the key over inside something else (a settings file in children)." },
     keyName: { type: "string", description: "Human-readable name of the key for context.", required: true },
     onDismiss: { type: "() => void", description: "Fired when the user dismisses the alert.", required: true },
     rawKey: { type: "string", description: "The raw API key value to display. Shown exactly once.", required: true },

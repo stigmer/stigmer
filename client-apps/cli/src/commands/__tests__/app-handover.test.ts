@@ -3,7 +3,9 @@
 // printed or written. The code itself is `buildAppHandover`'s, the console's
 // In your app tab's one writer, so these tests hold what the command adds:
 // the development chat alone on a server that trusts every caller, the files
-// at the handover's own paths, and no file overwritten without `--force`.
+// at the handover's own paths, one install for a Next.js app (one app) and
+// one per file otherwise, the settings file the key goes in, and no file
+// overwritten without `--force`.
 
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -46,6 +48,16 @@ describe("printedHandover", () => {
     expect(text).toContain(`# ${signIn.chat.file}`);
     expect(text).toContain(signIn.backend!.code.trimEnd());
   });
+  it("prints one install for a Next.js app, and one per file for a backend and its React app", () => {
+    const text = printedHandover(signIn, "sign-in");
+    expect(text.match(/^# install/gm)).toEqual(["# install"]);
+    expect(text).toContain("# install, once: npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf");
+    const node = buildAppHandover({ mode: "sign-in", stack: "node", baseUrl: "https://api.stigmer.ai", org: "acme", agent: "invoice-matcher" });
+    expect(printedHandover(node, "sign-in").match(/^# install: .*/gm)).toEqual([
+      "# install: npm install @stigmer/client",
+      "# install: npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf",
+    ]);
+  });
   it("says the local handover is the development chat, with no route", () => {
     const text = printedHandover(local, "local");
     expect(text.startsWith("This server trusts every caller, so this is the development chat")).toBe(true);
@@ -59,7 +71,11 @@ describe("writeHandover", () => {
     const result = writeHandover(signIn, "sign-in", root, false);
     expect(readFileSync(join(root, signIn.backend!.file), "utf8")).toBe(signIn.backend!.code);
     expect(readFileSync(join(root, signIn.chat.file), "utf8")).toBe(signIn.chat.code);
+    expect(signIn.chat.file).toBe("components/StigmerAgentChat.tsx");
     expect(result.hints).toContain("Replace currentUser in the route with your app's own sign-in.");
+    expect(result.hints).toContain("Install, once: npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf");
+    expect(result.hints.filter((hint) => hint.startsWith("For "))).toEqual([]);
+    expect(result.hints).toContain("Put the admin service account's key in STIGMER_API_KEY in .env.local, and keep that file out of git.");
   });
   it("writes only the chat on a server that trusts every caller", () => {
     const root = mkdtempSync(join(tmpdir(), "stigmer-handover-"));
