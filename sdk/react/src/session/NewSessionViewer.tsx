@@ -112,8 +112,10 @@ export interface NewSessionViewerProps {
    * pinned agent (when `initialAgentRef` is set) and hides the
    * plugin, skill, and vault pickers — for product-embedded
    * chat where the agent is configured upstream by the platform. The
-   * model selector, interaction mode, harness selector, file uploads,
-   * and workspace picker remain.
+   * model selector, interaction mode, file uploads, and workspace
+   * picker remain; the harness selector is the `"integrator"`
+   * audience's only, so an end user's conversation runs the agent's
+   * own harness and no harness name shows beside the model.
    *
    * `"guest"` (anonymous visitor with a guest token) is pure chat: it
    * additionally hides the model/harness/mode pickers, file uploads,
@@ -149,6 +151,14 @@ export interface NewSessionViewerProps {
    * @default true
    */
   readonly showModelSelector?: boolean;
+
+  /**
+   * Whether the composer offers the Agent/Plan mode toggle. Same contract
+   * as {@link SessionViewerProps.showInteractionModePicker}: on for every
+   * audience but `"guest"`; `false` hides it, and a guest never has it.
+   * @default true
+   */
+  readonly showInteractionModePicker?: boolean;
 
   /**
    * Harness pre-selected for new sessions when the user has not made
@@ -247,6 +257,16 @@ export interface NewSessionViewerProps {
   readonly autoFocus?: boolean;
 
   /**
+   * Slot for host-injected content rendered above the launcher's heading
+   * ("What would you like to work on?"): a host's welcome, for one (the
+   * console greets a teammate who has just joined with the organization's
+   * agents). Shown with the plain composer only, never over the first
+   * question or the connect step. Keeps the SDK organism free of a host's
+   * onboarding.
+   */
+  readonly headerContent?: ReactNode;
+
+  /**
    * Slot for host-injected actions rendered below the composer
    * (e.g., submit error messages). Keeps the SDK organism unopinionated
    * about Console-specific error rendering.
@@ -317,6 +337,7 @@ export function NewSessionViewer({
   audience = "integrator",
   runConfig,
   showModelSelector = true,
+  showInteractionModePicker,
   inspector,
   defaultHarness,
   accountDefaults,
@@ -332,6 +353,7 @@ export function NewSessionViewer({
   placeholder = "Describe what you need help with\u2026",
   initialRows = 3,
   autoFocus = true,
+  headerContent,
   footerContent,
   modelsHubHref = DEFAULT_MODELS_HUB_HREF,
   className,
@@ -599,12 +621,12 @@ export function NewSessionViewer({
       onPluginRefsChange: isCurated ? undefined : flow.setPluginRefs,
       skillRefs: isCurated ? undefined : flow.skillRefs,
       onSkillRefsChange: isCurated ? undefined : flow.setSkillRefs,
-      showHarnessSelector: !isGuest,
+      showHarnessSelector: audience === "integrator",
       harness: flow.harness,
       onHarnessChange: flow.setHarness,
       interactionMode,
       onInteractionModeChange: setInteractionMode,
-      showInteractionModePicker: !isGuest,
+      showInteractionModePicker: !isGuest && (showInteractionModePicker ?? true),
       showModelSelector: modelSelectorVisible,
       enableFiles: !isGuest,
       defaultModelId: flow.modelId,
@@ -692,6 +714,24 @@ export function NewSessionViewer({
                 // message are read once, when it mounts.
                 key={`${choice.agentRef.org}/${choice.agentRef.slug}`}
                 {...composerProps}
+                // The first run asks for nothing before its first success:
+                // the message, the attached sample, Attach and Send. The
+                // card above names what runs; mode, engine, model,
+                // workspace and the configure menu come back on every later
+                // composer. Its agent is the one just made, locked, so the
+                // menu shows only if that agent needs setting up first.
+                showInteractionModePicker={false}
+                showHarnessSelector={false}
+                showModelSelector={false}
+                workspace={undefined}
+                extraSettings={undefined}
+                enableVaultPicker={false}
+                enableEnvironmentPicker={false}
+                pluginRefs={undefined}
+                onPluginRefsChange={undefined}
+                skillRefs={undefined}
+                onSkillRefsChange={undefined}
+                lockAgent
                 initialAgentRef={choice.agentRef}
                 initialFiles={choiceFiles}
                 initialMessage={choice.message}
@@ -711,6 +751,7 @@ export function NewSessionViewer({
           />
         ) : (
           <>
+          {headerContent}
           <h1 className="stg:text-center stg:text-lg stg:font-medium stg:text-foreground">
             {activeLaunch?.heading ?? heading}
           </h1>

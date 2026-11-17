@@ -9,9 +9,14 @@
  *   opt-in;
  * - on a server that signs people in: the stack picker (remembered in this
  *   browser, and working when storage is blocked) changes the route, whose
- *   text names the organization by its slug and the agent; "Make it" makes
- *   `app-backend` as an admin (the next name when that one is taken) and
- *   shows its key once; the switch turns account creation on as Member and
+ *   text names the organization by its slug and the agent; each file is
+ *   named by its path, with a page to try the chat, and a Next.js app
+ *   installs once where the other stacks' backend and React app each
+ *   install their own; "Make it" makes `app-backend` as an admin (the next
+ *   name when that one is taken) and shows its key once, inside the
+ *   backend's settings file ready to copy with the viewer as its
+ *   development user, and the same file without the key once it is
+ *   dismissed or an admin account already exists; the switch turns account creation on as Member and
  *   keeps the origins and vaults; a role that cannot chat is offered
  *   Member; row 5 asks again on a timer only while it waits, and ticks with
  *   the first app user's name; a failed read says so in its row while the
@@ -156,7 +161,7 @@ function renderPage(props: Partial<AgentDetailViewProps> = {}, opts: Options = {
           }),
           updateEmbedding,
         },
-        identityAccount: { createServiceAccount },
+        identityAccount: { createServiceAccount, whoAmI: vi.fn(async () => ({ metadata: { id: "ida_ada" }, spec: { email: "ada@acme.example" } })) },
         apiKey: { createForServiceAccount },
         platform: {
           getServerInfo: vi.fn(async () => {
@@ -219,12 +224,55 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
     expect(window.localStorage.getItem(APP_STACK_STORAGE_KEY)).toBe("python");
 
     const chat = await row("Show the chat in your app");
-    expect(within(chat).getByRole("region", { name: "StigmerAgentChat.tsx" }).textContent).toContain('agent={"acme/variance-reporter"}');
+    expect(within(chat).getByRole("region", { name: "src/StigmerAgentChat.tsx" }).textContent).toContain('agent={"acme/variance-reporter"}');
     cleanup();
 
     // A later visit opens on the remembered stack.
     renderPage({ defaultTab: "in-app" });
     expect((await screen.findByRole("radio", { name: "Python" })).getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("names every Next.js file by its path, installs once, and hands over a page to try the chat", async () => {
+    renderPage({ defaultTab: "in-app" });
+    const route = await row("Add a token route to your backend");
+    expect(within(route).getByText("Install, once")).toBeTruthy();
+    expect(within(route).getByRole("region", { name: "Install, once" }).textContent).toBe(
+      "npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf",
+    );
+    expect(within(route).getByRole("region", { name: "app/api/stigmer-token/route.ts" })).toBeTruthy();
+
+    const chat = await row("Show the chat in your app");
+    expect(within(chat).queryByText(/^Install/)).toBeNull();
+    expect(within(chat).getByRole("region", { name: "components/StigmerAgentChat.tsx" }).textContent).toContain("export function StigmerAgentChat()");
+    expect(within(chat).getByText("a page to try it", { exact: false })).toBeTruthy();
+    expect(within(chat).getByRole("region", { name: "app/agent/page.tsx" }).textContent).toContain('import { StigmerAgentChat } from "@/components/StigmerAgentChat";');
+    expect(within(chat).getByText("Start your app and open /agent. To put the chat elsewhere, give it a box with a height.")).toBeTruthy();
+    expect(within(chat).queryByText(/apart from your backend/)).toBeNull();
+  });
+
+  it("says another stack's chat and page go in a React app apart from the backend, each with its own install", async () => {
+    renderPage({ defaultTab: "in-app" });
+    fireEvent.click(await screen.findByRole("radio", { name: "Node" }));
+    const route = await row("Add a token route to your backend");
+    expect(within(route).getByRole("region", { name: "Install" }).textContent).toBe("npm install @stigmer/client");
+    const chat = await row("Show the chat in your app");
+    expect(within(chat).getByText(/^These go in your React app, which is apart from your backend\. Your app reaches the route at/)).toBeTruthy();
+    expect(within(chat).getByRole("region", { name: "Install" }).textContent).toBe("npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf");
+    expect(within(chat).getByRole("region", { name: "src/StigmerAgentChat.tsx" })).toBeTruthy();
+    expect(within(chat).getByRole("region", { name: "src/App.tsx" }).textContent).toContain('import { StigmerAgentChat } from "./StigmerAgentChat";');
+    expect(within(chat).getByText("Start your React app and open it. To put the chat elsewhere, give it a box with a height.")).toBeTruthy();
+  });
+
+  it("says plainly why the service account is an admin, and that its key is shown once", async () => {
+    renderPage({ defaultTab: "in-app" });
+    const account = await row("A service account for your backend");
+    expect(
+      await within(account).findByText(
+        "Your backend signs your users in with its key, so the key needs admin rights. It belongs to the organization and serves every agent. Its key is shown once.",
+      ),
+    ).toBeTruthy();
+    // No account yet: no settings to copy.
+    expect(within(account).queryByRole("region", { name: ".env.local" })).toBeNull();
   });
 
   it("works with storage blocked: the first stack, and a pick that holds for the visit", async () => {
@@ -246,6 +294,11 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
 
     const alert = await within(account).findByRole("alert");
     expect(alert.textContent).toContain("stk_live_secret");
+    // The key, in the settings file ready to copy, with the viewer as the development user.
+    expect(within(alert).getByText("Copy your settings now. The key is shown once.")).toBeTruthy();
+    expect(within(alert).getByRole("region", { name: ".env.local" }).textContent).toBe("STIGMER_API_KEY=stk_live_secret\nSTIGMER_DEV_USER=ada@acme.example\n");
+    const note = "Keep this file out of git. STIGMER_DEV_USER signs you in while your app has no sign-in of its own.";
+    expect(within(alert).getByText((_, element) => element?.tagName === "P" && element.textContent === note)).toBeTruthy();
     expect(createServiceAccount.mock.calls.map((call) => [call[0].name, call[0].role])).toEqual([
       ["app-backend", IamRole.admin],
       ["app-backend-2", IamRole.admin],
@@ -253,10 +306,13 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
     expect(createForServiceAccount.mock.calls[0]?.[0]).toMatchObject({ serviceAccountId: "ida_app-backend-2", name: "app-backend-2", neverExpires: true });
     expect(within(account).getByText(/One key serves every agent in your app/)).toBeTruthy();
 
-    // Dismissed, the key is gone for good.
+    // Dismissed, the key is gone for good; the settings say where it goes.
     fireEvent.click(within(account).getByRole("button", { name: "Dismiss" }));
     expect(within(account).queryByText(/stk_live_secret/)).toBeNull();
     expect(within(account).getByText(/app-backend-2 is made/)).toBeTruthy();
+    expect(within(account).getByRole("region", { name: ".env.local" }).textContent).toBe(
+      "STIGMER_API_KEY=<paste your service account's key here>\nSTIGMER_DEV_USER=ada@acme.example\n",
+    );
   });
 
   it("says the account wasn't made, in the server's words, when the server refuses it", async () => {
@@ -286,9 +342,23 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
 
     expect(await within(account).findByText(/^app-backend was made, but its key wasn't\. .*key store is down.*[.!?] Try again\.$/)).toBeTruthy();
     fireEvent.click(within(account).getByRole("button", { name: "Make its key" }));
-    expect(await within(account).findByText(/stk_live_secret/)).toBeTruthy();
+    expect((await within(account).findByRole("alert")).textContent).toContain("stk_live_secret");
     expect(createServiceAccount).toHaveBeenCalledTimes(1);
     expect(createForServiceAccount).toHaveBeenCalledTimes(2);
+  });
+
+  it("tells a Python, Go or Java backend how its settings reach it, and says nothing of it for Next.js or Node", async () => {
+    const how = /Your backend reads these from its environment: load \.env the way your framework does, or export them in the shell you start it from\./;
+    const existing = [{ id: "ida_rb", name: "report-backend", mode: IdentityAccountProvisioningMode.service_account, role: "admin" }];
+    renderPage({ defaultTab: "in-app" }, { access: existing });
+    const account = await row("A service account for your backend");
+    await within(account).findByRole("region", { name: ".env.local" });
+    expect(within(account).queryByText(/reads these from its environment/)).toBeNull();
+    for (const [stack, says] of [["Node", false], ["Python", true], ["Go", true], ["Java", true]] as const) {
+      fireEvent.click(screen.getByRole("radio", { name: stack }));
+      await within(account).findByRole("region", { name: ".env" });
+      expect(within(account).queryByText(how) !== null, stack).toBe(says);
+    }
   });
 
   it("names an admin service account the organization already has, and offers another", async () => {
@@ -299,6 +369,8 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
     const account = await row("A service account for your backend");
     await waitFor(() => expect(within(account).getByText("report-backend")).toBeTruthy());
     expect(within(account).queryByText(/\bci\b/)).toBeNull();
+    // Its key is not on screen: the settings say where it goes.
+    expect(within(account).getByRole("region", { name: ".env.local" }).textContent).toContain("STIGMER_API_KEY=<paste your service account's key here>");
     expect(within(account).getByRole("button", { name: "Make another" })).toBeTruthy();
     expect(within(account).getByRole("link", { name: "Service accounts" }).getAttribute("href")).toBe("/settings/service-accounts");
   });
@@ -314,7 +386,21 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
     expect(saved.orgId).toBe(ACME_ID);
     expect(saved.embedding).toMatchObject({ createAccountsOnSignIn: true, signInRole: IamRole.member, allowedOrigins: ["https://app.acme.example"] });
     expect(saved.embedding.vaults.map((ref: { slug: string }) => ref.slug)).toEqual(["shared-keys"]);
-    await within(embedding).findByText(/they join as Member, from https:\/\/app\.acme\.example/);
+    await within(embedding).findByText(/they join as Member\. Only https:\/\/app\.acme\.example may host the chat; change that in/);
+  });
+
+  it("says any website address may host the chat until one is named, off and on", async () => {
+    const { updateEmbedding } = renderPage({ defaultTab: "in-app" }, { embedding: { createAccountsOnSignIn: false, signInRole: IamRole.iam_role_unspecified } });
+    const embedding = await row("Your users get accounts the first time your app signs them in");
+    expect(
+      within(embedding).getByText(
+        "Off for this organization, so your backend can't sign anyone in yet. Turned on, they join as Member. Any website address may host the chat; name yours before you ship.",
+      ),
+    ).toBeTruthy();
+    fireEvent.click(await within(embedding).findByRole("switch"));
+    await waitFor(() => expect(updateEmbedding).toHaveBeenCalledTimes(1));
+    expect(await within(embedding).findByText(/^On for this organization: they join as Member\. Any website address may host the chat; name yours in before you ship\.$/)).toBeTruthy();
+    expect(within(embedding).getByRole("link", { name: "Embedding settings" })).toBeTruthy();
   });
 
   it("says a setting that wasn't saved, in the server's words, and what to do", async () => {
@@ -329,7 +415,7 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
     renderPage({ defaultTab: "in-app" }, { otherAdminAfterSave: true });
     const embedding = await row("Your users get accounts the first time your app signs them in");
     fireEvent.click(await within(embedding).findByRole("switch"));
-    expect(await within(embedding).findByText(/from https:\/\/other\.acme\.example/)).toBeTruthy();
+    expect(await within(embedding).findByText(/Only https:\/\/other\.acme\.example may host the chat/)).toBeTruthy();
   });
 
   it("offers Member when accounts are made with a role that cannot chat", async () => {
@@ -419,7 +505,10 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
     await screen.findByRole("heading", { name: "Put Variance Reporter in your app" });
 
     expect(await screen.findByText(/trusts every caller, so your app talks to it with no sign-in/)).toBeTruthy();
-    expect(screen.getByRole("region", { name: "StigmerAgentChat.tsx" }).textContent).toContain("getAccessToken: () => null");
+    expect(screen.getByRole("region", { name: "src/StigmerAgentChat.tsx" }).textContent).toContain("getAccessToken: () => null");
+    expect(screen.getByRole("region", { name: "src/App.tsx" })).toBeTruthy();
+    expect(screen.getByText("Start your React app and open it. To put the chat elsewhere, give it a box with a height.")).toBeTruthy();
+    expect(screen.queryByText(/out of git/)).toBeNull();
     expect(screen.getByRole("link", { name: "your own server with sign-in turned on" }).getAttribute("href")).toContain("/docs/guides/self-hosting/authentication");
     expect(screen.queryByText("A service account for your backend")).toBeNull();
     expect(screen.queryByRole("switch")).toBeNull();

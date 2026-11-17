@@ -10,8 +10,11 @@
  * nothing. A guest is never judged. The composer is a probe that records
  * what the launcher hands it; the held Send itself is pinned on the real
  * composer in SessionComposer-sendBlocked. The suite's title holds CON-03 on
- * the UX bar (test/ux-bar.json).
+ * the UX bar (test/ux-bar.json). A host's header (`headerContent`, the
+ * console's welcome for a teammate who just joined) sits above the plain
+ * launcher's heading and never over the connect step.
  */
+import type { ReactNode } from "react";
 import { describe, it, expect, vi, afterEach, beforeAll } from "vitest";
 import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import type { ResourceRef } from "@stigmer/client";
@@ -100,7 +103,7 @@ afterEach(() => {
 
 function renderLauncher(
   fake: FakeServer,
-  options: { mode?: "cloud" | "local"; audience?: "guest"; modelsHubHref?: string } = {},
+  options: { mode?: "cloud" | "local"; audience?: "guest"; modelsHubHref?: string; headerContent?: ReactNode } = {},
 ) {
   const calls = fakeClient(fake);
   render(
@@ -110,6 +113,7 @@ function renderLauncher(
       audience={options.audience}
       initialAgentRef={options.audience === "guest" ? { org: ORG_ID, slug: "helper" } : undefined}
       modelsHubHref={options.modelsHubHref}
+      headerContent={options.headerContent}
     />,
     { wrapper: readinessWrapper(calls.client, options.mode) },
   );
@@ -329,5 +333,24 @@ describe("CON-03 the launcher says a provider is missing before a run fails", ()
     renderLauncher(server({ readiness: ANTHROPIC_CONNECTED }));
     await waitFor(() => expect(composerProps.length).toBeGreaterThan(0));
     expect(composerProps[0]!.autoFocus).toBe(true);
+  });
+});
+
+describe("the launcher's host header", () => {
+  const welcome = <p>You've joined Acme Research.</p>;
+
+  it("sits above the plain launcher's heading", async () => {
+    renderLauncher(server({ readiness: ANTHROPIC_CONNECTED }), { headerContent: welcome });
+
+    const heading = await screen.findByRole("heading", { level: 1, name: "What would you like to work on?" });
+    const line = screen.getByText("You've joined Acme Research.");
+    expect(line.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("is not drawn over the connect step", async () => {
+    renderLauncher(server({ readiness: NOTHING_CONNECTED }), { headerContent: welcome });
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Connect a model provider to start" })).toBeTruthy();
+    expect(screen.queryByText("You've joined Acme Research.")).toBeNull();
   });
 });

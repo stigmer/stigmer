@@ -1,20 +1,33 @@
 "use client";
 
-import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { Download, Monitor, X } from "lucide-react";
-import { IconButton } from "@stigmer/react-sdk";
-import { triggerDesktopDownload } from "@/lib/desktop-download";
+import { IconButton, useActiveOrgId, useJourney, type UseJourneyReturn } from "@stigmer/react-sdk";
+import { hasDesktopInstaller, triggerDesktopDownload } from "@/lib/desktop-download";
+import {
+  DISMISSED_KEY,
+  DOWNLOADED_KEY,
+  FIRST_SEEN_KEY,
+  LOCAL_RUNNER_KEY,
+} from "@/lib/desktop-keys";
 
 // ---------------------------------------------------------------------------
 // Desktop banner visibility
 //
-// The banner is a promotional nudge for Stigmer Desktop. It uses a
-// multi-signal approach to determine visibility:
+// The banner is a promotional nudge for Stigmer Desktop. It is mounted only
+// by the signed-in shell ({@link ShellDesktopBanner} in AppShell), inside
+// the organization providers the public routes lack, so `/login` and
+// `/invite/` never seed its first-seen key and a first visit after sign-up
+// is a first visit (stigmer#3194).
 //
-// Show when:
-//   - Second+ visit (first-seen key exists) AND
+// Show when, in this order:
+//   - Second+ visit (first-seen key exists, not seeded on this page load) AND
 //   - Not dismissed for current campaign AND
-//   - Not already using desktop (Tauri, local runner, or downloaded)
+//   - Not already using desktop (Tauri, local runner, or downloaded) AND
+//   - The organization's onboarding journey is not open: a person with a
+//     step to take has one job, and an ad for another app competes with it AND
+//   - The latest release has an installer for this platform (asked only when
+//     every rule above would show it; remembered in this browser for a day)
 //
 // Campaign-scoped dismissal: bumping BANNER_CAMPAIGN_ID resets dismissals
 // so the banner can reappear for major desktop feature launches.
@@ -28,11 +41,6 @@ import { triggerDesktopDownload } from "@/lib/desktop-download";
 //   5. Desktop app reaches >40% adoption among console users → remove the
 //      global banner; keep contextual DesktopAppPromo on Runners page
 // ---------------------------------------------------------------------------
-
-const FIRST_SEEN_KEY = "stigmer:desktop-banner-first-seen";
-const DISMISSED_KEY = "stigmer:desktop-banner-dismissed";
-export const DOWNLOADED_KEY = "stigmer:desktop-downloaded";
-const LOCAL_RUNNER_KEY = "stigmer:has-local-runner";
 
 /**
  * Bump this value when shipping a new desktop feature campaign.
@@ -103,6 +111,45 @@ function subscribeBanner(callback: () => void): () => void {
 }
 
 /**
+ * Whether the organization's onboarding journey leaves room for the banner:
+ * read as the journey's card reads it (`useJourney`), the banner waits while
+ * the answer is pending and stays away while a step is current. A journey
+ * that is done, or "off" (a member, a host or server without one, a failed
+ * read), leaves room.
+ */
+function journeyLeavesRoom(journey: UseJourneyReturn): boolean {
+  if (journey.status === "off") return true;
+  return journey.status === "ready" && journey.current === undefined;
+}
+
+/**
+ * Whether the latest release has an installer for this platform, asked only
+ * while `asking`; undefined until answered.
+ */
+function useHasInstaller(asking: boolean): boolean | undefined {
+  const [installer, setInstaller] = useState<boolean | undefined>(undefined);
+  const known = installer !== undefined;
+
+  useEffect(() => {
+    if (!asking || known) return;
+    let live = true;
+    hasDesktopInstaller().then(
+      (answer) => {
+        if (live) setInstaller(answer);
+      },
+      () => {
+        if (live) setInstaller(false);
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [asking, known]);
+
+  return installer;
+}
+
+/**
  * Manages the desktop app nudge banner lifecycle.
  *
  * Uses `useSyncExternalStore` with localStorage (matching the sidebar
@@ -114,15 +161,25 @@ function subscribeBanner(callback: () => void): () => void {
  * - `stigmer:desktop-downloaded` flag set (user triggered a download)
  * - `stigmer:has-local-runner` flag set (local runner detected)
  *
+ * It also waits for the organization's onboarding journey to close, and for
+ * the release to have an installer for this platform.
+ *
  * Dismissal is scoped to {@link BANNER_CAMPAIGN_ID} so it resets
  * when a new campaign ships.
+ *
+ * Reads the active organization, so it runs only under `OrgProvider`: the
+ * signed-in shell, never a public route.
  */
 export function useDesktopBannerState() {
-  const visible = useSyncExternalStore(
+  const storageAllows = useSyncExternalStore(
     subscribeBanner,
     getBannerSnapshot,
     getBannerServerSnapshot,
   );
+  const org = useActiveOrgId();
+  const journey = useJourney(org, { enabled: true });
+  const asking = storageAllows && journeyLeavesRoom(journey);
+  const installer = useHasInstaller(asking);
 
   useEffect(() => {
     try {
@@ -147,7 +204,7 @@ export function useDesktopBannerState() {
     window.dispatchEvent(new StorageEvent("storage", { key: DISMISSED_KEY }));
   }, []);
 
-  return { visible, dismiss } as const;
+  return { visible: asking && installer === true, dismiss } as const;
 }
 
 /**
@@ -183,6 +240,16 @@ export function markLocalRunnerDetected(): void {
   }
 }
 
+/**
+ * The signed-in shell's Desktop banner: owns its state and draws
+ * {@link DesktopAppBanner} only when every rule above allows it.
+ */
+export function ShellDesktopBanner() {
+  const { visible, dismiss } = useDesktopBannerState();
+  if (!visible) return null;
+  return <DesktopAppBanner onDismiss={dismiss} />;
+}
+
 export function DesktopAppBanner({ onDismiss }: { onDismiss: () => void }) {
   return (
     <aside
@@ -192,10 +259,9 @@ export function DesktopAppBanner({ onDismiss }: { onDismiss: () => void }) {
     >
       <Monitor className="text-muted-foreground size-4 shrink-0" />
       <p className="text-muted-foreground min-w-0 flex-1 text-xs">
-        <span className="text-foreground font-medium">Stigmer Desktop</span>
-        {" \u2014 "}
-        manage runners from your system tray with deep-link launches and native
-        notifications.
+        <span className="text-foreground font-medium">Stigmer Desktop:</span>
+        {" "}
+        run agents on your own computer.
       </p>
       <button
         type="button"

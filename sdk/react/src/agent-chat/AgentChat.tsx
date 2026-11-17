@@ -16,6 +16,11 @@
 //   never trapped and no global key is taken: Escape closes it only while
 //   focus is inside, and closing returns focus to the button.
 //
+// Every frame paints its own surface and text colour in the provider's
+// mode, so the chat reads the same on any host page: the provider's root
+// paints nothing (it wraps the host's own content), and a host's dark page
+// behind a light-mode chat would leave dark text on dark.
+//
 // The conversation view loads as its own chunk, fetched on mount, so the
 // composer is usable before the thread's renderers arrive. The state
 // rules live in `agent-chat-state.ts`.
@@ -132,6 +137,23 @@ export interface AgentChatProps {
    */
   readonly fileReview?: boolean;
   /**
+   * Whether the composer offers the model picker, on the first message and
+   * on every reply. `false` hides it, for a host that wants a bare chat:
+   * each turn asks for the model it would without the picker (see
+   * `SessionViewer`'s `showModelSelector`). The harness is never offered
+   * to an app's users (`audience="endUser"`), whatever this says.
+   * @default true
+   */
+  readonly showModelSelector?: boolean;
+  /**
+   * Whether the composer offers the Agent/Plan mode toggle, on the first
+   * message and on every reply. Your users have it by default; `false`
+   * hides it, for a host that wants a bare chat, and every turn runs in
+   * Agent mode. A chat-link guest never has it.
+   * @default true
+   */
+  readonly showInteractionModePicker?: boolean;
+  /**
    * Called when the first message could not be sent, after the chat shows
    * the message under its box.
    */
@@ -173,6 +195,8 @@ export function AgentChat({
   enableGitHub,
   includeMyVault,
   fileReview,
+  showModelSelector,
+  showInteractionModePicker,
   onError,
   className,
 }: AgentChatProps) {
@@ -250,6 +274,8 @@ export function AgentChat({
           inspector={pageInspector}
           threadSlots={threadSlots}
           enableGitHub={enableGitHub}
+          showModelSelector={showModelSelector}
+          showInteractionModePicker={showInteractionModePicker}
         />
       </ChatActivityReporterContext.Provider>
     ) : (
@@ -264,6 +290,8 @@ export function AgentChat({
         enableGitHub={enableGitHub}
         includeMyVault={includeMyVault}
         fileReview={fileReview}
+        showModelSelector={showModelSelector}
+        showInteractionModePicker={showInteractionModePicker}
         // A panel or popup never takes focus from the host's page by itself.
         autoFocus={variant === "page"}
         onSessionCreated={handleCreated}
@@ -279,7 +307,7 @@ export function AgentChat({
     );
 
   if (variant === "page") {
-    return <div className={cn("stg:h-full stg:w-full", className)}>{body}</div>;
+    return <div className={cn("stg:h-full stg:w-full stg:bg-background stg:text-foreground", className)}>{body}</div>;
   }
 
   const newConversation = sessionId === null ? undefined : () => setSession(null);
@@ -387,7 +415,7 @@ function AgentChatPanel({ name, open, onNewConversation, onClose, className, chi
   return (
     <section
       aria-labelledby={headingId}
-      className={cn(open ? "stg:flex" : "stg:hidden", "stg:h-full stg:w-full stg:flex-col stg:bg-background", className)}
+      className={cn(open ? "stg:flex" : "stg:hidden", "stg:h-full stg:w-full stg:flex-col stg:bg-background stg:text-foreground", className)}
     >
       <FrameHeader
         name={name}

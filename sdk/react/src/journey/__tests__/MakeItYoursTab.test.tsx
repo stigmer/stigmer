@@ -6,17 +6,20 @@
  * - the tab is offered first, only with the host's opt-in, only for an
  *   agent the journey made, and only to a person who may edit it; the page
  *   opens on it only when asked;
- * - a change to the instructions saves through the page's own save: it says
- *   a new version was kept, offers a run on the sample, and Overview shows
- *   the change at once, whose next save carries the current etag and is
- *   not refused;
+ * - a change to the instructions saves through the page's own save, and
+ *   Overview shows the change at once, whose next save carries the current
+ *   etag and is not refused;
  * - "Try your own file" links the launcher on this agent for the person's
  *   own file;
  * - "Give it a skill" makes "Spreadsheet export" from the shipped SKILL.md
  *   when the organization has none, never pushes over a skill of that name
  *   the organization already has, adds the reference through the page's
  *   save, and tells a person who may not make skills that an admin adds
- *   them, with no button (CON-01).
+ *   them, with no button (CON-01);
+ * - a change made on this visit earns one row under the cards, about the
+ *   last change, with the one run on the sample (or on their own file for
+ *   an agent with no example); a visit with no change shows none, so one
+ *   screen never offers the same run twice.
  */
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -60,6 +63,11 @@ function storedAgent(slug: string): Agent {
   agent.metadata!.etag = "1";
   agent.spec!.instructions = INSTRUCTIONS;
   return agent;
+}
+
+/** The row under the cards that a change on this visit earns, or null. */
+function runRow(): HTMLElement | null {
+  return screen.queryByRole("status")?.parentElement ?? null;
 }
 
 /** A proto field path's spec field, as the generated message names it ("spec.skill_refs" is `skillRefs`). */
@@ -188,6 +196,7 @@ describe("CON-08 after the first job, the console says what comes next and leads
   it("changes the instructions through the page's own save, offers a run on the sample, and Overview shows it with a current etag", async () => {
     const { update, store } = renderPage({ makeItYours: LINKS, defaultTab: "make-it-yours" });
     const card = await openTab();
+    expect(runRow()).toBeNull();
 
     fireEvent.click(await within(card).findByRole("button", { name: INSTRUCTIONS }));
     fireEvent.change(within(card).getByPlaceholderText("Add instructions for the agent"), {
@@ -195,8 +204,11 @@ describe("CON-08 after the first job, the console says what comes next and leads
     });
     fireEvent.click(within(card).getByRole("button", { name: "Save" }));
 
-    expect(await within(card).findByText("Saved as a new version.")).toBeTruthy();
-    expect(within(card).getByRole("link", { name: "Run it on the sample" }).getAttribute("href")).toBe(
+    // Said under the cards, beside the one run on the sample; the card keeps no run of its own.
+    expect((await screen.findByRole("status")).textContent).toBe("Saved as a new version.");
+    expect(within(card).queryByRole("link", { name: "Run it on the sample" })).toBeNull();
+    expect(screen.getAllByRole("link", { name: "Run it on the sample" })).toHaveLength(1);
+    expect(within(runRow()!).getByRole("link", { name: "Run it on the sample" }).getAttribute("href")).toBe(
       `/?agent=${ACME_ID}/variance-reporter&example=variance-report&with=sample`,
     );
     expect(store.agent.spec?.instructions).toContain("5%");
@@ -231,7 +243,12 @@ describe("CON-08 after the first job, the console says what comes next and leads
     await waitFor(() => expect((add as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(add);
 
-    expect(await within(card).findByText(/is on\. Its runs hand back a \.csv beside the report\./)).toBeTruthy();
+    expect(await within(card).findByText(/is on for this agent\./)).toBeTruthy();
+    expect(within(card).queryByRole("link")).toBeNull();
+    expect((await screen.findByRole("status")).textContent).toBe(
+      "Spreadsheet export is on. From now on every run also hands back a .csv beside the report.",
+    );
+    expect(within(runRow()!).getByRole("link", { name: "Run it on the sample" })).toBeTruthy();
     expect(push).toHaveBeenCalledTimes(1);
     const sent = push.mock.calls[0]![0];
     expect(sent.org).toBe(ACME_ID);
@@ -250,7 +267,7 @@ describe("CON-08 after the first job, the console says what comes next and leads
     await waitFor(() => expect((add as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(add);
 
-    await within(card).findByText(/is on\./);
+    await within(card).findByText(/is on for this agent\./);
     expect(push).not.toHaveBeenCalled();
     expect(store.agent.spec?.skillRefs.map((ref) => ref.slug)).toEqual(["spreadsheet-export"]);
   });
@@ -264,13 +281,45 @@ describe("CON-08 after the first job, the console says what comes next and leads
     expect(push).not.toHaveBeenCalled();
   });
 
-  it("says the skill is on once the agent has it, and reads nothing more", async () => {
+  it("says the skill is on once the agent has it, and reads nothing more; with no change this visit, offers no run", async () => {
     const { skillRead } = renderPage({ makeItYours: LINKS, defaultTab: "make-it-yours" }, { hasSkill: true });
     const card = await screen.findByRole("region", { name: "Give it a skill" });
 
-    expect(within(card).getByText(/is on\./)).toBeTruthy();
-    expect(within(card).getByRole("link", { name: "Run it on the sample" })).toBeTruthy();
+    expect(within(card).getByText(/is on for this agent\./)).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Run it on the sample" })).toBeNull();
+    expect(runRow()).toBeNull();
     expect(skillRead).not.toHaveBeenCalled();
+  });
+
+  it("offers one run, about the last change: instructions saved, then the skill turned on", async () => {
+    renderPage({ makeItYours: LINKS, defaultTab: "make-it-yours" });
+    const card = await openTab();
+    fireEvent.click(await within(card).findByRole("button", { name: INSTRUCTIONS }));
+    fireEvent.change(within(card).getByPlaceholderText("Add instructions for the agent"), { target: { value: `${INSTRUCTIONS} Be brief.` } });
+    fireEvent.click(within(card).getByRole("button", { name: "Save" }));
+    expect((await screen.findByRole("status")).textContent).toBe("Saved as a new version.");
+
+    const skills = screen.getByRole("region", { name: "Give it a skill" });
+    const add = await within(skills).findByRole("button", { name: "Add it" });
+    await waitFor(() => expect((add as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(add);
+
+    await waitFor(() => expect(screen.getByRole("status").textContent).toMatch(/^Spreadsheet export is on\./));
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+    expect(screen.getAllByRole("link", { name: "Run it on the sample" })).toHaveLength(1);
+  });
+
+  it("offers the run on the person's own file for an agent described in their own words, which has no sample", async () => {
+    renderPage({ makeItYours: LINKS, defaultTab: "make-it-yours" }, { slug: "your-agent" });
+    const card = await openTab();
+    fireEvent.click(await within(card).findByRole("button", { name: INSTRUCTIONS }));
+    fireEvent.change(within(card).getByPlaceholderText("Add instructions for the agent"), { target: { value: `${INSTRUCTIONS} Be brief.` } });
+    fireEvent.click(within(card).getByRole("button", { name: "Save" }));
+
+    await screen.findByRole("status");
+    expect(within(runRow()!).getByRole("link", { name: "Run it on your file" }).getAttribute("href")).toBe(
+      `/?agent=${ACME_ID}/your-agent&example=&with=own`,
+    );
   });
 
   it("keeps the agent's other skills, as stored, when it adds this one", async () => {
@@ -280,7 +329,7 @@ describe("CON-08 after the first job, the console says what comes next and leads
     await waitFor(() => expect((add as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(add);
 
-    await within(card).findByText(/is on\./);
+    await within(card).findByText(/is on for this agent\./);
     const sent = update.mock.calls.at(-1)![0].spec!.skillRefs.map((ref) => ({ id: ref.id, slug: ref.slug, version: ref.version }));
     expect(sent).toEqual([
       { id: "skl_rules", slug: "", version: "v2" },
@@ -310,7 +359,7 @@ describe("CON-08 after the first job, the console says what comes next and leads
 
     await waitFor(() => expect((within(card).getByRole("button", { name: "Add it" }) as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(within(card).getByRole("button", { name: "Add it" }));
-    await within(card).findByText(/is on\./);
+    await within(card).findByText(/is on for this agent\./);
     expect(push).toHaveBeenCalledTimes(1);
     expect(store.agent.spec?.skillRefs.map((ref) => ref.slug)).toEqual(["spreadsheet-export"]);
   });

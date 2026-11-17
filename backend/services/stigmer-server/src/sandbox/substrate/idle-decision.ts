@@ -25,6 +25,15 @@
  * message wakes it on a healthy worker. A turn that runs on past
  * DRAIN_DEADLINE_MS is stored anyway: a suspend keeps no runner, so that
  * ends the turn, and its files are kept as they stood.
+ *
+ * A sandbox started under an older configuration (`outdated`: on another
+ * template than the server's current one, driver.ts) may hold network
+ * lanes this server no longer grants, so it is suspended as soon as its
+ * session is not busy, whatever its idle window; its next wake starts the
+ * current template's runner under the current policy (stigmer#2984). A
+ * turn in flight is never cut for it: the pass after the turn ends puts
+ * it to sleep. A draining worker still decides first, because a store
+ * also keeps the files a leaving node would lose.
  */
 import type { SubstrateSandboxState } from "./driver.js";
 import { DRAIN_DEADLINE_MS } from "./limits.js";
@@ -40,6 +49,8 @@ export interface IdleInput {
   readonly suspendAfterMs: number;
   /** When this server first saw the sandbox's worker draining; absent when it is not. */
   readonly drainingSince?: Date;
+  /** On another template than the server's current one (module header). */
+  readonly outdated?: boolean;
 }
 
 export function decideIdle(input: IdleInput): IdleAction {
@@ -52,6 +63,9 @@ export function decideIdle(input: IdleInput): IdleAction {
   }
   if (input.busy) {
     return "none";
+  }
+  if (input.outdated === true) {
+    return "suspend";
   }
   const idleMs = input.now.getTime() - input.lastActiveAt.getTime();
   return idleMs >= input.suspendAfterMs ? "suspend" : "none";

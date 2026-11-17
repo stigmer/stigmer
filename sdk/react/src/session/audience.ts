@@ -12,9 +12,13 @@
  *   Agent/Plan mode, and attaches workspaces, but never reconfigures
  *   the agent. The organisms lock the agent and hide the integrator
  *   pickers, in the composer and in the panel's configuration view.
+ *   The harness is never offered to an end user: the conversation runs
+ *   on the agent's own harness, and no harness name shows beside the
+ *   model, since it names Stigmer's machinery to people who use the
+ *   embedding product, not Stigmer.
  * - `"guest"` — an anonymous visitor of an agent's public chat link or
  *   embed, authenticated by a guest token. Pure chat: everything
- *   `"endUser"` hides plus the model, harness, and Agent/Plan pickers,
+ *   `"endUser"` hides plus the model and Agent/Plan pickers,
  *   file uploads, the workspace picker, and the session panel. Guest is
  *   behavioral, not just cosmetic — the organisms also skip the
  *   org-level reads a guest principal cannot make (session→agent

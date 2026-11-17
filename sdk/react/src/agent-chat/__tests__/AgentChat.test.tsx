@@ -159,6 +159,31 @@ describe("AgentChat, the page", () => {
     expect(onError).toHaveBeenCalledWith("Agent hours used up", error);
   });
 
+  it("hides the model picker in both views when the host asks for a bare chat, and leaves it to the views otherwise", async () => {
+    const { unmount } = render(<AgentChat agent="acme/billing-agent" showModelSelector={false} />);
+    expect(newSessionViewerProps.at(-1)!.showModelSelector).toBe(false);
+    startConversation();
+    await screen.findByTestId("session-probe");
+    expect(sessionViewerProps.at(-1)!.showModelSelector).toBe(false);
+    unmount();
+
+    render(<AgentChat agent="acme/billing-agent" defaultSessionId="ses_2" />);
+    await screen.findByTestId("session-probe");
+    expect(sessionViewerProps.at(-1)!.showModelSelector).toBeUndefined();
+  });
+
+  it("hides the mode toggle in both views when the host turns it off, and leaves it to the views otherwise", async () => {
+    const { unmount } = render(<AgentChat agent="acme/billing-agent" showInteractionModePicker={false} />);
+    expect(newSessionViewerProps.at(-1)!.showInteractionModePicker).toBe(false);
+    startConversation();
+    await screen.findByTestId("session-probe");
+    expect(sessionViewerProps.at(-1)!.showInteractionModePicker).toBe(false);
+    unmount();
+
+    render(<AgentChat agent="acme/billing-agent" />);
+    expect(newSessionViewerProps.at(-1)!.showInteractionModePicker).toBeUndefined();
+  });
+
   it("passes the inspector to the page's views", async () => {
     const inspector = <div />;
     render(<AgentChat agent="acme/billing-agent" inspector={inspector} />);
