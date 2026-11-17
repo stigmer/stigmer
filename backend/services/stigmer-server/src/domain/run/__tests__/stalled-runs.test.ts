@@ -25,6 +25,7 @@ import { createLogger } from "../../../boot/logger.js";
 import type { RunStatusTransition } from "../../../extensions/status-hooks.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
+import type { Store } from "../../../store/interface.js";
 import { SessionEventBroker } from "../../session/events/broker.js";
 import {
   createRunAppendingEvents,
@@ -87,10 +88,21 @@ function engine(
   });
 }
 
-function checker(state: ExecutionEngineState): StalledRunChecker {
+function checker(
+  state: ExecutionEngineState,
+  overrides: { store?: Store; logged?: string[] } = {},
+): StalledRunChecker {
+  const logged = overrides.logged;
   const deps: StalledRunCheckerDeps = {
-    store: temp.store,
-    logger: silentLogger,
+    store: overrides.store ?? temp.store,
+    logger:
+      logged === undefined
+        ? silentLogger
+        : createLogger({
+            level: "warn",
+            pretty: false,
+            write: (line) => void logged.push(line),
+          }),
     sessionEventBroker: new SessionEventBroker(silentLogger),
     statusObservers: [(transition) => void observed.push(transition)],
     engineState: () => state,
@@ -233,6 +245,30 @@ describe("StalledRunChecker.runPass", () => {
     expect(asked).toEqual(["run_long", "run_long"]);
   });
 
+  it("forgets a run once it stops working, so a recovered run is asked about again at once", async () => {
+    await seed("run_back", RunPhase.RUN_IN_PROGRESS);
+    const check = checker(connected(engine()));
+    const setPhase = (phase: RunPhase) =>
+      updateRunAppendingEvents(
+        {
+          store: temp.store,
+          sessionEventBroker: new SessionEventBroker(silentLogger),
+        },
+        "run_back",
+        (r) => {
+          r.status!.phase = phase;
+        },
+      );
+
+    await check.runPass();
+    await setPhase(RunPhase.RUN_FAILED);
+    await check.runPass();
+    await setPhase(RunPhase.RUN_IN_PROGRESS);
+    await check.runPass();
+
+    expect(asked).toEqual(["run_back", "run_back"]);
+  });
+
   it("asks nothing while the engine is disconnected", async () => {
     await seed("run_gone", RunPhase.RUN_IN_PROGRESS);
     await checker(ENGINE_DISCONNECTED).runPass();
@@ -301,7 +337,78 @@ describe("StalledRunChecker.runPass", () => {
   });
 });
 
+/** The test's store with one method answering a fault. */
+function faulty(
+  method: "queryResources" | "writeResourceAppendingEvents",
+): Store {
+  return new Proxy(temp.store, {
+    get(target, property, receiver) {
+      if (property === method) {
+        return () => Promise.reject(new Error("disk"));
+      }
+      return Reflect.get(target, property, receiver) as unknown;
+    },
+  });
+}
+
+describe("StalledRunChecker faults", () => {
+  it("ends the pass when the working runs cannot be read, and logs it", async () => {
+    await seed("run_gone", RunPhase.RUN_IN_PROGRESS);
+    const logged: string[] = [];
+    await checker(connected(engine({ run_gone: "not_found" })), {
+      store: faulty("queryResources"),
+      logged,
+    }).runPass();
+    expect(asked).toEqual([]);
+    expect(logged.join("")).toContain(
+      "stalled-run pass could not read the working runs",
+    );
+  });
+
+  it("skips a run whose ending cannot be written, logs it, and goes on", async () => {
+    await seed("run_a", RunPhase.RUN_IN_PROGRESS, OLD_MS);
+    await seed("run_b", RunPhase.RUN_IN_PROGRESS, OLD_MS - 1000);
+    const logged: string[] = [];
+    await checker(
+      connected(engine({ run_a: "not_found", run_b: "not_found" })),
+      {
+        store: faulty("writeResourceAppendingEvents"),
+        logged,
+      },
+    ).runPass();
+    expect(asked).toEqual(["run_a", "run_b"]);
+    expect((await stored("run_a")).status?.phase).toBe(
+      RunPhase.RUN_IN_PROGRESS,
+    );
+    expect(
+      logged.filter((line) =>
+        line.includes("could not end a run whose workflow is gone"),
+      ),
+    ).toHaveLength(2);
+  });
+});
+
 describe("StalledRunChecker lifecycle", () => {
+  it("stops a pass between runs once stopped, and never starts after stop", async () => {
+    await seed("run_a", RunPhase.RUN_IN_PROGRESS, OLD_MS);
+    await seed("run_b", RunPhase.RUN_IN_PROGRESS, OLD_MS - 1000);
+    let check: StalledRunChecker | undefined;
+    const stopsOnFirstAsk = stubConnectedEngine({
+      workflowLiveness: async (runId) => {
+        asked.push(runId);
+        await check?.stop();
+        return "open";
+      },
+    });
+    check = checker(connected(stopsOnFirstAsk));
+    await check.runPass();
+    expect(asked).toEqual(["run_a"]);
+
+    check.start();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(asked).toEqual(["run_a"]);
+  });
+
   it("runs passes on its interval once started, and none after stop", async () => {
     await seed("run_gone", RunPhase.RUN_IN_PROGRESS);
     const deps: StalledRunCheckerDeps = {
