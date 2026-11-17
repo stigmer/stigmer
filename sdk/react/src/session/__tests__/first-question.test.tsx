@@ -6,7 +6,9 @@
  * name read and used as it is and never applied over, "Describe your own"
  * under the next free name), what the chosen state shows (the key step first
  * when nothing can run, then the composer holding the agent, the sample
- * files and the first message), the ways out ("Change", "Just chat") and
+ * files and the first message, and of the toolbar only Attach and Send:
+ * every later composer gets back the mode, engine, model, workspace and
+ * configure menu), the ways out ("Change", "Just chat") and
  * the failures' words, and that the question ends once its session is
  * created. The composer is a probe that shows what it was mounted with; the
  * real composer's starting message is pinned in useComposer's own suite.
@@ -42,9 +44,27 @@ vi.mock("../../composer", async (importOriginal) => {
   return {
     ...actual,
     // Shows what the composer was mounted with; Send is free when the launcher holds nothing.
-    SessionComposer: ({ onSubmit, sendBlockedReason, initialAgentRef, initialFiles, initialMessage, placeholder }: SessionComposerProps) => (
+    SessionComposer: ({ onSubmit, sendBlockedReason, initialAgentRef, initialFiles, initialMessage, placeholder, ...props }: SessionComposerProps) => (
       <div role="group" aria-label="Composer">
         <p>agent: {initialAgentRef ? `${initialAgentRef.org}/${initialAgentRef.slug}` : "none"}</p>
+        <p>
+          controls:{" "}
+          {[
+            props.showInteractionModePicker && "mode",
+            props.showHarnessSelector && "engine",
+            props.showModelSelector !== false && "model",
+            props.workspace !== undefined && "workspace",
+            props.enableFiles !== false && "attach",
+            (props.extraSettings?.length ?? 0) > 0 && "settings",
+            props.enableVaultPicker && "vaults",
+            props.enableEnvironmentPicker && "environment",
+            props.onPluginRefsChange !== undefined && "plugins",
+            props.onSkillRefsChange !== undefined && "skills",
+            props.lockAgent && "agent locked",
+          ]
+            .filter(Boolean)
+            .join(", ")}
+        </p>
         <p>files: {(initialFiles ?? []).map((file) => file.name).join(", ")}</p>
         <p>message: {initialMessage ?? ""}</p>
         <p>placeholder: {placeholder}</p>
@@ -298,6 +318,9 @@ describe("CON-06 a new person's first screen asks what their agent should do for
       expect(within(composer).getByText(`agent: ${ORG_ID}/variance-reporter`)).toBeTruthy();
       expect(within(composer).getByText("files: ledger.csv")).toBeTruthy();
       expect(within(composer).getByText(`message: ${VARIANCE.message}`)).toBeTruthy();
+      // The first run asks for nothing but Send: no mode, engine, model,
+      // workspace or configure item, and the agent just made stays put.
+      expect(within(composer).getByText("controls: attach, agent locked")).toBeTruthy();
       expect(await screen.findByText("Variance Reporter is made. Its sample ledger is attached.")).toBeTruthy();
     });
 
@@ -467,6 +490,9 @@ describe("CON-06 a new person's first screen asks what their agent should do for
       expect(await screen.findByRole("heading", { level: 1, name: TODAY })).toBeTruthy();
       expect(screen.getByText("agent: none")).toBeTruthy();
       expect(flow.setAgentRef).toHaveBeenCalledWith(null);
+      // Every later composer has its controls back (whether the engine
+      // shows is the launcher's own rule, not the first run's).
+      expect(screen.getByText(/^controls: mode, (engine, )?model, workspace, attach, settings, vaults, plugins, skills$/)).toBeTruthy();
     });
 
     it("says who can when the server refuses, with Try again and Just chat", async () => {
