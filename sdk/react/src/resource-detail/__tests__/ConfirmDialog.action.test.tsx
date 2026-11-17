@@ -12,6 +12,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { useState } from "react";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { useConfirmAction } from "../useConfirmAction";
@@ -100,6 +101,18 @@ describe("ConfirmDialog with an action", () => {
     await waitFor(() => expect(screen.queryByText("Remove Grace Hopper from acme?")).toBeNull());
     expect(action).toHaveBeenCalledTimes(2);
     expect(answers).toEqual([true]);
+  });
+
+  it("keeps the act's own word, not Try again, on a refusal trying again cannot change", async () => {
+    const action = () =>
+      Promise.reject(new ConnectError("grace is the organization's last owner", Code.FailedPrecondition));
+    render(<Page options={{ ...BASE, action, failureTitle: "Couldn't remove Grace Hopper." }} answers={[]} />);
+    await userEvent.click(screen.getByRole("button", { name: "Remove Grace" }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove" }));
+
+    expect(await screen.findByText("Couldn't remove Grace Hopper.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Remove" })).toBeTruthy();
   });
 
   it("lets the person cancel after a failure, resolving false", async () => {

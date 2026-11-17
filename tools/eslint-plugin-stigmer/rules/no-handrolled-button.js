@@ -56,9 +56,16 @@ function utilityOf(cls) {
   return parts[parts.length - 1].replace(/^!|!$/g, "").replace(/\/[^/]+$/, "");
 }
 
-/** Whether a class applies at rest: no variant before it but the kit's `stg:` prefix. */
+// A variant that waits for a state (a pointer, focus, an attribute, a group's
+// or peer's state) keeps the colour off the control at rest. A width or theme
+// variant (`md:`, `dark:`) does not: the control shows the colour at rest on
+// that screen.
+const STATE_VARIANT = /^(hover|focus|focus-visible|focus-within|active|visited|disabled|enabled|checked|open|group-.+|peer-.+|aria-.+|data-.+|has-.+|not-.+)$/;
+
+/** Whether a class applies at rest: no state variant before it. */
 function atRest(cls) {
-  return cls.split(":").filter((part) => part !== "stg").length === 1;
+  const variants = cls.split(":").slice(0, -1).filter((part) => part !== "stg");
+  return !variants.some((variant) => STATE_VARIANT.test(variant));
 }
 
 /** Whether a class is the link colour at rest. */

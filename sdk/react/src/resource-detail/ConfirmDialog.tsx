@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { Button } from "../button/Button.js";
-import { ErrorMessage } from "../error/ErrorMessage.js";
+import { ErrorMessage, canTryAgain } from "../error/ErrorMessage.js";
 import { DialogBody, DialogFooter, DialogHeader, DialogShell } from "../internal/DialogShell.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import type { ConfirmState } from "./types.js";
@@ -93,7 +93,8 @@ export function ConfirmDialog({
           aria-busy={busy || undefined}
           icon={busy ? <SpinnerIcon size={14} /> : undefined}
         >
-          {failure ? "Try again" : (state.confirmLabel ?? "Confirm")}
+          {/* Try again only where trying again can help; a refusal keeps the act's own word. */}
+          {failure && canTryAgain(failure) ? "Try again" : (state.confirmLabel ?? "Confirm")}
         </Button>
       </DialogFooter>
     </DialogShell>

@@ -34,6 +34,9 @@ export const TABLE_ROW_CLASSES = "stg:border-b stg:border-border-muted stg:trans
 /** A body cell's classes: 14/20 on the row's padding. */
 export const TABLE_CELL_CLASSES = "stg:px-3.5 stg:py-2.5 stg:text-sm stg:text-foreground";
 
+/** A row that opens something: the hover both tables share. */
+export const TABLE_ROW_HOVER_CLASSES = "stg:hover:bg-accent-hover";
+
 /** One column of a {@link Table}. */
 export interface TableColumn<Row> {
   /** Stable id, used as the cell's key. */
@@ -143,7 +146,7 @@ function WideTable<Row>({
                 TABLE_ROW_CLASSES,
                 "stg:last:border-b-0",
                 // The row's link or button stretches over it from the first cell.
-                opens && "stg:relative stg:hover:bg-accent",
+                opens && cn("stg:relative", TABLE_ROW_HOVER_CLASSES),
               )}
             >
               {columns.map((column, index) => {

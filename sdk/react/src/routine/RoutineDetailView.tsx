@@ -1749,7 +1749,7 @@ function ReferenceLink({
       onClick={onNavigate}
       className={cn(
         textClass,
-        // eslint-disable-next-line stigmer/no-handrolled-button -- goes somewhere (the run's session) through the host's callback: a link drawn as a button, not an act
+        // eslint-disable-next-line stigmer/no-handrolled-button -- goes somewhere (a run's session, or the routine's agent) through the host's callback: a link drawn as a button, not an act
         "stg:text-primary stg:underline-offset-2 stg:hover:underline",
         "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded-sm",
       )}

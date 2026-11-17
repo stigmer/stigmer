@@ -18,9 +18,10 @@ export type DeletableResourceKind =
 export interface UseDeleteResourceReturn {
   /**
    * Delete the resource. Resolves on success, rejects on failure.
-   * Shows a success toast on completion and an error toast on failure,
-   * whose description is the server's sentence (a refusal says what still
-   * uses the resource and what to undo).
+   * Shows a success toast on completion and, unless the hook's
+   * `toastOnFailure` option is `false` (a confirm dialog that says the
+   * failure itself), an error toast whose description is the server's
+   * sentence (a refusal says what still uses the resource and what to undo).
    */
   readonly deleteResource: () => Promise<void>;
   /** `true` while the delete request is in flight. */

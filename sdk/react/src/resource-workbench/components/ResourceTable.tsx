@@ -8,6 +8,7 @@ import {
   TABLE_CELL_CLASSES,
   TABLE_HEADER_ROW_CLASSES,
   TABLE_ROW_CLASSES,
+  TABLE_ROW_HOVER_CLASSES,
 } from "../../internal/surface/Table.js";
 import { ColumnHeader } from "./ColumnHeader.js";
 import { SelectionCheckbox } from "./SelectionCheckbox.js";
@@ -175,7 +176,7 @@ function TableRow<TData>({
       className={cn(
         TABLE_ROW_CLASSES,
         isSelected && "stg:bg-primary-subtle",
-        isClickable && "stg:cursor-pointer stg:hover:bg-accent-hover",
+        isClickable && cn("stg:cursor-pointer", TABLE_ROW_HOVER_CLASSES),
       )}
       onClick={
         isClickable
