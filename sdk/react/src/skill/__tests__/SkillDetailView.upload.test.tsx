@@ -119,8 +119,11 @@ describe("SkillDetailView: Upload a new version", () => {
       kind: "organization",
       id: "acme",
     });
-    fireEvent.click(button);
-    expect(onUploadNewVersion).toHaveBeenCalledOnce();
+    // The page re-renders as its version history settles; click the button on screen until the click lands.
+    await waitFor(() => {
+      fireEvent.click(screen.getByRole("button", UPLOAD));
+      expect(onUploadNewVersion).toHaveBeenCalledOnce();
+    });
   });
 
   it("CON-01 never offers it to a member the server refuses", async () => {
