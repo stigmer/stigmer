@@ -249,8 +249,17 @@ describe("knownConsoleURL", () => {
     ).toBe("https://console.example");
   });
 
-  it("knows Stigmer Cloud's console for the cloud backend", () => {
-    expect(knownConsoleURL(cloudConfig(), {} as NodeJS.ProcessEnv)).toBe(DEFAULT_CLOUD_CONSOLE_URL);
+  it("knows Stigmer Cloud's console for a cloud entry on Stigmer Cloud's own API", () => {
+    expect(knownConsoleURL(cloudConfig({ endpoint: undefined }), {} as NodeJS.ProcessEnv)).toBe(DEFAULT_CLOUD_CONSOLE_URL);
+    expect(knownConsoleURL(cloudConfig({ endpoint: "api.stigmer.ai:443" }), {} as NodeJS.ProcessEnv)).toBe(DEFAULT_CLOUD_CONSOLE_URL);
+  });
+
+  it("knows no console for a cloud entry pointed at another API, or overridden to one", () => {
+    // cloudConfig's endpoint is cloud.example:443: a Cloud deployment at its own address.
+    expect(knownConsoleURL(cloudConfig(), {} as NodeJS.ProcessEnv)).toBeUndefined();
+    expect(
+      knownConsoleURL(cloudConfig({ endpoint: undefined }), { STIGMER_SERVER_ADDRESS: "127.0.0.1:7443" } as NodeJS.ProcessEnv),
+    ).toBeUndefined();
   });
 
   it("knows no console for an address entry or the local daemon, where it would only guess", () => {
