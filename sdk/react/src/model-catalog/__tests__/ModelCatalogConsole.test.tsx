@@ -231,7 +231,7 @@ describe("ModelCatalogConsole — access", () => {
     render(<ModelCatalogConsole />, { wrapper: wrapper(client) });
 
     expect(
-      await screen.findByText("Platform operator access required"),
+      await screen.findByText("Only a platform operator can open the model catalog"),
     ).toBeTruthy();
   });
 

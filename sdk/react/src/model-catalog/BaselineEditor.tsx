@@ -765,11 +765,11 @@ function LongPromptsGroup({
   readonly onChange: (patch: Partial<LongForm>) => void;
 }) {
   return (
-    <fieldset className={`${UNSTYLED_FIELDSET} stg:flex stg:flex-col stg:gap-2`}>
-      <legend className="stg:text-sm stg:font-medium stg:text-foreground">
+    <fieldset className={`${UNSTYLED_FIELDSET} stg:flex stg:flex-col stg:gap-2 stg:border-t stg:border-border-muted stg:pt-4`}>
+      <legend className="stg:float-left stg:mb-1 stg:text-sm stg:font-semibold stg:text-foreground">
         Long prompts <span className="stg:font-normal stg:text-muted-foreground">(optional)</span>
       </legend>
-      <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
+      <p className="stg:clear-both stg:m-0 stg:text-xs stg:text-muted-foreground">
         A higher price once a prompt is longer than the number below. Leave every field empty for one price at
         every length.
       </p>

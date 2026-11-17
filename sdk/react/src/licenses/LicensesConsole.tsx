@@ -290,7 +290,7 @@ function licenseColumns(
     },
     {
       id: "standing",
-      header: "Standing",
+      header: "State",
       narrow: "trailing",
       cell: (license) => {
         const standing = standingOf(license);

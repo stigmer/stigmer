@@ -1149,7 +1149,10 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "The drawing's example server line and help line; the scene's server sends its own",
+        "word Stuck? Ask IT on Slack": "The drawing's example server line and help line; the scene's server sends its own"
+      },
       "ruled": {},
       "pending": {}
     },

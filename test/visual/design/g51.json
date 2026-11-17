@@ -173,9 +173,19 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Claude Haiku 5.5": "The drawing's example data; the scene shows its own fixture's",
+        "word Anthropic's long-prompt rates, from their price page": "The drawing's example data; the scene shows its own fixture's",
+        "button Claude Haiku 5.5": "The drawing's example data; the scene shows its own fixture's",
+        "word Edit prices: Claude Haiku 5.5": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Input ($/M)": "When its page is redesigned again: the settings Built look's fixes (the rate fields' labels name their unit, \"Input ($/M)\")",
+        "word Output ($/M)": "When its page is redesigned again: the settings Built look's fixes (the rate fields' labels name their unit, \"Input ($/M)\")",
+        "word Cache write ($/M)": "When its page is redesigned again: the settings Built look's fixes (the rate fields' labels name their unit, \"Input ($/M)\")",
+        "word Cache read ($/M)": "When its page is redesigned again: the settings Built look's fixes (the rate fields' labels name their unit, \"Input ($/M)\")"
+      }
     },
     {
       "caption": "Editing a model's prices: Partly filled: one error for the group",
@@ -354,9 +364,19 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Claude Haiku 5.5": "The drawing's example data; the scene shows its own fixture's",
+        "word Anthropic's long-prompt rates, from their price page": "The drawing's example data; the scene shows its own fixture's",
+        "button Claude Haiku 5.5": "The drawing's example data; the scene shows its own fixture's",
+        "word Edit prices: Claude Haiku 5.5": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Input ($/M)": "When its page is redesigned again: the settings Built look's fixes (the rate fields' labels name their unit, \"Input ($/M)\")",
+        "word Output ($/M)": "When its page is redesigned again: the settings Built look's fixes (the rate fields' labels name their unit, \"Input ($/M)\")",
+        "word Cache write ($/M)": "When its page is redesigned again: the settings Built look's fixes (the rate fields' labels name their unit, \"Input ($/M)\")",
+        "word Cache read ($/M)": "When its page is redesigned again: the settings Built look's fixes (the rate fields' labels name their unit, \"Input ($/M)\")"
+      }
     },
     {
       "caption": "Editing a model's prices: Confirm: each change on its own line",
@@ -511,9 +531,22 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Save these prices for Claude Haiku 5.5?": "The drawing's example data; the scene shows its own fixture's",
+        "word Prompt tokens above": "The drawing's example data; the scene shows its own fixture's",
+        "word Input above 100,000": "The drawing's example data; the scene shows its own fixture's",
+        "word $5.00/M": "The drawing's example data; the scene shows its own fixture's",
+        "word Output above 100,000": "The drawing's example data; the scene shows its own fixture's",
+        "word $25.00/M": "The drawing's example data; the scene shows its own fixture's",
+        "word Cache write above 100,000": "The drawing's example data; the scene shows its own fixture's",
+        "word $6.25/M": "The drawing's example data; the scene shows its own fixture's",
+        "word Cache read above 100,000": "The drawing's example data; the scene shows its own fixture's",
+        "word $0.50/M": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "button Close": "When its page is redesigned again: the settings Built look's fixes (the confirm as a dialog over the editor; it stays in the page)"
+      }
     },
     {
       "caption": "Editing a model's prices: Retire: typed, so it stays a form",
@@ -606,7 +639,15 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Retire Claude Opus 4.8?": "When its page is redesigned again: the settings Built look's fixes (Retire as a dialog in the drawn words; it stays the inline typed form)",
+        "word New conversations can't pick it. Runs already on it finish.": "When its page is redesigned again: the settings Built look's fixes (Retire as a dialog in the drawn words; it stays the inline typed form)",
+        "word Type the model id to confirm": "When its page is redesigned again: the settings Built look's fixes (Retire as a dialog in the drawn words; it stays the inline typed form)",
+        "word claude-opus-4.8": "When its page is redesigned again: the settings Built look's fixes (Retire as a dialog in the drawn words; it stays the inline typed form)",
+        "word Why (optional)": "When its page is redesigned again: the settings Built look's fixes (Retire as a dialog in the drawn words; it stays the inline typed form)",
+        "word Replaced by Claude Opus 5": "When its page is redesigned again: the settings Built look's fixes (Retire as a dialog in the drawn words; it stays the inline typed form)",
+        "button Close": "When its page is redesigned again: the settings Built look's fixes (Retire as a dialog in the drawn words; it stays the inline typed form)"
+      }
     }
   ]
 }

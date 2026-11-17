@@ -293,7 +293,10 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Claude Haiku 5.5": "The drawing's example data; the scene shows its own fixture's",
+        "word claude-haiku-5.5": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
       "pending": {}
     },
@@ -507,9 +510,15 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "The drawing's example server line and help line; the scene's server sends its own",
+        "word Stuck? Ask IT on Slack": "The drawing's example server line and help line; the scene's server sends its own"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Add model": "When its page is redesigned again: the settings Built look's fixes (the page's main act offered while its list failed to load)",
+        "button Add model": "When its page is redesigned again: the settings Built look's fixes (the page's main act offered while its list failed to load)"
+      }
     },
     {
       "caption": "Model catalog: At 390 wide",

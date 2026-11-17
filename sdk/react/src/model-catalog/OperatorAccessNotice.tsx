@@ -8,7 +8,6 @@ import type { SettingsPageDenial } from "../settings/SettingsPage.js";
 
 /** What the model catalog console says to a person who is not a platform operator. */
 export const MODEL_CATALOG_DENIAL: SettingsPageDenial = {
-  title: "Platform operator access required",
-  description:
-    "The model catalog is a Stigmer-internal surface. It needs the platform operator role — organization roles do not grant it. If you believe you should have access, contact a platform operator.",
+  title: "Only a platform operator can open the model catalog",
+  description: "Stigmer's operators keep the catalog and its prices.",
 };
