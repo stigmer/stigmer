@@ -94,16 +94,22 @@ export function SettingsPage({ title, description, actions, unavailable, denied 
   const blocked = Boolean(unavailable) || denial !== null;
   return (
     <section aria-labelledby={headingId} className={cn("stg:flex stg:flex-col stg:gap-6", className)}>
-      {back && !blocked ? (
-        <div className="stg:flex stg:flex-col stg:items-start stg:gap-2">
+      {/* One tree either way, so the header stays mounted as a detail opens and closes. */}
+      <div className="stg:flex stg:flex-col stg:items-start stg:gap-2">
+        {back && !blocked && (
           <Button variant="ghost" size="xs" icon={<ArrowLeft className="stg:size-3.5" aria-hidden="true" />} onClick={back.onBack}>
             {back.label}
           </Button>
-          <PageHeader title={title} description={description} actions={actions} headingLevel={2} headingId={headingId} className="stg:self-stretch" />
-        </div>
-      ) : (
-        <PageHeader title={title} description={description} actions={blocked ? undefined : actions} headingLevel={2} headingId={headingId} />
-      )}
+        )}
+        <PageHeader
+          title={title}
+          description={description}
+          actions={blocked ? undefined : actions}
+          headingLevel={2}
+          headingId={headingId}
+          className="stg:self-stretch"
+        />
+      </div>
       {unavailable ? (
         <CloudFeatureNotice>{unavailable}</CloudFeatureNotice>
       ) : denial !== null ? (

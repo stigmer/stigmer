@@ -37,7 +37,10 @@ import { ServedByLine } from "./ServedByLine.js";
 import { formatCompactCount, formatTokens, formatWorkingTime } from "./format.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
-import { Card, cardClasses } from "../internal/surface/Card.js";
+import { Figure, Figures } from "../internal/surface/Figure.js";
+import { Table, type TableColumn } from "../internal/surface/Table.js";
+import { ChoiceGroup } from "../internal/form/index.js";
+import { Section } from "../resource-detail/Section.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 
 // ---------------------------------------------------------------------------
@@ -55,7 +58,7 @@ export interface OrgUsagePanelProps {
 /**
  * Self-contained dashboard panel showing organization-wide LLM usage.
  *
- * Displays summary cards (tokens, runs, LLM calls, working time, agents, sessions), who
+ * Displays the period's figures (tokens, runs, model calls, working time, agents, sessions), who
  * served the tokens, a daily token bar chart, the harness split, the
  * agents with the most tokens, and a per-model breakdown with call counts
  * and token splits. Data is fetched via `getOrgUsageReport` with a
@@ -86,7 +89,7 @@ export function OrgUsagePanel({ org, className }: OrgUsagePanelProps) {
   if (!report) return null;
 
   return (
-    <div className={cn("stg:space-y-6", className)}>
+    <div className={cn("stg:space-y-4", className)}>
       <div className="stg:flex stg:items-center stg:justify-between stg:gap-3">
         <DateRangeSelector
           activePreset={preset}
@@ -143,29 +146,14 @@ function DateRangeSelector({
   dateRange: { from: string; to: string };
 }) {
   return (
-    <div
-      className="stg:flex stg:items-center stg:gap-3"
-      role="group"
-      aria-label="Date range"
-    >
-      <div className="stg:flex stg:gap-1.5">
-        {DATE_RANGE_PRESETS.map((p) => (
-          <button
-            key={p}
-            type="button"
-            onClick={() => onPresetChange(p)}
-            aria-pressed={p === activePreset}
-            className={cn(
-              "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
-              p === activePreset
-                ? "stg:bg-primary stg:text-primary-foreground"
-                : "stg:bg-muted stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent",
-            )}
-          >
-            {presetLabel(p)}
-          </button>
-        ))}
-      </div>
+    <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2">
+      <ChoiceGroup
+        aria-label="Date range"
+        size="xs"
+        value={activePreset}
+        onChange={onPresetChange}
+        options={DATE_RANGE_PRESETS.map((p) => ({ value: p, label: presetLabel(p) }))}
+      />
       <span className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
         {formatDateRange(dateRange)}
       </span>
@@ -183,51 +171,14 @@ function SummaryCards({ report }: { report: GetOrgUsageReportOutput }) {
   const workingSeconds = report.totalUsage?.workingSeconds ?? BigInt(0);
 
   return (
-    <div role="group" aria-label="Usage summary" className="stg:space-y-2">
-      {/* Primary row */}
-      <div className="stg:grid stg:grid-cols-2 stg:gap-3 stg:sm:grid-cols-4">
-        <Card>
-          <div className="stg:text-lg stg:font-semibold stg:tabular-nums stg:text-foreground">
-            {formatCompactCount(totalTokens)}
-          </div>
-          <div className="stg:text-xs stg:text-muted-foreground">Tokens</div>
-        </Card>
-        <Card>
-          <div className="stg:text-lg stg:font-semibold stg:tabular-nums stg:text-foreground">
-            {formatCompactCount(report.totalRuns)}
-          </div>
-          <div className="stg:text-xs stg:text-muted-foreground">Runs</div>
-        </Card>
-        <Card>
-          <div className="stg:text-lg stg:font-semibold stg:tabular-nums stg:text-foreground">
-            {formatCompactCount(llmCalls)}
-          </div>
-          <div className="stg:text-xs stg:text-muted-foreground">LLM Calls</div>
-        </Card>
-        <Card>
-          <div className="stg:text-lg stg:font-semibold stg:tabular-nums stg:text-foreground">
-            {formatWorkingTime(workingSeconds)}
-          </div>
-          <div className="stg:text-xs stg:text-muted-foreground">Working time</div>
-        </Card>
-      </div>
-
-      {/* Secondary row */}
-      <div className="stg:grid stg:grid-cols-2 stg:gap-3">
-        <div className="stg:rounded-lg stg:border stg:border-border-muted stg:bg-muted-subtle stg:px-3.5 stg:py-2.5">
-          <div className="stg:text-sm stg:font-semibold stg:tabular-nums stg:text-foreground">
-            {formatCompactCount(report.totalAgents)}
-          </div>
-          <div className="stg:text-2xs stg:text-muted-foreground">Agents</div>
-        </div>
-        <div className="stg:rounded-lg stg:border stg:border-border-muted stg:bg-muted-subtle stg:px-3.5 stg:py-2.5">
-          <div className="stg:text-sm stg:font-semibold stg:tabular-nums stg:text-foreground">
-            {formatCompactCount(report.totalSessions)}
-          </div>
-          <div className="stg:text-2xs stg:text-muted-foreground">Sessions</div>
-        </div>
-      </div>
-    </div>
+    <Figures aria-label="Usage summary" columns={3}>
+      <Figure label="Tokens" value={formatCompactCount(totalTokens)} />
+      <Figure label="Runs" value={formatCompactCount(report.totalRuns)} />
+      <Figure label="Model calls" value={formatCompactCount(llmCalls)} />
+      <Figure label="Working time" value={formatWorkingTime(workingSeconds)} />
+      <Figure label="Agents" value={formatCompactCount(report.totalAgents)} />
+      <Figure label="Sessions" value={formatCompactCount(report.totalSessions)} />
+    </Figures>
   );
 }
 
@@ -243,11 +194,8 @@ function DailyTokenChart({ entries }: { entries: readonly DailyUsage[] }) {
   const hovered = hoveredIdx !== null ? entries[hoveredIdx] : undefined;
 
   return (
-    <div>
-      <h3 className="stg:mb-2 stg:text-xs stg:font-semibold stg:text-foreground">
-        Daily Tokens
-      </h3>
-      <Card>
+    <Section title="Tokens each day">
+      <div className="stg:p-4">
         {/* Tooltip */}
         <div className="stg:mb-1 stg:h-4">
           {hovered && (
@@ -299,25 +247,25 @@ function DailyTokenChart({ entries }: { entries: readonly DailyUsage[] }) {
         {/* X-axis labels — show first, middle, and last */}
         {entries.length > 0 && (
           <div className="stg:mt-1.5 stg:flex stg:justify-between">
-            <span className="stg:text-2xs stg:tabular-nums stg:text-muted-foreground">
+            <span className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
               {formatChartDate(entries[0].date)}
             </span>
             {entries.length > 2 && (
-              <span className="stg:text-2xs stg:tabular-nums stg:text-muted-foreground">
+              <span className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
                 {formatChartDate(
                   entries[Math.floor(entries.length / 2)].date,
                 )}
               </span>
             )}
             {entries.length > 1 && (
-              <span className="stg:text-2xs stg:tabular-nums stg:text-muted-foreground">
+              <span className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
                 {formatChartDate(entries[entries.length - 1].date)}
               </span>
             )}
           </div>
         )}
-      </Card>
-    </div>
+      </div>
+    </Section>
   );
 }
 
@@ -325,104 +273,41 @@ function DailyTokenChart({ entries }: { entries: readonly DailyUsage[] }) {
 // ModelBreakdownList (internal)
 // ---------------------------------------------------------------------------
 
-function ModelBreakdownList({
-  models,
-}: {
-  models: readonly ModelUsage[];
-}) {
-  return (
-    <div>
-      <h3 className="stg:mb-2 stg:text-xs stg:font-semibold stg:text-foreground">
-        Model Breakdown
-      </h3>
-      <div
-        className={cardClasses({ flush: true })}
-        role="table"
-        aria-label="Model usage breakdown"
-      >
-        <div
-          role="row"
-          className="stg:grid stg:grid-cols-[1fr_auto_auto_auto_auto] stg:gap-x-4 stg:border-b stg:border-border stg:px-3.5 stg:py-2.5 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground"
-        >
-          <span role="columnheader">Model</span>
-          <span role="columnheader" className="stg:text-right">
-            Calls
-          </span>
-          <span role="columnheader" className="stg:text-right">
-            Input
-          </span>
-          <span role="columnheader" className="stg:text-right">
-            Output
-          </span>
-          <span role="columnheader" className="stg:text-right">
-            Total
-          </span>
-        </div>
-        {models.map((m) => {
-          const inputTok = Number(m.inputTokens);
-          const cacheCreation = Number(m.cacheCreationInputTokens);
-          const cacheRead = Number(m.cacheReadInputTokens);
-          const totalInput = inputTok + cacheCreation + cacheRead;
-          const hasCache = cacheRead > 0 || cacheCreation > 0;
+/** A model's input tokens: uncached, cache writes and cache reads together. */
+function totalInputOf(m: ModelUsage): number {
+  return Number(m.inputTokens) + Number(m.cacheCreationInputTokens) + Number(m.cacheReadInputTokens);
+}
 
-          return (
-            <div
-              key={`${m.model}\0${m.provider}`}
-              className="stg:border-b stg:border-border-muted stg:px-3.5 stg:py-2.5 stg:last:border-b-0"
-            >
-              <div
-                role="row"
-                className="stg:grid stg:grid-cols-[1fr_auto_auto_auto_auto] stg:gap-x-4"
-              >
-                <div role="cell" className="stg:min-w-0">
-                  <span className="stg:block stg:truncate stg:text-xs stg:font-medium stg:text-foreground">
-                    {m.model}
-                  </span>
-                  <span className="stg:text-2xs stg:text-muted-foreground">
-                    {m.provider}
-                  </span>
-                </div>
-                <span
-                  role="cell"
-                  className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-muted-foreground"
-                >
-                  {formatCompactCount(m.callCount)}
-                </span>
-                <span
-                  role="cell"
-                  className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-muted-foreground"
-                >
-                  {formatCompactCount(totalInput)}
-                </span>
-                <span
-                  role="cell"
-                  className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-muted-foreground"
-                >
-                  {formatCompactCount(Number(m.outputTokens))}
-                </span>
-                <span
-                  role="cell"
-                  className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-foreground"
-                >
-                  {formatCompactCount(m.totalTokens)}
-                </span>
-              </div>
-              {hasCache && (
-                <div className="stg:mt-0.5 stg:text-2xs stg:tabular-nums stg:text-muted-foreground">
-                  cache{" "}
-                  {cacheRead > 0 &&
-                    `${formatCompactCount(cacheRead)} read`}
-                  {cacheRead > 0 && cacheCreation > 0 &&
-                    " · "}
-                  {cacheCreation > 0 &&
-                    `${formatCompactCount(cacheCreation)} write`}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
+/** The cache's share of a model's input, in one quiet line, or nothing. */
+function cacheLine(m: ModelUsage): string | null {
+  const read = Number(m.cacheReadInputTokens);
+  const write = Number(m.cacheCreationInputTokens);
+  const parts = [read > 0 ? `${formatCompactCount(read)} read` : null, write > 0 ? `${formatCompactCount(write)} write` : null].filter(
+    (part): part is string => part !== null,
+  );
+  return parts.length > 0 ? `cache ${parts.join(" · ")}` : null;
+}
+
+const MODEL_COLUMNS: readonly TableColumn<ModelUsage>[] = [
+  { id: "model", header: "Model", cell: (m) => m.model, detail: cacheLine },
+  { id: "provider", header: "Provider", cell: (m) => m.provider },
+  { id: "calls", header: "Calls", align: "end", cell: (m) => formatCompactCount(m.callCount) },
+  { id: "input", header: "Input", align: "end", cell: (m) => formatCompactCount(totalInputOf(m)) },
+  { id: "output", header: "Output", align: "end", cell: (m) => formatCompactCount(Number(m.outputTokens)) },
+  { id: "total", header: "Total", align: "end", cell: (m) => formatCompactCount(m.totalTokens) },
+];
+
+function ModelBreakdownList({ models }: { models: readonly ModelUsage[] }) {
+  return (
+    <Section title="By model">
+      <Table
+        bare
+        aria-label="Model usage breakdown"
+        columns={MODEL_COLUMNS}
+        rows={models}
+        rowKey={(m) => `${m.model}\0${m.provider}`}
+      />
+    </Section>
   );
 }
 
@@ -434,8 +319,8 @@ function NoUsageYet() {
   return (
     <EmptyState
       variant="first-use"
-      title="No usage data yet"
-      description="Usage data will appear here once agents start runs in this organization."
+      title="No usage yet"
+      description="Tokens and runs show here once agents start runs in this organization."
     />
   );
 }

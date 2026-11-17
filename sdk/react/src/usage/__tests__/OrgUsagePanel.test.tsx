@@ -75,14 +75,15 @@ describe("OrgUsagePanel", () => {
     render(<OrgUsagePanel org="acme" />);
 
     const summary = screen.getByRole("group", { name: "Usage summary" });
-    const value = (label: string) => within(summary).getByText(label).previousElementSibling?.textContent;
+    // A figure is its label over its value.
+    const value = (label: string) => within(summary).getByText(label).nextElementSibling?.textContent;
     expect(value("Tokens")).toBe("18.4k");
     expect(value("Runs")).toBe("2.3k");
-    expect(value("LLM Calls")).toBe("12");
+    expect(value("Model calls")).toBe("12");
     expect(value("Working time"), "a month of work stays in hours, never days").toBe("312h 5m");
     expect(value("Agents")).toBe("4");
     expect(value("Sessions")).toBe("1.2M");
-    expect(screen.queryByText("No usage data yet")).toBeNull();
+    expect(screen.queryByText("No usage yet")).toBeNull();
   });
 
   it("shows a day's tokens and runs when its bar is hovered", () => {
@@ -102,13 +103,16 @@ describe("OrgUsagePanel", () => {
     const [header, row] = within(table).getAllByRole("row");
     expect(within(header!).getAllByRole("columnheader").map((c) => c.textContent)).toEqual([
       "Model",
+      "Provider",
       "Calls",
       "Input",
       "Output",
       "Total",
     ]);
     expect(within(row!).getAllByRole("cell").map((c) => c.textContent)).toEqual([
-      "claude-sonnetanthropic",
+      // The model's cache use is its quiet line, under its name.
+      "claude-sonnetcache 13.0k read",
+      "anthropic",
       "12",
       "17.0k",
       "1.4k",
@@ -135,8 +139,8 @@ describe("OrgUsagePanel", () => {
     state.report = create(GetOrgUsageReportOutputSchema, { org: "acme" });
     render(<OrgUsagePanel org="acme" />);
 
-    expect(screen.getByText("No usage data yet")).toBeTruthy();
-    expect(screen.getByText(/Usage data will appear here once agents start runs/)).toBeTruthy();
+    expect(screen.getByText("No usage yet")).toBeTruthy();
+    expect(screen.getByText(/Tokens and runs show here once agents start runs/)).toBeTruthy();
   });
 
   it("shows the fetch error", () => {

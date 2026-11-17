@@ -480,9 +480,10 @@ export function LicenseIssueForm({
             </p>
             {grace.ok && (
               <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
+                {/* A lapsed license refuses growth only: what exists keeps working. */}
                 {grace.value === 0
-                  ? "No grace period: the licensed server stops the day after."
-                  : `Then ${grace.value} days of grace, while the licensed server keeps serving and warns.`}
+                  ? "No grace period: from the day after, the licensed server stops creating organizations, teams and federation issuers; everything already there keeps working."
+                  : `Then ${grace.value} days of grace, while the licensed server keeps serving and warns. After that it stops creating organizations, teams and federation issuers; everything already there keeps working.`}
               </p>
             )}
           </>

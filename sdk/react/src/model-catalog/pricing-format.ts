@@ -34,3 +34,8 @@ export function dollarsToMicros(value: string): bigint | null {
   if (!Number.isFinite(parsed) || parsed < 0) return null;
   return BigInt(Math.round(parsed * 1_000_000));
 }
+
+/** A token count grouped by thousands ("100,000"), the same in every locale. */
+export function formatTokens(count: number): string {
+  return count.toLocaleString("en-US");
+}

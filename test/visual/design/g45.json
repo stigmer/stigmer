@@ -7,8 +7,12 @@
     {
       "caption": "Usage: Thirty days: the figures on the figure part, the tables on the table part",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-usage",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Usage",
@@ -505,15 +509,26 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Jun 21 to Jul 20": "The drawing's example data; the scene shows its own fixture's",
+        "word Receipts matcher": "The drawing's example data; the scene shows its own fixture's",
+        "word Anthropic": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word By harness": "When its page is redesigned again: the settings Built look's fixes (the harness split as a section with its one line)",
+        "word Stigmer · 18.4M tokens · 3.0k calls · 100%": "When its page is redesigned again: the settings Built look's fixes (the harness split as a section with its one line)"
+      }
     },
     {
       "caption": "Usage: Nothing yet",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-usage-empty",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Usage",
@@ -549,15 +564,21 @@
         }
       ],
       "buttons": [],
-      "sample": {},
+      "sample": {
+        "word Tokens and runs show here once agents start runs in acme.": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "Usage: Didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-usage-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Usage",
@@ -626,7 +647,10 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "The drawing's example server line and help line; the scene's server sends its own",
+        "word Stuck? Ask IT on Slack": "The drawing's example server line and help line; the scene's server sends its own"
+      },
       "ruled": {},
       "pending": {}
     },
@@ -634,7 +658,7 @@
       "caption": "Usage: Loading: the figures' outline",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "unbuilt": "No scene holds the page while its read is in flight",
       "words": [
         {
           "text": "Usage",
@@ -661,8 +685,12 @@
     {
       "caption": "Usage: At 390 wide: the tables' rows become list rows",
       "narrow": true,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-usage",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Usage",
@@ -959,9 +987,18 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Jun 21 to Jul 20": "The drawing's example data; the scene shows its own fixture's",
+        "word Receipts matcher": "The drawing's example data; the scene shows its own fixture's",
+        "word Anthropic · 1.9k · 11.8M · 2.4M · 14.2M": "The drawing's example data; the scene shows its own fixture's",
+        "word Anthropic · 1.1k · 3.2M · 642.5k · 3.8M": "The drawing's example data; the scene shows its own fixture's",
+        "word Anthropic · 41 · 330.0k · 70.0k · 400.0k": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word By harness": "When its page is redesigned again: the settings Built look's fixes (the harness split as a section with its one line)",
+        "word Stigmer · 18.4M tokens · 3.0k calls · 100%": "When its page is redesigned again: the settings Built look's fixes (the harness split as a section with its one line)"
+      }
     }
   ]
 }

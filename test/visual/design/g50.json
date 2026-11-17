@@ -7,8 +7,12 @@
     {
       "caption": "A model's record: A model with a long-prompt step: its group under the four rates, before the variants",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-model-catalog-stepped",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Model catalog",
@@ -497,15 +501,48 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Claude Haiku 5.5": "The drawing's example data; the scene shows its own fixture's",
+        "word claude-haiku-5.5 on the stigmer harness, from Anthropic.": "The drawing's example data; the scene shows its own fixture's",
+        "word $1.00/M": "The drawing's example data; the scene shows its own fixture's",
+        "word $5.00/M": "The drawing's example data; the scene shows its own fixture's",
+        "word $1.25/M": "The drawing's example data; the scene shows its own fixture's",
+        "word $0.10/M": "The drawing's example data; the scene shows its own fixture's",
+        "word Above 100,000 prompt tokens": "The drawing's example data; the scene shows its own fixture's",
+        "word $25.00/M": "The drawing's example data; the scene shows its own fixture's",
+        "word $6.25/M": "The drawing's example data; the scene shows its own fixture's",
+        "word $0.50/M": "The drawing's example data; the scene shows its own fixture's",
+        "word Variants 1": "The drawing's example data; the scene shows its own fixture's",
+        "word batch · wire ids claude-haiku-5.5-batch": "The drawing's example data; the scene shows its own fixture's",
+        "word $2.50/M": "The drawing's example data; the scene shows its own fixture's",
+        "word $0.63/M": "The drawing's example data; the scene shows its own fixture's",
+        "word $0.05/M": "The drawing's example data; the scene shows its own fixture's",
+        "word $12.50/M": "The drawing's example data; the scene shows its own fixture's",
+        "word $3.13/M": "The drawing's example data; the scene shows its own fixture's",
+        "word $0.25/M": "The drawing's example data; the scene shows its own fixture's",
+        "word claude-haiku-5-5": "The drawing's example data; the scene shows its own fixture's",
+        "word Low": "The drawing's example data; the scene shows its own fixture's",
+        "word Fast": "The drawing's example data; the scene shows its own fixture's",
+        "word Revisions 2": "The drawing's example data; the scene shows its own fixture's",
+        "word Added the long-prompt step": "The drawing's example data; the scene shows its own fixture's",
+        "word Ada Lovelace · Jul 1, 2026": "The drawing's example data; the scene shows its own fixture's",
+        "word First entry": "The drawing's example data; the scene shows its own fixture's",
+        "word Seeded · Jun 12, 2026": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word List prices from Anthropic, Jul 1, 2026.": "When its page is redesigned again: the settings Built look's fixes (the rates' source said as \"List prices from <provider>, <date>\")"
+      }
     },
     {
       "caption": "A model's record: A model without one: nothing extra",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-model-catalog-detail",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Model catalog",
@@ -770,15 +807,32 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Claude Opus 4.8": "The drawing's example data; the scene shows its own fixture's",
+        "word claude-opus-4.8 on the stigmer harness, from Anthropic.": "The drawing's example data; the scene shows its own fixture's",
+        "word $5.00/M": "The drawing's example data; the scene shows its own fixture's",
+        "word $25.00/M": "The drawing's example data; the scene shows its own fixture's",
+        "word $6.25/M": "The drawing's example data; the scene shows its own fixture's",
+        "word $0.50/M": "The drawing's example data; the scene shows its own fixture's",
+        "word claude-opus-4-8": "The drawing's example data; the scene shows its own fixture's",
+        "word Low": "The drawing's example data; the scene shows its own fixture's",
+        "word Fast": "The drawing's example data; the scene shows its own fixture's",
+        "word Revisions 2": "The drawing's example data; the scene shows its own fixture's",
+        "word Added the long-prompt step": "The drawing's example data; the scene shows its own fixture's",
+        "word Ada Lovelace · Jul 1, 2026": "The drawing's example data; the scene shows its own fixture's",
+        "word First entry": "The drawing's example data; the scene shows its own fixture's",
+        "word Seeded · Jun 12, 2026": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word List prices from Anthropic, Jul 1, 2026.": "When its page is redesigned again: the settings Built look's fixes (the rates' source said as \"List prices from <provider>, <date>\")"
+      }
     },
     {
       "caption": "A model's record: At 390 wide",
       "narrow": true,
       "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "unbuilt": "No scene pictures the stepped model at 390; settings-model-catalog-detail pictures a model without a step there",
       "words": [
         {
           "text": "Model catalog",

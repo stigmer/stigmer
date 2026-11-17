@@ -3,14 +3,14 @@
 // grid-track collapse (the class stigmer#929 found in the Cursor coverage
 // table), which only a real layout engine can resolve.
 //
-// Two halves, the coverage table's precedent:
+// Two halves:
 //
-// 1. At the settings canvas (both client apps render settings in
-//    `max-w-3xl`, about 720px of content) the calendar fits without
-//    horizontal scroll, and the customer column holds a real name and
-//    address on one line each.
-// 2. In a narrower host (the console is embeddable at any width) the
-//    min-width guard turns crushing into horizontal scrolling.
+// 1. At the settings canvas (about 720px of content) the calendar fits
+//    without horizontal scroll, and the customer column holds a real name
+//    and address on one line each.
+// 2. In a narrower host (the console is embeddable at any width) the table
+//    part draws each license as a list row, as every settings table does
+//    under 640px of its own width, so nothing scrolls sideways.
 //
 // Rendered against the SHIPPED stylesheet (`dist/styles.css`, built by
 // `npm run build:libs`), so the contract holds on what consumers load.
@@ -101,24 +101,26 @@ describe("LicensesConsole column budget", () => {
     expect(scroller.scrollWidth).toBe(scroller.clientWidth);
 
     const name = screen.getByRole("button", { name: "Northwind Logistics International" });
-    const cell = name.closest('[role="cell"]') as HTMLElement;
+    const cell = name.closest("td") as HTMLElement;
     expect(cell.getBoundingClientRect().width).toBeGreaterThan(160);
-    // Name and address truncate rather than wrap: one line each.
+    // The name and the address hold one line each at the settings canvas.
     expect(lineCount(name)).toBe(1);
     expect(lineCount(screen.getByText("procurement.licensing@northwind-logistics.test"))).toBe(1);
-    // The in-grace deadline holds on one line in its track.
+    // The in-grace deadline holds on one line.
     expect(lineCount(screen.getByText("Grace ends 2026-10-19"))).toBe(1);
   });
 
-  it("scrolls horizontally in a narrow host instead of collapsing a column", async () => {
-    const { table, scroller } = await renderCalendarAt(400);
-
-    expect(scroller.scrollWidth).toBeGreaterThan(scroller.clientWidth);
-    expect(table.getBoundingClientRect().width).toBeGreaterThanOrEqual(672);
-
-    const cell = screen
-      .getByRole("button", { name: "Northwind Logistics International" })
-      .closest('[role="cell"]') as HTMLElement;
-    expect(cell.getBoundingClientRect().width).toBeGreaterThan(140);
+  it("draws each license as a row in a narrow host, never scrolling sideways", async () => {
+    render(
+      <div style={{ width: 400 }}>
+        <StigmerProvider client={makeClient()} deploymentMode="cloud">
+          <LicensesConsole now={NOW} />
+        </StigmerProvider>
+      </div>,
+    );
+    const list = await screen.findByRole("list", { name: "Licenses" });
+    expect(screen.queryByRole("table", { name: "Licenses" })).toBeNull();
+    expect(list.scrollWidth).toBeLessThanOrEqual(list.clientWidth);
+    expect(screen.getByRole("button", { name: "Northwind Logistics International" })).toBeTruthy();
   });
 });
