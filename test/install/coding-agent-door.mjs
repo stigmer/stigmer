@@ -11,7 +11,9 @@
  * What it rests on is held in the gate by the CLI's own suites (the
  * commands, the guide's drift test, the sign-in smoke).
  *
- * The stage, all on this machine and hermetic on Stigmer's side:
+ * The stage is lib/hermetic-stage.mjs, the one the coding-agent question
+ * bank meets Stigmer on too, all on this machine and hermetic on Stigmer's
+ * side:
  *   - test/support's hermetic issuer, and a server from the built shipped
  *     entry that signs its callers in through it and announces a native
  *     client (so `stigmer auth login` finds it), with Temporal and a runner
@@ -87,7 +89,7 @@
 
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -95,18 +97,11 @@ import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { anthropicText, anthropicToolUse } from "../support/src/llm-wire.ts";
-import { startLocalOidcIssuer } from "../support/src/local-oidc-issuer.ts";
-import { runnerEntryPath } from "../support/src/runner-build.ts";
-import { spawnRunner } from "../support/src/runner-process.ts";
-import { spawnServer } from "../support/src/server-process.ts";
-import { spawnTemporal } from "../support/src/temporal.ts";
-import { tsServerEntryPath } from "../support/src/ts-build.ts";
 import { DOOR_FILE, DOOR_REPLY, DOOR_REPORT, NPM_REGISTRY, USAGE, fetchPagePrompt, npmRegistryFlags, parseDoorArgs, runnerLogNotes, stopProcessGroup, streamDigest } from "./lib/coding-agent-door.mjs";
-import { fakeModelEnv, isTitleCall, startFakeModel } from "./lib/fake-model.mjs";
+import { isTitleCall } from "./lib/fake-model.mjs";
+import { stageBuildPaths, startHermeticStage } from "./lib/hermetic-stage.mjs";
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
-const cliEntry = join(repoRoot, "client-apps", "cli", "src", "cli", "stigmer.ts");
-const tsxBin = join(repoRoot, "node_modules", ".bin", "tsx");
 const AUDIENCE = "https://door.stigmer.test/api";
 const NATIVE_CLIENT = "stigmer-door";
 /** The console's prompt, as sdk/react's first question writes it (CODING_AGENT_PROMPT); `--published` reads the live page's instead. */
@@ -114,12 +109,6 @@ export const PROMPT =
   "Set up Stigmer for this project. Install its command line (`npm install -g @stigmer/cli`, or `brew install stigmer/tap/stigmer`), run `stigmer coding-agent`, and follow what it prints.";
 const ANSWER = "Yes, go ahead with what you suggest. I'm happy with your choices; keep going until the chat is on the page.";
 
-const FOLLOWER = `
-const [url] = process.argv.slice(2);
-const authorize = await fetch(url, { redirect: "manual" });
-const location = authorize.headers.get("location");
-if (location !== null) await fetch(location);
-`;
 
 function log(step) {
   process.stdout.write(`coding-agent-door: ${step}\n`);
@@ -434,20 +423,14 @@ async function main() {
     promptBody = await fetchPagePrompt();
     log(`the prompt, from the live page${promptBody === PROMPT ? " (the same words as this checkout's)" : " (this checkout's words differ)"}: ${promptBody}`);
   }
-  for (const [what, path] of [
-    ["server", tsServerEntryPath()],
-    ["runner", runnerEntryPath()],
-    ["tsx", tsxBin],
-  ]) {
+  for (const [what, path] of stageBuildPaths()) {
     check(existsSync(path), `${what} not built: ${path} (make build-server build-runner build-libs)`);
   }
   const scratch = mkdtempSync(join(tmpdir(), "stigmer-door-"));
   const appDir = join(scratch, "ledgerly");
-  const cliHome = join(scratch, "cli-home");
-  const binDir = join(scratch, "bin");
   const npmPrefix = join(scratch, "npm-global");
   const streamPath = join(scratch, "stream.jsonl");
-  for (const dir of [appDir, cliHome, binDir, npmPrefix]) mkdirSync(dir, { recursive: true });
+  for (const dir of [appDir, npmPrefix]) mkdirSync(dir, { recursive: true });
   log(`scratch=${scratch}`);
 
   // Stopped by hand (Ctrl-C, a kill), the run still tears its stack down.
@@ -458,51 +441,18 @@ async function main() {
   // it stopped before the chat, a stop a person on a real server never meets
   // (stigmer/stigmer#3160); so every later turn answers as the example agent
   // would, and the browser waits for those words.
-  const fake = await startFakeModel({ replyText: DOOR_REPLY });
-  const issuer = await startLocalOidcIssuer({ audience: AUDIENCE });
-  const temporal = await spawnTemporal();
-  let server;
-  let runner;
+  let stage;
   let app;
   let passed = false;
   try {
-    server = await spawnServer(process.execPath, {
-      args: [tsServerEntryPath()],
-      temporalHostPort: temporal.hostPort,
-      env: args.local
-        ? {}
-        : {
-            STIGMER_OIDC_ISSUER: issuer.issuer,
-            STIGMER_OIDC_AUDIENCE: AUDIENCE,
-            STIGMER_OIDC_NATIVE_CLIENT_ID: NATIVE_CLIENT,
-          },
-      // Kept with the stream (--keep, and a failed walk's digest names them):
-      // a run's side of a failure exists nowhere else after teardown.
-      logFile: join(scratch, "server.log"),
-    });
-    runner = await spawnRunner({
-      entryPath: runnerEntryPath(),
-      temporalHostPort: temporal.hostPort,
-      backendEndpoint: server.baseUrl,
-      registryOrigin: server.baseUrl,
-      artifactDir: server.artifactBaseDir,
-      env: fakeModelEnv(fake),
-      logFile: join(scratch, "runner.log"),
-    });
+    const cliCommand = args.published ? `'${installPublishedCli(join(scratch, "published-cli"), args.version, args.registry)}'` : undefined;
+    // The server's and runner's logs are kept with the stream (--keep, and a
+    // failed walk's digest names them): a run's side of a failure exists
+    // nowhere else after teardown.
+    stage = await startHermeticStage({ scratch, audience: AUDIENCE, nativeClientId: NATIVE_CLIENT, local: args.local, replyText: DOOR_REPLY, cliCommand });
+    const { fake, server, stigmer } = stage;
     log(`a server that ${args.local ? "trusts every caller" : "signs its callers in"} is serving on ${server.baseUrl}, its runner on the fake model`);
     scriptFirstRun(fake);
-
-    writeFileSync(join(scratch, "browser.mjs"), FOLLOWER);
-    const stigmer = join(binDir, "stigmer");
-    const cliCommand = args.published
-      ? `'${installPublishedCli(join(scratch, "published-cli"), args.version, args.registry)}'`
-      : `'${tsxBin}' '${cliEntry}'`;
-    // The coding agent's own model key, when it has one, is never the CLI's.
-    writeFileSync(
-      stigmer,
-      `#!/bin/sh\nunset ANTHROPIC_API_KEY\nHOME='${cliHome}' BROWSER='"${process.execPath}" "${join(scratch, "browser.mjs")}"' exec ${cliCommand} "$@"\n`,
-    );
-    chmodSync(stigmer, 0o755);
     if (args.published) {
       // Before the coding agent spends a token: the guide it will be told to follow must print.
       const guide = spawnSync(stigmer, ["coding-agent"], { encoding: "utf8" });
@@ -514,8 +464,7 @@ async function main() {
     }
     writeApp(appDir, args.published ? `registry=${NPM_REGISTRY}\n@stigmer:registry=${args.registry}\n` : undefined);
 
-    const env = { ...process.env, PATH: `${binDir}:${join(npmPrefix, "bin")}:${process.env.PATH ?? ""}`, npm_config_prefix: npmPrefix };
-    for (const key of ["STIGMER_SERVER_ADDRESS", "STIGMER_API_KEY", "STIGMER_ORG", "ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL"]) delete env[key];
+    const env = { ...stage.env(process.env, [join(npmPrefix, "bin")]), npm_config_prefix: npmPrefix };
     const claudeKey = process.env.DOOR_ANTHROPIC_API_KEY ?? "";
     delete env.DOOR_ANTHROPIC_API_KEY;
     if (claudeKey !== "") env.ANTHROPIC_API_KEY = claudeKey;
@@ -534,8 +483,8 @@ async function main() {
     log(`the coding agent's last word: ${turn.result.slice(0, 300).replace(/\n/g, " ")}`);
 
     // What the door must have left behind.
-    const config = readFileSync(join(cliHome, ".stigmer", "config.yaml"), "utf8");
-    if (!args.local) check(config.includes(`oidc_issuer: ${issuer.issuer}`), "the CLI never signed in through the server's issuer");
+    const config = readFileSync(join(stage.cliHome, ".stigmer", "config.yaml"), "utf8");
+    if (!args.local) check(config.includes(`oidc_issuer: ${stage.issuer.issuer}`), "the CLI never signed in through the server's issuer");
     const manifests = filesUnder(join(appDir, "stigmer")).filter((f) => f.endsWith(".yaml"));
     check(manifests.length > 0, "no agent manifest under stigmer/");
     const outputs = filesUnder(join(appDir, "stigmer-output"));
@@ -610,11 +559,7 @@ async function main() {
     // Next keeps writing .next/ after SIGTERM: the folder is removed only
     // once the whole group has exited.
     await stopProcessGroup(app);
-    await runner?.stop();
-    await server?.stop();
-    await temporal.stop();
-    await issuer.close();
-    await fake.close();
+    await stage?.stop();
     if (!args.keep) rmSync(scratch, { recursive: true, force: true });
   }
 }

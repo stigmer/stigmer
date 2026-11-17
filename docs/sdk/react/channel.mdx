@@ -358,20 +358,30 @@ cloud-only), and the run dials MCP servers (the agent's or a subagent's
 it lists, their own or their plugins', which read keys). While the
 subagents are read the answer is `checking`.
 
+A channel can run one saved version of its agent rather than the
+current one: `agentVersion` is the version its agent reference names
+(`channel.spec?.agentRef?.version`), a tag or a content hash, and the
+check judges that version's tools and subagents, read fresh, since a tag
+can move. None or `"latest"` judges `agent` as given. While the version
+is read the answer is `checking`, and it stays `checking` when the
+version cannot be read: that channel's conversations are refused for a
+reason other than vaults.
+
 **Signature**
 
 ```tsx
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { ResourceRef } from "@stigmer/client";
 // ---cut---
-function useChannelToolReadiness(agent: Agent, enabled: boolean, vaults: readonly ResourceRef[]): ToolCredentialsReadiness
+function useChannelToolReadiness(agent: Agent, enabled: boolean, vaults: readonly ResourceRef[], agentVersion?: string): ToolCredentialsReadiness
 ```
 
 <TypeTable
   type={{
-    agent: { type: "Agent", description: "", required: true },
-    enabled: { type: "boolean", description: "", required: true },
-    vaults: { type: "readonly ResourceRef[]", description: "", required: true },
+    agent: { type: "Agent", description: "The channel's agent, as it is today.", required: true },
+    enabled: { type: "boolean", description: "Whether the channel serves traffic.", required: true },
+    vaults: { type: "readonly ResourceRef[]", description: "The vaults the channel names.", required: true },
+    agentVersion: { type: "string", description: "The agent version the channel runs; defaults to the current one." },
   }}
 />
 
@@ -786,6 +796,7 @@ The channel's vault picker with its explanation and readiness hint.
 <TypeTable
   type={{
     agent: { type: "Agent", description: "The agent the channel serves (drives the readiness check).", required: true, typeDescriptionLink: "/docs/sdk/resources/agent" },
+    agentVersion: { type: "string", description: "The agent version the channel runs (`channel.spec?.agentRef?.version`): the readiness hint judges that version's tools. None or `\"latest\"` is the agent as given; a channel being connected has none." },
     disabled: { type: "boolean", description: "Disable all interactions (e.g. while a save is in flight)." },
     enabled: { type: "boolean", description: "Whether the channel serves traffic. A paused channel needs no readiness warning — the hint stays silent when `false`." },
     onChange: { type: "(refs: ResourceRef[]) => void", description: "Called when the list changes.", required: true },

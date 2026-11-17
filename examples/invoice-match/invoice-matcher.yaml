@@ -15,7 +15,7 @@ spec:
     out. For each one, work out the amount at stake: what the invoice
     charges beyond what the order agreed.
 
-    Save the result as mismatches.md in your outputs folder: one line
+    Hand back the result as a file named mismatches.md: one line
     with the total amount at stake, then one table of every line that
     doesn't match (SKU, what the order says, what the invoice says, the
     amount at stake), largest first. If every line matches, say so.

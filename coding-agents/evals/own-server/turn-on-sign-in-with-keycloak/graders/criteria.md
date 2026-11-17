@@ -1,0 +1,7 @@
+---
+type: llm
+---
+
+PASS if the answer follows the self-hosting authentication guide: register a public console client in Keycloak (PKCE, no client secret) and an audience on its access tokens; set `STIGMER_OIDC_ISSUER` (https), `STIGMER_OIDC_AUDIENCE` and `STIGMER_OIDC_CONSOLE_CLIENT_ID` in `.env` (and `STIGMER_OPERATOR_EMAIL` so the operator owns the Organization), then `docker compose up -d`; sign in as the operator first; create API keys only after sign-in is on (a key created before is refused); give the runner its own never-expiring key as `STIGMER_TOKEN`. For the CLI: `stigmer config backend add <name> --endpoint stigmer.internal.acme.com:443` and `stigmer config backend use <name>`, then `stigmer auth login` once a native client is registered (`STIGMER_OIDC_NATIVE_CLIENT_ID`), or an API key on the backend until then. For CI: a service account and its key (`stigmer service-account create`, `stigmer apikey create --service-account ...`), stored as the CI secret `STIGMER_API_KEY`. Welcome but optional: `stigmer auth login --device` for machines without a browser; checking the server's answer shows `authMode`.
+
+FAIL if the answer says a self-hosted server signs people in through Stigmer's hosted login, tells them to edit `docker-compose.yml`, tells them to keep using keys created while the server trusted everyone, gives CI a person's API key, or invents environment variables the guide does not name.

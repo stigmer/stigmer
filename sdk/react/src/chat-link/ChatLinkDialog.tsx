@@ -492,6 +492,9 @@ function ChatLinkForm({
   const org = channel.metadata?.org ?? "";
   const slug = channel.metadata?.slug ?? "";
   const linkToken = webLinkTokenOf(channel);
+  // The agent version the link's conversations run: the tools warning and
+  // the "Tool credentials" section judge that version, not the agent's head.
+  const agentVersion = channel.spec?.agentRef?.version ?? "";
 
   // Single commit path: save every draft field on the channel as loaded,
   // adopt the server's returned channel as the new baseline, notify the
@@ -600,7 +603,7 @@ function ChatLinkForm({
           disabled={isPending}
           className="stg:mt-3"
         />
-        <ToolReadinessHint agent={agent} draft={draft} />
+        <ToolReadinessHint agent={agent} agentVersion={agentVersion} draft={draft} />
       </div>
 
       {/* Tabs */}
@@ -617,6 +620,7 @@ function ChatLinkForm({
                 linkUrl={linkUrl}
                 org={org}
                 agent={agent}
+                agentVersion={agentVersion}
                 enabled={draft.enabled}
                 draft={draft}
                 isPending={isPending}
@@ -666,12 +670,15 @@ function ChatLinkForm({
  */
 function ToolReadinessHint({
   agent,
+  agentVersion,
   draft,
 }: {
   readonly agent: Agent;
+  /** The agent version the link runs; none or `"latest"` is `agent`. */
+  readonly agentVersion: string;
   readonly draft: WebChannelDraft;
 }) {
-  const readiness = useChatLinkToolReadiness(agent, draft);
+  const readiness = useChatLinkToolReadiness(agent, draft, agentVersion);
 
   if (readiness.status === "needs-credentials") {
     return (
@@ -787,6 +794,7 @@ function LinkTab({
   linkUrl,
   org,
   agent,
+  agentVersion,
   enabled,
   draft,
   isPending,
@@ -798,6 +806,7 @@ function LinkTab({
   readonly linkUrl: string;
   readonly org: string;
   readonly agent: Agent;
+  readonly agentVersion: string;
   readonly enabled: boolean;
   readonly draft: WebChannelDraft;
   readonly isPending: boolean;
@@ -851,6 +860,7 @@ function LinkTab({
         <ToolCredentialsSection
           org={org}
           agent={agent}
+          agentVersion={agentVersion}
           draft={draft}
           isPending={isPending}
           commit={commit}
@@ -913,17 +923,20 @@ function ResetLinkControl({
  * Expanded by default when the run dials MCP servers, the agent's or a
  * subagent's it lists — for those agents this is essential configuration,
  * not an advanced option. When it opens is
- * `useToolCredentialsDisclosure`'s rule.
+ * `useToolCredentialsDisclosure`'s rule, judged at the agent version the
+ * link runs.
  */
 function ToolCredentialsSection({
   org,
   agent,
+  agentVersion,
   draft,
   isPending,
   commit,
 }: {
   readonly org: string;
   readonly agent: Agent;
+  readonly agentVersion: string;
   readonly draft: WebChannelDraft;
   readonly isPending: boolean;
   readonly commit: (
@@ -931,7 +944,7 @@ function ToolCredentialsSection({
     successMessage: string,
   ) => Promise<boolean>;
 }) {
-  const { expanded, toggle } = useToolCredentialsDisclosure(agent, draft.vaults.length > 0);
+  const { expanded, toggle } = useToolCredentialsDisclosure(agent, draft.vaults.length > 0, agentVersion);
 
   const handleChange = useCallback(
     (refs: ResourceRef[]) => {

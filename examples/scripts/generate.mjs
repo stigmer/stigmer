@@ -14,10 +14,11 @@
  * The module is committed, so a changed example shows as a reviewable diff;
  * `--check` fails when it is not what this script would write now. Every
  * rule an example must keep (each folder listed, each listed file present,
- * the output named in the instructions, the first message naming its
- * samples, a message for a person's own file, no two ids or agent slugs
- * alike) and every rule a skill keeps (its SKILL.md present, its
- * frontmatter naming it by its id with a description) is checked before
+ * the output named in the instructions and no folder for it, the first
+ * message naming its samples, a message for a person's own file, no two ids
+ * or agent slugs alike) and every rule a skill keeps (its SKILL.md present,
+ * its frontmatter naming it by its id with a description, no folder for a
+ * file it hands back) is checked before
  * anything is written, by `problems`, which scripts/generate.test.mjs also
  * drives.
  *
@@ -51,6 +52,15 @@ export function mediaTypeOf(name) {
   const dot = name.lastIndexOf(".");
   return dot === -1 ? undefined : MEDIA_TYPES[name.slice(dot)];
 }
+
+/**
+ * Words that tell an agent where a file goes. The runner's prompt already
+ * says where files for the person go; an instruction that names the folder
+ * too is read by the person on the agent's page as theirs to keep, and the
+ * agent repeats it to them ("saved to your outputs folder") about a place
+ * they never see (stigmer#3200). An instruction names the file and its shape.
+ */
+export const NAMES_THE_FOLDER = /outputs folder|\.stigmer\/outputs/i;
 
 /** An agent's display name from its slug: "variance-reporter" is "Variance Reporter". */
 export function displayName(slug) {
@@ -136,6 +146,9 @@ export function problems({ catalogue, folders, read }) {
     if (typeof instructions !== "string" || typeof entry.output !== "string" || !instructions.includes(entry.output)) {
       found.push(`${id}: the instructions don't name the output ${entry.output}`);
     }
+    if (typeof instructions === "string" && NAMES_THE_FOLDER.test(instructions)) {
+      found.push(`${id}: the instructions say where to save the output; name the file only`);
+    }
   }
   for (const folder of folders) {
     if (!ids.has(folder)) found.push(`${folder}: a folder catalogue.json doesn't list`);
@@ -159,6 +172,7 @@ export function problems({ catalogue, folders, read }) {
       found.push(`skill ${id}: ${skill.file} opens with no frontmatter`);
       continue;
     }
+    if (NAMES_THE_FOLDER.test(text)) found.push(`skill ${id}: ${skill.file} says where to save a file; name the file only`);
     if (front.name !== id) found.push(`skill ${id}: its frontmatter names it ${front.name ?? "nothing"}`);
     if (typeof front.description !== "string" || front.description.trim() === "") found.push(`skill ${id}: its frontmatter has no description`);
   }
