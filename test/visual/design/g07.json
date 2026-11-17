@@ -422,12 +422,12 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "word Active": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Run now": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word This routine hasn't run. Run now to try it before its first scheduled run.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Active": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Run now": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word This routine hasn't run. Run now to try it before its first scheduled run.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "A routine's history: History, didn't load",
@@ -573,13 +573,13 @@
       "sample": {
         "word the server did not answer in time": "the scene's data differs (routine-history-failed)"
       },
-      "ruled": {},
-      "pending": {
-        "word Active": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Run now": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Couldn't load the routine's runs.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Stuck? Ask IT on Slack": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Active": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Run now": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Couldn't load the routine's runs.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Stuck? Ask IT on Slack": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     }
   ]
 }

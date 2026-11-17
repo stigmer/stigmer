@@ -81,14 +81,14 @@
       ],
       "buttons": [],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "word Name it, write what it should do, then pick what it can use.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Start from a template": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word A finished agent for a common job, ready to change.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Import from a file": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word A YAML or JSON file that describes an agent.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Name it, write what it should do, then pick what it can use.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Start from a template": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word A finished agent for a common job, ready to change.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Import from a file": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word A YAML or JSON file that describes an agent.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "New agent: Step 1, filled in",
@@ -229,12 +229,12 @@
         "word Turns a customer's ledger into a variance report.": "the scene's data differs (agent-new-wizard)",
         "word You review a customer's quarterly ledger. Each row has an account, its budget and its actual amount\u2026": "the scene's data differs (agent-new-wizard)"
       },
-      "ruled": {},
-      "pending": {
-        "word Step 1 of 3 \u00b7 Name and instructions": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Description (optional)": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word What it should do, in plain words. You can change them any time.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Step 1 of 3 · Name and instructions": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Description (optional)": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word What it should do, in plain words. You can change them any time.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "New agent: Step 1, a field left empty",
@@ -374,13 +374,13 @@
         "word Turns a customer's ledger into a variance report.": "the scene's data differs (agent-new-name-empty)",
         "word You review a customer's quarterly ledger. Each row has an account, its budget and its actual amount\u2026": "the scene's data differs (agent-new-name-empty)"
       },
-      "ruled": {},
-      "pending": {
-        "word Step 1 of 3 \u00b7 Name and instructions": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Give the agent a name.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Description (optional)": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word What it should do, in plain words. You can change them any time.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Step 1 of 3 · Name and instructions": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Give the agent a name.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Description (optional)": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word What it should do, in plain words. You can change them any time.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "New agent: Step 2",
@@ -574,24 +574,24 @@
       "sample": {
         "word chart-of-accounts, month-end-close": "the scene's data differs (agent-new-step-two)"
       },
-      "ruled": {},
-      "pending": {
-        "word Step 2 of 3 \u00b7 What it can use": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Skills (optional)": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Know-how it loads when a task needs it.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Plugins (optional)": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Choose plugins\u2026": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Tools, skills and hooks, each plugin whole.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word MCP servers (optional)": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word https://\u2026": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Add": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Servers the agent dials itself, by name and address.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Environment variables (optional)": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word REPORT_CURRENCY": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word USD": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Settings the agent reads. Keep secrets in a vault, not here.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "button Add": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Step 2 of 3 · What it can use": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Skills (optional)": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Know-how it loads when a task needs it.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Plugins (optional)": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Choose plugins…": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Tools, skills and hooks, each plugin whole.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word MCP servers (optional)": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word https://…": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Add": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Servers the agent dials itself, by name and address.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Environment variables (optional)": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word REPORT_CURRENCY": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word USD": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Settings the agent reads. Keep secrets in a vault, not here.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "button Add": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     },
     {
       "caption": "New agent: Step 3, creating",
@@ -730,11 +730,11 @@
         "word You review a customer's quarterly ledger\u2026": "the scene's data differs (agent-new-creating)",
         "word chart-of-accounts, month-end-close": "the scene's data differs (agent-new-creating)"
       },
-      "ruled": {},
-      "pending": {
-        "word Step 3 of 3 \u00b7 Review": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Instructions": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Step 3 of 3 · Review": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Instructions": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "New agent: Step 3, couldn't create it",
@@ -917,13 +917,13 @@
         "word You review a customer's quarterly ledger\u2026": "the scene's data differs (agent-new-refused)",
         "word chart-of-accounts, month-end-close": "the scene's data differs (agent-new-refused)"
       },
-      "ruled": {},
-      "pending": {
-        "word Step 3 of 3 \u00b7 Review": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Instructions": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Change the slug on step 1; nothing else is lost.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Stuck? Ask IT on Slack": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Step 3 of 3 · Review": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Instructions": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Change the slug on step 1; nothing else is lost.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Stuck? Ask IT on Slack": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "New agent: For a member who may not create agents",
@@ -964,10 +964,10 @@
       "sample": {
         "word Ask an admin of acme to turn on \u201cMembers can create agents\u201d in the organization's settings.": "the scene's data differs (agent-new-denied)"
       },
-      "ruled": {},
-      "pending": {
-        "word Only an admin can create agents here": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Only an admin can create agents here": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "New agent: At 390 wide",
@@ -1103,16 +1103,16 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "word Step 1 of 3 \u00b7 Name and instructions": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Variance reporter": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word variance-reporter": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Description (optional)": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Turns a customer's ledger into a variance report.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word You review a customer's quarterly ledger. Each row has an account, its budget and its actual amount\u2026": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word What it should do, in plain words. You can change them any time.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Step 1 of 3 · Name and instructions": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Variance reporter": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word variance-reporter": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Description (optional)": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Turns a customer's ledger into a variance report.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word You review a customer's quarterly ledger. Each row has an account, its budget and its actual amount…": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word What it should do, in plain words. You can change them any time.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     }
   ]
 }

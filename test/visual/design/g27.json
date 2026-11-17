@@ -89,14 +89,14 @@
         "word Every agent in acme can load a skill when a task needs it.": "the scene's data differs (skill-upload-first)",
         "word Drop a skill's .zip here": "the scene's data differs (skill-upload-first)"
       },
-      "ruled": {},
-      "pending": {
-        "word A folder with a SKILL.md at its top, zipped. Up to 10 MB.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Choose a file": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type Upload skill": "When its page is redesigned: built 20/28 weight 600, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
-        "button Choose a file": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)",
-        "button Upload skill": "When its page is redesigned: built 236px tall, drawn 32px; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word A folder with a SKILL.md at its top, zipped. Up to 10 MB.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Choose a file": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Upload skill": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Choose a file": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Upload skill": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     },
     {
       "caption": "Upload skill: A file dragged over",
@@ -180,16 +180,16 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "word Drop it to upload": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word A folder with a SKILL.md at its top, zipped. Up to 10 MB.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Choose a file": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "type Upload skill": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "button Choose a file": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "button Upload skill": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Every agent in acme can load a skill when a task needs it.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Drop it to upload": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word A folder with a SKILL.md at its top, zipped. Up to 10 MB.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Choose a file": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Upload skill": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Choose a file": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Upload skill": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word Every agent in acme can load a skill when a task needs it.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "Upload skill: Chosen, before upload",
@@ -321,20 +321,20 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "word Every agent in acme can load a skill when a task needs it.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word month-end-close.zip": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word 14 KB \u00b7 SKILL.md and 2 more files": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word What it adds": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type Name": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "type month-end-close": "When its page is redesigned: built 14/20 weight 500, drawn 14/20 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "type Description": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "word SKILL.md, checklist.md, signoff.csv": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type Upload skill": "When its page is redesigned: built 20/28 weight 600, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
-        "button Remove the file": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)",
-        "button Upload skill": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Every agent in acme can load a skill when a task needs it.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word month-end-close.zip": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word 14 KB · SKILL.md and 2 more files": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word What it adds": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Name": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "type month-end-close": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "type Description": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word SKILL.md, checklist.md, signoff.csv": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Upload skill": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Remove the file": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Upload skill": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     },
     {
       "caption": "Upload skill: A file that isn't a skill",
@@ -426,17 +426,17 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "word Every agent in acme can load a skill when a task needs it.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Drop a skill's .zip here": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word A folder with a SKILL.md at its top, zipped. Up to 10 MB.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Choose a file": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word month-end.pdf isn't a skill package: choose a .zip with a SKILL.md at its top.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type Upload skill": "When its page is redesigned: built 20/28 weight 600, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
-        "button Choose a file": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)",
-        "button Upload skill": "When its page is redesigned: built 236px tall, drawn 32px; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Every agent in acme can load a skill when a task needs it.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Drop a skill's .zip here": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word A folder with a SKILL.md at its top, zipped. Up to 10 MB.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Choose a file": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word month-end.pdf isn't a skill package: choose a .zip with a SKILL.md at its top.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Upload skill": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Choose a file": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Upload skill": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     },
     {
       "caption": "Upload skill: For a member",
@@ -475,11 +475,11 @@
       ],
       "buttons": [],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "word Only an admin can upload skills here": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Admins of acme upload skills. Ask one to add the know-how your agents need.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Only an admin can upload skills here": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Admins of acme upload skills. Ask one to add the know-how your agents need.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "Upload skill: At 390 wide",
@@ -611,20 +611,20 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "word Every agent in acme can load a skill when a task needs it.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word month-end-close.zip": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word 14 KB \u00b7 SKILL.md and 2 more files": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word What it adds": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type Name": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "type month-end-close": "When its page is redesigned: built 14/20 weight 500, drawn 14/20 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "type Description": "When its page is redesigned: built 12/16 weight 500, drawn 12/16 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "word SKILL.md, checklist.md, signoff.csv": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type Upload skill": "When its page is redesigned: built 20/28 weight 600, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
-        "button Remove the file": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)",
-        "button Upload skill": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Every agent in acme can load a skill when a task needs it.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word month-end-close.zip": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word 14 KB · SKILL.md and 2 more files": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word What it adds": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Name": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "type month-end-close": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "type Description": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word SKILL.md, checklist.md, signoff.csv": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Upload skill": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Remove the file": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Upload skill": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     }
   ]
 }
