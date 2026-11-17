@@ -7,8 +7,12 @@
     {
       "caption": "Usage: Thirty days: the figures on the figure part, the tables on the table part",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-usage",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Usage",
@@ -512,8 +516,12 @@
     {
       "caption": "Usage: Nothing yet",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-usage-empty",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Usage",
@@ -556,8 +564,12 @@
     {
       "caption": "Usage: Didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-usage-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Usage",
@@ -634,7 +646,7 @@
       "caption": "Usage: Loading: the figures' outline",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "unbuilt": "No scene holds the page while its read is in flight",
       "words": [
         {
           "text": "Usage",
@@ -661,8 +673,12 @@
     {
       "caption": "Usage: At 390 wide: the tables' rows become list rows",
       "narrow": true,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-usage",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Usage",

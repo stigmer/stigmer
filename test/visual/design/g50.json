@@ -7,8 +7,12 @@
     {
       "caption": "A model's record: A model with a long-prompt step: its group under the four rates, before the variants",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-model-catalog-stepped",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Model catalog",
@@ -504,8 +508,12 @@
     {
       "caption": "A model's record: A model without one: nothing extra",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-model-catalog-detail",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Model catalog",
@@ -778,7 +786,7 @@
       "caption": "A model's record: At 390 wide",
       "narrow": true,
       "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "unbuilt": "No scene pictures the stepped model at 390; settings-model-catalog-detail pictures a model without a step there",
       "words": [
         {
           "text": "Model catalog",

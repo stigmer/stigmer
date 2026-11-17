@@ -7,8 +7,12 @@
     {
       "caption": "Editing a model's prices: Editing: the optional Long prompts group, filled",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-model-catalog-editor",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Claude Haiku 5.5",
@@ -176,8 +180,12 @@
     {
       "caption": "Editing a model's prices: Partly filled: one error for the group",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-model-catalog-editor-partial",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Claude Haiku 5.5",
@@ -353,8 +361,12 @@
     {
       "caption": "Editing a model's prices: Confirm: each change on its own line",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-model-catalog-confirm",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Save these prices for Claude Haiku 5.5?",
@@ -506,8 +518,12 @@
     {
       "caption": "Editing a model's prices: Retire: typed, so it stays a form",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-model-catalog-retire",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Retire Claude Opus 4.8?",

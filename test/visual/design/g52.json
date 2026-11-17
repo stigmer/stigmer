@@ -7,8 +7,12 @@
     {
       "caption": "Licenses: Licenses on the table part, soonest renewal first",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-licenses",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Licenses",
@@ -209,7 +213,7 @@
       "caption": "Licenses: One open",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "unbuilt": "When its page is redesigned again: the settings Built look's fixes (the open license's record as one section of read-only pairs)",
       "words": [
         {
           "text": "Licenses",
@@ -398,7 +402,7 @@
       "caption": "Licenses: Issue a license, an address the server refuses (the grace line corrected: only growth stops)",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "unbuilt": "When its page is redesigned again: the settings Built look's fixes (the issue form's sections, and an address the server refuses)",
       "words": [
         {
           "text": "Licenses",
@@ -622,8 +626,12 @@
     {
       "caption": "Licenses: None yet",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-licenses-empty",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Licenses",
@@ -691,8 +699,12 @@
     {
       "caption": "Licenses: On the open-source edition",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-licenses-oss",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Licenses",
@@ -735,8 +747,12 @@
     {
       "caption": "Licenses: Didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-licenses-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Licenses",
@@ -824,8 +840,12 @@
     {
       "caption": "Licenses: At 390 wide",
       "narrow": true,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-licenses",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Licenses",

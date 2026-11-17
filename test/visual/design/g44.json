@@ -8,7 +8,7 @@
       "caption": "Billing: The plan, this period's figures and invoice, the plans, the card",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "unbuilt": "When its page is redesigned again: the settings Built look's fixes (the plan's three figures, the invoice as its own section, the plans as cards)",
       "words": [
         {
           "text": "Billing",
@@ -421,7 +421,7 @@
       "caption": "Billing: Switch to Business, asked first (the dialog's body is the plan's own lines)",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "unbuilt": "When its page is redesigned again: the settings Built look's fixes (the change of plan's dialog body as the plan's lines)",
       "words": [
         {
           "text": "Switch acme to Business?",
@@ -494,7 +494,7 @@
       "caption": "Billing: The switch didn't go through, said in the dialog",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "unbuilt": "No scene holds the change of plan refused; ChangePlanDialog's tests pin its failure",
       "words": [
         {
           "text": "Switch acme to Business?",
@@ -587,7 +587,7 @@
       "caption": "Billing: Agent hours used up: a paused notice above the figures",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "unbuilt": "No scene holds an organization whose agent hours are used up",
       "words": [
         {
           "text": "Billing",
@@ -1027,8 +1027,12 @@
     {
       "caption": "Billing: On the open-source edition",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-billing-oss",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Billing",
@@ -1071,8 +1075,12 @@
     {
       "caption": "Billing: Didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-billing-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Billing",
@@ -1149,7 +1157,7 @@
       "caption": "Billing: At 390 wide",
       "narrow": true,
       "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "unbuilt": "When its page is redesigned again: the settings Built look's fixes (the plan's figures two to a row at 390)",
       "words": [
         {
           "text": "Billing",

@@ -663,6 +663,8 @@ export const SETTINGS_ROUTE_DRAWINGS = {
   "settings-model-catalog-detail": () => modelCatalogScene("rows"),
   "settings-model-catalog-stepped": () => modelCatalogScene("stepped"),
   "settings-model-catalog-editor": () => modelCatalogScene("stepped"),
+  // A model without a step, its Long prompts group given a threshold and one rate only.
+  "settings-model-catalog-editor-partial": () => modelCatalogScene("rows"),
   "settings-model-catalog-confirm": () => modelCatalogScene("stepped"),
   "settings-model-catalog-retire": () => modelCatalogScene("rows"),
   "settings-model-catalog-empty": () => modelCatalogScene("none"),
