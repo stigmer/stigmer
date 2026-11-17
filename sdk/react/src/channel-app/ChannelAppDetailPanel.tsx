@@ -1,5 +1,6 @@
 "use client";
 
+import { FieldError } from "../internal/form/index.js";
 import { type FormEvent, useCallback, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { buildChannelAppProto, getUserMessage } from "@stigmer/client";
@@ -322,9 +323,9 @@ function SlackAppDetail({
           />
 
           {updateError && (
-            <p className="stg:text-destructive stg:text-2xs" role="alert">
+            <FieldError>
               {saveErrorMessage(updateError, "channel app")}
-            </p>
+            </FieldError>
           )}
 
           <Button type="submit" size="xs" disabled={!canSave} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>
@@ -508,9 +509,9 @@ function WhatsAppAppDetail({
           />
 
           {updateError && (
-            <p className="stg:text-destructive stg:text-2xs" role="alert">
+            <FieldError>
               {saveErrorMessage(updateError, "channel app")}
-            </p>
+            </FieldError>
           )}
 
           <Button type="submit" size="xs" disabled={!canSave} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>

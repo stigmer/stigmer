@@ -1,5 +1,6 @@
 "use client";
 
+import { FieldError } from "../internal/form/index.js";
 import { useCallback, useId, useMemo, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -595,9 +596,9 @@ function ChangeRoleRow({
       />
 
       {error && (
-        <p className="stg:text-2xs stg:text-destructive" role="alert">
+        <FieldError>
           {getUserMessage(error)}
-        </p>
+        </FieldError>
       )}
 
       <div className="stg:flex stg:items-center stg:gap-1.5">

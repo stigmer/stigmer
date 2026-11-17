@@ -18,6 +18,7 @@
  * member, so the server has nothing to refuse about the people offered
  * here.
  */
+import { FieldError } from "../internal/form/index.js";
 import { useMemo, useState } from "react";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
@@ -127,9 +128,9 @@ export function TeamMembersPanel({ teamId, org, className }: TeamMembersPanelPro
       )}
 
       {revokeError && (
-        <p className="stg:text-destructive stg:text-2xs" role="alert">
+        <FieldError>
           {getUserMessage(revokeError)}
-        </p>
+        </FieldError>
       )}
 
       <PermissionGate fail="closed" resource={grantGate} relation="can_grant_access">
@@ -158,9 +159,9 @@ export function TeamMembersPanel({ teamId, org, className }: TeamMembersPanelPro
         {grantError && planUpgradeFeature(grantError) === Feature.teams ? (
           <UpgradeNotice feature={Feature.teams} error={grantError} className="stg:mt-1" />
         ) : grantError ? (
-          <p className="stg:mt-1 stg:text-destructive stg:text-2xs" role="alert">
+          <FieldError>
             {getUserMessage(grantError)}
-          </p>
+          </FieldError>
         ) : null}
       </PermissionGate>
     </div>
