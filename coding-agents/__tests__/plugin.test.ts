@@ -122,6 +122,41 @@ describe("the guide", () => {
     expect(whoami).toContain("helpLine(");
   });
 
+  it("never routes a key through the coding agent: no `!` command, the console's key page instead (stigmer#3229)", () => {
+    const guide = files.get("skills/stigmer/SKILL.md") ?? "";
+    // `!` runs a command inside Claude Code, which has no terminal for a
+    // hidden prompt, and led a person to type the key into the chat.
+    expect(guide).not.toMatch(/`!\s*stigmer/);
+    expect(guide).toContain("never suggest typing it, or a command that asks for it,\ninto this chat");
+    expect(guide).toContain("`<console>/models`");
+    const page = join(root, "..", "client-apps", "web", "src", "app", "models", "page.tsx");
+    expect(statSync(page).isFile()).toBe(true);
+  });
+
+  it("defines <console> in step 1, before any step uses it", () => {
+    const guide = files.get("skills/stigmer/SKILL.md") ?? "";
+    const defined = guide.indexOf("written here as\n`<console>`");
+    expect(defined).toBeGreaterThan(guide.indexOf("## 1. Where it runs"));
+    expect(defined).toBeLessThan(guide.indexOf("## 2."));
+    expect(guide.indexOf("<console>/")).toBeGreaterThan(defined);
+  });
+
+  it("asks where the key goes in the command line's own words", () => {
+    const guide = files.get("skills/stigmer/SKILL.md") ?? "";
+    expect(guide).toContain("`stigmer provider-key set anthropic < /dev/null`");
+    const cli = readFileSync(join(root, "..", "client-apps", "cli", "src", "resources", "provider-key.ts"), "utf8");
+    for (const words of ["Add it in the console: ", "the console's Models & providers page", "This server's runners use the keys whoever runs them gives them"]) {
+      expect(guide).toContain(words);
+      expect(cli).toContain(words);
+    }
+    expect(cli).toMatch(/LOCAL_KEYS_FIX =\s*"[^"]*`stigmer setup`/);
+  });
+
+  it("gives skill_refs its exact shape (stigmer#3233)", () => {
+    const guide = files.get("skills/stigmer/SKILL.md") ?? "";
+    expect(guide).toContain("  skill_refs:\n    - kind: skill\n      slug: spreadsheet-export\n");
+  });
+
   it("sends the last step to a console page that exists", () => {
     const guide = files.get("skills/stigmer/SKILL.md") ?? "";
     const path = /<console>(\/settings\/[a-z-]+)/.exec(guide)?.[1];

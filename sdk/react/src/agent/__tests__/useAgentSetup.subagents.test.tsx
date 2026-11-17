@@ -8,8 +8,9 @@
  *   holds it;
  * - a subagent's plugin server that signs in is a pending sign-in;
  * - a subagent of another organization closes My vault to the whole run,
- *   as the server does: the agent's own keys are asked of nobody, and a
- *   login in My vault serves none of its sign-ins;
+ *   as the server does: the agent's own keys are asked of nobody, a
+ *   login in My vault serves none of its sign-ins, and its owed sign-ins
+ *   are never offered to My vault (with no vault listed, nowhere);
  * - a subagent that cannot be read is left out, and the agent's own
  *   answer stands.
  */
@@ -169,6 +170,7 @@ describe("useAgentSetup and the agent's subagents", () => {
       status: "needsEnvVars",
       missingVariables: [],
       pendingSignIns: [expect.objectContaining({ address: CALENDAR_URL, plugin: { org: ORG, slug: "calendar" } })],
+      signInVaults: { kind: "my-vault" },
     });
   });
 
@@ -196,6 +198,7 @@ describe("useAgentSetup and the agent's subagents", () => {
     expect(outcome).toMatchObject({
       status: "needsEnvVars",
       pendingSignIns: [expect.objectContaining({ address: CALENDAR_URL })],
+      signInVaults: { kind: "nowhere", listed: [] },
     });
   });
 

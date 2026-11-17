@@ -8,7 +8,7 @@
 // Each self-check is answered by who is looking: the admin sees Install and
 // the Upload tile, the member the same cards saying "Ask an admin to
 // install".
-import type { ConnectRouter } from "@connectrpc/connect";
+import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/query_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
@@ -37,14 +37,21 @@ function marketplaceRoutes(viewer: MarketplaceViewer) {
     router.service(PlatformQueryController, {
       getServerInfo: () => create(GetServerInfoOutputSchema, { version: SERVER_RELEASE }),
     });
-    router.service(PluginQueryController, { list: () => create(PluginListSchema, { entries: [INSTALLED], nextPageToken: "" }) });
+    router.service(PluginQueryController, {
+      list: () => create(PluginListSchema, { entries: [INSTALLED], nextPageToken: "" }),
+      // The install dialog asks whether the plugin is already here: only Linear is.
+      getByReference: (input) => {
+        if (input.slug === "linear") return INSTALLED;
+        throw new ConnectError("no such plugin in this organization", Code.NotFound);
+      },
+    });
     router.service(GrantQueryController, { checkMyPermission: () => ({ isAuthorized: viewer === "admin" }) });
   };
 }
 
-/** The marketplace page, as the web console draws it. */
-export function marketplaceScene(viewer: MarketplaceViewer): Drawing {
-  const fetchImpl = countedFetch(catalogueFetch());
+/** The marketplace page, as the web console draws it; `catalogue` says whether the official catalogue could be read. */
+export function marketplaceScene(viewer: MarketplaceViewer, catalogue: "read" | "failed" = "read"): Drawing {
+  const fetchImpl = countedFetch(catalogue === "read" ? catalogueFetch() : async () => new Response("the CDN did not answer", { status: 503 }));
   return {
     inOrganization: true,
     routes: marketplaceRoutes(viewer),

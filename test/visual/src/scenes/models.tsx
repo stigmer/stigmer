@@ -42,7 +42,7 @@ import { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/co
 import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 import { ModelSelector, ModelsHub, NewSessionViewer, SessionInspector, useModelReadiness } from "@stigmer/react-sdk";
 import { samples } from "@stigmer/react-sdk/test";
-import { ACCOUNT, NOTHING_ON_THE_RUNNER, NO_RUNS, ORGANIZATION, readiness } from "../fixtures.ts";
+import { ACCOUNT, NOTHING_CONNECTED, NOTHING_ON_THE_RUNNER, NO_RUNS, ORGANIZATION, readiness } from "../fixtures.ts";
 import type { Drawing } from "./drawing.ts";
 
 const ORG_ID = ORGANIZATION.metadata?.id ?? "";
@@ -95,6 +95,25 @@ export function modelsHubScene(answer: GetModelReadinessOutput, keys: readonly P
   return {
     inOrganization: true,
     routes: modelsRoutes(answer, keys, viewer),
+    render: () => <HubPage />,
+  };
+}
+
+/**
+ * Models & providers for an admin whose Anthropic key the provider rejects:
+ * the scene types a key into Connect Anthropic and saves it.
+ */
+export function modelsHubKeyRejectedScene(): Drawing {
+  return {
+    inOrganization: true,
+    routes: (router) => {
+      modelsRoutes(NOTHING_CONNECTED, [], "admin")(router);
+      router.service(ProviderKeyCommandController, {
+        set: () => {
+          throw new ConnectError(KEY_REJECTED_WORDS, Code.InvalidArgument);
+        },
+      });
+    },
     render: () => <HubPage />,
   };
 }

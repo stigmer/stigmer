@@ -67,6 +67,25 @@ function view(props: {
 }
 
 /**
+ * The timeline above a reply box, as the workbench stacks them in one
+ * column: the box's height stands in for the composer growing a line as the
+ * reader types, which shrinks the timeline's pane without changing its
+ * messages.
+ */
+function viewAboveReplyBox(props: {
+  readonly items: readonly ConversationTimelineItem[];
+  readonly isLoading: boolean;
+  readonly replyBoxPx: number;
+}): ReactElement {
+  return (
+    <>
+      {view(props)}
+      <div data-testid="reply-box" style={{ height: props.replyBoxPx, flexShrink: 0 }} />
+    </>
+  );
+}
+
+/**
  * Render inside a fixed-height themed `.stgm` box (the shipped stylesheet
  * is scoped to it) so the timeline's internal scroller actually overflows.
  */
@@ -190,5 +209,26 @@ describe("ConversationTimelineView scroll behavior", () => {
     // The refetch delivers the item — still pinned, the reply visible.
     rerender(view({ items: items(41), isLoading: false, pinToLatestSignal: 1 }));
     await settled(() => expect(isPinnedToBottom(scroller())).toBe(true));
+  });
+
+  it("stays at the newest message when the reply box below it grows after the first pin", async () => {
+    // The visual suite's taken-over scene, measured: the messages pin, then
+    // the typed reply grows the composer by two lines and the timeline's
+    // pane shrinks 44px with no message changed (stigmer/stigmer#2911).
+    const { rerender } = renderInPane(viewAboveReplyBox({ items: [], isLoading: true, replyBoxPx: 40 }));
+    rerender(viewAboveReplyBox({ items: items(40), isLoading: false, replyBoxPx: 40 }));
+    await settled(() => {
+      expect(isPinnedToBottom(scroller())).toBe(true);
+      expect(jumpButton().getAttribute("aria-hidden")).toBe("true");
+    });
+    const paneBefore = scroller().clientHeight;
+
+    rerender(viewAboveReplyBox({ items: items(40), isLoading: false, replyBoxPx: 84 }));
+
+    await settled(() => {
+      expect(scroller().clientHeight).toBe(paneBefore - 44);
+      expect(isPinnedToBottom(scroller()), "the newest message must stay in view").toBe(true);
+      expect(jumpButton().getAttribute("aria-hidden")).toBe("true");
+    });
   });
 });

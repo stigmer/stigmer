@@ -22,7 +22,7 @@ import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { useEffect, useState, type ReactNode } from "react";
-import { describeTurnActivity, formatElapsed, type Turn } from "@stigmer/client";
+import { describeTurnActivity, formatElapsed, resolvedSubject, type Turn } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import { useStigmer } from "@stigmer/react-core";
 import { useFetch } from "@stigmer/react-core/internal";
@@ -90,7 +90,9 @@ export function SessionSummary({ session, turns, runs, files, showCost, routineH
   // An undone file was put back, so the count is what still stands.
   const changed = new Set(outcomes.flatMap((outcome) => standingChanges(outcome).map((change) => change.path))).size;
   const cost = outcomes.reduce((sum, outcome) => sum + (outcome.estimatedCostUsd ?? 0), 0);
-  const asked = session.spec?.subject || turns[0]?.userMessage?.text || "";
+  // The generated title once it exists; until then the person's own first
+  // words, never the server's placeholder (stigmer#3199).
+  const asked = resolvedSubject(session.spec?.subject) ?? turns[0]?.userMessage?.text ?? "";
 
   const origin =
     routineId === "" ? (isChannelOriginSession(session) ? "From a channel conversation" : undefined) : routine ? (

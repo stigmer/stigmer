@@ -147,7 +147,8 @@ export interface SessionViewerProps {
    * configuration in both the composer and the
    * inspector's Setup tab — for product-embedded chat where the agent
    * is configured upstream by the platform. The model selector,
-   * interaction mode, file uploads, and workspace picker remain.
+   * interaction mode, file uploads, and workspace picker remain; the
+   * harness is the session's own, never offered here.
    *
    * `"guest"` (anonymous visitor with a guest token) is pure chat: it
    * additionally hides the model/mode pickers, file uploads, the
@@ -200,6 +201,15 @@ export interface SessionViewerProps {
    * @default true
    */
   readonly showModelSelector?: boolean;
+  /**
+   * Whether the follow-up composer offers the Agent/Plan mode toggle.
+   * Defaults to on for every audience but `"guest"`; `false` hides it for
+   * a host that wants a bare chat, and each turn then runs in Agent mode.
+   * A host's `true` does not give a guest the toggle back: a guest's run
+   * is the share policy's.
+   * @default true
+   */
+  readonly showInteractionModePicker?: boolean;
   /**
    * The builder mode: the explorer, editor tabs, search, Changes and Files
    * beside the conversation, with the chip that opens them. The console
@@ -320,6 +330,7 @@ export function SessionViewer({
   runConfig,
   accountDefaults,
   showModelSelector = true,
+  showInteractionModePicker,
   inspector,
   modelsHubHref = DEFAULT_MODELS_HUB_HREF,
   routineHref,
@@ -359,6 +370,8 @@ export function SessionViewer({
   // and the host's explicit opt-out compose with it.
   const modelSelectorVisible =
     showModelSelector && !isGuest && runConfig?.modelName === undefined;
+  // The mode toggle: the host may turn it off, never on for a guest.
+  const modePickerVisible = !isGuest && (showInteractionModePicker ?? true);
   // Channel-originated sessions (Slack/WhatsApp conversations owned by the
   // channel runtime) are read-only for every console caller — the server
   // grants channel viewers can_view without can_create_run_in — so the
@@ -735,7 +748,7 @@ export function SessionViewer({
             defaultModelId={modelId}
             agentRunDefaults={flow.agentRunDefaults}
             interactionMode={interactionMode}
-            showInteractionModePicker={!isGuest}
+            showInteractionModePicker={modePickerVisible}
             showModelSelector={modelSelectorVisible}
             enableFiles={!isGuest}
             workspace={isGuest ? undefined : flow.workspace}
@@ -814,6 +827,7 @@ export function SessionViewer({
           creatorName={creatorName}
           runScores={runScores}
           modelSelectorVisible={modelSelectorVisible}
+          modePickerVisible={modePickerVisible}
           threadSlots={threadSlots}
           files={files}
           onOpenOutputFile={handleOpenOutputFile}
@@ -945,6 +959,8 @@ interface ConversationColumnProps {
    * control, so the pin forces it hidden).
    */
   readonly modelSelectorVisible: boolean;
+  /** Whether the composer offers the mode toggle: the host's `showInteractionModePicker`, never for a guest. */
+  readonly modePickerVisible: boolean;
   readonly threadSlots?: MessageThreadSlots;
   readonly files: readonly StigmerFile[];
   /** Opens a File a turn returned, in place. */
@@ -1002,6 +1018,7 @@ const ConversationColumn = memo(function ConversationColumn({
   creatorName,
   runScores,
   modelSelectorVisible,
+  modePickerVisible,
   threadSlots,
   files,
   onOpenOutputFile,
@@ -1339,7 +1356,7 @@ const ConversationColumn = memo(function ConversationColumn({
             onModelPickCleared={flow.clearModelPick}
             interactionMode={interactionMode}
             onInteractionModeChange={setInteractionMode}
-            showInteractionModePicker={!isGuest}
+            showInteractionModePicker={modePickerVisible}
             showModelSelector={modelSelectorVisible}
             enableFiles={!isGuest}
             workspace={isGuest ? undefined : flow.workspace}

@@ -56,7 +56,9 @@ let ioCallback: IOCallback;
 let ioDisconnect: ReturnType<typeof vi.fn>;
 let ioObserve: ReturnType<typeof vi.fn>;
 
-let roCallback: ROCallback;
+// The hook runs two ResizeObservers (the content wrapper's and the
+// scroller's own), so each callback is kept by the element it observes.
+let roCallbacks: Map<Element, ROCallback>;
 let roDisconnect: ReturnType<typeof vi.fn>;
 let roObserve: ReturnType<typeof vi.fn>;
 
@@ -65,6 +67,7 @@ beforeEach(() => {
   ioObserve = vi.fn();
   roDisconnect = vi.fn();
   roObserve = vi.fn();
+  roCallbacks = new Map();
 
   vi.stubGlobal(
     "IntersectionObserver",
@@ -85,9 +88,11 @@ beforeEach(() => {
   vi.stubGlobal(
     "ResizeObserver",
     vi.fn((cb: ROCallback) => {
-      roCallback = cb;
       return {
-        observe: roObserve,
+        observe: (target: Element) => {
+          roCallbacks.set(target, cb);
+          roObserve(target);
+        },
         unobserve: vi.fn(),
         disconnect: roDisconnect,
       };
@@ -140,10 +145,20 @@ function fireIO(nearBottom: boolean) {
   });
 }
 
-function fireRO() {
+/** Deliver a resize of the observed element with `testId` (the content wrapper unless named). */
+function fireRO(testId: "content" | "scroller" = "content") {
+  const callback = roCallbacks.get(screen.getByTestId(testId));
+  if (!callback) throw new Error(`no ResizeObserver observes ${testId}`);
   act(() => {
-    roCallback([], {} as ResizeObserver);
+    callback([], {} as ResizeObserver);
   });
+}
+
+/** The `observe` calls on the content wrapper; the scroller is observed as well. */
+function contentObserves(): unknown[][] {
+  return roObserve.mock.calls.filter(
+    ([target]) => (target as HTMLElement).dataset["testid"] === "content",
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -168,7 +183,7 @@ describe("useAutoScroll", () => {
 
   it("observes content that mounts after the first render (loading-branch consumers)", () => {
     const { rerender } = render(<LateContentHarness showContent={false} />);
-    expect(roObserve).not.toHaveBeenCalled();
+    expect(contentObserves()).toHaveLength(0);
 
     // The async first fill: the skeleton gives way to real content.
     rerender(<LateContentHarness showContent />);
@@ -177,7 +192,7 @@ describe("useAutoScroll", () => {
 
   it("disconnects and re-observes across content unmount/remount round-trips", () => {
     const { rerender } = render(<LateContentHarness showContent />);
-    expect(roObserve).toHaveBeenCalledTimes(1);
+    expect(contentObserves()).toHaveLength(1);
 
     // Back to a loading state (e.g. an identity switch resets the data
     // hook): the observer must let go of the dead node…
@@ -186,8 +201,19 @@ describe("useAutoScroll", () => {
 
     // …and adopt the replacement when content returns.
     rerender(<LateContentHarness showContent />);
-    expect(roObserve).toHaveBeenCalledTimes(2);
+    expect(contentObserves()).toHaveLength(2);
     expect(roObserve).toHaveBeenLastCalledWith(screen.getByTestId("content"));
+  });
+
+  it("observes the scroller with ResizeObserver from mount and releases it on unmount", () => {
+    // The pane's own size: a host can resize it with no content change
+    // (stigmer/stigmer#2911). Observed even while the content wrapper is
+    // still a loading skeleton, so the only observer here is the pane's.
+    const { unmount } = render(<LateContentHarness showContent={false} />);
+    expect(roObserve).toHaveBeenCalledWith(screen.getByTestId("scroller"));
+
+    unmount();
+    expect(roDisconnect).toHaveBeenCalled();
   });
 
   it("configures IO with 80px bottom root margin", () => {
@@ -295,6 +321,65 @@ describe("useAutoScroll", () => {
 
     expect(requestAnimationFrame).toHaveBeenCalled();
     expect(scroller.scrollTop).toBe(500);
+  });
+
+  it("scrolls via rAF on pane resize while following", () => {
+    render(<Harness />);
+    fireIO(true);
+
+    const scroller = screen.getByTestId("scroller");
+    Object.defineProperty(scroller, "scrollHeight", {
+      value: 500,
+      configurable: true,
+    });
+
+    fireRO("scroller");
+
+    expect(scroller.scrollTop).toBe(500);
+  });
+
+  it("does not scroll on pane resize while disengaged", () => {
+    render(<Harness />);
+    fireIO(false);
+    vi.mocked(requestAnimationFrame).mockClear();
+
+    fireRO("scroller");
+
+    expect(requestAnimationFrame).not.toHaveBeenCalled();
+  });
+
+  it("drops a pin when the reader scrolled between scheduling and the frame", () => {
+    render(<Harness />);
+    fireIO(true);
+    const frames: FrameRequestCallback[] = [];
+    vi.mocked(requestAnimationFrame).mockImplementation((cb) => frames.push(cb));
+
+    const scroller = screen.getByTestId("scroller");
+    Object.defineProperty(scroller, "scrollHeight", { value: 1500, configurable: true });
+    fireRO();
+    // The reader scrolls up before the frame runs: the write must not
+    // yank them back.
+    scroller.scrollTop = 300;
+    frames.forEach((frame) => frame(performance.now()));
+
+    expect(scroller.scrollTop).toBe(300);
+  });
+
+  it("writes nothing when a pane pin's frame lands after the thread unmounted", () => {
+    // Without a content wrapper nothing cancels the pane's pending frame on
+    // unmount, so the frame can still run once the scroller is gone.
+    const { unmount } = render(<LateContentHarness showContent={false} />);
+    const frames: FrameRequestCallback[] = [];
+    vi.mocked(requestAnimationFrame).mockImplementation((cb) => frames.push(cb));
+
+    const scroller = screen.getByTestId("scroller");
+    Object.defineProperty(scroller, "scrollHeight", { value: 500, configurable: true });
+    fireRO("scroller");
+    unmount();
+
+    expect(frames).toHaveLength(1);
+    expect(() => frames.forEach((frame) => frame(performance.now()))).not.toThrow();
+    expect(scroller.scrollTop).toBe(0);
   });
 
   it("does not scroll on content resize while disengaged", () => {

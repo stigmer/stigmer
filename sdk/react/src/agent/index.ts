@@ -28,6 +28,8 @@ export type {
   AgentSetupState,
   AgentSetupPhase,
   PendingSignIn,
+  SignInVault,
+  SignInVaults,
   AgentResolution,
   UseAgentSetupReturn,
 } from "./useAgentSetup.js";
