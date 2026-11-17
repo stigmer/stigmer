@@ -6,6 +6,14 @@
  * at the server's address kept in a vault the conversation lists satisfies
  * it too; a conversation that leaves My vault out counts none of its
  * logins; an agent of another organization never reads My vault.
+ *
+ * And where an owed sign-in can be saved (`signInVaults`), on the state and
+ * the result alike: My vault for a run that may read it, whether or not the
+ * conversation includes it now (signing in includes it), with no
+ * permission asked; for a run that never reads My vault, the listed vaults
+ * the person may edit, or, when they may edit none, the listed vaults by
+ * name, or none when nothing is listed. A permission check that fails is
+ * the resolution's error, never "ask someone else".
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -22,12 +30,15 @@ import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/
 import { VaultSchema, type Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
+import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
+import { CheckAuthorizationResultSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 
 import { StigmerContext } from "@stigmer/react-core";
 import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { useAgentSetup } from "../useAgentSetup";
 import { useMyVault } from "../../vault/useMyVault";
 import { MY_VAULT_ONLY, type ConversationVaults } from "../../vault/conversationVaults";
+import type { AgentSetupResult, AgentSetupState } from "../agentSetupReducer";
 
 afterEach(cleanup);
 
@@ -66,6 +77,14 @@ function vaultWithLogin(slug: string, signedInBy?: string): Vault {
   });
 }
 
+/** A shared vault holding no login. */
+function emptyVault(slug: string): Vault {
+  return create(VaultSchema, {
+    metadata: { id: `vlt_${slug}`, org: ORG, slug, name: slug === "team" ? "Team logins" : slug },
+    spec: { owner: { case: "org", value: ORG }, connections: {} },
+  });
+}
+
 interface World {
   /** My vault, or `null` when the person has none yet. */
   readonly mine: Vault | null;
@@ -75,7 +94,15 @@ interface World {
   readonly includeMyVault?: boolean;
   /** The organization the agent belongs to. */
   readonly agentOrg?: string;
+  /** The answer to "may I edit this vault?": yes, no, or a failed check. */
+  readonly canEdit?: boolean | "fails";
 }
+
+/** Each permission the hook asked, as `kind/id:relation`. */
+const asked: string[] = [];
+afterEach(() => {
+  asked.length = 0;
+});
 
 function client(world: World) {
   const agentOrg = world.agentOrg ?? ORG;
@@ -106,6 +133,13 @@ function client(world: World) {
           return world.shared;
         },
       });
+      service(GrantQueryController, {
+        checkMyPermission: (input) => {
+          asked.push(`${input.resource?.kind}/${input.resource?.id}:${input.relation}`);
+          if (world.canEdit === "fails") throw new ConnectError("the permission service is unavailable", Code.Unavailable);
+          return create(CheckAuthorizationResultSchema, { isAuthorized: world.canEdit ?? false });
+        },
+      });
     }),
   });
 }
@@ -122,6 +156,13 @@ function wrapper(stigmer: Stigmer) {
 
 /** Resolves the agent once My vault's read has settled, so the resolution sees what My vault holds. */
 async function resolveSettled(world: World) {
+  return (await resolveWith(world)).state;
+}
+
+/** {@link resolveSettled}, answering the state, what `resolveAgent` returned, and what it threw. */
+async function resolveWith(
+  world: World,
+): Promise<{ state: AgentSetupState; outcome: AgentSetupResult | undefined; thrown: unknown }> {
   const choice: ConversationVaults = {
     includeMyVault: world.includeMyVault ?? MY_VAULT_ONLY.includeMyVault,
     vaults: world.shared === undefined ? [] : [{ org: ORG, slug: "team" }],
@@ -131,10 +172,16 @@ async function resolveSettled(world: World) {
   });
   await waitFor(() => expect(result.current.mine.isLoading).toBe(false));
   expect(result.current.mine.vault?.metadata?.id).toBe(world.mine?.metadata?.id);
+  let outcome: AgentSetupResult | undefined;
+  let thrown: unknown;
   await act(async () => {
-    await result.current.setup.resolveAgent(REF);
+    try {
+      outcome = await result.current.setup.resolveAgent(REF);
+    } catch (err) {
+      thrown = err;
+    }
   });
-  return result.current.setup.state;
+  return { state: result.current.setup.state, outcome, thrown };
 }
 
 describe("useAgentSetup counts the logins a run reads", () => {
@@ -162,5 +209,65 @@ describe("useAgentSetup counts the logins a run reads", () => {
       agentOrg: "org_globex",
     });
     expect(state).toMatchObject({ status: "needsEnvVars", pendingSignIns: [expect.objectContaining({ address: LINEAR_URL })] });
+  });
+});
+
+describe("useAgentSetup says where a run's owed sign-ins can be saved", () => {
+  it("saves them in My vault for a run that may read it, asking no vault's permission", async () => {
+    const { state, outcome } = await resolveWith({ mine: null });
+    expect(state).toMatchObject({ status: "needsEnvVars", signInVaults: { kind: "my-vault" } });
+    expect(outcome).toMatchObject({ status: "needsEnvVars", signInVaults: { kind: "my-vault" } });
+    expect(asked).toEqual([]);
+  });
+
+  it("keeps My vault for a run of the person's organization whose conversation leaves it out", async () => {
+    const { state } = await resolveWith({ mine: null, shared: emptyVault("team"), includeMyVault: false, canEdit: true });
+    expect(state).toMatchObject({ status: "needsEnvVars", signInVaults: { kind: "my-vault" } });
+    expect(asked).toEqual([]);
+  });
+
+  it("offers a listed vault the person may edit to a run of another organization's agent", async () => {
+    const { state, outcome } = await resolveWith({
+      mine: vaultWithLogin("mine"),
+      shared: emptyVault("team"),
+      agentOrg: "org_globex",
+      canEdit: true,
+    });
+    const signInVaults = { kind: "shared", vaults: [{ org: ORG, id: "vlt_team", name: "Team logins" }] };
+    expect(state).toMatchObject({ status: "needsEnvVars", signInVaults });
+    expect(outcome).toMatchObject({ status: "needsEnvVars", signInVaults });
+    expect(asked).toEqual(["vault/vlt_team:can_edit"]);
+  });
+
+  it("names the listed vaults when the person may edit none of them", async () => {
+    const { state } = await resolveWith({
+      mine: vaultWithLogin("mine"),
+      shared: emptyVault("team"),
+      agentOrg: "org_globex",
+      canEdit: false,
+    });
+    expect(state).toMatchObject({
+      status: "needsEnvVars",
+      signInVaults: { kind: "nowhere", listed: [{ org: ORG, id: "vlt_team", name: "Team logins" }] },
+    });
+  });
+
+  it("names no vault when the conversation lists none", async () => {
+    const { state } = await resolveWith({ mine: vaultWithLogin("mine"), agentOrg: "org_globex" });
+    expect(state).toMatchObject({ status: "needsEnvVars", signInVaults: { kind: "nowhere", listed: [] } });
+    expect(asked).toEqual([]);
+  });
+
+  it("makes a permission check that fails the resolution's error", async () => {
+    const { state, outcome, thrown } = await resolveWith({
+      mine: null,
+      shared: emptyVault("team"),
+      agentOrg: "org_globex",
+      canEdit: "fails",
+    });
+    expect(outcome).toBeUndefined();
+    expect(String(thrown)).toMatch(/permission service is unavailable/);
+    expect(state.status).toBe("resolving");
+    expect(state.error?.message).toMatch(/permission service is unavailable/);
   });
 });
