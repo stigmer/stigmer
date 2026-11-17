@@ -2,7 +2,8 @@
 // (serving switch, link, embed, origins, credentials, messages, link reset),
 // every edit naming the dialog's fields on the channel as loaded. An agent
 // whose only tools are a subagent's warns and opens its credentials once the
-// subagent is read, unless the person shut the section first. A live link's
+// subagent is read, unless the person shut the section first. A link pinned
+// to an agent version is judged at that version, not the agent's head. A live link's
 // Copy writes the link to the clipboard; Reset drops unsaved message edits.
 
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
@@ -46,6 +47,8 @@ interface MockOverrides {
   baseUrl?: string;
   /** agent.getVersion: a listed subagent's pinned version. */
   getVersion?: (input: unknown) => Promise<unknown>;
+  /** agent.getByReference: the agent at a channel's pinned version. */
+  getAgentByReference?: (ref: unknown) => Promise<unknown>;
 }
 
 const CLOUD_API_BASE_URL = "https://api.stigmer.ai";
@@ -71,6 +74,7 @@ function createMockStigmer(overrides: MockOverrides = {}) {
     baseUrl: overrides.baseUrl ?? CLOUD_API_BASE_URL,
     agent: {
       getVersion: overrides.getVersion ?? vi.fn().mockRejectedValue(new Error("no version")),
+      getByReference: overrides.getAgentByReference ?? vi.fn().mockRejectedValue(new Error("no such version")),
     },
     channel: {
       create: overrides.create ?? vi.fn().mockResolvedValue({}),
@@ -162,10 +166,11 @@ function webSpec(spec?: {
   allowedOrigins?: string[];
   messages?: { rateLimited?: string; unavailable?: string; conversationEnded?: string };
   vaults?: { org: string; slug: string }[];
+  agentVersion?: string;
 }) {
-  const { enabled, vaults, ...web } = { audience: ChannelAudience.public, ...spec };
+  const { enabled, vaults, agentVersion, ...web } = { audience: ChannelAudience.public, ...spec };
   return {
-    agentRef: { org: "acme", slug: "support-agent" },
+    agentRef: { org: "acme", slug: "support-agent", ...(agentVersion !== undefined && { version: agentVersion }) },
     ...(enabled !== undefined && { enabled }),
     ...(vaults !== undefined && { vaults }),
     type: { case: "web", value: web },
@@ -183,6 +188,7 @@ function makeChatLink(
       conversationEnded?: string;
     };
     vaults?: { org: string; slug: string }[];
+    agentVersion?: string;
   },
   linkToken?: string,
 ) {
@@ -823,6 +829,22 @@ describe("ChatLinkDialog", () => {
 
       expect(screen.getByText(/this\s+chat\s+link names no vault/i)).toBeTruthy();
       expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    });
+
+    it("judges the version the link runs: a pinned version with tools warns and opens the section, though the agent has none today", async () => {
+      const getAgentByReference = vi.fn().mockImplementation(({ version }: { version?: string }) =>
+        version === "stable"
+          ? Promise.resolve({ metadata: { id: "agt_1", org: "acme", slug: "support-agent" }, spec: { plugins: [{ org: "acme", slug: "github" }] } })
+          : Promise.reject(new Error("no such version")),
+      );
+      renderOpenDialog(createMockStigmer({ getAgentByReference }), {
+        agent: makeAgent({ plugins: false }),
+        channel: makeChatLink({ enabled: true, agentVersion: "stable" }),
+      });
+
+      const toggle = screen.getByRole("button", { name: "Tool credentials", hidden: true });
+      await waitFor(() => expect(toggle.getAttribute("aria-expanded")).toBe("true"));
+      expect(screen.getByText(/this\s+chat\s+link names no vault/i)).toBeTruthy();
     });
 
     it("hides the section entirely for org-audience chat links", () => {
