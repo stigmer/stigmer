@@ -2,7 +2,8 @@
 
 // One model provider as a card: whether it serves the organization and by
 // what, the key's details where the key list is readable (Stigmer Cloud),
-// where to get a key, the models it unlocks on each engine, and the one act
+// where to get a key, the models it unlocks on each engine (left out on the
+// launcher's key step, where only the key matters), and the one act
 // the person looking can take. The act follows the server's report and who
 // is looking, never a guess: an admin of an organization missing a key gets
 // the form, a member the line naming who connects it, a laptop's runner the
@@ -95,7 +96,12 @@ export interface ProviderCardProps {
   readonly models: readonly NamedModelReadiness[];
   /** Open with the key form showing, with no Cancel (the launcher's first step). */
   readonly initiallyEditing?: boolean;
-  /** Drawn as the launcher's first step: more room, its name as a second-level heading, fewer models named. */
+  /**
+   * Drawn as the one card that stands before a run (the launcher's key
+   * step): more room, its name as a second-level heading, and no models
+   * it unlocks, since the person there needs only the key; Models &
+   * providers draws them.
+   */
   readonly prominent?: boolean;
   /** Called after a key is saved or removed; the caller asks the server again. */
   readonly onChanged?: () => void;
@@ -251,9 +257,10 @@ export function ProviderCard({
           ) : (
             <ProviderAct face={face} provider={report.provider} orgName={orgName} />
           )}
-          {/* Where to get a key, wherever this person can add one: in the
-              form on Stigmer Cloud, and for the setup command on a laptop. */}
-          {!confirming && keyingFace(face) && presentation.keysUrl !== null && (
+          {/* Where to get a key, wherever this person can add one: beside
+              the Connect button on Stigmer Cloud, and for the setup command
+              on a laptop. The open form says it in its own row. */}
+          {!confirming && !(editing && keyProvider !== null) && keyingFace(face) && presentation.keysUrl !== null && (
             <a
               href={presentation.keysUrl}
               target="_blank"
@@ -267,7 +274,7 @@ export function ProviderCard({
         </div>
       )}
 
-      <Unlocks models={models} served={served} prominent={prominent} />
+      {!prominent && <Unlocks models={models} served={served} />}
     </article>
   );
 }
@@ -380,34 +387,25 @@ export function SetupCommand({ provider }: SetupCommandProps) {
   );
 }
 
-/** How many models a card names per engine before it counts the rest: fewer on the launcher's narrower card, so a row never wraps. */
-function modelsNamed(prominent: boolean): number {
-  return prominent ? 3 : 5;
-}
+/** How many models a card names per engine before it counts the rest. */
+const MODELS_NAMED = 5;
 
 /** The models a provider unlocks, by engine. */
 function Unlocks({
   models,
   served,
-  prominent,
 }: {
   readonly models: readonly NamedModelReadiness[];
   readonly served: boolean;
-  readonly prominent: boolean;
 }) {
   const engines = HARNESS_OPTIONS.map((harness) => ({
     harness,
     models: models.filter((model) => model.harness === harness),
   })).filter((engine) => engine.models.length > 0);
   if (engines.length === 0) return null;
-  const named = modelsNamed(prominent);
+  const named = MODELS_NAMED;
   return (
-    <div
-      className={cn(
-        "stg:rounded-b-xl stg:border-t stg:border-border stg:bg-muted-faint",
-        prominent ? "stg:px-5 stg:py-3" : "stg:px-4 stg:py-3",
-      )}
-    >
+    <div className="stg:rounded-b-xl stg:border-t stg:border-border stg:bg-muted-faint stg:px-4 stg:py-3">
       <p className="stg:mb-2 stg:text-xs stg:font-medium stg:text-muted-foreground">
         {served ? "Ready to run" : "Unlocks"}
       </p>

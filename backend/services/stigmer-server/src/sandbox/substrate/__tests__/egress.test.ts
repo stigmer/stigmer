@@ -24,7 +24,12 @@
  *     the operator already lists on port 80 stays one rule;
  *   - every HTTPS rule names port 443, Substrate's default, which Substrate
  *     0.5 stores filled in, so a policy read back equals the one written;
- *   - egressDigest is equal for equal rules and differs for different ones.
+ *   - egressDigest is equal for equal rules and differs for different ones;
+ *   - configurationEgressDigest, the configuration's part the template's
+ *     name carries, is equal for an equal configuration and moves with
+ *     every lane: the backend, the public MCP lane, the operator's
+ *     cleartext destinations, HTTPS egress, the runner's own HTTPS hosts and
+ *     the operator's platform hosts (stigmer#2984).
  */
 import { describe, expect, it } from "vitest";
 
@@ -36,7 +41,11 @@ import type {
   SandboxDriverConfig,
 } from "../../provisioner.js";
 import type { SubstrateDriverSettings } from "../config.js";
-import { buildEgressRules, egressDigest } from "../egress.js";
+import {
+  buildEgressRules,
+  configurationEgressDigest,
+  egressDigest,
+} from "../egress.js";
 
 const config: SandboxDriverConfig = {
   backendEndpoint: "http://host.docker.internal:7234",
@@ -369,5 +378,33 @@ describe("egressDigest", () => {
       egressDigest(buildEgressRules(config, settings)),
     );
     expect(egressDigest([])).toMatch(/^[0-9a-f]{64}$/);
+  });
+});
+
+describe("configurationEgressDigest", () => {
+  const open = { ...settings, httpsEgress: "all" as const };
+  const base = configurationEgressDigest(config, open);
+
+  it("is equal for an equal configuration", () => {
+    expect(configurationEgressDigest({ ...config }, { ...open })).toBe(base);
+    expect(base).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it.each([
+    ["the backend lane", { ...config, backendEndpoint: "http://stigmer.stigmer.svc:7300" }, open],
+    ["a cleartext public MCP lane", { ...config, mcpPublicEndpoint: "http://stigmer-mcp.stigmer.svc:8080" }, open],
+    ["an operator's cleartext destination", config, { ...open, extraHttpEgress: [{ host: "fake-model.example", port: 18555 }] }],
+    ["HTTPS egress switched off", config, settings],
+    ["a runner's own HTTPS host", { ...config, runnerSecretEnv: { ANTHROPIC_API_KEY: "sk" } }, open],
+    ["an operator's platform HTTPS host", config, { ...open, platformHttpsHosts: ["vertex.example.com"] }],
+  ] as const)("moves with %s", (_name, changedConfig, changedSettings) => {
+    expect(configurationEgressDigest(changedConfig, changedSettings)).not.toBe(base);
+  });
+
+  it("does not move with a runner secret's value, only with the host it names", () => {
+    const keyed = { ...config, runnerSecretEnv: { ANTHROPIC_API_KEY: "sk-1" } };
+    expect(
+      configurationEgressDigest({ ...keyed, runnerSecretEnv: { ANTHROPIC_API_KEY: "sk-2" } }, open),
+    ).toBe(configurationEgressDigest(keyed, open));
   });
 });

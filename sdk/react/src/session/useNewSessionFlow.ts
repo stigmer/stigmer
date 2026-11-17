@@ -424,7 +424,10 @@ export function useNewSessionFlow(
     // touch localStorage: a browser previously used in the Console must not
     // leak its stored harness into a share/embed session.
     if (isGuest) return GUEST_LOCAL_HARNESS;
-    if (typeof window === "undefined")
+    // An app's own users are never offered the harness (the audience's
+    // contract), so a pick a browser stored under an earlier version, or in
+    // the console, must not keep steering their runs unseen.
+    if (typeof window === "undefined" || options.audience === "endUser")
       return accountDefaults?.harness ?? defaultHarness ?? DEFAULT_HARNESS;
     // Only explicit user choices are persisted (see setHarness), so a
     // stored value always outranks the account default and the embedder's
@@ -447,9 +450,9 @@ export function useNewSessionFlow(
   useEffect(() => {
     const seed = accountDefaults?.harness;
     if (isGuest || harnessTouchedRef.current || !seed) return;
-    if (typeof window !== "undefined" && localStorage.getItem(STORAGE_KEY_HARNESS)) return;
+    if (options.audience !== "endUser" && typeof window !== "undefined" && localStorage.getItem(STORAGE_KEY_HARNESS)) return;
     setHarnessRaw(seed);
-  }, [isGuest, accountDefaults?.harness]);
+  }, [isGuest, options.audience, accountDefaults?.harness]);
 
   const [agentRef, setAgentRef] = useState<ResourceRef | null>(null);
 

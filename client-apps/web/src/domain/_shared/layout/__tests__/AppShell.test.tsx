@@ -4,9 +4,11 @@
  * resolved, without a page load. A run that resolves to no session says the
  * run was not found; a failed read offers a retry instead. Off the run zone, the page's own content renders.
  * A public route (a Connect link's page, the sign-in callback a popup returns
- * to) renders with no sidebar, which would read a session it does not have. The
- * run-not-found state, the sidebars and the session zone are stubbed; their
- * wiring is pinned in their own suites.
+ * to) renders with no sidebar, which would read a session it does not have,
+ * and with no Desktop banner, which reads the organization's journey and would
+ * seed its first-seen key before the person ever signed in (stigmer#3194). The
+ * run-not-found state, the sidebars, the banner and the session zone are
+ * stubbed; their wiring is pinned in their own suites.
  */
 import type { ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -20,6 +22,7 @@ const shell = vi.hoisted(() => ({
   failing: new Set<string>(),
   retries: 0,
   openedSessions: [] as string[],
+  bannerMounts: 0,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -72,8 +75,10 @@ vi.mock("@/domain/session/SessionPage", () => ({ SessionPageInner: () => null })
 vi.mock("../Sidebar", () => ({ Sidebar: () => <nav>sidebar</nav> }));
 vi.mock("../ManagementSidebar", () => ({ ManagementSidebar: () => null }));
 vi.mock("../DesktopAppBanner", () => ({
-  DesktopAppBanner: () => null,
-  useDesktopBannerState: () => ({ visible: false, dismiss: () => undefined }),
+  ShellDesktopBanner: () => {
+    shell.bannerMounts += 1;
+    return null;
+  },
 }));
 vi.mock("../use-layout-state", () => ({
   LG_BREAKPOINT: 1024,
@@ -94,6 +99,7 @@ beforeEach(() => {
   shell.failing.clear();
   shell.retries = 0;
   shell.openedSessions.length = 0;
+  shell.bannerMounts = 0;
 });
 
 describe("web AppShell — the run zone", () => {
@@ -144,14 +150,19 @@ describe("web AppShell — the run zone", () => {
 });
 
 describe("web AppShell — the public routes", () => {
-  it.each(["/connect/a-link-secret", "/auth/oauth/callback", "/invite/abc"])("renders %s with no sidebar", (path) => {
-    renderShell(path);
-    expect(screen.getByText("page content")).toBeTruthy();
-    expect(screen.queryByText("sidebar")).toBeNull();
-  });
+  it.each(["/connect/a-link-secret", "/auth/oauth/callback", "/invite/abc", "/login", "/chat/a-share"])(
+    "renders %s with no sidebar and no Desktop banner",
+    (path) => {
+      renderShell(path);
+      expect(screen.getByText("page content")).toBeTruthy();
+      expect(screen.queryByText("sidebar")).toBeNull();
+      expect(shell.bannerMounts).toBe(0);
+    },
+  );
 
-  it("renders the sidebar on a signed-in route", () => {
+  it("renders the sidebar and mounts the Desktop banner on a signed-in route", () => {
     renderShell("/dashboard");
     expect(screen.getByText("sidebar")).toBeTruthy();
+    expect(shell.bannerMounts).toBeGreaterThan(0);
   });
 });

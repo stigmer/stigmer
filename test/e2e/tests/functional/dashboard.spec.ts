@@ -17,7 +17,7 @@ test.describe("Dashboard", () => {
     await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByText("What your organization's agents did this week.")).toBeVisible();
+    await expect(page.getByText("What your organization's agents did this week, in conversations you can see.")).toBeVisible();
   });
 
   test("an organization where nothing has run shows the journey's six steps alone", async ({ page, freshOrg }) => {

@@ -17,6 +17,11 @@
  *     trust variable at it; off, neither is there;
  *   - its name is its content: the same input the same name, a new image a
  *     new name;
+ *   - its name also carries the configuration's network lanes, which are
+ *     no part of its content: an operator's cleartext destination
+ *     narrowed, a platform HTTPS host changed, HTTPS egress off or a moved
+ *     backend each name a new template, so a sandbox awake under the old
+ *     lanes runs on another template (stigmer#2984);
  *   - a release server's release reaches the start script, and so names a
  *     new template; a development server adds nothing, so a re-pin between
  *     development builds keeps the template (stigmer/stigmer#1831);
@@ -280,6 +285,50 @@ describe("the template", () => {
     expect(envOf(dev)).not.toHaveProperty(SERVER_RELEASE_ENV);
     expect(envOf(released)[SERVER_RELEASE_ENV]).toBe("3.42.0");
     expect(released.metadata?.name).not.toBe(dev.metadata?.name);
+  });
+});
+
+describe("the template's name and the network lanes (stigmer#2984)", () => {
+  const nameOf = (
+    c: SandboxDriverConfig,
+    s: SubstrateDriverSettings,
+  ): string | undefined =>
+    buildRunnerTemplate({ config: c, settings: s, runnerMode: "local" })
+      .metadata?.name;
+  const wide = {
+    ...settings,
+    extraHttpEgress: [
+      { host: "fake-model.example", port: 18555 },
+      { host: "temporal-frontend.temporal.svc", port: 7233 },
+    ],
+    platformHttpsHosts: ["vertex.example.com"],
+  };
+  const base = nameOf(config, wide);
+
+  it("keeps the name for the same configuration, and a development re-pin changes nothing", () => {
+    expect(nameOf({ ...config }, { ...wide })).toBe(base);
+    expect(nameOf({ ...config, serverRelease: "" }, wide)).toBe(base);
+  });
+
+  it.each([
+    [
+      "an operator's cleartext destination narrowed",
+      config,
+      { ...wide, extraHttpEgress: wide.extraHttpEgress.slice(0, 1) },
+    ],
+    [
+      "a platform HTTPS host changed",
+      config,
+      { ...wide, platformHttpsHosts: ["foundry.example.com"] },
+    ],
+    ["HTTPS egress switched off", config, { ...wide, httpsEgress: "none" as const }],
+    [
+      "the backend lane moved",
+      { ...config, backendEndpoint: "http://stigmer.stigmer.svc:7300" },
+      wide,
+    ],
+  ])("names a new template for %s", (_name, c, s) => {
+    expect(nameOf(c, s)).not.toBe(base);
   });
 });
 

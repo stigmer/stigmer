@@ -16,12 +16,14 @@
 //   - the line under the first job leads to the agent page's "Make it yours"
 //     tab;
 //   - changing the instructions there saves a new version (the Versions tab
-//     counts two) and offers a run on the sample, which opens the launcher
-//     with the sample attached and the message written;
+//     counts two) and offers a run on the sample in the row under the cards,
+//     which opens the launcher with the sample attached and the message
+//     written;
 //   - "Choose a file" opens the launcher on the same agent with the message
 //     for the person's own file written; their file attaches and runs;
 //   - "Add it" makes the ready-made skill in the organization and adds it to
-//     the agent; the next run's record names the skill it loaded;
+//     the agent, and the row under the cards says so beside the run on the
+//     sample; that run's record names the skill it loaded;
 //   - the dashboard's journey card counts four of six steps done.
 //
 // Skipped on the file-gate stack, where every write gates before it runs.
@@ -125,14 +127,14 @@ test.describe("CON-08 after the first job, the console says what comes next and 
     expect(before).toContain("more than 10% over");
     await instructions.fill(before.replace("more than 10% over", "more than 5% over"));
     await change.getByRole("button", { name: "Save" }).click();
-    await expect(change.getByText("Saved as a new version.")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Saved as a new version.")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole("tab", { name: /Versions/ })).toContainText("2", { timeout: 15_000 });
     const agent = await stigmerClient.agent.getByReference({ org: freshOrg.id, slug: SLUG });
     expect(agent.spec?.instructions).toContain("more than 5% over");
 
     // Run it on the sample: the launcher, the sample attached, the message written.
     await enqueueSavingRun(control, [{ name: "variance-report.md", content: REPORT }]);
-    await change.getByRole("link", { name: "Run it on the sample" }).click();
+    await page.getByRole("link", { name: "Run it on the sample" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Run it on the sample" })).toBeVisible({
       timeout: START_SESSION_WAITS_MS.composer,
     });
@@ -164,7 +166,8 @@ test.describe("CON-08 after the first job, the console says what comes next and 
     const skillCard = page.getByRole("region", { name: "Give it a skill" });
     await skillCard.getByRole("button", { name: "Add it" }).click({ timeout: 15_000 });
     await expect(skillCard.getByText("Spreadsheet export")).toBeVisible();
-    await expect(skillCard).toContainText("is on. Its runs hand back a .csv beside the report.", { timeout: 15_000 });
+    await expect(skillCard).toContainText("Spreadsheet export is on for this agent.", { timeout: 15_000 });
+    await expect(page.getByText("Spreadsheet export is on. From now on every run also hands back a .csv beside the report.")).toBeVisible();
     const skill = await stigmerClient.skill.getByReference({ org: freshOrg.id, slug: SKILL });
     const skillId = skill.metadata?.id ?? "";
     expect(skillId).not.toBe("");
@@ -174,7 +177,7 @@ test.describe("CON-08 after the first job, the console says what comes next and 
       { name: "variance-report.md", content: REPORT },
       { name: "variance-report.csv", content: TABLE },
     ]);
-    await skillCard.getByRole("link", { name: "Run it on the sample" }).click();
+    await page.getByRole("link", { name: "Run it on the sample" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Run it on the sample" })).toBeVisible({
       timeout: START_SESSION_WAITS_MS.composer,
     });

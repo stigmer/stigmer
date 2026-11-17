@@ -2,8 +2,11 @@
  * InvitationRedemption names the organization from the preview's org_name,
  * before and after the invitation is accepted, and falls back to a plain
  * phrase when the preview carries none. A preview that fails to load
- * shows why, and Try again reads it again. The preview and redeem hooks are
- * stubbed.
+ * shows why, and Try again reads it again. Its acts read in sentence case:
+ * a signed-in visitor accepts; a signed-out one is sent to sign in by the
+ * same words, or, when the host can open its sign-up screen (`onSignUp`),
+ * is offered a new account first and sign-in second (stigmer#3204). The
+ * preview and redeem hooks are stubbed.
  */
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
@@ -73,5 +76,44 @@ describe("InvitationRedemption when the preview fails to load", () => {
     expect(screen.queryByRole("button", { name: /accept invitation/i })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(refetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("InvitationRedemption's acts", () => {
+  it("offers a signed-in visitor one act, in sentence case", () => {
+    render(<InvitationRedemption token="tok_1" isAuthenticated onSignUp={() => {}} />);
+
+    expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual(["Accept invitation"]);
+  });
+
+  it("sends a signed-out visitor to sign in by one act when the host offers no sign-up", () => {
+    const onAuthRequired = vi.fn();
+    render(<InvitationRedemption token="tok_1" isAuthenticated={false} onAuthRequired={onAuthRequired} />);
+
+    expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual(["Accept invitation"]);
+    fireEvent.click(screen.getByRole("button", { name: "Accept invitation" }));
+    expect(onAuthRequired).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers a signed-out visitor a new account first and sign-in second when the host can sign them up", () => {
+    const onAuthRequired = vi.fn();
+    const onSignUp = vi.fn();
+    render(
+      <InvitationRedemption token="tok_1" isAuthenticated={false} onAuthRequired={onAuthRequired} onSignUp={onSignUp} />,
+    );
+
+    expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual([
+      "Create your account and join",
+      "I already have an account",
+    ]);
+    expect(screen.queryByRole("button", { name: "Accept invitation" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Create your account and join" }));
+    expect(onSignUp).toHaveBeenCalledTimes(1);
+    expect(onAuthRequired).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "I already have an account" }));
+    expect(onAuthRequired).toHaveBeenCalledTimes(1);
+    expect(onSignUp).toHaveBeenCalledTimes(1);
   });
 });
