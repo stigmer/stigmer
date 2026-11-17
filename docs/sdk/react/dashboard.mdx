@@ -36,6 +36,7 @@ function useDashboardFailedRuns(org: string | null | undefined): UseDashboardFai
     error: { type: "Error | null", description: "" },
     failedRuns: { type: "readonly DashboardFailedRun[]", description: "" },
     isLoading: { type: "boolean", description: "" },
+    refetch: { type: "() => void", description: "Reads the failures again (the card's Try again)." },
   }}
 />
 
@@ -151,8 +152,9 @@ A normalized entry representing a failed run.
 
 Widget showing recent failed runs, newest first.
 
-Each row includes the run name, a truncated error, and a relative
-timestamp.
+Each row includes the run name, its failure's line, a relative timestamp
+and, for a host that routes runs, a View act. A read that failed says so,
+with Try again for a host that passes `onRetry`.
 
 
 ### DashboardFailedRunsProps
@@ -160,8 +162,10 @@ timestamp.
 <TypeTable
   type={{
     className: { type: "string", description: "" },
+    error: { type: "Error | null", description: "Why the failures could not be read; the card says it instead of \"No recent failures\"." },
     failedRuns: { type: "readonly DashboardFailedRun[]", description: "", required: true },
     isLoading: { type: "boolean", description: "", required: true },
+    onRetry: { type: "() => void", description: "Reads the failures again; the failed read offers Try again with it." },
     onViewClick: { type: "(id: string) => void", description: "Called when the user clicks \"View\" on a failed run." },
   }}
 />
@@ -229,7 +233,7 @@ operational metrics.
 
 Layout:
 - Row 1: KPI stat cards (Active | Completed | Failed | Tokens)
-- Row 2: Recent Failures
+- Row 2: Recent failures
 
 For a host that passes `firstStepLinks`, the journey's card
 ([`DashboardFirstSteps`](#dashboardfirststeps)) takes both rows' place while nothing has

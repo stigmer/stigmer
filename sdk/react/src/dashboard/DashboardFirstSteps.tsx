@@ -14,7 +14,9 @@ import { Check } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import { Button } from "../button/Button.js";
 import { LinkButton } from "../button/LinkButton.js";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { cardClasses, cardHeaderClasses } from "../internal/surface/Card.js";
+import { ListRow } from "../internal/surface/List.js";
 import { useJourney, type JourneyStep, type JourneyStepId, type UseJourneyReturn } from "../journey/useJourney.js";
 import type { JourneyLinks, RenderJourneyLink } from "../journey/links.js";
 
@@ -114,7 +116,7 @@ export function DashboardFirstSteps({ org, links, renderLink = anchor, journey: 
           </Button>
         )}
       </div>
-      <ol className="stg:m-0 stg:list-none stg:divide-y stg:divide-border-muted stg:p-0">
+      <ol className={cn(UNSTYLED_LIST, "stg:divide-y stg:divide-border-muted")}>
         {journey.steps.map((step) => (
           <StepRow key={step.id} step={step} href={step.state === "current" ? hrefOf(step.id) : undefined} renderLink={renderLink} />
         ))}
@@ -123,6 +125,7 @@ export function DashboardFirstSteps({ org, links, renderLink = anchor, journey: 
   );
 }
 
+/** One step as a list row: its marker leading, its title, its line once it is done or current, the current one's act. */
 function StepRow({
   step,
   href,
@@ -135,35 +138,42 @@ function StepRow({
   const done = step.state === "done";
   const current = step.state === "current";
   return (
-    <li
+    <ListRow
       aria-current={current ? "step" : undefined}
-      className={cn("stg:flex stg:items-center stg:gap-4 stg:px-3.5", current ? "stg:py-4" : "stg:py-2.5")}
-    >
-      <span
-        aria-hidden="true"
-        className={cn(
-          "stg:flex stg:size-7 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:text-xs stg:font-semibold",
-          done
-            ? "stg:bg-foreground stg:text-background"
-            : current
-              ? "stg:border-2 stg:border-foreground stg:text-foreground"
-              : "stg:border stg:border-border stg:text-muted-foreground",
-        )}
-      >
-        {done ? <Check className="stg:size-3.5" /> : step.number}
-      </span>
-      <div className="stg:min-w-0 stg:flex-1">
-        <p className={cn("stg:m-0 stg:text-sm stg:font-medium", current ? "stg:text-foreground" : "stg:text-muted-foreground")}>
+      leading={<StepMarker number={step.number} done={done} current={current} />}
+      name={
+        <span className={cn(!done && !current && "stg:text-muted-foreground")}>
           {step.title}
           {done && <span className="stg:sr-only"> (done)</span>}
-        </p>
-        {(done || current) && <p className="stg:m-0 stg:mt-0.5 stg:text-sm stg:text-muted-foreground">{step.line}</p>}
-      </div>
-      {current && href !== undefined && (
-        <LinkButton href={href} size="xs" renderLink={renderLink}>
-          {ACTS[step.id]}
-        </LinkButton>
+        </span>
+      }
+      description={done || current ? step.line : undefined}
+      trailing={
+        current && href !== undefined ? (
+          <LinkButton href={href} size="xs" renderLink={renderLink}>
+            {ACTS[step.id]}
+          </LinkButton>
+        ) : undefined
+      }
+    />
+  );
+}
+
+/** A step's marker: a filled check when done, its number ringed when current, quiet after. */
+function StepMarker({ number, done, current }: { readonly number: number; readonly done: boolean; readonly current: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "stg:flex stg:size-6 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:text-xs stg:font-semibold",
+        done
+          ? "stg:bg-foreground stg:text-background"
+          : current
+            ? "stg:border-2 stg:border-foreground stg:text-foreground"
+            : "stg:border stg:border-border stg:text-muted-foreground",
       )}
-    </li>
+    >
+      {done ? <Check className="stg:size-3.5" /> : number}
+    </span>
   );
 }

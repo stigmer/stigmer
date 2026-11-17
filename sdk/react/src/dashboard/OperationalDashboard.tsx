@@ -10,8 +10,9 @@
 // person the server lets make agents; a member sees the figures. "Hide"
 // removes it for this person in this organization, remembered in this
 // browser, and a hidden card makes none of its reads. Figures that could
-// not be read are said with a retry, never drawn as zeros, and no
-// organization at all is said.
+// not be read are said with a retry, never drawn as zeros; failures that
+// could not be read are said with a retry, never as "No recent failures";
+// and no organization at all is said.
 
 import { memo } from "react";
 import { cn } from "@stigmer/design-tokens";
@@ -24,6 +25,7 @@ import { useJourney } from "../journey/useJourney.js";
 import { useJourneyHidden } from "../journey/journeyHidden.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
+import { SectionHeadingLevelContext } from "../resource-detail/headingLevel.js";
 
 export interface OperationalDashboardProps {
   /** The organization whose runs and usage the dashboard shows. */
@@ -48,7 +50,7 @@ export interface OperationalDashboardProps {
  *
  * Layout:
  * - Row 1: KPI stat cards (Active | Completed | Failed | Tokens)
- * - Row 2: Recent Failures
+ * - Row 2: Recent failures
  *
  * For a host that passes `firstStepLinks`, the journey's card
  * ({@link DashboardFirstSteps}) takes both rows' place while nothing has
@@ -83,7 +85,7 @@ export const OperationalDashboard = memo(function OperationalDashboard({
   };
   const { summary, isLoading: summaryLoading, error: summaryError, refetch } = useDashboardSummary(summaryOptions);
 
-  const { failedRuns, isLoading: failedLoading } = useDashboardFailedRuns(org);
+  const { failedRuns, isLoading: failedLoading, error: failedError, refetch: refetchFailed } = useDashboardFailedRuns(org);
 
   const { hidden, hide } = useJourneyHidden(org ?? "");
   const journeyOn = firstStepLinks !== undefined && !!org && !hidden;
@@ -110,6 +112,8 @@ export const OperationalDashboard = memo(function OperationalDashboard({
   }
 
   return (
+    // The page's title is its h1; each card's title sits one level under it.
+    <SectionHeadingLevelContext.Provider value={2}>
     <section
       aria-label="Platform dashboard"
       className={cn("stg:space-y-6", className)}
@@ -122,9 +126,16 @@ export const OperationalDashboard = memo(function OperationalDashboard({
         <>
           {/* Figures that could not be read are not drawn as zeros. */}
           {!summaryError && <DashboardKPICards summary={summary} isLoading={figuresLoading} />}
-          <DashboardFailedRuns failedRuns={failedRuns} isLoading={failedLoading} onViewClick={onFailedRunClick} />
+          <DashboardFailedRuns
+            failedRuns={failedRuns}
+            isLoading={failedLoading}
+            error={failedError}
+            onRetry={refetchFailed}
+            onViewClick={onFailedRunClick}
+          />
         </>
       )}
     </section>
+    </SectionHeadingLevelContext.Provider>
   );
 });
