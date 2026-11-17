@@ -1269,7 +1269,7 @@
       "caption": "Models & providers: no providers on this server",
       "narrow": false,
       "built": [],
-      "unbuilt": "No scene's server offers no provider; ModelsHub's empty state is pinned by its tests",
+      "unbuilt": "No scene's server offers no provider; ModelsHub.test.tsx pins the empty state (\"says a server offering no provider\")",
       "words": [
         {
           "text": "Models & providers",

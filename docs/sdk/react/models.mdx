@@ -614,7 +614,7 @@ What the hub and the launcher's connect step draw from.
     error: { type: "Error | null", description: "The readiness read's error, or `null`.", required: true },
     isLoading: { type: "boolean", description: "`true` until the readiness answer and, where it matters, the permission check have settled.", required: true },
     keyOf: { type: "(provider: string) => ProviderKey | undefined", description: "The key that serves a provider, own or inherited, when the key list is readable (Stigmer Cloud).", required: true },
-    manageError: { type: "Error | null", description: "Why the check of who may save and remove keys failed, or `null`. The acts on keys wait for the server's yes, so a failed check hides them and is said, never shown as a member's line." },
+    manageError: { type: "Error | null", description: "Why the check of who may save and remove keys failed, or `null`. The acts on keys wait for the server's yes, so a failed check hides them (`viewer.unconfirmed`) and is said, never shown as a member's line." },
     models: { type: "readonly NamedModelReadiness[] | null", description: "Every model on every engine, named by the registry; `null` until the server answers.", required: true },
     org: { type: "string", description: "", required: true },
     orgName: { type: "string", description: "The organization's name as people read it.", required: true },
@@ -752,6 +752,7 @@ Who is looking, for [`providerFace`](#providerface).
   type={{
     canManage: { type: "boolean", description: "Whether the person may save and remove the organization's keys (`can_manage_billing`).", required: true },
     local: { type: "boolean", description: "Whether the server runs on this machine (the open-source edition's local mode).", required: true },
+    unconfirmed: { type: "boolean", description: "The check of who may manage the organization's keys failed: neither the form nor a member's line is offered, since either could be wrong. The page says the failure with a retry." },
   }}
 />
 

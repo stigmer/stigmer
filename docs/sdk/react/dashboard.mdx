@@ -162,7 +162,7 @@ with Try again for a host that passes `onRetry`.
 <TypeTable
   type={{
     className: { type: "string", description: "" },
-    error: { type: "Error | null", description: "Why the failures could not be read; the card says it instead of \"No recent failures\"." },
+    error: { type: "Error | null", description: "Why the failures could not be read. With no failures held it is said, with Try again, never as \"No recent failures\"; failures already read stay shown through a refresh that fails." },
     failedRuns: { type: "readonly DashboardFailedRun[]", description: "", required: true },
     isLoading: { type: "boolean", description: "", required: true },
     onRetry: { type: "() => void", description: "Reads the failures again; the failed read offers Try again with it." },

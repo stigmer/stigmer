@@ -14,6 +14,9 @@ import { describe, it, expect, afterEach, beforeAll } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { ProviderAvailability } from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
 import { ProviderKeyCheck } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/api_pb";
+import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
+import { GetModelReadinessOutputSchema } from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
 import type { DeploymentMode } from "@stigmer/client";
 import { ModelsHub } from "../hub/ModelsHub";
 import {
@@ -290,16 +293,32 @@ describe("ModelsHub", () => {
     expect(within(anthropic).getByText("Connected")).toBeTruthy();
   });
 
-  it("offers no act on a key when the check of who may manage keys fails, and says so with a retry", async () => {
+  it("offers no act on a key when the check of who may manage keys fails, says so, and asks again on Try again", async () => {
     const fake = server();
     const calls = fakeClient(fake);
-    calls.checkMyPermission.mockRejectedValue(new Error("the permission service did not answer"));
+    calls.checkMyPermission.mockRejectedValueOnce(new ConnectError("the permission service did not answer", Code.Unavailable));
     render(<ModelsHub org={ORG_ID} />, { wrapper: readinessWrapper(calls.client) });
 
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("Couldn't check who may change the keys.");
     const anthropic = await card("Anthropic");
     expect(within(anthropic).queryByRole("button", { name: "Connect Anthropic" })).toBeNull();
+    // Neither the form nor a member's line: who may connect it is not known.
+    expect(within(anthropic).queryByText(/An admin of .* connects Anthropic/)).toBeNull();
+
+    fireEvent.click(within(alert).getByRole("button", { name: "Try again" }));
+    // The check is asked again; on the server's yes the acts come back.
+    expect(await within(await card("Anthropic")).findByRole("button", { name: "Connect Anthropic" })).toBeTruthy();
+    expect(screen.queryByText("Couldn't check who may change the keys.")).toBeNull();
+  });
+
+  it("says a server offering no provider, with no providers to list and no defaults to pick", async () => {
+    renderHub(server({ readiness: create(GetModelReadinessOutputSchema, { providers: [], models: [] }) }));
+
+    expect(await screen.findByText("No model providers on this server")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Providers" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Your default models" })).toBeNull();
+    expect(screen.queryByRole("article")).toBeNull();
   });
 
   it("offers an own key's endpoint on a replace, with the endpoint field's hint, and saves against it", async () => {

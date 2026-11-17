@@ -58,7 +58,7 @@ export interface ModelsHubData {
   /**
    * Why the check of who may save and remove keys failed, or `null`. The
    * acts on keys wait for the server's yes, so a failed check hides them
-   * and is said, never shown as a member's line.
+   * (`viewer.unconfirmed`) and is said, never shown as a member's line.
    */
   readonly manageError?: Error | null;
   /** Asks the server again who may save and remove keys. */
@@ -153,7 +153,7 @@ export function useModelsHubData(org: string | null): ModelsHubData {
     () => ({
       org: orgId,
       orgName: nameOfOrg(orgId) ?? "this organization",
-      viewer: { canManage, local },
+      viewer: { canManage, local, unconfirmed: asksPermission && manage.error !== null },
       providers: readiness.providers,
       models,
       keyOf,

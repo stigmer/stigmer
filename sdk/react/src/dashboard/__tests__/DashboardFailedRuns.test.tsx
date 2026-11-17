@@ -50,6 +50,19 @@ describe("DashboardFailedRuns", () => {
     expect(onRetry).toHaveBeenCalledOnce();
   });
 
+  it("keeps the failures it already read when a later refresh fails", () => {
+    render(
+      <DashboardFailedRuns
+        failedRuns={runs}
+        isLoading={false}
+        error={new ConnectError("the run service did not answer in time", Code.Unavailable)}
+        onRetry={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByText("Triage inbox")).toBeTruthy();
+  });
+
   it("lists each run and routes View with its id", () => {
     const onViewClick = vi.fn();
     render(<DashboardFailedRuns failedRuns={runs} isLoading={false} onViewClick={onViewClick} />);

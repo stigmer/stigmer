@@ -23,7 +23,11 @@ import { formatRelativeTime } from "../activity/format-relative-time.js";
 export interface DashboardFailedRunsProps {
   readonly failedRuns: readonly DashboardFailedRun[];
   readonly isLoading: boolean;
-  /** Why the failures could not be read; the card says it instead of "No recent failures". */
+  /**
+   * Why the failures could not be read. With no failures held it is said,
+   * with Try again, never as "No recent failures"; failures already read
+   * stay shown through a refresh that fails.
+   */
   readonly error?: Error | null;
   /** Reads the failures again; the failed read offers Try again with it. */
   readonly onRetry?: () => void;
@@ -71,8 +75,10 @@ export const DashboardFailedRuns = memo(function DashboardFailedRuns({
   }
 
   // Said on the page, as the figures' failure is: the failed tint inside a
-  // card would put its muted line under the contrast floor in dark.
-  if (error) {
+  // card would put its muted line under the contrast floor in dark. A
+  // refresh that fails after a read that worked keeps what was read: the
+  // card says the failure only when it holds no failures to show.
+  if (error && failedRuns.length === 0) {
     return (
       <ErrorMessage
         error={error}

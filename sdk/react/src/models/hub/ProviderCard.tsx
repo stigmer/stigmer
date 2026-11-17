@@ -58,6 +58,12 @@ export interface ProviderViewer {
   readonly canManage: boolean;
   /** Whether the server runs on this machine (the open-source edition's local mode). */
   readonly local: boolean;
+  /**
+   * The check of who may manage the organization's keys failed: neither the
+   * form nor a member's line is offered, since either could be wrong. The
+   * page says the failure with a retry.
+   */
+  readonly unconfirmed?: boolean;
 }
 
 /** The act a card offers for a provider in `availability`, for `viewer`. */
@@ -65,6 +71,8 @@ export function providerFace(availability: ProviderAvailability, viewer: Provide
   if (availability.state === "served") return "served";
   if (availability.state === "unknown") return "unknown";
   if (availability.scope === "runners") return viewer.local ? "local-command" : "runners-line";
+  // Unknown who may connect it: no act, as for a provider the server cannot see.
+  if (viewer.unconfirmed === true) return "unknown";
   return viewer.canManage ? "admin-form" : "member-line";
 }
 
