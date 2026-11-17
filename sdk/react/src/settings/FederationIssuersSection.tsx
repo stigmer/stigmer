@@ -46,7 +46,9 @@ export function FederationIssuersSection() {
     { fail: "closed" },
   );
   const canCreate = !createCheck.isLoading && createCheck.allowed;
-  const deniedCreate = !createCheck.isLoading && !createCheck.allowed;
+  // A check that failed is not a denial: only the server's no names the admins.
+  const deniedCreate =
+    !createCheck.isLoading && !createCheck.allowed && createCheck.error === null;
 
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
   const startCreate = useCallback(() => setFlow({ phase: "creating" }), []);
