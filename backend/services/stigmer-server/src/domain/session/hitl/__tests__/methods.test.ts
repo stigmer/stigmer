@@ -599,6 +599,9 @@ describe("the answer core's edges", () => {
     expect(run.status?.error).toBe(
       "Workflow backing this execution is no longer running. Execution has been marked as failed.",
     );
+    // The ending names the platform's fault, as the workflow's own failures do.
+    expect([run.status?.stopCause, run.status?.stopDetail?.kind]).toEqual(["failed", "internal"]);
+    expect(run.status?.completedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
     expect(run.status?.fileChanges.map((cs) => cs.id)).toEqual([`${RUN}:0`]);
     expect(observed.map((t) => [t.oldPhase, t.newPhase, t.run.metadata?.id])).toEqual([
       [RunPhase.RUN_WAITING_FOR_APPROVAL, RunPhase.RUN_FAILED, RUN],
@@ -622,7 +625,7 @@ describe("the answer core's edges", () => {
       engineState: () => ({ connected: true, engine: gone }) as ExecutionEngineState,
       store: faulty({
         writeResourceAppendingEvents: ((...args: Parameters<Store["writeResourceAppendingEvents"]>) =>
-          // The answer's write lands; the reconcile's overwrite fails.
+          // The answer's write lands; the reconcile's write fails.
           ++writes === 1
             ? temp.store.writeResourceAppendingEvents(...args)
             : Promise.reject(new Error("disk"))) as Store["writeResourceAppendingEvents"],

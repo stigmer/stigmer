@@ -100,8 +100,13 @@ export interface FakeLlmUpstreamOptions {
 // accepts it, so two callers whose order is not fixed (a turn and the
 // conversation title the runner asks for beside it) each get their own.
 // With no `matches` anywhere, the queue is strictly first in, first out.
+// An entry with `repeat` is a standing answer: it answers every request it
+// accepts and stays queued, for a long-lived stack whose callers ask the
+// same thing many times (the coding-agent question bank's fixture, whose
+// agents answer every try alike). Give it `matches`, or it answers all.
 export type UpstreamScript = UpstreamAnswer & {
   readonly matches?: (request: CapturedUpstreamRequest) => boolean;
+  readonly repeat?: boolean;
 };
 
 type UpstreamAnswer =
@@ -233,7 +238,7 @@ export class FakeLlmUpstream {
     }
     const request = this.captured[this.captured.length - 1]!;
     const index = this.scripts.findIndex((script) => script.matches === undefined || script.matches(request));
-    const scripted = index === -1 ? undefined : this.scripts.splice(index, 1)[0];
+    const scripted = index === -1 ? undefined : this.scripts[index]!.repeat === true ? this.scripts[index] : this.scripts.splice(index, 1)[0];
     if (scripted === undefined && !this.defaultReply && this.defaultError === undefined) {
       writeJson(res, 500, { error: `FakeLlmUpstream: no queued response (consumed ${this.consumed})` });
       return;

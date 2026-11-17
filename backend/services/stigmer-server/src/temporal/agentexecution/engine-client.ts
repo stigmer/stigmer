@@ -1,7 +1,8 @@
 /**
  * The ConnectedExecutionEngine implementation: workflow start, the
- * approval-gate signal, and the lifecycle operations (pause/resume
- * signals, cancel, terminate).
+ * approval-gate signal, the lifecycle operations (pause/resume
+ * signals, cancel, terminate), and the one read, whether a run's workflow
+ * is still alive (a describe of the pinned workflow id).
  *
  * The domain models the engine as the ConnectedExecutionEngine seam
  * (src/domain/agentexecution/engine.ts); this module fills it. Dispatch
@@ -34,7 +35,7 @@
  *
  * Proven by the agentexecution suites on local-execution.
  */
-import type { Client } from "@temporalio/client";
+import type { Client, WorkflowExecutionStatusName } from "@temporalio/client";
 import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { WorkflowNotFoundError } from "@temporalio/common";
 
@@ -47,6 +48,7 @@ import {
   type ExecutionEngineState,
   type ExecutionEngineStateProvider,
   type StartInvokeWorkflowInput,
+  type WorkflowLiveness,
 } from "../../domain/run/engine.js";
 import type { AgentExecutionTemporalConfig } from "../../domain/run/temporal/config.js";
 import { runCredentialForDispatch } from "../../runnerauth/dispatch-credential.js";
@@ -192,6 +194,22 @@ export class TemporalExecutionEngine implements ConnectedExecutionEngine {
     }
   }
 
+  async workflowLiveness(executionId: string): Promise<WorkflowLiveness> {
+    const handle = this.deps.client.workflow.getHandle(
+      invokeWorkflowIdFor(executionId),
+    );
+    let status: WorkflowExecutionStatusName;
+    try {
+      status = (await handle.describe()).status.name;
+    } catch (error) {
+      if (error instanceof WorkflowNotFoundError) {
+        return "not_found";
+      }
+      throw error;
+    }
+    return livenessOf(status, executionId);
+  }
+
   private async signal(
     executionId: string,
     signalName: string,
@@ -204,6 +222,36 @@ export class TemporalExecutionEngine implements ConnectedExecutionEngine {
       await handle.signal(signalName, ...args);
     } catch (error) {
       throw mapNotFound(error, executionId);
+    }
+  }
+}
+
+/**
+ * A described workflow's liveness. RUNNING and PAUSED (an operator's pause
+ * in Temporal; the workflow resumes when they unpause it) are alive; every
+ * closed status is not. One workflow id is one run of the workflow (it
+ * never continues as new), so CONTINUED_AS_NEW is closed as well. A status
+ * the SDK cannot name (UNSPECIFIED, UNKNOWN) throws: the caller asks again
+ * later rather than end a run on it.
+ */
+function livenessOf(status: WorkflowExecutionStatusName, executionId: string): WorkflowLiveness {
+  switch (status) {
+    case "RUNNING":
+    case "PAUSED":
+      return "open";
+    case "COMPLETED":
+    case "FAILED":
+    case "CANCELLED":
+    case "TERMINATED":
+    case "TIMED_OUT":
+    case "CONTINUED_AS_NEW":
+      return "closed";
+    case "UNSPECIFIED":
+    case "UNKNOWN":
+      throw new Error(`workflow status ${status} for execution ${executionId} cannot be read`);
+    default: {
+      const unhandled: never = status;
+      throw new Error(`workflow status ${String(unhandled)} for execution ${executionId} cannot be read`);
     }
   }
 }

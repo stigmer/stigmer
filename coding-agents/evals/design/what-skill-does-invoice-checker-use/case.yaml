@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: what-skill-does-invoice-checker-use
+context:
+  scaffold_script: scaffold.sh

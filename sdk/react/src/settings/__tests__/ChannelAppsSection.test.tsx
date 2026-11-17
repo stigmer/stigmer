@@ -204,4 +204,22 @@ describe("ChannelAppsSection", () => {
     renderSection();
     expect(screen.getByText("Add your own Slack app to give the bot this organization's name and icon, or a Meta app to connect WhatsApp.")).toBeTruthy();
   });
+
+  it("names the open app on the page, with a way back to the list", () => {
+    stubs.apps = [SLACK];
+    stubs.allowed = new Set(["can_edit"]);
+    render(
+      <StigmerContext.Provider value={CLIENT}>
+        <DeploymentModeContext.Provider value={"cloud"}>
+          <ChannelAppsSection />
+        </DeploymentModeContext.Provider>
+      </StigmerContext.Provider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Edit Acme Slack/ }));
+    expect(screen.getByRole("heading", { level: 2, name: "Acme Slack" })).toBeTruthy();
+    // The panel draws no second name under the page's title.
+    expect(screen.queryByRole("heading", { level: 3, name: "Acme Slack" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Channel apps" }));
+    expect(screen.getByRole("heading", { level: 2, name: "Channel apps" })).toBeTruthy();
+  });
 });

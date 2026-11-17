@@ -156,6 +156,20 @@ describe("FakeLlmUpstream in the install journeys' modes", () => {
     expect((await post(upstream, "/v1/messages", { model: "m", messages: [] })).status).toBe(200);
   });
 
+  it("keeps a standing answer queued for every request it accepts, ahead of the entries behind it", async () => {
+    const upstream = await started({ defaultReply: true });
+    const forReconciler = (request: { readonly body: unknown }): boolean => JSON.stringify(request.body).includes("reconcile");
+    upstream.enqueue({ kind: "error", status: 400, body: { error: "standing" }, matches: forReconciler, repeat: true });
+    upstream.enqueue({ kind: "error", status: 529, body: { error: "once" } });
+    for (let i = 0; i < 3; i++) {
+      expect((await post(upstream, "/v1/messages", { model: "m", system: "You reconcile.", messages: [] })).status).toBe(400);
+    }
+    // A request it does not accept takes the one-shot entry, then the mode's default.
+    expect((await post(upstream, "/v1/messages", { model: "m", messages: [] })).status).toBe(529);
+    expect((await post(upstream, "/v1/messages", { model: "m", messages: [] })).status).toBe(200);
+    expect((await post(upstream, "/v1/messages", { model: "m", system: "You reconcile.", messages: [] })).status).toBe(400);
+  });
+
   it("listens on the host it is given, and reports its port for another host name", async () => {
     const upstream = await started({ defaultReply: true, host: "0.0.0.0" });
     expect(upstream.url()).toBe(`http://127.0.0.1:${upstream.port()}`);

@@ -13,9 +13,13 @@
  * and an answer to a waiting tool use is recorded but skips the
  * resolved-gate signal with a WARN (domain/session/hitl/answer.ts).
  *
- * The connected variant's surface carries exactly the operations THIS
- * controller consumes; the temporal implementation owns them. Operations the controller does not consume are
- * not pre-declared.
+ * The connected variant's surface carries exactly the operations the
+ * domain consumes; the temporal implementation owns them. Operations
+ * nothing consumes are not pre-declared. One of them is a read, not a
+ * command: whether a run's workflow is still alive (workflowLiveness),
+ * which the stalled-run checker asks so a working run whose workflow is
+ * gone is ended rather than left working forever (stalled-runs.ts,
+ * stigmer#3120).
  */
 import type { RequestContext } from "../../pipeline/request-context.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
@@ -57,7 +61,21 @@ export interface ConnectedExecutionEngine {
   signalResume(executionId: string): Promise<void>;
   cancelWorkflow(executionId: string): Promise<void>;
   terminateWorkflow(executionId: string, reason: string): Promise<void>;
+
+  /**
+   * Whether the execution's workflow is still alive: `open` while it runs
+   * or an operator has paused it, `closed` once it ended in any way, and
+   * `not_found` when the engine holds no such workflow (closed past its
+   * retention, or its history lost). A status the engine cannot name
+   * throws, like any other fault, so the caller asks again later and never
+   * ends a run on an answer it could not read. The stalled-run checker
+   * (stalled-runs.ts) ends a working run whose workflow is not open.
+   */
+  workflowLiveness(executionId: string): Promise<WorkflowLiveness>;
 }
+
+/** What workflowLiveness answers (ConnectedExecutionEngine). */
+export type WorkflowLiveness = "open" | "closed" | "not_found";
 
 /**
  * The slim workflow-start input (the workflow input plus the dispatch
