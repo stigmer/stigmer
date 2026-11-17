@@ -22,6 +22,7 @@
  * the entry, and storage that throws breaks nothing.
  * The viewer, and how a refusal is read, are pinned in @stigmer/react-sdk.
  */
+import { renderToString } from "react-dom/server";
 import type { ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, render, screen, within } from "@testing-library/react";
@@ -355,6 +356,13 @@ describe("web SessionLauncher", () => {
       });
 
       expect(page.navigated).toEqual(["ses_1"]);
+    });
+
+    it("is never drawn by a server render, which has no tab storage", () => {
+      joined("org_acme");
+      const html = renderToString(<SessionLauncher />);
+
+      expect(html).not.toContain("joined");
     });
 
     it.each(["not json", "null", "42", JSON.stringify({ name: "Acme Books" }), JSON.stringify({ org: "" }), JSON.stringify({ org: 7 })])(
