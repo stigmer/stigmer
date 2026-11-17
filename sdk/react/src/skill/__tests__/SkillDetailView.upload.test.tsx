@@ -7,7 +7,13 @@
  * answered, or over a primary act the host passes itself (CON-01).
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
@@ -18,7 +24,10 @@ import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb"
 import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/query_pb";
 import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
 import { StigmerContext } from "@stigmer/react-core";
-import { SkillDetailView, type SkillDetailViewProps } from "../SkillDetailView.js";
+import {
+  SkillDetailView,
+  type SkillDetailViewProps,
+} from "../SkillDetailView.js";
 import { PLUGIN_LABEL } from "../../plugin/useManagingPlugin.js";
 
 afterEach(cleanup);
@@ -52,21 +61,47 @@ function renderView({ viewer, fromPlugin = false, props = {} }: Setup) {
       },
     });
     service(PluginQueryController, {
-      get: () => create(PluginSchema, { metadata: { id: "plg_1", org: "acme", slug: "ledger", name: "Ledger" } }),
+      get: () =>
+        create(PluginSchema, {
+          metadata: {
+            id: "plg_1",
+            org: "acme",
+            slug: "ledger",
+            name: "Ledger",
+          },
+        }),
     });
     service(GrantQueryController, {
       checkMyPermission: (input) => {
-        asked.push({ relation: input.relation, kind: input.resource?.kind ?? "", id: input.resource?.id ?? "" });
-        return viewer === "asking" ? new Promise<never>(() => {}) : { isAuthorized: viewer === "admin" };
+        asked.push({
+          relation: input.relation,
+          kind: input.resource?.kind ?? "",
+          id: input.resource?.id ?? "",
+        });
+        return viewer === "asking"
+          ? new Promise<never>(() => {})
+          : { isAuthorized: viewer === "admin" };
       },
     });
   });
-  const client = new Stigmer({ baseUrl: "/", getAccessToken: () => "t", customTransport: transport });
+  const client = new Stigmer({
+    baseUrl: "/",
+    getAccessToken: () => "t",
+    customTransport: transport,
+  });
   const wrapper = ({ children }: { children: ReactNode }) => (
     <StigmerContext.Provider value={client}>{children}</StigmerContext.Provider>
   );
   const onUploadNewVersion = vi.fn();
-  render(<SkillDetailView org="acme" slug="triage" onUploadNewVersion={onUploadNewVersion} {...props} />, { wrapper });
+  render(
+    <SkillDetailView
+      org="acme"
+      slug="triage"
+      onUploadNewVersion={onUploadNewVersion}
+      {...props}
+    />,
+    { wrapper },
+  );
   return { asked, onUploadNewVersion };
 }
 
@@ -79,7 +114,11 @@ describe("SkillDetailView: Upload a new version", () => {
     const button = await screen.findByRole("button", UPLOAD);
     expect(button.className).toContain("stg:border-border");
     expect(button.className).not.toContain("stg:bg-primary ");
-    expect(asked).toContainEqual({ relation: "can_create_skill", kind: "organization", id: "acme" });
+    expect(asked).toContainEqual({
+      relation: "can_create_skill",
+      kind: "organization",
+      id: "acme",
+    });
     fireEvent.click(button);
     expect(onUploadNewVersion).toHaveBeenCalledOnce();
   });
@@ -88,7 +127,9 @@ describe("SkillDetailView: Upload a new version", () => {
     const { asked } = renderView({ viewer: "member" });
 
     await screen.findByRole("heading", { name: "triage" });
-    await waitFor(() => expect(asked.some((a) => a.relation === "can_create_skill")).toBe(true));
+    await waitFor(() =>
+      expect(asked.some((a) => a.relation === "can_create_skill")).toBe(true),
+    );
     expect(screen.queryByRole("button", UPLOAD)).toBeNull();
   });
 
@@ -107,7 +148,10 @@ describe("SkillDetailView: Upload a new version", () => {
   });
 
   it("asks nothing and offers nothing when the host names no Upload skill page", async () => {
-    const { asked } = renderView({ viewer: "admin", props: { onUploadNewVersion: undefined } });
+    const { asked } = renderView({
+      viewer: "admin",
+      props: { onUploadNewVersion: undefined },
+    });
 
     await screen.findByRole("heading", { name: "triage" });
     expect(screen.queryByRole("button", UPLOAD)).toBeNull();
@@ -115,7 +159,12 @@ describe("SkillDetailView: Upload a new version", () => {
   });
 
   it("keeps a primary act the host passes itself", async () => {
-    renderView({ viewer: "admin", props: { primaryAction: { id: "run", label: "Try it", onAction: () => {} } } });
+    renderView({
+      viewer: "admin",
+      props: {
+        primaryAction: { id: "run", label: "Try it", onAction: () => {} },
+      },
+    });
 
     expect(await screen.findByRole("button", { name: "Try it" })).toBeTruthy();
     expect(screen.queryByRole("button", UPLOAD)).toBeNull();
