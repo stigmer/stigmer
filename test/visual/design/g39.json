@@ -1,0 +1,676 @@
+{
+  "screen": "G39",
+  "title": "Embedding",
+  "source": "the Settings page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Embedding: As an admin",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Embedding",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "How people sign in to this organization from your own product.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Sign-in from your product",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Your product's backend signs its users in to acme by minting a token for each one with a service account's key. Manage service accounts",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Create accounts on sign-in",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Make a person's Stigmer account the first time a token is minted for them.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Sign-in role",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Member",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Granted on acme when a sign-in creates an account; None grants nothing. Accounts that already exist keep their roles.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Allowed web pages",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Allowed origins",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "https://app.acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "https://staging.acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "https://",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Add",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Web pages at these origins may use the tokens. Leave empty to allow every origin.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Vaults for these conversations",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Shared vaults",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Production",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Support desk",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "The keys conversations of people signed in from your product use, in this order.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Save changes",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Add",
+          "height": 32
+        },
+        {
+          "name": "Save changes",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Embedding: An origin the form refuses, said under the field",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Embedding",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "How people sign in to this organization from your own product.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Sign-in from your product",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Your product's backend signs its users in to acme by minting a token for each one with a service account's key. Manage service accounts",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Create accounts on sign-in",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Make a person's Stigmer account the first time a token is minted for them.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Sign-in role",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Member",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Granted on acme when a sign-in creates an account; None grants nothing. Accounts that already exist keep their roles.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Allowed web pages",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Allowed origins",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "https://app.acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "https://staging.acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "https://",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Add",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Use an origin only: https://app.acme.example, with no path.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Vaults for these conversations",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Shared vaults",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Production",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Support desk",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "The keys conversations of people signed in from your product use, in this order.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Save changes",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Add",
+          "height": 32
+        },
+        {
+          "name": "Save changes",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Embedding: Didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Embedding",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "How people sign in to this organization from your own product.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the embedding settings.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Embedding: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Embedding",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "How people sign in to this organization from your own product.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Sign-in from your product",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Your product's backend signs its users in to acme by minting a token for each one with a service account's key. Manage service accounts",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Create accounts on sign-in",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Make a person's Stigmer account the first time a token is minted for them.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Sign-in role",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Member",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Granted on acme when a sign-in creates an account; None grants nothing. Accounts that already exist keep their roles.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Allowed web pages",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Allowed origins",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "https://app.acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "https://staging.acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "https://",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Add",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Web pages at these origins may use the tokens. Leave empty to allow every origin.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Vaults for these conversations",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Shared vaults",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Production",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Support desk",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "The keys conversations of people signed in from your product use, in this order.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Save changes",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Add",
+          "height": 32
+        },
+        {
+          "name": "Save changes",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

@@ -8,7 +8,7 @@ import {
 
 /** Props for {@link PermissionGate}. */
 export interface PermissionGateProps {
-  /** The resource to check permission on, or `null` to skip (permissive). */
+  /** The resource to check permission on, or `null` to skip the check: then the gate follows `fail` (children when open, `fallback` when closed). */
   readonly resource: PermissionCheckResource | null;
   /** The permission relation to check (e.g. "can_edit", "can_delete"). */
   readonly relation: string;
@@ -24,6 +24,14 @@ export interface PermissionGateProps {
    * Defaults to rendering nothing (null) to avoid UI flicker.
    */
   readonly loading?: ReactNode;
+  /**
+   * What a check that errors renders. `"open"` (the default) renders the
+   * children, right for content a person reads. `"closed"` renders
+   * `fallback`, right for an act the server checks: the console offers it
+   * only after the server's yes, so a button is never shown that fails on
+   * press.
+   */
+  readonly fail?: "open" | "closed";
 }
 
 /**
@@ -31,12 +39,13 @@ export interface PermissionGateProps {
  * permission on a resource.
  *
  * Uses {@link useCheckPermission} under the hood, so the check runs in
- * every edition and the gate fails open: a check that errors renders
- * the children. Until the server answers, the gate renders `loading`,
+ * every edition, and by default the gate fails open: a check that errors
+ * renders the children. Pass `fail="closed"` around an act so a check
+ * that errors renders `fallback` instead. Until the server answers, the gate renders `loading`,
  * from its first render. Gated content never mounts before the answer,
  * so content that fetches when it mounts is never fetched for a caller
- * the server refuses. A `null` resource skips the check and renders the
- * children.
+ * the server refuses. A `null` resource skips the check and follows the
+ * fail mode: the children when open, `fallback` when closed.
  *
  * This component is designed to hide UI elements (buttons, actions,
  * controls) that the user cannot perform. It does NOT enforce
@@ -64,8 +73,11 @@ export function PermissionGate({
   children,
   fallback = null,
   loading = null,
+  fail = "open",
 }: PermissionGateProps): ReactNode {
-  const { allowed, isLoading } = useCheckPermission(resource, relation);
+  const { allowed, isLoading } = useCheckPermission(resource, relation, {
+    fail,
+  });
 
   if (isLoading) return loading;
   if (!allowed) return fallback;

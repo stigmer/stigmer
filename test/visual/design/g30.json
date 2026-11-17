@@ -1,0 +1,854 @@
+{
+  "screen": "G30",
+  "title": "The sidebar",
+  "source": "the Settings page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "The sidebar: 32px rows, Members open",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Back to Sessions",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Organization",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Organization profile",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Preferences",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Embedding",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Members",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Teams",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Service accounts",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Access history",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Invitations",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Federation issuers",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Configuration",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "API keys",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Vaults",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "OAuth apps",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Channel apps",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Billing and usage",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Billing",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Usage",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Account",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Preferences",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Memory",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Members",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Who belongs to this organization and the role each holds: owner, admin, member or viewer. Only an owner grants or removes owner.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "People",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "You",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "ada@acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Owner",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Grace Hopper",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "grace@acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Admin",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Katherine Johnson",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "katherine@acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Member",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Alan Turing",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "alan@acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Viewer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Service accounts hold roles too; they're listed under Service accounts.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Change Grace Hopper's role",
+          "height": 28
+        },
+        {
+          "name": "Remove Grace Hopper",
+          "height": 28
+        },
+        {
+          "name": "Change Katherine Johnson's role",
+          "height": 28
+        },
+        {
+          "name": "Remove Katherine Johnson",
+          "height": 28
+        },
+        {
+          "name": "Change Alan Turing's role",
+          "height": 28
+        },
+        {
+          "name": "Remove Alan Turing",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "The sidebar: A platform operator: the Platform group last",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Back to Sessions",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Organization",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Organization profile",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Preferences",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Embedding",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Members",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Teams",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Service accounts",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Access history",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Invitations",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Federation issuers",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Configuration",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "API keys",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Vaults",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "OAuth apps",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Channel apps",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Billing and usage",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Billing",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Usage",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Account",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Preferences",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Memory",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Platform",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Model catalog",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Licenses",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Plans",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Model catalog",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Add model",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Every model the registry serves, at the provider's list prices before any markup. Open one to see its record, edit its prices or retire it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search models",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Model",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Harness",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Input",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Output",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Variants",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Haiku 5.5",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "claude-haiku-5.5",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$1.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$5.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "claude-sonnet-4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$3.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$15.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "claude-sonnet-4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "claude",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$3.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$15.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "claude-opus-4.8",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$5.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$25.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "GPT-5.2",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "gpt-5.2",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$1.75/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$14.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Add model",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

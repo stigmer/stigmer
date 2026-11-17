@@ -51,11 +51,12 @@ function factKeys(drawing: Drawing): Set<string> {
 describe("the drawings' facts", () => {
   it("are there for the session page's screens and the console's parts and pages", () => {
     expect(FILES.filter((name) => name.startsWith("s")).length).toBeGreaterThan(50);
-    // The Console parts page's P01 to P12 and the console's pages G01 to G28
-    // (G07, G08 and G11 to G28 are the Library page's), and the Workspace
-    // pages page's G70 to G72 (G04 to G06 moved there with their ids).
+    // The Console parts page's P01 to P12 and the console's pages G01 to G54
+    // (G07, G08 and G11 to G28 are the Library page's; G01 to G03, G09 and
+    // G29 to G54 the Settings page's), and the Workspace pages page's G04 to
+    // G06 (moved there with their ids) and G70 to G72.
     expect(FILES.filter((name) => name.startsWith("p")).length).toBe(12);
-    expect(FILES.filter((name) => name.startsWith("g")).length).toBe(31);
+    expect(FILES.filter((name) => name.startsWith("g")).length).toBe(57);
   });
 
   it.each(FILES)("%s builds each drawing from scenes the catalogue draws, or says why none does", (name) => {

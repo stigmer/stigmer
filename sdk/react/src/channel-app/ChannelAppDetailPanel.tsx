@@ -1,8 +1,10 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
+import { FieldError } from "../internal/form/index.js";
 import { type FormEvent, useCallback, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { buildChannelAppProto, getUserMessage } from "@stigmer/client";
+import { buildChannelAppProto } from "@stigmer/client";
 import { maskedEdit, saveErrorMessage } from "@stigmer/react-core/internal";
 import type { ChannelApp } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { usePublicBaseUrl } from "../public-base-url-context.js";
@@ -24,6 +26,9 @@ import { PermissionGate } from "../grant/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { Button } from "../button/Button.js";
+import { Section } from "../resource-detail/Section.js";
+import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
+import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -55,6 +60,12 @@ export interface ChannelAppDetailPanelProps {
   readonly onBack?: () => void;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
+  /**
+   * Draw the app's name and id as the panel's heading. `true` (the default)
+   * where the panel stands alone; `false` where the page's own title
+   * already names the app (the settings page while one is open).
+   */
+  readonly showName?: boolean;
 }
 
 /**
@@ -87,40 +98,45 @@ export function ChannelAppDetailPanel({
   onDeleted,
   onBack,
   className,
+  showName = true,
 }: ChannelAppDetailPanelProps) {
-  const { deleteApp, isDeleting, error: deleteError } = useDeleteChannelApp();
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const { deleteApp } = useDeleteChannelApp();
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
 
   const appId = channelApp.metadata?.id ?? "";
   const name = channelApp.metadata?.name ?? "";
   const providerCase = channelApp.spec?.providerConfig?.case;
 
-  const handleDelete = useCallback(async () => {
-    try {
-      await deleteApp(appId);
-      onDeleted?.();
-    } catch {
-      // error state is managed by useDeleteChannelApp
-    } finally {
-      setConfirmingDelete(false);
-    }
-  }, [deleteApp, appId, onDeleted]);
+  const askToDelete = useCallback(async () => {
+    const label = name || "this channel app";
+    const deleted = await confirm({
+      title: `Delete ${label}?`,
+      description: "Disconnect every channel that installs through it first; the server refuses while one still does.",
+      confirmLabel: "Delete app",
+      variant: "destructive",
+      action: async () => {
+        await deleteApp(appId);
+      },
+      failureTitle: `Couldn't delete ${label}.`,
+    });
+    if (deleted) onDeleted?.();
+  }, [confirm, deleteApp, appId, name, onDeleted]);
 
   return (
-    <div className={cn("stg:space-y-5", className)}>
+    <div className={cn("stg:space-y-4", className)}>
       <div className="stg:flex stg:items-center stg:justify-between">
-        <div className="stg:min-w-0">
-          <h3 className="stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">{name}</h3>
-          <p className="stg:font-mono stg:text-2xs stg:text-muted-foreground">{appId}</p>
-        </div>
+        {showName ? (
+          <div className="stg:min-w-0">
+            <h3 className="stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">{name}</h3>
+            <p className="stg:font-mono stg:text-2xs stg:text-muted-foreground">{appId}</p>
+          </div>
+        ) : (
+          <span />
+        )}
         {onBack && (
-          <button
-            type="button"
-            onClick={onBack}
-            className="stg:text-muted-foreground stg:hover:text-foreground stg:shrink-0 stg:text-xs stg:transition-colors"
-          >
-            ← Back
-          </button>
+          <Button variant="ghost" size="xs" icon={<ArrowLeft className="stg:size-3" aria-hidden="true" />} onClick={onBack}>
+            Back
+          </Button>
         )}
       </div>
 
@@ -148,46 +164,22 @@ export function ChannelAppDetailPanel({
 
       {/* Deletion */}
       <PermissionGate
+        fail="closed"
         resource={{ kind: "channel_app", id: appId }}
         relation="can_delete"
       >
-        <section className="stg:border-t stg:border-border stg:pt-3" aria-label="Danger zone">
-          {deleteError && (
-            <p className="stg:text-destructive stg:mb-2 stg:text-2xs" role="alert">
-              {getUserMessage(deleteError)}
+        <Section title="Delete this app">
+          <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-3 stg:p-4">
+            <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
+              Disconnect every channel that installs through it first.
             </p>
-          )}
-          {confirmingDelete ? (
-            <div className="stg:flex stg:items-center stg:gap-2">
-              <p className="stg:text-xs stg:text-foreground">
-                Delete this channel app? Channels installing through it must be
-                disconnected first.
-              </p>
-              <Button
-                variant="destructive"
-                size="xs"
-                onClick={handleDelete}
-                disabled={isDeleting}
-                icon={isDeleting ? <SpinnerIcon size={12} /> : undefined}
-              >
-                Delete
-              </Button>
-              <Button variant="ghost" size="xs" onClick={() => setConfirmingDelete(false)} disabled={isDeleting}>
-                Keep
-              </Button>
-            </div>
-          ) : (
-            <Button
-              variant="ghost"
-              size="xs"
-              onClick={() => setConfirmingDelete(true)}
-              className="stg:text-destructive stg:hover:bg-destructive-subtle"
-            >
-              Delete channel app
+            <Button variant="outline" size="sm" onClick={() => void askToDelete()}>
+              Delete app
             </Button>
-          )}
-        </section>
+          </div>
+        </Section>
       </PermissionGate>
+      <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 }
@@ -274,8 +266,8 @@ function SlackAppDetail({
   return (
     <>
       {/* Finish setup: the per-app webhook URL only exists after creation */}
-      <section className="stg:space-y-2" aria-label="Finish setup in Slack">
-        <p className="stg:text-xs stg:font-medium stg:text-foreground">Finish setup in Slack</p>
+      <Section title="Finish setup in Slack">
+        <div className="stg:space-y-3 stg:p-4">
         <p className="stg:text-2xs stg:text-muted-foreground">
           On the app&apos;s <span className="stg:font-medium">Event
           Subscriptions</span> page, enable events and set the request URL
@@ -293,16 +285,18 @@ function SlackAppDetail({
         )}
         <CopyRow label="OAuth redirect URL" value={redirectUrl} />
         <CopyBlock label="Completed app manifest" value={manifest} />
-      </section>
+      </div>
+      </Section>
 
       {/* Credential rotation */}
       <PermissionGate
+        fail="closed"
         resource={{ kind: "channel_app", id: appId }}
         relation="can_edit"
       >
-        <form onSubmit={handleSave} className="stg:space-y-3" aria-label="Credentials">
-          <p className="stg:text-xs stg:font-medium stg:text-foreground">Credentials</p>
-          <p className="stg:-mt-2 stg:text-2xs stg:text-muted-foreground">
+        <Section title="Credentials">
+          <form onSubmit={handleSave} className="stg:space-y-3 stg:p-4" aria-label="Credentials">
+          <p className="stg:m-0 stg:text-2xs stg:text-muted-foreground">
             Secrets show as <code className="stg:font-mono">***REDACTED***</code>;
             leave a field untouched to keep its stored value, or paste a new
             one to rotate it.
@@ -339,15 +333,16 @@ function SlackAppDetail({
           />
 
           {updateError && (
-            <p className="stg:text-destructive stg:text-2xs" role="alert">
+            <FieldError>
               {saveErrorMessage(updateError, "channel app")}
-            </p>
+            </FieldError>
           )}
 
           <Button type="submit" size="xs" disabled={!canSave} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>
             Save credentials
           </Button>
         </form>
+        </Section>
       </PermissionGate>
     </>
   );
@@ -430,8 +425,8 @@ function WhatsAppAppDetail({
     <>
       {/* Finish setup: the per-app webhook URL only exists after creation,
           and the verify token is only visible in the create handoff. */}
-      <section className="stg:space-y-2" aria-label="Finish setup in Meta">
-        <p className="stg:text-xs stg:font-medium stg:text-foreground">Finish setup in Meta</p>
+      <Section title="Finish setup in Meta">
+        <div className="stg:space-y-3 stg:p-4">
         <p className="stg:text-2xs stg:text-muted-foreground">
           On the app&apos;s <span className="stg:font-medium">WhatsApp →
           Configuration</span> page, set the callback URL and verify token
@@ -467,16 +462,18 @@ function WhatsAppAppDetail({
             </p>
           </div>
         )}
-      </section>
+      </div>
+      </Section>
 
       {/* Credential rotation */}
       <PermissionGate
+        fail="closed"
         resource={{ kind: "channel_app", id: appId }}
         relation="can_edit"
       >
-        <form onSubmit={handleSave} className="stg:space-y-3" aria-label="Credentials">
-          <p className="stg:text-xs stg:font-medium stg:text-foreground">Credentials</p>
-          <p className="stg:-mt-2 stg:text-2xs stg:text-muted-foreground">
+        <Section title="Credentials">
+          <form onSubmit={handleSave} className="stg:space-y-3 stg:p-4" aria-label="Credentials">
+          <p className="stg:m-0 stg:text-2xs stg:text-muted-foreground">
             Secrets show as <code className="stg:font-mono">***REDACTED***</code>;
             leave a field untouched to keep its stored value, or paste a new
             one to rotate it.
@@ -524,15 +521,16 @@ function WhatsAppAppDetail({
           />
 
           {updateError && (
-            <p className="stg:text-destructive stg:text-2xs" role="alert">
+            <FieldError>
               {saveErrorMessage(updateError, "channel app")}
-            </p>
+            </FieldError>
           )}
 
           <Button type="submit" size="xs" disabled={!canSave} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>
             Save credentials
           </Button>
         </form>
+        </Section>
       </PermissionGate>
     </>
   );

@@ -24,12 +24,6 @@ import { draw } from "./draw.ts";
 const KNOWN_VIOLATIONS: Readonly<Partial<Record<`${SceneId} ${Mode}`, readonly KnownViolation[]>>> = {
   "library-agents-apply-yaml light": [{ rule: "aria-input-field-name", issue: "stigmer#3196" }],
   "library-agents-apply-yaml dark": [{ rule: "aria-input-field-name", issue: "stigmer#3196" }],
-  "settings-oauth-apps-detail light": [{ rule: "color-contrast", issue: "stigmer#3239" }],
-  "settings-oauth-apps-detail dark": [{ rule: "color-contrast", issue: "stigmer#3239" }],
-  "settings-oauth-apps-delete light": [{ rule: "color-contrast", issue: "stigmer#3239" }],
-  "settings-oauth-apps-delete dark": [{ rule: "color-contrast", issue: "stigmer#3239" }],
-  "settings-federation-issuers-detail light": [{ rule: "definition-list", issue: "stigmer#3239" }],
-  "settings-federation-issuers-detail dark": [{ rule: "definition-list", issue: "stigmer#3239" }],
   "settings-model-catalog-confirm light": [{ rule: "aria-required-children", issue: "stigmer#3239" }],
   "settings-model-catalog-confirm dark": [{ rule: "aria-required-children", issue: "stigmer#3239" }],
 };

@@ -5,7 +5,7 @@
  * not re-read.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
   FederationIssuerSchema,
@@ -21,8 +21,8 @@ const ISSUER: FederationIssuer = create(FederationIssuerSchema, {
 
 afterEach(cleanup);
 
-describe("FederationIssuerListPanel delete confirmation", () => {
-  it("shows the server's refusal inside the confirmation and keeps the row", async () => {
+describe("FederationIssuerListPanel delete dialog", () => {
+  it("shows the server's refusal inside the dialog and keeps the row", async () => {
     const list = vi.fn(async () => ({ entries: [ISSUER], nextPageToken: "" }));
     const remove = vi.fn(async (): Promise<FederationIssuer> => {
       throw new Error("The issuer still signs people in to this organization.");
@@ -39,17 +39,34 @@ describe("FederationIssuerListPanel delete confirmation", () => {
     );
 
     fireEvent.click(await screen.findByRole("button", { name: "Delete Acme Okta" }));
-    expect(
-      screen.getByText((_, el) => el?.tagName === "P" && el.textContent === "Delete Acme Okta?"),
-    ).toBeTruthy();
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByRole("heading", { name: "Delete Acme Okta?" })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete issuer" }));
 
-    expect(
-      await screen.findByText("The issuer still signs people in to this organization."),
-    ).toBeTruthy();
+    expect(await within(dialog).findByText("Couldn't delete Acme Okta.")).toBeTruthy();
+    expect(dialog.textContent).toMatch(/still signs people in/);
     await waitFor(() => expect(remove).toHaveBeenCalledWith({ resourceId: "issuer-1" }));
-    expect(screen.getByRole("button", { name: "Cancel" })).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: "Cancel" })).toBeTruthy();
     expect(list).toHaveBeenCalledTimes(1);
+  });
+
+  it("deletes from the dialog and reads the list again", async () => {
+    const list = vi.fn(async () => ({ entries: [ISSUER], nextPageToken: "" }));
+    const remove = vi.fn(async (): Promise<FederationIssuer> => ISSUER);
+    const client = {
+      federationIssuer: { list, delete: remove },
+      grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: true })) },
+    } as never;
+    render(
+      <StigmerContext.Provider value={client}>
+        <FederationIssuerListPanel org="acme" />
+      </StigmerContext.Provider>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Delete Acme Okta" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete issuer" }));
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
+    expect(remove).toHaveBeenCalledWith({ resourceId: "issuer-1" });
   });
 });

@@ -20,6 +20,10 @@ import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { FieldError, TextArea } from "../internal/form/index.js";
+import { List, ListRow } from "../internal/surface/List.js";
+import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
+import { Section } from "../resource-detail/Section.js";
+import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -50,7 +54,9 @@ export interface MemoryListPanelProps {
  * Provenance renders beside each agent-proposed fact.
  * Actions per state: confirm/reject/delete on proposals (reject is
  * one-click — no confirmation dialog), edit/delete on confirmed facts,
- * delete on rejected ones. Delete asks inline; it works in any state.
+ * delete on rejected ones. Delete asks in a confirm dialog that does the
+ * delete and says a refusal there; it works in any state. Each group is a
+ * card of list rows.
  *
  * All visual properties flow through `--stgm-*` design tokens.
  *
@@ -61,19 +67,38 @@ export interface MemoryListPanelProps {
  */
 export function MemoryListPanel({ org, className, now }: MemoryListPanelProps) {
   const { memories, isLoading, error, refetch } = useMemories(org);
-  // At most one row is mid-interaction at a time — the ApiKeyListPanel
-  // single-confirmation posture, extended with an editing mode.
-  const [rowState, setRowState] = useState<
-    | { mode: "idle" }
-    | { mode: "confirming-delete"; id: string }
-    | { mode: "editing"; id: string }
-  >({ mode: "idle" });
+  // At most one row is being edited at a time.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const { deleteMemory } = useDeleteMemory();
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
 
-  const resetRow = useCallback(() => setRowState({ mode: "idle" }), []);
+  const stopEditing = useCallback(() => setEditingId(null), []);
   const handleChanged = useCallback(() => {
-    setRowState({ mode: "idle" });
+    setEditingId(null);
     refetch();
   }, [refetch]);
+
+  const askToDelete = useCallback(
+    async (memory: Memory) => {
+      const id = memory.metadata?.id ?? "";
+      const content = memory.spec?.content ?? "";
+      const deleted = await confirm({
+        title: "Delete this memory?",
+        description:
+          memory.status?.lifecycleState === MemoryLifecycleState.lifecycle_state_confirmed
+            ? `\u201c${content}\u201d stops being shared with agents. It can't be brought back.`
+            : `\u201c${content}\u201d is deleted. It can't be brought back.`,
+        confirmLabel: "Delete",
+        variant: "destructive",
+        action: async () => {
+          await deleteMemory(id);
+        },
+        failureTitle: "Couldn't delete the memory.",
+      });
+      if (deleted) handleChanged();
+    },
+    [confirm, deleteMemory, handleChanged],
+  );
 
   if (isLoading) {
     return <SettingsSkeleton label="Loading memories" rows={3} className={className} />;
@@ -95,45 +120,42 @@ export function MemoryListPanel({ org, className, now }: MemoryListPanelProps) {
   }
 
   const groups = groupMemoriesByLifecycle(memories);
+  const shared = {
+    editingId,
+    onStartEdit: setEditingId,
+    onStopEdit: stopEditing,
+    onDelete: askToDelete,
+    onChanged: handleChanged,
+    now,
+  };
 
   return (
-    <div className={cn("stg:space-y-6", className)}>
+    <div className={cn("stg:space-y-4", className)}>
       {groups.proposed.length > 0 && (
         <MemoryGroup
-          heading="Pending proposals"
-          description="Facts agents proposed to remember. Nothing is stored in your sessions until you confirm it."
+          heading="Waiting for you"
+          description="Nothing is kept until you confirm it."
           memories={groups.proposed}
-          rowState={rowState}
-          setRowState={setRowState}
-          onChanged={handleChanged}
-          onCancel={resetRow}
-          now={now}
+          {...shared}
         />
       )}
       {groups.confirmed.length > 0 && (
         <MemoryGroup
           heading="Remembered"
-          description="Confirmed facts, shared with agents in your future sessions."
+          description="Shared with agents in your future sessions."
           memories={groups.confirmed}
-          rowState={rowState}
-          setRowState={setRowState}
-          onChanged={handleChanged}
-          onCancel={resetRow}
-          now={now}
+          {...shared}
         />
       )}
       {groups.rejected.length > 0 && (
         <MemoryGroup
           heading="Rejected"
-          description="Proposals you declined, kept for reference. Delete them to clear the record."
+          description="Kept so an agent doesn't propose them again. Delete one to clear it."
           memories={groups.rejected}
-          rowState={rowState}
-          setRowState={setRowState}
-          onChanged={handleChanged}
-          onCancel={resetRow}
-          now={now}
+          {...shared}
         />
       )}
+      <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 }
@@ -142,80 +164,52 @@ export function MemoryListPanel({ org, className, now }: MemoryListPanelProps) {
 // Group + row (internal)
 // ---------------------------------------------------------------------------
 
-type RowState =
-  | { mode: "idle" }
-  | { mode: "confirming-delete"; id: string }
-  | { mode: "editing"; id: string };
+interface RowActions {
+  readonly editingId: string | null;
+  readonly onStartEdit: (id: string) => void;
+  readonly onStopEdit: () => void;
+  readonly onDelete: (memory: Memory) => void;
+  readonly onChanged: () => void;
+  readonly now?: Date;
+}
 
 function MemoryGroup({
   heading,
   description,
   memories,
-  rowState,
-  setRowState,
-  onChanged,
-  onCancel,
-  now,
-}: {
+  editingId,
+  ...actions
+}: RowActions & {
   heading: string;
   description: string;
   memories: readonly Memory[];
-  rowState: RowState;
-  setRowState: (state: RowState) => void;
-  onChanged: () => void;
-  onCancel: () => void;
-  now?: Date;
 }) {
   return (
-    <div>
-      <h3 className="stg:text-foreground stg:text-xs stg:font-semibold">
-        {heading}
-      </h3>
-      <p className="stg:text-muted-foreground stg:mb-2 stg:text-xs">
+    <Section title={heading} count={memories.length}>
+      <p className="stg:m-0 stg:border-b stg:border-border-muted stg:px-3.5 stg:py-2 stg:text-xs stg:text-muted-foreground">
         {description}
       </p>
-      <div className="stg:space-y-2" role="list" aria-label={heading}>
+      <List bare aria-label={heading}>
         {memories.map((memory) => {
           const id = memory.metadata?.id ?? "";
-          return (
-            <MemoryRow
-              key={id}
-              memory={memory}
-              now={now}
-              mode={
-                rowState.mode !== "idle" && rowState.id === id
-                  ? rowState.mode
-                  : "idle"
-              }
-              onStartDelete={() => setRowState({ mode: "confirming-delete", id })}
-              onStartEdit={() => setRowState({ mode: "editing", id })}
-              onCancel={onCancel}
-              onChanged={onChanged}
-            />
+          return editingId === id ? (
+            <MemoryEditRow key={id} memory={memory} onCancel={actions.onStopEdit} onSaved={actions.onChanged} />
+          ) : (
+            <MemoryRow key={id} memory={memory} editingId={editingId} {...actions} />
           );
         })}
-      </div>
-    </div>
+      </List>
+    </Section>
   );
 }
 
 function MemoryRow({
   memory,
   now,
-  mode,
-  onStartDelete,
   onStartEdit,
-  onCancel,
+  onDelete,
   onChanged,
-}: {
-  memory: Memory;
-  now?: Date;
-  mode: "idle" | "confirming-delete" | "editing";
-  onStartDelete: () => void;
-  onStartEdit: () => void;
-  onCancel: () => void;
-  onChanged: () => void;
-}) {
+}: RowActions & { memory: Memory }) {
   const id = memory.metadata?.id ?? "";
   const content = memory.spec?.content ?? "";
   const state = memory.status?.lifecycleState;
@@ -224,10 +218,9 @@ function MemoryRow({
 
   const { confirmMemory, isConfirming, error: confirmError } = useConfirmMemory();
   const { rejectMemory, isRejecting, error: rejectError } = useRejectMemory();
-  const { deleteMemory, isDeleting, error: deleteError } = useDeleteMemory();
 
-  const actionError = confirmError ?? rejectError ?? deleteError;
-  const isBusy = isConfirming || isRejecting || isDeleting;
+  const actionError = confirmError ?? rejectError;
+  const isBusy = isConfirming || isRejecting;
 
   const act = useCallback(
     async (action: (id: string) => Promise<Memory>) => {
@@ -241,107 +234,60 @@ function MemoryRow({
     [id, onChanged],
   );
 
-  if (mode === "editing") {
-    return (
-      <MemoryEditRow memory={memory} onCancel={onCancel} onSaved={onChanged} />
-    );
-  }
-
-  if (mode === "confirming-delete") {
-    return (
-      <div
-        role="listitem"
-        className="stg:flex stg:items-center stg:justify-between stg:gap-3 stg:rounded-lg stg:border stg:border-border stg:bg-destructive-subtle stg:px-3 stg:py-2.5"
-      >
-        <div className="stg:min-w-0 stg:flex-1">
-          <p className="stg:text-xs stg:text-foreground">
-            Forget this permanently? <q className="stg:italic">{content}</q>
-          </p>
-          {deleteError && (
-            <p className="stg:mt-0.5 stg:text-2xs stg:text-destructive">
-              {getUserMessage(deleteError)}
-            </p>
-          )}
-        </div>
-        <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">
-          <Button
-            variant="destructive"
-            size="xs"
-            onClick={() => void act(deleteMemory)}
-            disabled={isDeleting}
-            icon={isDeleting ? <SpinnerIcon size={12} /> : undefined}
-          >
-            Delete
-          </Button>
-          <Button variant="ghost" size="xs" onClick={onCancel} disabled={isDeleting}>
-            Cancel
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div
-      role="listitem"
-      className="stg:rounded-lg stg:border stg:border-border-muted stg:px-3 stg:py-2.5 stg:hover:border-border stg:transition-colors"
-    >
-      <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
-        <div className="stg:min-w-0 stg:flex-1">
-          {/* The exact stored text, verbatim — what is confirmed is what
-              future prompts inject, byte for byte. */}
-          <p className="stg:text-sm stg:text-foreground stg:whitespace-pre-wrap">
-            {content}
-          </p>
-          <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">
-            {provenance ? `${provenance} · ` : ""}
-            {formatStateStamp(state, stateChangedAt ? timestampDate(stateChangedAt) : undefined, now)}
-          </p>
-          {actionError && (
-            <FieldError className="stg:mt-0.5">
-              {getUserMessage(actionError)}
-            </FieldError>
-          )}
-        </div>
-
+    <ListRow
+      // The exact stored text, verbatim: what is confirmed is what future
+      // prompts inject, byte for byte, so it wraps rather than truncates.
+      name={<span className="stg:whitespace-pre-wrap stg:font-normal">{content}</span>}
+      description={`${provenance ? `${provenance} · ` : ""}${formatStateStamp(state, stateChangedAt ? timestampDate(stateChangedAt) : undefined, now)}`}
+      open={actionError != null}
+      expanded={actionError ? <FieldError>{getUserMessage(actionError)}</FieldError> : undefined}
+      trailing={
         <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">
-          {state === MemoryLifecycleState.lifecycle_state_confirmed && (
-            <RowButton label={`Edit memory: ${content}`} onClick={onStartEdit} disabled={isBusy}>
-              Edit
-            </RowButton>
-          )}
           {isProposed(state) && (
             <>
-              <RowButton
-                label={`Confirm memory: ${content}`}
-                onClick={() => void act(confirmMemory)}
-                disabled={isBusy}
-                emphasis="primary"
-              >
-                {isConfirming && <SpinnerIcon size={12} />}
-                Confirm
-              </RowButton>
-              <RowButton
-                label={`Reject memory: ${content}`}
+              <Button
+                variant="ghost"
+                size="xs"
+                aria-label={`Reject memory: ${content}`}
                 onClick={() => void act(rejectMemory)}
                 disabled={isBusy}
+                icon={isRejecting ? <SpinnerIcon size={12} /> : undefined}
               >
-                {isRejecting && <SpinnerIcon size={12} />}
                 Reject
-              </RowButton>
+              </Button>
+              <Button
+                variant="outline"
+                size="xs"
+                aria-label={`Confirm memory: ${content}`}
+                onClick={() => void act(confirmMemory)}
+                disabled={isBusy}
+                icon={isConfirming ? <SpinnerIcon size={12} /> : undefined}
+              >
+                Confirm
+              </Button>
             </>
+          )}
+          {state === MemoryLifecycleState.lifecycle_state_confirmed && (
+            <IconButton
+              label={`Edit memory: ${content}`}
+              size="xs"
+              icon={<PencilIcon />}
+              onClick={() => onStartEdit(id)}
+              disabled={isBusy}
+            />
           )}
           <IconButton
             label={`Delete memory: ${content}`}
             size="xs"
             icon={<TrashIcon />}
-            onClick={onStartDelete}
+            onClick={() => onDelete(memory)}
             disabled={isBusy}
             className="stg:hover:text-destructive stg:hover:bg-destructive-subtle"
           />
         </div>
-      </div>
-    </div>
+      }
+    />
   );
 }
 
@@ -373,10 +319,7 @@ function MemoryEditRow({
   };
 
   return (
-    <div
-      role="listitem"
-      className="stg:rounded-lg stg:border stg:border-border stg:px-3 stg:py-2.5"
-    >
+    <li className="stg:px-3.5 stg:py-2.5">
       <TextArea
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
@@ -409,7 +352,7 @@ function MemoryEditRow({
           {getUserMessage(error)}
         </FieldError>
       )}
-    </div>
+    </li>
   );
 }
 
@@ -459,6 +402,24 @@ function RowButton({
     <Button variant={emphasis === "primary" ? "primary" : "outline"} size="xs" aria-label={label} onClick={onClick} disabled={disabled}>
       {children}
     </Button>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M11 2.5l2.5 2.5L5 13.5H2.5V11L11 2.5z" />
+    </svg>
   );
 }
 

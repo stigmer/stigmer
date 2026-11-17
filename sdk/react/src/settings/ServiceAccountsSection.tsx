@@ -30,6 +30,7 @@ import { CreateServiceAccountForm } from "../service-account/CreateServiceAccoun
 import { ServiceAccountDetailPanel } from "../service-account/ServiceAccountDetailPanel.js";
 import { ServiceAccountListPanel } from "../service-account/ServiceAccountListPanel.js";
 import { Button } from "../button/Button.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Card } from "../internal/surface/Card.js";
 import { NoOrganization } from "./NoOrganization.js";
 import { SettingsPage } from "./SettingsPage.js";
@@ -51,9 +52,12 @@ export function ServiceAccountsSection() {
   const manageCheck = useCheckPermission(
     org ? { kind: "organization", id: org } : null,
     "can_create_identity_account",
+    { fail: "closed" },
   );
   const canManage = !manageCheck.isLoading && manageCheck.allowed;
-  const deniedManage = !manageCheck.isLoading && !manageCheck.allowed;
+  // A check that failed is not a denial: it is said, with Try again.
+  const checkFailed = !manageCheck.isLoading && manageCheck.error !== null;
+  const deniedManage = !manageCheck.isLoading && !manageCheck.allowed && !checkFailed;
 
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
   const startCreate = useCallback(() => setFlow({ phase: "creating" }), []);
@@ -72,10 +76,14 @@ export function ServiceAccountsSection() {
     setFlow({ phase: "idle" });
   }, []);
 
+  // An open detail names the page, with a way back to the list above it.
+  const detailName = flow.phase === "viewing" ? flow.serviceAccount.metadata?.name || "Service account" : null;
+
   return (
     <SettingsPage
-      title="Service accounts"
-      description="Your organization's own accounts for automation. A CI job or a script acts as one through its API keys, so it keeps working when the person who set it up leaves, and what it creates says the service account created it. Each holds one organization role and is never an owner."
+      title={detailName ?? "Service accounts"}
+      back={detailName !== null ? { label: "Service accounts", onBack: backToList } : undefined}
+      description={detailName !== null ? undefined : "Your organization's own accounts for automation. A CI job or a script acts as one through its API keys, so it keeps working when the person who set it up leaves, and what it creates says the service account created it. Each holds one organization role and is never an owner."}
       actions={
         org &&
         canManage &&
@@ -101,6 +109,12 @@ export function ServiceAccountsSection() {
 
       {!org ? (
         <NoOrganization what="its service accounts" />
+      ) : checkFailed && manageCheck.error ? (
+        <ErrorMessage
+          error={manageCheck.error}
+          title="Couldn't check what you may do here."
+          retry={manageCheck.refetch}
+        />
       ) : !canManage ? (
         <SettingsSkeleton label="Loading service accounts" rows={3} />
       ) : flow.phase === "creating" ? (
@@ -116,16 +130,14 @@ export function ServiceAccountsSection() {
           <ServiceAccountListPanel org={org} onRefetchRef={handleRefetchRef} />
         </div>
       ) : flow.phase === "viewing" ? (
-        <Card>
-          <ServiceAccountDetailPanel
-            key={flow.serviceAccount.metadata?.id ?? ""}
-            serviceAccount={flow.serviceAccount}
-            org={org}
-            onUpdated={(serviceAccount) => setFlow({ phase: "viewing", serviceAccount })}
-            onDeleted={backToList}
-            onBack={backToList}
-          />
-        </Card>
+        <ServiceAccountDetailPanel
+          showName={false}
+          key={flow.serviceAccount.metadata?.id ?? ""}
+          serviceAccount={flow.serviceAccount}
+          org={org}
+          onUpdated={(serviceAccount) => setFlow({ phase: "viewing", serviceAccount })}
+          onDeleted={backToList}
+        />
       ) : (
         <ServiceAccountListPanel
           org={org}

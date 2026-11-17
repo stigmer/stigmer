@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
 import { type FormEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { buildFederationIssuerProto } from "@stigmer/client";
@@ -19,8 +20,9 @@ import { PermissionGate } from "../grant/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { Button } from "../button/Button.js";
+import { Section } from "../resource-detail/Section.js";
 import { Tag } from "../internal/surface/Tag.js";
-import { FIELD_LABEL_CLASSES, FieldError, TextInput } from "../internal/form/index.js";
+import { FIELD_LABEL_CLASSES, FieldError, TextInput, ReadOnlyField, ReadOnlyFields } from "../internal/form/index.js";
 
 /** Props for {@link FederationIssuerDetailPanel}. */
 export interface FederationIssuerDetailPanelProps {
@@ -32,6 +34,12 @@ export interface FederationIssuerDetailPanelProps {
   readonly onBack?: () => void;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
+  /**
+   * Draw the issuer's name and handle as the panel's heading. `true` (the
+   * default) where the panel stands alone; `false` where the page's own
+   * title already names the issuer (the settings page while one is open).
+   */
+  readonly showName?: boolean;
 }
 
 /**
@@ -65,6 +73,7 @@ export function FederationIssuerDetailPanel({
   onUpdated,
   onBack,
   className,
+  showName = true,
 }: FederationIssuerDetailPanelProps) {
   const baseId = useId();
   const spec = federationIssuer.spec;
@@ -153,20 +162,17 @@ export function FederationIssuerDetailPanel({
       <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
         <div className="stg:min-w-0">
           {onBack && (
-            <button
-              type="button"
-              onClick={onBack}
-              className="stg:text-muted-foreground stg:hover:text-foreground stg:mb-1 stg:flex stg:items-center stg:gap-1 stg:text-xs stg:transition-colors"
-            >
-              <ArrowLeftIcon />
+            <Button variant="ghost" size="xs" icon={<ArrowLeft className="stg:size-3" aria-hidden="true" />} onClick={onBack}>
               Back to list
-            </button>
+            </Button>
           )}
-          <h3 className="stg:text-foreground stg:truncate stg:text-sm stg:font-semibold">
-            {spec?.displayName || meta?.name || "Federation Issuer"}
-          </h3>
+          {showName && (
+            <h3 className="stg:text-foreground stg:truncate stg:text-sm stg:font-semibold">
+              {spec?.displayName || meta?.name || "Federation Issuer"}
+            </h3>
+          )}
           <div className="stg:flex stg:items-center stg:gap-2">
-            {meta?.slug && (
+            {showName && meta?.slug && (
               <span className="stg:text-muted-foreground stg:font-mono stg:text-xs">
                 {meta.slug}
               </span>
@@ -177,10 +183,11 @@ export function FederationIssuerDetailPanel({
 
         {mode === "view" && (
           <PermissionGate
+            fail="closed"
             resource={{ kind: "federation_issuer", id: meta?.id ?? "" }}
             relation="can_edit"
           >
-            <Button variant="ghost" onClick={enterEdit}>
+            <Button variant="outline" size="sm" onClick={enterEdit}>
               Edit
             </Button>
           </PermissionGate>
@@ -296,57 +303,29 @@ function ViewMode({
   updatedAt?: Timestamp;
 }) {
   return (
-    <dl className="stg:space-y-2.5">
-      <Field label="JWKS URI" value={spec?.jwksUri} mono />
-      <Field
-        label="Allowed issuers"
-        value={spec?.allowedIssuers.join(", ")}
-        mono
-      />
-      <Field label="Expected audience" value={spec?.expectedAudience} mono />
-      {spec?.userinfoEndpoint && (
-        <Field label="Userinfo endpoint" value={spec.userinfoEndpoint} mono />
-      )}
-      {/* Sign-in settings */}
-      {spec && (
-        <>
-          <hr className="stg:border-border-muted" />
-          <Field
-            label="Create accounts on sign-in"
-            value={spec.createAccountsOnSignIn ? "On" : "Off"}
-          />
-          <Field
-            label="Sign-in role"
-            value={formatSignInRole(spec.signInRole)}
-          />
-          {spec.externalIdClaim && (
-            <Field
-              label="Customer id claim"
-              value={spec.externalIdClaim}
-              mono
-            />
-          )}
-        </>
-      )}
-
-      <div className="stg:flex stg:gap-6">
-        {createdAt && (
-          <Field
-            label="Created"
-            value={formatDate(timestampDate(createdAt))}
-          />
-        )}
-        {updatedAt && (
-          <Field
-            label="Updated"
-            value={formatDate(timestampDate(updatedAt))}
-          />
-        )}
-      </div>
-    </dl>
+    <>
+      <Section title="How tokens are checked">
+        <ReadOnlyFields className="stg:p-4">
+          <Field label="JWKS URI" value={spec?.jwksUri} mono />
+          <Field label="Allowed issuers" value={spec?.allowedIssuers.join(", ")} mono />
+          <Field label="Expected audience" value={spec?.expectedAudience} mono />
+          {spec?.userinfoEndpoint && <Field label="Userinfo endpoint" value={spec.userinfoEndpoint} mono />}
+          {spec?.externalIdClaim && <Field label="Customer id claim" value={spec.externalIdClaim} mono />}
+        </ReadOnlyFields>
+      </Section>
+      <Section title="When someone signs in">
+        <ReadOnlyFields className="stg:p-4">
+          {spec && <Field label="Create accounts on sign-in" value={spec.createAccountsOnSignIn ? "On" : "Off"} />}
+          {spec && <Field label="Sign-in role" value={formatSignInRole(spec.signInRole)} />}
+          {createdAt && <Field label="Created" value={formatDate(timestampDate(createdAt))} />}
+          {updatedAt && <Field label="Updated" value={formatDate(timestampDate(updatedAt))} />}
+        </ReadOnlyFields>
+      </Section>
+    </>
   );
 }
 
+/** A read-only pair: the kit's `ReadOnlyField`. */
 function Field({
   label,
   value,
@@ -356,21 +335,10 @@ function Field({
   value?: string;
   mono?: boolean;
 }) {
-  if (!value) return null;
   return (
-    <div>
-      <dt className="stg:text-muted-foreground stg:text-2xs stg:font-medium">
-        {label}
-      </dt>
-      <dd
-        className={cn(
-          "stg:text-foreground stg:mt-0.5 stg:break-all stg:text-xs",
-          mono && "stg:font-mono",
-        )}
-      >
-        {value}
-      </dd>
-    </div>
+    <ReadOnlyField label={label} mono={mono}>
+      {value}
+    </ReadOnlyField>
   );
 }
 
@@ -447,22 +415,4 @@ function formatDate(date: Date): string {
 // ---------------------------------------------------------------------------
 // Icons
 // ---------------------------------------------------------------------------
-
-function ArrowLeftIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M10 3L5 8l5 5" />
-    </svg>
-  );
-}
 

@@ -1,0 +1,596 @@
+{
+  "screen": "G51",
+  "title": "Editing a model's prices",
+  "source": "the Settings page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Editing a model's prices: Editing: the optional Long prompts group, filled",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Claude Haiku 5.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Edit prices: Claude Haiku 5.5",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "A new revision with these prices. The registry serves it as soon as you confirm.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Input ($/M)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Output ($/M)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cache write ($/M)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cache read ($/M)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Long prompts (optional)",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "A higher price once a prompt is longer than the number below. Leave every field empty for one price at every length.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Prompt tokens above",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Input ($/M)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Output ($/M)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cache write ($/M)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cache read ($/M)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Revision note",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic's long-prompt rates, from their price page",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Review changes",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Claude Haiku 5.5",
+          "height": 28
+        },
+        {
+          "name": "Review changes",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Editing a model's prices: Partly filled: one error for the group",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Claude Haiku 5.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Edit prices: Claude Haiku 5.5",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "A new revision with these prices. The registry serves it as soon as you confirm.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Input ($/M)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Output ($/M)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cache write ($/M)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cache read ($/M)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Long prompts (optional)",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "A higher price once a prompt is longer than the number below. Leave every field empty for one price at every length.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Prompt tokens above",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Input ($/M)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Output ($/M)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cache write ($/M)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cache read ($/M)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Fill every long-prompt field, or none.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Revision note",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic's long-prompt rates, from their price page",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Review changes",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Claude Haiku 5.5",
+          "height": 28
+        },
+        {
+          "name": "Review changes",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Editing a model's prices: Confirm: each change on its own line",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Save these prices for Claude Haiku 5.5?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "The registry serves the new revision at once; runs priced after that use it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Rate",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Now",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "New",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Prompt tokens above",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Input above 100,000",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "$5.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Output above 100,000",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "$25.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cache write above 100,000",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "$6.25/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cache read above 100,000",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "$0.50/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Back",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Save prices",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Back",
+          "height": 32
+        },
+        {
+          "name": "Save prices",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Editing a model's prices: Retire: typed, so it stays a form",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Retire Claude Opus 4.8?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "New conversations can't pick it. Runs already on it finish.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Type the model id to confirm",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "claude-opus-4.8",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Why (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Replaced by Claude Opus 5",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Retire",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Retire",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

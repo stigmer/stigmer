@@ -1,0 +1,1275 @@
+{
+  "screen": "G50",
+  "title": "A model's record",
+  "source": "the Settings page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "A model's record: A model with a long-prompt step: its group under the four rates, before the variants",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Model catalog",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Haiku 5.5",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Edit prices",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Retire",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "claude-haiku-5.5 on the stigmer harness, from Anthropic.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Rates",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Input",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Output",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cache write",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cache read",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "$1.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$5.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$1.25/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$0.10/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Above 100,000 prompt tokens",
+          "type": [
+            12,
+            16,
+            600
+          ]
+        },
+        {
+          "text": "Input",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Output",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cache write",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cache read",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "$5.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$25.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$6.25/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$0.50/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "List prices from Anthropic, Jul 1, 2026.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Variants 1",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "batch · wire ids claude-haiku-5.5-batch",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Input",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Output",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cache write",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cache read",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "$0.50/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$2.50/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$0.63/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$0.05/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Above 100,000 prompt tokens",
+          "type": [
+            12,
+            16,
+            600
+          ]
+        },
+        {
+          "text": "Input",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Output",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cache write",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cache read",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "$2.50/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$12.50/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$3.13/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$0.25/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Its record",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Provider API id",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "claude-haiku-5-5",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Context window",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "200,000 tokens",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Max output",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "64,000 tokens",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cost tier",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Low",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Speed tier",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Fast",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Revisions 2",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Added the long-prompt step",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace · Jul 1, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "First entry",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Seeded · Jun 12, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Model catalog",
+          "height": 28
+        },
+        {
+          "name": "Edit prices",
+          "height": 32
+        },
+        {
+          "name": "Retire",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A model's record: A model without one: nothing extra",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Model catalog",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Edit prices",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Retire",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "claude-opus-4.8 on the stigmer harness, from Anthropic.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Rates",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Input",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Output",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cache write",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cache read",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "$5.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$25.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$6.25/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$0.50/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "List prices from Anthropic, Jul 1, 2026.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Its record",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Provider API id",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "claude-opus-4-8",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Context window",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "200,000 tokens",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Max output",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "64,000 tokens",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cost tier",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Low",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Speed tier",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Fast",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Revisions 2",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Added the long-prompt step",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace · Jul 1, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "First entry",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Seeded · Jun 12, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Model catalog",
+          "height": 28
+        },
+        {
+          "name": "Edit prices",
+          "height": 32
+        },
+        {
+          "name": "Retire",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A model's record: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Model catalog",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Haiku 5.5",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Edit prices",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Retire",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "claude-haiku-5.5 on the stigmer harness, from Anthropic.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Rates",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Input",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Output",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cache write",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cache read",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "$1.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$5.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$1.25/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$0.10/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Above 100,000 prompt tokens",
+          "type": [
+            12,
+            16,
+            600
+          ]
+        },
+        {
+          "text": "Input",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Output",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cache write",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cache read",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "$5.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$25.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$6.25/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$0.50/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "List prices from Anthropic, Jul 1, 2026.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Variants 1",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "batch · wire ids claude-haiku-5.5-batch",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Input",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Output",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cache write",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cache read",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "$0.50/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$2.50/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$0.63/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$0.05/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Above 100,000 prompt tokens",
+          "type": [
+            12,
+            16,
+            600
+          ]
+        },
+        {
+          "text": "Input",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Output",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cache write",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cache read",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "$2.50/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$12.50/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$3.13/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$0.25/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Its record",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Provider API id",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "claude-haiku-5-5",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Context window",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "200,000 tokens",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Max output",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "64,000 tokens",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cost tier",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Low",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Speed tier",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Fast",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Revisions 2",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Added the long-prompt step",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace · Jul 1, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "First entry",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Seeded · Jun 12, 2026",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Model catalog",
+          "height": 28
+        },
+        {
+          "name": "Edit prices",
+          "height": 32
+        },
+        {
+          "name": "Retire",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

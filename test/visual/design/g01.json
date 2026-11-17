@@ -1,11 +1,11 @@
 {
   "screen": "G01",
   "title": "Members",
-  "source": "the Console parts page, version 8",
+  "source": "the Settings page, version 1",
   "reader": "bf8cb5c94919",
   "drawings": [
     {
-      "caption": "Members",
+      "caption": "Members: As an owner (as it passed your look)",
       "narrow": false,
       "built": [
         {
@@ -142,7 +142,845 @@
       "pending": {}
     },
     {
-      "caption": "Members, at 390 wide",
+      "caption": "Members: As an owner, redrawn: each person's address, and where service accounts are",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-members",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Members",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Who belongs to this organization and the role each holds: owner, admin, member or viewer. Only an owner grants or removes owner.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "People",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "You",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "ada@acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Owner",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Grace Hopper",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "grace@acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Admin",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Katherine Johnson",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "katherine@acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Member",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Alan Turing",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "alan@acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Viewer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Service accounts hold roles too; they're listed under Service accounts.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Change Grace Hopper's role",
+          "height": 28
+        },
+        {
+          "name": "Remove Grace Hopper",
+          "height": 28
+        },
+        {
+          "name": "Change Katherine Johnson's role",
+          "height": 28
+        },
+        {
+          "name": "Remove Katherine Johnson",
+          "height": 28
+        },
+        {
+          "name": "Change Alan Turing's role",
+          "height": 28
+        },
+        {
+          "name": "Remove Alan Turing",
+          "height": 28
+        }
+      ],
+      "sample": {
+        "word ada@acme.example": "The drawing's example data; the scene shows its own fixture's",
+        "word Owner": "The drawing's example data; the scene shows its own fixture's",
+        "word grace@acme.example": "The drawing's example data; the scene shows its own fixture's",
+        "word Admin": "The drawing's example data; the scene shows its own fixture's",
+        "word katherine@acme.example": "The drawing's example data; the scene shows its own fixture's",
+        "word Member": "The drawing's example data; the scene shows its own fixture's",
+        "word alan@acme.example": "The drawing's example data; the scene shows its own fixture's",
+        "word Viewer": "The drawing's example data; the scene shows its own fixture's"
+      },
+      "ruled": {},
+      "pending": {
+        "word Service accounts hold roles too; they're listed under Service accounts.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
+    },
+    {
+      "caption": "Members: As a member: the roles, nothing to change",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-members-member",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Members",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Who belongs to this organization and the role each holds: owner, admin, member or viewer. Only an owner grants or removes owner.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "People",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "You",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "ada@acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Owner",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Grace Hopper",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "grace@acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Admin",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Katherine Johnson",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "katherine@acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Member",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Alan Turing",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "alan@acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Viewer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Service accounts hold roles too; they're listed under Service accounts.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {
+        "word ada@acme.example": "The drawing's example data; the scene shows its own fixture's",
+        "word Owner": "The drawing's example data; the scene shows its own fixture's",
+        "word grace@acme.example": "The drawing's example data; the scene shows its own fixture's",
+        "word Admin": "The drawing's example data; the scene shows its own fixture's",
+        "word katherine@acme.example": "The drawing's example data; the scene shows its own fixture's",
+        "word Member": "The drawing's example data; the scene shows its own fixture's",
+        "word alan@acme.example": "The drawing's example data; the scene shows its own fixture's",
+        "word Viewer": "The drawing's example data; the scene shows its own fixture's"
+      },
+      "ruled": {},
+      "pending": {
+        "word Service accounts hold roles too; they're listed under Service accounts.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
+    },
+    {
+      "caption": "Members: With a federation issuer that grants a sign-in role (today's bordered note, as a Notice)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene pictures this state yet.",
+      "words": [
+        {
+          "text": "Members",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Who belongs to this organization and the role each holds: owner, admin, member or viewer. Only an owner grants or removes owner.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "People can also arrive through a federation issuer.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "acme accepts sign-ins from Northwind's platform. Someone who signs in through it appears here the first time, with the sign-in role the issuer grants.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "People",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "You",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "ada@acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Owner",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Grace Hopper",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "grace@acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Admin",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Katherine Johnson",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "katherine@acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Member",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Alan Turing",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "alan@acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Viewer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Service accounts hold roles too; they're listed under Service accounts.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Change Grace Hopper's role",
+          "height": 28
+        },
+        {
+          "name": "Remove Grace Hopper",
+          "height": 28
+        },
+        {
+          "name": "Change Katherine Johnson's role",
+          "height": 28
+        },
+        {
+          "name": "Remove Katherine Johnson",
+          "height": 28
+        },
+        {
+          "name": "Change Alan Turing's role",
+          "height": 28
+        },
+        {
+          "name": "Remove Alan Turing",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Members: Remove, asked first",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-members-remove",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Remove Grace Hopper from acme?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Grace Hopper loses the Admin role and everything shared through acme. The conversations Grace started stay Grace's. You can invite Grace again.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Remove",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Remove",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "word Remove Grace Hopper from acme?": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Grace Hopper loses the Admin role and everything shared through acme. The conversations Grace started stay Grace's. You can invite Grace again.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
+    },
+    {
+      "caption": "Members: Remove, working: the act busy, Cancel held",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
+      "words": [
+        {
+          "text": "Remove Grace Hopper from acme?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Grace Hopper loses the Admin role and everything shared through acme. The conversations Grace started stay Grace's. You can invite Grace again.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Remove",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Remove",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Members: Remove, didn't go through: said in the dialog, the act is Try again",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
+      "words": [
+        {
+          "text": "Remove Grace Hopper from acme?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Grace Hopper loses the Admin role and everything shared through acme. The conversations Grace started stay Grace's. You can invite Grace again.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't remove Grace Hopper.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Members: Didn't load",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-members-failed",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Members",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Who belongs to this organization and the role each holds: owner, admin, member or viewer. Only an owner grants or removes owner.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the members.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {
+        "word the server did not answer in time": "The drawing's example data; the scene shows its own fixture's",
+        "word Stuck? Ask IT on Slack": "The drawing's example data; the scene shows its own fixture's"
+      },
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Members: At 390 wide",
       "narrow": true,
       "built": [
         {
@@ -192,7 +1030,15 @@
           ]
         },
         {
-          "text": "owner",
+          "text": "ada@acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Owner",
           "type": [
             12,
             16,
@@ -208,7 +1054,15 @@
           ]
         },
         {
-          "text": "admin",
+          "text": "grace@acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Admin",
           "type": [
             12,
             16,
@@ -224,7 +1078,15 @@
           ]
         },
         {
-          "text": "member",
+          "text": "katherine@acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Member",
           "type": [
             12,
             16,
@@ -240,11 +1102,27 @@
           ]
         },
         {
-          "text": "member",
+          "text": "alan@acme.example",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Viewer",
           "type": [
             12,
             16,
             500
+          ]
+        },
+        {
+          "text": "Service accounts hold roles too; they're listed under Service accounts.",
+          "type": [
+            12,
+            16,
+            400
           ]
         }
       ],
@@ -274,9 +1152,20 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word ada@acme.example": "The drawing's example data; the scene shows its own fixture's",
+        "word grace@acme.example": "The drawing's example data; the scene shows its own fixture's",
+        "word katherine@acme.example": "The drawing's example data; the scene shows its own fixture's",
+        "word alan@acme.example": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Owner": "At 390 the role sits under the name, as the drawing shows; the row hides it below sm today. Built with the settings forms PR",
+        "word Admin": "At 390 the role sits under the name, as the drawing shows; the row hides it below sm today. Built with the settings forms PR",
+        "word Member": "At 390 the role sits under the name, as the drawing shows; the row hides it below sm today. Built with the settings forms PR",
+        "word Viewer": "At 390 the role sits under the name, as the drawing shows; the row hides it below sm today. Built with the settings forms PR",
+        "word Service accounts hold roles too; they're listed under Service accounts.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
     }
   ]
 }

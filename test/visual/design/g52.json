@@ -1,0 +1,938 @@
+{
+  "screen": "G52",
+  "title": "Licenses",
+  "source": "the Settings page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Licenses: Licenses on the table part, soonest renewal first",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Licenses",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Issue license",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Every Stigmer license issued, ordered by when it needs renewing.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Customer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Term",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Covered through",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Limits",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "State",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Northwind Traders",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Annual",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Aug 31, 2026",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "50 users · 5 organizations",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Renew soon",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Contoso",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Annual",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Mar 14, 2027",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "200 users · 20 organizations",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Fabrikam",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Trial",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Jul 30, 2026",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "10 users · 1 organization",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Issue license",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Licenses: One open",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Licenses",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Northwind Traders",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Renew",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Annual license, covered through Aug 31, 2026.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The license",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "License",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "lic_8b31…e0a4",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Customer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Northwind Traders · ops@northwind.example",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Term",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Annual",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Covered through",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Aug 31, 2026 (UTC)",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Grace",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "14 days, then new organizations and users are refused; what exists keeps running",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Limits",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "50 users · 5 organizations",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Issued",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Sep 1, 2025 by Ada Lovelace",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Signing key",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "key_2026a",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Licenses",
+          "height": 28
+        },
+        {
+          "name": "Renew",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Licenses: Issue a license, an address the server refuses (the grace line corrected: only growth stops)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Licenses",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Issue a license",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Every Stigmer license issued, ordered by when it needs renewing.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Customer",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Customer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "New customer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Existing customer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Display name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Northwind Traders",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Contact email",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "ops@northwind",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Use a full address, like ops@northwind.example.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Term",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Covered through (UTC)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Aug 31, 2027",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Grace period (days)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "After the term ends, new organizations and users are refused for this many days; what exists keeps running.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Entitlements",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Max users",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Max organizations",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What will be issued",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Northwind Traders · Annual · through Aug 31, 2027 · 50 users · 5 organizations",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Then 14 days of grace. After that the server takes no new organizations or users; what exists keeps running.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Issue license",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Licenses",
+          "height": 28
+        },
+        {
+          "name": "Issue license",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Licenses: None yet",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Licenses",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Issue license",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Every Stigmer license issued, ordered by when it needs renewing.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No licenses issued yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Issue the first one: name the customer, choose the term and set what it unlocks.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Issue license",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Issue license",
+          "height": 32
+        },
+        {
+          "name": "Issue license",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Licenses: On the open-source edition",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Licenses",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Every Stigmer license issued, ordered by when it needs renewing.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Licenses come with Stigmer Cloud, which issues them.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "On this edition no license is issued; sign in to Stigmer Cloud to issue or renew one.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Licenses: Didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Licenses",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Issue license",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Every Stigmer license issued, ordered by when it needs renewing.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the licenses.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Issue license",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Licenses: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Licenses",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Issue license",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Every Stigmer license issued, ordered by when it needs renewing.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Northwind Traders",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Renew soon",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Annual · Aug 31, 2026 · 50 users · 5 organizations",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Contoso",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Annual · Mar 14, 2027 · 200 users · 20 organizations",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Fabrikam",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Trial · Jul 30, 2026 · 10 users · 1 organization",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Issue license",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

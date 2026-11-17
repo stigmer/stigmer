@@ -37,13 +37,43 @@ describe("ApiKeyListView", () => {
       { wrapper },
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete ci" }));
+    fireEvent.click(screen.getByRole("button", { name: "Revoke ci" }));
+    expect(screen.getByRole("heading", { name: "Revoke ci?" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(remove).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete ci" }));
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    fireEvent.click(screen.getByRole("button", { name: "Revoke ci" }));
+    fireEvent.click(screen.getByRole("button", { name: "Revoke key" }));
     await waitFor(() => expect(onDeleted).toHaveBeenCalledTimes(1));
     expect(remove).toHaveBeenCalledTimes(1);
+  });
+
+  it("says a refused revoke in the dialog, with Try again, and keeps the list", async () => {
+    const remove = vi.fn().mockRejectedValueOnce(new Error("permission denied")).mockResolvedValue({});
+    const onDeleted = vi.fn();
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <StigmerContext.Provider value={{ apiKey: { delete: remove } } as unknown as Stigmer}>{children}</StigmerContext.Provider>
+    );
+    render(
+      <ApiKeyListView
+        apiKeys={[create(ApiKeySchema, { metadata: { id: "key_1", name: "ci" } })]}
+        isLoading={false}
+        error={null}
+        onDeleted={onDeleted}
+        emptyText="No keys."
+        pager={PAGER}
+        now={new Date("2026-10-14T00:00:00Z")}
+      />,
+      { wrapper },
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Revoke ci" }));
+    fireEvent.click(screen.getByRole("button", { name: "Revoke key" }));
+    expect(await screen.findByText("Couldn't revoke ci.")).toBeTruthy();
+    expect(onDeleted).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(onDeleted).toHaveBeenCalledTimes(1));
+    expect(remove).toHaveBeenCalledTimes(2);
   });
 });

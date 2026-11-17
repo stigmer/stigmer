@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clone, create } from "@bufbuild/protobuf";
 import {
   OAuthAppSchema,
@@ -51,6 +51,7 @@ function renderPanel(
   checkMyPermission: ReturnType<typeof vi.fn> = vi.fn(async () => ({
     isAuthorized: true,
   })),
+  oauthApp: OAuthApp = APP,
 ) {
   const client = {
     oauthapp: { update },
@@ -58,7 +59,7 @@ function renderPanel(
   } as never;
   return render(
     <StigmerContext.Provider value={client}>
-      <OAuthAppDetailPanel oauthApp={APP} />
+      <OAuthAppDetailPanel oauthApp={oauthApp} />
     </StigmerContext.Provider>,
   );
 }
@@ -109,6 +110,23 @@ describe("OAuthAppDetailPanel save payload", () => {
   });
 });
 
+describe("OAuthAppDetailPanel endpoints", () => {
+  it("shows Its endpoints only when the app overrides the provider's addresses", async () => {
+    renderPanel(vi.fn());
+    expect(await screen.findByText("Its endpoints")).toBeTruthy();
+    cleanup();
+
+    const plain = clone(OAuthAppSchema, APP);
+    if (plain.spec !== undefined) {
+      plain.spec.authorizationUrl = "";
+      plain.spec.tokenUrl = "";
+    }
+    renderPanel(vi.fn(), undefined, plain);
+    await screen.findByText("The app");
+    expect(screen.queryByText("Its endpoints")).toBeNull();
+  });
+});
+
 describe("OAuthAppDetailPanel edit and delete gates", () => {
   it("offers Edit only with can_edit and Delete only with can_delete on the app", async () => {
     const checkMyPermission = vi.fn(async (input: CheckMyPermissionInput) => ({
@@ -116,7 +134,7 @@ describe("OAuthAppDetailPanel edit and delete gates", () => {
     }));
     renderPanel(vi.fn(), checkMyPermission);
 
-    await screen.findByRole("button", { name: "Delete" });
+    await screen.findByRole("button", { name: "Delete app" });
     expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
     const asked = checkMyPermission.mock.calls.map(
       ([input]) =>
@@ -147,7 +165,7 @@ describe("OAuthAppDetailPanel edit and delete gates", () => {
     await waitFor(() =>
       expect(screen.queryByRole("button", { name: "Edit" })).toBeNull(),
     );
-    expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Delete app" })).toBeNull();
   });
 });
 
@@ -179,5 +197,34 @@ describe("OAuthAppDetailPanel rename", () => {
 
     await waitFor(() => expect(onUpdated).toHaveBeenCalledWith(renamed), { timeout: 5000 });
     expect(rename.mock.calls[0]).toEqual([expect.objectContaining({ resourceId: APP.metadata?.id, slug: "renamed-slug" })]);
+  });
+});
+
+describe("OAuthAppDetailPanel delete", () => {
+  it("asks in a dialog, says a refusal there, and deletes on Try again", async () => {
+    const remove = vi.fn().mockRejectedValueOnce(new Error("the server did not answer")).mockResolvedValue(APP);
+    const onDeleted = vi.fn();
+    const client = {
+      oauthapp: { update: vi.fn(), delete: remove },
+      grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: true })) },
+    } as never;
+    render(
+      <StigmerContext.Provider value={client}>
+        <OAuthAppDetailPanel oauthApp={APP} onDeleted={onDeleted} />
+      </StigmerContext.Provider>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Delete app" }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByRole("heading", { name: "Delete github?" })).toBeTruthy();
+    expect(remove).not.toHaveBeenCalled();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete app" }));
+    expect(await within(dialog).findByText("Couldn't delete github.")).toBeTruthy();
+    expect(onDeleted).not.toHaveBeenCalled();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(onDeleted).toHaveBeenCalledTimes(1));
+    expect(remove).toHaveBeenCalledWith({ resourceId: "oa-1" });
   });
 });

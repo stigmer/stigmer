@@ -5,7 +5,7 @@
  * - VaultEntriesEditor never shows a value: it lists entries sorted, says
  *   how each login was saved, adds and replaces values from scratch,
  *   refuses a malformed name or address before sending, removes by name or
- *   address only once the person confirms (Keep leaves the entry), shows a
+ *   address only once the person confirms in the dialog (Cancel leaves the entry), shows a
  *   refused write, and its Replace button says whether the replace form is
  *   open and names it (stigmer/stigmer#2909);
  * - VaultListPanel lists shared vaults only (never anyone's My vault), says
@@ -297,26 +297,25 @@ describe("VaultEntriesEditor", () => {
       fireEvent.submit(tokenInput.closest("form")!);
     });
 
-    // A remove asks first: the value cannot be read back. Keep sends nothing.
+    // A remove asks first, in a dialog: the value cannot be read back.
+    // Cancel sends nothing.
     fireEvent.click(screen.getByRole("button", { name: "Remove ZED" }));
-    const keep = screen.getByRole("group", { name: "Confirm removing ZED" });
-    expect(keep.textContent).toMatch(/cannot be read back/);
-    fireEvent.click(within(keep).getByRole("button", { name: "Keep" }));
-    expect(screen.queryByRole("group", { name: "Confirm removing ZED" })).toBeNull();
+    const ask = screen.getByRole("dialog");
+    expect(ask.textContent).toMatch(/can't be read back/);
+    fireEvent.click(within(ask).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(calls.some((c) => c.startsWith("remove"))).toBe(false);
 
     fireEvent.click(screen.getByRole("button", { name: "Remove ZED" }));
+    await act(async () => {
+      fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Remove" }));
+    });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     fireEvent.click(screen.getByRole("button", { name: "Remove https://b.example/mcp" }));
     await act(async () => {
-      fireEvent.click(
-        within(screen.getByRole("group", { name: "Confirm removing ZED" })).getByRole("button", { name: "Remove" }),
-      );
-      fireEvent.click(
-        within(screen.getByRole("group", { name: "Confirm removing https://b.example/mcp" })).getByRole("button", {
-          name: "Remove",
-        }),
-      );
+      fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Remove" }));
     });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 
     expect(calls).toEqual([
       "set:NEW_KEY=v1/d",
@@ -374,12 +373,9 @@ describe("VaultListPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Support tools/ }));
     fireEvent.click(screen.getByRole("button", { name: "Remove ZENDESK_API_KEY" }));
+    expect(within(screen.getByRole("dialog")).getByRole("heading", { name: "Remove ZENDESK_API_KEY from Support tools?" })).toBeTruthy();
     await act(async () => {
-      fireEvent.click(
-        within(screen.getByRole("group", { name: "Confirm removing ZENDESK_API_KEY" })).getByRole("button", {
-          name: "Remove",
-        }),
-      );
+      fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Remove" }));
     });
     await waitFor(() => expect(writes).toContain("removeSecrets:vlt_team:ZENDESK_API_KEY"));
 
@@ -399,10 +395,10 @@ describe("VaultListPanel", () => {
       fireEvent.click(screen.getByRole("button", { name: "Save details" }));
     });
     fireEvent.click(screen.getByRole("button", { name: "Delete vault" }));
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" }));
     fireEvent.click(screen.getByRole("button", { name: "Delete vault" }));
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+      fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete vault" }));
     });
     await waitFor(() => expect(writes).toEqual(["update:Renamed:new:cust-9", "delete:vlt_team"]));
   });
@@ -417,9 +413,10 @@ describe("VaultListPanel", () => {
     expect((await screen.findByRole("alert")).textContent).toMatch(/not allowed here/);
     fireEvent.click(screen.getByRole("button", { name: "Delete vault" }));
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+      fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete vault" }));
     });
-    expect(screen.getByRole("alert").textContent).toMatch(/not allowed here/);
+    expect(await within(screen.getByRole("dialog")).findByText(/Couldn't delete/)).toBeTruthy();
+    expect(screen.getByRole("dialog").textContent).toMatch(/not allowed here/);
   });
 
   it("shows entries without write controls when read-only or when the viewer may not edit", async () => {

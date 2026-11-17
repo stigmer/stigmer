@@ -47,6 +47,7 @@ const state = vi.hoisted(() => ({
   checked: [] as string[],
   calls: [] as string[],
   createFails: false,
+  revokeFails: false,
 }));
 
 vi.mock("../useResourceAccess.js", () => ({
@@ -74,7 +75,17 @@ vi.mock("../useCheckPermission.js", () => ({
   },
 }));
 vi.mock("../useRevokeOrgAccess.js", () => ({
-  useRevokeOrgAccess: () => ({ revoke: async () => {}, isRevoking: false, error: null }),
+  useRevokeOrgAccess: () => ({
+    revoke: async (memberId: string) => {
+      state.calls.push(`revoke ${memberId}`);
+      if (state.revokeFails) {
+        state.revokeFails = false;
+        throw new Error("the organization must keep at least one owner");
+      }
+    },
+    isRevoking: false,
+    error: null,
+  }),
 }));
 vi.mock("../useCreateGrant.js", () => ({
   useCreateGrant: () => ({
@@ -147,6 +158,7 @@ afterEach(() => {
   state.checked = [];
   state.calls = [];
   state.createFails = false;
+  state.revokeFails = false;
 });
 
 describe("OrgMembersPanel and who is a member", () => {
@@ -204,6 +216,23 @@ describe("OrgMembersPanel and who is a member", () => {
     fireEvent.click(screen.getByRole("button", { name: "Remove Dave" }));
     expect(screen.getByText(/They lose access to everything in it/)).toBeTruthy();
     expect(screen.queryByText(/does not restore it/)).toBeNull();
+  });
+
+  it("removes someone from the dialog that asks, and says a refusal there with Try again", async () => {
+    state.members = [member("ida_dave", "Dave", "member")];
+    state.revokeFails = true;
+    render(<OrgMembersPanel org="acme" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove Dave" }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByRole("heading", { name: "Remove Dave from this organization?" })).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Remove" }));
+    expect(await within(dialog).findByText("Couldn't remove Dave.")).toBeTruthy();
+    expect(dialog.textContent).toMatch(/at least one owner/);
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(state.calls.filter((c) => c.startsWith("revoke"))).toEqual(["revoke ida_dave", "revoke ida_dave"]);
   });
 
   it("holds the owner rule in the product's group too", () => {

@@ -1,0 +1,763 @@
+{
+  "screen": "G36",
+  "title": "Organization profile",
+  "source": "the Settings page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Organization profile: As an admin: the profile, then the child organizations on the table part",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Organization profile",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "This organization's name, description and logo, as its members see them.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Profile",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Acme Corp",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Shown in the sidebar and across Stigmer.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Description (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Finance and operations for Acme's subsidiaries.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Logo address (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "https://acme.example/logo.svg",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "A public address of an image.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Slug",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Organization ID",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "org_01J8Z4Q2…7KD",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Save changes",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Child organizations 3",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Organizations under this one. acme's admins are admins in each of them; each person's conversations, My vault and memories stay private to them.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Slug",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "External id",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Acme Europe",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "acme-eu",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "crm-4471",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Acme Labs",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "acme-labs",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Northwind for Acme",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "northwind-acme",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "nw-0193",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Save changes",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Organization profile: As a member: the same, read only",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Organization profile",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "This organization's name, description and logo, as its members see them.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Profile",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Acme Corp",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Description",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Finance and operations for Acme's subsidiaries.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Logo",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "https://acme.example/logo.svg",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Slug",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Organization ID",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "org_01J8Z4Q2…7KD",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Child organizations 3",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Organizations under this one. acme's admins are admins in each of them; each person's conversations, My vault and memories stay private to them.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Slug",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "External id",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Acme Europe",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "acme-eu",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "crm-4471",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Acme Labs",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "acme-labs",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Northwind for Acme",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "northwind-acme",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "nw-0193",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Organization profile: Didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Organization profile",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "This organization's name, description and logo, as its members see them.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the profile.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Organization profile: At 390 wide: the table's rows become list rows",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Organization profile",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "This organization's name, description and logo, as its members see them.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Profile",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Acme Corp",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Shown in the sidebar and across Stigmer.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Description (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Finance and operations for Acme's subsidiaries.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Logo address (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "https://acme.example/logo.svg",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "A public address of an image.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Slug",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Organization ID",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "org_01J8Z4Q2…7KD",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Save changes",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Child organizations 3",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Organizations under this one. acme's admins are admins in each of them; each person's conversations, My vault and memories stay private to them.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Acme Europe",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "acme-eu · crm-4471",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Acme Labs",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "acme-labs · —",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Northwind for Acme",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "northwind-acme · nw-0193",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Save changes",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}
