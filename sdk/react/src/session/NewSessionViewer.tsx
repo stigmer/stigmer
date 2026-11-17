@@ -714,6 +714,24 @@ export function NewSessionViewer({
                 // message are read once, when it mounts.
                 key={`${choice.agentRef.org}/${choice.agentRef.slug}`}
                 {...composerProps}
+                // The first run asks for nothing before its first success:
+                // the message, the attached sample, Attach and Send. The
+                // card above names what runs; mode, engine, model,
+                // workspace and the configure menu come back on every later
+                // composer. Its agent is the one just made, locked, so the
+                // menu shows only if that agent needs setting up first.
+                showInteractionModePicker={false}
+                showHarnessSelector={false}
+                showModelSelector={false}
+                workspace={undefined}
+                extraSettings={undefined}
+                enableVaultPicker={false}
+                enableEnvironmentPicker={false}
+                pluginRefs={undefined}
+                onPluginRefsChange={undefined}
+                skillRefs={undefined}
+                onSkillRefsChange={undefined}
+                lockAgent
                 initialAgentRef={choice.agentRef}
                 initialFiles={choiceFiles}
                 initialMessage={choice.message}

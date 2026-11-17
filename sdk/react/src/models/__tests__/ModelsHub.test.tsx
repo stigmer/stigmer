@@ -3,7 +3,8 @@
  * with the act the person looking can take. Pins every face by role and
  * text: the admin's key form (and the save that asks the server again for
  * readiness and the key list, against an endpoint of the organization's own
- * when one is given, and the Cancel that closes it unsaved), the member's
+ * when one is given behind its link, closed until opened and open on a key
+ * that uses one, and the Cancel that closes it unsaved), the member's
  * line, a laptop's command for
  * each provider (matching the server's refusal), a server's runners, a
  * server that cannot see its runners, a provider served through the parent
@@ -102,7 +103,18 @@ describe("ModelsHub", () => {
 
     fireEvent.click(within(openai).getByRole("button", { name: "Connect OpenAI" }));
     fireEvent.change(within(openai).getByLabelText("OpenAI API key"), { target: { value: "sk-test" } });
-    fireEvent.change(within(openai).getByLabelText("Base URL (optional)"), {
+    // The endpoint waits behind its link, closed, with its hint, until opened.
+    const toggle = within(openai).getByRole("button", { name: "Use your own endpoint" });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(within(openai).queryByLabelText("Base URL (optional)")).toBeNull();
+    expect(within(openai).queryByText(/Leave the base URL empty/)).toBeNull();
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    const field = within(openai).getByLabelText("Base URL (optional)");
+    expect(document.getElementById(toggle.getAttribute("aria-controls") ?? "")?.contains(field)).toBe(true);
+    await waitFor(() => expect(document.activeElement).toBe(field));
+    expect(within(openai).getByText(/Leave the base URL empty for OpenAI's own API/)).toBeTruthy();
+    fireEvent.change(field, {
       target: { value: " https://gateway.acme.example/v1 " },
     });
     fireEvent.click(within(openai).getByRole("button", { name: "Connect OpenAI" }));
@@ -273,6 +285,8 @@ describe("ModelsHub", () => {
     await waitFor(() => expect(within(anthropic).getByText(/on gateway\.acme\.example/)).toBeTruthy());
 
     fireEvent.click(within(anthropic).getByRole("button", { name: "Replace key" }));
+    // A key that already uses an endpoint opens with its field showing.
+    expect(within(anthropic).getByRole("button", { name: "Use your own endpoint" }).getAttribute("aria-expanded")).toBe("true");
     const baseUrl = within(anthropic).getByLabelText("Base URL (optional)");
     expect(baseUrl).toHaveProperty("value", "https://gateway.acme.example");
     expect(within(anthropic).getByText(/Leave the base URL empty for Anthropic's own API/)).toBeTruthy();
