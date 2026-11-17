@@ -176,6 +176,15 @@ describe("useRunUsesTools", () => {
       expect(getByReference).not.toHaveBeenCalled();
     });
 
+    it("answers false for a pinned version that carries no spec", async () => {
+      const { stigmer, getByReference, getVersion } = client({});
+      getByReference.mockResolvedValueOnce(create(AgentSchema, { metadata: { id: "agt_desk", org: "acme", slug: "desk" } }));
+      const { result } = renderHook(() => useRunUsesTools(agent({ plugins: [{ slug: "github" }] }), "bare"), { wrapper: wrapper(stigmer) });
+
+      await waitFor(() => expect(result.current).toBe(false));
+      expect(getVersion).not.toHaveBeenCalled();
+    });
+
     it("stays null when the pinned version cannot be read", async () => {
       const { stigmer, getByReference } = client({});
       const { result } = renderHook(() => useRunUsesTools(agent({ plugins: [{ slug: "github" }] }), "gone"), { wrapper: wrapper(stigmer) });

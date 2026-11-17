@@ -305,6 +305,7 @@ function CardReadinessWarning({
     agent,
     serving,
     channel.spec?.vaults ?? [],
+    channel.spec?.agentRef?.version ?? "",
   );
 
   if (readiness.status !== "needs-credentials" && readiness.status !== "blocked") {
