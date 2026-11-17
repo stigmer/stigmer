@@ -1464,7 +1464,10 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word sk-ant-api03-••••••••••••": "The key the scene types is its own",
+        "word Anthropic didn't accept this key: invalid x-api-key. Check it was copied whole, or make a new one.": "The provider's refusal in the scene's server's words"
+      },
       "ruled": {},
       "pending": {}
     },
@@ -1788,7 +1791,9 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word One more thing before it runs": "launcher-connect-admin is the launcher's composer with nothing that can run; the first run's key step, with this heading, has no scene"
+      },
       "ruled": {},
       "pending": {}
     },

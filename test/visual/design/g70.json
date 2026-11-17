@@ -543,7 +543,25 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Active": "The drawing shows a busy week under the folded card; the scene's organization reports no week and no failures",
+        "word Completed": "The drawing shows a busy week under the folded card; the scene's organization reports no week and no failures",
+        "word Failed": "The drawing shows a busy week under the folded card; the scene's organization reports no week and no failures",
+        "word Tokens": "The drawing shows a busy week under the folded card; the scene's organization reports no week and no failures",
+        "word 18.4M": "The drawing shows a busy week under the folded card; the scene's organization reports no week and no failures",
+        "word Recent failures 3": "The drawing shows a busy week under the folded card; the scene's organization reports no week and no failures",
+        "word Match the July receipts to the card statement": "The drawing shows a busy week under the folded card; the scene's organization reports no week and no failures",
+        "word The card statement export was empty": "The drawing shows a busy week under the folded card; the scene's organization reports no week and no failures",
+        "word 3h": "The drawing shows a busy week under the folded card; the scene's organization reports no week and no failures",
+        "word View": "The drawing shows a busy week under the folded card; the scene's organization reports no week and no failures",
+        "word Reconcile the payroll clearing account": "The drawing shows a busy week under the folded card; the scene's organization reports no week and no failures",
+        "word The ledger server refused the read: its token expired": "The drawing shows a busy week under the folded card; the scene's organization reports no week and no failures",
+        "word 1d": "The drawing shows a busy week under the folded card; the scene's organization reports no week and no failures",
+        "word Variance report for June": "The drawing shows a busy week under the folded card; the scene's organization reports no week and no failures",
+        "word Anthropic refused the request: the key's credit is used up": "The drawing shows a busy week under the folded card; the scene's organization reports no week and no failures",
+        "word 2d": "The drawing shows a busy week under the folded card; the scene's organization reports no week and no failures",
+        "button View": "The drawing shows a busy week under the folded card; the scene's organization reports no week and no failures"
+      },
       "ruled": {},
       "pending": {}
     },

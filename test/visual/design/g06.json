@@ -453,13 +453,16 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Sentry's hosted MCP server: issues, events and projects in your Sentry organization. Sign in with Sentry.": "The scene's catalogue describes it in its own words",
+        "word Stripe's hosted MCP server: customers, payments, subscriptions and the Stripe docs.": "The scene's catalogue describes it in its own words",
+        "word Vercel's hosted MCP server: projects, deployments and logs in your Vercel team. Sign in with Vercel.": "The scene's catalogue describes it in its own words",
+        "word All sources 8": "The drawing's catalogue has eight plugins; the scene's catalogue offers its own count",
+        "word stigmer 8": "The drawing's catalogue has eight plugins; the scene's catalogue offers its own count",
+        "button Install again": "Each card's act is named for its plugin (\"Install linear\") for assistive technology; the drawing names it by its visible words"
+      },
       "ruled": {},
-      "pending": {
-        "button Install again": "When its page is redesigned: an installed source offers Install again",
-        "word All sources 8": "When its page is redesigned: each source in the filter counts its plugins",
-        "word stigmer 8": "When its page is redesigned: each source in the filter counts its plugins"
-      }
+      "pending": {}
     },
     {
       "caption": "Marketplace: a member",
@@ -854,7 +857,13 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Sentry's hosted MCP server: issues, events and projects in your Sentry organization. Sign in with Sentry.": "The scene's catalogue describes it in its own words",
+        "word Stripe's hosted MCP server: customers, payments, subscriptions and the Stripe docs.": "The scene's catalogue describes it in its own words",
+        "word Vercel's hosted MCP server: projects, deployments and logs in your Vercel team. Sign in with Vercel.": "The scene's catalogue describes it in its own words",
+        "word All sources 8": "The drawing's catalogue has eight plugins; the scene's catalogue offers its own count",
+        "word stigmer 8": "The drawing's catalogue has eight plugins; the scene's catalogue offers its own count"
+      },
       "ruled": {},
       "pending": {}
     },
@@ -1087,12 +1096,7 @@
     {
       "caption": "Marketplace: a source couldn't be read",
       "narrow": false,
-      "built": [
-        {
-          "scene": "marketplace-source-failed",
-          "width": "desktop"
-        }
-      ],
+      "built": [],
       "words": [
         {
           "text": "Marketplace",
@@ -1583,7 +1587,8 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {},
+      "unbuilt": "No scene has one source of two unreadable: marketplace-source-failed's only source is the one that fails (MarketplaceCatalog.test.tsx pins the notice among sources)"
     },
     {
       "caption": "Marketplace: loading",
@@ -2107,7 +2112,14 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Sentry's hosted MCP server: issues, events and projects in your Sentry organization. Sign in with Sentry.": "The scene's catalogue describes it in its own words",
+        "word Stripe's hosted MCP server: customers, payments, subscriptions and the Stripe docs.": "The scene's catalogue describes it in its own words",
+        "word Vercel's hosted MCP server: projects, deployments and logs in your Vercel team. Sign in with Vercel.": "The scene's catalogue describes it in its own words",
+        "word All sources 8": "The drawing's catalogue has eight plugins; the scene's catalogue offers its own count",
+        "word stigmer 8": "The drawing's catalogue has eight plugins; the scene's catalogue offers its own count",
+        "button Install again": "Each card's act is named for its plugin (\"Install linear\") for assistive technology; the drawing names it by its visible words"
+      },
       "ruled": {},
       "pending": {}
     }

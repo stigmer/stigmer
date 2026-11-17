@@ -197,9 +197,24 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Install linear": "The drawing installs Linear; the scene installs its own catalogue's plugin",
+        "word From stigmer (github.com/stigmer/plugins) into acme": "The drawing installs Linear; the scene installs its own catalogue's plugin",
+        "word linear": "The drawing installs Linear; the scene installs its own catalogue's plugin",
+        "word 6 read": "The drawing installs Linear; the scene installs its own catalogue's plugin",
+        "word linear (http)": "The drawing installs Linear; the scene installs its own catalogue's plugin"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "type Name": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look",
+        "type Version": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look",
+        "type Format": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look",
+        "type Files": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look",
+        "type Skills": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look",
+        "type MCP servers": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look",
+        "type Subagents": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look",
+        "type Hooks": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look"
+      }
     },
     {
       "caption": "Install and upload: Install: installing",
@@ -964,7 +979,10 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "type Install": "The uploader's acts are its own form's at the small size, shared with the Library's Upload plugin page; the drawing's dialog footer has them at 32px. For the Built look",
+        "button Install": "The uploader's acts are its own form's at the small size, shared with the Library's Upload plugin page; the drawing's dialog footer has them at 32px. For the Built look"
+      }
     },
     {
       "caption": "Install and upload: Upload: a folder chosen",

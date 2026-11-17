@@ -626,7 +626,9 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Key ending in x7Qa · Checked with Anthropic · saved Jul 13 by Ada Lovelace · last used Jul 19": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
       "pending": {}
     },
