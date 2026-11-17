@@ -14,6 +14,7 @@ import type { EnvVarDeclaration } from "@stigmer/apis/ai/stigmer/agentic/vault/v
 import { useStigmer } from "@stigmer/react-core";
 import { toError } from "@stigmer/react-core/internal";
 import { useMyVault } from "../vault/useMyVault.js";
+import { isMyVault } from "../vault/useVaultList.js";
 import { valuesOf } from "../vault/types.js";
 import { toolLoginKeyOf, vaultLoginServes } from "../vault/address.js";
 import { MY_VAULT_ONLY, conversationVaultsKey, type ConversationVaults } from "../vault/conversationVaults.js";
@@ -374,14 +375,16 @@ export function useAgentSetup(
         // once here for its logins and its secret names alike: My vault
         // first when included, unless the agent or a subagent it lists is
         // of another organization, whose runs never read it; then the
-        // listed vaults.
+        // listed vaults. A My vault listed by reference is My vault all
+        // the same: such a run skips it, as the server does.
         const agentOrg = agent.metadata?.org ?? "";
         const foreign = agentOrg !== orgId || subagentOrgs(agent.spec, agentOrg).some((subagentOrg) => subagentOrg !== orgId);
         const readsMyVault = choice.includeMyVault && !foreign;
-        const listed = await readableVaults(
+        const readable = await readableVaults(
           stigmer,
           choice.vaults.map((v) => ({ org: v.org || org, slug: v.slug })),
         );
+        const listed = foreign ? readable.filter((vault) => !isMyVault(vault)) : readable;
         const mine = latestMyVaultRef.current.current;
         const readVaults = readsMyVault && mine !== null ? [mine, ...listed] : listed;
         const { servers, pendingSignIns, declarations, signInVariables } = await readServers(stigmer, agent, readVaults);
