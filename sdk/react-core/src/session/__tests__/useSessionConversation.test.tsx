@@ -362,6 +362,25 @@ describe("useSessionConversation — turns and runs", () => {
     }
   });
 
+  it("drops the pending re-read when the conversation closes before it fires", async () => {
+    methods.sessionGet.mockResolvedValue(withSubject(PENDING_SUBJECT));
+    listing(makeRun("run_live", RunPhase.RUN_IN_PROGRESS));
+    events.push(...turnOpen("run_live", "running"));
+    const { result, unmount } = open();
+    await waitFor(() => expect(result.current.activePhase).toBe("running"));
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      act(() => events.push(samples.runStatusEvent("completed", { runId: "run_live" })));
+      await vi.waitFor(() => expect(result.current.activeTurn).toBeNull());
+      const reads = methods.sessionGet.mock.calls.length;
+      unmount();
+      act(() => vi.advanceTimersByTime(60_000));
+      expect(methods.sessionGet.mock.calls.length).toBe(reads);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("never re-reads a session that already has its subject for it", async () => {
     methods.sessionGet.mockResolvedValue(withSubject("Fix invoice rounding"));
     listing(makeRun("run_live", RunPhase.RUN_IN_PROGRESS));
