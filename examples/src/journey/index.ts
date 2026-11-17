@@ -14,8 +14,7 @@ export { OWN_AGENT_SLUG, OWN_AGENT_TRIES, isOwnAgentSlug, ownAgentSlug } from ".
 
 /**
  * Whether `slug` is an agent the journey made: an example's, or one
- * described in the person's own words. An agent a plugin installed, or one
- * made some other way, is not.
+ * described in the person's own words. An agent made any other way is not.
  */
 export function isJourneyAgentSlug(slug: string): boolean {
   return EXAMPLE_AGENT_SLUGS.includes(slug) || isOwnAgentSlug(slug);

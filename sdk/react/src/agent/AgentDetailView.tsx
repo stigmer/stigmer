@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
@@ -43,9 +43,7 @@ import { InlineEditImage } from "../inline-edit/InlineEditImage.js";
 import { InlineEditKeyValue } from "../inline-edit/InlineEditKeyValue.js";
 import { InlineEditResourceList } from "../inline-edit/InlineEditResourceList.js";
 import type { KeyValueRow, ResourceRefRow } from "../inline-edit/types.js";
-import { ManagedByPluginNotice } from "../plugin/ManagedByPluginNotice.js";
 import { PluginIcon } from "../plugin/PluginIcon.js";
-import { useManagingPlugin } from "../plugin/useManagingPlugin.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { useOrgIdForRef, useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { AgentQualityTab } from "./AgentQualityTab.js";
@@ -113,7 +111,7 @@ export interface AgentDetailViewProps {
    * editor opens on what is stored, after any edit made on the page, and an
    * apply shows here at once. They sit after the host's `actions` and
    * before its first `"destructive"` one. Edit YAML is offered only while
-   * the agent is editable, so never for an agent a plugin installed.
+   * the agent is editable (`editable` and the server's `can_edit`).
    * @default false
    */
   readonly yamlActions?: boolean;
@@ -155,11 +153,8 @@ export interface AgentDetailViewProps {
   readonly defaultTab?: string;
   /**
    * Called when a plugin is selected: one the agent lists in its Plugins
-   * section or its dependency graph, or the one named in the "installed
-   * by a plugin" notice. The host owns the route to the plugin's page. The
-   * notice shows when this resource carries a live plugin's label, and
-   * `editable` is then narrowed to `false`: the server refuses a client
-   * edit of a plugin's resource, so no edit form is offered.
+   * section or its dependency graph. The host owns the route to the
+   * plugin's page.
    */
   readonly onPluginClick?: (ref: { org: string; slug: string }) => void;
   /**
@@ -227,7 +222,7 @@ export interface AgentDetailViewProps {
    * Offer the "Make it yours" tab, with the host's routes for its acts:
    * drawn first among the tabs for an agent the journey made (an example's
    * agent, or one described in the person's own words) that the viewer may
-   * edit (`editable`, the server's `can_edit`, not a plugin's). It changes
+   * edit (`editable` and the server's `can_edit`). It changes
    * the instructions and adds a ready-made skill through this view's own
    * save, so Overview shows each change at once, and links the launcher for
    * a run on the sample or on the person's own file. The page opens on it
@@ -332,16 +327,13 @@ export function AgentDetailView({
   // The agent's org is compared with stored references, which name orgs by
   // id; the `org` prop may be a slug (a URL's), so it is mapped first.
   const orgIdFor = useOrgIdForRef();
-  const managing = useManagingPlugin(agent?.metadata?.labels);
   // The resource the header's acts and the inline edits are checked on.
   const agentId = agent?.metadata?.id ?? "";
   const resourceRef = useMemo(() => (agentId !== "" ? { kind: "agent", id: agentId } : null), [agentId]);
   // Edits are offered only on the server's yes: a reader sees a read-only
   // page from the first frame, never a pencil while the check is in flight.
   const editCheck = useCheckPermission(editableProp ? resourceRef : null, "can_edit", { fail: "closed" });
-  const mayEdit = editableProp && editCheck.allowed;
-  // A plugin's resource is the plugin's to redefine; the notice says so and no edit form is offered.
-  const editable = mayEdit && managing.plugin === null;
+  const editable = editableProp && editCheck.allowed;
   const { update, isUpdating } = useUpdateAgent();
 
   // Last failed inline save, attributed to the field that was edited so
@@ -609,12 +601,11 @@ export function AgentDetailView({
       />
     );
   } else if (effectiveActiveTab === "quality") {
-    // Grading is the agent's setting, not its definition: a plugin-managed
-    // agent offers it too, to whoever the server lets edit the agent.
+    // Grading is offered to whoever the server lets edit the agent.
     tabContent = (
       <AgentQualityTab
         agent={agent}
-        editable={mayEdit}
+        editable={editable}
         onNavigateToRun={onNavigateToRun}
         onOpenEval={(evalId) => {
           setOpenEvalId(evalId);
@@ -624,7 +615,7 @@ export function AgentDetailView({
     );
   } else if (effectiveActiveTab === "evals") {
     // Running test cases on the agent is not an edit of its definition:
-    // the tab gates its own form on can_edit, a plugin-managed agent included.
+    // the tab gates its own form on can_edit.
     tabContent = (
       <EvalRunsTab
         agent={agent}
@@ -707,7 +698,6 @@ export function AgentDetailView({
           />
         }
         visibilityControl={visibilityControl}
-        headerBanner={<ManagedByPluginNotice plugin={managing.plugin} onPluginClick={onPluginClick} />}
         primaryAction={primaryAction}
         actions={mergedActions}
         resource={resourceRef}
@@ -1068,6 +1058,7 @@ function AgentOverview({
 
 function InstructionsContent({ text }: { readonly text: string }) {
   const [expanded, setExpanded] = useState(false);
+  const contentId = useId();
   const contentRef = useRef<HTMLPreElement>(null);
   const [overflows, setOverflows] = useState(false);
 
@@ -1080,6 +1071,7 @@ function InstructionsContent({ text }: { readonly text: string }) {
   return (
     <div className="stg:relative stg:p-3">
       <pre
+        id={contentId}
         ref={contentRef}
         className={cn(
           "stg:whitespace-pre-wrap stg:break-words stg:font-mono stg:text-sm stg:text-foreground stg:overflow-y-auto stg:transition-[max-height] stg:duration-200",
@@ -1096,6 +1088,8 @@ function InstructionsContent({ text }: { readonly text: string }) {
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          aria-controls={contentId}
           className="stg:mt-2 stg:text-xs stg:font-medium stg:text-primary stg:transition-colors stg:hover:text-primary-muted"
         >
           {expanded ? "Show less" : "Show more"}

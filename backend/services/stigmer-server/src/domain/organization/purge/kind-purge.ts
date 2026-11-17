@@ -7,8 +7,7 @@
  * carries the cleanup a purge needs (its version archives, its secret
  * backing state, its schedule artifacts, its shares and executions, its
  * search entry, its access), and refusals a purge must not meet: a session
- * with an active execution, a plugin-managed member, a plugin whose members
- * something references. Inside a purge every reference is going too, and
+ * with an active execution, say. Inside a purge every reference is going too, and
  * the RPC would refuse in orders nobody can always satisfy, so each kind's
  * purge (`src/domain/<kind>/purge.ts`) lists the cleanup steps of its
  * delete chain, built from the same factories, and this module runs them

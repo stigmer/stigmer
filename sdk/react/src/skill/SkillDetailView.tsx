@@ -29,8 +29,6 @@ import type { StatusPhase } from "../resource-workbench/types.js";
 import { useSkillVersions } from "./useSkillVersions.js";
 import { VersionTimeline } from "../version-history/VersionTimeline.js";
 import { SkillDiffDialog, type SkillDiffDialogState } from "./SkillDiffDialog.js";
-import { ManagedByPluginNotice } from "../plugin/ManagedByPluginNotice.js";
-import { useManagingPlugin } from "../plugin/useManagingPlugin.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
 
@@ -105,14 +103,6 @@ export interface SkillDetailViewProps {
    */
   readonly onVersionSelect?: (versionHash: string) => void;
   /**
-   * Called when the user selects the plugin named in the "installed by a
-   * plugin" notice; the host owns the route to the plugin's page. The
-   * notice shows when this resource carries a live plugin's label, and
-   * `editable` is then narrowed to `false`: the server refuses a client
-   * edit of a plugin's resource, so no edit form is offered.
-   */
-  readonly onPluginClick?: (ref: { org: string; slug: string }) => void;
-  /**
    * When `true`, this host allows editing: metadata fields (description,
    * tag) become click-to-edit for a person the server lets edit the skill
    * (`can_edit`, asked by the view; a reader sees a read-only page from the
@@ -176,22 +166,19 @@ export function SkillDetailView({
   onTabChange,
   defaultTab,
   onVersionSelect,
-  onPluginClick,
   editable: editableProp = false,
   onResourceUpdated,
   className,
   headingLevel,
 }: SkillDetailViewProps) {
   const { skill, isLoading, error, refetch } = useSkill(org, slug, version);
-  const managing = useManagingPlugin(skill?.metadata?.labels);
   // The resource the header's acts and the inline edits are checked on.
   const skillId = skill?.metadata?.id ?? "";
   const resourceRef = useMemo(() => (skillId !== "" ? { kind: "skill", id: skillId } : null), [skillId]);
   // Edits are offered only on the server's yes: a reader sees a read-only
   // page from the first frame, never a pencil while the check is in flight.
   const editCheck = useCheckPermission(editableProp ? resourceRef : null, "can_edit", { fail: "closed" });
-  // A plugin's resource is the plugin's to redefine; the notice says so and no edit form is offered.
-  const editable = editableProp && editCheck.allowed && managing.plugin === null;
+  const editable = editableProp && editCheck.allowed;
   const versionPages = useSkillVersions(org, slug);
   const { versions, isEmpty: noVersions, getArtifactKey } = versionPages;
   const [diffState, setDiffState] = useState<SkillDiffDialogState | null>(null);
@@ -335,7 +322,6 @@ export function SkillDetailView({
         header={headerMeta}
         headingLevel={headingLevel}
         visibilityControl={visibilityControl}
-        headerBanner={<ManagedByPluginNotice plugin={managing.plugin} onPluginClick={onPluginClick} />}
         primaryAction={primaryAction}
         actions={mergedActions}
         resource={resourceRef}

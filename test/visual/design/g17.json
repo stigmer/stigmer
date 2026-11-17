@@ -821,12 +821,8 @@
     {
       "caption": "An agent: Installed by a plugin: read here, changed in the plugin",
       "narrow": false,
-      "built": [
-        {
-          "scene": "agent-profile-managed",
-          "width": "desktop"
-        }
-      ],
+      "built": [],
+      "unbuilt": "The state is gone: no install labels a resource since stigmer#2118, and the server never refused its edits (stigmer#2818).",
       "words": [
         {
           "text": "Ledger reviewer",
@@ -1227,10 +1223,7 @@
           "height": 28
         }
       ],
-      "sample": {
-        "word How acme codes expenses.": "the scene's data differs (agent-profile-managed)",
-        "word The month-end checklist, in order.": "the scene's data differs (agent-profile-managed)"
-      },
+      "sample": {},
       "ruled": {},
       "pending": {
         "word In your app": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",

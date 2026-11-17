@@ -118,7 +118,7 @@ Values are write-only: every response passes through `redactVault`, and no RPC r
 | AgentCommandController.updateVisibility | config: can_manage_audience on agent (field resource_id), error_msg yes | chain-with-Authorize (guard: RequireChildOrgsAuthority — a change to visibility_child_orgs also needs `can_manage_child_orgs` on the agent's organization) |
 | AgentCommandController.rename | config: can_delete on agent (field resource_id), error_msg yes | chain-with-Authorize (whoever may delete it may rename it: LoadForRename, ValidateNewSlug, RenameName, PersistRenamed in `src/pipeline/steps/rename.ts`) |
 | AgentCommandController.delete | config: can_delete on agent (field value), error_msg yes | chain-with-Authorize |
-| AgentCommandController.tagVersion | config: can_edit on agent (field agent_id), error_msg yes | chain-with-Authorize (guard: GuardPluginManaged — a plugin-managed agent's tags are its plugin's) |
+| AgentCommandController.tagVersion | config: can_edit on agent (field agent_id), error_msg yes | chain-with-Authorize |
 | AgentQueryController.get | config: can_view on agent (field value), error_msg yes | chain-with-Authorize |
 | AgentQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy; the ladder is LoadAgentByReference, the shared version ladder, and an archived version shares the head's id) |
 | AgentQueryController.list | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |

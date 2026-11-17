@@ -1,8 +1,7 @@
 /**
  * The agent's purge (domain/organization/purge/kind-purge.ts): every agent
  * of an organization being deleted, removed with its delete chain's
- * cleanup (controller.ts `deleteAgent`) and without its refusal of a
- * plugin-managed agent: the plugin goes too.
+ * cleanup (controller.ts `deleteAgent`) and none of its refusals.
  *
  * The chain's steps after its load, in its order: the agent's channels and
  * routines, its version archives, the row, its access, its search entry.

@@ -10,8 +10,8 @@
  *   - agents: the agent list index, one organization's newest first, one
  *     page of {@link AGENT_PAGE} (a new organization's whole list); the
  *     journey's agents are named by `@stigmer/examples/journey`, the rule
- *     the React kit makes them under, so an agent a plugin installed (which
- *     gains versions when the plugin upgrades) never counts;
+ *     the React kit makes them under, so an agent made any other way never
+ *     counts;
  *   - a second version: the agent's audit history, counted, read only for
  *     the journey's agents, newest first, stopping at the first with two;
  *   - runs: the run list index, newest first, a page at a time, stopping at

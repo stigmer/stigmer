@@ -12,15 +12,14 @@
  * server" (`AddMcpServerDialog` over `useAddMcpServer`, a plugin of one
  * server built in the browser), the styled surfaces (`PluginDetailView`,
  * `MarketplaceCatalog`, `PluginUploader`, `PluginInstallDialog`,
- * `InstallPreview`, `ManagedByPluginNotice`, `PluginPicker`), a server's
- * sign-in over the person's My vault (`PluginServerSignIn` over
- * `usePluginServerSignIn`, `PluginServerSignIns` for a conversation's
- * plugins) and its tools on demand (`usePluginTools`), the way onto an
- * agent (`AddPluginToAgentDialog` over `useAddPluginToAgent`, the spec
- * edit in `plugin-on-agent.ts`), a hook set as both the plugin and the
- * agent page show it (`HookConfigList`), the label rule an agent a plugin
- * once installed still carries (`useManagingPlugin`), and the picks a
- * browser remembers for the next conversation (`rememberedPluginPicks.ts`).
+ * `InstallPreview`, `PluginPicker`), a server's sign-in over the person's
+ * My vault (`PluginServerSignIn` over `usePluginServerSignIn`,
+ * `PluginServerSignIns` for a conversation's plugins) and its tools on
+ * demand (`usePluginTools`), the way onto an agent
+ * (`AddPluginToAgentDialog` over `useAddPluginToAgent`, the spec edit in
+ * `plugin-on-agent.ts`), a hook set as both the plugin and the agent page
+ * show it (`HookConfigList`), and the picks a browser remembers for the
+ * next conversation (`rememberedPluginPicks.ts`).
  * Remove goes through `useDeleteResource("plugin", id)`; visibility
  * through `useUpdateVisibility("plugin", id)`, the one home each already
  * has.
@@ -40,8 +39,6 @@ export { usePluginSearch } from "./usePluginSearch.js";
 export type { UsePluginSearchOptions, UsePluginSearchReturn } from "./usePluginSearch.js";
 export { usePluginVersions } from "./usePluginVersions.js";
 export type { UsePluginVersionsReturn } from "./usePluginVersions.js";
-export { PLUGIN_LABEL, useManagingPlugin } from "./useManagingPlugin.js";
-export type { UseManagingPluginReturn } from "./useManagingPlugin.js";
 
 // Marketplaces
 export {
@@ -152,6 +149,4 @@ export { listsPlugin, withPlugin } from "./plugin-on-agent.js";
 export { PLUGIN_PICKS_STORAGE_KEY, readRememberedPluginPicks, rememberPluginPicks } from "./rememberedPluginPicks.js";
 export { HookConfigList } from "./HookConfigList.js";
 export type { HookConfigListProps } from "./HookConfigList.js";
-export { ManagedByPluginNotice } from "./ManagedByPluginNotice.js";
-export type { ManagedByPluginNoticeProps } from "./ManagedByPluginNotice.js";
 export { PluginIcon } from "./PluginIcon.js";

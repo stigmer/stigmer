@@ -55,9 +55,8 @@ export interface AgentQualityTabProps {
  * judge's model, and this month's spend and counts, with the reason the
  * last run picked for grading was not graded.
  *
- * Grading is the agent's setting, not part of its definition, so a
- * plugin-managed agent offers it too. Anyone who can view the agent sees
- * the tab; changes need edit access on the agent.
+ * Grading is the agent's setting, not part of its definition. Anyone who
+ * can view the agent sees the tab; changes need edit access on the agent.
  *
  * All visual properties flow through `--stgm-*` tokens.
  */

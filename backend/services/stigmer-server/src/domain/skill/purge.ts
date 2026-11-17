@@ -2,8 +2,7 @@
  * The skill's purge (domain/organization/purge/kind-purge.ts): every
  * skill of an organization being deleted, removed with its delete chain's
  * cleanup (controller.ts `deleteSkill`: its version archives, the row, its
- * access, its search entry) and without its refusal of a plugin-managed
- * skill: the plugin goes too. The archives step is the chain's own
+ * access, its search entry). The archives step is the chain's own
  * content-addressed factory with the chain's name.
  */
 import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";

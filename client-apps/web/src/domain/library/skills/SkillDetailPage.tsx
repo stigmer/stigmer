@@ -11,10 +11,7 @@ import {
   useBreadcrumbOverride,
   type DetailAction,
 } from "@stigmer/react-sdk";
-import {
-  useLibraryNavigation,
-  useRouteDetailYieldsToOverlay,
-} from "@/domain/library/library-navigation";
+import { useRouteDetailYieldsToOverlay } from "@/domain/library/library-navigation";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 
 interface SkillDetailPageInnerProps {
@@ -24,7 +21,6 @@ interface SkillDetailPageInnerProps {
 
 export function SkillDetailPageInner({ org, slug }: SkillDetailPageInnerProps) {
   const router = useRouter();
-  const { navigateToDetail } = useLibraryNavigation();
   const { setLabel } = useBreadcrumbOverride();
   const [resourceId, setResourceId] = useState<string | null>(null);
   const [resourceName, setResourceName] = useState<string>("Skill");
@@ -95,7 +91,6 @@ export function SkillDetailPageInner({ org, slug }: SkillDetailPageInnerProps) {
         slug={slug}
         editable
         onResourceLoad={handleResourceLoad}
-        onPluginClick={({ org: o, slug: s }) => navigateToDetail("plugins", o, s)}
         actions={actions}
       />
       <ConfirmDialog

@@ -67,8 +67,7 @@ type platform
     # ========================================
     # Permission to introduce or change stigmer.ai/* labels through
     # client-facing write boundaries. Reserved labels carry platform
-    # semantics the server acts on — a row's plugin membership
-    # (stigmer.ai/plugin), a system-managed lifecycle
+    # semantics the server acts on — a system-managed lifecycle
     # (stigmer.ai/system-managed), a default instance
     # (stigmer.ai/default-instance) — so ordinary requests may echo or
     # remove them but never write them. Checked lazily by

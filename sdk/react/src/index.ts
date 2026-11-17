@@ -257,7 +257,7 @@ export type {
   SkillFileBrowserProps,
 } from "./skill/index.js";
 
-// Plugin — the installed kind's data hooks, the marketplace layer a browser reads, install, "Add MCP server", detail view, a server's sign-in and tools, the picker, and the "installed by a plugin" rule
+// Plugin — the installed kind's data hooks, the marketplace layer a browser reads, install, "Add MCP server", detail view, a server's sign-in and tools, and the picker
 export {
   PluginDetailView,
   PluginServerRow,
@@ -280,7 +280,6 @@ export {
   HookConfigList,
   InstallPreview,
   PrepareRefusal,
-  ManagedByPluginNotice,
   PluginIcon,
 } from "./plugin/index.js";
 export type {
@@ -304,7 +303,6 @@ export type {
   PluginUploaderProps,
   PluginInstallDeniedProps,
   PluginInstallDialogProps,
-  ManagedByPluginNoticeProps,
 } from "./plugin/index.js";
 
 // GitHub — OAuth connection, repo picker, tree lister, and hooks
