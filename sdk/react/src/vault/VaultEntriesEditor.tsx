@@ -234,6 +234,7 @@ function EntryRow({
   readonly onRemove: () => Promise<boolean>;
 }) {
   const [replacing, setReplacing] = useState(false);
+  const replaceFormId = useId();
   const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [value, setValue] = useState("");
 
@@ -268,6 +269,8 @@ function EntryRow({
                 setConfirmingRemove(false);
                 setReplacing((r) => !r);
               }}
+              aria-expanded={replacing}
+              aria-controls={replaceFormId}
             >
               Replace
             </Button>
@@ -312,7 +315,7 @@ function EntryRow({
         </div>
       )}
       {replacing && (
-        <form onSubmit={submit} className="stg:mt-2 stg:flex stg:items-center stg:gap-2">
+        <form id={replaceFormId} onSubmit={submit} className="stg:mt-2 stg:flex stg:items-center stg:gap-2">
           <TextInput
             type="password"
             aria-label={replaceLabel}

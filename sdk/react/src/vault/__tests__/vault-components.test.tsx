@@ -5,8 +5,9 @@
  * - VaultEntriesEditor never shows a value: it lists entries sorted, says
  *   how each login was saved, adds and replaces values from scratch,
  *   refuses a malformed name or address before sending, removes by name or
- *   address only once the person confirms (Keep leaves the entry), and
- *   shows a refused write;
+ *   address only once the person confirms (Keep leaves the entry), shows a
+ *   refused write, and its Replace button says whether the replace form is
+ *   open and names it (stigmer/stigmer#2909);
  * - VaultListPanel lists shared vaults only (never anyone's My vault), says
  *   who may use each, writes entries by vault id, and saves or deletes a
  *   vault's own fields for an editor, refusals shown;
@@ -325,6 +326,18 @@ describe("VaultEntriesEditor", () => {
       "removeSecrets:ZED",
       "removeConnections:https://b.example/mcp",
     ]);
+  });
+
+  it("says whether an entry's replace form is open, and names the form it opens", () => {
+    renderEditor();
+    const replace = within(screen.getByRole("region", { name: "Secrets" })).getAllByRole("button", { name: "Replace" })[0]!;
+    expect(replace.getAttribute("aria-expanded")).toBe("false");
+
+    fireEvent.click(replace);
+
+    expect(replace.getAttribute("aria-expanded")).toBe("true");
+    const form = screen.getByLabelText("New value for ALPHA").closest("form");
+    expect(form?.id).toBe(replace.getAttribute("aria-controls"));
   });
 
   it("shows a refused write and keeps the replace field open", async () => {
