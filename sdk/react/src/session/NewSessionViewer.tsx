@@ -599,7 +599,7 @@ export function NewSessionViewer({
       onPluginRefsChange: isCurated ? undefined : flow.setPluginRefs,
       skillRefs: isCurated ? undefined : flow.skillRefs,
       onSkillRefsChange: isCurated ? undefined : flow.setSkillRefs,
-      showHarnessSelector: !isGuest,
+      showHarnessSelector: audience === "integrator",
       harness: flow.harness,
       onHarnessChange: flow.setHarness,
       interactionMode,

@@ -137,6 +137,15 @@ export interface AgentChatProps {
    */
   readonly fileReview?: boolean;
   /**
+   * Whether the composer offers the model picker, on the first message and
+   * on every reply. `false` hides it, for a host that wants a bare chat:
+   * each turn asks for the model it would without the picker (see
+   * `SessionViewer`'s `showModelSelector`). The harness is never offered
+   * to an app's users (`audience="endUser"`), whatever this says.
+   * @default true
+   */
+  readonly showModelSelector?: boolean;
+  /**
    * Called when the first message could not be sent, after the chat shows
    * the message under its box.
    */
@@ -178,6 +187,7 @@ export function AgentChat({
   enableGitHub,
   includeMyVault,
   fileReview,
+  showModelSelector,
   onError,
   className,
 }: AgentChatProps) {
@@ -255,6 +265,7 @@ export function AgentChat({
           inspector={pageInspector}
           threadSlots={threadSlots}
           enableGitHub={enableGitHub}
+          showModelSelector={showModelSelector}
         />
       </ChatActivityReporterContext.Provider>
     ) : (
@@ -269,6 +280,7 @@ export function AgentChat({
         enableGitHub={enableGitHub}
         includeMyVault={includeMyVault}
         fileReview={fileReview}
+        showModelSelector={showModelSelector}
         // A panel or popup never takes focus from the host's page by itself.
         autoFocus={variant === "page"}
         onSessionCreated={handleCreated}

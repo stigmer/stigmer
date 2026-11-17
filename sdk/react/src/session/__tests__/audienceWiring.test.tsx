@@ -276,6 +276,8 @@ describe("NewSessionViewer — audience wiring", () => {
     expect(props.onPluginRefsChange).toBeDefined();
     expect(props.onSkillRefsChange).toBeDefined();
     expect(props.enableVaultPicker).toBe(true);
+    // The console's own composer offers the harness beside the model.
+    expect(props.showHarnessSelector).toBe(true);
     // Run settings, with the auto-approve switch, sit in the composer.
     const run = offeredRunSettings();
     expect(run.ids).toEqual(["run-settings"]);
@@ -297,8 +299,8 @@ describe("NewSessionViewer — audience wiring", () => {
     expect(props.onPluginRefsChange).toBeUndefined();
     expect(props.onSkillRefsChange).toBeUndefined();
     expect(props.enableVaultPicker).toBe(false);
-    // End-user controls survive the curation.
-    expect(props.showHarnessSelector).toBe(true);
+    // End-user controls survive the curation; the harness is not one.
+    expect(props.showHarnessSelector).toBe(false);
     expect(props.showInteractionModePicker).toBe(true);
     // The run settings are offered to an end user too, beside the model picker.
     expect(offeredRunSettings().ids).toEqual(["run-settings"]);
