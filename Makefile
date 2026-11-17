@@ -636,6 +636,19 @@ door-coding-agent: build-libs build-server build-runner ## Paste the coding-agen
 	@command -v claude >/dev/null 2>&1 || { echo "error: claude not found (Claude Code, signed in)"; exit 1; }
 	node test/install/coding-agent-door.mjs $(DOOR_ARGS)
 
+# The coding-agent question bank (test/install/coding-agent-bank.mjs): every
+# case in coding-agents/evals/ asked of Claude Code with Stigmer's plugin and
+# without it (`claude plugin eval`, signed in to its own model), against a
+# hermetic server seeded with the bank's fixture, its runner on the fake
+# model; it prints the score per job. Needs a coding agent, so it is in no
+# lane; BANK_ARGS passes its flags (--tag=<job>, --case=<glob>, --runs=<n>,
+# --model=<id>, --max-cost-usd=<usd>, --with-only, --compare=<file>, --keep).
+.PHONY: bank-coding-agent
+bank-coding-agent: build-libs build-server build-runner ## Ask the coding-agent question bank of Claude Code with the plugin and without it, and print the score per job (by hand; needs claude signed in)
+	@command -v claude >/dev/null 2>&1 || { echo "error: claude not found (Claude Code, signed in)"; exit 1; }
+	npm run build -w @stigmer/coding-agent-plugin
+	node test/install/coding-agent-bank.mjs $(BANK_ARGS)
+
 # `stigmer auth login` from source against a server that signs its callers in
 # through test/support's hermetic issuer and announces a client for installed
 # apps: through a stand-in browser, then logout, then a code on any device

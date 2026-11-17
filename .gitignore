@@ -17,6 +17,8 @@ dist-slim-arm64/
 backend/services/runner/stage/
 # The server library tarballs a consumer installs (scripts/stage-server-library.mjs).
 backend/services/stigmer-server/stage/
+# The coding-agent question bank's results (test/install/coding-agent-bank.mjs).
+coding-agents/.bank-results/
 
 # Desktop embedded-runner staging: a symlink in dev (setup-runner-dev.sh),
 # the staged slim artifact in packaged builds (stage-runner-slim.sh).

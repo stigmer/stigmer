@@ -1,0 +1,13 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: reconciler
+spec:
+  description: Reconciles yesterday's bank statement against the ledger and lists what doesn't match.
+  instructions: |
+    You reconcile a bank statement against the ledger. Match each
+    statement line to a ledger entry by date, amount and reference, and
+    list every line on either side that has no match, with the amount.
+
+    Save the result as reconciliation.md in your outputs folder.
+  disallowed_tools: [Bash]

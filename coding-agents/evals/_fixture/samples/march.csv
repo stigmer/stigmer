@@ -1,0 +1,6 @@
+invoice,vendor,purchase_order,amount
+INV-2280,Northwind Traders,PO-1101,1250.00
+INV-2291,Contoso Supplies,PO-1104,880.00
+INV-2291,Contoso Supply Ltd,PO-1104,880.00
+INV-2307,Fabrikam,PO-1110,2412.50
+INV-2318,Northwind,,640.00
