@@ -81,12 +81,12 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "word Couldn't load the agent.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word the server did not answer in time": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Stuck? Ask IT on Slack": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Couldn't load the agent.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word the server did not answer in time": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Stuck? Ask IT on Slack": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "Any detail page: Not found",
@@ -130,11 +130,11 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "word Back to agents": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "button Back to agents": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Back to agents": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "button Back to agents": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     }
   ]
 }

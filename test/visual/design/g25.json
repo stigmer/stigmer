@@ -268,15 +268,15 @@
       "sample": {
         "word data-science": "the scene's data differs (environment-new)"
       },
-      "ruled": {},
-      "pending": {
-        "word What this environment is for.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Any website": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Listed websites only": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type Also allow package registries and code hosts": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
-        "word npm, PyPI, crates.io, the Go module proxy, RubyGems, the Debian and Ubuntu archives and GitHub. Packages need it.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type Also allow this agent's MCP servers": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word What this environment is for.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Any website": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Listed websites only": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Also allow package registries and code hosts": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word npm, PyPI, crates.io, the Go module proxy, RubyGems, the Debian and Ubuntu archives and GitHub. Packages need it.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Also allow this agent's MCP servers": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     },
     {
       "caption": "New environment: A name that's taken",
@@ -552,16 +552,16 @@
         "word api.github.com our-api.example.com": "the scene's data differs (environment-new-taken)",
         "word pandas sqlalchemy==2.0.30": "the scene's data differs (environment-new-taken)"
       },
-      "ruled": {},
-      "pending": {
-        "word What this environment is for.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Any website": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Listed websites only": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "type Also allow package registries and code hosts": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word npm, PyPI, crates.io, the Go module proxy, RubyGems, the Debian and Ubuntu archives and GitHub. Packages need it.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "type Also allow this agent's MCP servers": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word acme already has an environment named data-science.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word What this environment is for.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Any website": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Listed websites only": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Also allow package registries and code hosts": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word npm, PyPI, crates.io, the Go module proxy, RubyGems, the Debian and Ubuntu archives and GitHub. Packages need it.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Also allow this agent's MCP servers": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word acme already has an environment named data-science.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "New environment: For a member",
@@ -600,12 +600,12 @@
       ],
       "buttons": [],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "word New environment": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Only an admin can create environments here": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Admins of acme set up environments. Ask one if your agents need packages or a network policy.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word New environment": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Only an admin can create environments here": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Admins of acme set up environments. Ask one if your agents need packages or a network policy.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "New environment: At 390 wide",
@@ -871,15 +871,15 @@
       "sample": {
         "word data-science": "the scene's data differs (environment-new)"
       },
-      "ruled": {},
-      "pending": {
-        "word What this environment is for.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Any website": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word Listed websites only": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "type Also allow package registries and code hosts": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "word npm, PyPI, crates.io, the Go module proxy, RubyGems, the Debian and Ubuntu archives and GitHub. Packages need it.": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)",
-        "type Also allow this agent's MCP servers": "When its page is redesigned: the build's words, type or buttons differ from the drawing here; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word What this environment is for.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Any website": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Listed websites only": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Also allow package registries and code hosts": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word npm, PyPI, crates.io, the Go module proxy, RubyGems, the Debian and Ubuntu archives and GitHub. Packages need it.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Also allow this agent's MCP servers": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     }
   ]
 }

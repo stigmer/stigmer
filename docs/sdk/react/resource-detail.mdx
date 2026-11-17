@@ -449,6 +449,7 @@ the detail page already knows what resource it is showing.
 
 <TypeTable
   type={{
+    buttonVariant: { type: "\"primary\" | \"outline\"", description: "How the act draws when it is a page's primary action: `\"primary\"` for the page's main act, `\"outline\"` for a visible act that is not the page's main one (a skill's \"Upload a new version\"). Ignored in the overflow menu." },
     disabled: { type: "boolean", description: "When `true`, the action is shown but non-interactive." },
     group: { type: "string", description: "Group identifier for organizing actions in the overflow menu. Actions with the same group are visually grouped with separators." },
     icon: { type: "ReactNode", description: "Optional icon rendered before the label." },

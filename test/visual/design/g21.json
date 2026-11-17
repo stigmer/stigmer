@@ -182,22 +182,22 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "type data-science": "When its page is redesigned: built 12/16 weight 500, drawn 20/28 weight 600; the Library pages' remaining differences (stigmer#3210)",
-        "word Created by Ada Lovelace": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Updated Jul 14, 2026": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Reaches": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Listed websites only": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Websites": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word api.github.com, our-api.example.com": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Package hosts": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Allowed": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type poppler-utils": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "word pandas, sqlalchemy==2.0.30": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Used by": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Variance reporter (its default), and the routine daily-variance-report.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "type data-science": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word Created by Ada Lovelace": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Updated Jul 14, 2026": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Reaches": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Listed websites only": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Websites": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word api.github.com, our-api.example.com": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Package hosts": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Allowed": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type poppler-utils": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word pandas, sqlalchemy==2.0.30": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Used by": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Variance reporter (its default), and the routine daily-variance-report.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "An environment: Its network, being changed",
@@ -437,27 +437,27 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "type data-science": "When its page is redesigned: built 12/16 weight 500, drawn 20/28 weight 600; the Library pages' remaining differences (stigmer#3210)",
-        "word Created by Ada Lovelace": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Updated Jul 14, 2026": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Any website": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Listed websites only": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word No network": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word The sandbox reaches nothing outside itself.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type Also allow package registries and code hosts": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
-        "word npm, PyPI, crates.io, the Go module proxy, RubyGems, the Debian and Ubuntu archives and GitHub. Packages need it.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Save network": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type Cancel": "When its page is redesigned: built 12/16 weight 500, drawn 14/20 weight 500; the Library pages' remaining differences (stigmer#3210)",
-        "type poppler-utils": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "word pandas, sqlalchemy==2.0.30": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Used by": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Variance reporter (its default), and the routine daily-variance-report.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "button Save network": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)",
-        "button Cancel": "When its page is redesigned: built 28px tall, drawn 32px; the Library pages' remaining differences (stigmer#3210)",
-        "button Edit packages": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "type data-science": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word Created by Ada Lovelace": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Updated Jul 14, 2026": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Any website": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Listed websites only": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word No network": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word The sandbox reaches nothing outside itself.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Also allow package registries and code hosts": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word npm, PyPI, crates.io, the Go module proxy, RubyGems, the Debian and Ubuntu archives and GitHub. Packages need it.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Save network": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type Cancel": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "type poppler-utils": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word pandas, sqlalchemy==2.0.30": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Used by": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Variance reporter (its default), and the routine daily-variance-report.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "button Save network": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Cancel": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Edit packages": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     },
     {
       "caption": "An environment: For a member: read only",
@@ -624,22 +624,22 @@
       ],
       "buttons": [],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "type data-science": "When its page is redesigned: built 12/16 weight 500, drawn 20/28 weight 600; the Library pages' remaining differences (stigmer#3210)",
-        "word Created by Ada Lovelace": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Updated Jul 14, 2026": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Reaches": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Listed websites only": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Websites": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word api.github.com, our-api.example.com": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Package hosts": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Allowed": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type poppler-utils": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "word pandas, sqlalchemy==2.0.30": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Used by": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Variance reporter (its default), and the routine daily-variance-report.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "type data-science": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word Created by Ada Lovelace": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Updated Jul 14, 2026": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Reaches": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Listed websites only": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Websites": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word api.github.com, our-api.example.com": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Package hosts": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Allowed": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type poppler-utils": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word pandas, sqlalchemy==2.0.30": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Used by": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Variance reporter (its default), and the routine daily-variance-report.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "An environment: At 390 wide",
@@ -819,22 +819,22 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "type data-science": "When its page is redesigned: built 12/16 weight 500, drawn 20/28 weight 600; the Library pages' remaining differences (stigmer#3210)",
-        "word Created by Ada Lovelace": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Updated Jul 14, 2026": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Reaches": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Listed websites only": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Websites": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word api.github.com, our-api.example.com": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Package hosts": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Allowed": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "type poppler-utils": "When its page is redesigned: built 12/16 weight 400, drawn 14/20 weight 400; the Library pages' remaining differences (stigmer#3210)",
-        "word pandas, sqlalchemy==2.0.30": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Used by": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Variance reporter (its default), and the routine daily-variance-report.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "type data-science": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word Created by Ada Lovelace": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Updated Jul 14, 2026": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Reaches": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Listed websites only": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Websites": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word api.github.com, our-api.example.com": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Package hosts": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Allowed": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "type poppler-utils": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "word pandas, sqlalchemy==2.0.30": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Used by": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Variance reporter (its default), and the routine daily-variance-report.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     }
   ]
 }

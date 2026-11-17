@@ -218,28 +218,28 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "word Ledger tools": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Start session": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Reads and posts to acme's general ledger, with an agent that reviews the month.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Uploaded by Ada Lovelace": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Installed Jul 15, 2026": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Versions": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word What it brings 4": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Ledger reviewer": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Agent": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Reads the month's ledger and proposes adjustments.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word chart-of-accounts": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Skill": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word How acme codes expenses.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Post only after asking": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Hook": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Stops any posting the person hasn't approved.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Used by": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word 2 agents: Ledger reviewer, Variance reporter.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "button Start session": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Ledger tools": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Start session": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Reads and posts to acme's general ledger, with an agent that reviews the month.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Uploaded by Ada Lovelace": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Installed Jul 15, 2026": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Versions": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word What it brings 4": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Ledger reviewer": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Agent": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Reads the month's ledger and proposes adjustments.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word chart-of-accounts": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Skill": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word How acme codes expenses.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Post only after asking": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Hook": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Stops any posting the person hasn't approved.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Used by": "His Built look, 2026-11-17: \"Used by\" leaves the drawing; the kit receives no such read (stigmer#3228).",
+        "word 2 agents: Ledger reviewer, Variance reporter.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "button Start session": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     },
     {
       "caption": "A plugin: Remove, asked first (the destructive confirm)",
@@ -299,11 +299,11 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "word Remove Ledger tools?": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Removes the plugin and its versions. The server refuses while an agent of acme uses it; a conversation that uses it fails its next message.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Remove Ledger tools?": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Removes the plugin and its versions. The server refuses while an agent of acme uses it; a conversation that uses it fails its next message.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
+      },
+      "pending": {}
     },
     {
       "caption": "A plugin: Evals, none yet",
@@ -427,20 +427,20 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "word Ledger tools": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Start session": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Reads and posts to acme's general ledger, with an agent that reviews the month.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Uploaded by Ada Lovelace": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Installed Jul 15, 2026": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Versions": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word No evals yet": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Evals check the plugin's agent does its job the same way after each change.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Write an eval": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "button Start session": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)",
-        "button Write an eval": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Ledger tools": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Start session": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Reads and posts to acme's general ledger, with an agent that reviews the month.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Uploaded by Ada Lovelace": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Installed Jul 15, 2026": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Versions": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word No evals yet": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Evals check the plugin's agent does its job the same way after each change.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Write an eval": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "button Start session": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
+        "button Write an eval": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     },
     {
       "caption": "A plugin: At 390 wide",
@@ -656,28 +656,28 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "word Ledger tools": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Start session": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Reads and posts to acme's general ledger, with an agent that reviews the month.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Uploaded by Ada Lovelace": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Installed Jul 15, 2026": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Versions": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word What it brings 4": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Ledger reviewer": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Agent": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Reads the month's ledger and proposes adjustments.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word chart-of-accounts": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Skill": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word How acme codes expenses.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Post only after asking": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Hook": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Stops any posting the person hasn't approved.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word Used by": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "word 2 agents: Ledger reviewer, Variance reporter.": "When its page is redesigned: no built block holds these words; the Library pages' remaining differences (stigmer#3210)",
-        "button Start session": "When its page is redesigned: no built button has this name; the Library pages' remaining differences (stigmer#3210)"
-      }
+      "ruled": {
+        "word Ledger tools": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Start session": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Reads and posts to acme's general ledger, with an agent that reviews the month.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Uploaded by Ada Lovelace": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Installed Jul 15, 2026": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Versions": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word What it brings 4": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Ledger reviewer": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Agent": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Reads the month's ledger and proposes adjustments.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word chart-of-accounts": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Skill": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word How acme codes expenses.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Post only after asking": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Hook": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Stops any posting the person hasn't approved.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "word Used by": "His Built look, 2026-11-17: \"Used by\" leaves the drawing; the kit receives no such read (stigmer#3228).",
+        "word 2 agents: Ledger reviewer, Variance reporter.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
+        "button Start session": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen."
+      },
+      "pending": {}
     }
   ]
 }

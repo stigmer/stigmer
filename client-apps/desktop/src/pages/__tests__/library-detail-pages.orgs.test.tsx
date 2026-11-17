@@ -4,7 +4,8 @@
  * the agent a plugin was added to, a routine's agent) names its
  * organization by id; the page opens it at a URL carrying that
  * organization's slug. A plugin's "Start a chat" opens the launcher with
- * the plugin named. The views are pinned in @stigmer/react-sdk.
+ * the plugin named. A skill's "Upload a new version" goes to Upload
+ * skill. The views are pinned in @stigmer/react-sdk.
  */
 import type { ComponentType } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -131,6 +132,14 @@ describe("desktop SkillDetailPage — organizations", () => {
     act(() => last<{ onPluginClick: (ref: Ref) => void }>("SkillDetailView").onPluginClick(SHARED));
 
     expect(location()).toBe("/library/plugins/shared-team/linked");
+  });
+
+  it("sends Upload a new version to the Upload skill page", () => {
+    renderDetail(SkillDetailPage);
+
+    act(() => last<{ onUploadNewVersion: () => void }>("SkillDetailView").onUploadNewVersion());
+
+    expect(location()).toBe("/library/skills/new");
   });
 });
 
