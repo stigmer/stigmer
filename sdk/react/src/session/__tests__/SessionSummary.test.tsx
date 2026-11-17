@@ -16,9 +16,10 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { act, render, screen, cleanup } from "@testing-library/react";
 import { clone, create } from "@bufbuild/protobuf";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { RoutineSchema, type Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
-import type { Stigmer } from "@stigmer/client";
+import { PENDING_SUBJECT, type Stigmer } from "@stigmer/client";
 import { StigmerContext } from "@stigmer/react-core";
 import { SCENARIO_CLOCK, sampleInstant, samples, scenarios, type Scenario } from "../../test";
 import { CHANNEL_SESSION_LABELS } from "../channelOrigin";
@@ -71,6 +72,25 @@ function renderSummary(
 }
 
 describe("SessionSummary", () => {
+  it("titles a session still holding the server's placeholder with its first message, never the placeholder (stigmer#3199)", () => {
+    const pending = clone(SessionSchema, scenarios.finished.session!);
+    pending.spec!.subject = PENDING_SUBJECT;
+    const { rerender } = renderSummary(client(async () => NIGHTLY), { session: pending });
+    const first = scenarios.finished.fold.turns[0]!.userMessage!.text;
+    expect(first).not.toBe("");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(first);
+
+    // The generated title replaces the first words as soon as the session carries it.
+    const titled = clone(SessionSchema, pending);
+    titled.spec!.subject = "Variance report for the third quarter";
+    rerender(
+      <StigmerContext.Provider value={client(async () => NIGHTLY)}>
+        <SessionSummary session={titled} turns={scenarios.finished.fold.turns} runs={scenarios.finished.runs} files={scenarios.finished.files} showCost />
+      </StigmerContext.Provider>,
+    );
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Variance report for the third quarter");
+  });
+
   it("keeps the dot before the facts out of the flow, in a row that clips its leading edge, so a wrapped line never starts with a dot (#3164)", async () => {
     renderSummary(client(async () => NIGHTLY));
     const dot = (await screen.findByText("Nightly billing check", { selector: "span" })).closest("span.stg\\:relative")!.querySelector("[aria-hidden='true']")!;

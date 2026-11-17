@@ -27,12 +27,13 @@ import {
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema, type Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import {
   SessionEventSchema,
   type SessionEvent,
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import type { StreamSessionEventsRequest } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
-import type { Stigmer, TurnPhase } from "@stigmer/client";
+import { PENDING_SUBJECT, type Stigmer, type TurnPhase } from "@stigmer/client";
 import { StigmerContext } from "../../context";
 import { ExecutionTargetContext } from "../../execution-target-context";
 import { RunnerAdapterContext } from "../../runner-adapter";
@@ -47,6 +48,13 @@ import { sessionEventStream, type SessionEventStream } from "./session-event-str
 
 function makeSession(org = ""): Session {
   return create(SessionSchema, { metadata: { id: "session-1", org } });
+}
+
+/** The session with `subject`, the placeholder the server writes at creation or a generated title. */
+function withSubject(subject: string): Session {
+  const session = makeSession();
+  session.spec = create(SessionSpecSchema, { subject });
+  return session;
 }
 
 function makeRun(
@@ -311,6 +319,59 @@ describe("useSessionConversation — turns and runs", () => {
     act(() => events.push(samples.runStatusEvent("waiting", { runId: "run_live" })));
     await waitFor(() => expect(result.current.activePhase).toBe("waiting"));
     await waitFor(() => expect(methods.runGet.mock.calls.length).toBe(reads + 1));
+  });
+
+  it("re-reads a session still holding the placeholder subject when its live turn changes phase (stigmer#3199)", async () => {
+    methods.sessionGet.mockResolvedValue(withSubject(PENDING_SUBJECT));
+    listing(makeRun("run_live", RunPhase.RUN_IN_PROGRESS));
+    events.push(...turnOpen("run_live", "running"));
+    const { result } = open();
+    await waitFor(() => expect(result.current.activePhase).toBe("running"));
+    const reads = methods.sessionGet.mock.calls.length;
+
+    methods.sessionGet.mockResolvedValue(withSubject("Variance report for the third quarter"));
+    act(() => events.push(samples.runStatusEvent("waiting", { runId: "run_live" })));
+    await waitFor(() => expect(methods.sessionGet.mock.calls.length).toBe(reads + 1));
+    await waitFor(() => expect(result.current.session?.spec?.subject).toBe("Variance report for the third quarter"));
+
+    // Titled now: the turn's next change, its end, leaves the session alone.
+    act(() => events.push(samples.runStatusEvent("completed", { runId: "run_live" })));
+    await waitFor(() => expect(result.current.activeTurn).toBeNull());
+    expect(methods.sessionGet.mock.calls.length).toBe(reads + 1);
+  });
+
+  it("reads a still-untitled session once more a while after its live turn ends, then stops (stigmer#3199)", async () => {
+    methods.sessionGet.mockResolvedValue(withSubject(PENDING_SUBJECT));
+    listing(makeRun("run_live", RunPhase.RUN_IN_PROGRESS));
+    events.push(...turnOpen("run_live", "running"));
+    const { result } = open();
+    await waitFor(() => expect(result.current.activePhase).toBe("running"));
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      act(() => events.push(samples.runStatusEvent("completed", { runId: "run_live" })));
+      await vi.waitFor(() => expect(result.current.activeTurn).toBeNull());
+      const reads = methods.sessionGet.mock.calls.length;
+      act(() => vi.advanceTimersByTime(5_000));
+      expect(methods.sessionGet.mock.calls.length).toBe(reads);
+      act(() => vi.advanceTimersByTime(1_000));
+      expect(methods.sessionGet.mock.calls.length).toBe(reads + 1);
+      act(() => vi.advanceTimersByTime(60_000));
+      expect(methods.sessionGet.mock.calls.length).toBe(reads + 1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("never re-reads a session that already has its subject for it", async () => {
+    methods.sessionGet.mockResolvedValue(withSubject("Fix invoice rounding"));
+    listing(makeRun("run_live", RunPhase.RUN_IN_PROGRESS));
+    events.push(...turnOpen("run_live", "running"));
+    const { result } = open();
+    await waitFor(() => expect(result.current.activePhase).toBe("running"));
+    const reads = methods.sessionGet.mock.calls.length;
+    act(() => events.push(samples.runStatusEvent("waiting", { runId: "run_live" })));
+    await waitFor(() => expect(result.current.activePhase).toBe("waiting"));
+    expect(methods.sessionGet.mock.calls.length).toBe(reads);
   });
 
   it("hides superseded turns and runs, every link of a chain, and ignores a dangling link", async () => {
