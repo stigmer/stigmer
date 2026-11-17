@@ -5,9 +5,12 @@
  * before it reads anything. Where the edition does not offer the page
  * (`unavailable`) or the person may not see it (`denied`), the body is never
  * mounted, so none of its reads start, and the main act is not offered.
+ * A detail open in place names the page, with a quiet way back to its list
+ * above the title.
  */
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { useEffect } from "react";
 import { SettingsPage } from "../SettingsPage";
 
@@ -92,5 +95,26 @@ describe("SettingsPage", () => {
     expect(screen.getByText("The page's rows")).toBeTruthy();
     expect(screen.queryByRole("status")).toBeNull();
     expect(mounted).toEqual(["body"]);
+  });
+
+  it("names the page after a detail open in place, with a quiet way back to the list above the title", async () => {
+    const onBack = vi.fn();
+    render(
+      <SettingsPage title="Finance" description="The month-end close." back={{ label: "Teams", onBack }}>
+        <p>The team's sections</p>
+      </SettingsPage>,
+    );
+    const region = screen.getByRole("region", { name: "Finance" });
+    const back = within(region).getByRole("button", { name: "Teams" });
+    const heading = within(region).getByRole("heading", { level: 2, name: "Finance" });
+    expect(back.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(back.className).toContain("stg:h-7");
+    await userEvent.click(back);
+    expect(onBack).toHaveBeenCalledOnce();
+  });
+
+  it("offers no way back while the page is denied or unavailable", () => {
+    render(<SettingsPage title="Finance" denied back={{ label: "Teams", onBack: () => {} }} />);
+    expect(screen.queryByRole("button", { name: "Teams" })).toBeNull();
   });
 });

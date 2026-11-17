@@ -4,6 +4,11 @@ import type { ReactNode } from "react";
 import { flexRender, type Table, type Row } from "@tanstack/react-table";
 import { cn } from "@stigmer/design-tokens";
 import type { SortDirection } from "../types.js";
+import {
+  TABLE_CELL_CLASSES,
+  TABLE_HEADER_ROW_CLASSES,
+  TABLE_ROW_CLASSES,
+} from "../../internal/surface/Table.js";
 import { ColumnHeader } from "./ColumnHeader.js";
 import { SelectionCheckbox } from "./SelectionCheckbox.js";
 
@@ -77,7 +82,7 @@ export function ResourceTable<TData>({
           {headerGroups.map((headerGroup) => (
             <tr
               key={headerGroup.id}
-              className="stg:border-b stg:border-border"
+              className={TABLE_HEADER_ROW_CLASSES}
             >
               {enableSelection && (
                 <th scope="col" className="stg:w-10 stg:px-3.5 stg:py-2.5">
@@ -168,7 +173,7 @@ function TableRow<TData>({
   return (
     <tr
       className={cn(
-        "stg:border-b stg:border-border-muted stg:transition-colors",
+        TABLE_ROW_CLASSES,
         isSelected && "stg:bg-primary-subtle",
         isClickable && "stg:cursor-pointer stg:hover:bg-accent-hover",
       )}
@@ -203,7 +208,7 @@ function TableRow<TData>({
       {row.getVisibleCells().map((cell) => (
         <td
           key={cell.id}
-          className="stg:px-3.5 stg:py-2.5 stg:text-sm stg:text-foreground"
+          className={TABLE_CELL_CLASSES}
           style={{
             minWidth: cell.column.columnDef.minSize
               ? `${cell.column.columnDef.minSize}px`
