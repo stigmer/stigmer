@@ -62,6 +62,7 @@ export function ChannelAppsSection() {
   const createCheck = useCheckPermission(
     installsAvailable && org ? { kind: "organization", id: org } : null,
     "can_create_channel_app",
+    { fail: "closed" },
   );
   const canCreate = !createCheck.isLoading && createCheck.allowed;
   const deniedCreate = !createCheck.isLoading && !createCheck.allowed;

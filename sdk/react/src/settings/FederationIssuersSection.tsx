@@ -43,6 +43,7 @@ export function FederationIssuersSection() {
   const createCheck = useCheckPermission(
     issuerAvailable && orgId ? { kind: "organization", id: orgId } : null,
     "can_create_federation_issuer",
+    { fail: "closed" },
   );
   const canCreate = !createCheck.isLoading && createCheck.allowed;
   const deniedCreate = !createCheck.isLoading && !createCheck.allowed;

@@ -100,8 +100,11 @@ function isOrganizationList(request: { readonly method: unknown }): boolean {
   return request.method === OrganizationQueryController.method.listMine;
 }
 
-/** How a client answers: nothing past the organizations, everything, or everything after each read's first failure. */
-type Posture = "waiting" | "answered" | "failing-once";
+/**
+ * How a client answers: nothing past the organizations, everything, everything
+ * after each read's first failure, or everything but the self-checks, which fail.
+ */
+type Posture = "waiting" | "answered" | "failing-once" | "checks-failing";
 
 /**
  * A client in one posture, recording the name of every call it is asked.
@@ -124,6 +127,7 @@ function clientIn(posture: Posture, asked: Set<string>): Stigmer {
       return answer(request, samples.organizationList([ORGANIZATION]));
     }
     if (request.method === GrantQueryController.method.checkMyPermission) {
+      if (posture === "checks-failing") throw new ConnectError("the self-check did not answer", Code.Unavailable);
       return answer(request, create(request.method.output, { isAuthorized: true }));
     }
     if (posture === "failing-once" && !failed.has(call)) {
@@ -298,5 +302,34 @@ describe("CON-04 a settings page's main act opens its form in the page, and Canc
   it.each(PAGES.filter((page) => NO_MAIN_ACT.has(page[0])))("%s offers no act in its header", async (...page) => {
     const { acts } = await headerActs(page);
     expect(acts).toEqual([]);
+  });
+});
+
+/**
+ * The pages whose main act the server grants by a relation the page asks
+ * first. An act fails closed: a self-check that never answers yes (here it
+ * fails) offers no act, so nobody presses one the server would refuse.
+ */
+const ACT_ASKED_FIRST: ReadonlySet<string> = new Set([
+  "ChannelAppsSection",
+  "FederationIssuersSection",
+  "OAuthAppsSection",
+  "TeamsSection",
+  "VaultsSection",
+  "PlanCatalogConsole",
+]);
+
+describe("CON-01 a settings page offers its main act only on the server's yes", () => {
+  it("names only pages the sweep draws", () => {
+    for (const name of ACT_ASKED_FIRST) expect(PAGES.map(([page]) => page)).toContain(name);
+  });
+
+  it.each(PAGES.filter((page) => ACT_ASKED_FIRST.has(page[0])))("%s offers no main act when its self-check fails", async (...page) => {
+    const { container } = draw(page, "checks-failing", new Set());
+    const heading = await pageHeading();
+    await waitFor(() => expect(container.querySelectorAll("[aria-busy='true']")).toHaveLength(0), { timeout: 3000 });
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+    const header = heading.closest("header") as HTMLElement;
+    expect(within(header).queryAllByRole("button").map((button) => button.textContent)).toEqual([]);
   });
 });

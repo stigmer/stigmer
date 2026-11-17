@@ -39,6 +39,7 @@ export function OAuthAppsSection() {
   const createCheck = useCheckPermission(
     oauthAppsAvailable && org ? { kind: "organization", id: org } : null,
     "can_create_oauth_app",
+    { fail: "closed" },
   );
   const canCreate = !createCheck.isLoading && createCheck.allowed;
   const deniedCreate = !createCheck.isLoading && !createCheck.allowed;
