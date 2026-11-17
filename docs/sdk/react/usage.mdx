@@ -96,10 +96,12 @@ function MonthTokens({ org }: { org: string }) {
 
 ### AgentBreakdownList
 
-Renders a ranked list of agents by tokens with proportional bars.
+Renders the organization's agents ranked by tokens, on the table part in
+a section headed "Top agents by tokens".
 
-Each row shows the agent name, run count, working time, tokens with their share of
-the organization's tokens, and a bar scaled to the top agent.
+Each row shows the agent's name (a link when `agentHref` is given), its
+runs, working time, tokens and share of the organization's tokens. Under
+640px of its own width each agent is a list row.
 
 **Props** — `AgentBreakdownListProps`
 
@@ -153,7 +155,7 @@ harness, for an at-a-glance read of each harness's usage.
 
 Self-contained dashboard panel showing organization-wide LLM usage.
 
-Displays summary cards (tokens, runs, LLM calls, working time, agents, sessions), who
+Displays the period's figures (tokens, runs, model calls, working time, agents, sessions), who
 served the tokens, a daily token bar chart, the harness split, the
 agents with the most tokens, and a per-model breakdown with call counts
 and token splits. Data is fetched via `getOrgUsageReport` with a
