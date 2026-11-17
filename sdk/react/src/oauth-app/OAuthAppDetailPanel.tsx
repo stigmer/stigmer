@@ -1,8 +1,9 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
 import { type FormEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { buildOAuthAppProto, getUserMessage } from "@stigmer/client";
+import { buildOAuthAppProto } from "@stigmer/client";
 import { maskedEdit, saveErrorMessage } from "@stigmer/react-core/internal";
 import type { OAuthApp } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
 import {
@@ -17,7 +18,10 @@ import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { parseAddressList } from "./addresses.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { Button } from "../button/Button.js";
-import { FIELD_LABEL_CLASSES, FieldError, Select, TextInput } from "../internal/form/index.js";
+import { Section } from "../resource-detail/Section.js";
+import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
+import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
+import { FIELD_LABEL_CLASSES, FieldError, Select, TextInput, ReadOnlyField, ReadOnlyFields } from "../internal/form/index.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -35,6 +39,12 @@ export interface OAuthAppDetailPanelProps {
   readonly onBack?: () => void;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
+  /**
+   * Draw the app's name and handle as the panel's heading. `true` (the
+   * default) where the panel stands alone; `false` where the page's own
+   * title already names the app (the settings page while one is open).
+   */
+  readonly showName?: boolean;
 }
 
 /**
@@ -53,8 +63,8 @@ export interface OAuthAppDetailPanelProps {
  * update via {@link useUpdateOAuthApp}; "Cancel" discards changes
  * and returns to view mode.
  *
- * Delete uses an inline confirmation pattern (no modal) to avoid
- * portal/z-index issues for SDK embedders.
+ * Delete asks in a confirm dialog that runs the delete, holds Cancel
+ * while it works, and says a refusal inside the dialog.
  *
  * All visual properties flow through `--stgm-*` design tokens.
  *
@@ -76,6 +86,7 @@ export function OAuthAppDetailPanel({
   onDeleted,
   onBack,
   className,
+  showName = true,
 }: OAuthAppDetailPanelProps) {
   const baseId = useId();
   const spec = oauthApp.spec;
@@ -83,11 +94,10 @@ export function OAuthAppDetailPanel({
 
   const { update, isUpdating, error: updateError, clearError: clearUpdateError } =
     useUpdateOAuthApp();
-  const { deleteApp, isDeleting, error: deleteError, clearError: clearDeleteError } =
-    useDeleteOAuthApp();
+  const { deleteApp } = useDeleteOAuthApp();
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
 
   const [mode, setMode] = useState<"view" | "edit">("view");
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   // Edit form state — initialized from current resource
   const [provider, setProvider] = useState(spec?.provider ?? "");
@@ -186,18 +196,22 @@ export function OAuthAppDetailPanel({
     ],
   );
 
-  const handleDelete = useCallback(async () => {
+  const appName = spec?.provider || meta?.name || "this OAuth app";
+  const askToDelete = useCallback(async () => {
     const id = meta?.id;
     if (!id) return;
-
-    clearDeleteError();
-    try {
-      await deleteApp(id);
-      onDeleted?.();
-    } catch {
-      // error state is managed by useDeleteOAuthApp
-    }
-  }, [meta, deleteApp, clearDeleteError, onDeleted]);
+    const deleted = await confirm({
+      title: `Delete ${appName}?`,
+      description: "Sign-ins that use it go back to Stigmer's own app, if there is one. MCP servers set to use it lose that setting.",
+      confirmLabel: "Delete app",
+      variant: "destructive",
+      action: async () => {
+        await deleteApp(id);
+      },
+      failureTitle: `Couldn't delete ${appName}.`,
+    });
+    if (deleted) onDeleted?.();
+  }, [meta, appName, confirm, deleteApp, onDeleted]);
 
   const canSave =
     provider.trim() !== "" &&
@@ -215,49 +229,33 @@ export function OAuthAppDetailPanel({
       <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
         <div className="stg:min-w-0">
           {onBack && (
-            <button
-              type="button"
-              onClick={onBack}
-              className="stg:text-muted-foreground stg:hover:text-foreground stg:mb-1 stg:flex stg:items-center stg:gap-1 stg:text-xs stg:transition-colors"
-            >
-              <ArrowLeftIcon />
+            <Button variant="ghost" size="xs" icon={<ArrowLeft className="stg:size-3" aria-hidden="true" />} onClick={onBack}>
               Back to list
-            </button>
+            </Button>
           )}
-          <h3 className="stg:text-foreground stg:truncate stg:text-sm stg:font-semibold">
-            {spec?.provider || meta?.name || "OAuth App"}
-          </h3>
-          {meta?.slug && (
-            <span className="stg:text-muted-foreground stg:font-mono stg:text-xs">
-              {meta.slug}
-            </span>
+          {showName && (
+            <>
+              <h3 className="stg:text-foreground stg:truncate stg:text-sm stg:font-semibold">
+                {spec?.provider || meta?.name || "OAuth App"}
+              </h3>
+              {meta?.slug && (
+                <span className="stg:text-muted-foreground stg:font-mono stg:text-xs">
+                  {meta.slug}
+                </span>
+              )}
+            </>
           )}
         </div>
 
         {mode === "view" && (
           <div className="stg:flex stg:items-center stg:gap-1">
             <PermissionGate
+              fail="closed"
               resource={{ kind: "oauth_app", id: meta?.id ?? "" }}
               relation="can_edit"
             >
-              <Button variant="ghost" size="xs" onClick={enterEdit}>
+              <Button variant="outline" size="sm" onClick={enterEdit}>
                 Edit
-              </Button>
-            </PermissionGate>
-            <PermissionGate
-              resource={{ kind: "oauth_app", id: meta?.id ?? "" }}
-              relation="can_delete"
-            >
-              <Button
-                variant="ghost"
-                size="xs"
-                onClick={() => {
-                  clearDeleteError();
-                  setConfirmingDelete(true);
-                }}
-                className="stg:text-destructive-muted stg:hover:text-destructive stg:hover:bg-destructive-subtle"
-              >
-                Delete
               </Button>
             </PermissionGate>
           </div>
@@ -275,56 +273,33 @@ export function OAuthAppDetailPanel({
         />
       )}
 
-      {/* Inline delete confirmation */}
-      {confirmingDelete && (
-        <div
-          className="stg:rounded-md stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:p-3"
-          role="alert"
-        >
-          <p className="stg:text-foreground stg:mb-2 stg:text-xs stg:font-medium">
-            Delete this OAuth app?
-          </p>
-          <p className="stg:text-muted-foreground stg:mb-3 stg:text-2xs">
-            This action is permanent. Any MCP server overrides referencing
-            this app will lose their binding.
-          </p>
-          {deleteError && (
-            <FieldError className="stg:mb-2">
-              {getUserMessage(deleteError)}
-            </FieldError>
-          )}
-          <div className="stg:flex stg:items-center stg:gap-2">
-            <Button
-              variant="destructive"
-              size="xs"
-              onClick={handleDelete}
-              disabled={isDeleting}
-              icon={isDeleting ? <SpinnerIcon size={12} /> : undefined}
-            >
-              Delete permanently
-            </Button>
-            <Button
-              variant="ghost"
-              size="xs"
-              onClick={() => {
-                setConfirmingDelete(false);
-                clearDeleteError();
-              }}
-              disabled={isDeleting}
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
 
       {/* Body */}
       {mode === "view" ? (
-        <ViewMode
-          spec={spec}
-          createdAt={createdAt}
-          updatedAt={updatedAt}
-        />
+        <>
+          <ViewMode
+            spec={spec}
+            createdAt={createdAt}
+            updatedAt={updatedAt}
+          />
+          <PermissionGate
+            fail="closed"
+            resource={{ kind: "oauth_app", id: meta?.id ?? "" }}
+            relation="can_delete"
+          >
+            <Section title="Delete this app">
+              <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-3 stg:p-4">
+                <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
+                  Sign-ins at its addresses go back to Stigmer&apos;s own app, if there is one.
+                </p>
+                <Button variant="outline" size="sm" onClick={() => void askToDelete()}>
+                  Delete app
+                </Button>
+              </div>
+            </Section>
+          </PermissionGate>
+        </>
       ) : (
         <form onSubmit={handleSave} className="stg:space-y-3">
           <FieldInput
@@ -565,66 +540,77 @@ function ViewMode({
   updatedAt?: Timestamp;
 }) {
   return (
-    <dl className="stg:space-y-2.5">
-      <Field label="Provider" value={spec?.provider} />
-      <Field label="Client ID" value={spec?.clientId} mono />
-      <Field label="Client secret" value="••••••••" />
-      <Field label="Authorization URL" value={spec?.authorizationUrl} mono />
-      <Field label="Token URL" value={spec?.tokenUrl} mono />
-      <Field label="Addresses" value={spec?.addresses.join(", ")} mono />
-      {spec?.scopes && spec.scopes.length > 0 && (
-        <Field label="Scopes" value={spec.scopes.join(", ")} mono />
+    <>
+      <Section title="The app">
+        <ReadOnlyFields className="stg:p-4">
+          <Field label="Provider" value={spec?.provider} />
+          <Field label="Client ID" value={spec?.clientId} mono />
+          <Field label="Client secret" value="••••••••" />
+          <Field label="Addresses" value={spec?.addresses.join(", ")} mono />
+          {spec?.scopes && spec.scopes.length > 0 && (
+            <Field label="Scopes" value={spec.scopes.join(", ")} mono />
+          )}
+          {spec?.userinfoUrl && (
+            <Field label="Userinfo URL" value={spec.userinfoUrl} mono />
+          )}
+          {spec?.scopeParameterName && (
+            <Field
+              label="Scope parameter name"
+              value={spec.scopeParameterName}
+              mono
+            />
+          )}
+          {spec?.tokenEndpointAuthMethod !== undefined &&
+            spec.tokenEndpointAuthMethod !==
+              TokenEndpointAuthMethod.UNSPECIFIED && (
+              <Field
+                label="Token endpoint auth method"
+                value={
+                  TOKEN_AUTH_METHOD_LABELS[spec.tokenEndpointAuthMethod] ??
+                  "Unknown"
+                }
+                mono
+              />
+            )}
+          {spec?.vendorApprovalStatus !== undefined &&
+            spec.vendorApprovalStatus !== VendorApprovalStatus.UNSPECIFIED && (
+              <Field
+                label="Vendor approval"
+                value={
+                  APPROVAL_STATUS_LABELS[spec.vendorApprovalStatus] ??
+                  "Unknown"
+                }
+              />
+            )}
+          {spec?.vendorApprovalDocsUrl && (
+            <Field label="Approval docs" value={spec.vendorApprovalDocsUrl} mono />
+          )}
+          <>
+            {createdAt && (
+              <Field
+                label="Created"
+                value={formatDate(timestampDate(createdAt))}
+              />
+            )}
+            {updatedAt && (
+              <Field
+                label="Updated"
+                value={formatDate(timestampDate(updatedAt))}
+              />
+            )}
+          </>
+        </ReadOnlyFields>
+      </Section>
+      {/* A provider's own addresses are the default; the card shows only an override. */}
+      {(spec?.authorizationUrl || spec?.tokenUrl) && (
+        <Section title="Its endpoints">
+          <ReadOnlyFields className="stg:p-4">
+            <Field label="Authorization URL" value={spec?.authorizationUrl} mono />
+            <Field label="Token URL" value={spec?.tokenUrl} mono />
+          </ReadOnlyFields>
+        </Section>
       )}
-      {spec?.userinfoUrl && (
-        <Field label="Userinfo URL" value={spec.userinfoUrl} mono />
-      )}
-      {spec?.scopeParameterName && (
-        <Field
-          label="Scope parameter name"
-          value={spec.scopeParameterName}
-          mono
-        />
-      )}
-      {spec?.tokenEndpointAuthMethod !== undefined &&
-        spec.tokenEndpointAuthMethod !==
-          TokenEndpointAuthMethod.UNSPECIFIED && (
-          <Field
-            label="Token endpoint auth method"
-            value={
-              TOKEN_AUTH_METHOD_LABELS[spec.tokenEndpointAuthMethod] ??
-              "Unknown"
-            }
-            mono
-          />
-        )}
-      {spec?.vendorApprovalStatus !== undefined &&
-        spec.vendorApprovalStatus !== VendorApprovalStatus.UNSPECIFIED && (
-          <Field
-            label="Vendor approval"
-            value={
-              APPROVAL_STATUS_LABELS[spec.vendorApprovalStatus] ??
-              "Unknown"
-            }
-          />
-        )}
-      {spec?.vendorApprovalDocsUrl && (
-        <Field label="Approval docs" value={spec.vendorApprovalDocsUrl} mono />
-      )}
-      <div className="stg:flex stg:gap-6">
-        {createdAt && (
-          <Field
-            label="Created"
-            value={formatDate(timestampDate(createdAt))}
-          />
-        )}
-        {updatedAt && (
-          <Field
-            label="Updated"
-            value={formatDate(timestampDate(updatedAt))}
-          />
-        )}
-      </div>
-    </dl>
+    </>
   );
 }
 
@@ -632,6 +618,7 @@ function ViewMode({
 // Shared primitives
 // ---------------------------------------------------------------------------
 
+/** A read-only pair: the kit's `ReadOnlyField`. */
 function Field({
   label,
   value,
@@ -641,21 +628,10 @@ function Field({
   value?: string;
   mono?: boolean;
 }) {
-  if (!value) return null;
   return (
-    <div>
-      <dt className="stg:text-muted-foreground stg:text-2xs stg:font-medium">
-        {label}
-      </dt>
-      <dd
-        className={cn(
-          "stg:text-foreground stg:mt-0.5 stg:break-all stg:text-xs",
-          mono && "stg:font-mono",
-        )}
-      >
-        {value}
-      </dd>
-    </div>
+    <ReadOnlyField label={label} mono={mono}>
+      {value}
+    </ReadOnlyField>
   );
 }
 
@@ -713,22 +689,4 @@ function formatDate(date: Date): string {
 // ---------------------------------------------------------------------------
 // Icons
 // ---------------------------------------------------------------------------
-
-function ArrowLeftIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M10 3L5 8l5 5" />
-    </svg>
-  );
-}
 

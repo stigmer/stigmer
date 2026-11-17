@@ -1,0 +1,304 @@
+{
+  "screen": "G54",
+  "title": "Table and Figure",
+  "source": "the Settings page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Table and Figure: Table and Figure",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Runs",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Working",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Tokens",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ledger reviewer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "5h 58m",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "9.1M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Receipts matcher",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "2h 46m",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "5.2M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Ledger reviewer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "61 · 5h 58m · 9.1M",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Receipts matcher",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "38 · 2h 46m · 5.2M",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Completed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Failed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Tokens",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "18.4M",
+          "type": [
+            24,
+            32,
+            600
+          ]
+        },
+        {
+          "text": "This week",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Table and Figure: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Ledger reviewer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "61 · 5h 58m · 9.1M",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Receipts matcher",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "38 · 2h 46m · 5.2M",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Ledger reviewer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "61 · 5h 58m · 9.1M",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Receipts matcher",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "38 · 2h 46m · 5.2M",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Completed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Failed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Tokens",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "18.4M",
+          "type": [
+            24,
+            32,
+            600
+          ]
+        },
+        {
+          "text": "This week",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

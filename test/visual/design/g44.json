@@ -1,0 +1,1546 @@
+{
+  "screen": "G44",
+  "title": "Billing",
+  "source": "the Settings page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Billing: The plan, this period's figures and invoice, the plans, the card",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Billing",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Your plan, what this period will cost, and the card it is charged to.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Plan",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Team",
+          "type": [
+            24,
+            32,
+            600
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Agent hours this period",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "10.8 h",
+          "type": [
+            24,
+            32,
+            600
+          ]
+        },
+        {
+          "text": "The count resets Aug 9, 2026 (UTC).",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Estimated invoice",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "On Aug 9, 2026, for Jul 10 to Aug 9.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "This period's invoice, so far",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Line",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Amount",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Team plan",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Child organizations past the 5 included",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Agent hours past those included",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Total so far",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Agent hours are counted while agents work in Stigmer's sandboxes, for acme and its child organizations; automatic grading is never counted. Model usage runs on your own provider keys and is not on this invoice.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Plans",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Free",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "$0/month",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Slack and WhatsApp",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Chat links",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "30 agent hours a month, then new work pauses",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "5 agents at once",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Move to Free",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Team",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "$99/month",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Slack and WhatsApp",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Chat links",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Teams",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Your plan",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Business",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "$499/month",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Everything in Team",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Child organizations: 5 included, then $25/month each",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Switch to Business",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Enterprise Cloud",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Quoted",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Everything in Business",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Access history",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Annual contract, invoiced",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Talk to us",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Payment method",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "VISA",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Visa ending 4242",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Expires 08/28",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Manage",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Move to Free",
+          "height": 28
+        },
+        {
+          "name": "Switch to Business",
+          "height": 28
+        },
+        {
+          "name": "Talk to us",
+          "height": 28
+        },
+        {
+          "name": "Manage",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Billing: Switch to Business, asked first (the dialog's body is the plan's own lines)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Switch acme to Business?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "$499/month from today. This period's Team fee is credited on the next invoice.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Everything in Team",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Child organizations: 5 included, then $25/month each",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Switch to Business",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Switch to Business",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Billing: The switch didn't go through, said in the dialog",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Switch acme to Business?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "$499/month from today. This period's Team fee is credited on the next invoice.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't change the plan.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the card was declined",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Billing: Agent hours used up: a paused notice above the figures",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Billing",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Your plan, what this period will cost, and the card it is charged to.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme has used this period's 30 agent hours.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "New work waits until the count resets on Aug 9, or until acme moves to a plan with more hours. Nothing that ran is lost.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "See plans",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Plan",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Team",
+          "type": [
+            24,
+            32,
+            600
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Agent hours this period",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "10.8 h",
+          "type": [
+            24,
+            32,
+            600
+          ]
+        },
+        {
+          "text": "The count resets Aug 9, 2026 (UTC).",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Estimated invoice",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "On Aug 9, 2026, for Jul 10 to Aug 9.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "This period's invoice, so far",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Line",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Amount",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Team plan",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Child organizations past the 5 included",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Agent hours past those included",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Total so far",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Agent hours are counted while agents work in Stigmer's sandboxes, for acme and its child organizations; automatic grading is never counted. Model usage runs on your own provider keys and is not on this invoice.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Plans",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Free",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "$0/month",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Slack and WhatsApp",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Chat links",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "30 agent hours a month, then new work pauses",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "5 agents at once",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Move to Free",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Team",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "$99/month",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Slack and WhatsApp",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Chat links",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Teams",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Your plan",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Business",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "$499/month",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Everything in Team",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Child organizations: 5 included, then $25/month each",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Switch to Business",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Enterprise Cloud",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Quoted",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Everything in Business",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Access history",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Annual contract, invoiced",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Talk to us",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Payment method",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "VISA",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Visa ending 4242",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Expires 08/28",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Manage",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "See plans",
+          "height": 28
+        },
+        {
+          "name": "Move to Free",
+          "height": 28
+        },
+        {
+          "name": "Switch to Business",
+          "height": 28
+        },
+        {
+          "name": "Talk to us",
+          "height": 28
+        },
+        {
+          "name": "Manage",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Billing: On the open-source edition",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Billing",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Your plan, what this period will cost, and the card it is charged to.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Plans and invoices come with Stigmer Cloud.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "On this edition your agents run on your own model provider keys, billed by the provider.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Billing: Didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Billing",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Your plan, what this period will cost, and the card it is charged to.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the billing account.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Billing: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Billing",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Your plan, what this period will cost, and the card it is charged to.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Plan",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Team",
+          "type": [
+            24,
+            32,
+            600
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Agent hours this period",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "10.8 h",
+          "type": [
+            24,
+            32,
+            600
+          ]
+        },
+        {
+          "text": "The count resets Aug 9, 2026 (UTC).",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Estimated invoice",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "On Aug 9, 2026, for Jul 10 to Aug 9.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "This period's invoice, so far",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Team plan",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Child organizations past the 5 included",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Agent hours past those included",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Total so far",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Agent hours are counted while agents work in Stigmer's sandboxes, for acme and its child organizations; automatic grading is never counted. Model usage runs on your own provider keys and is not on this invoice.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Plans",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Free",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "$0/month",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Slack and WhatsApp",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Chat links",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "30 agent hours a month, then new work pauses",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "5 agents at once",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Move to Free",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Team",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "$99/month",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Slack and WhatsApp",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Chat links",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Teams",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Your plan",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Business",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "$499/month",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Everything in Team",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Child organizations: 5 included, then $25/month each",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Switch to Business",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Enterprise Cloud",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Quoted",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Everything in Business",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Access history",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Annual contract, invoiced",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Talk to us",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Payment method",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "VISA",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Visa ending 4242",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Expires 08/28",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Manage",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Move to Free",
+          "height": 28
+        },
+        {
+          "name": "Switch to Business",
+          "height": 28
+        },
+        {
+          "name": "Talk to us",
+          "height": 28
+        },
+        {
+          "name": "Manage",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

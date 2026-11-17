@@ -6,8 +6,7 @@
 // operator.
 
 import { useCallback, useState, type ReactNode } from "react";
-import { cn } from "@stigmer/design-tokens";
-import { getUserMessage, isUnimplemented } from "@stigmer/client";
+import { isUnimplemented } from "@stigmer/client";
 import type { Plan } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
 import { PlanInstrument } from "@stigmer/apis/ai/stigmer/billing/plan/v1/spec_pb";
 import { PlanLifecycle } from "@stigmer/apis/ai/stigmer/billing/plan/v1/status_pb";
@@ -21,8 +20,8 @@ import { EmptyState } from "../empty-state/EmptyState.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { SettingsPage } from "../settings/SettingsPage.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
-import { UNSTYLED_LIST } from "../internal/element-resets.js";
-import { Card, cardClasses } from "../internal/surface/Card.js";
+import { Card } from "../internal/surface/Card.js";
+import { List, ListRow } from "../internal/surface/List.js";
 import { FEATURE_COPY, isNamedFeature } from "../internal/features.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
@@ -101,16 +100,19 @@ export function PlanCatalogConsole({ className }: PlanCatalogConsoleProps) {
   }
 
   const retire = async (plan: Plan) => {
+    const name = plan.metadata?.name || "this plan";
     const ok = await confirm({
-      title: `Retire ${plan.metadata?.name ?? "this plan"}?`,
+      title: `Retire ${name}?`,
       description:
         "It can no longer be bought. Every organization already on it keeps it, invoiced by its terms. Retiring is final.",
-      confirmLabel: "Retire",
+      confirmLabel: "Retire plan",
       variant: "destructive",
+      action: async () => {
+        await retirer.retirePlan(plan.metadata?.id ?? "");
+      },
+      failureTitle: `Couldn't retire ${name}.`,
     });
-    if (ok) {
-      retirer.retirePlan(plan.metadata?.id ?? "").then(catalog.refetch, () => undefined);
-    }
+    if (ok) catalog.refetch();
   };
 
   const plans = catalog.plans ?? [];
@@ -127,11 +129,6 @@ export function PlanCatalogConsole({ className }: PlanCatalogConsoleProps) {
           />
         </Card>
       ) : null}
-      {retirer.error && (
-        <p className="stg:text-xs stg:text-destructive" role="alert">
-          {getUserMessage(retirer.error)}
-        </p>
-      )}
       {plans.length === 0 ? (
         <EmptyState
           variant="first-use"
@@ -140,11 +137,11 @@ export function PlanCatalogConsole({ className }: PlanCatalogConsoleProps) {
           action={creating ? undefined : { label: "New plan", onClick: startCreate }}
         />
       ) : (
-        <ul className={cn(UNSTYLED_LIST, cardClasses({ flush: true }), "stg:divide-y stg:divide-border-muted")} aria-label="Plan catalog">
+        <List aria-label="Plan catalog">
           {plans.map((plan) => (
             <PlanRow key={plan.metadata?.id} plan={plan} onRetire={() => void retire(plan)} busy={retirer.isSubmitting} />
           ))}
-        </ul>
+        </List>
       )}
       <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>,
@@ -159,19 +156,22 @@ function PlanRow({ plan, onRetire, busy }: { readonly plan: Plan; readonly onRet
   const offered = new Set(offeredFeatures(plan.spec?.entitlements).map((f) => f.label));
   const managed = formatChildOrgs(plan.spec?.entitlements, terms);
   return (
-    <li className="stg:px-3.5 stg:py-2.5">
-      <div className="stg:flex stg:items-center stg:justify-between stg:gap-3">
-        <div className="stg:min-w-0">
-          <p className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
-            {plan.metadata?.name}{" "}
-            <span className="stg:font-normal stg:text-muted-foreground">({plan.metadata?.slug})</span>
-          </p>
-          <p className="stg:text-xs stg:text-muted-foreground">
-            {license
-              ? "Issued as a license"
-              : formatMonthlyFee(terms)}
-          </p>
-        </div>
+    <ListRow
+      name={
+        <>
+          {plan.metadata?.name} <span className="stg:font-normal stg:text-muted-foreground">({plan.metadata?.slug})</span>
+        </>
+      }
+      description={
+        <>
+          <span className="stg:block stg:truncate">{license ? "Issued as a license" : formatMonthlyFee(terms)}</span>
+          <span className="stg:block stg:truncate">
+            {listed.map((label) => (offered.has(label) ? label : `${label} (not offered yet)`)).join(" · ")}
+            {managed === "" ? "" : ` · ${managed}`}
+          </span>
+        </>
+      }
+      trailing={
         <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-2">
           <StatusBadge phase={active ? "ready" : "disabled"} label={active ? "On sale" : "Retired"} />
           {active && (
@@ -180,11 +180,7 @@ function PlanRow({ plan, onRetire, busy }: { readonly plan: Plan; readonly onRet
             </Button>
           )}
         </div>
-      </div>
-      <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">
-        {listed.map((label) => (offered.has(label) ? label : `${label} (not offered yet)`)).join(" · ")}
-        {managed === "" ? "" : ` · ${managed}`}
-      </p>
-    </li>
+      }
+    />
   );
 }

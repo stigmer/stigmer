@@ -110,11 +110,12 @@
         }
       ],
       "sample": {},
-      "ruled": {},
+      "ruled": {
+        "word Check the spelling, or clear the search to see every agent.": "The Library's own words stand: ruled at the owner's look on the Library page, 2026-11-17 (stigmer#3230)",
+        "word No fires yet. The routine's first fire shows here.": "The Library's own words stand: ruled at the owner's look on the Library page, 2026-11-17 (stigmer#3230)"
+      },
       "pending": {
-        "word A key lets the CLI on a server, a CI job or a script act as you. You see its value once, when it's made.": "When its page is redesigned: the API keys page says what its drawing does",
-        "word Check the spelling, or clear the search to see every agent.": "When its page is redesigned: the empty states' own words",
-        "word No fires yet. The routine's first fire shows here.": "When its page is redesigned: the empty states' own words"
+        "word A key lets the CLI on a server, a CI job or a script act as you. You see its value once, when it's made.": "When its page is redesigned: the API keys page says what its drawing does"
       }
     }
   ]

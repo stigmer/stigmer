@@ -69,10 +69,14 @@ export function OAuthAppsSection() {
     setFlow({ phase: "idle" });
   }, []);
 
+  // An open detail names the page, with a way back to the list above it.
+  const detailName = flow.phase === "editing" ? flow.oauthApp.spec?.provider || flow.oauthApp.metadata?.name || "OAuth app" : null;
+
   return (
     <SettingsPage
-      title="OAuth apps"
-      description="Your organization's own login apps. A sign-in at an address uses the app that lists it."
+      title={detailName ?? "OAuth apps"}
+      back={detailName !== null ? { label: "OAuth apps", onBack: () => setFlow({ phase: "idle" }) } : undefined}
+      description={detailName !== null ? undefined : "Your organization's own login apps. A sign-in at an address uses the app that lists it."}
       actions={
         org &&
         canCreate &&
@@ -90,14 +94,12 @@ export function OAuthAppsSection() {
           <CreateOAuthAppForm org={org} onCreated={handleCreated} onCancel={() => setFlow({ phase: "idle" })} />
         </Card>
       ) : flow.phase === "editing" ? (
-        <Card>
-          <OAuthAppDetailPanel
-            oauthApp={flow.oauthApp}
-            onUpdated={handleUpdated}
-            onDeleted={handleDeleted}
-            onBack={() => setFlow({ phase: "idle" })}
-          />
-        </Card>
+        <OAuthAppDetailPanel
+          showName={false}
+          oauthApp={flow.oauthApp}
+          onUpdated={handleUpdated}
+          onDeleted={handleDeleted}
+        />
       ) : (
         <OAuthAppListPanel
           org={org}

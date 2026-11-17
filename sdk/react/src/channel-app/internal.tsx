@@ -4,14 +4,14 @@ import { cn } from "@stigmer/design-tokens";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { UnknownPublicAddressNotice } from "../internal/UnknownPublicAddressNotice.js";
 import { CopyButton, useCopy } from "../internal/CopyBlock.js";
-import { FIELD_LABEL_CLASSES, TextInput } from "../internal/form/index.js";
+import { Field, TextInput } from "../internal/form/index.js";
 
 /**
  * Internal building blocks shared by the channel-app forms and panels.
  * Not exported from the package — content-level pieces stay domain-local.
  */
 
-/** Labeled text/password input with an optional hint line. */
+/** Labeled text/password input with an optional hint line: the kit's `Field`. */
 export function FormField({
   id,
   label,
@@ -34,12 +34,8 @@ export function FormField({
   required?: boolean;
 }) {
   return (
-    <div className="stg:space-y-1">
-      <label htmlFor={id} className={FIELD_LABEL_CLASSES}>
-        {label}
-      </label>
+    <Field id={id} label={label} hint={hint}>
       <TextInput
-        id={id}
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -48,8 +44,7 @@ export function FormField({
         required={required}
         className="stg:w-full"
       />
-      {hint && <p className="stg:text-2xs stg:text-muted-foreground">{hint}</p>}
-    </div>
+    </Field>
   );
 }
 

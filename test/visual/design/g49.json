@@ -1,0 +1,668 @@
+{
+  "screen": "G49",
+  "title": "Model catalog",
+  "source": "the Settings page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Model catalog: The catalog on the table part; a row opens its record",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Model catalog",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Add model",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Every model the registry serves, at the provider's list prices before any markup. Open one to see its record, edit its prices or retire it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search models",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Model",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Harness",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Input",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Output",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Variants",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Haiku 5.5",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "claude-haiku-5.5",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$1.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$5.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "claude-sonnet-4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$3.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$15.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "claude-sonnet-4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "claude",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$3.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$15.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "claude-opus-4.8",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$5.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$25.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "GPT-5.2",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "gpt-5.2",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$1.75/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "$14.00/M",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Add model",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Model catalog: None yet, in a reader's words",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Model catalog",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Add model",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Every model the registry serves, at the provider's list prices before any markup. Open one to see its record, edit its prices or retire it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No models in the catalog yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Add the first model with its list prices, or start the server with its standard catalog.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Add model",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Add model",
+          "height": 32
+        },
+        {
+          "name": "Add model",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Model catalog: Not allowed",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Model catalog",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Every model the registry serves, at the provider's list prices before any markup. Open one to see its record, edit its prices or retire it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Only a platform operator can open the model catalog",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Stigmer's operators keep the catalog and its prices.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Model catalog: Didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Model catalog",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Add model",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Every model the registry serves, at the provider's list prices before any markup. Open one to see its record, edit its prices or retire it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the model catalog.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Add model",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Model catalog: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Model catalog",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Add model",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Every model the registry serves, at the provider's list prices before any markup. Open one to see its record, edit its prices or retire it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search models",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Claude Haiku 5.5",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "claude-haiku-5.5",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer · $1.00/M · $5.00/M · —",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "claude-sonnet-4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer · $3.00/M · $15.00/M · 1",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "claude-sonnet-4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "claude · $3.00/M · $15.00/M · —",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "claude-opus-4.8",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer · $5.00/M · $25.00/M · —",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "GPT-5.2",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "gpt-5.2",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer · $1.75/M · $14.00/M · —",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Add model",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

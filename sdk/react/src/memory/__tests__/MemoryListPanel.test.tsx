@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
@@ -92,7 +92,7 @@ describe("MemoryListPanel", () => {
 
     const headings = screen.getAllByRole("heading", { level: 3 });
     expect(headings.map((h) => h.textContent)).toEqual([
-      "Pending proposals",
+      "Waiting for you",
       "Remembered",
       "Rejected",
     ]);
@@ -157,7 +157,7 @@ describe("MemoryListPanel", () => {
     await waitFor(() => expect(client.memory.reject).toHaveBeenCalledWith("mem_proposed"));
   });
 
-  it("requires inline confirmation before deleting", async () => {
+  it("asks in a dialog before deleting, and deletes from it", async () => {
     const client = makeClient([CONFIRMED]);
     const user = userEvent.setup();
     render(
@@ -173,14 +173,41 @@ describe("MemoryListPanel", () => {
       screen.getByRole("button", { name: /Delete memory: Deploys to us-east-1./ }),
     );
 
-    // Nothing deleted yet — the row transformed into the inline confirm.
+    // Nothing deleted yet: the dialog asks first, naming what stops.
     expect(client.memory.delete).not.toHaveBeenCalled();
-    expect(screen.getByText(/Forget this permanently\?/)).toBeTruthy();
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByRole("heading", { name: "Delete this memory?" })).toBeTruthy();
+    expect(dialog.textContent).toMatch(/stops being shared with agents/);
 
-    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(within(dialog).getByRole("button", { name: "Delete" }));
     await waitFor(() =>
       expect(client.memory.delete).toHaveBeenCalledWith("mem_confirmed"),
     );
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
+  it("says a refused delete in the dialog, with Try again", async () => {
+    const client = makeClient([CONFIRMED]);
+    client.memory.delete = vi.fn().mockRejectedValueOnce(new Error("memory is off in this organization")).mockResolvedValue({});
+    const user = userEvent.setup();
+    render(
+      <Providers client={client}>
+        <MemoryListPanel org="test-org" />
+      </Providers>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText("Deploys to us-east-1.")).toBeTruthy(),
+    );
+    await user.click(
+      screen.getByRole("button", { name: /Delete memory: Deploys to us-east-1./ }),
+    );
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete" }));
+    expect(await within(screen.getByRole("dialog")).findByText("Couldn't delete the memory.")).toBeTruthy();
+
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(client.memory.delete).toHaveBeenCalledTimes(2);
   });
 
   it("edits a confirmed fact by naming its content alone", async () => {
@@ -255,5 +282,22 @@ describe("MemoryListPanel", () => {
     );
 
     await waitFor(() => expect(screen.getByRole("alert")).toBeTruthy());
+  });
+
+  it("edits a remembered fact in place, and Cancel puts the row back", async () => {
+    const client = makeClient([CONFIRMED]);
+    const user = userEvent.setup();
+    render(
+      <Providers client={client}>
+        <MemoryListPanel org="test-org" />
+      </Providers>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: /Edit memory: Deploys to us-east-1./ }));
+    expect(screen.getByLabelText("Edit memory text")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Cancel editing" }));
+    expect(screen.queryByLabelText("Edit memory text")).toBeNull();
+    expect(screen.getByText("Deploys to us-east-1.")).toBeTruthy();
+    expect(client.memory.update).not.toHaveBeenCalled();
   });
 });

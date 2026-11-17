@@ -1,0 +1,1011 @@
+{
+  "screen": "G33",
+  "title": "Service accounts",
+  "source": "the Settings page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Service accounts: Service accounts",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-service-accounts",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Service accounts",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New service account",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your organization's own accounts for automation. A CI job or a script acts as one through its API keys, so it keeps working when the person who set it up leaves, and what it creates says the service account created it. Each holds one organization role and is never an owner.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "ci-deploy",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Member · 1 key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "ledger-sync",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Viewer · 2 keys",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "support-bot",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Member · no keys",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New service account",
+          "height": 32
+        }
+      ],
+      "sample": {
+        "word Member · 1 key": "The drawing's example data; the scene shows its own fixture's",
+        "word ledger-sync": "The drawing's example data; the scene shows its own fixture's",
+        "word Viewer · 2 keys": "The drawing's example data; the scene shows its own fixture's",
+        "word support-bot": "The drawing's example data; the scene shows its own fixture's"
+      },
+      "ruled": {},
+      "pending": {
+        "word Member · no keys": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
+    },
+    {
+      "caption": "Service accounts: One open: its role, its keys, Delete (today's hand-drawn inline confirm goes)",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "access-service-account-detail",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Service accounts",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "ci-deploy",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Rename",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What its keys create says it was created by ci-deploy.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Organization role",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "ci-deploy acts with the Member role in acme.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Admin",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Manage people, settings, billing, and the organization's agents and tools; can't read private conversations, delete the organization or change its owners",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Member",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Start conversations with the agents shared with them, and create agents when the organization allows it",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Viewer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "See what is shared with the organization; can't start conversations",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "API keys 1",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "New key",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "github-actions",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "…a1b2 · Only in acme · made Jul 18, 2026 · expires Oct 16, 2026 · used 1h ago",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Delete this service account",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Its keys stop working at once. What it created stays, still saying ci-deploy created it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Delete service account",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Service accounts",
+          "height": 28
+        },
+        {
+          "name": "Rename",
+          "height": 32
+        },
+        {
+          "name": "New key",
+          "height": 28
+        },
+        {
+          "name": "Revoke github-actions",
+          "height": 28
+        },
+        {
+          "name": "Delete service account",
+          "height": 32
+        }
+      ],
+      "sample": {
+        "word …a1b2 · Only in acme · made Jul 18, 2026 · expires Oct 16, 2026 · used 1h ago": "The drawing's example data; the scene shows its own fixture's"
+      },
+      "ruled": {},
+      "pending": {
+        "word ci-deploy acts with the Member role in acme.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "type Admin": "When its page is redesigned: the settings forms PR draws the role chooser",
+        "word Manage people, settings, billing, and the organization's agents and tools; can't read private conversations, delete the organization or change its owners": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "type Member": "When its page is redesigned: the settings forms PR draws the role chooser",
+        "type Start conversations with the agents shared with them, and create agents when the organization allows it": "When its page is redesigned: the settings forms PR draws the role chooser",
+        "type Viewer": "When its page is redesigned: the settings forms PR draws the role chooser",
+        "word See what is shared with the organization; can't start conversations": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word API keys 1": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
+    },
+    {
+      "caption": "Service accounts: New service account, a name the server refuses",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Service accounts",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "New service account",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Make one for each CI job, script or integration, so it keeps working when the person who set it up leaves.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "ci deploy",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Use lowercase letters, numbers and hyphens, like ci-deploy.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Organization role",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Admin",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Manage people, settings, billing, and the organization's agents and tools; can't read private conversations, delete the organization or change its owners",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Member",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Start conversations with the agents shared with them, and create agents when the organization allows it",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Viewer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "See what is shared with the organization; can't start conversations",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Create service account",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Service accounts",
+          "height": 28
+        },
+        {
+          "name": "Create service account",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Service accounts: Delete, asked first",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-service-accounts-delete",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Delete ci-deploy?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Its keys stop working at once. What it created stays, still saying ci-deploy created it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Delete service account",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Delete service account",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Service accounts: Delete, working: the act busy, Cancel held",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
+      "words": [
+        {
+          "text": "Delete ci-deploy?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Its keys stop working at once. What it created stays, still saying ci-deploy created it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Delete service account",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Delete service account",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Service accounts: Delete, didn't go through: said in the dialog, the act is Try again",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
+      "words": [
+        {
+          "text": "Delete ci-deploy?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Its keys stop working at once. What it created stays, still saying ci-deploy created it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't delete ci-deploy.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Service accounts: None yet",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-service-accounts-empty",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Service accounts",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New service account",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your organization's own accounts for automation. A CI job or a script acts as one through its API keys, so it keeps working when the person who set it up leaves, and what it creates says the service account created it. Each holds one organization role and is never an owner.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No service accounts yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Make one for each CI job, script or integration, so it keeps working when the person who set it up leaves.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "New service account",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New service account",
+          "height": 32
+        },
+        {
+          "name": "New service account",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Service accounts: Didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene pictures this state yet.",
+      "words": [
+        {
+          "text": "Service accounts",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New service account",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your organization's own accounts for automation. A CI job or a script acts as one through its API keys, so it keeps working when the person who set it up leaves, and what it creates says the service account created it. Each holds one organization role and is never an owner.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the service accounts.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New service account",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Service accounts: At 390 wide, one open",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "No scene pictures this state yet.",
+      "words": [
+        {
+          "text": "Service accounts",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "ci-deploy",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Rename",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What its keys create says it was created by ci-deploy.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Organization role",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "ci-deploy acts with the Member role in acme.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Admin",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Manage people, settings, billing, and the organization's agents and tools; can't read private conversations, delete the organization or change its owners",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Member",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Start conversations with the agents shared with them, and create agents when the organization allows it",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Viewer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "See what is shared with the organization; can't start conversations",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "API keys 1",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "New key",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "github-actions",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "…a1b2 · Only in acme · made Jul 18, 2026 · expires Oct 16, 2026 · used 1h ago",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Delete this service account",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Its keys stop working at once. What it created stays, still saying ci-deploy created it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Delete service account",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Service accounts",
+          "height": 28
+        },
+        {
+          "name": "Rename",
+          "height": 32
+        },
+        {
+          "name": "New key",
+          "height": 28
+        },
+        {
+          "name": "Revoke github-actions",
+          "height": 28
+        },
+        {
+          "name": "Delete service account",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

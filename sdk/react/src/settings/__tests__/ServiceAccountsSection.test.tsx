@@ -33,6 +33,7 @@ const list = vi.hoisted(() => ({ refetches: 0 }));
 const permission = vi.hoisted(() => ({
   allowed: true,
   isLoading: false,
+  error: null as Error | null,
   checked: [] as Array<[string, string, string]>,
 }));
 
@@ -45,7 +46,7 @@ vi.mock("../../organization/OrgProvider.js", () => ({
 vi.mock("../../grant/useCheckPermission.js", () => ({
   useCheckPermission: (resource: { kind: string; id: string } | null, relation: string) => {
     if (resource !== null) permission.checked.push([resource.kind, resource.id, relation]);
-    return { allowed: permission.allowed, isLoading: permission.isLoading, error: null };
+    return { allowed: permission.allowed, isLoading: permission.isLoading, error: permission.error, refetch: () => {} };
   },
 }));
 vi.mock("../../service-account/ServiceAccountListPanel.js", () => ({
@@ -142,6 +143,7 @@ afterEach(() => {
   cleanup();
   permission.allowed = true;
   permission.isLoading = false;
+  permission.error = null;
   permission.checked = [];
   list.refetches = 0;
 });
@@ -170,6 +172,18 @@ describe("ServiceAccountsSection's caller gate", () => {
     permission.allowed = false;
     render(<ServiceAccountsSection />);
     expect(screen.getByText("Your organization's admins manage its service accounts.")).toBeTruthy();
+    expect(screen.queryByTestId("list-panel")).toBeNull();
+    expect(screen.queryByRole("button", NEW_BUTTON)).toBeNull();
+  });
+
+  it("says a check that failed, with Try again, and offers no act and no denial", () => {
+    serverInfo = answering(true);
+    permission.allowed = false;
+    permission.error = new Error("the check timed out");
+    render(<ServiceAccountsSection />);
+    expect(screen.getByText("Couldn't check what you may do here.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+    expect(screen.queryByText(/admins manage/)).toBeNull();
     expect(screen.queryByTestId("list-panel")).toBeNull();
     expect(screen.queryByRole("button", NEW_BUTTON)).toBeNull();
   });
@@ -216,13 +230,16 @@ describe("ServiceAccountsSection's flow", () => {
     fireEvent.click(screen.getByRole("button", { name: "open ci-deploy" }));
     expect(screen.getByTestId("detail-panel").textContent).toContain("managing ci-deploy");
     expect(screen.queryByRole("button", NEW_BUTTON)).toBeNull();
+    // The open account names the page, under a way back to the list.
+    expect(screen.getByRole("heading", { level: 2, name: "ci-deploy" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "renamed" }));
     expect(screen.getByTestId("detail-panel").textContent).toContain("managing ci-release");
 
     const before = list.refetches;
-    fireEvent.click(screen.getByRole("button", { name: "back" }));
+    fireEvent.click(screen.getByRole("button", { name: "Service accounts" }));
     expect(screen.getByTestId("list-panel")).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 2, name: "Service accounts" })).toBeTruthy();
     expect(list.refetches).toBe(before + 1);
   });
 

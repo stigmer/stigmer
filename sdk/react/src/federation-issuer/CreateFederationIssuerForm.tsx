@@ -14,7 +14,7 @@ import {
 import { useCreateFederationIssuer } from "./useCreateFederationIssuer.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { Button } from "../button/Button.js";
-import { FIELD_LABEL_CLASSES, FieldError, TextInput } from "../internal/form/index.js";
+import { Field, FieldError, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link CreateFederationIssuerForm}. */
 export interface CreateFederationIssuerFormProps {
@@ -213,12 +213,8 @@ function FormField({
   required?: boolean;
 }) {
   return (
-    <div className="stg:space-y-1">
-      <label htmlFor={id} className={FIELD_LABEL_CLASSES}>
-        {label}
-      </label>
+    <Field id={id} label={label} hint={hint}>
       <TextInput
-        id={id}
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -227,9 +223,6 @@ function FormField({
         required={required}
         className="stg:w-full"
       />
-      {hint && (
-        <p className="stg:text-2xs stg:text-muted-foreground">{hint}</p>
-      )}
-    </div>
+    </Field>
   );
 }

@@ -1,0 +1,180 @@
+{
+  "screen": "G38",
+  "title": "Policies, kept separate",
+  "source": "the Settings page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Policies, kept separate: Kept as its own page: one decision, with room",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Policies",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What this organization's members may do. A change applies at once.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Who may create agents",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Members can create agents",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "When on, every member can create agents. A member's agent is theirs to keep private or share with the organization. When off, only admins create agents.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Policies, kept separate: As a member: read only",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Policies",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What this organization's members may do. A change applies at once.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Only admins of acme change these policies.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Who may create agents",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Members can create agents",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "When on, every member can create agents. A member's agent is theirs to keep private or share with the organization. When off, only admins create agents.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Policies, kept separate: The switch didn't save",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Policies",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What this organization's members may do. A change applies at once.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Who may create agents",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Members can create agents",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "When on, every member can create agents. A member's agent is theirs to keep private or share with the organization. When off, only admins create agents.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't change the policy. It's still on; try again.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

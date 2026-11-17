@@ -98,10 +98,14 @@ export function ChannelAppsSection() {
     setFlow({ phase: "idle" });
   }, []);
 
+  // An open detail names the page, with a way back to the list above it.
+  const detailName = flow.phase === "editing" ? flow.channelApp.metadata?.name || "Channel app" : null;
+
   return (
     <SettingsPage
-      title="Channel apps"
-      description="Your own Slack and Meta apps for your agents' channels. A Slack app gives the bot your name and icon and lets several agents serve one workspace, one per app; every WhatsApp channel connects through a Meta app."
+      title={detailName ?? "Channel apps"}
+      back={detailName !== null ? { label: "Channel apps", onBack: () => setFlow({ phase: "idle" }) } : undefined}
+      description={detailName !== null ? undefined : "Your own Slack and Meta apps for your agents' channels. A Slack app gives the bot your name and icon and lets several agents serve one workspace, one per app; every WhatsApp channel connects through a Meta app."}
       actions={
         org &&
         canCreate &&
@@ -123,15 +127,13 @@ export function ChannelAppsSection() {
           <CreateChannelAppForm org={org} onCreated={handleCreated} onCancel={() => setFlow({ phase: "idle" })} />
         </Card>
       ) : flow.phase === "editing" ? (
-        <Card>
-          <ChannelAppDetailPanel
-            channelApp={flow.channelApp}
-            createHandoff={flow.createHandoff}
-            onUpdated={handleUpdated}
-            onDeleted={handleDeleted}
-            onBack={() => setFlow({ phase: "idle" })}
-          />
-        </Card>
+        <ChannelAppDetailPanel
+          showName={false}
+          channelApp={flow.channelApp}
+          createHandoff={flow.createHandoff}
+          onUpdated={handleUpdated}
+          onDeleted={handleDeleted}
+        />
       ) : (
         <ChannelAppListPanel
           org={org}

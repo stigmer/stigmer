@@ -1,11 +1,11 @@
 {
   "screen": "G09",
   "title": "Service accounts, not allowed",
-  "source": "the Console parts page, version 8",
+  "source": "the Settings page, version 1",
   "reader": "bf8cb5c94919",
   "drawings": [
     {
-      "caption": "Service accounts, not allowed",
+      "caption": "Service accounts, not allowed: Not allowed (as it passed your look)",
       "narrow": false,
       "built": [
         {

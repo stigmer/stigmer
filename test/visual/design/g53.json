@@ -1,0 +1,857 @@
+{
+  "screen": "G53",
+  "title": "Plans",
+  "source": "the Settings page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Plans: The plans, a retired one marked",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-plans",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Plans",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New plan",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The plans organizations subscribe to. A plan's terms are final; change them with a new plan and retire the old one.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Free",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "$0/month · 30 agent hours, then pauses · 12 organizations",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Retire",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Team",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "$99/month · unlimited hours · 40 organizations",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Retire",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Business",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "$499/month · 5 child organizations, then $25/month each · 7 organizations",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Retire",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Team 2025",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Retired",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "$79/month · 3 organizations",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New plan",
+          "height": 32
+        },
+        {
+          "name": "Retire",
+          "height": 28
+        },
+        {
+          "name": "Retire",
+          "height": 28
+        },
+        {
+          "name": "Retire",
+          "height": 28
+        }
+      ],
+      "sample": {
+        "word Free": "The drawing's example data; the scene shows its own fixture's",
+        "word $0/month · 30 agent hours, then pauses · 12 organizations": "The drawing's example data; the scene shows its own fixture's",
+        "word $99/month · unlimited hours · 40 organizations": "The drawing's example data; the scene shows its own fixture's",
+        "word $499/month · 5 child organizations, then $25/month each · 7 organizations": "The drawing's example data; the scene shows its own fixture's",
+        "word Team 2025": "The drawing's example data; the scene shows its own fixture's",
+        "word Retired": "The drawing's example data; the scene shows its own fixture's",
+        "word $79/month · 3 organizations": "The drawing's example data; the scene shows its own fixture's"
+      },
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Plans: New plan, a handle already used",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "words": [
+        {
+          "text": "Plans",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "New plan",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "The plans organizations subscribe to. A plan's terms are final; change them with a new plan and retire the old one.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Business",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Handle",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "business",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "A plan with the handle business already exists. Retired plans keep theirs.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Monthly fee (USD)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Agent hours included each month (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Empty means unlimited.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Each hour over (USD) (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Empty means the organization pauses at the allowance.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Create plan",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Plans",
+          "height": 28
+        },
+        {
+          "name": "Create plan",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Plans: Retire, asked first",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-plans-retire",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Retire Team?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "No new organization can subscribe to it. The 40 on it stay until they move.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Retire plan",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Retire plan",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "word No new organization can subscribe to it. The 40 on it stay until they move.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
+    },
+    {
+      "caption": "Plans: Retire, working: the act busy, Cancel held",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
+      "words": [
+        {
+          "text": "Retire Team?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "No new organization can subscribe to it. The 40 on it stay until they move.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Retire plan",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Retire plan",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Plans: Retire, didn't go through: said in the dialog, the act is Try again",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
+      "words": [
+        {
+          "text": "Retire Team?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "No new organization can subscribe to it. The 40 on it stay until they move.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't retire Team.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Plans: None yet",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-plans-empty",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Plans",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New plan",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The plans organizations subscribe to. A plan's terms are final; change them with a new plan and retire the old one.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No plans yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Create the first plan organizations can subscribe to.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "New plan",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New plan",
+          "height": 32
+        },
+        {
+          "name": "New plan",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Plans: Didn't load",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-plans-failed",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Plans",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New plan",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The plans organizations subscribe to. A plan's terms are final; change them with a new plan and retire the old one.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the plans.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New plan",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {
+        "word the server did not answer in time": "The drawing's example data; the scene shows its own fixture's",
+        "word Stuck? Ask IT on Slack": "The drawing's example data; the scene shows its own fixture's"
+      },
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Plans: At 390 wide",
+      "narrow": true,
+      "built": [
+        {
+          "scene": "settings-plans",
+          "width": "narrow"
+        }
+      ],
+      "words": [
+        {
+          "text": "Plans",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New plan",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The plans organizations subscribe to. A plan's terms are final; change them with a new plan and retire the old one.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Free",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "$0/month · 30 agent hours, then pauses · 12 organizations",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Retire",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Team",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "$99/month · unlimited hours · 40 organizations",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Retire",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Business",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "$499/month · 5 child organizations, then $25/month each · 7 organizations",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Retire",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Team 2025",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Retired",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "$79/month · 3 organizations",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New plan",
+          "height": 32
+        },
+        {
+          "name": "Retire",
+          "height": 28
+        },
+        {
+          "name": "Retire",
+          "height": 28
+        },
+        {
+          "name": "Retire",
+          "height": 28
+        }
+      ],
+      "sample": {
+        "word Free": "The drawing's example data; the scene shows its own fixture's",
+        "word $0/month · 30 agent hours, then pauses · 12 organizations": "The drawing's example data; the scene shows its own fixture's",
+        "word $99/month · unlimited hours · 40 organizations": "The drawing's example data; the scene shows its own fixture's",
+        "word $499/month · 5 child organizations, then $25/month each · 7 organizations": "The drawing's example data; the scene shows its own fixture's",
+        "word Team 2025": "The drawing's example data; the scene shows its own fixture's",
+        "word Retired": "The drawing's example data; the scene shows its own fixture's",
+        "word $79/month · 3 organizations": "The drawing's example data; the scene shows its own fixture's"
+      },
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

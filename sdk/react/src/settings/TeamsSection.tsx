@@ -86,10 +86,14 @@ export function TeamsSection() {
     setFlow({ phase: "idle" });
   }, [refetch]);
 
+  // An open detail names the page, with a way back to the list above it.
+  const detailName = flow.phase === "viewing" ? flow.team.metadata?.name || "Team" : null;
+
   return (
     <SettingsPage
-      title="Teams"
-      description="Groups of people you share agents and other resources with at once. Someone added to a team gets what is shared with it; leaving the team or the organization takes it away."
+      title={detailName ?? "Teams"}
+      back={detailName !== null ? { label: "Teams", onBack: () => setFlow({ phase: "idle" }) } : undefined}
+      description={detailName !== null ? undefined : "Groups of people you share agents and other resources with at once. Someone added to a team gets what is shared with it; leaving the team or the organization takes it away."}
       actions={
         orgId &&
         flow.phase === "idle" &&
@@ -112,16 +116,14 @@ export function TeamsSection() {
           <CreateTeamForm org={orgId} onCreated={handleCreated} onCancel={() => setFlow({ phase: "idle" })} />
         </Card>
       ) : flow.phase === "viewing" ? (
-        <Card>
-          <TeamDetailPanel
-            key={flow.team.metadata?.id}
-            team={flow.team}
-            org={orgId}
-            onUpdated={handleUpdated}
-            onDeleted={handleDeleted}
-            onBack={() => setFlow({ phase: "idle" })}
-          />
-        </Card>
+        <TeamDetailPanel
+          showName={false}
+          key={flow.team.metadata?.id}
+          team={flow.team}
+          org={orgId}
+          onUpdated={handleUpdated}
+          onDeleted={handleDeleted}
+        />
       ) : (
         <TeamListPanel
           teams={list.teams}

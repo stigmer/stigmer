@@ -16,10 +16,11 @@
  * every membership and every grant made to the team with it, and the
  * confirmation says exactly that, so no one reads it as deleting people.
  */
+import { ArrowLeft } from "lucide-react";
 import { useCallback, useState, type FormEvent } from "react";
 import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 import { cn } from "@stigmer/design-tokens";
-import { buildTeamProto, getUserMessage } from "@stigmer/client";
+import { buildTeamProto } from "@stigmer/client";
 import { maskedEdit, saveErrorMessage } from "@stigmer/react-core/internal";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { PermissionGate } from "../grant/PermissionGate.js";
@@ -28,6 +29,9 @@ import { TeamMembersPanel } from "./TeamMembersPanel.js";
 import { useDeleteTeam, useUpdateTeam } from "./useTeamMutations.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { Button } from "../button/Button.js";
+import { Section } from "../resource-detail/Section.js";
+import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
+import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { Field, FieldError, TextArea, TextInput } from "../internal/form/index.js";
 
 /** Props for {@link TeamDetailPanel}. */
@@ -41,6 +45,12 @@ export interface TeamDetailPanelProps {
   readonly onDeleted?: () => void;
   /** Return to the list. */
   readonly onBack?: () => void;
+  /**
+   * Draw the team's name as the panel's heading. `true` (the default) where
+   * the panel stands alone; `false` where the page's own title already
+   * names the team (the settings page while one is open).
+   */
+  readonly showName?: boolean;
   readonly className?: string;
 }
 
@@ -55,6 +65,7 @@ export function TeamDetailPanel({
   onUpdated,
   onDeleted,
   onBack,
+  showName = true,
   className,
 }: TeamDetailPanelProps) {
   const teamId = team.metadata?.id ?? "";
@@ -65,31 +76,28 @@ export function TeamDetailPanel({
   const [editing, setEditing] = useState(false);
 
   return (
-    <div className={cn("stg:space-y-5", className)}>
+    <div className={cn("stg:space-y-4", className)}>
       <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
         <div className="stg:min-w-0">
           {onBack && (
-            <button
-              type="button"
-              onClick={onBack}
-              className="stg:text-muted-foreground stg:hover:text-foreground stg:mb-1 stg:flex stg:items-center stg:gap-1 stg:text-xs stg:transition-colors"
-            >
-              <ArrowLeftIcon />
+            <Button variant="ghost" size="xs" icon={<ArrowLeft className="stg:size-3" aria-hidden="true" />} onClick={onBack}>
               Back to teams
-            </button>
+            </Button>
           )}
           {!editing && (
             <>
-              <h3 className="stg:text-foreground stg:truncate stg:text-sm stg:font-semibold">{name}</h3>
+              {showName && (
+                <h3 className="stg:text-foreground stg:truncate stg:text-sm stg:font-semibold">{name}</h3>
+              )}
               {description && (
-                <p className="stg:text-muted-foreground stg:mt-0.5 stg:text-xs">{description}</p>
+                <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">{description}</p>
               )}
             </>
           )}
         </div>
         {!editing && (
-          <PermissionGate resource={gate} relation="can_edit">
-            <Button variant="ghost" size="xs" onClick={() => setEditing(true)}>
+          <PermissionGate fail="closed" resource={gate} relation="can_edit">
+            <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
               Edit
             </Button>
           </PermissionGate>
@@ -117,11 +125,13 @@ export function TeamDetailPanel({
         />
       )}
 
-      <section aria-label="Members">
-        <TeamMembersPanel teamId={teamId} org={org} />
-      </section>
+      <Section title="Members">
+        <div className="stg:p-4">
+          <TeamMembersPanel teamId={teamId} org={org} showHeading={false} />
+        </div>
+      </Section>
 
-      <PermissionGate resource={gate} relation="can_delete">
+      <PermissionGate fail="closed" resource={gate} relation="can_delete">
         <DeleteTeam teamId={teamId} name={name} onDeleted={onDeleted} />
       </PermissionGate>
     </div>
@@ -212,66 +222,34 @@ function DeleteTeam({
   readonly name: string;
   readonly onDeleted?: () => void;
 }) {
-  const { deleteTeam, isDeleting, error } = useDeleteTeam();
-  const [confirming, setConfirming] = useState(false);
+  const { deleteTeam } = useDeleteTeam();
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
 
-  const handleDelete = useCallback(async () => {
-    try {
-      await deleteTeam({ resourceId: teamId });
-      onDeleted?.();
-    } catch {
-      // error state is managed by useDeleteTeam
-    }
-  }, [deleteTeam, teamId, onDeleted]);
+  const askToDelete = useCallback(async () => {
+    const deleted = await confirm({
+      title: `Delete the team ${name}?`,
+      description: `Everyone in ${name} loses what was shared with the team. Access granted to them directly stays, and nothing they made is deleted.`,
+      confirmLabel: "Delete team",
+      variant: "destructive",
+      action: async () => {
+        await deleteTeam({ resourceId: teamId });
+      },
+      failureTitle: `Couldn't delete ${name}.`,
+    });
+    if (deleted) onDeleted?.();
+  }, [confirm, deleteTeam, teamId, name, onDeleted]);
 
-  if (!confirming) {
-    return (
-      <div className="stg:border-t stg:border-border stg:pt-4">
-        <Button
-          variant="ghost"
-          size="xs"
-          onClick={() => setConfirming(true)}
-          className="stg:text-destructive stg:hover:bg-destructive-subtle"
-        >
+  return (
+    <Section title="Delete this team">
+      <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-3 stg:p-4">
+        <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
+          Everyone in {name} loses what was shared with the team. Nothing they made is deleted.
+        </p>
+        <Button variant="outline" size="sm" onClick={() => void askToDelete()}>
           Delete team
         </Button>
       </div>
-    );
-  }
-
-  return (
-    <div className="stg:space-y-2 stg:rounded-lg stg:border stg:border-border stg:bg-destructive-subtle stg:px-3 stg:py-2.5">
-      <p className="stg:text-xs stg:text-foreground">
-        Delete <span className="stg:font-medium">{name}</span>? Everyone in {name} loses
-        the access shared with the team. Access granted to them directly stays.
-      </p>
-      {error && (
-        <FieldError>
-          {getUserMessage(error)}
-        </FieldError>
-      )}
-      <div className="stg:flex stg:items-center stg:gap-1.5">
-        <Button
-          variant="destructive"
-          size="xs"
-          onClick={handleDelete}
-          disabled={isDeleting}
-          icon={isDeleting ? <SpinnerIcon size={12} /> : undefined}
-        >
-          Delete team
-        </Button>
-        <Button variant="ghost" size="xs" onClick={() => setConfirming(false)} disabled={isDeleting}>
-          Cancel
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function ArrowLeftIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M10 3L5 8l5 5" />
-    </svg>
+      <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
+    </Section>
   );
 }

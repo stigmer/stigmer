@@ -1,0 +1,1471 @@
+{
+  "screen": "G41",
+  "title": "Vaults",
+  "source": "the Settings page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Vaults: My vault, then the shared vaults as rows you open",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-vaults",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Vaults",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New shared vault",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The logins and secrets your agents use: your own, in My vault, and your organization's, in shared vaults.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "My vault You",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Your own logins and secrets. A chat that includes My vault uses them for the messages you send, never a teammate's. Saved values can be replaced but are never shown again.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "OPENAI_API_KEY",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "My own key for experiments",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Replace",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "NAME",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Value",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "What it is for (optional)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Add",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Shared vaults 4",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Your organization's team keys. Admins create them and choose who may use them; a conversation, a routine or a channel can name one so its runs use it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Production",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The keys the production agents run with · 3 entries",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Admins and granted",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Payroll",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The payroll provider's API · 1 entry",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Admins and granted",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Support desk",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The helpdesk's API · 1 entry",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Admins and granted",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Staging",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Keys for the staging agents · 2 entries",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Admins and granted",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New shared vault",
+          "height": 32
+        },
+        {
+          "name": "Replace",
+          "height": 28
+        },
+        {
+          "name": "Remove OPENAI_API_KEY",
+          "height": 28
+        },
+        {
+          "name": "Add",
+          "height": 28
+        }
+      ],
+      "sample": {
+        "word My own key for experiments": "The drawing's example data; the scene shows its own fixture's",
+        "word Replace": "The drawing's example data; the scene shows its own fixture's",
+        "word The keys the production agents run with · 3 entries": "The drawing's example data; the scene shows its own fixture's",
+        "word Payroll": "The drawing's example data; the scene shows its own fixture's",
+        "word The payroll provider's API · 1 entry": "The drawing's example data; the scene shows its own fixture's",
+        "word Support desk": "The drawing's example data; the scene shows its own fixture's",
+        "word The helpdesk's API · 1 entry": "The drawing's example data; the scene shows its own fixture's",
+        "word Staging": "The drawing's example data; the scene shows its own fixture's",
+        "word Keys for the staging agents · 2 entries": "The drawing's example data; the scene shows its own fixture's"
+      },
+      "ruled": {},
+      "pending": {
+        "word My vault You": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Your own logins and secrets. A chat that includes My vault uses them for the messages you send, never a teammate's. Saved values can be replaced but are never shown again.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "type NAME": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type Value": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type What it is for (optional)": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "word Shared vaults 4": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "button Replace": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "button Remove OPENAI_API_KEY": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form"
+      }
+    },
+    {
+      "caption": "Vaults: A shared vault open: its secrets, logins, details",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-vaults-open",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Vaults",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Production",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Who can use",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The keys the production agents run with.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Secrets 3",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Matched by name, such as OPENAI_API_KEY. Saved values are never shown again.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "LEDGER_TOKEN",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Reads the general ledger",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Replace",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "SLACK_BOT_TOKEN",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Posts the daily report",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Replace",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "STRIPE_KEY",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Charges and refunds",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Replace",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "NAME",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Value",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "What it is for (optional)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Add",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Logins",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Matched by the address of the tool or Git host they're for.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "No logins saved.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "https://mcp.example.com/mcp or github.com",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Token",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Add",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Details",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Production",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Description (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The keys the production agents run with",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "External id (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "An id in your own system",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Save details",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Delete this vault",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Runs that name Production lose its keys at once.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Delete vault",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Vaults",
+          "height": 28
+        },
+        {
+          "name": "Who can use",
+          "height": 32
+        },
+        {
+          "name": "Replace",
+          "height": 28
+        },
+        {
+          "name": "Remove LEDGER_TOKEN",
+          "height": 28
+        },
+        {
+          "name": "Replace",
+          "height": 28
+        },
+        {
+          "name": "Remove SLACK_BOT_TOKEN",
+          "height": 28
+        },
+        {
+          "name": "Replace",
+          "height": 28
+        },
+        {
+          "name": "Remove STRIPE_KEY",
+          "height": 28
+        },
+        {
+          "name": "Add",
+          "height": 28
+        },
+        {
+          "name": "Add",
+          "height": 28
+        },
+        {
+          "name": "Save details",
+          "height": 32
+        },
+        {
+          "name": "Delete vault",
+          "height": 32
+        }
+      ],
+      "sample": {
+        "word The keys the production agents run with.": "The drawing's example data; the scene shows its own fixture's"
+      },
+      "ruled": {},
+      "pending": {
+        "type Vaults": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type Production": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type Who can use": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "word Secrets 3": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "type Matched by name, such as OPENAI_API_KEY. Saved values are never shown again.": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type LEDGER_TOKEN": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type Reads the general ledger": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type SLACK_BOT_TOKEN": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type Posts the daily report": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type STRIPE_KEY": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type Charges and refunds": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type NAME": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type Value": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type What it is for (optional)": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type Logins": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "word Matched by the address of the tool or Git host they're for.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "type https://mcp.example.com/mcp or github.com": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type Token": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type Details": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "word Name": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Description (optional)": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "type The keys the production agents run with": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "word External id (optional)": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word An id in your own system": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "type Save details": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "word Delete this vault": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Runs that name Production lose its keys at once.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "type Delete vault": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "button Vaults": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "button Who can use": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "button Save details": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "button Delete vault": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form"
+      }
+    },
+    {
+      "caption": "Vaults: New shared vault, its name taken",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Vaults",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "New shared vault",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "A shared vault holds the organization's own keys; a conversation, a routine or a channel can name one so its runs use it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Production",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "acme already has a vault named Production.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Description (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The keys the production agents run with",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Create vault",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Vaults",
+          "height": 28
+        },
+        {
+          "name": "Create vault",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Vaults: Remove a secret, asked first",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene pictures this state yet.",
+      "words": [
+        {
+          "text": "Remove STRIPE_KEY from Production?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Runs that use Production stop getting STRIPE_KEY at once. Its value can't be brought back.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Remove",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Remove",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Vaults: Remove a secret, working: the act busy, Cancel held",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
+      "words": [
+        {
+          "text": "Remove STRIPE_KEY from Production?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Runs that use Production stop getting STRIPE_KEY at once. Its value can't be brought back.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Remove",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Remove",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Vaults: Remove a secret, didn't go through: said in the dialog, the act is Try again",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
+      "words": [
+        {
+          "text": "Remove STRIPE_KEY from Production?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Runs that use Production stop getting STRIPE_KEY at once. Its value can't be brought back.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't remove STRIPE_KEY.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Vaults: No shared vaults, for a member",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-vaults-member",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Vaults",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "The logins and secrets your agents use: your own, in My vault, and your organization's, in shared vaults.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "My vault You",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Your own logins and secrets. A chat that includes My vault uses them for the messages you send, never a teammate's. Saved values can be replaced but are never shown again.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "OPENAI_API_KEY",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "My own key for experiments",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Replace",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "NAME",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Value",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "What it is for (optional)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Add",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Shared vaults",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "No shared vaults yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Admins of acme create shared vaults and choose who may use them.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Replace",
+          "height": 28
+        },
+        {
+          "name": "Remove OPENAI_API_KEY",
+          "height": 28
+        },
+        {
+          "name": "Add",
+          "height": 28
+        }
+      ],
+      "sample": {
+        "word My own key for experiments": "The drawing's example data; the scene shows its own fixture's",
+        "word Replace": "The drawing's example data; the scene shows its own fixture's"
+      },
+      "ruled": {},
+      "pending": {
+        "word My vault You": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Your own logins and secrets. A chat that includes My vault uses them for the messages you send, never a teammate's. Saved values can be replaced but are never shown again.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "type NAME": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type Value": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "type What it is for (optional)": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "word No shared vaults yet": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Admins of acme create shared vaults and choose who may use them.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "button Replace": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form",
+        "button Remove OPENAI_API_KEY": "When its page is redesigned: the settings forms PR redraws a shared vault's open row, its entries and its details form"
+      }
+    },
+    {
+      "caption": "Vaults: At 390 wide, a vault open",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "No scene pictures this state yet.",
+      "words": [
+        {
+          "text": "Vaults",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Production",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Who can use",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The keys the production agents run with.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Secrets 3",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Matched by name, such as OPENAI_API_KEY. Saved values are never shown again.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "LEDGER_TOKEN",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Reads the general ledger",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Replace",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "SLACK_BOT_TOKEN",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Posts the daily report",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Replace",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "STRIPE_KEY",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Charges and refunds",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Replace",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "NAME",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Value",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "What it is for (optional)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Add",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Logins",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Matched by the address of the tool or Git host they're for.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "No logins saved.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "https://mcp.example.com/mcp or github.com",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Token",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Add",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Details",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Production",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Description (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The keys the production agents run with",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "External id (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "An id in your own system",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Save details",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Delete this vault",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Runs that name Production lose its keys at once.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Delete vault",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Vaults",
+          "height": 28
+        },
+        {
+          "name": "Who can use",
+          "height": 32
+        },
+        {
+          "name": "Replace",
+          "height": 28
+        },
+        {
+          "name": "Remove LEDGER_TOKEN",
+          "height": 28
+        },
+        {
+          "name": "Replace",
+          "height": 28
+        },
+        {
+          "name": "Remove SLACK_BOT_TOKEN",
+          "height": 28
+        },
+        {
+          "name": "Replace",
+          "height": 28
+        },
+        {
+          "name": "Remove STRIPE_KEY",
+          "height": 28
+        },
+        {
+          "name": "Add",
+          "height": 28
+        },
+        {
+          "name": "Add",
+          "height": 28
+        },
+        {
+          "name": "Save details",
+          "height": 32
+        },
+        {
+          "name": "Delete vault",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

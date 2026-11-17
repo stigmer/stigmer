@@ -9,7 +9,7 @@
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clone, create } from "@bufbuild/protobuf";
 import { TeamSchema, type Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 import { StigmerContext } from "@stigmer/react-core";
@@ -94,7 +94,7 @@ describe("TeamDetailPanel rename", () => {
 });
 
 describe("TeamDetailPanel delete refusal", () => {
-  it("keeps the confirmation open with the refusal's message as an alert, and reports no delete", async () => {
+  it("keeps the dialog open with the refusal's message, and reports no delete", async () => {
     const del = vi.fn(async () => {
       throw new Error("the team still holds grants");
     });
@@ -108,10 +108,10 @@ describe("TeamDetailPanel delete refusal", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Delete team" }));
-    fireEvent.click(screen.getByRole("button", { name: "Delete team" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete team" }));
 
-    const message = await screen.findByText("the team still holds grants");
-    expect(message.getAttribute("role")).toBe("alert");
+    expect(await within(screen.getByRole("dialog")).findByText("Couldn't delete Site Reliability.")).toBeTruthy();
+    expect(screen.getByRole("dialog").textContent).toMatch(/the team still holds grants/);
     expect(del).toHaveBeenCalledWith({ resourceId: "tm_sre" });
     expect(onDeleted).not.toHaveBeenCalled();
   });
@@ -127,11 +127,28 @@ describe("TeamDetailPanel delete refusal", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Delete team" }));
-    expect(screen.getByText(/loses the access shared with the team/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(within(screen.getByRole("dialog")).getByText(/loses what was shared with the team/)).toBeTruthy();
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" }));
 
-    expect(screen.queryByText(/loses the access shared with the team/)).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.getAllByRole("button", { name: "Delete team" })).toHaveLength(1);
     expect(del).not.toHaveBeenCalled();
+  });
+
+  it("deletes from the dialog and hands the deletion to the host", async () => {
+    const del = vi.fn(async () => TEAM);
+    const onDeleted = vi.fn();
+    render(
+      <StigmerContext.Provider
+        value={{ team: { delete: del }, grant: { checkMyPermission: async () => ({ isAuthorized: false }) } } as never}
+      >
+        <TeamDetailPanel team={TEAM} org="org_acme" onDeleted={onDeleted} />
+      </StigmerContext.Provider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete team" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete team" }));
+    await waitFor(() => expect(onDeleted).toHaveBeenCalledTimes(1));
+    expect(del).toHaveBeenCalledWith({ resourceId: "tm_sre" });
   });
 });

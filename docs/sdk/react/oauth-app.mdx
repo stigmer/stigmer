@@ -239,8 +239,8 @@ secret, or enter a new value to replace it. "Save" submits the
 update via [`useUpdateOAuthApp`](#useupdateoauthapp); "Cancel" discards changes
 and returns to view mode.
 
-Delete uses an inline confirmation pattern (no modal) to avoid
-portal/z-index issues for SDK embedders.
+Delete asks in a confirm dialog that runs the delete, holds Cancel
+while it works, and says a refusal inside the dialog.
 
 All visual properties flow through `--stgm-*` design tokens.
 
@@ -253,6 +253,7 @@ All visual properties flow through `--stgm-*` design tokens.
     onBack: { type: "() => void", description: "Fired when the user clicks the back button." },
     onDeleted: { type: "() => void", description: "Fired after the resource is successfully deleted." },
     onUpdated: { type: "(app: OAuthApp) => void", description: "Fired with the updated resource after a successful save." },
+    showName: { type: "boolean", description: "Draw the app's name and handle as the panel's heading. `true` (the default) where the panel stands alone; `false` where the page's own title already names the app (the settings page while one is open)." },
   }}
 />
 

@@ -1,0 +1,188 @@
+{
+  "screen": "G47",
+  "title": "Notifications, kept separate",
+  "source": "the Settings page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Notifications, kept separate: Kept as its own page: one decision, with room",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Notifications",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "When this device tells you about your conversations. Applies on this device only.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Conversations",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Tell me when a conversation needs me",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "A notification when a conversation you started finishes, stops with an error, or waits for your answer, unless you're looking at it. On this device only.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Notifications, kept separate: Blocked by the browser, said under the switch",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Notifications",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "When this device tells you about your conversations. Applies on this device only.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Conversations",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Tell me when a conversation needs me",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "A notification when a conversation you started finishes, stops with an error, or waits for your answer, unless you're looking at it. On this device only.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Your browser blocked notifications for this site.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Allow them for this site in your browser's or your system's settings, then turn this on again.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Notifications, kept separate: A browser that can't show notifications",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Notifications",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "When this device tells you about your conversations. Applies on this device only.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Conversations",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Tell me when a conversation needs me",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "A notification when a conversation you started finishes, stops with an error, or waits for your answer, unless you're looking at it. On this device only.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "This browser can't show notifications.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

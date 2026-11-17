@@ -192,8 +192,14 @@ describe("FederationIssuersSection", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Edit Acme Okta" }));
 
-    expect(screen.getByRole("button", { name: /Back to list/ })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Acme Okta" })).toBeTruthy();
+    // The open issuer names the page, under a way back to the list.
+    expect(screen.getByRole("heading", { level: 2, name: "Acme Okta" })).toBeTruthy();
+    // The panel draws no second name under the page's title.
+    expect(screen.queryByRole("heading", { level: 3, name: "Acme Okta" })).toBeNull();
+    expect(screen.queryByRole("list", { name: "Federation issuers" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Federation issuers" }));
+    expect(screen.getByRole("heading", { level: 2, name: "Federation issuers" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Edit Acme Okta" }));
     expect(screen.queryByRole("list", { name: "Federation issuers" })).toBeNull();
   });
 

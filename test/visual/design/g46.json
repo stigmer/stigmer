@@ -1,0 +1,713 @@
+{
+  "screen": "G46",
+  "title": "Account preferences",
+  "source": "the Settings page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Account preferences: Merged: Notifications as a section of Account preferences",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Account preferences",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What agents know about you on every run you start, and the models you start with.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "What agents should know about you",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Standing context",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "I work in finance at Acme. Write amounts in USD with two decimals. Prefer short answers.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Shared with agents as background, not as instructions. Applies only to runs you start and shows on those run records.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Save",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Default models",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Harness a new conversation starts on",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Platform default (Stigmer)",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Each harness's default model is set on Models and providers. A pick in the composer wins for that conversation.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Memory",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Agents may remember confirmed facts about me",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Agents may propose facts to remember; only facts you confirm are kept, under Memory. Saves as you switch it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Notifications on this device",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Saves as you switch it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Tell me when a conversation needs me",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "A notification when a conversation you started finishes, stops with an error, or waits for your answer, unless you're looking at it. On this device only.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Save",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Account preferences: Kept separate: as today, on sections",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Account preferences",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What agents know about you on every run you start, and the models you start with.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "What agents should know about you",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Standing context",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "I work in finance at Acme. Write amounts in USD with two decimals. Prefer short answers.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Shared with agents as background, not as instructions. Applies only to runs you start and shows on those run records.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Save",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Default models",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Harness a new conversation starts on",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Platform default (Stigmer)",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Each harness's default model is set on Models and providers. A pick in the composer wins for that conversation.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Memory",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Agents may remember confirmed facts about me",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Agents may propose facts to remember; only facts you confirm are kept, under Memory. Saves as you switch it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Save",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Account preferences: Notifications blocked by the browser (stigmer#2857: today the switch says nothing)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Account preferences",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What agents know about you on every run you start, and the models you start with.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "What agents should know about you",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Standing context",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "I work in finance at Acme. Write amounts in USD with two decimals. Prefer short answers.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Shared with agents as background, not as instructions. Applies only to runs you start and shows on those run records.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Save",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Default models",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Harness a new conversation starts on",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Platform default (Stigmer)",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Each harness's default model is set on Models and providers. A pick in the composer wins for that conversation.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Memory",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Agents may remember confirmed facts about me",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Agents may propose facts to remember; only facts you confirm are kept, under Memory. Saves as you switch it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Notifications on this device",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Saves as you switch it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Tell me when a conversation needs me",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "A notification when a conversation you started finishes, stops with an error, or waits for your answer, unless you're looking at it. On this device only.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Your browser blocked notifications for this site.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Allow them for this site in your browser's or your system's settings, then turn this on again.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Save",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Account preferences: Didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Account preferences",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What agents know about you on every run you start, and the models you start with.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load your preferences.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Account preferences: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Account preferences",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What agents know about you on every run you start, and the models you start with.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "What agents should know about you",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Standing context",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "I work in finance at Acme. Write amounts in USD with two decimals. Prefer short answers.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Shared with agents as background, not as instructions. Applies only to runs you start and shows on those run records.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Save",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Default models",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Harness a new conversation starts on",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Platform default (Stigmer)",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Each harness's default model is set on Models and providers. A pick in the composer wins for that conversation.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Memory",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Agents may remember confirmed facts about me",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Agents may propose facts to remember; only facts you confirm are kept, under Memory. Saves as you switch it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Notifications on this device",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Saves as you switch it.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Tell me when a conversation needs me",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "A notification when a conversation you started finishes, stops with an error, or waits for your answer, unless you're looking at it. On this device only.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Save",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

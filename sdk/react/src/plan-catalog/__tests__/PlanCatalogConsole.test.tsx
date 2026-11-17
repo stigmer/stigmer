@@ -65,8 +65,23 @@ describe("PlanCatalogConsole", () => {
     const catalog = await screen.findByRole("list", { name: "Plan catalog" });
     await userEvent.click(within(catalog).getAllByRole("button", { name: "Retire" })[0]!);
     expect(client.plan.retire).not.toHaveBeenCalled();
-    await userEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Retire" }));
+    await userEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Retire plan" }));
     await waitFor(() => expect(client.plan.retire).toHaveBeenCalledWith("pln_team"));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
+  it("says a failed retire in the dialog, with Try again", async () => {
+    const client = mockClient(true);
+    client.plan.retire = vi.fn().mockRejectedValueOnce(new Error("the billing service did not answer")).mockResolvedValue(TEAM);
+    renderConsole(client);
+    const catalog = await screen.findByRole("list", { name: "Plan catalog" });
+    await userEvent.click(within(catalog).getAllByRole("button", { name: "Retire" })[0]!);
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Retire plan" }));
+    expect(await within(dialog).findByText(/^Couldn't retire /)).toBeTruthy();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(client.plan.retire).toHaveBeenCalledTimes(2);
   });
 
   it("creates a plan after the review says its terms are final", async () => {

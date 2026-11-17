@@ -14,6 +14,7 @@
  */
 import { useResourceAvailable } from "@stigmer/react-core";
 import { ApiResourceKind } from "@stigmer/react-core/internal";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 import { InvitationManager } from "../invitation/InvitationManager.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { useOrg } from "../organization/OrgProvider.js";
@@ -42,7 +43,10 @@ export function InvitationsSection({ buildInviteUrl }: InvitationsSectionProps =
   const manage = useCheckPermission(
     invitationsAvailable && orgId ? { kind: "organization", id: orgId } : null,
     "can_grant_access",
+    { fail: "closed" },
   );
+  // A check that failed is not a denial: it is said, with Try again.
+  const checkFailed = !manage.isLoading && manage.error !== null;
 
   return (
     <SettingsPage
@@ -53,7 +57,7 @@ export function InvitationsSection({ buildInviteUrl }: InvitationsSectionProps =
         "Invitations come with Stigmer Enterprise and Cloud. On this edition people join the first time they sign in, and you set their roles under Members."
       }
       denied={
-        !manage.isLoading && !manage.allowed && orgId !== ""
+        !manage.isLoading && !manage.allowed && !checkFailed && orgId !== ""
           ? { title: "Only an admin can open Invitations", description: INVITATIONS_MANAGED_BY_ADMINS }
           : false
       }
@@ -62,6 +66,8 @@ export function InvitationsSection({ buildInviteUrl }: InvitationsSectionProps =
         <NoOrganization what="its invitations" />
       ) : manage.isLoading ? (
         <SettingsSkeleton label="Loading invitations" rows={2} />
+      ) : checkFailed && manage.error ? (
+        <ErrorMessage error={manage.error} title="Couldn't check what you may do here." retry={manage.refetch} />
       ) : (
         <InvitationManager org={orgId} {...(buildInviteUrl === undefined ? {} : { buildInviteUrl })} />
       )}

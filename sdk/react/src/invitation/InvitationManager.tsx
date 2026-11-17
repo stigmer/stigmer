@@ -27,6 +27,8 @@ import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { Button } from "../button/Button.js";
+import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
+import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { IconButton } from "../button/IconButton.js";
 import { Card } from "../internal/surface/Card.js";
 import { Tag } from "../internal/surface/Tag.js";
@@ -113,7 +115,8 @@ export function InvitationManager({
   } = useOrgInvitations(org);
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
   const startCreate = useCallback(() => setFlow({ phase: "creating" }), []);
-  const [revokingId, setRevokingId] = useState<string | null>(null);
+  const { revoke } = useRevokeInvitation();
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
   // A refetch re-reads only the first page, so a link revoked from a page
   // loaded later would keep its stale copy: the revoke's own answer stands
   // in for that row until the list starts again.
@@ -138,13 +141,22 @@ export function InvitationManager({
     [buildInviteUrl, refetch],
   );
 
-  const handleRevoked = useCallback(
-    (invitation: Invitation) => {
-      setRevokingId(null);
-      setRevoked((previous) => new Map(previous).set(invitation.metadata?.id ?? "", invitation));
-      refetch();
+  const askToRevoke = useCallback(
+    async (invitationId: string, label: string) => {
+      const done = await confirm({
+        title: `Revoke ${label}?`,
+        description: "The link stops working at once. People who already joined with it stay in the organization.",
+        confirmLabel: "Revoke link",
+        variant: "destructive",
+        action: async () => {
+          const invitation = await revoke(invitationId);
+          setRevoked((previous) => new Map(previous).set(invitation.metadata?.id ?? "", invitation));
+        },
+        failureTitle: "Couldn't revoke the link.",
+      });
+      if (done) refetch();
     },
-    [refetch],
+    [confirm, revoke, refetch],
   );
 
   if (isLoading) {
@@ -217,16 +229,14 @@ export function InvitationManager({
                 key={id}
                 invitation={inv}
                 buildInviteUrl={buildInviteUrl}
-                isRevoking={revokingId === id}
-                onStartRevoke={() => setRevokingId(id)}
-                onCancelRevoke={() => setRevokingId(null)}
-                onRevoked={handleRevoked}
+                onRevoke={askToRevoke}
               />
             );
           })}
         </List>
       )}
       <LoadMoreFooter hasMore={hasMore} loadMore={loadMore} isLoadingMore={isLoadingMore} loadMoreError={loadMoreError} />
+      <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 }
@@ -398,17 +408,11 @@ function CreateInvitationForm({
 function InvitationRow({
   invitation,
   buildInviteUrl,
-  isRevoking,
-  onStartRevoke,
-  onCancelRevoke,
-  onRevoked,
+  onRevoke,
 }: {
   invitation: Invitation;
   buildInviteUrl: (token: string) => string;
-  isRevoking: boolean;
-  onStartRevoke: () => void;
-  onCancelRevoke: () => void;
-  onRevoked: (invitation: Invitation) => void;
+  onRevoke: (invitationId: string, label: string) => void;
 }) {
   const { copy, copied } = useCopyFeedback();
 
@@ -425,17 +429,6 @@ function InvitationRow({
   const handleCopy = useCallback(() => {
     void copy(buildInviteUrl(token));
   }, [copy, token, buildInviteUrl]);
-
-  if (isRevoking) {
-    return (
-      <RevokeConfirmation
-        invitationId={id}
-        label={label}
-        onRevoked={onRevoked}
-        onCancel={onCancelRevoke}
-      />
-    );
-  }
 
   return (
     <ListRow
@@ -479,7 +472,7 @@ function InvitationRow({
             {isActive && (
               <IconButton
                 size="xs"
-                label={copied ? "Link copied" : `Copy invite link for ${label}`}
+                label={copied ? "Link copied" : `Copy the link ${label}`}
                 icon={copied ? <CheckIcon /> : <CopyIcon />}
                 onClick={handleCopy}
                 className={copied ? "stg:text-primary" : undefined}
@@ -490,7 +483,7 @@ function InvitationRow({
                 size="xs"
                 label={`Revoke ${label}`}
                 icon={<RevokeIcon />}
-                onClick={onStartRevoke}
+                onClick={() => onRevoke(id, label)}
                 className="stg:hover:text-destructive stg:hover:bg-destructive-subtle"
               />
             )}
@@ -498,65 +491,6 @@ function InvitationRow({
         </>
       }
     />
-  );
-}
-
-// ---------------------------------------------------------------------------
-// RevokeConfirmation (internal)
-// ---------------------------------------------------------------------------
-
-function RevokeConfirmation({
-  invitationId,
-  label,
-  onRevoked,
-  onCancel,
-}: {
-  invitationId: string;
-  label: string;
-  onRevoked: (invitation: Invitation) => void;
-  onCancel: () => void;
-}) {
-  const { revoke, isRevoking, error } = useRevokeInvitation();
-
-  const handleConfirm = useCallback(async () => {
-    try {
-      onRevoked(await revoke(invitationId));
-    } catch {
-      // error state is surfaced via the hook
-    }
-  }, [invitationId, revoke, onRevoked]);
-
-  return (
-    // The confirmation's sentence wraps, so it keeps its own markup on the
-    // list's row padding rather than a ListRow's one truncated line.
-    <li className="stg:flex stg:min-h-10 stg:items-center stg:justify-between stg:bg-destructive-subtle stg:px-3.5 stg:py-2.5">
-      <div className="stg:min-w-0 stg:flex-1">
-        <p className="stg:text-xs stg:text-foreground">
-          Revoke <span className="stg:font-medium">{label}</span>? The link will
-          stop working immediately.
-        </p>
-        {error && (
-          <p className="stg:mt-0.5 stg:text-2xs stg:text-destructive">
-            {getUserMessage(error)}
-          </p>
-        )}
-      </div>
-
-      <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:ml-3">
-        <Button
-          variant="destructive"
-          size="xs"
-          onClick={handleConfirm}
-          disabled={isRevoking}
-          icon={isRevoking ? <SpinnerIcon size={12} /> : undefined}
-        >
-          Revoke
-        </Button>
-        <Button variant="ghost" size="xs" onClick={onCancel} disabled={isRevoking}>
-          Cancel
-        </Button>
-      </div>
-    </li>
   );
 }
 

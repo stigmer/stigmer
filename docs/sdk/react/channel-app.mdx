@@ -219,6 +219,7 @@ app sees its setup values with no actions.
     onBack: { type: "() => void", description: "Fired when the user navigates back to the list." },
     onDeleted: { type: "() => void", description: "Fired after the app is deleted." },
     onUpdated: { type: "(app: ChannelApp) => void", description: "Fired with the updated app after a successful save." },
+    showName: { type: "boolean", description: "Draw the app's name and id as the panel's heading. `true` (the default) where the panel stands alone; `false` where the page's own title already names the app (the settings page while one is open)." },
   }}
 />
 

@@ -6,7 +6,8 @@
  * each is for, how a login was saved and when it expires) and lets a person
  * add, replace and remove entries. It never shows a value: no read returns
  * one, and a replace asks for the new value from scratch. A remove asks
- * first, since a removed value cannot be read back to restore it.
+ * first, in a confirm dialog that does the remove and says a refusal
+ * there, since a removed value cannot be read back to restore it.
  *
  * Presentational: the host passes the vault and the four writes, so the
  * same editor serves My vault (useMyVault) and a shared vault
@@ -25,6 +26,8 @@ import {
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { normalizeAddress } from "./address.js";
 import { Button } from "../button/Button.js";
+import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
+import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { FieldError, TextInput } from "../internal/form/index.js";
 
@@ -109,6 +112,26 @@ export function VaultEntriesEditor({
   className,
 }: VaultEntriesEditorProps) {
   const [error, setError] = useState<string | null>(null);
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
+  const vaultName = vault?.metadata?.name;
+  const askToRemove = useCallback(
+    (title: string, write: () => Promise<unknown>) => {
+      setError(null);
+      void confirm({
+        title: vaultName ? `Remove ${title} from ${vaultName}?` : `Remove ${title}?`,
+        description: vaultName
+          ? `Runs that use ${vaultName} stop getting ${title} at once. Its value can't be read back, so you would enter it again.`
+          : `Runs stop getting ${title} at once. Its value can't be read back, so you would enter it again.`,
+        confirmLabel: "Remove",
+        variant: "destructive",
+        action: async () => {
+          await write();
+        },
+        failureTitle: `Couldn't remove ${title}.`,
+      });
+    },
+    [confirm, vaultName],
+  );
 
   const run = useCallback(async (write: () => Promise<unknown>): Promise<boolean> => {
     setError(null);
@@ -153,7 +176,7 @@ export function VaultEntriesEditor({
                 disabled={isMutating}
                 replaceLabel={`New value for ${name}`}
                 onReplace={(value) => run(() => onSetSecrets({ [name]: { value, description: secret.description } }))}
-                onRemove={() => run(() => onRemoveSecrets([name]))}
+                onRemove={() => askToRemove(name, () => onRemoveSecrets([name]))}
               />
             ))}
           </ul>
@@ -187,7 +210,7 @@ export function VaultEntriesEditor({
                 disabled={isMutating}
                 replaceLabel={`New token for ${address}`}
                 onReplace={(token) => run(() => onSetConnection(address, token, connection.description))}
-                onRemove={() => run(() => onRemoveConnections([address]))}
+                onRemove={() => askToRemove(address, () => onRemoveConnections([address]))}
                 extra={connectionAction?.(address, connection)}
               />
             ))}
@@ -208,6 +231,7 @@ export function VaultEntriesEditor({
           {error}
         </FieldError>
       )}
+      <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 }
@@ -231,11 +255,10 @@ function EntryRow({
   readonly disabled: boolean;
   readonly replaceLabel: string;
   readonly onReplace: (value: string) => Promise<boolean>;
-  readonly onRemove: () => Promise<boolean>;
+  readonly onRemove: () => void;
 }) {
   const [replacing, setReplacing] = useState(false);
   const replaceFormId = useId();
-  const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [value, setValue] = useState("");
 
   const submit = async (e: FormEvent) => {
@@ -265,10 +288,7 @@ function EntryRow({
               variant="ghost"
               size="xs"
               disabled={disabled}
-              onClick={() => {
-                setConfirmingRemove(false);
-                setReplacing((r) => !r);
-              }}
+              onClick={() => setReplacing((r) => !r)}
               aria-expanded={replacing}
               aria-controls={replaceFormId}
             >
@@ -280,7 +300,7 @@ function EntryRow({
               disabled={disabled}
               onClick={() => {
                 setReplacing(false);
-                setConfirmingRemove(true);
+                onRemove();
               }}
               aria-label={`Remove ${title}`}
               className="stg:hover:bg-destructive-subtle stg:hover:text-destructive"
@@ -290,30 +310,6 @@ function EntryRow({
           </>
         )}
       </div>
-      {confirmingRemove && (
-        <div role="group" aria-label={`Confirm removing ${title}`} className="stg:mt-2 stg:space-y-2">
-          <p className="stg:text-2xs stg:text-muted-foreground">
-            Remove {title}? Its value cannot be read back, so it cannot be restored; you would enter it again.
-          </p>
-          <div className="stg:flex stg:items-center stg:gap-2">
-            <Button
-              variant="ghost"
-              size="xs"
-              disabled={disabled}
-              onClick={() => {
-                setConfirmingRemove(false);
-                void onRemove();
-              }}
-              className="stg:text-destructive stg:hover:bg-destructive-subtle"
-            >
-              Remove
-            </Button>
-            <Button variant="ghost" size="xs" disabled={disabled} onClick={() => setConfirmingRemove(false)}>
-              Keep
-            </Button>
-          </div>
-        </div>
-      )}
       {replacing && (
         <form id={replaceFormId} onSubmit={submit} className="stg:mt-2 stg:flex stg:items-center stg:gap-2">
           <TextInput

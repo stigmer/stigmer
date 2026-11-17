@@ -17,6 +17,7 @@
  * who may use them (every member through organization visibility, or chosen
  * people and Teams where the edition grants roles on one resource).
  */
+import { FieldError } from "../internal/form/index.js";
 import { useCallback, useId, useRef, useState } from "react";
 import { getUserMessage } from "@stigmer/client";
 import { VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
@@ -147,9 +148,9 @@ function MyVaultCard({ org }: { org: string }) {
         />
       )}
       {oauth.error && (
-        <p className="stg:text-destructive stg:text-xs" role="alert">
+        <FieldError>
           {getUserMessage(oauth.error)}
-        </p>
+        </FieldError>
       )}
     </section>
   );

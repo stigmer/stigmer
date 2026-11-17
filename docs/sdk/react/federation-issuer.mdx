@@ -298,6 +298,7 @@ All visual properties flow through `--stgm-*` design tokens.
     federationIssuer: { type: "FederationIssuer", description: "The federation issuer resource to display and edit.", required: true, typeDescriptionLink: "/docs/sdk/resources/federation-issuer" },
     onBack: { type: "() => void", description: "Fired when the user clicks the back button." },
     onUpdated: { type: "(issuer: FederationIssuer) => void", description: "Fired with the updated resource after a successful save." },
+    showName: { type: "boolean", description: "Draw the issuer's name and handle as the panel's heading. `true` (the default) where the panel stands alone; `false` where the page's own title already names the issuer (the settings page while one is open)." },
   }}
 />
 
@@ -315,12 +316,13 @@ function IssuerDetail({ issuer, onUpdated, onBack }: Props) {
 ### FederationIssuerListPanel
 
 Displays a list of `FederationIssuer` resources for an
-organization with inline delete confirmation.
+organization, each deleted after a confirm dialog that does the delete.
 
 Each issuer is rendered as a row showing name, slug, a JIT badge
 (when a first sign-in creates the person's account), and creation date. The edit and
 delete buttons appear only on rows the caller may edit or delete
-(`can_edit`, `can_delete`); delete opens an inline confirmation.
+(`can_edit`, `can_delete`), each only after the server's yes; delete
+opens a confirm dialog that runs the delete and says a refusal there.
 
 Federation issuers are admin-level resources with small cardinality
 (typically 1–3 per org), so the list is rendered without pagination.

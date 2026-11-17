@@ -60,7 +60,7 @@ export function ProviderPicker({ onSelect, className }: ProviderPickerProps) {
             <span className="stg:block stg:text-sm stg:font-medium stg:text-foreground">
               {preset.label}
             </span>
-            <span className="stg:block stg:text-2xs stg:leading-tight stg:text-muted-foreground">
+            <span className="stg:block stg:text-2xs stg:leading-4 stg:text-muted-foreground">
               {preset.description}
             </span>
           </div>

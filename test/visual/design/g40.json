@@ -1,0 +1,1012 @@
+{
+  "screen": "G40",
+  "title": "API keys",
+  "source": "the Settings page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "API keys: Three keys, one expired",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-api-keys-full",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "API keys",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New API key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Keys sign the CLI and your own programs in to Stigmer as you. A key works in every organization you belong to, unless you limit it to one.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "laptop-cli",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "…9f2c · All your organizations · Expires Oct 16, 2026 · Used 1h ago",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "nightly-export",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "…a1b2 · Only in acme · Never expires · Used 9h ago",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "old-ci",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Expired",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "…77de · Only in acme · Expired Jul 2, 2026 · Never used",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New API key",
+          "height": 32
+        },
+        {
+          "name": "Revoke laptop-cli",
+          "height": 28
+        },
+        {
+          "name": "Revoke nightly-export",
+          "height": 28
+        },
+        {
+          "name": "Revoke old-ci",
+          "height": 28
+        }
+      ],
+      "sample": {
+        "word laptop-cli": "The drawing's example data; the scene shows its own fixture's",
+        "word …9f2c · All your organizations · Expires Oct 16, 2026 · Used 1h ago": "The drawing's example data; the scene shows its own fixture's",
+        "word nightly-export": "The drawing's example data; the scene shows its own fixture's",
+        "word …a1b2 · Only in acme · Never expires · Used 9h ago": "The drawing's example data; the scene shows its own fixture's",
+        "word old-ci": "The drawing's example data; the scene shows its own fixture's",
+        "word Expired": "The drawing's example data; the scene shows its own fixture's",
+        "word …77de · Only in acme · Expired Jul 2, 2026 · Never used": "The drawing's example data; the scene shows its own fixture's",
+        "button Revoke laptop-cli": "The drawing's example data; the scene shows its own fixture's",
+        "button Revoke nightly-export": "The drawing's example data; the scene shows its own fixture's",
+        "button Revoke old-ci": "The drawing's example data; the scene shows its own fixture's"
+      },
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "API keys: New API key: 90 days chosen for you",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "API keys",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "New API key",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Keys sign the CLI and your own programs in to Stigmer as you. A key works in every organization you belong to, unless you limit it to one.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "nightly-export",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "So you know where it's used, like laptop-cli.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Expires",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "30 days",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "60 days",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "90 days",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Never",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "A key made for a script and forgotten stops on its own. Never is one click away.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Only in acme",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The key works in acme and its child organizations, and is refused in every other one.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Create API key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "API keys",
+          "height": 28
+        },
+        {
+          "name": "Create API key",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "API keys: New API key, no name",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "API keys",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "New API key",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Keys sign the CLI and your own programs in to Stigmer as you. A key works in every organization you belong to, unless you limit it to one.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Give the key a name.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Expires",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "30 days",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "60 days",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "90 days",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Never",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "A key made for a script and forgotten stops on its own. Never is one click away.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Only in acme",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The key works in acme and its child organizations, and is refused in every other one.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Create API key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "API keys",
+          "height": 28
+        },
+        {
+          "name": "Create API key",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "API keys: Made: its value shown once",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "API keys",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New API key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Keys sign the CLI and your own programs in to Stigmer as you. A key works in every organization you belong to, unless you limit it to one.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "nightly-export is ready. Copy it now: it won't be shown again.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "stg_live_6c1f…████████████████",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Done",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "laptop-cli",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "…9f2c · All your organizations · Expires Oct 16, 2026 · Used 1h ago",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "nightly-export",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "…a1b2 · Only in acme · Never expires · Used 9h ago",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "old-ci",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Expired",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "…77de · Only in acme · Expired Jul 2, 2026 · Never used",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New API key",
+          "height": 32
+        },
+        {
+          "name": "Copy",
+          "height": 32
+        },
+        {
+          "name": "Done",
+          "height": 28
+        },
+        {
+          "name": "Revoke laptop-cli",
+          "height": 28
+        },
+        {
+          "name": "Revoke nightly-export",
+          "height": 28
+        },
+        {
+          "name": "Revoke old-ci",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "API keys: Revoke, asked first",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-api-keys-revoke",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Revoke laptop-cli?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Anything signed in with it stops working at once. This can't be undone; make a new key if you need one.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Revoke key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Revoke key",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "word Revoke laptop-cli?": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+      }
+    },
+    {
+      "caption": "API keys: Revoke, working: the act busy, Cancel held",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
+      "words": [
+        {
+          "text": "Revoke laptop-cli?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Anything signed in with it stops working at once. This can't be undone; make a new key if you need one.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Revoke key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Revoke key",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "API keys: Revoke, didn't go through: said in the dialog, the act is Try again",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene holds the act in flight or refused; ConfirmDialog's own tests pin the working and failed dialog (sdk/react/src/resource-detail/__tests__/ConfirmDialog.action.test.tsx).",
+      "words": [
+        {
+          "text": "Revoke laptop-cli?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Anything signed in with it stops working at once. This can't be undone; make a new key if you need one.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't revoke laptop-cli.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "API keys: Didn't load",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-api-keys-failed",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "API keys",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New API key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Keys sign the CLI and your own programs in to Stigmer as you. A key works in every organization you belong to, unless you limit it to one.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load the API keys.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New API key",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {
+        "word the server did not answer in time": "The drawing's example data; the scene shows its own fixture's",
+        "word Stuck? Ask IT on Slack": "The drawing's example data; the scene shows its own fixture's"
+      },
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "API keys: At 390 wide",
+      "narrow": true,
+      "built": [
+        {
+          "scene": "settings-api-keys-full",
+          "width": "narrow"
+        }
+      ],
+      "words": [
+        {
+          "text": "API keys",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "New API key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Keys sign the CLI and your own programs in to Stigmer as you. A key works in every organization you belong to, unless you limit it to one.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "laptop-cli",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "…9f2c · All your organizations · Expires Oct 16, 2026 · Used 1h ago",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "nightly-export",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "…a1b2 · Only in acme · Never expires · Used 9h ago",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "old-ci",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Expired",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "…77de · Only in acme · Expired Jul 2, 2026 · Never used",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New API key",
+          "height": 32
+        },
+        {
+          "name": "Revoke laptop-cli",
+          "height": 28
+        },
+        {
+          "name": "Revoke nightly-export",
+          "height": 28
+        },
+        {
+          "name": "Revoke old-ci",
+          "height": 28
+        }
+      ],
+      "sample": {
+        "word laptop-cli": "The drawing's example data; the scene shows its own fixture's",
+        "word …9f2c · All your organizations · Expires Oct 16, 2026 · Used 1h ago": "The drawing's example data; the scene shows its own fixture's",
+        "word nightly-export": "The drawing's example data; the scene shows its own fixture's",
+        "word …a1b2 · Only in acme · Never expires · Used 9h ago": "The drawing's example data; the scene shows its own fixture's",
+        "word old-ci": "The drawing's example data; the scene shows its own fixture's",
+        "word Expired": "The drawing's example data; the scene shows its own fixture's",
+        "word …77de · Only in acme · Expired Jul 2, 2026 · Never used": "The drawing's example data; the scene shows its own fixture's",
+        "button Revoke laptop-cli": "The drawing's example data; the scene shows its own fixture's",
+        "button Revoke nightly-export": "The drawing's example data; the scene shows its own fixture's",
+        "button Revoke old-ci": "The drawing's example data; the scene shows its own fixture's"
+      },
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

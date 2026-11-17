@@ -1,0 +1,1652 @@
+{
+  "screen": "G29",
+  "title": "The landing",
+  "source": "the Settings page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "The landing: As an admin of acme (Policies and Notifications merged into their neighbours)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Settings",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Your organization, how it is set up, what it costs, and your own account.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Organization",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Organization profile",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Its name, description and logo.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Preferences",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What agents know about acme, memory, the default environment, and who may create agents.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Embedding",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "How people sign in from your own product.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Members",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Who belongs to acme, and each one's role.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Teams",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Groups you share agents and vaults with at once.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Service accounts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Accounts that CI jobs and scripts act as.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Access history",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Who was given or lost access, and when.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invitations",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Links that let people join, with the role you choose.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Federation issuers",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Other platforms whose sign-in acme accepts.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Configuration",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "API keys",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Sign the CLI and your own programs in as you.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Vaults",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The logins and secrets your agents use.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "OAuth apps",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your own login apps for the tools agents reach.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Channel apps",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your own Slack and Meta apps for channels.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Billing and usage",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Billing",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your plan, this period's cost and the card.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Usage",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Tokens and runs, by model and by day.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Account",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Preferences",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What agents know about you, your default models, memory and notifications.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Memory",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What agents remember about you.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "The landing: As a member: the admin pages aren't listed",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Settings",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Your organization, how it is set up, what it costs, and your own account.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Organization",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Organization profile",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Its name, description and logo.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Preferences",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What agents know about acme, memory, the default environment, and who may create agents.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Embedding",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "How people sign in from your own product.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Members",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Who belongs to acme, and each one's role.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Teams",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Groups you share agents and vaults with at once.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invitations",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Links that let people join, with the role you choose.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Federation issuers",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Other platforms whose sign-in acme accepts.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Configuration",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "API keys",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Sign the CLI and your own programs in as you.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Vaults",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The logins and secrets your agents use.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "OAuth apps",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your own login apps for the tools agents reach.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Channel apps",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your own Slack and Meta apps for channels.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Billing and usage",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Billing",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your plan, this period's cost and the card.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Usage",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Tokens and runs, by model and by day.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Account",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Preferences",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What agents know about you, your default models, memory and notifications.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Memory",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What agents remember about you.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "The landing: Kept separate (the other answer to the first call)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Settings",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Your organization, how it is set up, what it costs, and your own account.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Organization",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Organization profile",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Its name, description and logo.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Preferences",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What agents know about acme, memory and the default environment.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Policies",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Who may create agents.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Embedding",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "How people sign in from your own product.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Members",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Who belongs to acme, and each one's role.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Teams",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Groups you share agents and vaults with at once.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Service accounts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Accounts that CI jobs and scripts act as.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Access history",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Who was given or lost access, and when.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invitations",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Links that let people join, with the role you choose.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Federation issuers",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Other platforms whose sign-in acme accepts.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Configuration",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "API keys",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Sign the CLI and your own programs in as you.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Vaults",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The logins and secrets your agents use.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "OAuth apps",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your own login apps for the tools agents reach.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Channel apps",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your own Slack and Meta apps for channels.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Billing and usage",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Billing",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your plan, this period's cost and the card.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Usage",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Tokens and runs, by model and by day.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Account",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Preferences",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What agents know about you, your default models and memory.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Notifications",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "When this device tells you a conversation needs you.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Memory",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What agents remember about you.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "The landing: On a server that holds one organization: General, no profile",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Settings",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Your organization, how it is set up, what it costs, and your own account.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "General",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Preferences",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What agents know about acme, memory, the default environment, and who may create agents.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Embedding",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "How people sign in from your own product.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Members",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Who belongs to acme, and each one's role.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Teams",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Groups you share agents and vaults with at once.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Service accounts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Accounts that CI jobs and scripts act as.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Access history",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Who was given or lost access, and when.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invitations",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Links that let people join, with the role you choose.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Federation issuers",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Other platforms whose sign-in acme accepts.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Configuration",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "API keys",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Sign the CLI and your own programs in as you.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Vaults",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The logins and secrets your agents use.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "OAuth apps",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your own login apps for the tools agents reach.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Channel apps",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your own Slack and Meta apps for channels.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Billing and usage",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Billing",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your plan, this period's cost and the card.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Usage",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Tokens and runs, by model and by day.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Account",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Preferences",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What agents know about you, your default models, memory and notifications.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Memory",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What agents remember about you.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "The landing: At 390 wide",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "words": [
+        {
+          "text": "Settings",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Your organization, how it is set up, what it costs, and your own account.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Organization",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Organization profile",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Its name, description and logo.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Preferences",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What agents know about acme, memory, the default environment, and who may create agents.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Embedding",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "How people sign in from your own product.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Members",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Who belongs to acme, and each one's role.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Teams",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Groups you share agents and vaults with at once.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Service accounts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Accounts that CI jobs and scripts act as.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Access history",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Who was given or lost access, and when.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invitations",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Links that let people join, with the role you choose.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Federation issuers",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Other platforms whose sign-in acme accepts.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Configuration",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "API keys",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Sign the CLI and your own programs in as you.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Vaults",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The logins and secrets your agents use.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "OAuth apps",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your own login apps for the tools agents reach.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Channel apps",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your own Slack and Meta apps for channels.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Billing and usage",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Billing",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Your plan, this period's cost and the card.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Usage",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Tokens and runs, by model and by day.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Account",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Preferences",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What agents know about you, your default models, memory and notifications.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Memory",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What agents remember about you.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

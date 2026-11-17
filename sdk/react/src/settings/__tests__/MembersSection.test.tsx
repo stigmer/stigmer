@@ -58,7 +58,7 @@ afterEach(() => {
   providers.list = [];
 });
 
-const SIGN_IN_NOTICE = /People appear here the first time they sign in/;
+const SIGN_IN_NOTICE = /appears here the first time, with the sign-in role the issuer grants/;
 
 function provider(spec: {
   createAccountsOnSignIn?: boolean;

@@ -30,6 +30,8 @@ import { isMyVault, useVaultList } from "./useVaultList.js";
 import { VaultEntriesEditor } from "./VaultEntriesEditor.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { Button } from "../button/Button.js";
+import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
+import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { List, ListRow } from "../internal/surface/List.js";
 import { FieldError, TextInput } from "../internal/form/index.js";
 
@@ -174,7 +176,7 @@ function SharedVaultRow({
         <div className="stg:space-y-4">
           <SharedVaultEntries vault={vault} org={org} readOnly={readOnly} onChanged={onChanged} />
           {!readOnly && (
-            <PermissionGate resource={{ kind: "vault", id }} relation="can_edit">
+            <PermissionGate fail="closed" resource={{ kind: "vault", id }} relation="can_edit">
               <VaultDetailsForm vault={vault} onChanged={onChanged} />
             </PermissionGate>
           )}
@@ -220,6 +222,7 @@ function SharedVaultEntries({
   if (readOnly) return editor;
   return (
     <PermissionGate
+      fail="closed"
       resource={{ kind: "vault", id: vault.metadata?.id ?? "" }}
       relation="can_edit"
       fallback={editor}
@@ -248,8 +251,7 @@ function VaultDetailsForm({
   const [name, setName] = useState(vault.metadata?.name ?? "");
   const [description, setDescription] = useState(vault.spec?.description ?? "");
   const [externalId, setExternalId] = useState(vault.spec?.externalId ?? "");
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
 
   const dirty =
     name.trim() !== (vault.metadata?.name ?? "") ||
@@ -270,14 +272,19 @@ function VaultDetailsForm({
     }
   };
 
-  const remove = async () => {
-    setDeleteError(null);
-    try {
-      await stigmer.vault.delete({ resourceId: vault.metadata?.id ?? "" });
-      onChanged();
-    } catch (err) {
-      setDeleteError(getUserMessage(err));
-    }
+  const vaultName = vault.metadata?.name || "this vault";
+  const askToDelete = async () => {
+    const deleted = await confirm({
+      title: `Delete ${vaultName}?`,
+      description: "Every value in it is deleted and can't be read back. Surfaces that name it stop at their next run.",
+      confirmLabel: "Delete vault",
+      variant: "destructive",
+      action: async () => {
+        await stigmer.vault.delete({ resourceId: vault.metadata?.id ?? "" });
+      },
+      failureTitle: `Couldn't delete ${vaultName}.`,
+    });
+    if (deleted) onChanged();
   };
 
   return (
@@ -298,40 +305,22 @@ function VaultDetailsForm({
           className="stg:max-w-md"
         />
       )}
-      {(error || deleteError) && (
+      {error && (
         <FieldError>
-          {deleteError ?? (error ? getUserMessage(error) : "")}
+          {getUserMessage(error)}
         </FieldError>
       )}
       <div className="stg:flex stg:items-center stg:gap-2">
         <Button size="xs" disabled={!dirty || isUpdating || name.trim() === ""} onClick={() => void save()}>
           Save details
         </Button>
-        <PermissionGate resource={{ kind: "vault", id: vault.metadata?.id ?? "" }} relation="can_delete">
-          {confirmingDelete ? (
-            <>
-              <span className="stg:text-xs stg:text-muted-foreground">
-                Delete this vault and every value in it? Surfaces that name it stop at their next run.
-              </span>
-              <Button
-                variant="ghost"
-                size="xs"
-                onClick={() => void remove()}
-                className="stg:text-destructive stg:hover:bg-destructive-subtle"
-              >
-                Delete
-              </Button>
-              <Button variant="ghost" size="xs" onClick={() => setConfirmingDelete(false)}>
-                Cancel
-              </Button>
-            </>
-          ) : (
-            <Button variant="ghost" size="xs" onClick={() => setConfirmingDelete(true)} className="stg:hover:bg-destructive-subtle stg:hover:text-destructive">
-              Delete vault
-            </Button>
-          )}
+        <PermissionGate fail="closed" resource={{ kind: "vault", id: vault.metadata?.id ?? "" }} relation="can_delete">
+          <Button variant="ghost" size="xs" onClick={() => void askToDelete()} className="stg:hover:bg-destructive-subtle stg:hover:text-destructive">
+            Delete vault
+          </Button>
         </PermissionGate>
       </div>
+      <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 }
