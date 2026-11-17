@@ -49,7 +49,8 @@ export function SessionLauncher() {
   const workspaceFileReader = useGitHubFileReader(gitHubConnection.readOrg);
   const { navigateToSession } = useSessionNavigation();
   const { activeOrg } = useOrg();
-  const joinedOrg = useSyncExternalStore(subscribeJoinedOrg, readJoinedOrg, noJoinedOrg);
+  // The server has no tab storage, so it renders no organization joined.
+  const joinedOrg = useSyncExternalStore(subscribeJoinedOrg, readJoinedOrg, () => null);
 
   // -------------------------------------------------------------------------
   // Explicit agent capture ("Start session" from an agent). Captured once so
@@ -140,7 +141,3 @@ function parseRefParam(value: string | null): ResourceRef | undefined {
   };
 }
 
-/** The server has no tab storage, so no organization joined. */
-function noJoinedOrg(): null {
-  return null;
-}

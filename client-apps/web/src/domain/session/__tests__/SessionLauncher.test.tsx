@@ -357,11 +357,14 @@ describe("web SessionLauncher", () => {
       expect(page.navigated).toEqual(["ses_1"]);
     });
 
-    it("is absent for an entry it cannot read", () => {
-      sessionStorage.setItem(JOINED_ORG_KEY, "not json");
-      render(<SessionLauncher />);
+    it.each(["not json", "null", "42", JSON.stringify({ name: "Acme Books" }), JSON.stringify({ org: "" }), JSON.stringify({ org: 7 })])(
+      "is absent for an entry that names no organization (%s)",
+      (entry) => {
+        sessionStorage.setItem(JOINED_ORG_KEY, entry);
+        render(<SessionLauncher />);
 
-      expect(welcome()).toBeNull();
-    });
+        expect(welcome()).toBeNull();
+      },
+    );
   });
 });
