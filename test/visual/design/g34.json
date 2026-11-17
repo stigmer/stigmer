@@ -239,10 +239,7 @@
       "buttons": [],
       "sample": {},
       "ruled": {},
-      "pending": {
-        "word Only an owner or admin can open Access history": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Your organization's owners and admins read who was given or lost access.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
-      }
+      "pending": {}
     },
     {
       "caption": "Access history: On the open-source edition",

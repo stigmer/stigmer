@@ -326,20 +326,20 @@
       },
       "ruled": {},
       "pending": {
-        "word A Meta app for acme's WhatsApp channels.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Finish setup in Meta": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Paste these two into your app's WhatsApp settings at developers.facebook.com.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "type Copy": "When its page is redesigned: the settings forms PR draws the copy rows and the credentials form at 32px",
-        "word WhatsApp channels that use it stop answering.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "button Copy": "When its page is redesigned: the settings forms PR draws the copy rows and the credentials form at 32px",
-        "button Save": "When its page is redesigned: the settings forms PR draws the copy rows and the credentials form at 32px"
+        "word A Meta app for acme's WhatsApp channels.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Finish setup in Meta": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Paste these two into your app's WhatsApp settings at developers.facebook.com.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "type Copy": "When its page is redesigned: the settings Built look's fixes draws the copy rows and the credentials form at 32px",
+        "word WhatsApp channels that use it stop answering.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "button Copy": "When its page is redesigned: the settings Built look's fixes draws the copy rows and the credentials form at 32px",
+        "button Save": "When its page is redesigned: the settings Built look's fixes draws the copy rows and the credentials form at 32px"
       }
     },
     {
       "caption": "Channel apps: New channel app, a field missing",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "When its page is redesigned: the settings Built look's fixes build it.",
       "words": [
         {
           "text": "Channel apps",
@@ -548,8 +548,8 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "word Delete Acme support?": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word WhatsApp channels that use it stop answering.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Delete Acme support?": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word WhatsApp channels that use it stop answering.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
       }
     },
     {
@@ -773,10 +773,7 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {
-        "word No channel apps yet": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Add your own Slack app to give the bot acme's name and icon, or a Meta app to connect WhatsApp.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
-      }
+      "pending": {}
     },
     {
       "caption": "Channel apps: Didn't load",

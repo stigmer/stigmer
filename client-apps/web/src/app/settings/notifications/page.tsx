@@ -1,28 +1,19 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-import { NotificationsSection } from "@stigmer/react-sdk/console";
-import {
-  browserNotificationsSupported,
-  requestBrowserNotificationPermission,
-} from "@/domain/session/AttentionNotifier";
+// Notifications were a page of one switch; they are a section of Account
+// preferences now. This address stays, so a bookmark or a shared link still
+// lands: the page replaces it with the preferences page's (a client
+// replace, since the console is a static export with no server redirects).
 
-/** Whether notifications are supported never changes in a page's life. */
-function subscribeNever(): () => void {
-  return () => undefined;
-}
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
+const NOTIFICATIONS_MOVED_TO = "/settings/account-preferences";
 
 export default function NotificationsPage() {
-  // The static export renders with no window: read as supported there.
-  const unsupported = useSyncExternalStore(
-    subscribeNever,
-    () => !browserNotificationsSupported(),
-    () => false,
-  );
-  return (
-    <NotificationsSection
-      requestPermission={requestBrowserNotificationPermission}
-      unsupported={unsupported}
-    />
-  );
+  const router = useRouter();
+  useEffect(() => {
+    router.replace(NOTIFICATIONS_MOVED_TO);
+  }, [router]);
+  return null;
 }

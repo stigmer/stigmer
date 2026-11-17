@@ -44,12 +44,19 @@ const state = vi.hoisted(() => ({
   members: [] as PrincipalAccess[],
   canAssignOwner: false,
   canGrant: true,
+  canOpenServiceAccounts: true,
+  singleOrg: true as boolean | undefined,
   checked: [] as string[],
   calls: [] as string[],
   createFails: false,
   revokeFails: false,
 }));
 
+// The server's posture and the active organization, for how a line names it.
+vi.mock("../../server-info.js", () => ({ useSingleOrg: () => state.singleOrg }));
+vi.mock("../../organization/OrgProvider.js", () => ({
+  useOptionalOrg: () => ({ activeOrg: { metadata: { id: "acme", slug: "acme" } } }),
+}));
 vi.mock("../useResourceAccess.js", () => ({
   useResourceAccess: () => ({
     members: state.members,
@@ -71,7 +78,9 @@ vi.mock("../useOwnerAssignment.js", () => ({
 vi.mock("../useCheckPermission.js", () => ({
   useCheckPermission: (resource: { kind: string; id: string } | null, relation: string, options?: { fail?: string }) => {
     state.checked.push(`${resource?.kind}:${resource?.id} ${relation} ${options?.fail ?? "open"}`);
-    return { allowed: relation === "can_grant_access" ? state.canGrant : true, isLoading: false, error: null, refetch: () => {} };
+    const allowed =
+      relation === "can_grant_access" ? state.canGrant : relation === "can_create_identity_account" ? state.canOpenServiceAccounts : true;
+    return { allowed, isLoading: false, error: null, refetch: () => {} };
   },
 }));
 vi.mock("../useRevokeOrgAccess.js", () => ({
@@ -155,6 +164,8 @@ afterEach(() => {
   state.members = [];
   state.canAssignOwner = false;
   state.canGrant = true;
+  state.canOpenServiceAccounts = true;
+  state.singleOrg = true;
   state.checked = [];
   state.calls = [];
   state.createFails = false;
@@ -216,6 +227,21 @@ describe("OrgMembersPanel and who is a member", () => {
     fireEvent.click(screen.getByRole("button", { name: "Remove Dave" }));
     expect(screen.getByText(/They lose access to everything in it/)).toBeTruthy();
     expect(screen.queryByText(/does not restore it/)).toBeNull();
+  });
+
+  it("names the organization in the remove dialog only where the server holds several", () => {
+    state.members = [member("ida_dave", "Dave", "member")];
+    state.singleOrg = false;
+    render(<OrgMembersPanel org="acme" />);
+    fireEvent.click(screen.getByRole("button", { name: "Remove Dave" }));
+    expect(within(screen.getByRole("dialog")).getByRole("heading", { name: "Remove Dave from acme?" })).toBeTruthy();
+    cleanup();
+
+    // A server that holds one organization never names it.
+    state.singleOrg = true;
+    render(<OrgMembersPanel org="acme" />);
+    fireEvent.click(screen.getByRole("button", { name: "Remove Dave" }));
+    expect(within(screen.getByRole("dialog")).getByRole("heading", { name: "Remove Dave from this organization?" })).toBeTruthy();
   });
 
   it("removes someone from the dialog that asks, and says a refusal there with Try again", async () => {
@@ -295,7 +321,7 @@ describe("OrgMembersPanel and service accounts", () => {
     expect(screen.queryByRole("button", { name: "Remove ci-deploy" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Change ci-deploy's role" })).toBeNull();
     expect(
-      screen.getByRole("link", { name: "Manage service accounts" }).getAttribute("href"),
+      screen.getByRole("link", { name: "Service accounts" }).getAttribute("href"),
     ).toBe("/settings/service-accounts");
   });
 
@@ -303,7 +329,7 @@ describe("OrgMembersPanel and service accounts", () => {
     state.members = [serviceAccount("ida_sa_ci", "ci-deploy")];
     render(<OrgMembersPanel org="acme" serviceAccountsHref="#/settings/service-accounts" />);
     expect(
-      screen.getByRole("link", { name: "Manage service accounts" }).getAttribute("href"),
+      screen.getByRole("link", { name: "Service accounts" }).getAttribute("href"),
     ).toBe("#/settings/service-accounts");
     expect(screen.getByText("No members yet")).toBeTruthy();
   });
@@ -312,6 +338,25 @@ describe("OrgMembersPanel and service accounts", () => {
     state.members = [member("ida_dave", "Dave", "member")];
     render(<OrgMembersPanel org="acme" />);
     expect(screen.queryByRole("button", { name: SERVICE_ACCOUNT_GROUP })).toBeNull();
+    // Where they would be is said all the same, to who may open that page.
+    expect(screen.getByText(/Service accounts hold roles too; they.re listed under/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Service accounts" }).getAttribute("href")).toBe("/settings/service-accounts");
+  });
+
+  it("says nothing of service accounts to who may not open their page, when none are listed", () => {
+    state.canOpenServiceAccounts = false;
+    state.members = [member("ida_dave", "Dave", "member")];
+    render(<OrgMembersPanel org="acme" />);
+    expect(state.checked).toContain("organization:acme can_create_identity_account closed");
+    expect(screen.queryByText(/Service accounts hold roles too/)).toBeNull();
+    expect(screen.queryByRole("link", { name: "Service accounts" })).toBeNull();
+  });
+
+  it("still says where service accounts are when some are listed here", () => {
+    state.canOpenServiceAccounts = false;
+    state.members = [member("ida_dave", "Dave", "member"), serviceAccount("ida_sa_ci", "ci-deploy")];
+    render(<OrgMembersPanel org="acme" />);
+    expect(screen.getByText(/Service accounts hold roles too/)).toBeTruthy();
   });
 });
 

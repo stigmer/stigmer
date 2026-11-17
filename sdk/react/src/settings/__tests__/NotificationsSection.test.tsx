@@ -5,6 +5,8 @@
  *   - off until the person turns it on; turning it on asks the host's
  *     permission first and records the choice only when it is allowed;
  *   - a refusal leaves it off and says where to allow notifications;
+ *   - a permission request that fails leaves it off and says so
+ *     (stigmer#2857: it used to say nothing);
  *   - turning it off asks nothing and records off;
  *   - a host that cannot show notifications renders it off and disabled;
  *   - the choice is kept in this browser and read back by every reader.
@@ -41,7 +43,8 @@ describe("NotificationsSection", () => {
   it("stays off when the permission is refused, and says where to allow it", async () => {
     render(<NotificationsSection requestPermission={vi.fn().mockResolvedValue(false)} />);
     act(() => theSwitch().click());
-    expect((await screen.findByRole("alert")).textContent).toContain("Notifications are blocked");
+    expect(await screen.findByText("Your browser blocked notifications for this site.")).toBeTruthy();
+    screen.getByText(/Allow them for this site in your browser's or your system's settings/);
     expect(theSwitch().getAttribute("aria-checked")).toBe("false");
     expect(localStorage.getItem(ATTENTION_NOTIFICATIONS_KEY)).toBe("false");
   });
@@ -61,7 +64,18 @@ describe("NotificationsSection", () => {
     render(<NotificationsSection requestPermission={vi.fn()} unsupported />);
     expect(theSwitch().getAttribute("aria-checked")).toBe("false");
     expect((theSwitch() as HTMLButtonElement).disabled).toBe(true);
-    screen.getByText("This browser cannot show notifications.");
+    screen.getByText("This browser can't show notifications.");
+  });
+
+  it("says the request failed, and stays off, when asking for permission throws (stigmer#2857)", async () => {
+    render(<NotificationsSection requestPermission={vi.fn().mockRejectedValue(new Error("the plugin is not loaded"))} />);
+    act(() => theSwitch().click());
+    const said = await screen.findByRole("alert");
+    expect(said.textContent).toContain("Couldn't ask to show notifications");
+    expect(said.textContent).toContain("the plugin is not loaded");
+    expect(theSwitch().getAttribute("aria-checked")).toBe("false");
+    expect((theSwitch() as HTMLButtonElement).disabled).toBe(false);
+    expect(localStorage.getItem(ATTENTION_NOTIFICATIONS_KEY)).toBe("false");
   });
 });
 

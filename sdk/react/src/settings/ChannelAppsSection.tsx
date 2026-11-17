@@ -21,6 +21,7 @@ import { Card } from "../internal/surface/Card.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
 import { ASK_AN_ADMIN, NoOrganization } from "./NoOrganization.js";
 import { SettingsPage } from "./SettingsPage.js";
+import { useOrgDisplayName } from "../organization/useOrgDisplayName.js";
 
 type FlowState =
   | { phase: "idle" }
@@ -56,6 +57,7 @@ type FlowState =
  */
 export function ChannelAppsSection() {
   const org = useActiveOrgId();
+  const orgName = useOrgDisplayName();
   // Channel installs (the consumer of these credentials) are cloud-only;
   // gate the whole section the way the Channels tab gates connects.
   const installsAvailable = useDeploymentMode() === "cloud";
@@ -139,8 +141,12 @@ export function ChannelAppsSection() {
           org={org}
           onEdit={(app) => setFlow({ phase: "editing", channelApp: app })}
           onRefetchRef={handleRefetchRef}
-          emptyState={deniedCreate ? CHANNEL_APPS_MANAGED_BY_ADMINS : undefined}
-          emptyDescription={deniedCreate ? ASK_AN_ADMIN : undefined}
+          emptyState={deniedCreate ? CHANNEL_APPS_MANAGED_BY_ADMINS : "No channel apps yet"}
+          emptyDescription={
+            deniedCreate
+              ? ASK_AN_ADMIN
+              : `Add your own Slack app to give the bot ${orgName}'s name and icon, or a Meta app to connect WhatsApp.`
+          }
           emptyAction={canCreate ? { label: "New channel app", onClick: startCreate } : undefined}
         />
       )}

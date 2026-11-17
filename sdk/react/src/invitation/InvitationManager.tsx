@@ -36,6 +36,7 @@ import { StatusBadge } from "../status/StatusBadge.js";
 import type { StatusPhase } from "../resource-workbench/types.js";
 import { List, ListRow } from "../internal/surface/List.js";
 import { FIELD_LABEL_CLASSES, FieldError, Radio, TextInput } from "../internal/form/index.js";
+import { useOrgDisplayName } from "../organization/useOrgDisplayName.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -122,6 +123,8 @@ export function InvitationManager({
   // in for that row until the list starts again.
   const [revoked, setRevoked] = useState<ReadonlyMap<string, Invitation>>(new Map());
   useEffect(() => setRevoked(new Map()), [org]);
+  // The organization by its slug where the console knows it.
+  const orgName = useOrgDisplayName();
   const invitations = useMemo(
     () => loaded.map((inv) => revoked.get(inv.metadata?.id ?? "") ?? inv),
     [loaded, revoked],
@@ -182,8 +185,8 @@ export function InvitationManager({
           )}
         </div>
         {flow.phase === "idle" && (
-          <Button variant="ghost" size="xs" onClick={startCreate}>
-            + Create invite link
+          <Button onClick={startCreate} icon={<Plus className="stg:size-4" aria-hidden="true" />}>
+            New invite link
           </Button>
         )}
       </div>
@@ -213,10 +216,10 @@ export function InvitationManager({
         <EmptyState
           variant="first-use"
           title="No invite links yet"
-          description="Create one to start inviting people."
+          description={`Make a link to bring people into ${orgName} with the role you choose.`}
           action={
             flow.phase === "idle"
-              ? { label: "Create invite link", onClick: startCreate, icon: <Plus className="stg:size-3.5" aria-hidden="true" /> }
+              ? { label: "New invite link", onClick: startCreate, icon: <Plus className="stg:size-3.5" aria-hidden="true" /> }
               : undefined
           }
         />

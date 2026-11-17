@@ -63,13 +63,15 @@ Settings section for an organization's access history.
 
 ### AccountPreferencesSection
 
-Settings section for editing the current user's declared preferences.
+Settings section for editing the current user's declared preferences and this device's notifications.
 
 **Props** — `AccountPreferencesSectionProps`
 
 <TypeTable
   type={{
     modelsHubHref: { type: "string", description: "Where Models & providers is, in the host's routing; the panel links it for the default models." },
+    requestPermission: { type: "() => Promise<boolean>", description: "Asks the system's permission to show notifications (the browser's, or the desktop app's plugin). When given, the page draws \"Notifications on this device\" as its last section; when left out, it draws none." },
+    unsupported: { type: "boolean", description: "The host cannot show notifications at all: the switch is off and disabled." },
   }}
 />
 
@@ -104,7 +106,7 @@ registered.
 Settings section for configuring OIDC federation issuers: the other
 platforms whose tokens the organization trusts.
 
-"New federation issuer" is offered once the server confirms the caller
+"New issuer" is offered once the server confirms the caller
 holds `can_create_federation_issuer` on the organization. The list shows only the
 issuers the caller may view, so a caller who may not create issuers
 is told that the organization's admins manage them rather than that none
@@ -153,10 +155,12 @@ Settings section for the caller's own memories in the active organization.
 ### NotificationsSection
 
 Settings section for the person's choice to be told when a conversation
-they started finishes, fails, or waits for their answer. Turning it on asks
-the system's permission first, so a page never asks on load; a refusal
-leaves it off and says where to allow it. The choice is this browser's
-([`useAttentionNotificationsSetting`](/docs/sdk/react/session#useattentionnotificationssetting)).
+they started finishes, fails, or waits for their answer, as a page of its
+own. Turning it on asks the system's permission first, so a page never
+asks on load; a refusal leaves it off and says where to allow it. The
+choice is this browser's ([`useAttentionNotificationsSetting`](/docs/sdk/react/session#useattentionnotificationssetting)).
+The console draws the same switch as a section of Account preferences
+(`AccountPreferencesSection`'s `requestPermission`).
 
 **Props** — `NotificationsSectionProps`
 
@@ -199,7 +203,7 @@ Settings section for editing the active organization's policies.
 
 ### OrgPreferencesSection
 
-Settings section for editing the active organization's declared preferences.
+Settings section for editing the active organization's declared preferences and its policies.
 
 
 ### OrgProfileSection
@@ -224,8 +228,8 @@ Settings section for creating and managing service accounts.
 
 ### SettingsOverview
 
-The settings landing: each settings group, what it holds, and a link to
-each of its pages.
+The settings landing: each settings group as a list of its pages, each
+with the line that says what it is for, the row a link to the page.
 
 **Props** — `SettingsOverviewProps`
 
@@ -366,9 +370,10 @@ Single navigable entry in the settings sidebar.
 
 <TypeTable
   type={{
+    description: { type: "string", description: "One line on what the page is for, drawn under its name on the settings landing. `{org}` stands for the active organization's slug, and reads \"this organization\" where none is known." },
     href: { type: "string", description: "Route for the settings page entry.", required: true },
     icon: { type: "ComponentType<{ className?: string }>", description: "Lucide icon component rendered next to the label.", required: true },
-    label: { type: "string", description: "Short, user-facing label shown in navigation.", required: true },
+    label: { type: "string", description: "Short, user-facing label shown in navigation: the page's own title, in sentence case.", required: true },
     requiredPermission: { type: "string", description: "Permission required for this entry to appear: on `platform:stigmer` for the items of PLATFORM_SETTINGS_NAV_GROUP, on the active organization for ORG_ADMIN_SETTINGS_NAV_ITEMS. Items in the base groups are visible to every signed-in user and leave this unset. useSettingsNavGroups checks it fail-closed." },
   }}
 />
@@ -405,6 +410,6 @@ them (`ServerInfo.singleOrg`, the open-source edition), where nobody ever
 names the organization: the first group is "General" rather than
 "Organization", and the organization's profile page (its name, slug and
 logo) is left out. Its preferences and members stay; Teams, Invitations
-and Federation Issuers keep the edition gates their own pages apply.
+and Federation issuers keep the edition gates their own pages apply.
 [`useSettingsNavGroups`](#usesettingsnavgroups) picks between the two.
 

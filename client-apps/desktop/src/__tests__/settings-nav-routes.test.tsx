@@ -66,3 +66,19 @@ describe("settings nav routes", () => {
     ).toBe(href.split("/").at(-1));
   });
 });
+
+// Policies and Notifications were pages of one switch; they are sections of
+// the two preferences pages now, and their old addresses still land there.
+describe("the merged settings pages' old addresses", () => {
+  it.each([
+    ["/settings/org-policies", "/settings/org-preferences"],
+    ["/settings/notifications", "/settings/account-preferences"],
+  ])("%s forwards to %s", (from, to) => {
+    const leaf = (matchRoutes(router.routes, from) ?? []).at(-1)?.route;
+    const element = leaf?.element as
+      | { props?: { to?: string; replace?: boolean } }
+      | undefined;
+    expect(element?.props?.to).toBe(to);
+    expect(element?.props?.replace).toBe(true);
+  });
+});

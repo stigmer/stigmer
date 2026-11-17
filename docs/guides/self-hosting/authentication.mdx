@@ -195,7 +195,7 @@ such as `client_id` or `redirect_uri`.
 
 ### Create the keys
 
-Open **Settings → API Keys** and choose **New API key**. Create one named
+Open **Settings → API keys** and choose **New API key**. Create one named
 `runner` with expiration **Never**: it is a long-lived credential, and a key
 that expires stops authenticating on that day. Create a second one for your own
 CLI. Each key is shown exactly once; the server stores only a hash and cannot
@@ -288,7 +288,7 @@ From the boot that read the issuer, every request needs a credential:
   `STIGMER_API_KEY=<oidc-access-token> stigmer auth whoami`; the command says
   when it did.
 - **Machines** send an API key (`stk_...`) the same way, as a bearer token.
-  Settings → API Keys and `stigmer apikey create` mint them; deleting a key
+  Settings → API keys and `stigmer apikey create` mint them; deleting a key
   revokes it immediately, and a key with an expiration stops working on that
   date.
 - **Your product's users** can reach Stigmer through

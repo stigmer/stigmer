@@ -22,7 +22,8 @@ import { MemoryEnabledRow } from "../internal/MemoryEnabledRow.js";
 import { StandingContextField } from "../internal/StandingContextField.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { Button } from "../button/Button.js";
-import { Switch } from "../switch/Switch.js";
+import { SwitchField } from "../internal/form/SwitchField.js";
+import { Section } from "../resource-detail/Section.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { FieldError, Radio } from "../internal/form/index.js";
@@ -266,32 +267,26 @@ export function AccountPreferencesPanel({
   // -----------------------------------------------------------------------
 
   return (
-    <form onSubmit={handleSubmit} className={cn("stg:space-y-4", className)}>
-      <StandingContextField
-        id={`${baseId}-standing-context`}
-        value={standingContext}
-        onChange={setStandingContext}
-        disabled={isUpdating}
-        placeholder={
-          "e.g. Keep answers terse. I prefer TypeScript examples. My timezone is IST."
-        }
-        helperText="Shared with agents as background context — not instructions. Applies only to runs you start and is visible on those run records."
-      />
-
-      <div className="stg:space-y-3">
-        <div>
-          <h3 className="stg:text-xs stg:font-medium stg:text-foreground">
-            Execution defaults
-          </h3>
-          <p className="stg:text-2xs stg:text-muted-foreground">
-            Seed new sessions across your devices and the CLI. An explicit
-            pick in the composer always wins for that device.
-          </p>
+    <form onSubmit={handleSubmit} className={cn("stg:flex stg:flex-col stg:gap-4", className)}>
+      <Section title="What agents should know about you">
+        <div className="stg:flex stg:flex-col stg:gap-3 stg:p-4">
+          <StandingContextField
+            id={`${baseId}-standing-context`}
+            value={standingContext}
+            onChange={setStandingContext}
+            disabled={isUpdating}
+            placeholder={
+              "e.g. Keep answers terse. I prefer TypeScript examples. My timezone is IST."
+            }
+            helperText="Shared with agents as background, not as instructions. Applies only to runs you start and shows on those run records."
+          />
         </div>
+      </Section>
 
-        <fieldset className="stg:space-y-2" disabled={isUpdating}>
-          <legend className="stg:text-xs stg:font-medium stg:text-foreground stg:mb-1">
-            Default harness
+      <Section title="Default models">
+        <fieldset className="stg:m-0 stg:flex stg:flex-col stg:gap-2 stg:border-0 stg:p-4" disabled={isUpdating}>
+          <legend className="stg:mb-1 stg:p-0 stg:text-sm stg:font-medium stg:text-foreground">
+            Harness a new conversation starts on
           </legend>
           <HarnessOptionRow
             radioName={`${baseId}-default-harness`}
@@ -314,81 +309,67 @@ export function AccountPreferencesPanel({
               disabled={isUpdating}
             />
           ))}
-          <p className="stg:text-2xs stg:text-muted-foreground">
+          <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
+            Each harness&apos;s default model is set on{" "}
             <a
               href={modelsHubHref}
               className="stg:font-medium stg:text-foreground stg:underline stg:underline-offset-2 stg:hover:text-foreground-hover"
             >
-              Default models are in Models &amp; providers
+              Models and providers
             </a>
-            , beside the providers that run them.
+            . A pick in the composer wins for that conversation.
           </p>
-        </fieldset>
 
-        {/* Auto-approve default (stigmer/stigmer#816): a client-read seed
-            like the harness/model defaults above — the session panel's
-            Config switch beats it per conversation, and armed sessions
-            always show the "Approving tool calls automatically" strip by the
-            composer. Never applied to guest or observer surfaces. */}
-        <div
-          className={cn(
-            "stg:flex stg:items-start stg:justify-between stg:gap-3 stg:rounded-md stg:border stg:border-input stg:px-3 stg:py-2.5",
-            isUpdating && "stg:opacity-50",
-          )}
-        >
-          <div className="stg:min-w-0">
-            <span
-              id={`${baseId}-default-auto-approve-title`}
-              className="stg:block stg:text-xs stg:font-medium stg:text-foreground"
-            >
-              Auto-approve tool calls
-            </span>
-            <p className="stg:text-2xs stg:text-muted-foreground">
-              Start your sessions with tool calls running unattended — no
-              approval prompts. A plugin&apos;s hooks and an agent&apos;s tool
-              lists still apply. Each conversation can turn this off (or on)
-              in its session panel.
-            </p>
-          </div>
-          <Switch
+          {/* Auto-approve default (stigmer/stigmer#816): a client-read seed
+              like the harness/model defaults above — the session panel's
+              Config switch beats it per conversation, and armed sessions
+              always show the "Approving tool calls automatically" strip by the
+              composer. Never applied to guest or observer surfaces. */}
+          <SwitchField
+            className="stg:mt-2"
+            label="Auto-approve tool calls"
+            hint="Start your sessions with tool calls running unattended, with no approval prompts. A plugin's hooks and an agent's tool lists still apply. Each conversation can turn this off (or on) in its session panel."
             checked={defaultAutoApprove}
             onCheckedChange={setDefaultAutoApprove}
             disabled={isUpdating}
-            aria-labelledby={`${baseId}-default-auto-approve-title`}
-            className="stg:mt-0.5"
           />
+        </fieldset>
+        {/* Save holds the standing context and the defaults above it; memory saves as it flips. */}
+        <div className="stg:flex stg:flex-col stg:gap-3 stg:px-4 stg:pb-4">
+          {updateError && <FieldError>{saveErrorMessage(updateError, "account")}</FieldError>}
+          <div className="stg:flex stg:items-center stg:gap-2">
+            <Button type="submit" disabled={!canSubmit} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>
+              Save
+            </Button>
+            {hasChanges && !isUpdating && (
+              <Button variant="ghost" onClick={handleDiscard}>
+                Discard
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
+      </Section>
 
-      {memoryGovernance === "organization" && <OrganizationGovernedMemory />}
-      {memoryGovernance === "person" && (
-        <MemoryEnabledRow
-          id={`${baseId}-memory-enabled`}
-          checked={account.spec?.preferences?.memoryEnabled ?? false}
-          onToggle={(next) => void handleMemoryToggle(next)}
-          saving={isSavingMemoryFlag}
-          error={memoryFlagError}
-          helperText="When on, agents may propose facts to remember about you; only facts you confirm are stored. Confirmed memories are shared with your future sessions and appear on those runs' records; once you have many, each conversation recalls the most relevant ones, shown on the run. Requires your organization to have memory enabled. Changes apply immediately."
-        />
+
+      {memoryGovernance !== null && (
+        <Section title="Memory">
+          <div className="stg:p-4">
+            {memoryGovernance === "organization" ? (
+              <OrganizationGovernedMemory />
+            ) : (
+              <MemoryEnabledRow
+                id={`${baseId}-memory-enabled`}
+                checked={account.spec?.preferences?.memoryEnabled ?? false}
+                onToggle={(next) => void handleMemoryToggle(next)}
+                saving={isSavingMemoryFlag}
+                error={memoryFlagError}
+                label="Agents may remember confirmed facts about me"
+                helperText="Agents may propose facts to remember; only facts you confirm are kept, under Memory, and they show on the records of the runs that use them. Your organization's memory must be on too. Saves as you switch it."
+              />
+            )}
+          </div>
+        </Section>
       )}
-
-      {updateError && (
-        <FieldError>
-          {saveErrorMessage(updateError, "account")}
-        </FieldError>
-      )}
-
-      <div className="stg:flex stg:items-center stg:gap-2">
-        <Button type="submit" disabled={!canSubmit} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>
-          Save changes
-        </Button>
-
-        {hasChanges && !isUpdating && (
-          <Button variant="ghost" onClick={handleDiscard}>
-            Discard
-          </Button>
-        )}
-      </div>
     </form>
   );
 }
@@ -454,13 +435,13 @@ function HarnessOptionRow({
         <span className="stg:min-w-0 stg:flex-1">
           <span
             id={titleId}
-            className="stg:block stg:text-xs stg:font-medium stg:text-foreground"
+            className="stg:block stg:text-sm stg:font-medium stg:text-foreground"
           >
             {label}
           </span>
           <span
             id={descriptionId}
-            className="stg:block stg:text-2xs stg:leading-snug stg:text-muted-foreground"
+            className="stg:block stg:text-xs stg:text-muted-foreground"
           >
             {description}
           </span>
@@ -493,14 +474,9 @@ function useMemoryGovernance(): "person" | "organization" | null {
 /** The memory row on a server where the organization's switch alone decides. */
 function OrganizationGovernedMemory() {
   return (
-    <div className="stg:space-y-1">
-      <span className="stg:block stg:text-xs stg:font-medium stg:text-foreground">
-        Memory
-      </span>
-      <p className="stg:text-2xs stg:leading-snug stg:text-muted-foreground">
-        On this server, memory follows your organization&apos;s setting. Turn it
-        on or off in the organization&apos;s preferences.
-      </p>
-    </div>
+    <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
+      On this server, memory follows your organization&apos;s setting. Turn it
+      on or off in the organization&apos;s preferences.
+    </p>
   );
 }

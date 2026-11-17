@@ -49,10 +49,10 @@ function createMockStigmer(org: Organization, canEdit = true) {
   };
 }
 
-function renderPanel(client: unknown, org: string = ACME_ID) {
+function renderPanel(client: unknown, org: string = ACME_ID, embedded = false) {
   return render(
     <StigmerContext.Provider value={client as never}>
-      <OrgPoliciesPanel org={org} />
+      <OrgPoliciesPanel org={org} embedded={embedded} />
     </StigmerContext.Provider>,
   );
 }
@@ -215,5 +215,17 @@ describe("CON-01 the policies offer no switch to flip before the server says yes
     expect(await screen.findByText(/Could not check whether you may change these policies\./)).toBeTruthy();
     expect((screen.getByRole("switch", { name: "Members can create agents" }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.queryByText("Only organization admins can change these policies.")).toBeNull();
+  });
+
+  it("embedded in another page, leaves the 'only admins' line to it but still says its own failed check, with Try again", async () => {
+    renderPanel(clientAnswering("refused"), ACME_ID, true);
+    await waitFor(() => expect((screen.getByRole("switch", { name: "Members can create agents" }) as HTMLButtonElement).disabled).toBe(true));
+    expect(screen.queryByText("Only organization admins can change these policies.")).toBeNull();
+    cleanup();
+
+    // Its own check can fail while the host page's succeeds.
+    renderPanel(clientAnswering("fails"), ACME_ID, true);
+    expect(await screen.findByText(/Could not check whether you may change these policies\./)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
   });
 });

@@ -246,7 +246,7 @@ describe("AccessHistorySection", () => {
   it("tells a caller who may not read it who does, and sends no read", async () => {
     const server = renderSection("enterprise", false);
     await waitFor(() =>
-      expect(screen.getByText("The access history is read by your organization's owners and admins.")).toBeTruthy(),
+      expect(screen.getByText("Your organization's owners and admins read who was given or lost access.")).toBeTruthy(),
     );
     expect(server.checks.map((check) => [check.resource?.id, check.relation])).toEqual([
       ["org_acme", "can_view_access_history"],

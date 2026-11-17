@@ -137,9 +137,12 @@ describe("CreateServiceAccountForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create key" }));
 
     expect(await screen.findByText("stk_raw_once")).toBeTruthy();
+    // A key made by hand starts on 90 days (stigmer#2910); Never is one click away.
     expect(sent.keys.map((k) => [k.serviceAccountId, k.name, k.neverExpires])).toEqual([
-      ["ida_sa_ci", "github-actions", true],
+      ["ida_sa_ci", "github-actions", false],
     ]);
+    const days = (Number(sent.keys[0]?.expiresAt?.seconds ?? 0n) * 1000 - Date.now()) / 86_400_000;
+    expect(Math.round(days)).toBe(90);
     fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
     expect(onDone).toHaveBeenCalledTimes(1);
   });

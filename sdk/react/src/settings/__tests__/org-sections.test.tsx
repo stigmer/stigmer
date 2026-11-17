@@ -16,9 +16,12 @@ const state = vi.hoisted(() => ({
   onUpdated: undefined as ((org: { metadata: { id: string; slug: string } }) => void) | undefined,
   refreshed: [] as Array<string | undefined>,
   serviceAccountsHref: undefined as string | undefined,
+  singleOrg: false as boolean | undefined,
 }));
 
+vi.mock("../../server-info.js", () => ({ useSingleOrg: () => state.singleOrg }));
 vi.mock("../../organization/OrgProvider.js", () => ({
+  useOptionalOrg: () => (state.activeId === "" ? null : { activeOrg: { metadata: { id: state.activeId, slug: state.activeId } } }),
   useOrg: () => ({
     activeOrg: state.activeId === "" ? undefined : { metadata: { id: state.activeId, slug: state.activeId } },
     refresh: (target?: string) => {
@@ -36,6 +39,7 @@ function recordingPanel(panel: string) {
 }
 
 vi.mock("../../organization/OrgPreferencesPanel.js", () => ({ OrgPreferencesPanel: recordingPanel("preferences") }));
+vi.mock("../../organization/OrgPoliciesPanel.js", () => ({ OrgPoliciesPanel: recordingPanel("policies") }));
 vi.mock("../../organization/OrgProfilePanel.js", () => ({ OrgProfilePanel: recordingPanel("profile") }));
 // The profile section's child-organization list asks the server on its own;
 // this suite is about which organization each section hands its panels.
@@ -62,6 +66,7 @@ afterEach(() => {
   state.onUpdated = undefined;
   state.refreshed = [];
   state.serviceAccountsHref = undefined;
+  state.singleOrg = false;
 });
 
 describe("the organization settings sections", () => {
@@ -73,7 +78,25 @@ describe("the organization settings sections", () => {
   ] as const)("%s hands the active organization to its panel as org", (panel, Section) => {
     state.activeId = "acme";
     render(<Section />);
-    expect(state.given).toEqual([{ panel, org: "acme" }]);
+    expect(state.given).toEqual(
+      // Policies are a section of the preferences page, not a page of their own.
+      panel === "preferences" ? [{ panel, org: "acme" }, { panel: "policies", org: "acme" }] : [{ panel, org: "acme" }],
+    );
+  });
+
+  it("preferences draws Policies as its own section, saying the switch saves as it flips", () => {
+    state.activeId = "acme";
+    render(<OrgPreferencesSection />);
+    expect(screen.getByRole("heading", { name: "Policies" })).toBeTruthy();
+    expect(screen.getByText("What acme's members may do. Saves as you switch it.")).toBeTruthy();
+  });
+
+  it("preferences names no organization in the Policies line on a server that holds one", () => {
+    state.activeId = "acme";
+    state.singleOrg = true;
+    render(<OrgPreferencesSection />);
+    expect(screen.getByText("What this organization's members may do. Saves as you switch it.")).toBeTruthy();
+    expect(screen.queryByText(/acme's members/)).toBeNull();
   });
 
   it.each([

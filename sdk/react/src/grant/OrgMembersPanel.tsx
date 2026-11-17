@@ -39,6 +39,7 @@ import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { List, ListRow } from "../internal/surface/List.js";
 import { Tag, tagClasses } from "../internal/surface/Tag.js";
 import { SERVICE_ACCOUNTS_SETTINGS_HREF } from "../service-account/copy.js";
+import { useOrgDisplayName } from "../organization/useOrgDisplayName.js";
 
 /**
  * A row that turns into an inline act (a remove confirmation, a role
@@ -119,6 +120,9 @@ export function OrgMembersPanel({
   // the server asks `can_grant_access` on the organization for: offered only
   // on its yes, so a member reading the list meets no act it would refuse.
   const { allowed: canGrant } = useCheckPermission(resource, "can_grant_access", { fail: "closed" });
+  // Where service accounts are is said to who may open that page (the
+  // navigation offers it only then), or wherever some are listed here.
+  const { allowed: mayOpenServiceAccounts } = useCheckPermission(resource, "can_create_identity_account", { fail: "closed" });
 
   const [actionMemberId, setActionMemberId] = useState<string | null>(null);
   const [productUsersOpen, setProductUsersOpen] = useState(false);
@@ -243,16 +247,6 @@ export function OrgMembersPanel({
             </span>
             <Tag>{serviceAccounts.length}</Tag>
           </button>
-          <p className="stg:text-muted-foreground stg:text-xs">
-            Your automation acts as these accounts through their API keys. They
-            are not people.{" "}
-            <a
-              href={serviceAccountsHref}
-              className="stg:text-primary stg:hover:text-primary-hover stg:underline stg:underline-offset-2"
-            >
-              Manage service accounts
-            </a>
-          </p>
           {serviceAccountsOpen && (
             <div id={serviceAccountsId}>
               <List aria-label="Service accounts">
@@ -263,6 +257,20 @@ export function OrgMembersPanel({
             </div>
           )}
         </div>
+      )}
+
+      {/* Where service accounts are: they hold roles too, managed on their own page. */}
+      {(mayOpenServiceAccounts || serviceAccounts.length > 0) && (
+      <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
+        Service accounts hold roles too; they&apos;re listed under{" "}
+        <a
+          href={serviceAccountsHref}
+          className="stg:font-medium stg:text-foreground stg:underline stg:underline-offset-2 stg:hover:text-foreground-hover"
+        >
+          Service accounts
+        </a>
+        .
+      </p>
       )}
     </div>
   );
@@ -365,9 +373,11 @@ function MemberRow({
     onEndAction();
   };
 
+  // Named by its slug only where the server holds several organizations.
+  const orgName = useOrgDisplayName();
   const askToRemove = async () => {
     const removed = await confirm({
-      ...removeCopy(audience, name),
+      ...removeCopy(audience, name, orgName),
       confirmLabel: "Remove",
       variant: "destructive",
       action: async () => {
@@ -476,11 +486,15 @@ function RoleBadge({ grant }: { grant: RoleGrant }) {
  * account keeps existing after the revoke, and the product's next sign-in
  * reuses it as it is, so the access does not come back on its own.
  */
-function removeCopy(audience: MemberAudience, memberName: string): { title: string; description: string } {
+function removeCopy(
+  audience: MemberAudience,
+  memberName: string,
+  orgName: string,
+): { title: string; description: string } {
   switch (audience) {
     case "member":
       return {
-        title: `Remove ${memberName} from this organization?`,
+        title: `Remove ${memberName} from ${orgName}?`,
         description:
           "They lose access to everything in it, including what was shared with them and their teams. What they created stays with the organization.",
       };
