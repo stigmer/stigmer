@@ -13,7 +13,7 @@ Everything runs from TypeScript source via the repo-pinned `tsx` (never bare `np
 |---|---|---|
 | `sdk-client` | `sdk/go/internal/gen` (Go SDK resource clients) | `make -C sdk/go codegen-clients` |
 | `sdk-client-ts` | `sdk/typescript/src/gen` | `make -C sdk/typescript codegen` |
-| `sdk-client-python` | `sdk/python/src/stigmer/_gen` | `make -C sdk/python codegen` |
+| `sdk-client-python` | `sdk/python/src/stigmer/_gen`, and the marked export region of `sdk/python/src/stigmer/__init__.py` | `make -C sdk/python codegen` |
 | `sdk-client-java` | `sdk/java/src/main/java/ai/stigmer/sdk/gen` | `make -C sdk/java codegen` |
 | `mcp-ts` | `mcp-server/src/gen` (apply-input modules) | `make -C mcp-server codegen` |
 | `sdk-docs` | `docs/sdk/resources/*.mdx` | `make gen-proto-sdk-docs` |

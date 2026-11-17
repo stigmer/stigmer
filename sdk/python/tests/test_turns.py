@@ -114,15 +114,27 @@ class _Fake(query_pb2_grpc.SessionQueryControllerServicer, run_command_pb2_grpc.
     def streamEvents(self, request, context):  # noqa: N802 - proto rpc name
         self.requests.append(request)
         step = self.steps.pop(0) if self.steps else _Step(hold=True)
+        closed = threading.Event()
+        gave_up = threading.Event()
+
+        def on_close() -> None:
+            # A held stream ends only by the client's cancel, unless the hold
+            # ran out first.
+            if step.hold and not gave_up.is_set():
+                self.cancelled.set()
+            closed.set()
+
+        # Registered before the first frame: a cancel that lands while a frame
+        # is in flight stops the server pulling this generator, so code after
+        # the frames may never run. A call already ended refuses the callback
+        # and never runs it, so it counts as closed now.
+        if not context.add_callback(on_close):
+            on_close()
         yield from step.frames
         if step.code is not None:
             context.abort(step.code, "scripted")
-        if step.hold:
-            closed = threading.Event()
-            context.add_callback(closed.set)
-            closed.wait(10)
-            if not context.is_active():
-                self.cancelled.set()
+        if step.hold and not closed.wait(10):
+            gave_up.set()
 
     def create(self, request, context):  # noqa: N802 - proto rpc name
         if self.create_delay:

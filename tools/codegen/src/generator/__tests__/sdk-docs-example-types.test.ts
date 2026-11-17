@@ -27,7 +27,6 @@ import {
   docProtoInput,
   docSdkInput,
   protoCapCamel,
-  readPythonPublicNames,
   type DocExampleEnv,
   type DocLang,
 } from "../sdk-docs-examples.js";
@@ -51,7 +50,6 @@ function env(methodTypes: readonly TypeSchema[] = SCHEMA.methodTypes ?? []): Doc
     specTypes: new Map(),
     methodTypes: new Map(methodTypes.map((t) => [t.name, t])),
     pyModules: pyMethodTypePb2Map(SCHEMA),
-    pyPublic: null,
     imports: new DocImports(),
   };
 }
@@ -234,11 +232,6 @@ describe("what a page imports", () => {
   it("has no imports block in a language whose examples import nothing", () => {
     const imports = new DocImports();
     for (const lang of ["typescript", "go", "python", "java"] as const) expect(imports.render(lang), lang).toBeNull();
-  });
-
-  it("takes every Python name as exported when the package's __init__.py is not beside the API tree", () => {
-    expect(readPythonPublicNames("")).toBeNull();
-    expect(readPythonPublicNames(path.join(SCHEMAS, "no-such-apis"))).toBeNull();
   });
 
   it("writes no Client Access for a kind with no Get whose examples import nothing", () => {

@@ -132,9 +132,12 @@ describe("the SDK resource pages' examples", () => {
     expect(session).toMatch(/```go prelude\nimport \(\n\t"errors"\n\t"io"\n\t"log"\n\n\tstigmer "go\.stigmer\.ai\/sdk"/);
   });
 
-  it("imports a Python input the package does not export from its generated module", () => {
-    expect(read("team")).toContain("from stigmer._gen import TeamInput\n");
+  it("imports every Python input from the package, never from its generated module", () => {
+    expect(read("team")).toContain("from stigmer import DeleteResourceInput, ResourceRef, TeamInput\n");
     expect(read("agent")).toContain("from stigmer import AgentInput, ResourceRef, RunConfigInput\n");
+    for (const file of fs.readdirSync(root).filter((f) => f.endsWith(".mdx"))) {
+      expect(fs.readFileSync(path.join(root, file), "utf8"), file).not.toContain("stigmer._gen");
+    }
   });
 
   it("says a tab opens with its imports only where the language imports anything", () => {
@@ -167,10 +170,10 @@ describe("DocImports", () => {
   it("puts the Python SDK's imports before the protobuf modules, and binds an aliased module by its alias", () => {
     const imports = new DocImports();
     expect(imports.pyName("ai.stigmer.commons.apiresource", "io_pb2 as apiresource_io_pb2")).toBe("apiresource_io_pb2");
-    imports.pyName("stigmer._gen", "TeamInput");
+    imports.pyName("stigmer", "TeamInput");
     imports.pyName("stigmer", "ResourceRef");
     expect(imports.render("python")).toBe(
-      "from stigmer import ResourceRef\nfrom stigmer._gen import TeamInput\nfrom ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2",
+      "from stigmer import ResourceRef, TeamInput\nfrom ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2",
     );
   });
 

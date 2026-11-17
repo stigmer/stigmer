@@ -56,8 +56,7 @@ environment, err := client.Environment.Get(ctx, "env_01j5q3k7m8r2s4tnz2hfp0q0c3"
 </Tab>
 <Tab value="Python">
 ```python prelude
-from stigmer import ResourceRef
-from stigmer._gen import EnvironmentInput, EnvironmentNetworkingInput, EnvironmentPackagesInput
+from stigmer import EnvironmentInput, EnvironmentNetworkingInput, EnvironmentPackagesInput, ResourceRef
 from ai.stigmer.agentic.environment.v1 import io_pb2
 from ai.stigmer.commons.apiresource import enum_pb2 as apiresource_enum_pb2, io_pb2 as apiresource_io_pb2
 ```

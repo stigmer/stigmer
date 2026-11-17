@@ -116,8 +116,7 @@ channel, err := client.Channel.Get(ctx, "chn_01j5q3k7m8r2s4tnz2hfp0q0c3")
 </Tab>
 <Tab value="Python">
 ```python prelude
-from stigmer import ResourceRef, RunConfigInput
-from stigmer._gen import ChannelInput, WebChannelConfigInput
+from stigmer import ChannelInput, ResourceRef, RunConfigInput, WebChannelConfigInput
 from ai.stigmer.agentic.channel.v1 import conversation_io_pb2, io_pb2, message_io_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 ```

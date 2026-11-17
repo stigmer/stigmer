@@ -139,7 +139,7 @@ export class DocImports {
         if (this.py.size === 0) return null;
         // The SDK first, then the protobuf modules, each sorted.
         const sdkFirst = (a: string, b: string): number => {
-          const rank = (s: string) => (s === "stigmer" ? 0 : s.startsWith("stigmer.") ? 1 : 2);
+          const rank = (s: string) => (s === "stigmer" ? 0 : 1);
           return rank(a) - rank(b) || compareStrings(a, b);
         };
         return [...this.py.keys()]
@@ -176,8 +176,6 @@ export interface DocExampleEnv {
   readonly methodTypes: ReadonlyMap<string, TypeSchema>;
   /** Every method type's Python module (pyMethodTypePb2Map). */
   readonly pyModules: ReadonlyMap<string, string>;
-  /** The names the `stigmer` Python package exports; null when every SDK name is taken as exported. */
-  readonly pyPublic: ReadonlySet<string> | null;
   readonly imports: DocImports;
 }
 
@@ -207,43 +205,18 @@ function goSdk(env: DocExampleEnv): string {
 }
 
 /**
- * An SDK type the Python package declares: from `stigmer` when it exports
- * it, else from the generated module `stigmer._gen`, until the package
- * exports every resource's input (stigmer#2897); then every name is read
- * from `__init__.py` as exported, and this falls away with no change here.
+ * An SDK type the Python package declares, imported from `stigmer`: the
+ * package exports every resource's client and inputs (the region the
+ * sdk-client-python target writes into its `__init__.py`) and the shared
+ * `ResourceRef` and `DeleteResourceInput`, which are every name this asks for.
  */
 function pySdk(env: DocExampleEnv, name: string): string {
-  const from = env.pyPublic === null || env.pyPublic.has(name) ? "stigmer" : "stigmer._gen";
-  return env.imports.pyName(from, name);
+  return env.imports.pyName("stigmer", name);
 }
 
 /** An SDK type the Java SDK declares. */
 function javaSdk(env: DocExampleEnv, name: string): string {
   return env.imports.javaType(`${JAVA_SDK_PACKAGE}.${name}`);
-}
-
-/**
- * The names `sdk/python/src/stigmer/__init__.py` exports, read beside the
- * API tree, or null when the file is not there (the generator run outside
- * the repository): then every SDK name is taken as exported.
- */
-export function readPythonPublicNames(apisDir: string): ReadonlySet<string> | null {
-  if (apisDir === "") return null;
-  const init = path.join(path.dirname(path.resolve(apisDir)), "sdk", "python", "src", "stigmer", "__init__.py");
-  let text: string;
-  try {
-    text = fs.readFileSync(init, "utf8");
-  } catch {
-    return null;
-  }
-  const names = new Set<string>();
-  for (const match of text.matchAll(/^from\s+\S+\s+import\s+(\([^)]*\)|[^\n]*)/gm)) {
-    for (const part of match[1].split(/[,\s]+/)) {
-      const name = part.replace(/[()]/g, "").trim();
-      if (/^[A-Za-z_]\w*$/.test(name) && name !== "as") names.add(name);
-    }
-  }
-  return names;
 }
 
 // =========================================================================

@@ -256,7 +256,7 @@ cd sdk/python
 make codegen
 ```
 
-Handwritten code lives in `src/stigmer/` (outside `_gen/`): `_client.py`, `_transport.py`, `_interceptors.py`, `_search.py`, `_tokens.py`, `_turns.py`, and `__init__.py`.
+Handwritten code lives in `src/stigmer/` (outside `_gen/`): `_client.py`, `_transport.py`, `_interceptors.py`, `_search.py`, `_tokens.py`, `_turns.py`, and `__init__.py`. `__init__.py` is handwritten apart from one marked region that `make codegen` writes: it exports every resource's client and input types from `stigmer`, so `from stigmer import TeamInput` works for every resource. Never edit inside the region; CI regenerates it and fails on any difference.
 
 ## Tests
 

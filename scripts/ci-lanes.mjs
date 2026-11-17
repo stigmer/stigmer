@@ -487,8 +487,8 @@ export const LANES = {
       "sdk/ink/src/recordings.ts",
       "sdk/ink/src/__tests__/__recordings__/**",
       "test/bundle-budgets.json",
-      // The resource reference generator reads which inputs the Python
-      // package exports, to import each from where a reader can.
+      // The resource reference pages import every Python SDK name from
+      // `stigmer`, so a change to what the package exports can break them.
       "sdk/python/src/stigmer/__init__.py",
       ".vale.ini",
       ".prettierrc",
