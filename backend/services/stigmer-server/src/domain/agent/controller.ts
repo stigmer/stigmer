@@ -850,8 +850,7 @@ type TagVersionDesc = typeof AgentCommandController.method.tagVersion.input;
 
 /**
  * tagVersion — moves a tag single-holder onto a version the agent has, then
- * reconciles the head's live tag with its version's. A plugin-managed
- * agent's tags are its plugin's, so a client is refused naming it.
+ * reconciles the head's live tag with its version's.
  */
 async function tagVersion(
   deps: AgentControllerDeps,

@@ -3,8 +3,10 @@
  * of the same name, which the server allows only to who may upload to the
  * organization (`can_create_skill`). The view offers the act, drawn as an
  * outline button, to that person when its host names where Upload skill
- * is, and never to a member, on a plugin's skill, while the server has not
- * answered, or over a primary act the host passes itself (CON-01).
+ * is, and never to a member, while the server has not answered, or over a
+ * primary act the host passes itself (CON-01). A `stigmer.ai/plugin` label
+ * on the skill changes nothing: the server never refuses an upload because
+ * of it (stigmer/stigmer#2818).
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -28,7 +30,6 @@ import {
   SkillDetailView,
   type SkillDetailViewProps,
 } from "../SkillDetailView.js";
-import { PLUGIN_LABEL } from "../../plugin/useManagingPlugin.js";
 
 afterEach(cleanup);
 
@@ -52,7 +53,7 @@ function renderView({ viewer, fromPlugin = false, props = {} }: Setup) {
             org: "acme",
             slug: "triage",
             name: "triage",
-            labels: fromPlugin ? { [PLUGIN_LABEL]: "plg_1" } : {},
+            labels: fromPlugin ? { "stigmer.ai/plugin": "plg_1" } : {},
           },
           spec: { skillMd: "# Triage incidents" },
         }),
@@ -143,11 +144,11 @@ describe("SkillDetailView: Upload a new version", () => {
     expect(screen.queryByRole("button", UPLOAD)).toBeNull();
   });
 
-  it("does not offer it on a plugin's skill, which is the plugin's to redefine", async () => {
+  it("offers it on a labelled skill too, even while the labelled plugin exists", async () => {
     renderView({ viewer: "admin", fromPlugin: true });
 
-    expect(await screen.findByText(/Installed by the plugin/)).toBeTruthy();
-    expect(screen.queryByRole("button", UPLOAD)).toBeNull();
+    expect(await screen.findByRole("button", UPLOAD)).toBeTruthy();
+    expect(screen.queryByText(/Installed by the plugin/)).toBeNull();
   });
 
   it("asks nothing and offers nothing when the host names no Upload skill page", async () => {

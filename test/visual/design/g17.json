@@ -821,12 +821,8 @@
     {
       "caption": "An agent: Installed by a plugin: read here, changed in the plugin",
       "narrow": false,
-      "built": [
-        {
-          "scene": "agent-profile-managed",
-          "width": "desktop"
-        }
-      ],
+      "built": [],
+      "unbuilt": "The state is gone: no install labels a resource since stigmer#2118, and the server never refused its edits (stigmer#2818).",
       "words": [
         {
           "text": "Ledger reviewer",
@@ -1227,24 +1223,8 @@
           "height": 28
         }
       ],
-      "sample": {
-        "word How acme codes expenses.": "the scene's data differs (agent-profile-managed)",
-        "word The month-end checklist, in order.": "the scene's data differs (agent-profile-managed)"
-      },
-      "ruled": {
-        "word In your app": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
-        "word Change it in the plugin: an edit here would be replaced at the plugin's next version.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
-        "word Name": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
-        "word Slug": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
-        "word The conversation's harness": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
-        "word Skills 2": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
-        "word MCP servers 1": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
-        "word Environment": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
-        "word None: the server's standard sandbox.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
-        "button Open Ledger tools": "His Built look, 2026-11-17: kept as built, one of the smaller departures shown on its screen.",
-        "word Ledger tools installed this agent.": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn.",
-        "word Open Ledger tools": "His Built look, 2026-11-17: the build's words stand; he named no sentence to draw as drawn."
-      },
+      "sample": {},
+      "ruled": {},
       "pending": {}
     },
     {

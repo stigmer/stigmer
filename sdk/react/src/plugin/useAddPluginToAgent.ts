@@ -5,13 +5,11 @@
  * the agent's `plugins`, which gives the agent the plugin whole (its
  * skills, agents, hooks and MCP servers).
  *
- * The agent is fetched on the pick, for two reasons the caller cannot see
- * from a search result: the update names the agent's `plugins` on the
- * agent as read (its id and the etag it was read at), and an agent a
- * plugin installed is refused on update by the server, so the hook says
- * so first, from the
- * `stigmer.ai/plugin` label the search result does not carry. The read
- * also says whether the agent lists the plugin already, and whether the
+ * The agent is fetched on the pick, because the update names the agent's
+ * `plugins` on the agent as read (its id and the etag it was read at),
+ * which a search result does not carry. A refusal the server does make
+ * (no edit access, say) comes back as the flow's `error`. The read also
+ * says whether the agent lists the plugin already, and whether the
  * agent's own tool list leaves the plugin's servers out: an agent that
  * names the tools it may use reaches a plugin's server only when the list
  * names it, so the dialog says so rather than adding tools the author did
@@ -27,7 +25,6 @@ import { toError } from "@stigmer/react-core/internal";
 import { keptReference } from "../internal/kept-reference.js";
 import { maskedEdit } from "@stigmer/react-core/internal";
 import { useUpdateAgent } from "../agent/useUpdateAgent.js";
-import { PLUGIN_LABEL } from "./useManagingPlugin.js";
 import { listsPlugin, withPlugin } from "./plugin-on-agent.js";
 
 /** The plugin an add puts on an agent. */
@@ -50,8 +47,6 @@ export interface AddPluginOutcome {
 export type AddPluginPhase =
   | { readonly status: "picking" }
   | { readonly status: "reading"; readonly ref: ResourceRef }
-  /** The pick is an agent a plugin installed; the server would refuse the update, so the dialog says why instead. */
-  | { readonly status: "managed"; readonly agent: Agent }
   | {
       readonly status: "ready";
       readonly agent: Agent;
@@ -128,7 +123,7 @@ export function useAddPluginToAgent(offer: PluginOffer): UseAddPluginToAgentRetu
       void stigmer.agent
         .getByReference(ref)
         .then((agent) => {
-          setPhase(agent.metadata?.labels[PLUGIN_LABEL] ? { status: "managed", agent } : readyFor(agent));
+          setPhase(readyFor(agent));
         })
         .catch((err: unknown) => {
           setError(toError(err));

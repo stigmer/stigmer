@@ -192,40 +192,6 @@ function useInstallRelation(prepared: PreparedInstall | null, org: string | null
 />
 
 
-### useManagingPlugin
-
-Behaviour hook that says whether a resource is managed by an installed
-plugin, from the resource's own labels.
-
-The server refuses a client edit of a labelled resource only while the
-labelled plugin row exists (a label alone never locks a resource), so
-this hook answers the same way: a label whose plugin no longer exists
-yields `null`, and the resource is the user's again. Detail views narrow
-`editable` by this answer so an edit form is never offered for a write
-the server would refuse.
-
-**Signature**
-
-```tsx
-function useManagingPlugin(labels: Readonly<Record<string, string>> | undefined): UseManagingPluginReturn
-```
-
-<TypeTable
-  type={{
-    labels: { type: "Readonly<Record<string, string>> | undefined", description: "", required: true },
-  }}
-/>
-
-**Returns** — `UseManagingPluginReturn`
-
-<TypeTable
-  type={{
-    isLoading: { type: "boolean", description: "`true` while the label's plugin is being read." },
-    plugin: { type: "Plugin | null", description: "The plugin that installed the resource, or `null` when none does (no label, or the plugin is gone)." },
-  }}
-/>
-
-
 ### useMarketplace
 
 Data hook that opens a marketplace source and reads its catalogue.
@@ -841,21 +807,6 @@ The `Plugin`, `Installs`, `Warnings` and `Not installed` blocks, then the relati
     className: { type: "string", description: "" },
     prepared: { type: "PreparedInstall", description: "", required: true, typeDescriptionLink: "#preparedinstall" },
     relation: { type: "InstallRelation | null", description: "How the archive relates to the org's plugin of the same name; `null` while unknown.", required: true },
-  }}
-/>
-
-
-### ManagedByPluginNotice
-
-States that a resource was installed by a plugin and is changed by pushing the plugin again.
-
-**Props** — `ManagedByPluginNoticeProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "" },
-    onPluginClick: { type: "(ref: { org: string; slug: string }) => void", description: "Called when the plugin's name is selected; the host owns the route to the plugin's page." },
-    plugin: { type: "Plugin | null", description: "The plugin that installed the resource; `null` renders nothing.", required: true },
   }}
 />
 
@@ -1670,13 +1621,6 @@ Opens a source; the store is agnostic of how (the hook binds the client and the 
     fetchImpl: { type: "(input: URL | RequestInfo, init?: RequestInit) => Promise<Response>", description: "The HTTP client the sources read through; `globalThis.fetch` when absent." },
   }}
 />
-
-
-### PLUGIN_LABEL
-
-The label a plugin stamps on every resource it installs; its value is the
-plugin's id. Written only by the server's plugin controller; a client
-reads it to know a resource is a plugin's to redefine.
 
 
 ### PLUGIN_PICKS_STORAGE_KEY

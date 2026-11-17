@@ -249,6 +249,8 @@ export function CreateOAuthAppForm({
           <button
             type="button"
             onClick={() => setShowAdvanced((v) => !v)}
+            aria-expanded={showAdvanced}
+            aria-controls={`${baseId}-advanced`}
             className="stg:text-muted-foreground stg:hover:text-foreground stg:flex stg:items-center stg:gap-1 stg:text-2xs stg:font-medium stg:transition-colors"
           >
             <ChevronIcon expanded={showAdvanced} />
@@ -256,7 +258,7 @@ export function CreateOAuthAppForm({
           </button>
 
           {showAdvanced && (
-            <div className="stg:mt-2 stg:space-y-3 stg:border-l-2 stg:border-border-muted stg:pl-3">
+            <div id={`${baseId}-advanced`} className="stg:mt-2 stg:space-y-3 stg:border-l-2 stg:border-border-muted stg:pl-3">
               <FormField
                 id={`${baseId}-scopes`}
                 label="Scopes"

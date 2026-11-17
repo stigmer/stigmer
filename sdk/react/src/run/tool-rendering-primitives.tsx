@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { RevealToggle } from "../internal/RevealToggle.js";
 
@@ -125,6 +125,7 @@ export interface CollapsibleJsonBlockProps {
  */
 export function CollapsibleJsonBlock({ label, content }: CollapsibleJsonBlockProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const contentId = useId();
   const lines = content.split("\n");
   const isLong = lines.length > 3;
 
@@ -133,6 +134,8 @@ export function CollapsibleJsonBlock({ label, content }: CollapsibleJsonBlockPro
       <button
         type="button"
         onClick={() => setIsExpanded((v) => !v)}
+        aria-expanded={isExpanded}
+        aria-controls={contentId}
         className="stg:flex stg:items-center stg:gap-1 stg:font-medium stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground"
       >
         <svg
@@ -160,7 +163,7 @@ export function CollapsibleJsonBlock({ label, content }: CollapsibleJsonBlockPro
         )}
       </button>
       {isExpanded && (
-        <pre className="stg:max-h-80 stg:overflow-auto stg:whitespace-pre-wrap stg:break-words stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:p-2 stg:font-mono stg:text-foreground">
+        <pre id={contentId} className="stg:max-h-80 stg:overflow-auto stg:whitespace-pre-wrap stg:break-words stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:p-2 stg:font-mono stg:text-foreground">
           {content}
         </pre>
       )}

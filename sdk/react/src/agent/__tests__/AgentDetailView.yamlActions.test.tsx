@@ -8,7 +8,8 @@
  *   sit after the host's actions and before its first destructive one, with
  *   Manage access last, as the agent pages' menu has always read;
  * - Edit YAML only while the agent is editable: not for a read-only host,
- *   nor for an agent a plugin installed, whose exports stay;
+ *   whose exports stay; a `stigmer.ai/plugin` label locks nothing, since the
+ *   server accepts an edit of a labelled agent (stigmer/stigmer#2818);
  * - after an inline save, Edit YAML opens on the saved text, and the
  *   exports carry it;
  * - an apply shows on the view without a reload, and an apply that renamed
@@ -23,7 +24,6 @@ import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb"
 import type { ManifestDocument } from "@stigmer/client";
 import { samples } from "@stigmer/react-core/test";
 import { AgentDetailView, type AgentDetailViewProps } from "../AgentDetailView";
-import { PLUGIN_LABEL } from "../../plugin/useManagingPlugin";
 import { openMenu } from "../../__tests__/helpers/open-menu";
 import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
 
@@ -213,13 +213,15 @@ describe("AgentDetailView YAML actions", () => {
     expect(await menuLabels()).toEqual(["Copy ID", "Copy slug", "Export YAML", "Export JSON", "Download YAML", "Delete"]);
   });
 
-  it("offers no Edit YAML for an agent a plugin installed, only the exports", async () => {
+  it("offers Edit YAML for a labelled agent the person may edit, even while the labelled plugin exists", async () => {
     const agent = storedAgent();
-    agent.metadata!.labels = { [PLUGIN_LABEL]: "plg_1" };
+    agent.metadata!.labels = { "stigmer.ai/plugin": "plg_1" };
     renderView({ yamlActions: true }, { agent, plugin: true });
 
-    await screen.findByText(/Toolkit/);
-    expect(await menuLabels()).toEqual(["Copy ID", "Copy slug", "Export YAML", "Export JSON", "Download YAML", "Delete"]);
+    // The instructions open for an inline edit only once the agent reads as editable.
+    await screen.findByRole("button", { name: "Answer tickets." });
+    expect(await menuLabels()).toEqual(["Copy ID", "Copy slug", ...YAML_ITEMS, "Delete"]);
+    expect(screen.queryByText(/Installed by the plugin/)).toBeNull();
   });
 
   it("opens Edit YAML on the instructions an inline save just stored", async () => {

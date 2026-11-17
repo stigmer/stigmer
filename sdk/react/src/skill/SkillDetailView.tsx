@@ -31,8 +31,6 @@ import { useSkillVersions } from "./useSkillVersions.js";
 import { useCanCreateSkill } from "./useCanCreateSkill.js";
 import { VersionTimeline } from "../version-history/VersionTimeline.js";
 import { SkillDiffDialog, type SkillDiffDialogState } from "./SkillDiffDialog.js";
-import { ManagedByPluginNotice } from "../plugin/ManagedByPluginNotice.js";
-import { useManagingPlugin } from "../plugin/useManagingPlugin.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
 
@@ -107,19 +105,11 @@ export interface SkillDetailViewProps {
    */
   readonly onVersionSelect?: (versionHash: string) => void;
   /**
-   * Called when the user selects the plugin named in the "installed by a
-   * plugin" notice; the host owns the route to the plugin's page. The
-   * notice shows when this resource carries a live plugin's label, and
-   * `editable` is then narrowed to `false`: the server refuses a client
-   * edit of a plugin's resource, so no edit form is offered.
-   */
-  readonly onPluginClick?: (ref: { org: string; slug: string }) => void;
-  /**
    * Called when the person chooses "Upload a new version"; the host owns the
    * route to its Upload skill page, where a skill of the same name is a new
    * version. Given, the header offers the act to someone the server lets
-   * upload to the organization (`can_create_skill`, asked fail closed), never
-   * on a plugin's skill, and only when no `primaryAction` is passed.
+   * upload to the organization (`can_create_skill`, asked fail closed), and
+   * only when no `primaryAction` is passed.
    */
   readonly onUploadNewVersion?: () => void;
   /**
@@ -186,7 +176,6 @@ export function SkillDetailView({
   onTabChange,
   defaultTab,
   onVersionSelect,
-  onPluginClick,
   onUploadNewVersion,
   editable: editableProp = false,
   onResourceUpdated,
@@ -194,21 +183,19 @@ export function SkillDetailView({
   headingLevel,
 }: SkillDetailViewProps) {
   const { skill, isLoading, error, refetch } = useSkill(org, slug, version);
-  const managing = useManagingPlugin(skill?.metadata?.labels);
   // The resource the header's acts and the inline edits are checked on.
   const skillId = skill?.metadata?.id ?? "";
   const resourceRef = useMemo(() => (skillId !== "" ? { kind: "skill", id: skillId } : null), [skillId]);
   // Edits are offered only on the server's yes: a reader sees a read-only
   // page from the first frame, never a pencil while the check is in flight.
   const editCheck = useCheckPermission(editableProp ? resourceRef : null, "can_edit", { fail: "closed" });
-  // A plugin's resource is the plugin's to redefine; the notice says so and no edit form is offered.
-  const editable = editableProp && editCheck.allowed && managing.plugin === null;
+  const editable = editableProp && editCheck.allowed;
   // A new version is a fresh upload of the same name, which the server allows
-  // only to who may upload to the organization; a plugin's skill is the plugin's.
+  // only to who may upload to the organization.
   const uploadCheck = useCanCreateSkill(onUploadNewVersion ? org : null);
   const headerPrimary = useMemo<DetailAction | undefined>(() => {
     if (primaryAction) return primaryAction;
-    if (!onUploadNewVersion || !uploadCheck.allowed || managing.isLoading || managing.plugin !== null) return undefined;
+    if (!onUploadNewVersion || !uploadCheck.allowed) return undefined;
     return {
       id: "upload-new-version",
       label: "Upload a new version",
@@ -216,7 +203,7 @@ export function SkillDetailView({
       buttonVariant: "outline",
       onAction: onUploadNewVersion,
     };
-  }, [primaryAction, onUploadNewVersion, uploadCheck.allowed, managing.isLoading, managing.plugin]);
+  }, [primaryAction, onUploadNewVersion, uploadCheck.allowed]);
   const versionPages = useSkillVersions(org, slug);
   const { versions, isEmpty: noVersions, getArtifactKey } = versionPages;
   const [diffState, setDiffState] = useState<SkillDiffDialogState | null>(null);
@@ -360,7 +347,6 @@ export function SkillDetailView({
         header={headerMeta}
         headingLevel={headingLevel}
         visibilityControl={visibilityControl}
-        headerBanner={<ManagedByPluginNotice plugin={managing.plugin} onPluginClick={onPluginClick} />}
         primaryAction={headerPrimary}
         actions={mergedActions}
         resource={resourceRef}

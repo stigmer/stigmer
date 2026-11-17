@@ -509,15 +509,13 @@ export type {
   SkillDiffDialogState,
 } from "./skill/index.js";
 
-// Plugin — the installed kind's data hooks, the marketplace layer a browser reads, install, "Add MCP server", detail view, a server's sign-in and tools, the picker, and the "installed by a plugin" rule
+// Plugin — the installed kind's data hooks, the marketplace layer a browser reads, install, "Add MCP server", detail view, a server's sign-in and tools, and the picker
 export {
   usePlugin,
   usePluginList,
   usePluginCount,
   usePluginSearch,
   usePluginVersions,
-  useManagingPlugin,
-  PLUGIN_LABEL,
   useMarketplaces,
   useMarketplace,
   useMarketplaceCatalog,
@@ -592,7 +590,6 @@ export type {
   UsePluginSearchOptions,
   UsePluginSearchReturn,
   UsePluginVersionsReturn,
-  UseManagingPluginReturn,
   UnreadableMarketplace,
   UseMarketplacesReturn,
   UseMarketplacesOptions,

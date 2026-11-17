@@ -625,9 +625,8 @@ export interface VersionTagBinding<
 }
 
 /**
- * Loads the live resource the tag move targets, once, for the guard that
- * runs between this step and the move (a plugin-managed resource's tags
- * are its plugin's) and for the move itself.
+ * Loads the live resource the tag move targets, once, for the move that
+ * follows it.
  */
 export function newLoadForTagVersionStep<
   Desc extends DescMessage,

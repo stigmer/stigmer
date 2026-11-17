@@ -86,7 +86,6 @@ export type SceneId =
   | "agent-page-failed"
   | "agent-page-not-found"
   | "plugin-detail"
-  | "agent-profile-managed"
   | "plugin-detail-remove"
   | "plugin-detail-evals"
   | "environment-detail"
@@ -1227,7 +1226,6 @@ const LISTED: readonly Scene[] = [
   { id: "agent-page-failed", title: "Agent page: the agent could not be read", widths: ["desktop"] },
   { id: "agent-page-not-found", title: "Agent page: no agent at this address", widths: ["desktop"] },
   { id: "plugin-detail", title: "Plugin page: acme's ledger tools, as an admin sees them", widths: ["desktop", "narrow"] },
-  { id: "agent-profile-managed", title: "Agent page: the ledger agent as the ledger tools plugin installed it, read here and changed in the plugin", widths: ["desktop"] },
   { id: "plugin-detail-remove", title: "Plugin page: Remove asked first, in the destructive confirm", widths: ["desktop"] },
   {
     id: "plugin-detail-evals",

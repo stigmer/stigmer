@@ -9,7 +9,9 @@ import { CreateOAuthAppForm } from "../CreateOAuthAppForm";
 /**
  * Pins the create form's addresses: an app is created only once it lists
  * at least one address the app signs in to, and the list typed (comma or
- * newline separated) reaches the server as its entries, trimmed.
+ * newline separated) reaches the server as its entries, trimmed. And its
+ * "Advanced settings" disclosure tells a screen reader whether it is open,
+ * naming the section it governs (stigmer/stigmer#2909).
  */
 
 const CREATED = create(OAuthAppSchema, { metadata: { id: "oa-1", name: "Slack", org: "acme" } });
@@ -53,5 +55,19 @@ describe("CreateOAuthAppForm addresses", () => {
       org: "acme",
       addresses: ["https://mcp.slack.com/mcp", "slack.com"],
     });
+  });
+});
+
+describe("CreateOAuthAppForm advanced settings", () => {
+  it("says whether the section is open, and names the section it opens", () => {
+    renderForm(vi.fn());
+    const toggle = screen.getByRole("button", { name: "Advanced settings" });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+
+    fireEvent.click(toggle);
+
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    const section = document.getElementById(toggle.getAttribute("aria-controls") ?? "");
+    expect(section?.contains(screen.getByLabelText("Scopes"))).toBe(true);
   });
 });

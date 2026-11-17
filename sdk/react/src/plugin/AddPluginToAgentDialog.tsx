@@ -5,11 +5,10 @@
  * whole (its skills, agents, hooks and MCP servers), in one save.
  *
  * The pick is fetched before Add is offered (`useAddPluginToAgent`): an
- * agent a plugin installed cannot be edited, so the dialog says so instead
- * of letting the server refuse; an agent that lists the plugin already is
- * told it has it; and an agent whose own tool list leaves the plugin's
- * servers out is told so, because the add alone would not let it call
- * them. A form dialog, like the connect dialog: no light dismiss on the
+ * agent that lists the plugin already is told it has it, and an agent whose
+ * own tool list leaves the plugin's servers out is told so, because the add
+ * alone would not let it call them. A refusal the server makes on the save
+ * shows as an error under the picker. A form dialog, like the connect dialog: no light dismiss on the
  * backdrop, so a pick is never lost to a stray click.
  */
 
@@ -20,7 +19,6 @@ import { AgentPicker } from "../agent/AgentPicker.js";
 import { Button } from "../button/Button.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { DialogBody, DialogFooter, DialogHeader, DialogShell } from "../internal/DialogShell.js";
-import { PluginIcon } from "./PluginIcon.js";
 import { type PluginOffer, useAddPluginToAgent } from "./useAddPluginToAgent.js";
 
 /** Props for {@link AddPluginToAgentDialog}. */
@@ -119,15 +117,6 @@ function DialogContent({
             }}
             disabled={phase.status === "reading" || phase.status === "adding"}
           />
-          {phase.status === "managed" && (
-            <div role="note" className="stg:flex stg:items-start stg:gap-2 stg:rounded-md stg:border stg:border-border stg:bg-muted stg:px-3 stg:py-2 stg:text-sm stg:text-foreground">
-              <PluginIcon className="stg:mt-0.5 stg:size-4 stg:shrink-0 stg:text-muted-foreground" />
-              <p>
-                <span className="stg:font-medium">{agentName}</span> was installed by a plugin, so it changes by pushing that plugin again, not here.
-                Pick another agent.
-              </p>
-            </div>
-          )}
           {phase.status === "ready" && phase.alreadyListed && (
             <p className="stg:text-xs stg:text-muted-foreground">{agentName} already uses this plugin.</p>
           )}

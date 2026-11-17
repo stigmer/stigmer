@@ -1,8 +1,9 @@
 /**
  * Pins the agent detail view's Quality tab: it is offered beside Channels,
  * and opening it shows the agent's AI grading read through
- * `scoringrule.getByAgent`, editable on a plugin-managed agent too when the
- * host makes the view editable (grading is not the agent's definition).
+ * `scoringrule.getByAgent`, editable when the host makes the view editable
+ * and the person may edit the agent, a `stigmer.ai/plugin` label on it
+ * locking nothing (stigmer/stigmer#2818).
  * The report on top hands the view's `onNavigateToRun` to its flagged
  * runs, and a version's eval link opens the Evals tab on that eval. The
  * Channels tab in the second slot lists every channel of the agent (chat
@@ -73,7 +74,7 @@ describe("AgentDetailView's Quality tab", () => {
     fireEvent.click(await screen.findByRole("tab", { name: "Quality" }));
     const toggle = await screen.findByRole("switch");
     expect(toggle.getAttribute("aria-checked")).toBe("false");
-    expect((toggle as HTMLButtonElement).disabled, "editable on a plugin-managed agent").toBe(false);
+    expect((toggle as HTMLButtonElement).disabled, "editable on a labelled agent").toBe(false);
     expect(getByAgent).toHaveBeenCalledWith(expect.objectContaining({ agentId: agent.metadata.id }));
   });
 

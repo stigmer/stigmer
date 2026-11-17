@@ -10,7 +10,6 @@
 // drop would, once the page is drawn.
 import { useEffect, type ReactElement } from "react";
 import { clone } from "@bufbuild/protobuf";
-import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { strToU8, zipSync } from "fflate";
@@ -26,7 +25,7 @@ import { AgentDetailView, ConfirmDialog, EnvironmentDetailView, PluginDetailView
 import { samples } from "@stigmer/react-sdk/test";
 import { DATA_SCIENCE } from "../docs-fixtures.ts";
 import { ACCOUNT, LEDGER_AGENT, ORGANIZATION } from "../fixtures.ts";
-import { agentRoutes, MENU, START_SESSION } from "./agent.tsx";
+import { MENU, START_SESSION } from "./agent.tsx";
 import type { Drawing } from "./drawing.ts";
 import { pluginUploadScene, skillUploadScene } from "./library.tsx";
 
@@ -195,24 +194,6 @@ export function skillUploadDropScene(drop: SkillDrop): Drawing {
         )}
       </>
     ),
-  };
-}
-
-/** The ledger agent as a plugin installed it: its label names the ledger tools plugin, so its page reads and points there. */
-export function agentManagedScene(): Drawing {
-  const agent = clone(AgentSchema, LEDGER_AGENT);
-  if (agent.metadata !== undefined) agent.metadata.labels = { ...agent.metadata.labels, "stigmer.ai/plugin": LEDGER_TOOLS.metadata?.id ?? "" };
-  const page = agentRoutes("owner", { agent });
-  return {
-    inOrganization: true,
-    routes: (router) => {
-      page(router);
-      router.service(PluginQueryController, { get: () => LEDGER_TOOLS, getByReference: () => LEDGER_TOOLS });
-    },
-    render: () =>
-      column(
-        <AgentDetailView headingLevel={1} org={ORG_SLUG} slug={LEDGER_AGENT.metadata?.slug ?? ""} editable primaryAction={START_SESSION} actions={MENU} />,
-      ),
   };
 }
 

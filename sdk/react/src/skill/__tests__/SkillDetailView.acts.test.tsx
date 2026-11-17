@@ -4,7 +4,9 @@
  * view checks them on the skill it loaded, so an owner is offered Delete
  * and the editable metadata fields, and a reader is offered Copy ID alone
  * and sees a read-only page, from its first frame while the server has not
- * answered.
+ * answered. A `stigmer.ai/plugin` label on the skill locks nothing, even
+ * while the labelled plugin exists: the server accepts that edit
+ * (stigmer/stigmer#2818), so the owner is offered it.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -14,6 +16,8 @@ import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
 import { Stigmer } from "@stigmer/client";
 import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillQueryController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/query_pb";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/query_pb";
 import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
 import { StigmerContext } from "@stigmer/react-core";
 import { SkillDetailView } from "../SkillDetailView.js";
@@ -30,18 +34,21 @@ const HOST_ACTS: readonly DetailAction[] = [
 /** Who is looking: the owner holds every relation, a reader none, and "asking" is never answered. */
 type Viewer = "owner" | "reader" | "asking";
 
-function renderView(viewer: Viewer) {
+function renderView(viewer: Viewer, labels: Record<string, string> = {}) {
   const asked: { relation: string; kind: string; id: string }[] = [];
   const transport = createRouterTransport(({ service }) => {
     service(SkillQueryController, {
       getByReference: () =>
         create(SkillSchema, {
-          metadata: { id: "skl_1", org: "acme", slug: "triage", name: "triage" },
+          metadata: { id: "skl_1", org: "acme", slug: "triage", name: "triage", labels },
           spec: { skillMd: "# Triage incidents" },
         }),
       listVersions: () => {
         throw new ConnectError("no history here", Code.Unimplemented);
       },
+    });
+    service(PluginQueryController, {
+      get: () => create(PluginSchema, { metadata: { id: "plg_1", org: "acme", slug: "toolkit", name: "Toolkit" } }),
     });
     service(GrantQueryController, {
       checkMyPermission: (input) => {
@@ -66,6 +73,13 @@ describe("SkillDetailView: the acts each person is offered", () => {
     await openMenu(screen.getByRole("button", { name: "More actions" }));
     expect(screen.getByRole("menuitem", { name: "Delete" })).toBeTruthy();
     expect(asked).toContainEqual({ relation: "can_delete", kind: "skill", id: "skl_1" });
+  });
+
+  it("offers the owner the editable metadata of a labelled skill, while its labelled plugin exists", async () => {
+    renderView("owner", { "stigmer.ai/plugin": "plg_1" });
+
+    expect(await screen.findByText("Tag")).toBeTruthy();
+    expect(screen.queryByText(/Installed by the plugin/)).toBeNull();
   });
 
   it("CON-01 offers a reader Copy ID alone, and a read-only page", async () => {

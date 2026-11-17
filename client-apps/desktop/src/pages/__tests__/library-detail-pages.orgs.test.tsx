@@ -1,7 +1,7 @@
 /**
- * Pins how the desktop detail pages for plugins, skills and routines name
- * organizations. A resource a page links to (a plugin that installed it,
- * the agent a plugin was added to, a routine's agent) names its
+ * Pins how the desktop detail pages for plugins and routines name
+ * organizations, and which acts the skill page offers. A resource a page
+ * links to (the agent a plugin was added to, a routine's agent) names its
  * organization by id; the page opens it at a URL carrying that
  * organization's slug. A plugin's "Start a chat" opens the launcher with
  * the plugin named. A skill's "Upload a new version" goes to Upload
@@ -126,14 +126,6 @@ describe("desktop SkillDetailPage — who is offered each act", () => {
 });
 
 describe("desktop SkillDetailPage — organizations", () => {
-  it("opens the installing plugin at its org's slug", () => {
-    renderDetail(SkillDetailPage);
-
-    act(() => last<{ onPluginClick: (ref: Ref) => void }>("SkillDetailView").onPluginClick(SHARED));
-
-    expect(location()).toBe("/library/plugins/shared-team/linked");
-  });
-
   it("sends Upload a new version to the Upload skill page", () => {
     renderDetail(SkillDetailPage);
 

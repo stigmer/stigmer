@@ -8,7 +8,6 @@ import { inheritedOpenAiKey, NOTHING_CONNECTED, NOTHING_ON_THE_RUNNER, ownAnthro
 import { agentChatScene } from "./agent-chat.tsx";
 import { agentProfileScene } from "./agent.tsx";
 import {
-  agentManagedScene,
   agentPageReadScene,
   environmentDetailScene,
   pluginDetailScene,
@@ -167,7 +166,6 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "agent-page-failed": () => agentPageReadScene("failed"),
   "agent-page-not-found": () => agentPageReadScene("not-found"),
   "plugin-detail": () => pluginDetailScene(),
-  "agent-profile-managed": agentManagedScene,
   "plugin-detail-remove": () => pluginDetailScene(true),
   "plugin-detail-evals": () => pluginDetailScene(),
   "environment-detail": () => environmentDetailScene(),
