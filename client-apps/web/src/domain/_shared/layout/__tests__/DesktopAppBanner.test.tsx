@@ -1,10 +1,11 @@
 // ---------------------------------------------------------------------------
 // The Stigmer Desktop banner: its two acts, and when the shell draws it
 //
-// The banner names Stigmer Desktop and offers exactly two acts: "Download"
-// starts the desktop download, and the "Dismiss" icon button hands control
-// back to the shell's dismiss handler (which records the campaign-scoped
-// dismissal). The download itself is lib/desktop-download's, pinned by its
+// The banner says in plain words what Stigmer Desktop is for ("Stigmer
+// Desktop: run agents on your own computer.") and offers exactly two acts:
+// "Download" starts the desktop download, and the "Dismiss" icon button hands
+// control back to the shell's dismiss handler (which records the
+// campaign-scoped dismissal). The download itself is lib/desktop-download's, pinned by its
 // own suite; here it is stubbed so the click is observable.
 //
 // The shell's banner (`ShellDesktopBanner`) decides whether to draw it
@@ -129,12 +130,18 @@ afterEach(() => {
 });
 
 describe("DesktopAppBanner", () => {
-  it("names Stigmer Desktop and starts the download on Download", () => {
+  it("says what Stigmer Desktop is for and starts the download on Download", () => {
     const onDismiss = vi.fn();
     render(<DesktopAppBanner onDismiss={onDismiss} />);
 
     const banner = screen.getByRole("complementary", { name: "Desktop app" });
-    expect(banner.textContent).toContain("Stigmer Desktop");
+    // Plain words, no "runners": what the app is for (stigmer#3194).
+    expect(banner.querySelector("p")?.textContent).toBe(
+      "Stigmer Desktop: run agents on your own computer.",
+    );
+    expect(banner.querySelector("p span")?.textContent).toBe(
+      "Stigmer Desktop:",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: /Download/ }));
 

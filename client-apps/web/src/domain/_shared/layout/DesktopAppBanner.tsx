@@ -259,10 +259,9 @@ export function DesktopAppBanner({ onDismiss }: { onDismiss: () => void }) {
     >
       <Monitor className="text-muted-foreground size-4 shrink-0" />
       <p className="text-muted-foreground min-w-0 flex-1 text-xs">
-        <span className="text-foreground font-medium">Stigmer Desktop</span>
-        {" \u2014 "}
-        manage runners from your system tray with deep-link launches and native
-        notifications.
+        <span className="text-foreground font-medium">Stigmer Desktop:</span>
+        {" "}
+        run agents on your own computer.
       </p>
       <button
         type="button"
