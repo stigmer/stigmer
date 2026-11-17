@@ -68,10 +68,14 @@ export function FederationIssuersSection() {
     setFlow({ phase: "idle" });
   }, []);
 
+  // An open detail names the page, with a way back to the list above it.
+  const detailName = flow.phase === "editing" ? flow.federationIssuer.spec?.displayName || flow.federationIssuer.metadata?.name || "Federation issuer" : null;
+
   return (
     <SettingsPage
-      title="Federation issuers"
-      description="Other platforms whose sign-in tokens this organization accepts, such as the platform that manages it."
+      title={detailName ?? "Federation issuers"}
+      back={detailName !== null ? { label: "Federation issuers", onBack: () => setFlow({ phase: "idle" }) } : undefined}
+      description={detailName !== null ? undefined : "Other platforms whose sign-in tokens this organization accepts, such as the platform that manages it."}
       actions={
         orgId &&
         canCreate &&
@@ -97,7 +101,6 @@ export function FederationIssuersSection() {
           <FederationIssuerDetailPanel
             federationIssuer={flow.federationIssuer}
             onUpdated={handleUpdated}
-            onBack={() => setFlow({ phase: "idle" })}
           />
         </Card>
       ) : (

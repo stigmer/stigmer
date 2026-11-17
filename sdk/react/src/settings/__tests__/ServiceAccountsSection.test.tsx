@@ -216,13 +216,16 @@ describe("ServiceAccountsSection's flow", () => {
     fireEvent.click(screen.getByRole("button", { name: "open ci-deploy" }));
     expect(screen.getByTestId("detail-panel").textContent).toContain("managing ci-deploy");
     expect(screen.queryByRole("button", NEW_BUTTON)).toBeNull();
+    // The open account names the page, under a way back to the list.
+    expect(screen.getByRole("heading", { level: 2, name: "ci-deploy" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "renamed" }));
     expect(screen.getByTestId("detail-panel").textContent).toContain("managing ci-release");
 
     const before = list.refetches;
-    fireEvent.click(screen.getByRole("button", { name: "back" }));
+    fireEvent.click(screen.getByRole("button", { name: "Service accounts" }));
     expect(screen.getByTestId("list-panel")).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 2, name: "Service accounts" })).toBeTruthy();
     expect(list.refetches).toBe(before + 1);
   });
 

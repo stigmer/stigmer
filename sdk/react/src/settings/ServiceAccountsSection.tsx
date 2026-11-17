@@ -72,10 +72,14 @@ export function ServiceAccountsSection() {
     setFlow({ phase: "idle" });
   }, []);
 
+  // An open detail names the page, with a way back to the list above it.
+  const detailName = flow.phase === "viewing" ? flow.serviceAccount.metadata?.name || "Service account" : null;
+
   return (
     <SettingsPage
-      title="Service accounts"
-      description="Your organization's own accounts for automation. A CI job or a script acts as one through its API keys, so it keeps working when the person who set it up leaves, and what it creates says the service account created it. Each holds one organization role and is never an owner."
+      title={detailName ?? "Service accounts"}
+      back={detailName !== null ? { label: "Service accounts", onBack: backToList } : undefined}
+      description={detailName !== null ? undefined : "Your organization's own accounts for automation. A CI job or a script acts as one through its API keys, so it keeps working when the person who set it up leaves, and what it creates says the service account created it. Each holds one organization role and is never an owner."}
       actions={
         org &&
         canManage &&
@@ -123,7 +127,6 @@ export function ServiceAccountsSection() {
             org={org}
             onUpdated={(serviceAccount) => setFlow({ phase: "viewing", serviceAccount })}
             onDeleted={backToList}
-            onBack={backToList}
           />
         </Card>
       ) : (
