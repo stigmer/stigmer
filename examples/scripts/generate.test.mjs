@@ -1,10 +1,11 @@
 // Holds the one list of example agents to its files: the committed module is
 // what the generator writes now, and every rule an example keeps (each folder
-// listed, each listed file present, the output named in the instructions, the
-// first message naming its samples, a message for a person's own file, no two
-// ids or agent slugs alike) and every rule a ready-made skill keeps (its
-// SKILL.md present, its frontmatter naming it by its id with a description)
-// is both met by the tree and caught when broken.
+// listed, each listed file present, the output named in the instructions and
+// no folder for it, the first message naming its samples, a message for a
+// person's own file, no two ids or agent slugs alike) and every rule a
+// ready-made skill keeps (its SKILL.md present, its frontmatter naming it by
+// its id with a description, no folder for a file it hands back) is both met
+// by the tree and caught when broken.
 
 import assert from "node:assert/strict";
 import { cpSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
@@ -56,6 +57,26 @@ test("a first message that doesn't name its sample is caught", () => {
 test("an output the instructions don't name is caught", () => {
   const found = broken((t) => (t.catalogue.examples[0].output = "elsewhere.md"));
   assert.ok(found.includes(`${first.id}: the instructions don't name the output elsewhere.md`), found.join("\n"));
+});
+
+test("instructions that say where the output goes, not only its name, are caught (stigmer#3200)", () => {
+  const firstManifest = tree.read(first.id, first.manifest);
+  const found = broken((t) => {
+    t.read = (folder, file) =>
+      folder === first.id && file === first.manifest
+        ? firstManifest.replace(`as a file named ${first.output}`, `as ${first.output} in your outputs folder`)
+        : tree.read(folder, file);
+  });
+  assert.ok(found.includes(`${first.id}: the instructions say where to save the output; name the file only`), found.join("\n"));
+  assert.ok(!found.some((line) => line.includes("don't name the output")), found.join("\n"));
+});
+
+test("a skill that says where to save a file is caught (stigmer#3200)", () => {
+  const skill = tree.catalogue.skills[0];
+  const found = broken((t) => {
+    t.read = (folder, file) => (file === skill.file ? `${tree.read(folder, file)}\nSave it in .stigmer/outputs/.\n` : tree.read(folder, file));
+  });
+  assert.ok(found.includes(`skill ${skill.id}: ${skill.file} says where to save a file; name the file only`), found.join("\n"));
 });
 
 test("two examples with one id, or one agent, are caught", () => {

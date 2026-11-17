@@ -29,14 +29,29 @@ const CHECKING: ToolCredentialsReadiness = { status: "checking" };
  * cloud-only), and the run dials MCP servers (the agent's or a subagent's
  * it lists, their own or their plugins', which read keys). While the
  * subagents are read the answer is `checking`.
+ *
+ * A channel can run one saved version of its agent rather than the
+ * current one: `agentVersion` is the version its agent reference names
+ * (`channel.spec?.agentRef?.version`), a tag or a content hash, and the
+ * check judges that version's tools and subagents, read fresh, since a tag
+ * can move. None or `"latest"` judges `agent` as given. While the version
+ * is read the answer is `checking`, and it stays `checking` when the
+ * version cannot be read: that channel's conversations are refused for a
+ * reason other than vaults.
+ *
+ * @param agent - The channel's agent, as it is today.
+ * @param enabled - Whether the channel serves traffic.
+ * @param vaults - The vaults the channel names.
+ * @param agentVersion - The agent version the channel runs; defaults to the current one.
  */
 export function useChannelToolReadiness(
   agent: Agent,
   enabled: boolean,
   vaults: readonly ResourceRef[],
+  agentVersion = "",
 ): ToolCredentialsReadiness {
   const deploymentMode = useDeploymentMode();
-  const usesTools = useRunUsesTools(agent);
+  const usesTools = useRunUsesTools(agent, agentVersion);
   const surfaceApplies = enabled && deploymentMode === "cloud";
 
   const readiness = useToolCredentialsReadiness(surfaceApplies && usesTools === true, vaults);

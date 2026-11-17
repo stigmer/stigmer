@@ -15,7 +15,7 @@ spec:
     than guessing. Never promise a refund, a date or a fix the ticket
     doesn't already confirm; say who will follow up instead.
 
-    Save the replies as replies.md in your outputs folder: one section
+    Hand back the replies as a file named replies.md: one section
     per ticket, headed by its number and subject, with the drafted reply
     under it, then one line on anything a person should check before
     sending.

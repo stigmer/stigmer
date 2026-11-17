@@ -34,6 +34,13 @@ export interface ChannelToolCredentialsProps {
    * @default true
    */
   readonly enabled?: boolean;
+  /**
+   * The agent version the channel runs (`channel.spec?.agentRef?.version`):
+   * the readiness hint judges that version's tools. None or `"latest"` is
+   * the agent as given; a channel being connected has none.
+   * @default ""
+   */
+  readonly agentVersion?: string;
 }
 
 /** The channel's vault picker with its explanation and readiness hint. */
@@ -44,6 +51,7 @@ export function ChannelToolCredentials({
   onChange,
   disabled = false,
   enabled = true,
+  agentVersion = "",
 }: ChannelToolCredentialsProps) {
   return (
     <div className="stg:flex stg:flex-col stg:gap-2">
@@ -54,7 +62,7 @@ export function ChannelToolCredentials({
         Settings &rarr; Vaults. Saved values stay hidden from everyone.
       </p>
       <VaultPicker org={org} value={value} onChange={onChange} disabled={disabled} />
-      <ChannelToolReadinessHint agent={agent} enabled={enabled} value={value} />
+      <ChannelToolReadinessHint agent={agent} enabled={enabled} value={value} agentVersion={agentVersion} />
     </div>
   );
 }
@@ -69,12 +77,14 @@ function ChannelToolReadinessHint({
   agent,
   enabled,
   value,
+  agentVersion,
 }: {
   readonly agent: Agent;
   readonly enabled: boolean;
   readonly value: readonly ResourceRef[];
+  readonly agentVersion: string;
 }) {
-  const readiness = useChannelToolReadiness(agent, enabled, value);
+  const readiness = useChannelToolReadiness(agent, enabled, value, agentVersion);
 
   if (readiness.status === "needs-credentials") {
     return (

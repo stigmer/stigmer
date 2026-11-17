@@ -5,7 +5,8 @@
  * prompt-goldens.test.ts`, `execute-claude/__tests__/prompt.test.ts`);
  * this file pins the glue's own contract, harness-free, and the outputs
  * folder's instruction, whose wording decides where an agent saves a file
- * the person asked for (stigmer#2661).
+ * the person asked for (stigmer#2661) and how it speaks of a file it hands
+ * back: by the file's name, never the folder (stigmer#3200).
  */
 
 import { describe, it, expect } from "vitest";
@@ -138,5 +139,12 @@ describe("outputsFolderInstruction", () => {
     expect(line.startsWith("When the user asks for a file at a path, write it at that path in the workspace.")).toBe(true);
     expect(line).toContain("save it in `/ws/.stigmer/outputs/`");
     expect(line.indexOf("at that path in the workspace")).toBeLessThan(line.indexOf("/ws/.stigmer/outputs/"));
+  });
+
+  it("has the agent call a file it hands back by its file name, never by the folder the person never sees", () => {
+    const line = outputsFolderInstruction("/ws/.stigmer/outputs/");
+    expect(line).toContain("To hand the user a file that has no place in the workspace, save it in `/ws/.stigmer/outputs/`");
+    expect(line).toContain("Those files reach the person beside your reply: call each one by its file name, never by this folder or its path.");
+    expect(line.indexOf("/ws/.stigmer/outputs/")).toBeLessThan(line.indexOf("call each one by its file name"));
   });
 });
