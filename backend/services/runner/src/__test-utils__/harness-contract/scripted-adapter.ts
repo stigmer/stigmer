@@ -26,7 +26,8 @@
  * those are what the kit measures.
  *
  * What this fake deliberately does NOT do, because it is not an adapter's
- * job: carry a REJECTed or SKIPped row to its terminal status. The decision
+ * job: carry a REJECTed or SKIPped row (or an approved one it never ran) to
+ * its terminal status. The decision
  * is on the row (the server's field) and the transition follows from it with
  * no engine knowledge, so it belongs to the runtime — one writer per field,
  * as `approval-answers.ts` is the runtime's one reader and

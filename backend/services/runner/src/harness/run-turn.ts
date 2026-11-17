@@ -699,12 +699,16 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     };
     if (outcome.kind !== "interrupted") await captureBoundary();
 
-    // The rows whose decision never runs the tool (SKIP, REJECT) are settled
-    // by the runtime, once, now that the adapter has had its look at them and
-    // before any persist of the outcome: no engine event flips such a row, so
-    // without this it would persist WAITING on a finished execution. Every
-    // outcome passes through here (`approval-decisions.ts`).
-    terminalizeNonExecutingDecisions(rows);
+    // The rows whose decision never ran the tool are settled by the runtime,
+    // once, now that the adapter has had its look at them and before any
+    // persist of the outcome: SKIP and REJECT always, and an approved call
+    // still waiting once the outcome ends the run. No engine event flips such
+    // a row, so without this it would persist WAITING on a finished
+    // execution. Every outcome passes through here (`approval-decisions.ts`).
+    const approvedNotRun = terminalizeNonExecutingDecisions(rows, outcome.kind);
+    if (approvedNotRun.length > 0) {
+      console.error(`${activityName}: approved calls did not run (${outcome.kind}): execution=${executionId}, calls=${approvedNotRun.join(",")}`);
+    }
 
     switch (outcome.kind) {
       case "completed":
