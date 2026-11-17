@@ -49,6 +49,9 @@ export {
   APP_DEV_USER_VARIABLE,
   APP_CHAT_COMPONENT,
   APP_TOKEN_ROUTE_PORT,
+  APP_API_KEY_PLACEHOLDER,
+  APP_DEV_USER_PLACEHOLDER,
+  appSettingsText,
   buildAppHandover,
 } from "./app-handover.js";
 export type {
@@ -57,7 +60,9 @@ export type {
   AppHandoverInput,
   AppHandoverLanguage,
   AppHandoverMode,
+  AppHandoverSource,
   AppHandoverStack,
+  AppSettingsValues,
 } from "./app-handover.js";
 
 // References the server returned (a deleted target has an id and no slug)

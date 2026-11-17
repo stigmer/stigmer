@@ -276,6 +276,8 @@ describe("NewSessionViewer — audience wiring", () => {
     expect(props.onPluginRefsChange).toBeDefined();
     expect(props.onSkillRefsChange).toBeDefined();
     expect(props.enableVaultPicker).toBe(true);
+    // The console's own composer offers the harness beside the model.
+    expect(props.showHarnessSelector).toBe(true);
     // Run settings, with the auto-approve switch, sit in the composer.
     const run = offeredRunSettings();
     expect(run.ids).toEqual(["run-settings"]);
@@ -297,8 +299,8 @@ describe("NewSessionViewer — audience wiring", () => {
     expect(props.onPluginRefsChange).toBeUndefined();
     expect(props.onSkillRefsChange).toBeUndefined();
     expect(props.enableVaultPicker).toBe(false);
-    // End-user controls survive the curation.
-    expect(props.showHarnessSelector).toBe(true);
+    // End-user controls survive the curation; the harness is not one.
+    expect(props.showHarnessSelector).toBe(false);
     expect(props.showInteractionModePicker).toBe(true);
     // The run settings are offered to an end user too, beside the model picker.
     expect(offeredRunSettings().ids).toEqual(["run-settings"]);
@@ -770,6 +772,36 @@ describe("owner-pinned runConfig wiring (#664)", () => {
     );
 
     expect(lastComposerProps().showModelSelector).toBe(false);
+  });
+});
+
+describe("the mode toggle: kept for an app's users, the host's to turn off, never a guest's", () => {
+  it("SessionViewer keeps it for endUser, hides it on showInteractionModePicker={false}, and never gives it to a guest", () => {
+    render(<SessionViewer sessionId="ses_1" org="acme" audience="endUser" />);
+    expect(lastComposerProps().showInteractionModePicker).toBe(true);
+    cleanup();
+
+    render(<SessionViewer sessionId="ses_1" org="acme" audience="endUser" showInteractionModePicker={false} />);
+    expect(lastComposerProps().showInteractionModePicker).toBe(false);
+    cleanup();
+
+    render(<SessionViewer sessionId="ses_1" org="acme" audience="guest" showInteractionModePicker />);
+    expect(lastComposerProps().showInteractionModePicker).toBe(false);
+  });
+
+  it("NewSessionViewer keeps it for endUser, hides it on showInteractionModePicker={false}, and never gives it to a guest", () => {
+    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} audience="endUser" initialAgentRef={AGENT_REF} />);
+    expect(lastComposerProps().showInteractionModePicker).toBe(true);
+    cleanup();
+
+    render(
+      <NewSessionViewer org="acme" onSessionCreated={vi.fn()} audience="endUser" initialAgentRef={AGENT_REF} showInteractionModePicker={false} />,
+    );
+    expect(lastComposerProps().showInteractionModePicker).toBe(false);
+    cleanup();
+
+    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} audience="guest" initialAgentRef={AGENT_REF} showInteractionModePicker />);
+    expect(lastComposerProps().showInteractionModePicker).toBe(false);
   });
 });
 

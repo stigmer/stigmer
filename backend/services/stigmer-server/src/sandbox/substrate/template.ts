@@ -23,11 +23,17 @@
  * starts from the waiter's.
  *
  * The template is named by its content: `stigmer-runner-<12 hex of the
- * SHA-256 of its encoding>`. Changing the runner image or any setting
- * makes a new template and nothing else does; the previous one keeps
- * serving the actors on it until they move (driver.ts, sweep.ts).
- * Substrate templates are immutable, so this is also how an upgrade is
- * expressed at all.
+ * SHA-256 of its encoding and of the configuration's egress rules>`.
+ * The rules are written per actor, never into the template (egress.ts),
+ * but a sandbox started under other lanes was started under another
+ * configuration, so their configuration's part
+ * (configurationEgressDigest) is hashed into the name beside the
+ * encoding. Changing the runner image, any setting or the sandboxes'
+ * network lanes makes a new template and nothing else does; the previous
+ * one keeps serving the actors on it until they move (driver.ts,
+ * sweep.ts), and an awake one on it is put to sleep as soon as it is not
+ * busy. Substrate templates are immutable, so this is also how an upgrade
+ * is expressed at all.
  *
  * The keeper: one preparation in flight per process (a turn that arrives
  * during it awaits the same promise). It creates this server's atespace
@@ -85,6 +91,7 @@ import {
   type ActorTemplate,
 } from "./gen/api/ateapi/v1/ateapi_pb.js";
 import { delay } from "./delay.js";
+import { configurationEgressDigest } from "./egress.js";
 import type { SubstrateGateway } from "./gateway.js";
 
 /** The waiter's port: the one Substrate's router reaches without a CONNECT tunnel. */
@@ -219,8 +226,11 @@ export function buildRunnerTemplate(input: RunnerTemplateInput): ActorTemplate {
       goldenSnapshotConfig: { mode: GoldenSnapshotMode.ENABLED },
     },
   });
+  // The egress rules are no part of a template, yet a configuration that
+  // decides them differently is another one (module header).
   const digest = createHash("sha256")
     .update(toBinary(ActorTemplateSchema, template))
+    .update(configurationEgressDigest(config, settings))
     .digest("hex")
     .slice(0, 12);
   template.metadata = create(ResourceMetadataSchema, {

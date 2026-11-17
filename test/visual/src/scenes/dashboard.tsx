@@ -92,7 +92,7 @@ export function dashboardPageScene(week: DashboardWeek, failures: "read" | "fail
     render: () => (
       <div style={{ maxWidth: "64rem", margin: "0 auto", padding: "2rem 1.5rem" }}>
         <div style={{ marginBottom: "2rem" }}>
-          <PageHeader title="Dashboard" description="What your organization's agents did this week." />
+          <PageHeader title="Dashboard" description="What your organization's agents did this week, in conversations you can see." />
         </div>
         <OperationalDashboard
           org={ORG_ID}

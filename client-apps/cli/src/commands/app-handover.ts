@@ -14,8 +14,12 @@
 // it: `https://<host>` for a TLS endpoint (`:443` dropped), `http://<host>:<port>`
 // for a plaintext one, since one port serves the browser's protocol and gRPC.
 // Printed by default; `--write <dir>` writes the two files under dir (the
-// handover's own paths, e.g. `app/api/stigmer-token/route.ts`), refusing to
-// overwrite a file unless `--force`, and prints what to install.
+// handover's own paths, e.g. `app/api/stigmer-token/route.ts` and
+// `components/StigmerAgentChat.tsx`), refusing to overwrite a file unless
+// `--force`, and prints what to install: once for a Next.js app, which is
+// one app, else for each file. The page the console offers to try the chat
+// is not written: for a React app of its own it is `src/App.tsx`, which the
+// app already has.
 
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
@@ -117,9 +121,10 @@ export function printedHandover(handover: AppHandover, mode: AppHandoverMode): s
       "",
     );
   }
-  for (const file of filesOf(handover)) {
-    parts.push(`# ${file.file}`, `# install: ${file.install.replace(/\n/g, "\n#   ")}`, "", file.code.trimEnd(), "");
-  }
+  filesOf(handover).forEach((file, index) => {
+    const install = handover.oneApp ? (index === 0 ? [`# install, once: ${file.install}`] : []) : [`# install: ${file.install.replace(/\n/g, "\n#   ")}`];
+    parts.push(`# ${file.file}`, ...install, "", file.code.trimEnd(), "");
+  });
   return `${parts.join("\n")}\n`;
 }
 
@@ -142,17 +147,26 @@ export function writeHandover(handover: AppHandover, mode: AppHandoverMode, root
   }
   const written = files.map((f) => shown(join(target, f.file)));
   const result = CommandResult.success(`Wrote ${written.join(" and ")}`).withData({ mode, files: written });
-  for (const file of files) {
-    result.hint(
-      file.installLanguage === "xml"
-        ? `For ${file.file}: add the Maven dependency the printed handover names (drop --write to see it)`
-        : `For ${file.file}: ${file.install.split("\n")[0]}`,
-    );
+  if (handover.oneApp) {
+    result.hint(`Install, once: ${files[0].install}`);
+  } else {
+    for (const file of files) {
+      result.hint(
+        file.installLanguage === "xml"
+          ? `For ${file.file}: add the Maven dependency the printed handover names (drop --write to see it)`
+          : `For ${file.file}: ${file.install.split("\n")[0]}`,
+      );
+    }
   }
   if (mode === "sign-in") {
     result
       .hint("Replace currentUser in the route with your app's own sign-in.")
-      .hint("Put the admin service account's key in STIGMER_API_KEY, in an env file git ignores.");
+      .hint(`Put the admin service account's key in STIGMER_API_KEY in ${handover.settingsFile ?? ".env"}, and keep that file out of git.`);
+    if (handover.readsSettingsFile === false) {
+      result.hint(
+        `Your backend reads these from its environment: load ${handover.settingsFile ?? ".env"} the way your framework does, or export them in the shell you start it from.`,
+      );
+    }
   } else {
     result.hint("This is the development chat: it sends no token, for a server that trusts every caller.");
   }

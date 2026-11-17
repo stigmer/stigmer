@@ -2,24 +2,26 @@
   "agent-in-app": {
     "type-off-scale pre \"\"use client\"; // The agent's chat, for the person signed in \": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale pre \"// Your app's Stigmer token route. GET /api/stigmer-token an\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale pre \"npm install @stigmer/client @stigmer/react-sdk @stigmer/apis\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale pre \"npm install @stigmer/client\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
+    "type-off-scale pre \"import { StigmerAgentChat } from \"@/components/StigmerAgentC\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
+    "type-off-scale pre \"npm install @stigmer/client @stigmer/react-sdk @stigmer/apis\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
   "agent-in-app-done": {
     "type-off-scale pre \"\"use client\"; // The agent's chat, for the person signed in \": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale pre \"// Your app's Stigmer token route. GET /api/stigmer-token an\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale pre \"npm install @stigmer/client @stigmer/react-sdk @stigmer/apis\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale pre \"npm install @stigmer/client\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
+    "type-off-scale pre \"STIGMER_API_KEY=<paste your service account's key here> STIG\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
+    "type-off-scale pre \"import { StigmerAgentChat } from \"@/components/StigmerAgentC\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
+    "type-off-scale pre \"npm install @stigmer/client @stigmer/react-sdk @stigmer/apis\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
   "agent-in-app-local": {
     "type-off-scale pre \"\"use client\"; // Development only. This Stigmer runs on your\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
+    "type-off-scale pre \"import { StigmerAgentChat } from \"./StigmerAgentChat\"; expor\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale pre \"npm install @stigmer/client @stigmer/react-sdk @stigmer/apis\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
   "agent-in-app-member": {
     "type-off-scale pre \"\"use client\"; // The agent's chat, for the person signed in \": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
     "type-off-scale pre \"// Your app's Stigmer token route. GET /api/stigmer-token an\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale pre \"npm install @stigmer/client @stigmer/react-sdk @stigmer/apis\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
-    "type-off-scale pre \"npm install @stigmer/client\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
+    "type-off-scale pre \"import { StigmerAgentChat } from \"@/components/StigmerAgentC\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt",
+    "type-off-scale pre \"npm install @stigmer/client @stigmer/react-sdk @stigmer/apis\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
   "channel-app-new": {
     "type-off-scale pre \"display_information: name: Acme Books description: Chat with\": 11px on 17.875px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"

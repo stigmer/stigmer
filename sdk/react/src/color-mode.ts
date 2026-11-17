@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useSyncExternalStore } from "react";
 
 /**
  * Color mode requested by the host application.
@@ -45,31 +45,36 @@ export function useColorMode(): ResolvedColorMode {
 
 const DARK_MEDIA_QUERY = "(prefers-color-scheme: dark)";
 
+/** Calls `onChange` whenever the OS color scheme changes; returns the unsubscribe. */
+function subscribeToSystemColorMode(onChange: () => void): () => void {
+  const mql = window.matchMedia(DARK_MEDIA_QUERY);
+  mql.addEventListener("change", onChange);
+  return () => mql.removeEventListener("change", onChange);
+}
+
+/** The OS color scheme now, in the browser. */
+function systemColorModeNow(): ResolvedColorMode {
+  return window.matchMedia(DARK_MEDIA_QUERY).matches ? "dark" : "light";
+}
+
+/** What a server renders, and what hydration starts from: it cannot see the OS. */
+function systemColorModeOnServer(): ResolvedColorMode {
+  return "light";
+}
+
 /**
  * Internal hook that tracks the user's OS color scheme preference.
  *
- * Listens to `matchMedia("(prefers-color-scheme: dark)")` and
- * returns a resolved `"light" | "dark"` value that updates when
- * the OS preference changes.
- *
- * Returns `"light"` during SSR (no `window`).
+ * Reads `matchMedia("(prefers-color-scheme: dark)")` through
+ * `useSyncExternalStore`, so it updates when the OS preference changes and
+ * is safe to server-render: the server and the hydrating client both render
+ * `"light"`, then the client moves to the OS's mode right after hydration.
+ * Reading `matchMedia` in the first render instead made a server-rendered
+ * page (a Next.js app's) hydrate with attributes the server never wrote,
+ * which React reports and does not patch up (stigmer#3202).
  *
  * @internal Not exported from the public API — used only by the provider.
  */
 export function useSystemColorMode(): ResolvedColorMode {
-  const [mode, setMode] = useState<ResolvedColorMode>(() => {
-    if (typeof window === "undefined") return "light";
-    return window.matchMedia(DARK_MEDIA_QUERY).matches ? "dark" : "light";
-  });
-
-  useEffect(() => {
-    const mql = window.matchMedia(DARK_MEDIA_QUERY);
-    const handler = (e: MediaQueryListEvent) => {
-      setMode(e.matches ? "dark" : "light");
-    };
-    mql.addEventListener("change", handler);
-    return () => mql.removeEventListener("change", handler);
-  }, []);
-
-  return mode;
+  return useSyncExternalStore(subscribeToSystemColorMode, systemColorModeNow, systemColorModeOnServer);
 }

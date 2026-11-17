@@ -3,7 +3,10 @@
  * never touched; RUNNING suspends at the window; every other state is left
  * alone. On a draining worker, RUNNING is stored (suspended durably) as
  * soon as it is not busy, whatever its window, and once the drain deadline
- * has passed even while busy; every other state is still left alone.
+ * has passed even while busy; every other state is still left alone. On
+ * an older template (`outdated`), RUNNING is suspended as soon as it is
+ * not busy, whatever its window; busy is still left alone; and a draining
+ * worker still stores it (stigmer#2984).
  */
 import { describe, expect, it } from "vitest";
 
@@ -75,4 +78,59 @@ describe("decideIdle on a draining worker", () => {
   it("forces the store twenty minutes after the drain was first seen, inside Substrate's thirty", () => {
     expect(DRAIN_DEADLINE_MS).toBe(20 * 60_000);
   });
+});
+
+describe("decideIdle for a sandbox from an older configuration", () => {
+  const cases: Array<
+    [
+      string,
+      SubstrateSandboxState,
+      boolean,
+      number,
+      number | undefined,
+      IdleAction,
+    ]
+  > = [
+    // [name, state, busy, idle minutes, minutes since a drain was first seen, action]
+    [
+      "idle, just active: suspended at once",
+      "running",
+      false,
+      0,
+      undefined,
+      "suspend",
+    ],
+    ["idle, past the window", "running", false, 45, undefined, "suspend"],
+    ["busy: its turn runs on", "running", true, 600, undefined, "none"],
+    ["on a draining worker: stored", "running", false, 0, 1, "store"],
+    [
+      "busy on a draining worker, under the deadline",
+      "running",
+      true,
+      0,
+      1,
+      "none",
+    ],
+    ["suspended", "suspended", false, 600, undefined, "none"],
+    ["resuming", "resuming", false, 600, undefined, "none"],
+    ["crashed", "crashed", false, 600, undefined, "none"],
+  ];
+  it.each(cases)(
+    "%s",
+    (_name, state, busy, idleMinutes, drainMinutes, expected) => {
+      expect(
+        decideIdle({
+          state,
+          busy,
+          lastActiveAt: minutes(idleMinutes),
+          now,
+          suspendAfterMs: 5 * 60_000,
+          outdated: true,
+          ...(drainMinutes !== undefined
+            ? { drainingSince: minutes(drainMinutes) }
+            : {}),
+        }),
+      ).toBe(expected);
+    },
+  );
 });
