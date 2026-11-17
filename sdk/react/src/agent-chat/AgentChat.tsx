@@ -16,6 +16,11 @@
 //   never trapped and no global key is taken: Escape closes it only while
 //   focus is inside, and closing returns focus to the button.
 //
+// Every frame paints its own surface and text colour in the provider's
+// mode, so the chat reads the same on any host page: the provider's root
+// paints nothing (it wraps the host's own content), and a host's dark page
+// behind a light-mode chat would leave dark text on dark.
+//
 // The conversation view loads as its own chunk, fetched on mount, so the
 // composer is usable before the thread's renderers arrive. The state
 // rules live in `agent-chat-state.ts`.
@@ -279,7 +284,7 @@ export function AgentChat({
     );
 
   if (variant === "page") {
-    return <div className={cn("stg:h-full stg:w-full", className)}>{body}</div>;
+    return <div className={cn("stg:h-full stg:w-full stg:bg-background stg:text-foreground", className)}>{body}</div>;
   }
 
   const newConversation = sessionId === null ? undefined : () => setSession(null);
@@ -387,7 +392,7 @@ function AgentChatPanel({ name, open, onNewConversation, onClose, className, chi
   return (
     <section
       aria-labelledby={headingId}
-      className={cn(open ? "stg:flex" : "stg:hidden", "stg:h-full stg:w-full stg:flex-col stg:bg-background", className)}
+      className={cn(open ? "stg:flex" : "stg:hidden", "stg:h-full stg:w-full stg:flex-col stg:bg-background stg:text-foreground", className)}
     >
       <FrameHeader
         name={name}

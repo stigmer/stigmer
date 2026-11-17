@@ -15,7 +15,8 @@
  *     `com.sun.net.httpserver`), or a Next.js route handler. A standard
  *     library route is something every reader can compile and run as it
  *     stands, and its one minting call moves into any framework;
- *   - the chat for their React app, `<AgentChat>` behind `createTokenCache`.
+ *   - the chat for their React app, `<AgentChat>` behind `createTokenCache`,
+ *     in the light or dark of the person's system, as most apps start out.
  *
  * Who is signed in is the one thing Stigmer cannot know. Every route asks one
  * function, `currentUser`, which the builder replaces with their own sign-in.
@@ -569,7 +570,7 @@ const stigmer = new Stigmer({
 
 export function ${APP_CHAT_COMPONENT}() {
   return (
-    <StigmerProvider client={stigmer}>
+    <StigmerProvider client={stigmer} colorMode="system">
       <AgentChat agent={${agentRef}} />
     </StigmerProvider>
   );
@@ -603,7 +604,7 @@ const stigmer = new Stigmer({
 
 export function ${APP_CHAT_COMPONENT}() {
   return (
-    <StigmerProvider client={stigmer}>
+    <StigmerProvider client={stigmer} colorMode="system">
       <AgentChat agent={${agentRef}} />
     </StigmerProvider>
   );

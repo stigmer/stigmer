@@ -125,6 +125,12 @@ describe("buildAppHandover, sign-in", () => {
     expect(chat.code).toContain(`export function ${APP_CHAT_COMPONENT}()`);
   });
 
+  it("the chat follows the person's system light or dark, in both kinds of server", () => {
+    const signedIn = buildAppHandover({ ...CLOUD, stack: "nextjs" }).chat.code;
+    const local = buildAppHandover({ ...CLOUD, mode: "local", stack: "nextjs", baseUrl: "http://localhost:7234" }).chat.code;
+    for (const code of [signedIn, local]) expect(code).toContain('<StigmerProvider client={stigmer} colorMode="system">');
+  });
+
   it("the chat is the same for every stack", () => {
     const chats = new Set(STACKS.map((stack) => buildAppHandover({ ...CLOUD, stack }).chat.code));
     expect(chats.size).toBe(1);
