@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { cleanup, render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, fireEvent, within } from "@testing-library/react";
 import { RENAME_BUDGET_MS, renameThroughSlugField } from "../../__tests__/helpers/rename-slug";
 import { clone, create } from "@bufbuild/protobuf";
 import {
@@ -43,6 +43,7 @@ const SLACK_APP: ChannelApp = create(ChannelAppSchema, {
 function renderPanel(
   checkMyPermission: ReturnType<typeof vi.fn>,
   deleteApp: ReturnType<typeof vi.fn> = vi.fn(),
+  onDeleted?: () => void,
 ) {
   const client = {
     baseUrl: "https://api.stigmer.ai",
@@ -54,6 +55,7 @@ function renderPanel(
       <ChannelAppDetailPanel
         channelApp={SLACK_APP}
         consoleOrigin="https://console.acme.example"
+        onDeleted={onDeleted}
       />
     </StigmerContext.Provider>,
   );
@@ -124,8 +126,8 @@ describe("ChannelAppDetailPanel credentials and delete gates", () => {
   });
 });
 
-describe("ChannelAppDetailPanel delete confirmation", () => {
-  it("asks before deleting, and Keep backs out without deleting", async () => {
+describe("ChannelAppDetailPanel delete dialog", () => {
+  it("asks before deleting, and Cancel backs out without deleting", async () => {
     const deleteApp = vi.fn();
     renderPanel(
       vi.fn(async (_input: CheckMyPermissionInput) => ({ isAuthorized: true })),
@@ -133,12 +135,31 @@ describe("ChannelAppDetailPanel delete confirmation", () => {
     );
 
     fireEvent.click(await screen.findByRole("button", { name: "Delete channel app" }));
-    expect(screen.getByText(/Delete this channel app\?/)).toBeTruthy();
+    const dialog = screen.getByRole("dialog");
+    expect(dialog.textContent).toMatch(/Channels that use it stop answering/);
 
-    fireEvent.click(screen.getByRole("button", { name: "Keep" }));
-    expect(screen.queryByText(/Delete this channel app\?/)).toBeNull();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.getByRole("button", { name: "Delete channel app" })).toBeTruthy();
     expect(deleteApp).not.toHaveBeenCalled();
+  });
+
+  it("says a refused delete in the dialog and deletes nothing more", async () => {
+    const deleteApp = vi.fn(async () => {
+      throw new Error("a channel still installs through this app");
+    });
+    const onDeleted = vi.fn();
+    renderPanel(
+      vi.fn(async (_input: CheckMyPermissionInput) => ({ isAuthorized: true })),
+      deleteApp,
+      onDeleted,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Delete channel app" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete app" }));
+    expect(await within(screen.getByRole("dialog")).findByText(/Couldn't delete/)).toBeTruthy();
+    expect(screen.getByRole("dialog").textContent).toMatch(/still installs through this app/);
+    expect(onDeleted).not.toHaveBeenCalled();
   });
 });
 

@@ -24,6 +24,8 @@ import { PermissionGate } from "../grant/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { Button } from "../button/Button.js";
+import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
+import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -88,23 +90,27 @@ export function ChannelAppDetailPanel({
   onBack,
   className,
 }: ChannelAppDetailPanelProps) {
-  const { deleteApp, isDeleting, error: deleteError } = useDeleteChannelApp();
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const { deleteApp } = useDeleteChannelApp();
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
 
   const appId = channelApp.metadata?.id ?? "";
   const name = channelApp.metadata?.name ?? "";
   const providerCase = channelApp.spec?.providerConfig?.case;
 
-  const handleDelete = useCallback(async () => {
-    try {
-      await deleteApp(appId);
-      onDeleted?.();
-    } catch {
-      // error state is managed by useDeleteChannelApp
-    } finally {
-      setConfirmingDelete(false);
-    }
-  }, [deleteApp, appId, onDeleted]);
+  const askToDelete = useCallback(async () => {
+    const label = name || "this channel app";
+    const deleted = await confirm({
+      title: `Delete ${label}?`,
+      description: "Channels that use it stop answering. The server refuses while a channel still installs through it; disconnect those first.",
+      confirmLabel: "Delete app",
+      variant: "destructive",
+      action: async () => {
+        await deleteApp(appId);
+      },
+      failureTitle: `Couldn't delete ${label}.`,
+    });
+    if (deleted) onDeleted?.();
+  }, [confirm, deleteApp, appId, name, onDeleted]);
 
   return (
     <div className={cn("stg:space-y-5", className)}>
@@ -153,42 +159,17 @@ export function ChannelAppDetailPanel({
         relation="can_delete"
       >
         <section className="stg:border-t stg:border-border stg:pt-3" aria-label="Danger zone">
-          {deleteError && (
-            <p className="stg:text-destructive stg:mb-2 stg:text-2xs" role="alert">
-              {getUserMessage(deleteError)}
-            </p>
-          )}
-          {confirmingDelete ? (
-            <div className="stg:flex stg:items-center stg:gap-2">
-              <p className="stg:text-xs stg:text-foreground">
-                Delete this channel app? Channels installing through it must be
-                disconnected first.
-              </p>
-              <Button
-                variant="destructive"
-                size="xs"
-                onClick={handleDelete}
-                disabled={isDeleting}
-                icon={isDeleting ? <SpinnerIcon size={12} /> : undefined}
-              >
-                Delete
-              </Button>
-              <Button variant="ghost" size="xs" onClick={() => setConfirmingDelete(false)} disabled={isDeleting}>
-                Keep
-              </Button>
-            </div>
-          ) : (
-            <Button
-              variant="ghost"
-              size="xs"
-              onClick={() => setConfirmingDelete(true)}
-              className="stg:text-destructive stg:hover:bg-destructive-subtle"
-            >
-              Delete channel app
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="xs"
+            onClick={() => void askToDelete()}
+            className="stg:text-destructive stg:hover:bg-destructive-subtle"
+          >
+            Delete channel app
+          </Button>
         </section>
       </PermissionGate>
+      <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 }
