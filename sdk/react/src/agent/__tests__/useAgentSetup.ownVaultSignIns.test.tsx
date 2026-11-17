@@ -12,8 +12,10 @@
  * conversation includes it now (signing in includes it), with no
  * permission asked; for a run that never reads My vault, the listed vaults
  * the person may edit, or, when they may edit none, the listed vaults by
- * name, or none when nothing is listed. A permission check that fails is
- * the resolution's error, never "ask someone else".
+ * name, or none when nothing is listed. A My vault the conversation lists
+ * by reference is no vault such a run reads (the server skips it): its
+ * logins count for nothing and it is never offered. A permission check
+ * that fails is the resolution's error, never "ask someone else".
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -255,6 +257,21 @@ describe("useAgentSetup says where a run's owed sign-ins can be saved", () => {
   it("names no vault when the conversation lists none", async () => {
     const { state } = await resolveWith({ mine: vaultWithLogin("mine"), agentOrg: "org_globex" });
     expect(state).toMatchObject({ status: "needsEnvVars", signInVaults: { kind: "nowhere", listed: [] } });
+    expect(asked).toEqual([]);
+  });
+
+  it("neither counts nor offers a My vault the conversation lists, for a run that never reads My vault", async () => {
+    const { state } = await resolveWith({
+      mine: null,
+      shared: vaultWithLogin("mine"),
+      agentOrg: "org_globex",
+      canEdit: true,
+    });
+    expect(state).toMatchObject({
+      status: "needsEnvVars",
+      pendingSignIns: [expect.objectContaining({ address: LINEAR_URL })],
+      signInVaults: { kind: "nowhere", listed: [] },
+    });
     expect(asked).toEqual([]);
   });
 
