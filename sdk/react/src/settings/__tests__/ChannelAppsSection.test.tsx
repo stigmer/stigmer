@@ -10,7 +10,7 @@
  *   - the list asks for the active organization's apps by its slug;
  *   - "New channel app" is offered only with `can_create_channel_app` on
  *     the organization, checked on the organization's id;
- *   - an empty list reads "No channel apps registered yet." to a caller who
+ *   - an empty list reads "No channel apps yet" to a caller who
  *     may create one, and names the organization's admins to a caller the
  *     server has refused;
  *   - in local mode the section asks nothing and shows the cloud notice.
@@ -39,6 +39,7 @@ const stubs = vi.hoisted(() => ({
 
 vi.mock("../../organization/OrgProvider.js", () => ({
   useActiveOrgId: () => "org_acme",
+  useOptionalOrg: () => ({ activeOrg: { metadata: { id: "org_acme", slug: "acme" } } }),
 }));
 vi.mock("../../channel-app/useChannelAppList.js", () => ({
   useChannelAppList: (org: string | null) => {
@@ -141,12 +142,12 @@ describe("ChannelAppsSection", () => {
         "Channel apps are managed by your organization's admins.",
       ),
     ).toBeTruthy();
-    expect(screen.queryByText("No channel apps registered yet.")).toBeNull();
+    expect(screen.queryByText("No channel apps yet")).toBeNull();
 
     cleanup();
     stubs.allowed = new Set(["can_create_channel_app"]);
     renderSection();
-    expect(screen.getByText("No channel apps registered yet.")).toBeTruthy();
+    expect(screen.getByText("No channel apps yet")).toBeTruthy();
   });
 
   it("asks nothing in local mode, where channel installs do not exist", () => {
@@ -165,7 +166,7 @@ describe("ChannelAppsSection", () => {
     expect(
       screen.queryByText("Channel apps are managed by your organization's admins."),
     ).toBeNull();
-    expect(screen.getByText("No channel apps registered yet.")).toBeTruthy();
+    expect(screen.getByText("No channel apps yet")).toBeTruthy();
   });
 
   it("names the open app on the page, with a way back to the list", () => {

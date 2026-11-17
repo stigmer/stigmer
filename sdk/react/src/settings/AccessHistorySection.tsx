@@ -64,7 +64,7 @@ import { SettingsPage } from "./SettingsPage.js";
 import { SettingsSkeleton } from "./SettingsSkeleton.js";
 
 /** Shown in place of the history to a caller who may not read it. */
-const READ_BY_ADMINS = "The access history is read by your organization's owners and admins.";
+const READ_BY_ADMINS = "Your organization's owners and admins read who was given or lost access.";
 
 /** Settings section for an organization's access history. */
 export function AccessHistorySection() {
@@ -96,7 +96,7 @@ export function AccessHistorySection() {
       denied={
         readCheck.isLoading || readCheck.allowed
           ? false
-          : { title: "Only an admin can open Access history", description: READ_BY_ADMINS }
+          : { title: "Only an owner or admin can open Access history", description: READ_BY_ADMINS }
       }
     >
       {!orgId ? (

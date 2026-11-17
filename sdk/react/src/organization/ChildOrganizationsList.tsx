@@ -10,6 +10,9 @@ import { useChildOrganizations } from "./useChildOrganizations.js";
 import { useOptionalOrg } from "./OrgProvider.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Button } from "../button/Button.js";
+import { Table } from "../internal/surface/Table.js";
+import { Tag } from "../internal/surface/Tag.js";
+import { FieldError } from "../internal/form/Field.js";
 
 /** Props for {@link ChildOrganizationsList}. */
 export interface ChildOrganizationsListProps {
@@ -81,10 +84,10 @@ export function ChildOrganizationsList({
 
   return (
     <section aria-labelledby={headingId} className={cn("stg:mt-8", className)}>
-      <h3 id={headingId} className="stg:text-foreground stg:mb-1 stg:text-xs stg:font-semibold">
-        Child organizations
+      <h3 id={headingId} className="stg:m-0 stg:mb-1 stg:flex stg:items-center stg:gap-2 stg:text-sm stg:font-semibold stg:text-foreground">
+        Child organizations <Tag>{children.length}</Tag>
       </h3>
-      <p className="stg:text-muted-foreground stg:mb-3 stg:text-xs">
+      <p className="stg:m-0 stg:mb-3 stg:text-xs stg:text-muted-foreground">
         Organizations under this one. This organization&apos;s admins are admins in each of them, as their own
         admins are; each person&apos;s conversations, My vault and memories stay private to them.
         {setActiveOrg && " Open one to work in it as its admin."}
@@ -92,49 +95,44 @@ export function ChildOrganizationsList({
       {error !== null ? (
         <ErrorMessage error={error} title="Couldn't load the child organizations." retry={refetch} />
       ) : (
-        <table className="stg:w-full stg:text-left stg:text-xs">
-          <thead className="stg:text-muted-foreground">
-            <tr>
-              <th scope="col" className="stg:py-1.5 stg:font-medium">Name</th>
-              <th scope="col" className="stg:py-1.5 stg:font-medium">Slug</th>
-              <th scope="col" className="stg:py-1.5 stg:font-medium">External id</th>
-              {setActiveOrg && (
-                <th scope="col" className="stg:py-1.5">
-                  <span className="stg:sr-only">Actions</span>
-                </th>
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {children.map((child) => (
-              <tr key={child.metadata?.id} className="stg:border-t stg:border-border">
-                <td className="stg:py-1.5 stg:text-foreground">{child.metadata?.name}</td>
-                <td className="stg:py-1.5 stg:font-mono stg:text-foreground">{child.metadata?.slug}</td>
-                <td className="stg:py-1.5 stg:font-mono stg:text-muted-foreground">
-                  {child.spec?.externalId || "—"}
-                </td>
-                {setActiveOrg && (
-                  <td className="stg:py-1.5 stg:text-right">
-                    <Button
-                      variant="ghost"
-                      size="xs"
-                      onClick={() => open(child)}
-                      aria-label={`Open ${child.metadata?.name || child.metadata?.slug || "organization"}`}
-                    >
-                      Open
-                    </Button>
-                  </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Table
+          aria-labelledby={headingId}
+          rows={children}
+          rowKey={(child) => child.metadata?.id ?? ""}
+          columns={[
+            {
+              id: "name",
+              header: "Name",
+              cell: (child) => <span className="stg:font-medium">{child.metadata?.name}</span>,
+            },
+            {
+              id: "slug",
+              header: "Slug",
+              cell: (child) => <span className="stg:font-mono">{child.metadata?.slug}</span>,
+            },
+            {
+              id: "external-id",
+              header: "External id",
+              cell: (child) => <span className="stg:font-mono stg:text-muted-foreground">{child.spec?.externalId || "—"}</span>,
+            },
+          ]}
+          rowAction={
+            setActiveOrg
+              ? (child) => (
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => open(child)}
+                    aria-label={`Open ${child.metadata?.name || child.metadata?.slug || "organization"}`}
+                  >
+                    Open
+                  </Button>
+                )
+              : undefined
+          }
+        />
       )}
-      {loadMoreError !== null && (
-        <p className="stg:text-destructive stg:mt-2 stg:text-xs" role="alert">
-          {getUserMessage(loadMoreError)}
-        </p>
-      )}
+      {loadMoreError !== null && <FieldError className="stg:mt-2">{getUserMessage(loadMoreError)}</FieldError>}
       {hasMore && (
         <Button variant="ghost" size="xs" onClick={loadMore} disabled={isLoadingMore} className="stg:mt-2">
           {isLoadingMore ? "Loading…" : "Load more"}

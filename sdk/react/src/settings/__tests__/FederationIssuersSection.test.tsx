@@ -8,9 +8,9 @@
  *
  *   - where the edition does not serve federation issuers (open source)
  *     the section says so and never asks for a list;
- *   - "New federation issuer" is offered only with `can_create_federation_issuer` on the
+ *   - "New issuer" is offered only with `can_create_federation_issuer` on the
  *     organization, checked on the organization's id;
- *   - an empty list reads "No federation issuers configured." to a caller
+ *   - an empty list reads "No federation issuers yet" to a caller
  *     who may create one, and names the organization's admins to a caller
  *     the server has refused;
  *   - a provider row offers edit only with `can_edit` and delete only with
@@ -140,19 +140,19 @@ describe("FederationIssuersSection", () => {
     expect(screen.getByText(/Federation issuers come with Stigmer Enterprise and Cloud/)).toBeTruthy();
     // The list panel is never mounted, so the list hook is never called.
     expect(stubs.listedOrg).toBeUndefined();
-    expect(screen.queryByRole("button", { name: /New federation issuer/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /New issuer/ })).toBeNull();
   });
 
-  it("offers New federation issuer only with can_create_federation_issuer on the organization", () => {
+  it("offers New issuer only with can_create_federation_issuer on the organization", () => {
     renderSection("cloud");
-    expect(screen.queryByRole("button", { name: /New federation issuer/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /New issuer/ })).toBeNull();
     expect(stubs.checked).toContainEqual(["organization", "org_acme", "can_create_federation_issuer"]);
 
     cleanup();
     stubs.allowed = new Set(["can_create_federation_issuer"]);
     renderSection("cloud");
     // The header offers it, and so does the empty list.
-    expect(screen.getAllByRole("button", { name: /New federation issuer/ })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: /New issuer/ })).toHaveLength(2);
   });
 
   it("names the organization's admins, not an empty configuration, to a caller who may not create providers", () => {
@@ -161,12 +161,12 @@ describe("FederationIssuersSection", () => {
     expect(
       screen.getByText("Federation issuers are managed by your organization's admins."),
     ).toBeTruthy();
-    expect(screen.queryByText("No federation issuers configured.")).toBeNull();
+    expect(screen.queryByText("No federation issuers yet")).toBeNull();
 
     cleanup();
     stubs.allowed = new Set(["can_create_federation_issuer"]);
     renderSection("cloud");
-    expect(screen.getByText("No federation issuers configured.")).toBeTruthy();
+    expect(screen.getByText("No federation issuers yet")).toBeTruthy();
   });
 
   it("offers edit and delete on a provider row only with can_edit and can_delete on it", () => {
@@ -209,6 +209,6 @@ describe("FederationIssuersSection", () => {
     expect(
       screen.queryByText("Federation issuers are managed by your organization's admins."),
     ).toBeNull();
-    expect(screen.getByText("No federation issuers configured.")).toBeTruthy();
+    expect(screen.getByText("No federation issuers yet")).toBeTruthy();
   });
 });

@@ -295,7 +295,7 @@ describe("OrgMembersPanel and service accounts", () => {
     expect(screen.queryByRole("button", { name: "Remove ci-deploy" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Change ci-deploy's role" })).toBeNull();
     expect(
-      screen.getByRole("link", { name: "Manage service accounts" }).getAttribute("href"),
+      screen.getByRole("link", { name: "Service accounts" }).getAttribute("href"),
     ).toBe("/settings/service-accounts");
   });
 
@@ -303,7 +303,7 @@ describe("OrgMembersPanel and service accounts", () => {
     state.members = [serviceAccount("ida_sa_ci", "ci-deploy")];
     render(<OrgMembersPanel org="acme" serviceAccountsHref="#/settings/service-accounts" />);
     expect(
-      screen.getByRole("link", { name: "Manage service accounts" }).getAttribute("href"),
+      screen.getByRole("link", { name: "Service accounts" }).getAttribute("href"),
     ).toBe("#/settings/service-accounts");
     expect(screen.getByText("No members yet")).toBeTruthy();
   });
@@ -312,6 +312,9 @@ describe("OrgMembersPanel and service accounts", () => {
     state.members = [member("ida_dave", "Dave", "member")];
     render(<OrgMembersPanel org="acme" />);
     expect(screen.queryByRole("button", { name: SERVICE_ACCOUNT_GROUP })).toBeNull();
+    // Where they would be is said all the same.
+    expect(screen.getByText(/Service accounts hold roles too; they.re listed under/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Service accounts" }).getAttribute("href")).toBe("/settings/service-accounts");
   });
 });
 

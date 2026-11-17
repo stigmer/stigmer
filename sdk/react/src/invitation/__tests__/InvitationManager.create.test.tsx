@@ -33,7 +33,7 @@ describe("InvitationManager create form", () => {
       throw new Error("unused");
     });
 
-    fireEvent.click(await screen.findByRole("button", { name: "+ Create invite link" }));
+    fireEvent.click((await screen.findAllByRole("button", { name: "New invite link" }))[0]!);
 
     const unlimited = screen.getByRole("radio", { name: /Unlimited/ });
     const single = screen.getByRole("radio", { name: /Single use/ });
@@ -48,7 +48,7 @@ describe("InvitationManager create form", () => {
     });
     renderManager(createInvitation);
 
-    fireEvent.click(await screen.findByRole("button", { name: "+ Create invite link" }));
+    fireEvent.click((await screen.findAllByRole("button", { name: "New invite link" }))[0]!);
     fireEvent.click(screen.getByRole("button", { name: "Create invite link" }));
 
     const alert = await screen.findByRole("alert");

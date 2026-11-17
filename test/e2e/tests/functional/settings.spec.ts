@@ -107,7 +107,7 @@ test.describe("Settings index", () => {
       page.getByRole("heading", { name: "Configuration" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: /Billing & Usage/ }),
+      page.getByRole("heading", { name: "Billing and usage" }),
     ).toBeVisible();
   });
 
@@ -119,7 +119,7 @@ test.describe("Settings index", () => {
     const sidebar = page.getByLabel("Management navigation");
     await expect(sidebar).toBeVisible({ timeout: 15_000 });
 
-    await expect(sidebar.getByRole("link", { name: "API Keys" })).toBeVisible();
+    await expect(sidebar.getByRole("link", { name: "API keys" })).toBeVisible();
     await expect(
       sidebar.getByRole("link", { name: "Vaults" }),
     ).toBeVisible();

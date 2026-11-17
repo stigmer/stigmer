@@ -29,7 +29,7 @@ type FlowState =
  * Settings section for configuring OIDC federation issuers: the other
  * platforms whose tokens the organization trusts.
  *
- * "New federation issuer" is offered once the server confirms the caller
+ * "New issuer" is offered once the server confirms the caller
  * holds `can_create_federation_issuer` on the organization. The list shows only the
  * issuers the caller may view, so a caller who may not create issuers
  * is told that the organization's admins manage them rather than that none
@@ -40,6 +40,7 @@ export function FederationIssuersSection() {
   const issuerAvailable = useResourceAvailable(ApiResourceKind.federation_issuer);
   // Requests name the org by its id.
   const orgId = activeOrg?.metadata?.id ?? "";
+  const orgName = activeOrg?.metadata?.slug || "this organization";
   const createCheck = useCheckPermission(
     issuerAvailable && orgId ? { kind: "organization", id: orgId } : null,
     "can_create_federation_issuer",
@@ -81,7 +82,7 @@ export function FederationIssuersSection() {
         canCreate &&
         flow.phase === "idle" && (
           <Button size="sm" onClick={startCreate}>
-            New federation issuer
+            New issuer
           </Button>
         )
       }
@@ -107,9 +108,13 @@ export function FederationIssuersSection() {
           org={orgId}
           onEdit={(issuer) => setFlow({ phase: "editing", federationIssuer: issuer })}
           onRefetchRef={handleRefetchRef}
-          emptyState={deniedCreate ? FEDERATION_ISSUERS_MANAGED_BY_ADMINS : undefined}
-          emptyDescription={deniedCreate ? ASK_AN_ADMIN : undefined}
-          emptyAction={canCreate ? { label: "New federation issuer", onClick: startCreate } : undefined}
+          emptyState={deniedCreate ? FEDERATION_ISSUERS_MANAGED_BY_ADMINS : "No federation issuers yet"}
+          emptyDescription={
+            deniedCreate
+              ? ASK_AN_ADMIN
+              : `Add one when another platform signs people in to ${orgName} for you, such as the platform that manages it.`
+          }
+          emptyAction={canCreate ? { label: "New issuer", onClick: startCreate } : undefined}
         />
       )}
     </SettingsPage>

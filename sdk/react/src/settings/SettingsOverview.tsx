@@ -1,9 +1,10 @@
 "use client";
 
-// The settings landing: every group of the settings navigation as a card,
-// its pages as links, inside the same frame every settings page opens with.
-// The web console and the desktop app both draw it, so the landing cannot
-// drift between them; each host passes only its router's link through
+// The settings landing: every group of the settings navigation as a list of
+// rows, each page's name in the case its own title spells it and one line on
+// what it is for, inside the same frame every settings page opens with. The
+// web console and the desktop app both draw it, so the landing cannot drift
+// between them; each host passes only its router's link through
 // `renderLink`, the seam `SettingsSidebar` already takes.
 //
 // It draws what `groups` says, defaulting to `useSettingsNavGroups()`, so a
@@ -11,10 +12,13 @@
 // never offered here either.
 
 import type { ReactElement } from "react";
-import { cn } from "@stigmer/design-tokens";
-import { Card } from "../internal/surface/Card.js";
+import { ChevronRight } from "lucide-react";
+import { List, ListRow } from "../internal/surface/List.js";
+import type { RenderLink } from "../button/LinkButton.js";
+import { useOptionalOrg } from "../organization/OrgProvider.js";
+import { useSingleOrg } from "../server-info.js";
 import type { RenderSidebarLink } from "../sidebar/types.js";
-import type { SettingsNavGroup } from "./settings-nav.js";
+import type { SettingsNavGroup, SettingsNavItem } from "./settings-nav.js";
 import { SettingsPage } from "./SettingsPage.js";
 import { useSettingsNavGroups } from "./useSettingsNavGroups.js";
 
@@ -31,15 +35,9 @@ export interface SettingsOverviewProps {
   readonly className?: string;
 }
 
-const LINK_CLASS = cn(
-  "stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:px-2 stg:py-1.5 stg:text-sm stg:font-medium stg:text-foreground stg:no-underline",
-  "stg:transition-colors stg:hover:bg-accent-hover",
-  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-);
-
 /**
- * The settings landing: each settings group, what it holds, and a link to
- * each of its pages.
+ * The settings landing: each settings group as a list of its pages, each
+ * with the line that says what it is for, the row a link to the page.
  *
  * @example
  * ```tsx
@@ -61,6 +59,11 @@ function PermissionAwareOverview({ renderLink, className }: { readonly renderLin
   return <OverviewBody groups={groups} renderLink={renderLink} className={className} />;
 }
 
+/** A page's line, with `{org}` read as the active organization's slug. */
+export function settingsNavDescription(item: SettingsNavItem, orgSlug: string | undefined): string | undefined {
+  return item.description?.replaceAll("{org}", orgSlug || "this organization");
+}
+
 function OverviewBody({
   groups,
   renderLink,
@@ -70,40 +73,47 @@ function OverviewBody({
   readonly renderLink: RenderSidebarLink;
   readonly className?: string;
 }): ReactElement {
+  // A server that holds one organization never names it.
+  const singleOrg = useSingleOrg();
+  const activeSlug = useOptionalOrg()?.activeOrg?.metadata?.slug;
+  const orgSlug = singleOrg === false ? activeSlug : undefined;
   return (
     <SettingsPage
       title="Settings"
       description="Your organization, how it is set up, what it costs, and your own account."
       className={className}
     >
-      <div className="stg:grid stg:gap-4 stg:md:grid-cols-2">
+      <div className="stg:flex stg:flex-col stg:gap-6">
         {groups.map((group) => (
-          <Card key={group.label} className="stg:flex stg:flex-col stg:gap-3">
-            <div className="stg:flex stg:flex-col stg:gap-1 stg:px-2">
-              <h3 className="stg:m-0 stg:text-sm stg:font-semibold stg:text-foreground">{group.label}</h3>
-              <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">{group.description}</p>
-            </div>
-            <ul className="stg:m-0 stg:grid stg:list-none stg:grid-cols-1 stg:gap-0.5 stg:p-0 stg:sm:grid-cols-2">
-              {group.items.map((item) => (
-                <li key={item.href}>
-                  {renderLink({
-                    // Route basename as the stable id, as the sidebar names its rows.
+          <section key={group.label} className="stg:flex stg:flex-col stg:gap-2">
+            <h3 className="stg:m-0 stg:text-sm stg:font-semibold stg:text-foreground">{group.label}</h3>
+            <List aria-label={group.label}>
+              {group.items.map((item) => {
+                // The row's name is the link; the sidebar's link seam draws it,
+                // with the route basename as its stable id.
+                const link: RenderLink = ({ href, className: linkClass, children }) =>
+                  renderLink({
                     id: item.href.slice(item.href.lastIndexOf("/") + 1),
-                    href: item.href,
+                    href,
                     active: false,
-                    className: LINK_CLASS,
+                    className: linkClass,
                     "aria-current": undefined,
-                    children: (
-                      <>
-                        <item.icon className="stg:size-4 stg:shrink-0 stg:text-muted-foreground" aria-hidden="true" />
-                        {item.label}
-                      </>
-                    ),
-                  })}
-                </li>
-              ))}
-            </ul>
-          </Card>
+                    children,
+                  });
+                return (
+                  <ListRow
+                    key={item.href}
+                    href={item.href}
+                    renderLink={link}
+                    leading={<item.icon className="stg:size-4 stg:shrink-0 stg:text-muted-foreground" aria-hidden="true" />}
+                    name={item.label}
+                    description={settingsNavDescription(item, orgSlug)}
+                    trailing={<ChevronRight className="stg:size-4 stg:shrink-0 stg:text-muted-foreground" aria-hidden="true" />}
+                  />
+                );
+              })}
+            </List>
+          </section>
         ))}
       </div>
     </SettingsPage>
