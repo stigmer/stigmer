@@ -40,6 +40,11 @@
  * runs each try with a scratch home, and the shim keeps the CLI's config in
  * the stage.
  *
+ * The run's output (`--out`, by default coding-agents/.bank-results/<time>/)
+ * holds Claude Code's result and report, every try's trace under traces/
+ * (what a reader needs to tell a skill that did not fire from one that did
+ * not know), and the per-job summary.
+ *
  * Usage: lib/coding-agent-bank.mjs, USAGE (`--help` prints it).
  * Needs `claude` signed in, and `make build-libs build-server build-runner`
  * with the coding-agent plugin built (`npm run build -w
@@ -47,9 +52,9 @@
  */
 
 import { execFileSync, spawn } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, relative } from "node:path";
+import { dirname, join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { anthropicText, anthropicToolUse } from "../support/src/llm-wire.ts";
@@ -66,6 +71,7 @@ import {
   selectCases,
   spreadBetween,
   summarizeResult,
+  tracePlan,
 } from "./lib/coding-agent-bank.mjs";
 import { isTitleCall } from "./lib/fake-model.mjs";
 import { stageBuildPaths, startHermeticStage } from "./lib/hermetic-stage.mjs";
@@ -157,16 +163,41 @@ function installPackedCli(dir, packDir) {
   return `'${process.execPath}' '${entry}'`;
 }
 
-/** The plugin as a release publishes it, with the bank as its evals/ (the fixture left out). */
-function stagePlugin(dir) {
+/** The plugin as a release publishes it, with the selected cases as its evals/ (the fixture and every other case left out). */
+function stagePlugin(dir, selected) {
   cpSync(builtPlugin, dir, { recursive: true });
-  cpSync(evalsDir, join(dir, "evals"), {
-    recursive: true,
-    filter: (source) => {
-      const rel = relative(evalsDir, source);
-      return rel === "" || !(rel.startsWith("_") || rel.startsWith(".") || rel === "results" || rel.startsWith("results/"));
-    },
-  });
+  for (const c of selected) cpSync(join(evalsDir, c.dir), join(dir, "evals", c.dir), { recursive: true });
+}
+
+/**
+ * Each try's trace, copied into the run's output (`traces/`), and each kept
+ * try folder removed: `claude plugin eval --keep-temp` seals what the plugin
+ * wrote there (mode 000), so the folder is opened before it is removed.
+ */
+function collectTraces(result, out) {
+  let copied = 0;
+  for (const { from, to, keptDir } of tracePlan(result)) {
+    try {
+      chmodTree(keptDir);
+      mkdirSync(dirname(join(out, to)), { recursive: true });
+      cpSync(from, join(out, to));
+      copied += 1;
+    } catch (error) {
+      log(`no trace for ${to}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    rmSync(keptDir, { recursive: true, force: true });
+  }
+  return copied;
+}
+
+/** Opens a kept try folder and everything in it for its owner, so it can be read and removed. */
+function chmodTree(dir) {
+  if (!existsSync(dir)) return;
+  chmodSync(dir, 0o700);
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory() && !entry.isSymbolicLink()) chmodTree(path);
+  }
 }
 
 async function main() {
@@ -196,7 +227,7 @@ async function main() {
     const binDir = join(root, "bin");
     const cliCommand = installPackedCli(join(binDir, "cli"), join(root, "packs"));
     const pluginDir = join(root, "plugin");
-    stagePlugin(pluginDir);
+    stagePlugin(pluginDir, selected);
     stage = await startHermeticStage({
       scratch: root,
       audience: AUDIENCE,
@@ -223,7 +254,9 @@ async function main() {
     check([0, 1, 2].includes(evaluation.status ?? -1), `claude plugin eval exited ${evaluation.status}`);
     check(existsSync(resultPath), `claude plugin eval wrote no result at ${resultPath}`);
 
-    const summary = summarizeResult(JSON.parse(readFileSync(resultPath, "utf8")));
+    const result = JSON.parse(readFileSync(resultPath, "utf8"));
+    log(`${collectTraces(result, out)} tries' traces kept in ${join(out, "traces")}`);
+    const summary = summarizeResult(result);
     writeFileSync(join(out, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`);
     const table = renderSummary(summary);
     writeFileSync(join(out, "summary.md"), `${table}\n`);

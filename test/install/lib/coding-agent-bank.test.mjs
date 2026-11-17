@@ -36,6 +36,7 @@ import {
   selectCases,
   spreadBetween,
   summarizeResult,
+  tracePlan,
 } from "./coding-agent-bank.mjs";
 import { SANDBOX_HOME, stageShim } from "./hermetic-stage.mjs";
 import { connectRequest, isLoopback, proxyFromEnv } from "./loopback-through-proxy.mjs";
@@ -77,8 +78,8 @@ test("the eval command grants the shell, the web, the plugin's tools and the fix
   assert.equal(after("--judge-model"), DEFAULT_MODEL);
   assert.equal(after("--runs"), "2");
   assert.equal(after("--ablation"), "with-without");
-  assert.equal(after("--tag"), "admin");
-  assert.equal(after("--case"), "delete-*");
+  assert.ok(argv.includes("--keep-temp"), "each try's trace is kept for the run's output");
+  assert.ok(!argv.includes("--tag") && !argv.includes("--case"), "the selection is the staged cases, never the runner's own glob");
   assert.equal(after("--json"), "/o/result.json");
   assert.equal(evalArgs(parseBankArgs(["--with-only"]), { pluginDir: "p", resultPath: "r", outputDir: "o", reportPath: "h" })[evalArgs(parseBankArgs(["--with-only"]), { pluginDir: "p", resultPath: "r", outputDir: "o", reportPath: "h" }).indexOf("--ablation") + 1], "none");
 });
@@ -175,6 +176,22 @@ test("the summary counts a case passed only when every try passed, per job in th
   assert.match(table, /\| \*\*all\*\* \| 4 \| 2\/4 \| 1\/4 \|/);
   assert.match(table, /\$1\.23 API-equivalent, 10 min/);
   assert.ok(JOBS.length === 10 && JOBS.includes("own-server"));
+});
+
+test("every try's trace is planned into traces/<job>/<case>/<arm>-<n>.jsonl, its kept folder beside it", () => {
+  const plan = tracePlan({
+    cases: [
+      {
+        name: "who-pays",
+        dir: "evals/deciding/who-pays",
+        arms: { with: [{ tracePath: "/tmp/e-A/out/trace.jsonl" }, { tracePath: null }], without: [{ tracePath: "/tmp/e-B/out/trace.jsonl" }] },
+      },
+    ],
+  });
+  assert.deepEqual(plan, [
+    { from: "/tmp/e-A/out/trace.jsonl", to: "traces/deciding/who-pays/with-1.jsonl", keptDir: "/tmp/e-A" },
+    { from: "/tmp/e-B/out/trace.jsonl", to: "traces/deciding/who-pays/without-1.jsonl", keptDir: "/tmp/e-B" },
+  ]);
 });
 
 test("two with-plugin readings are compared per job, and a spread of more than one case is noisy", () => {

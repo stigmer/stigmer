@@ -56,7 +56,7 @@ job. Needs \`claude\` signed in and \`make build-libs build-server build-runner\
 
   --tag=<job>          only the cases tagged <job> (repeatable; ${JOBS.join(", ")}, ${ACTS_TAG})
   --case=<glob>        only the cases whose name matches <glob> (* matches anything,
-                       {a,b} either name)
+                       {a,b} either name; quote it from a shell)
   --runs=<n>           tries per case per arm (default ${DEFAULT_RUNS})
   --model=<id>         the coding agent's model (default ${DEFAULT_MODEL})
   --judge-model=<id>   the llm graders' model (default: --model's)
@@ -207,7 +207,14 @@ export function selectCases(cases, { tags = [], caseGlob } = {}) {
   return cases.filter((c) => (tags.length === 0 || c.tags.some((tag) => tags.includes(tag))) && (caseGlob === undefined || globMatches(caseGlob, c.name)));
 }
 
-/** The `claude plugin eval` argument list for a run over the staged plugin at `pluginDir`. */
+/**
+ * The `claude plugin eval` argument list for a run over the staged plugin at
+ * `pluginDir`. The selection is made by staging only the selected cases
+ * (coding-agent-bank.mjs), never by `--tag`/`--case`, so it cannot depend
+ * on how a shell or the eval runner reads a glob. `--keep-temp` keeps each
+ * try's folder, from which the runner copies the try's trace into the run's
+ * output and then removes it.
+ */
 export function evalArgs(args, { pluginDir, resultPath, outputDir, reportPath }) {
   return [
     "plugin",
@@ -215,6 +222,7 @@ export function evalArgs(args, { pluginDir, resultPath, outputDir, reportPath })
     pluginDir,
     "--trust-plugin",
     "--scaffold",
+    "--keep-temp",
     "--allow-real-servers",
     "--allow-tools",
     ...TOOL_GRANTS,
@@ -230,8 +238,6 @@ export function evalArgs(args, { pluginDir, resultPath, outputDir, reportPath })
     String(args.concurrency),
     "--ablation",
     args.withOnly ? "none" : "with-without",
-    ...args.tags.flatMap((tag) => ["--tag", tag]),
-    ...(args.caseGlob === undefined ? [] : ["--case", args.caseGlob]),
     "--json",
     resultPath,
     "--output-dir",
@@ -311,6 +317,31 @@ export function fixtureScript({ isTitleCall, anthropicText, anthropicToolUse }) 
       repeat: true,
     },
   ];
+}
+
+/**
+ * Where each try's trace goes in the run's output, and the try's kept
+ * folder to remove after: `{ from, to, keptDir }` per try, `to` relative to
+ * the output (`traces/<job>/<case>/<arm>-<n>.jsonl`). A try with no trace
+ * (one the ceiling skipped) is left out.
+ */
+export function tracePlan(result) {
+  const plan = [];
+  for (const caseResult of result.cases ?? []) {
+    for (const arm of ["with", "without"]) {
+      (caseResult.arms?.[arm] ?? []).forEach((run, i) => {
+        if (typeof run.tracePath !== "string" || run.tracePath === "") return;
+        const parts = run.tracePath.split("/");
+        plan.push({
+          from: run.tracePath,
+          to: `traces/${jobOf(caseResult)}/${caseResult.name}/${arm}-${i + 1}.jsonl`,
+          // <kept>/out/trace.jsonl: the try's folder is two levels up.
+          keptDir: parts.slice(0, -2).join("/"),
+        });
+      });
+    }
+  }
+  return plan;
 }
 
 /** The job of a result's case, from its `dir` (`evals/<job>/<case>`, or `<job>/<case>`). */
