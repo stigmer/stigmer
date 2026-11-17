@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clone, create } from "@bufbuild/protobuf";
 import {
   OAuthAppSchema,
@@ -179,5 +179,34 @@ describe("OAuthAppDetailPanel rename", () => {
 
     await waitFor(() => expect(onUpdated).toHaveBeenCalledWith(renamed), { timeout: 5000 });
     expect(rename.mock.calls[0]).toEqual([expect.objectContaining({ resourceId: APP.metadata?.id, slug: "renamed-slug" })]);
+  });
+});
+
+describe("OAuthAppDetailPanel delete", () => {
+  it("asks in a dialog, says a refusal there, and deletes on Try again", async () => {
+    const remove = vi.fn().mockRejectedValueOnce(new Error("the server did not answer")).mockResolvedValue(APP);
+    const onDeleted = vi.fn();
+    const client = {
+      oauthapp: { update: vi.fn(), delete: remove },
+      grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: true })) },
+    } as never;
+    render(
+      <StigmerContext.Provider value={client}>
+        <OAuthAppDetailPanel oauthApp={APP} onDeleted={onDeleted} />
+      </StigmerContext.Provider>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Delete" }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByRole("heading", { name: "Delete github?" })).toBeTruthy();
+    expect(remove).not.toHaveBeenCalled();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete app" }));
+    expect(await within(dialog).findByText("Couldn't delete github.")).toBeTruthy();
+    expect(onDeleted).not.toHaveBeenCalled();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(onDeleted).toHaveBeenCalledTimes(1));
+    expect(remove).toHaveBeenCalledWith({ resourceId: "oa-1" });
   });
 });

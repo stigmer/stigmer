@@ -17,6 +17,8 @@ import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { parseAddressList } from "./addresses.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { Button } from "../button/Button.js";
+import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
+import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { FIELD_LABEL_CLASSES, FieldError, Select, TextInput } from "../internal/form/index.js";
 
 // ---------------------------------------------------------------------------
@@ -53,8 +55,8 @@ export interface OAuthAppDetailPanelProps {
  * update via {@link useUpdateOAuthApp}; "Cancel" discards changes
  * and returns to view mode.
  *
- * Delete uses an inline confirmation pattern (no modal) to avoid
- * portal/z-index issues for SDK embedders.
+ * Delete asks in a confirm dialog that runs the delete, holds Cancel
+ * while it works, and says a refusal inside the dialog.
  *
  * All visual properties flow through `--stgm-*` design tokens.
  *
@@ -83,11 +85,10 @@ export function OAuthAppDetailPanel({
 
   const { update, isUpdating, error: updateError, clearError: clearUpdateError } =
     useUpdateOAuthApp();
-  const { deleteApp, isDeleting, error: deleteError, clearError: clearDeleteError } =
-    useDeleteOAuthApp();
+  const { deleteApp } = useDeleteOAuthApp();
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
 
   const [mode, setMode] = useState<"view" | "edit">("view");
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   // Edit form state — initialized from current resource
   const [provider, setProvider] = useState(spec?.provider ?? "");
@@ -186,18 +187,22 @@ export function OAuthAppDetailPanel({
     ],
   );
 
-  const handleDelete = useCallback(async () => {
+  const appName = spec?.provider || meta?.name || "this OAuth app";
+  const askToDelete = useCallback(async () => {
     const id = meta?.id;
     if (!id) return;
-
-    clearDeleteError();
-    try {
-      await deleteApp(id);
-      onDeleted?.();
-    } catch {
-      // error state is managed by useDeleteOAuthApp
-    }
-  }, [meta, deleteApp, clearDeleteError, onDeleted]);
+    const deleted = await confirm({
+      title: `Delete ${appName}?`,
+      description: "Sign-ins that use it go back to Stigmer's own app, if there is one. MCP servers set to use it lose that setting.",
+      confirmLabel: "Delete app",
+      variant: "destructive",
+      action: async () => {
+        await deleteApp(id);
+      },
+      failureTitle: `Couldn't delete ${appName}.`,
+    });
+    if (deleted) onDeleted?.();
+  }, [meta, appName, confirm, deleteApp, onDeleted]);
 
   const canSave =
     provider.trim() !== "" &&
@@ -253,10 +258,7 @@ export function OAuthAppDetailPanel({
               <Button
                 variant="ghost"
                 size="xs"
-                onClick={() => {
-                  clearDeleteError();
-                  setConfirmingDelete(true);
-                }}
+                onClick={() => void askToDelete()}
                 className="stg:text-destructive-muted stg:hover:text-destructive stg:hover:bg-destructive-subtle"
               >
                 Delete
@@ -277,48 +279,7 @@ export function OAuthAppDetailPanel({
         />
       )}
 
-      {/* Inline delete confirmation */}
-      {confirmingDelete && (
-        <div
-          className="stg:rounded-md stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:p-3"
-          role="alert"
-        >
-          <p className="stg:text-foreground stg:mb-2 stg:text-xs stg:font-medium">
-            Delete this OAuth app?
-          </p>
-          <p className="stg:text-muted-foreground stg:mb-3 stg:text-2xs">
-            This action is permanent. Any MCP server overrides referencing
-            this app will lose their binding.
-          </p>
-          {deleteError && (
-            <FieldError className="stg:mb-2">
-              {getUserMessage(deleteError)}
-            </FieldError>
-          )}
-          <div className="stg:flex stg:items-center stg:gap-2">
-            <Button
-              variant="destructive"
-              size="xs"
-              onClick={handleDelete}
-              disabled={isDeleting}
-              icon={isDeleting ? <SpinnerIcon size={12} /> : undefined}
-            >
-              Delete permanently
-            </Button>
-            <Button
-              variant="ghost"
-              size="xs"
-              onClick={() => {
-                setConfirmingDelete(false);
-                clearDeleteError();
-              }}
-              disabled={isDeleting}
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
 
       {/* Body */}
       {mode === "view" ? (
