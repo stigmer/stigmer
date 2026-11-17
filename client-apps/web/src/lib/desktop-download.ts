@@ -9,11 +9,16 @@
  * unknown, no matching asset), the user sees a failure-specific toast with an
  * action button linking to the marketing site download page. No forced
  * redirects, no popup-blocker risk from async window.open calls.
+ *
+ * Before the shell's Desktop banner offers a download at all, it asks
+ * {@link hasDesktopInstaller} whether the latest release has an installer
+ * for this platform; the answer is remembered in this browser for a day, so
+ * the console does not ask GitHub on every page (stigmer#3194).
  */
 
 import { toast } from "sonner";
 import { EXTERNAL_LINKS } from "@/config/external-links";
-import { DOWNLOADED_KEY } from "@/domain/_shared/layout/DesktopAppBanner";
+import { DOWNLOADED_KEY, INSTALLER_KEY } from "@/lib/desktop-keys";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -213,6 +218,88 @@ export function findAssetForPlatform(
   if (matches.length === 1) return matches[0];
 
   return matches.find((a) => a.filename.endsWith(".deb")) ?? matches[0];
+}
+
+// ---------------------------------------------------------------------------
+// Whether this platform has an installer (remembered for a day)
+// ---------------------------------------------------------------------------
+
+/** How long a remembered installer answer holds before the release API is asked again. */
+export const INSTALLER_ANSWER_TTL_MS = 24 * 60 * 60 * 1000;
+
+interface InstallerAnswer {
+  installer: boolean;
+  /** When the release API was asked, in epoch milliseconds. */
+  checkedAt: number;
+}
+
+// The answer for a browser whose storage is blocked: this page load only.
+let installerAnswerInMemory: InstallerAnswer | null = null;
+let installerQuestion: Promise<boolean> | null = null;
+
+function isInstallerAnswer(value: unknown): value is InstallerAnswer {
+  if (typeof value !== "object" || value === null) return false;
+  const { installer, checkedAt } = value as Record<string, unknown>;
+  return typeof installer === "boolean" && typeof checkedAt === "number";
+}
+
+function isFresh(answer: InstallerAnswer, now: number): boolean {
+  const age = now - answer.checkedAt;
+  return age >= 0 && age < INSTALLER_ANSWER_TTL_MS;
+}
+
+function readInstallerAnswer(now: number): InstallerAnswer | null {
+  try {
+    const raw = localStorage.getItem(INSTALLER_KEY);
+    if (raw) {
+      const parsed: unknown = JSON.parse(raw);
+      if (isInstallerAnswer(parsed) && isFresh(parsed, now)) return parsed;
+    }
+  } catch {
+    /* storage blocked, or a value that is not ours: ask again */
+  }
+  return installerAnswerInMemory && isFresh(installerAnswerInMemory, now)
+    ? installerAnswerInMemory
+    : null;
+}
+
+function rememberInstallerAnswer(answer: InstallerAnswer): void {
+  installerAnswerInMemory = answer;
+  try {
+    localStorage.setItem(INSTALLER_KEY, JSON.stringify(answer));
+  } catch {
+    /* storage blocked: remembered for this page load only */
+  }
+}
+
+async function askForInstaller(): Promise<boolean> {
+  const [platform, release] = await Promise.all([
+    detectPlatform(),
+    fetchLatestDesktopRelease(),
+  ]);
+  const installer =
+    release.ok && findAssetForPlatform(release.release.assets, platform) !== null;
+  rememberInstallerAnswer({ installer, checkedAt: Date.now() });
+  return installer;
+}
+
+/**
+ * Whether the latest release has a desktop installer for this browser's
+ * platform. Answered from this browser's memory when it was asked within
+ * {@link INSTALLER_ANSWER_TTL_MS}; otherwise the release API is asked once
+ * (concurrent callers share the question) and the answer remembered.
+ *
+ * A release API that cannot be reached answers `false` and is remembered
+ * like any answer: the banner is a nudge, and missing it for a day costs
+ * less than asking a rate-limited API on every page.
+ */
+export function hasDesktopInstaller(): Promise<boolean> {
+  const known = readInstallerAnswer(Date.now());
+  if (known) return Promise.resolve(known.installer);
+  installerQuestion ??= askForInstaller().finally(() => {
+    installerQuestion = null;
+  });
+  return installerQuestion;
 }
 
 // ---------------------------------------------------------------------------

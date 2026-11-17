@@ -8,6 +8,12 @@
 // universal .dmg serves any Mac, Linux prefers .deb); and what the visitor
 // sees when any step fails — a toast naming the failure with a link to the
 // download page, never a silent no-op or a forced redirect.
+//
+// Before the banner offers a download at all, it asks whether the latest
+// release has an installer for this platform (stigmer#3194). That answer is
+// remembered in this browser for a day, so a fresh page load within the day
+// asks GitHub nothing and one after it asks again; a browser whose storage
+// is blocked still gets an answer, remembered for that page load.
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -20,9 +26,7 @@ const toast = vi.hoisted(() => ({
 vi.mock("sonner", () => ({ toast }));
 
 const DOWNLOADED_KEY = "stigmer:desktop-downloaded";
-vi.mock("@/domain/_shared/layout/DesktopAppBanner", () => ({
-  DOWNLOADED_KEY: "stigmer:desktop-downloaded",
-}));
+const INSTALLER_KEY = "stigmer:desktop-installer";
 
 const UA = {
   macChrome:
@@ -247,6 +251,121 @@ describe("fetchLatestDesktopRelease", () => {
       expect(fetchStub).toHaveBeenCalledTimes(2);
     },
   );
+});
+
+describe("hasDesktopInstaller", () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const T0 = Date.parse("2026-11-17T09:00:00.000Z");
+  let now = T0;
+
+  beforeEach(() => {
+    localStorage.clear();
+    now = T0;
+    vi.spyOn(Date, "now").mockImplementation(() => now);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    setUserAgent(UA.macSafari);
+  });
+
+  it("answers yes for a platform the release serves, and remembers it", async () => {
+    const { hasDesktopInstaller } = await load();
+    setUserAgent(UA.windows);
+    stubRelease(releaseAnswer(RELEASE));
+
+    expect(await hasDesktopInstaller()).toBe(true);
+    expect(JSON.parse(localStorage.getItem(INSTALLER_KEY) ?? "null")).toEqual({
+      installer: true,
+      checkedAt: T0,
+    });
+  });
+
+  it.each([
+    [
+      "a release with no installer for the platform",
+      UA.linux,
+      releaseAnswer({ tag_name: "v1", assets: [RELEASE.assets[0]] }),
+    ],
+    [
+      "a release with no installer at all",
+      UA.macSafari,
+      releaseAnswer({ tag_name: "v1", assets: [] }),
+    ],
+    ["an unknown platform", UA.chromeOS, releaseAnswer(RELEASE)],
+    ["an unreachable release API", UA.windows, releaseAnswer({}, 403)],
+  ])("answers no for %s, and remembers it", async (_label, ua, answer) => {
+    const { hasDesktopInstaller } = await load();
+    setUserAgent(ua);
+    stubRelease(answer);
+
+    expect(await hasDesktopInstaller()).toBe(false);
+    expect(JSON.parse(localStorage.getItem(INSTALLER_KEY) ?? "null")).toEqual({
+      installer: false,
+      checkedAt: T0,
+    });
+  });
+
+  it("reuses the remembered answer on a later page load within the day, and asks again after it", async () => {
+    setUserAgent(UA.windows);
+    const fetchStub = stubRelease(releaseAnswer(RELEASE));
+
+    expect(await (await load()).hasDesktopInstaller()).toBe(true);
+    expect(fetchStub).toHaveBeenCalledTimes(1);
+
+    now = T0 + DAY - 1;
+    expect(await (await load()).hasDesktopInstaller()).toBe(true);
+    expect(fetchStub).toHaveBeenCalledTimes(1);
+
+    now = T0 + DAY;
+    expect(await (await load()).hasDesktopInstaller()).toBe(true);
+    expect(fetchStub).toHaveBeenCalledTimes(2);
+  });
+
+  it("asks once for callers that ask together", async () => {
+    const { hasDesktopInstaller } = await load();
+    setUserAgent(UA.windows);
+    const fetchStub = stubRelease(releaseAnswer(RELEASE));
+
+    expect(
+      await Promise.all([hasDesktopInstaller(), hasDesktopInstaller()]),
+    ).toEqual([true, true]);
+    expect(fetchStub).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores a remembered value that is not an answer", async () => {
+    localStorage.setItem(INSTALLER_KEY, "{not json");
+    const { hasDesktopInstaller } = await load();
+    setUserAgent(UA.windows);
+    const fetchStub = stubRelease(releaseAnswer(RELEASE));
+
+    expect(await hasDesktopInstaller()).toBe(true);
+    expect(fetchStub).toHaveBeenCalledTimes(1);
+  });
+
+  it("still answers when storage is blocked, remembering it for the page load", async () => {
+    const refuse = () => {
+      throw new DOMException("storage is blocked", "SecurityError");
+    };
+    vi.stubGlobal("localStorage", {
+      getItem: refuse,
+      setItem: refuse,
+      removeItem: refuse,
+      clear: refuse,
+      key: refuse,
+      length: 0,
+    });
+    const { hasDesktopInstaller } = await load();
+    setUserAgent(UA.windows);
+    const fetchStub = stubRelease(
+      releaseAnswer({ tag_name: "v1", assets: [] }),
+    );
+
+    expect(await hasDesktopInstaller()).toBe(false);
+    expect(await hasDesktopInstaller()).toBe(false);
+    expect(fetchStub).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("triggerDesktopDownload", () => {
