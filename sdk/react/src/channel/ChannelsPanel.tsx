@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { ChevronDown, MessagesSquare, Plus } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
-import { chatPath, getUserMessage } from "@stigmer/client";
+import { chatPath } from "@stigmer/client";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { ChannelInstallState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/status_pb";
@@ -219,9 +219,19 @@ export function ChannelsPanel({
     async (channel: Channel) => {
       const name = channel.metadata?.name || channel.metadata?.slug || "this channel";
       const isChatLink = channel.spec?.type?.case === "web";
-      const confirmed = await confirm(
+      const id = channel.metadata?.id ?? "";
+      // The dialog deletes or disconnects: it waits while the server
+      // answers and says a failure in place.
+      const act = {
+        action: async () => {
+          await deleteChannel(id);
+        },
+        failureTitle: isChatLink ? "Couldn't delete the chat link." : `Couldn't disconnect ${name}.`,
+      };
+      const done = await confirm(
         isChatLink
           ? {
+              ...act,
               title: "Delete chat link?",
               description:
                 `The link ${chatPath(channel.metadata?.id ?? "")} stops working ` +
@@ -232,6 +242,7 @@ export function ChannelsPanel({
               variant: "destructive",
             }
           : {
+              ...act,
               title: "Disconnect channel?",
               description: (
                 channelPresentationOf(channel.spec?.type?.case) ??
@@ -241,14 +252,9 @@ export function ChannelsPanel({
               variant: "destructive",
             },
       );
-      if (!confirmed) return;
-      try {
-        await deleteChannel(channel.metadata?.id ?? "");
-        toast.success(isChatLink ? "Chat link deleted" : "Channel disconnected");
-        refetch();
-      } catch (err) {
-        toast.error(getUserMessage(err));
-      }
+      if (!done) return;
+      toast.success(isChatLink ? "Chat link deleted" : "Channel disconnected");
+      refetch();
     },
     [confirm, deleteChannel, refetch],
   );

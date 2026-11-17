@@ -62,20 +62,21 @@ export function LibraryAgentsSection({ onOpen, renderLink, createHref = LIBRARY_
 
   const handleDeleteItem = useCallback(
     async (item: SearchResult) => {
-      const confirmed = await confirm({
-        title: `Delete ${item.name || item.slug}?`,
+      const name = item.name || item.slug;
+      // The dialog deletes: it waits while the server answers and says a refusal in place.
+      const deleted = await confirm({
+        title: `Delete ${name}?`,
         description: AGENT_DELETE_DESCRIPTION,
         confirmLabel: "Delete",
         variant: "destructive",
+        action: async () => {
+          await stigmer.agent.delete(item.id);
+        },
+        failureTitle: `Couldn't delete ${name}.`,
       });
-      if (!confirmed) return;
-      try {
-        await stigmer.agent.delete(item.id);
-        toast.success(`${item.name || item.slug} deleted`);
-        refreshList();
-      } catch {
-        toast.error("Failed to delete agent");
-      }
+      if (!deleted) return;
+      toast.success(`${name} deleted`);
+      refreshList();
     },
     [confirm, stigmer, refreshList],
   );

@@ -52,6 +52,16 @@ const CATEGORY_HEADLINES: Record<ErrorCategory, string> = {
 const RETRYABLE: ReadonlySet<ErrorCategory> = new Set(["server", "unavailable", "cancelled", "unknown"]);
 
 /**
+ * Whether trying the same act again can help with this error: the rule
+ * `ErrorMessage` offers its Try again by, for a host that draws the act
+ * itself (a confirm dialog's own button). A refusal (a precondition, a
+ * permission, a missing thing) answers the same way every time.
+ */
+export function canTryAgain(error: unknown): boolean {
+  return RETRYABLE.has(classifyError(error));
+}
+
+/**
  * A failure, as the console draws one: a note in the failed tone with a
  * bold sentence on what happened, the error's own message under it, what
  * wasn't lost when the page knows, one act (Try again, or Sign in again),

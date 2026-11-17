@@ -9,9 +9,17 @@
 // The data's own states (loading, empty, failed) stay where the data is, in
 // the panels a page renders, drawn by the shared parts: `SettingsSkeleton`,
 // `EmptyState`, `ErrorMessage`.
+//
+// A detail opened in place (a team, a service account, an app) names the
+// page while it is open, as a Library detail page names its thing: the
+// page's title is the thing's name, and a quiet way back to the list
+// (`back`) sits above it. The detail's parts are `Section` cards under
+// that title, so no heading level is skipped.
 
 import { useId, type ReactNode } from "react";
+import { ArrowLeft } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
+import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { PageHeader } from "../page/PageHeader.js";
@@ -22,6 +30,14 @@ export interface SettingsPageDenial {
   readonly title: string;
   /** Who can, and what to do ("Ask an owner or an admin of this organization."). */
   readonly description: string;
+}
+
+/** The way back from a detail open in place to its list. */
+export interface SettingsPageBack {
+  /** The list's name, as the button says it ("Service accounts"). */
+  readonly label: string;
+  /** Closes the detail and shows the list. */
+  readonly onBack: () => void;
 }
 
 /** Props for {@link SettingsPage}. */
@@ -40,6 +56,11 @@ export interface SettingsPageProps {
    * words when someone else can (a platform operator).
    */
   readonly denied?: boolean | SettingsPageDenial;
+  /**
+   * A detail is open in place: a quiet button above the title goes back to
+   * the list. Pass the detail's name as `title` while it is open.
+   */
+  readonly back?: SettingsPageBack;
   /** What the page shows when it is offered and allowed. */
   readonly children?: ReactNode;
   readonly className?: string;
@@ -64,7 +85,7 @@ export interface SettingsPageProps {
  * }
  * ```
  */
-export function SettingsPage({ title, description, actions, unavailable, denied = false, children, className }: SettingsPageProps) {
+export function SettingsPage({ title, description, actions, unavailable, denied = false, back, children, className }: SettingsPageProps) {
   const headingId = useId();
   const denial: SettingsPageDenial | null =
     denied === true
@@ -73,7 +94,16 @@ export function SettingsPage({ title, description, actions, unavailable, denied 
   const blocked = Boolean(unavailable) || denial !== null;
   return (
     <section aria-labelledby={headingId} className={cn("stg:flex stg:flex-col stg:gap-6", className)}>
-      <PageHeader title={title} description={description} actions={blocked ? undefined : actions} headingLevel={2} headingId={headingId} />
+      {back && !blocked ? (
+        <div className="stg:flex stg:flex-col stg:items-start stg:gap-2">
+          <Button variant="ghost" size="xs" icon={<ArrowLeft className="stg:size-3.5" aria-hidden="true" />} onClick={back.onBack}>
+            {back.label}
+          </Button>
+          <PageHeader title={title} description={description} actions={actions} headingLevel={2} headingId={headingId} className="stg:self-stretch" />
+        </div>
+      ) : (
+        <PageHeader title={title} description={description} actions={blocked ? undefined : actions} headingLevel={2} headingId={headingId} />
+      )}
       {unavailable ? (
         <CloudFeatureNotice>{unavailable}</CloudFeatureNotice>
       ) : denial !== null ? (

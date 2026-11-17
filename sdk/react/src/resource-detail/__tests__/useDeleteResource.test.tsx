@@ -3,7 +3,9 @@
  * sentence as its description, so a plugin whose removal is refused names
  * what still uses it and what to undo; the hook rejects with the error and
  * holds it; a successful delete toasts the resource's name; a routine is
- * named a routine in the toast.
+ * named a routine in the toast; a caller that says the failure itself (a
+ * confirm dialog given the delete as its act) turns the error toast off,
+ * and the hook still rejects with the error.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, renderHook } from "@testing-library/react";
@@ -23,10 +25,10 @@ afterEach(() => {
 
 const REFUSAL = "plugin 'hookify' is still used by agent 'reviewer'; switch the plugin's hooks off on them first";
 
-function renderDelete(remove: () => Promise<unknown>) {
+function renderDelete(remove: () => Promise<unknown>, options?: { readonly toastOnFailure?: boolean }) {
   const client = { plugin: { delete: vi.fn(remove) } };
   const wrapper = ({ children }: { children: ReactNode }) => <StigmerContext.Provider value={client as never}>{children}</StigmerContext.Provider>;
-  return renderHook(() => useDeleteResource("plugin", "plg_1", "hookify"), { wrapper });
+  return renderHook(() => useDeleteResource("plugin", "plg_1", "hookify", options), { wrapper });
 }
 
 describe("useDeleteResource", () => {
@@ -58,5 +60,19 @@ describe("useDeleteResource", () => {
       await expect(hook.result.current.deleteResource()).rejects.toThrow();
     });
     expect(toastMock.error).toHaveBeenCalledWith("Failed to delete routine", expect.anything());
+  });
+
+  it("raises no error toast when the caller says the failure itself, and still rejects with it", async () => {
+    const hook = renderDelete(
+      async () => {
+        throw new ConnectError(REFUSAL, Code.FailedPrecondition);
+      },
+      { toastOnFailure: false },
+    );
+    await act(async () => {
+      await expect(hook.result.current.deleteResource()).rejects.toThrow(/still used by agent 'reviewer'/);
+    });
+    expect(toastMock.error).not.toHaveBeenCalled();
+    expect(hook.result.current.error?.message).toMatch(/still used by agent 'reviewer'/);
   });
 });

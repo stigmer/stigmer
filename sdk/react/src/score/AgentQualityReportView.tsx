@@ -464,6 +464,7 @@ function VersionTable({
                     <button
                       type="button"
                       onClick={() => onOpenEval(evalId)}
+                      // eslint-disable-next-line stigmer/no-handrolled-button -- goes somewhere (the eval) through the host's callback: a link drawn as a button, not an act
                       className="stg:text-primary stg:underline-offset-2 stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
                     >
                       {evalCellText(evalRate)}
@@ -599,6 +600,7 @@ function FlaggedRow({
           type="button"
           aria-label={`Open run: ${failed}${at === null ? "" : `, ${at.toLocaleString()}`}`}
           onClick={() => onNavigateToRun(runId)}
+          // eslint-disable-next-line stigmer/no-handrolled-button -- goes somewhere (the run) through the host's callback: a link drawn as a button, not an act
           className="stg:ml-auto stg:text-primary stg:underline-offset-2 stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
         >
           Open run

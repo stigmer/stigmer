@@ -35,6 +35,12 @@ export { SwitchField, type SwitchFieldProps } from "./SwitchField.js";
 export { FileDrop, type FileDropProps } from "./FileDrop.js";
 export { FormFooter, type FormFooterProps } from "./FormFooter.js";
 export {
+  ReadOnlyField,
+  ReadOnlyFields,
+  type ReadOnlyFieldProps,
+  type ReadOnlyFieldsProps,
+} from "./ReadOnlyField.js";
+export {
   fieldControlClasses,
   areaControlClasses,
   FIELD_SIZE_CLASSES,

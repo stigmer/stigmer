@@ -7,7 +7,10 @@
 // in one respect, so none passes for an unrelated reason. The fill is also
 // found past an opacity suffix or the important mark, on a member element
 // (`motion.button`) and through a constant declared in the same file; only
-// the kit's own button folder is exempt, not any folder named `button`. It is the bar's
+// the kit's own button folder is exempt, not any folder named `button`. A
+// <button> drawn in the link colour at rest is reported too (stigmer#3236),
+// whatever its hover; an anchor in the link colour, a hover-only link colour
+// and a chosen-state control are not. It is the bar's
 // CON-09 ("Every action button is the kit's Button, IconButton or LinkButton"). Run via the root
 // `npm run test:scripts` (the `test:root` globs in package.json).
 
@@ -33,6 +36,7 @@ const tester = new RuleTester({
 
 const primary = [{ messageId: "handrolledButton", data: { fill: "primary" } }];
 const destructive = [{ messageId: "handrolledButton", data: { fill: "destructive" } }];
+const linkStyled = [{ messageId: "linkStyledButton" }];
 
 /** The three lint configs the fence must stand in: the kit's and both apps'. */
 const CONFIGS = ["sdk/react/eslint.config.mjs", "client-apps/web/eslint.config.mjs", "client-apps/desktop/eslint.config.mjs"];
@@ -68,6 +72,18 @@ describe("CON-09 every action button is the kit's Button, IconButton or LinkButt
       // The kit's parts themselves.
       { code: '<Button variant="primary">Save</Button>' },
       { code: '<LinkButton href="/new">Create agent</LinkButton>' },
+      // The link colour on an anchor: it goes somewhere, so it is a link.
+      { code: '<a href="/docs" className="stg:text-primary stg:hover:underline">Read more</a>' },
+      { code: '<Link href="/docs" className="text-primary">Read more</Link>' },
+      // The link colour only on hover: a quiet row or disclosure.
+      { code: '<button aria-expanded={open} className="stg:text-muted-foreground stg:hover:text-primary" />' },
+      // A tone that only starts like the link colour.
+      { code: '<button className="stg:text-primary-foreground" />' },
+      // A control showing a chosen state keeps the colour.
+      { code: '<button role="tab" aria-selected="true" className="stg:text-primary" />' },
+      { code: '<button aria-pressed={on} className="stg:text-primary" />' },
+      // On an element nobody presses.
+      { code: '<span className="stg:text-primary">Beta</span>' },
     ],
     invalid: [
       { code: '<button className="stg:bg-primary stg:text-primary-foreground" />', errors: primary },
@@ -92,6 +108,20 @@ describe("CON-09 every action button is the kit's Button, IconButton or LinkButt
       { code: 'const DANGER = `stg:bg-destructive stg:text-destructive-foreground`; <a className={cn(DANGER, "stg:px-2")} />', errors: destructive },
       // Only the kit's button folder is exempt, not any folder named button.
       { code: '<button className="stg:bg-primary" />', filename: "/repo/client-apps/web/src/components/button/X.tsx", errors: primary },
+      // A <button> in the link colour is an act dressed as a link, whatever its hover.
+      { code: '<button className="stg:text-primary stg:hover:underline">Load more</button>', errors: linkStyled },
+      // A width or theme variant is still at rest: only a state (hover, focus, aria-*) is not.
+      { code: '<button className="stg:md:text-primary">Load more</button>', errors: linkStyled },
+      { code: '<button className="stg:dark:text-primary">Load more</button>', errors: linkStyled },
+      { code: '<button className="stg:text-primary stg:hover:text-foreground">Download</button>', errors: linkStyled },
+      { code: '<button className="text-primary text-xs">View</button>', errors: linkStyled },
+      { code: '<motion.button className="stg:text-primary" />', errors: linkStyled },
+      // Through cn(), a conditional and a same-file constant.
+      { code: '<button className={cn("stg:text-xs", "stg:text-primary")} />', errors: linkStyled },
+      { code: '<button className={busy ? "stg:text-muted-foreground" : "stg:text-primary"} />', errors: linkStyled },
+      { code: 'const LINK = "stg:text-xs stg:text-primary"; <button className={LINK} />', errors: linkStyled },
+      // A role that is not a choice does not exempt it.
+      { code: '<button role="button" className="stg:text-primary" />', errors: linkStyled },
     ],
   });
 });

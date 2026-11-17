@@ -111,22 +111,23 @@ export function LibraryPluginsSection({
 
   const handleRemoveItem = useCallback(
     async (item: SearchResult) => {
-      const confirmed = await confirm({
-        title: `Remove ${item.name || item.slug}?`,
+      const name = item.name || item.slug;
+      // The dialog removes: it waits while the server answers, and its
+      // refusal (naming the agent that still uses the plugin) is said in place.
+      const removed = await confirm({
+        title: `Remove ${name}?`,
         description:
           "Removes the plugin and its versions. The server refuses while an agent of the organization uses it; a conversation that uses it fails its next message.",
         confirmLabel: "Remove",
         variant: "destructive",
+        action: async () => {
+          await stigmer.plugin.delete(item.id);
+        },
+        failureTitle: `Couldn't remove ${name}.`,
       });
-      if (!confirmed) return;
-      try {
-        await stigmer.plugin.delete(item.id);
-        toast.success(`${item.name || item.slug} removed`);
-        refreshList();
-      } catch (error) {
-        // The server's refusal names the agent that still uses the plugin; show it as it is.
-        toast.error(error instanceof Error ? error.message : "Failed to remove plugin");
-      }
+      if (!removed) return;
+      toast.success(`${name} removed`);
+      refreshList();
     },
     [confirm, stigmer, refreshList],
   );

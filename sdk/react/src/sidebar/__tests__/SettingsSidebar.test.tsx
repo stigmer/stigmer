@@ -100,6 +100,17 @@ describe("SettingsSidebar", () => {
     expect(back.className.split(" ")).not.toContain("stg:bg-sidebar-accent");
   });
 
+  it("draws every row 32px tall: 14/20 labels on 6px above and below (stigmer#3037)", () => {
+    const { container } = renderSidebar(<SettingsSidebar {...baseProps()} />);
+    const rows = container.querySelectorAll("[data-row-id]");
+    expect(rows.length).toBeGreaterThan(1);
+    for (const row of rows) {
+      const classes = row.className.split(" ");
+      expect(classes).toEqual(expect.arrayContaining(["stg:py-1.5", "stg:text-sm", "stg:leading-5"]));
+      expect(classes).not.toContain("stg:leading-4");
+    }
+  });
+
   it("renders the footer slot", () => {
     renderSidebar(<SettingsSidebar {...baseProps()} />);
     expect(screen.getByTestId("footer-slot")).toBeTruthy();

@@ -18,6 +18,7 @@ export type { UseConfirmActionReturn } from "./useConfirmAction.js";
 export { useDeleteResource } from "./useDeleteResource.js";
 export type {
   DeletableResourceKind,
+  UseDeleteResourceOptions,
   UseDeleteResourceReturn,
 } from "./useDeleteResource.js";
 

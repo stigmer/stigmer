@@ -21,6 +21,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js"
 import { RoleSelector } from "../grant/RoleSelector.js";
 import { useOwnerAssignment } from "../grant/useOwnerAssignment.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
@@ -225,21 +226,7 @@ export function InvitationManager({
           })}
         </List>
       )}
-      {loadMoreError !== null && (
-        <FieldError>
-          {getUserMessage(loadMoreError)}
-        </FieldError>
-      )}
-      {hasMore && (
-        <button
-          type="button"
-          onClick={loadMore}
-          disabled={isLoadingMore}
-          className="stg:text-primary stg:text-xs stg:font-medium stg:hover:underline stg:disabled:opacity-50"
-        >
-          {isLoadingMore ? "Loading…" : "Load more"}
-        </button>
-      )}
+      <LoadMoreFooter hasMore={hasMore} loadMore={loadMore} isLoadingMore={isLoadingMore} loadMoreError={loadMoreError} />
     </div>
   );
 }
