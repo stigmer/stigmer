@@ -5,6 +5,7 @@
 
 import { OrgMembersPanel } from "../grant/OrgMembersPanel.js";
 import { NoOrganization } from "./NoOrganization.js";
+import { Notice } from "../internal/surface/Notice.js";
 import { SettingsPage } from "./SettingsPage.js";
 import { useResourceAvailable } from "@stigmer/react-core";
 import { ApiResourceKind } from "@stigmer/react-core/internal";
@@ -68,10 +69,12 @@ export function MembersSection({ serviceAccountsHref }: MembersSectionProps = {}
       ) : (
         <>
           {hasSignInRoleProviders && (
-            <p className="stg:rounded-lg stg:border stg:border-border-muted stg:bg-muted-faint stg:px-4 stg:py-3 stg:text-xs stg:text-muted-foreground">
-              This organization has federation issuers that grant a sign-in role. People appear here the first time they sign
-              in through one of them.
-            </p>
+            <Notice tone="plain" role="note" headline="People can also arrive through a federation issuer.">
+              <p>
+                This organization accepts sign-ins from the platforms under Federation issuers. Someone who signs in through
+                one appears here the first time, with the sign-in role the issuer grants.
+              </p>
+            </Notice>
           )}
           <OrgMembersPanel org={org} serviceAccountsHref={serviceAccountsHref} />
         </>
