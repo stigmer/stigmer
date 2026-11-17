@@ -266,6 +266,7 @@ export function DesktopAppBanner({ onDismiss }: { onDismiss: () => void }) {
       <button
         type="button"
         onClick={triggerDesktopDownload}
+        // eslint-disable-next-line stigmer/no-handrolled-button -- the banner is being redrawn under stigmer#3194, which owns its Download
         className="text-primary hover:text-foreground inline-flex shrink-0 items-center gap-1 text-xs font-medium transition-colors"
       >
         Download

@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/design-tokens";
+import { TABLE_HEADER_CELL_CLASSES } from "../../internal/surface/Table.js";
 import type { SortDirection } from "../types.js";
 
 /** Props for {@link ColumnHeader}. */
@@ -42,7 +43,7 @@ export function ColumnHeader({
       <th
         scope="col"
         className={cn(
-          "stg:px-3.5 stg:py-2.5 stg:text-left stg:text-xs stg:font-medium stg:text-muted-foreground",
+          TABLE_HEADER_CELL_CLASSES,
           className,
         )}
       >
@@ -56,7 +57,7 @@ export function ColumnHeader({
       scope="col"
       aria-sort={ariaSort}
       className={cn(
-        "stg:px-3.5 stg:py-2.5 stg:text-left stg:text-xs stg:font-medium stg:text-muted-foreground",
+        TABLE_HEADER_CELL_CLASSES,
         className,
       )}
     >

@@ -60,20 +60,21 @@ export function LibrarySkillsSection({ onOpen, renderLink, createHref = LIBRARY_
 
   const handleDeleteItem = useCallback(
     async (item: SearchResult) => {
-      const confirmed = await confirm({
-        title: `Delete ${item.name || item.slug}?`,
+      const name = item.name || item.slug;
+      // The dialog deletes: it waits while the server answers and says a refusal in place.
+      const deleted = await confirm({
+        title: `Delete ${name}?`,
         description: "This action cannot be undone. The skill and its content will be permanently removed.",
         confirmLabel: "Delete",
         variant: "destructive",
+        action: async () => {
+          await stigmer.skill.delete(item.id);
+        },
+        failureTitle: `Couldn't delete ${name}.`,
       });
-      if (!confirmed) return;
-      try {
-        await stigmer.skill.delete(item.id);
-        toast.success(`${item.name || item.slug} deleted`);
-        refreshList();
-      } catch {
-        toast.error("Failed to delete skill");
-      }
+      if (!deleted) return;
+      toast.success(`${name} deleted`);
+      refreshList();
     },
     [confirm, stigmer, refreshList],
   );

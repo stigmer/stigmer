@@ -77,6 +77,7 @@ export { SettingsPage, SettingsSkeleton, SettingsOverview } from "./settings/ind
 export type {
   SettingsPageProps,
   SettingsPageDenial,
+  SettingsPageBack,
   SettingsSkeletonProps,
   SettingsOverviewProps,
 } from "./settings/index.js";

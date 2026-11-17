@@ -253,6 +253,7 @@ role rules it out, its body.
 <TypeTable
   type={{
     actions: { type: "ReactNode", description: "The page's main act (a \"New …\" button), at the heading's right; hidden while `unavailable` or `denied`." },
+    back: { type: "SettingsPageBack", description: "A detail is open in place: a quiet button above the title goes back to the list. Pass the detail's name as `title` while it is open.", typeDescriptionLink: "#settingspageback" },
     children: { type: "ReactNode", description: "What the page shows when it is offered and allowed." },
     className: { type: "string", description: "" },
     denied: { type: "boolean | SettingsPageDenial", description: "This person may not see the page: the body is not mounted, and the page says who can. `true` says an organization's admins can; pass the words when someone else can (a platform operator)." },
@@ -369,6 +370,18 @@ Single navigable entry in the settings sidebar.
     icon: { type: "ComponentType<{ className?: string }>", description: "Lucide icon component rendered next to the label.", required: true },
     label: { type: "string", description: "Short, user-facing label shown in navigation.", required: true },
     requiredPermission: { type: "string", description: "Permission required for this entry to appear: on `platform:stigmer` for the items of PLATFORM_SETTINGS_NAV_GROUP, on the active organization for ORG_ADMIN_SETTINGS_NAV_ITEMS. Items in the base groups are visible to every signed-in user and leave this unset. useSettingsNavGroups checks it fail-closed." },
+  }}
+/>
+
+
+### SettingsPageBack
+
+The way back from a detail open in place to its list.
+
+<TypeTable
+  type={{
+    label: { type: "string", description: "The list's name, as the button says it (\"Service accounts\").", required: true },
+    onBack: { type: "() => void", description: "Closes the detail and shows the list.", required: true },
   }}
 />
 

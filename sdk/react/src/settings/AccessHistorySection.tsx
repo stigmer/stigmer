@@ -56,7 +56,9 @@ import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { useAccessHistory } from "../grant/useAccessHistory.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
+import { Button } from "../button/Button.js";
 import { downloadTextFile } from "../internal/download.js";
+import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { cardClasses } from "../internal/surface/Card.js";
 import { useOrg } from "../organization/OrgProvider.js";
@@ -135,14 +137,14 @@ function AccessHistoryList({ org }: { readonly org: string }) {
     <div className="stg:space-y-3">
       <div className="stg:flex stg:items-center stg:justify-between stg:gap-3">
         <p className="stg:text-muted-foreground stg:text-xs">{retentionWords(history.retention?.days ?? 0)}</p>
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="xs"
           onClick={download.run}
           disabled={download.isRunning || history.entries.length === 0}
-          className="stg:text-primary stg:hover:text-foreground stg:text-xs stg:font-medium stg:transition-colors stg:disabled:opacity-50"
         >
           {download.isRunning ? "Preparing…" : "Download JSON Lines"}
-        </button>
+        </Button>
       </div>
       {download.error !== null && (
         <p className="stg:text-destructive stg:text-xs" role="alert">
@@ -169,21 +171,12 @@ function AccessHistoryList({ org }: { readonly org: string }) {
         </ol>
       )}
 
-      {history.loadMoreError !== null && (
-        <p className="stg:text-destructive stg:text-xs" role="alert">
-          {getUserMessage(history.loadMoreError)}
-        </p>
-      )}
-      {history.hasMore && (
-        <button
-          type="button"
-          onClick={history.loadMore}
-          disabled={history.isLoadingMore}
-          className="stg:text-primary stg:text-xs stg:font-medium stg:hover:underline stg:disabled:opacity-50"
-        >
-          {history.isLoadingMore ? "Loading…" : "Load more"}
-        </button>
-      )}
+      <LoadMoreFooter
+        hasMore={history.hasMore}
+        loadMore={history.loadMore}
+        isLoadingMore={history.isLoadingMore}
+        loadMoreError={history.loadMoreError}
+      />
     </div>
   );
 }

@@ -1090,6 +1090,7 @@ function InstructionsContent({ text }: { readonly text: string }) {
           onClick={() => setExpanded((v) => !v)}
           aria-expanded={expanded}
           aria-controls={contentId}
+          // eslint-disable-next-line stigmer/no-handrolled-button -- a disclosure (aria-expanded) drawn in the link colour on the agent page, which passed as built; the agent page's own redesign owns its look
           className="stg:mt-2 stg:text-xs stg:font-medium stg:text-primary stg:transition-colors stg:hover:text-primary-muted"
         >
           {expanded ? "Show less" : "Show more"}

@@ -14,7 +14,7 @@
  * not admit, a policy this server's sandboxes cannot honour) shows under
  * the section's editor. Delete is refused while an agent, a routine or an
  * organization's default names the Environment; the refusal's sentence,
- * which names each of them, is the toast's description.
+ * which names each of them, is said in the delete's confirm dialog.
  */
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
@@ -129,7 +129,10 @@ export function EnvironmentDetailView({
       : undefined,
   });
 
-  const { deleteResource, isDeleting } = useDeleteResource("environment", loadedId, environment?.metadata?.name);
+  const { deleteResource, isDeleting } = useDeleteResource("environment", loadedId, environment?.metadata?.name, {
+    // The confirm dialog says a refusal (what still names it) in place.
+    toastOnFailure: false,
+  });
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
   const { copyId, copyQualifiedSlug } = useCopyResource();
   const { copyYaml, downloadYaml } = useExportResource({ resource: environment });
@@ -151,21 +154,19 @@ export function EnvironmentDetailView({
   const name = meta?.name || meta?.slug || slug;
 
   const handleDelete = async () => {
-    const confirmed = await confirm({
+    // The dialog deletes: it waits while the server answers, and a refusal
+    // (the server's sentence: what still names it) is said in the dialog.
+    const deleted = await confirm({
       title: "Delete this environment?",
       description:
         `"${name}" will be permanently removed. An environment an agent, a routine or the organization's ` +
         "default still names cannot be deleted until they stop naming it. This cannot be undone.",
       confirmLabel: "Delete",
       variant: "destructive",
+      action: deleteResource,
+      failureTitle: `Couldn't delete ${name}.`,
     });
-    if (!confirmed) return;
-    try {
-      await deleteResource();
-    } catch {
-      // The toast carries the server's sentence: what still names it.
-      return;
-    }
+    if (!deleted) return;
     onDeleted?.();
   };
 

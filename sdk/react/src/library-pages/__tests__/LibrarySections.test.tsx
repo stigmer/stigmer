@@ -7,7 +7,9 @@
  * reference a person types elsewhere; each is one list of rows, and a row's
  * Delete (Remove for a plugin) is offered only on the server's yes for that
  * row (CON-01). A row's Delete on the agents list confirms in the agent
- * page's words. Upload skill is offered only to someone the server lets
+ * page's words. A delete runs from its confirm dialog, which says a
+ * refusal in place (the dialog's own behaviour is pinned beside it); here
+ * the stand-in records the failure the dialog would show. Upload skill is offered only to someone the server lets
  * upload one. Create agent is offered only to
  * someone the server lets create one. The plugins list offers the
  * Marketplace, an upload and Add MCP server (open on arrival when the host
@@ -52,6 +54,8 @@ const page = vi.hoisted(() => ({
   addServer: [] as Props[],
   confirms: [] as Array<{ title: string; description: string }>,
   confirmAnswer: false,
+  // What a confirm dialog said after its act failed: its headline and the error.
+  dialogFailures: [] as Array<{ title: string | undefined; message: string }>,
   deleted: [] as string[],
   deleteFailure: undefined as unknown,
   toasts: [] as Array<[string, string]>,
@@ -127,9 +131,18 @@ vi.mock("../../resource-detail/ConfirmDialog.js", () => ({ ConfirmDialog: () => 
 vi.mock("../../resource-detail/useConfirmAction.js", () => ({
   useConfirmAction: () => ({
     confirmState: null,
-    confirm: async (options: { title: string; description: string }) => {
+    // As the real hook: an act given to the dialog runs on confirm, and a
+    // failure stays in the dialog; the stand-in person then cancels.
+    confirm: async (options: { title: string; description: string; action?: () => Promise<void>; failureTitle?: string }) => {
       page.confirms.push(options);
-      return page.confirmAnswer;
+      if (!page.confirmAnswer || !options.action) return page.confirmAnswer;
+      try {
+        await options.action();
+        return true;
+      } catch (error) {
+        page.dialogFailures.push({ title: options.failureTitle, message: error instanceof Error ? error.message : String(error) });
+        return false;
+      }
     },
     handleConfirm: () => undefined,
     handleCancel: () => undefined,
@@ -257,6 +270,7 @@ beforeEach(() => {
   page.addServer.length = 0;
   page.confirms.length = 0;
   page.confirmAnswer = false;
+  page.dialogFailures.length = 0;
   page.deleted.length = 0;
   page.deleteFailure = undefined;
   page.toasts.length = 0;
@@ -356,14 +370,17 @@ describe("LibraryAgentsSection delete, once asked", () => {
     expect(workbench().refetchToken).not.toBe(before);
   });
 
-  it("says the delete failed when the server refuses it", async () => {
+  it("says in the confirm dialog that the delete failed when the server refuses it, and keeps the list", async () => {
     page.confirmAnswer = true;
     page.deleteFailure = new Error("refused");
     render(<LibraryAgentsSection onOpen={onOpen} />);
+    const before = workbench().refetchToken;
 
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
 
-    await waitFor(() => expect(page.toasts).toEqual([["error", "Failed to delete agent"]]));
+    await waitFor(() => expect(page.dialogFailures).toEqual([{ title: "Couldn't delete Triage.", message: "refused" }]));
+    expect(page.toasts).toEqual([]);
+    expect(workbench().refetchToken).toBe(before);
   });
 });
 
@@ -481,14 +498,15 @@ describe("LibrarySkillsSection", () => {
     expect(page.toasts).toEqual([]);
   });
 
-  it("says the delete failed when the server refuses it", async () => {
+  it("says in the confirm dialog that the delete failed when the server refuses it", async () => {
     page.confirmAnswer = true;
     page.deleteFailure = new Error("refused");
     render(<LibrarySkillsSection onOpen={onOpen} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
 
-    await waitFor(() => expect(page.toasts).toEqual([["error", "Failed to delete skill"]]));
+    await waitFor(() => expect(page.dialogFailures).toEqual([{ title: "Couldn't delete Triage.", message: "refused" }]));
+    expect(page.toasts).toEqual([]);
   });
 });
 
@@ -592,24 +610,18 @@ describe("LibraryPluginsSection Remove", () => {
     expect(page.toasts).toEqual([]);
   });
 
-  it("shows the server's refusal as it words it", async () => {
+  it("says the server's refusal in the confirm dialog, as the server words it", async () => {
     page.confirmAnswer = true;
     page.deleteFailure = new Error("plugin is used by agent acme/helper");
     render(<LibraryPluginsSection onOpen={onOpen} />);
 
     remove();
 
-    await waitFor(() => expect(page.toasts).toEqual([["error", "plugin is used by agent acme/helper"]]));
-  });
-
-  it("shows a refusal with no message as a plain failure", async () => {
-    page.confirmAnswer = true;
-    page.deleteFailure = "refused";
-    render(<LibraryPluginsSection onOpen={onOpen} />);
-
-    remove();
-
-    await waitFor(() => expect(page.toasts).toEqual([["error", "Failed to remove plugin"]]));
+    await waitFor(() =>
+      expect(page.dialogFailures).toEqual([{ title: "Couldn't remove Triage.", message: "plugin is used by agent acme/helper" }]),
+    );
+    expect(page.toasts).toEqual([]);
+    expect(page.deleted).toEqual([]);
   });
 });
 

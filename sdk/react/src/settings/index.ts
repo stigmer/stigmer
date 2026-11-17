@@ -34,7 +34,7 @@ export { OAuthAppsSection } from "./OAuthAppsSection.js";
 export { ChannelAppsSection } from "./ChannelAppsSection.js";
 export { UsageSection } from "./UsageSection.js";
 export { SettingsPage } from "./SettingsPage.js";
-export type { SettingsPageProps, SettingsPageDenial } from "./SettingsPage.js";
+export type { SettingsPageProps, SettingsPageDenial, SettingsPageBack } from "./SettingsPage.js";
 export { SettingsSkeleton } from "./SettingsSkeleton.js";
 export type { SettingsSkeletonProps } from "./SettingsSkeleton.js";
 export { SettingsOverview } from "./SettingsOverview.js";

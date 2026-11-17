@@ -1534,6 +1534,7 @@ export type {
   UseCopyResourceReturn,
   UseConfirmActionReturn,
   DeletableResourceKind,
+  UseDeleteResourceOptions,
   UseDeleteResourceReturn,
   RenamableResourceKind,
   RenamedResource,

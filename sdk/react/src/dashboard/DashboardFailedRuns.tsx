@@ -65,6 +65,7 @@ export const DashboardFailedRuns = memo(function DashboardFailedRuns({
                     <button
                       type="button"
                       onClick={() => onViewClick(run.id)}
+                      // eslint-disable-next-line stigmer/no-handrolled-button -- redrawn with the dashboard's redesign (stigmer#3235), which lands after the dashboard changes already under way
                       className="stg:text-xs stg:text-primary stg:hover:underline"
                     >
                       View
