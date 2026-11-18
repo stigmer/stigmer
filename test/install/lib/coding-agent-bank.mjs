@@ -10,7 +10,12 @@
  * only when every try passed every scored grader (`--threshold 1.0`, the
  * runner's default); a job's score is the cases passed out of the cases, per
  * arm. The `skill-fired` grader (with-only) is the plugin-fired indicator,
- * outside the score.
+ * outside the score in every mode: Claude Code scores a with-only grader
+ * under `--ablation none` (the runner's `--with-only`), so the summary reads
+ * which graders are indicators from the bank itself and leaves them out.
+ * A try Claude Code could not run (an `error` in the result: a usage limit,
+ * a crash) is no reading: it is left out of every score, counted, and makes
+ * the whole reading invalid.
  *
  * Plain node, no dependencies, like its neighbours.
  */
@@ -160,10 +165,28 @@ export function frontmatterTags(promptMarkdown) {
     .filter((tag) => tag !== "");
 }
 
+/** Whether a grader file's frontmatter marks it `arm: with-only` (an indicator, outside the score). */
+export function isWithOnlyGrader(graderMarkdown) {
+  const front = /^---\n([\s\S]*?)\n---/.exec(graderMarkdown)?.[1] ?? "";
+  return /^arm:\s*["']?with-only["']?\s*$/m.test(front);
+}
+
+function withOnlyGraders(caseDir) {
+  const gradersDir = join(caseDir, "graders");
+  let files;
+  try {
+    files = readdirSync(gradersDir).filter((file) => file.endsWith(".md")).sort();
+  } catch {
+    return [];
+  }
+  return files.filter((file) => isWithOnlyGrader(readFileSync(join(gradersDir, file), "utf8"))).map((file) => file.slice(0, -3));
+}
+
 /**
- * Every case in the bank: `{ name, job, dir, tags }`, `dir` relative to the
- * evals folder (`<job>/<case>`). A folder whose name starts with `_` (the
- * fixture) and `results/` hold no case.
+ * Every case in the bank: `{ name, job, dir, tags, indicators }`, `dir`
+ * relative to the evals folder (`<job>/<case>`), `indicators` the names of
+ * its with-only graders. A folder whose name starts with `_` (the fixture)
+ * and `results/` hold no case.
  */
 export function readBankCases(evalsDir) {
   const cases = [];
@@ -178,7 +201,7 @@ export function readBankCases(evalsDir) {
       } catch {
         continue;
       }
-      cases.push({ name, job, dir: `${job}/${name}`, tags: frontmatterTags(text) });
+      cases.push({ name, job, dir: `${job}/${name}`, tags: frontmatterTags(text), indicators: withOnlyGraders(join(jobDir, name)) });
     }
   }
   return cases;
@@ -350,55 +373,101 @@ export function jobOf(caseResult) {
   return parts.length >= 2 ? parts[0] : "unknown";
 }
 
-function armSummary(runs) {
+/** The case's key in the bank, `<job>/<case>`, from its result `dir`. */
+function caseKey(caseResult) {
+  return String(caseResult.dir ?? "").split("/").filter((part) => part !== "" && part !== "evals").join("/");
+}
+
+function errored(run) {
+  return run.error !== null && run.error !== undefined && run.error !== "";
+}
+
+/**
+ * One try's reading with the indicators left out: the weighted share of its
+ * scored graders that passed, and whether all of them did. A try whose
+ * result carries no graders keeps Claude Code's own score and verdict.
+ */
+export function tryReading(run, indicators = new Set()) {
+  const graders = (run.graders ?? []).filter((grader) => grader.withOnly !== true && !indicators.has(grader.name) && grader.scored !== false);
+  if (graders.length === 0) return { score: typeof run.score === "number" ? run.score : 0, passed: run.passed === true };
+  const weight = (grader) => (typeof grader.weight === "number" ? grader.weight : 1);
+  const total = graders.reduce((sum, grader) => sum + weight(grader), 0);
+  const won = graders.filter((grader) => grader.passed === true).reduce((sum, grader) => sum + weight(grader), 0);
+  return { score: total === 0 ? 0 : won / total, passed: graders.every((grader) => grader.passed === true) };
+}
+
+function armSummary(runs, indicators) {
   if (!Array.isArray(runs) || runs.length === 0) return undefined;
-  const scored = runs.filter((run) => run.error === null || run.error === undefined);
-  const passed = runs.length > 0 && runs.every((run) => run.passed === true);
-  const mean = runs.reduce((sum, run) => sum + (typeof run.score === "number" ? run.score : 0), 0) / runs.length;
-  const fired = runs.flatMap((run) => (run.graders ?? []).filter((grader) => grader.withOnly === true).map((grader) => grader.passed === true));
-  return { tries: runs.length, errored: runs.length - scored.length, passed, mean, fired };
+  const erroredRuns = runs.filter(errored);
+  const fired = runs
+    .filter((run) => !errored(run))
+    .flatMap((run) => (run.graders ?? []).filter((grader) => grader.withOnly === true || indicators.has(grader.name)).map((grader) => grader.passed === true));
+  // A case with a try that never ran has no reading in this arm.
+  if (erroredRuns.length > 0) return { tries: runs.length, errors: erroredRuns.map((run) => String(run.error)), read: false, fired };
+  const readings = runs.map((run) => tryReading(run, indicators));
+  const passed = readings.every((reading) => reading.passed);
+  const mean = readings.reduce((sum, reading) => sum + reading.score, 0) / readings.length;
+  return { tries: runs.length, errors: [], read: true, passed, mean, fired };
+}
+
+/** The first line of an error, its volatile tail (a reset time, an id) left on: the most common is named as it is. */
+function errorLine(error) {
+  return error.split("\n")[0].trim().slice(0, 160);
 }
 
 /**
  * The per-job summary of a `claude plugin eval --json` result: for each job,
- * the cases, how many passed (every try clean) and the mean score, with the
- * plugin and without it, and how often the plugin's skill fired; and the
- * run's cost and time. Jobs keep JOBS' order; a job with no case in the
- * result is left out.
+ * the cases, how many passed (every try clean) and the mean score over the
+ * cases read, with the plugin and without it, and how often the plugin's
+ * skill fired; the tries that errored and the most common error; and the
+ * run's cost and time. `indicators` maps a case's `<job>/<case>` to its
+ * with-only graders' names (readBankCases), so they stay out of the score
+ * in every ablation mode. `valid` is false when any try errored: such a
+ * reading is never a score. Jobs keep JOBS' order; a job with no case in
+ * the result is left out.
  */
-export function summarizeResult(result) {
+export function summarizeResult(result, { indicators = new Map() } = {}) {
   const byJob = new Map();
+  const errorCounts = new Map();
   for (const caseResult of result.cases ?? []) {
     const job = jobOf(caseResult);
-    const row = byJob.get(job) ?? { job, cases: 0, with: { passed: 0, meanSum: 0, n: 0 }, without: { passed: 0, meanSum: 0, n: 0 }, fired: [], errored: 0, failing: [] };
+    const caseIndicators = new Set(indicators.get(caseKey(caseResult)) ?? []);
+    const row = byJob.get(job) ?? { job, cases: 0, with: { passed: 0, meanSum: 0, read: 0, n: 0 }, without: { passed: 0, meanSum: 0, read: 0, n: 0 }, fired: [], errored: 0, failing: [] };
     row.cases += 1;
     for (const arm of ["with", "without"]) {
-      const summary = armSummary(caseResult.arms?.[arm]);
+      const summary = armSummary(caseResult.arms?.[arm], caseIndicators);
       if (summary === undefined) continue;
       row[arm].n += 1;
+      row.errored += summary.errors.length;
+      for (const error of summary.errors) errorCounts.set(errorLine(error), (errorCounts.get(errorLine(error)) ?? 0) + 1);
+      if (arm === "with") row.fired.push(...summary.fired);
+      if (!summary.read) continue;
+      row[arm].read += 1;
       row[arm].meanSum += summary.mean;
       if (summary.passed) row[arm].passed += 1;
-      row.errored += summary.errored;
-      if (arm === "with") {
-        row.fired.push(...summary.fired);
-        if (!summary.passed) row.failing.push(caseResult.name);
-      }
+      if (arm === "with" && !summary.passed) row.failing.push(caseResult.name);
     }
     byJob.set(job, row);
   }
+  const armOf = (arm) => (arm.n === 0 ? undefined : { passed: arm.passed, read: arm.read, mean: arm.read === 0 ? undefined : arm.meanSum / arm.read });
   const order = (job) => (JOBS.includes(job) ? JOBS.indexOf(job) : JOBS.length);
   const jobs = [...byJob.values()]
     .sort((a, b) => order(a.job) - order(b.job) || a.job.localeCompare(b.job))
     .map((row) => ({
       job: row.job,
       cases: row.cases,
-      with: row.with.n === 0 ? undefined : { passed: row.with.passed, mean: row.with.meanSum / row.with.n },
-      without: row.without.n === 0 ? undefined : { passed: row.without.passed, mean: row.without.meanSum / row.without.n },
+      with: armOf(row.with),
+      without: armOf(row.without),
       skillFired: row.fired.length === 0 ? undefined : row.fired.filter(Boolean).length / row.fired.length,
       erroredTries: row.errored,
       failingWith: row.failing,
     }));
+  const erroredTries = jobs.reduce((sum, row) => sum + row.erroredTries, 0);
+  const [commonError] = [...errorCounts.entries()].sort((a, b) => b[1] - a[1]);
   return {
+    valid: erroredTries === 0,
+    erroredTries,
+    commonError: commonError === undefined ? undefined : { error: commonError[0], tries: commonError[1] },
     jobs,
     costUsd: result.costUsd,
     durationSeconds: result.durationSeconds,
@@ -409,27 +478,39 @@ export function summarizeResult(result) {
 }
 
 function cell(arm, cases) {
-  return arm === undefined ? "–" : `${arm.passed}/${cases} (${arm.mean.toFixed(2)})`;
+  if (arm === undefined) return "–";
+  if (arm.read === 0) return `no reading (0 of ${cases} read)`;
+  const read = arm.read < cases ? `, ${arm.read} of ${cases} read` : "";
+  return `${arm.passed}/${arm.read} (${arm.mean.toFixed(2)}${read})`;
 }
 
-/** The summary as a Markdown table: one row per job, then the totals. */
+/** The summary as a Markdown table: one row per job, then the totals, then whether it is a valid reading. */
 export function renderSummary(summary) {
-  const lines = ["| Job | Cases | With the plugin | Without | Skill fired |", "| --- | --- | --- | --- | --- |"];
+  const lines = ["| Job | Cases | With the plugin | Without | Skill fired | Errored tries |", "| --- | --- | --- | --- | --- | --- |"];
   let cases = 0;
-  let withPassed = 0;
-  let withoutPassed = 0;
+  const totals = { with: { passed: 0, read: 0 }, without: { passed: 0, read: 0 } };
   for (const row of summary.jobs) {
     cases += row.cases;
-    withPassed += row.with?.passed ?? 0;
-    withoutPassed += row.without?.passed ?? 0;
+    for (const arm of ["with", "without"]) {
+      totals[arm].passed += row[arm]?.passed ?? 0;
+      totals[arm].read += row[arm]?.read ?? 0;
+    }
     const fired = row.skillFired === undefined ? "–" : `${Math.round(row.skillFired * 100)}%`;
-    lines.push(`| ${row.job} | ${row.cases} | ${cell(row.with, row.cases)} | ${cell(row.without, row.cases)} | ${fired} |`);
+    lines.push(`| ${row.job} | ${row.cases} | ${cell(row.with, row.cases)} | ${cell(row.without, row.cases)} | ${fired} | ${row.erroredTries ?? 0} |`);
   }
+  const total = (arm) => `${totals[arm].passed}/${totals[arm].read}${totals[arm].read < cases ? ` (${totals[arm].read} of ${cases} read)` : ""}`;
   const anyWithout = summary.jobs.some((row) => row.without !== undefined);
-  lines.push(`| **all** | ${cases} | ${withPassed}/${cases} | ${anyWithout ? `${withoutPassed}/${cases}` : "–"} | |`);
+  lines.push(`| **all** | ${cases} | ${total("with")} | ${anyWithout ? total("without") : "–"} | | ${summary.erroredTries ?? 0} |`);
   const cost = typeof summary.costUsd === "number" ? `$${summary.costUsd.toFixed(2)} API-equivalent` : "cost unknown";
   const minutes = typeof summary.durationSeconds === "number" ? `${Math.round(summary.durationSeconds / 60)} min` : "time unknown";
-  lines.push("", `Passed = every try clean (cases passed / cases, mean score in brackets). ${cost}, ${minutes}${summary.partial ? ", PARTIAL (the cost ceiling stopped it)" : ""}.`);
+  lines.push(
+    "",
+    `Passed = every try clean (cases passed / cases read, mean score in brackets; the skill-fired indicator is outside the score). ${cost}, ${minutes}${summary.partial ? ", PARTIAL (the cost ceiling stopped it)" : ""}.`,
+  );
+  if (summary.valid === false) {
+    const common = summary.commonError === undefined ? "" : ` Most common error (${summary.commonError.tries} tries): ${summary.commonError.error}`;
+    lines.push("", `NOT A VALID READING: ${summary.erroredTries} tries errored and were left out; a case with an errored try has no reading.${common}`);
+  }
   return lines.join("\n");
 }
 
@@ -445,14 +526,17 @@ export function renderSpread(rows) {
 /**
  * Two with-plugin readings of the same bank, compared per job: the
  * difference in cases passed, and `noisy` when it is more than one case, so
- * a gain smaller than the noise is not read as real.
+ * a gain smaller than the noise is not read as real. A job either run did
+ * not read whole (an errored try) has no spread.
  */
 export function spreadBetween(first, second) {
   const second_ = new Map(second.jobs.map((row) => [row.job, row]));
   return first.jobs.map((row) => {
     const other = second_.get(row.job);
-    const a = row.with?.passed;
-    const b = other?.with?.passed;
+    // A job not read whole in either run has no spread.
+    const whole = (job) => job?.with !== undefined && (job.with.read ?? job.cases) === job.cases;
+    const a = whole(row) ? row.with.passed : undefined;
+    const b = whole(other) ? other.with.passed : undefined;
     const spread = a === undefined || b === undefined ? undefined : Math.abs(a - b);
     return { job: row.job, first: a, second: b, spread, noisy: spread !== undefined && spread > 1 };
   });

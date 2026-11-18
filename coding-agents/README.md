@@ -74,7 +74,11 @@ the person's words, and `graders/`:
 in Claude Code, with the plugin and without it, against a hermetic local
 Stigmer seeded with `evals/_fixture/` (an agent with a finished run, one whose
 runs fail, a skill), its runner on the fake model, and prints the score per
-job. A case passes only when every try passes every grader. It calls a real
+job. A case passes only when every try passes every scored grader. A try
+Claude Code could not run (a usage limit, a crash) is no reading: the table
+counts it, leaves its case unread and says the run is not a valid reading,
+and the command exits non-zero, so such a run is never taken as a score. It
+calls a real
 model on your own Claude Code sign-in, so it is by hand, in no lane;
 `BANK_ARGS` narrows it (`--tag=<job>`, `--case=<glob>`, `--runs=<n>`) and
 bounds it (`--max-cost-usd`, default $60 API-equivalent).
