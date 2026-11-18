@@ -102,10 +102,12 @@ export function terminalizeNonExecutingDecisions(rows: SettledRows): void {
       case ApprovalAction.APPROVE_ALL:
       case ApprovalAction.UNSPECIFIED:
         break;
+      /* v8 ignore start -- @preserve: the never arm; the compiler proves no approval action reaches it */
       default: {
         const exhaustive: never = row.approvalAction;
         throw new Error(`terminalizeNonExecutingDecisions: unknown approval action ${String(exhaustive)}`);
       }
+      /* v8 ignore stop */
     }
   }
 }
