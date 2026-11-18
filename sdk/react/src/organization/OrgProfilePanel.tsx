@@ -23,7 +23,8 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { RenameSlugField } from "../resource-detail/RenameSlugField.js";
 import { Tag } from "../internal/surface/Tag.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
-import { FIELD_LABEL_CLASSES, FieldError, TextArea, TextInput } from "../internal/form/index.js";
+import { FIELD_LABEL_CLASSES, Field, FieldError, TextArea, TextInput } from "../internal/form/index.js";
+import { Section } from "../resource-detail/Section.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -232,139 +233,102 @@ export function OrgProfilePanel({
   // Render
   // -----------------------------------------------------------------------
 
+  const readOnlyLook = editDenied && "stg:bg-muted-subtle stg:text-muted-foreground";
   return (
-    <form
-      onSubmit={handleSubmit}
-      className={cn("stg:space-y-6", className)}
-    >
-      {/* -- Identifiers: the slug is renamable by owners, the ID never changes -- */}
-      <div className="stg:space-y-3">
-        {canRename ? (
-          <OrganizationSlugField
-            orgId={serverOrgId}
-            currentSlug={serverSlug}
-            onRenamed={(renamed) => {
-              refetch();
-              refreshProvider();
-              onUpdated?.(renamed);
-            }}
-          />
-        ) : (
-          <ReadOnlyField label="Slug" value={serverSlug} mono />
-        )}
-        <ReadOnlyField label="Organization ID" value={serverOrgId} />
-      </div>
+    <div className={cn("stg:space-y-6", className)}>
+      <Section title="Profile">
+        <form onSubmit={handleSubmit} className="stg:flex stg:flex-col stg:gap-4 stg:p-4">
+          <Field id={`${baseId}-name`} label="Name" hint="Shown in the sidebar and across Stigmer.">
+            <TextInput
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={isUpdating}
+              readOnly={!canEdit}
+              required
+              className={cn(readOnlyLook)}
+            />
+          </Field>
 
-      <hr className="stg:border-border" />
-
-      {/* -- Editable fields -- */}
-      <div className="stg:space-y-4">
-        {/* Name */}
-        <div className="stg:space-y-1">
-          <label
-            htmlFor={`${baseId}-name`}
-            className={FIELD_LABEL_CLASSES}
-          >
-            Name
-          </label>
-          <TextInput
-            id={`${baseId}-name`}
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            disabled={isUpdating}
-            readOnly={!canEdit}
-            required
-            className={cn("stg:w-full", editDenied && "stg:bg-muted-subtle stg:text-muted-foreground")}
-          />
-          <p className="stg:text-2xs stg:text-muted-foreground">
-            The display name shown in the sidebar and across the platform.
-          </p>
-        </div>
-
-        {/* Description */}
-        <div className="stg:space-y-1">
-          <label
-            htmlFor={`${baseId}-desc`}
-            className={FIELD_LABEL_CLASSES}
-          >
-            Description
-          </label>
-          <TextArea
+          <Field
             id={`${baseId}-desc`}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            maxLength={DESCRIPTION_MAX_LEN}
-            rows={3}
-            disabled={isUpdating}
-            readOnly={!canEdit}
-            placeholder={canEdit ? "What is this organization for?" : undefined}
-            className={cn("stg:w-full stg:resize-y", editDenied && "stg:bg-muted-subtle stg:text-muted-foreground")}
-          />
-          {canEdit && (
-            <p className="stg:text-2xs stg:text-muted-foreground">
-              {description.length}/{DESCRIPTION_MAX_LEN} characters
+            label="Description"
+            optional
+            hint={canEdit ? `${description.length}/${DESCRIPTION_MAX_LEN} characters` : undefined}
+          >
+            <TextArea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              maxLength={DESCRIPTION_MAX_LEN}
+              rows={3}
+              disabled={isUpdating}
+              readOnly={!canEdit}
+              placeholder={canEdit ? "What is this organization for?" : undefined}
+              className={cn("stg:resize-y", readOnlyLook)}
+            />
+          </Field>
+
+          <Field id={`${baseId}-logo`} label="Logo address" optional hint="A public address of an image.">
+            <TextInput
+              type="url"
+              value={logoUrl}
+              onChange={(e) => setLogoUrl(e.target.value)}
+              maxLength={LOGO_URL_MAX_LEN}
+              disabled={isUpdating}
+              readOnly={!canEdit}
+              placeholder={canEdit ? "https://example.com/logo.png" : undefined}
+              className={cn("stg:font-mono", readOnlyLook)}
+            />
+          </Field>
+          <LogoPreview url={logoUrl.trim()} />
+
+          {/* Identifiers: the slug is renamable by owners, the ID never changes. */}
+          <div className="stg:space-y-3">
+            {canRename ? (
+              <OrganizationSlugField
+                orgId={serverOrgId}
+                currentSlug={serverSlug}
+                onRenamed={(renamed) => {
+                  refetch();
+                  refreshProvider();
+                  onUpdated?.(renamed);
+                }}
+              />
+            ) : (
+              <ReadOnlyField label="Slug" value={serverSlug} mono />
+            )}
+            <ReadOnlyField label="Organization ID" value={serverOrgId} />
+          </div>
+
+          {editDenied && (
+            <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
+              Only organization admins can edit this profile.
             </p>
           )}
-        </div>
 
-        {/* Logo URL */}
-        <div className="stg:space-y-1">
-          <label
-            htmlFor={`${baseId}-logo`}
-            className={FIELD_LABEL_CLASSES}
-          >
-            Logo URL
-          </label>
-          <TextInput
-            id={`${baseId}-logo`}
-            type="url"
-            value={logoUrl}
-            onChange={(e) => setLogoUrl(e.target.value)}
-            maxLength={LOGO_URL_MAX_LEN}
-            disabled={isUpdating}
-            readOnly={!canEdit}
-            placeholder={canEdit ? "https://example.com/logo.png" : undefined}
-            className={cn("stg:w-full", editDenied && "stg:bg-muted-subtle stg:text-muted-foreground")}
-          />
-          <p className="stg:text-2xs stg:text-muted-foreground">
-            A public URL to your organization&apos;s logo image.
-          </p>
-          <LogoPreview url={logoUrl.trim()} />
-        </div>
-      </div>
-
-      {editDenied && (
-        <p className="stg:text-2xs stg:text-muted-foreground">
-          Only organization admins can edit this profile.
-        </p>
-      )}
-
-      {/* -- Error feedback -- */}
-      {updateError && (
-        <FieldError>
-          {saveErrorMessage(updateError, "organization")}
-        </FieldError>
-      )}
-
-      {/* -- Actions -- */}
-      {canEdit && (
-        <div className="stg:flex stg:items-center stg:gap-2">
-          <Button type="submit" disabled={!canSubmit} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>
-            Save changes
-          </Button>
-
-          {hasChanges && !isUpdating && (
-            <Button variant="ghost" onClick={handleDiscard}>
-              Discard
-            </Button>
+          {updateError && (
+            <FieldError>
+              {saveErrorMessage(updateError, "organization")}
+            </FieldError>
           )}
-        </div>
-      )}
 
-      {/* -- Federation Issuers summary -- */}
+          {canEdit && (
+            <div className="stg:flex stg:items-center stg:gap-2">
+              <Button type="submit" size="sm" disabled={!canSubmit} icon={isUpdating ? <SpinnerIcon size={14} /> : undefined}>
+                Save changes
+              </Button>
+              {hasChanges && !isUpdating && (
+                <Button variant="ghost" size="sm" onClick={handleDiscard}>
+                  Discard
+                </Button>
+              )}
+            </div>
+          )}
+        </form>
+      </Section>
+
       <FederationIssuersSummary orgId={serverOrgId} />
-    </form>
+    </div>
   );
 }
 
