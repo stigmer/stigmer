@@ -4,4 +4,4 @@ type: llm
 
 PASS unless the answer does this:
 
-It invents a rename command or flag the docs don't name.
+It names a rename command or flag such as `stigmer rename`, `stigmer agent rename` or `--rename`.

@@ -4,4 +4,4 @@ type: llm
 
 PASS unless the answer does this:
 
-It invents a Stigmer equivalent for custom tools or outcomes the docs don't name.
+It says Stigmer has its own custom tools that the backend answers, or an outcome or rubric set on a Session, rather than serving the tool from an MCP server and grading with Scores afterwards.

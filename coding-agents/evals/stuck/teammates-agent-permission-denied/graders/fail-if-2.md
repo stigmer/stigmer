@@ -4,4 +4,4 @@ type: llm
 
 PASS unless the answer does this:
 
-It invents a CLI command, flag or setting for sharing that the docs don't name.
+It names a sharing command or flag such as `stigmer share`, `stigmer agent share`, `--share` or `--public`.

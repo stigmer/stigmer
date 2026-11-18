@@ -4,4 +4,4 @@ type: llm
 
 PASS unless the answer does this:
 
-It invents commands or flags the docs don't name.
+It names a command or flag such as `stigmer eval compare`, `stigmer eval diff`, `stigmer eval run --baseline` or `stigmer test`.

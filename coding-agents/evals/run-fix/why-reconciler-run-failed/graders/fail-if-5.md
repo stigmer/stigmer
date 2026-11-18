@@ -4,4 +4,4 @@ type: llm
 
 PASS unless the answer does this:
 
-It invents a command or flag the CLI reference does not list.
+It presents as a working command one such as `stigmer runs list`, `stigmer runs show`, `stigmer runs why` or `stigmer credits`.

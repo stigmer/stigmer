@@ -4,4 +4,4 @@ type: llm
 
 PASS unless the answer does this:
 
-It invents commands or flags the docs don't name, such as `stigmer eval add-run` or `stigmer runs export`.
+It names a command or flag such as `stigmer eval add-run`, `stigmer runs export` or `stigmer eval import`.

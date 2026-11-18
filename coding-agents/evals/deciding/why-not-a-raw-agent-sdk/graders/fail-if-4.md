@@ -4,4 +4,4 @@ type: llm
 
 PASS unless the answer does this:
 
-It invents capabilities the docs don't name.
+It credits Stigmer with a feature such as automatic PII masking or a data-loss-prevention scan of uploaded files.

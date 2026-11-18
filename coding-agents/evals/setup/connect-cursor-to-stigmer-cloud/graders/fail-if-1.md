@@ -4,4 +4,4 @@ type: llm
 
 PASS unless the answer does this:
 
-It invents an endpoint, a Cursor marketplace listing or a setting the docs don't name.
+It gives an address for the Stigmer Cloud MCP connector other than `https://mcp.stigmer.ai` (such as `https://api.stigmer.ai/mcp`), or says to install Stigmer from a Cursor marketplace listing.

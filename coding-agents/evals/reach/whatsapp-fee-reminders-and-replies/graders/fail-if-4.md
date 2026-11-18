@@ -4,4 +4,4 @@ type: llm
 
 PASS unless the answer does this:
 
-It invents a command or field the docs don't name (such as `stigmer whatsapp send`).
+It names a command or field such as `stigmer whatsapp send`, `stigmer channel send`, or a `reminder_days` or `send_at` field on the channel.
