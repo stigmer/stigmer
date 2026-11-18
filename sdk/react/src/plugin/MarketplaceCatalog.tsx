@@ -312,7 +312,6 @@ function FailedSources({
   // Among many sources, the ones that could not be read are one notice: each
   // source's own line, what still stands, and one Try again for them all.
   const unread = failed.flatMap((read) => (read.state.kind === "failed" ? [{ name: read.marketplace.name, error: read.state.error }] : []));
-  if (unread.length === 0) return null;
   const [only] = unread;
   return (
     <Notice
