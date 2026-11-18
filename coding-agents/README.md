@@ -59,12 +59,14 @@ is never published with the plugin. Every case is in the format both
 `claude plugin eval` and Stigmer's own eval reader take: a `prompt.md` with
 the person's words, and `graders/`:
 
-- `criteria.md`: the judge's rubric, written from the docs pages the answer
-  comes from, in three parts: two to four **Must** points, without which the
-  person would act wrongly or not at all; the **FAIL if** lines (wrong,
-  invented, or contradicting the docs); and the **Welcome** points, whose
-  absence never fails an answer. The judge reads the final message only, so
-  an acting case's rubric judges only what that message shows;
+- `must-<n>.md`: two to four, each one point the answer must make, without
+  which the person would act wrongly or not at all, written from the docs
+  pages the answer comes from;
+- `fail-if-<n>.md`: one each for what fails an answer (wrong, invented, or
+  contradicting the docs). Every judge grader holds one point: Claude Code's
+  judge answers PASS or FAIL in one word, with no room to reason, and grades
+  one point reliably where it misgrades a list. It reads the final message
+  only, so an acting case's graders judge only what that message shows;
 - `cites-the-page.md`: the answer links a page that answers it, as published
   (`stigmer\.ai/docs/<page>`, or several as `stigmer\.ai/docs/(<page>|<page>)`;
   a link to the docs' source on GitHub doesn't count). The list names every
@@ -73,6 +75,8 @@ the person's words, and `graders/`:
   is the fixture's fact or the act itself;
 - `skill-fired.md`: whether the plugin's skill loaded, an indicator outside
   the score;
+- beside `graders/`, `welcome.md`: what a good answer may also say, never
+  graded;
 - for a case that acts on Stigmer (tagged `acts`), `reports-the-fact.md`: a
   fact only a real read of the fixture returns; for a destructive ask,
   `does-not-act.md`: the trace holds no such call, and the rubric passes only
@@ -94,11 +98,11 @@ bounds it (`--max-cost-usd`, default $60 API-equivalent).
 
 To add a case: write the question in the person's own words under its job's
 folder, read the docs page that answers it, and write the rubric from that
-page, opening with the words every rubric opens with; copy the frontmatter
-and `skill-fired.md` from a neighbour, since every case shares one tool list
-and turn cap. A question no page answers is a docs
+page, one point per grader, each opening with the question its kind asks;
+copy the frontmatter and `skill-fired.md` from a neighbour, since every case
+shares one tool list and turn cap. A question no page answers is a docs
 gap: write the case anyway, and fix the docs. `__tests__/bank.test.ts` holds
-the bank's shape in the gate: Stigmer reads it with no finding, every rubric
-has its three parts, every cited page exists, every concept page,
-getting-started page and guide group has a question, and every job has at
-least four.
+the bank's shape in the gate: Stigmer reads it with no finding, every judge
+grader holds one point, every case has two to four Must points, every cited
+page exists, every concept page, getting-started page and guide group has a
+question, and every job has at least four.
