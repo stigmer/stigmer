@@ -32,7 +32,7 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
         "progress, the tool uses it waits on, and the final answer. Omit session_id to start a fresh " +
         "conversation on the agent; pass one to send a follow-up message into an existing session, " +
         "which runs the agent the session started on.",
-      inputSchema: {
+      inputSchema: z.strictObject({
         org: z
           .string()
           .default("")
@@ -79,7 +79,7 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
               "true). Pass false to run on the listed vaults only. Only when starting a new " +
               "conversation (no session_id).",
           ),
-      },
+      }),
     },
     (args, extra) =>
       textOrError(async () =>
@@ -109,7 +109,7 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
         "tail is a window. run.status.credentials.sources names the vault and entry each key " +
         "the run uses came from, never a value. Use view=full for every event of the run as " +
         "Claude Managed Agents JSON.",
-      inputSchema: {
+      inputSchema: z.strictObject({
         run_id: z.string().describe("Run ID (run_*)."),
         view: z
           .enum(["compact", "full"])
@@ -121,7 +121,7 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
           .min(1)
           .optional()
           .describe(`Compact view only: number of trailing items of the turn to return (default ${DEFAULT_ITEM_LIMIT}).`),
-      },
+      }),
     },
     (args, extra) =>
       textOrError(async () =>
@@ -144,7 +144,7 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
         "every waiting tool use of its turn is answered. deny refuses the one call and feeds " +
         "your reason back to the agent, which then continues; to stop the conversation use " +
         "cancel_run instead.",
-      inputSchema: {
+      inputSchema: z.strictObject({
         run_id: z.string().describe("Run ID (run_*)."),
         tool_use_id: z
           .string()
@@ -161,7 +161,7 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
           .string()
           .optional()
           .describe("With deny only: why the call is refused, fed back to the agent."),
-      },
+      }),
     },
     (args, extra) =>
       textOrError(async () =>
@@ -189,9 +189,9 @@ export function registerRunControlTools(server: McpServer, target: BackendTarget
         "Cancellation is terminal: a stopped turn cannot be resumed. The response names the " +
         "runs stopped (stopped_run_ids). A run already in a terminal phase is returned with " +
         "already_terminal=true and nothing is stopped.",
-      inputSchema: {
+      inputSchema: z.strictObject({
         run_id: z.string().describe("Run ID to cancel (run_*)."),
-      },
+      }),
     },
     (args, extra) =>
       textOrError(async () => cancelRun(target.serverAddress, await resolveToken(extra, target), args.run_id)),

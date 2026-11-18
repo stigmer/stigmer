@@ -42,10 +42,10 @@ export const AgentInputShape = {
   environment_ref: z.lazy(() => EnvironmentRefInputSchema).optional().describe("The Environment a new conversation on this agent runs in when neither the conversation nor its routine names one: the packages its sandboxes get and the websites they may reach. Unset: the organization's default Environment, if any. A conversation keeps the Environment it started with; changing this changes only new conversations. A conversation on the person's own machine (the desktop app, the CLI) ignores it."),
 } as const;
 
-export const AgentInputSchema = z.object(AgentInputShape);
+export const AgentInputSchema = z.strictObject(AgentInputShape);
 export type AgentInput = z.infer<typeof AgentInputSchema>;
 
-const SkillRefInputSchema = z.object({
+const SkillRefInputSchema = z.strictObject({
   org: z.string().optional().describe("Organization that owns the referenced resource, by slug or id. When non-empty: an organization slug (lowercase alphanumeric with hyphens, starts with a letter, 2-63 characters; e.g. 'stigmer', 'acme-corp') or an organization id (org_<ulid>). The server stores the id, so a stored reference keeps pointing at its organization across a rename. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form, the id). Use empty org for same-org references (the common case). An explicit other org is accepted only when that organization is your organization's parent and shares the resource with its children (visibility_child_orgs)."),
   slug: z.string().optional().describe("Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter and end with a letter or digit (e.g., 'web-search', 'variance-reporter'). Length: 2-63 characters. Written to name the resource; never stored; returned filled with the resource's current name, empty when the resource was deleted."),
   version: z.string().optional().describe("The version of a skill, a plugin or a subagent the reference asks for; every other kind ignores it. Formats: - empty or 'latest': the latest version; - a tag (e.g. 'stable', 'v1.0'): the version the tag names; - a 64-character hash: that exact version, which never changes. When it is read: a skill or plugin reference is resolved at the start of each turn, so a reference without a hash follows each new push, and the run records the version it loaded (RunStatus.loaded_versions). A subagent reference is resolved once, when the agent that lists it is saved, and the saved reference carries the hash it resolved to."),
@@ -53,7 +53,7 @@ const SkillRefInputSchema = z.object({
 });
 type SkillRefInput = z.infer<typeof SkillRefInputSchema>;
 
-const EnvVarDeclarationInputSchema = z.object({
+const EnvVarDeclarationInputSchema = z.strictObject({
   is_secret: z.boolean().optional().describe("Whether the value is a secret, found in a vault when a run starts."),
   description: z.string().optional().describe("Human-readable description shown where the value is asked for. Should explain what the variable is used for and where to obtain it."),
   optional: z.boolean().optional().describe("Whether this variable is optional."),
@@ -61,7 +61,7 @@ const EnvVarDeclarationInputSchema = z.object({
 });
 type EnvVarDeclarationInput = z.infer<typeof EnvVarDeclarationInputSchema>;
 
-const HookHandlerInputSchema = z.object({
+const HookHandlerInputSchema = z.strictObject({
   command: z.string().optional().describe("The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT} names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace, and in Cursor's format ${CURSOR_PLUGIN_ROOT} and ${CURSOR_PROJECT_DIR} do too."),
   args: z.array(z.string()).optional().describe("Arguments for the command's exec form; when set, the command runs without a shell. Claude Code's format only."),
   timeout_seconds: z.number().optional().describe("Seconds the command may run before it is stopped; zero means the format's default, 600 seconds for Claude Code and 60 for Cursor. A command that is stopped makes no decision, unless fail_closed is set."),
@@ -70,25 +70,25 @@ const HookHandlerInputSchema = z.object({
 });
 type HookHandlerInput = z.infer<typeof HookHandlerInputSchema>;
 
-const HookGroupInputSchema = z.object({
+const HookGroupInputSchema = z.strictObject({
   event: z.string().optional().describe("The event the handlers run on, spelled as the format spells it. In Claude Code's format: 'PreToolUse' before a call, which can refuse it, ask first or allow it, or 'PostToolUse' after a call succeeds, which can add to what the agent reads. In Cursor's: 'preToolUse', 'beforeShellExecution' (shell commands) and 'beforeMCPExecution' (MCP tools) before a call, and 'postToolUse' and 'afterMCPExecution' (MCP tools) after one."),
   matcher: z.string().optional().describe("Which tools the handlers run for, in the format's own names. In Claude Code's format: a name such as 'Bash', a list such as 'Write|Edit', or a regular expression such as 'mcp__github__.*'; a plugin's own MCP server's tools are named mcp__plugin_<plugin>_<server>__<tool>, as in Claude Code. In Cursor's: a regular expression tested against the tool's name ('Shell', 'Write', 'MCP:<tool>'), or, on 'beforeShellExecution', against the command itself. Empty or '*' matches every tool."),
   handlers: z.array(z.lazy(() => HookHandlerInputSchema)).optional().describe("The handlers to run, in order."),
 });
 type HookGroupInput = z.infer<typeof HookGroupInputSchema>;
 
-const HookConfigInputSchema = z.object({
+const HookConfigInputSchema = z.strictObject({
   format: z.string().optional().describe("The format the hooks are written in, which decides their input and answer. An agent's own block may leave it unset; Claude Code's format is assumed. A block in Cursor's format names it. Allowed values: HOOK_FORMAT_CLAUDE_CODE, HOOK_FORMAT_CURSOR."),
   groups: z.array(z.lazy(() => HookGroupInputSchema)).optional().describe("Hook groups, in the order they are declared."),
 });
 type HookConfigInput = z.infer<typeof HookConfigInputSchema>;
 
-const HookSourceInputSchema = z.object({
+const HookSourceInputSchema = z.strictObject({
   inline: z.lazy(() => HookConfigInputSchema).optional().describe("A hooks block in Claude Code's hooks.json shape, written in the agent."),
 });
 type HookSourceInput = z.infer<typeof HookSourceInputSchema>;
 
-const RunConfigInputSchema = z.object({
+const RunConfigInputSchema = z.strictObject({
   model_name: z.string().optional().describe("The model each run uses. Example: 'claude-sonnet-4-6'."),
   max_cost_usd: z.number().optional().describe("Maximum estimated cost in USD per run. When the run's estimated spend reaches this limit, the run stops with a 'send another message to continue' prompt and ends TERMINATED; the work done so far is kept. The limit is checked each time the harness reports its spend, so a run can end somewhat above it. Stigmer's own harness reports after every model call, counts a subagent's spend toward the limit, and advises the agent to wrap up at about 80% of the budget. 0 = not set at this layer. The budget is per message: a follow-up message, or a run resuming after an approval, starts a fresh count; a run continuing after a restart, a lost runner or a stall keeps its count. The spend is the runner's estimate, reported on RunStatus.streaming_usage.estimated_cost_usd, not the billed amount."),
   max_tool_rounds: z.number().optional().describe("Maximum model-to-tools reasoning cycles per message. A round is one model response that proposes one or more tool calls, followed by their execution; parallel tool calls in one response are one round. When the limit is reached the run stops with a 'send another message to continue' prompt, and the work done so far is kept. The agent is advised to wrap up at about 80% of the budget. 0 = not set at this layer; with no layer setting it the agent runs until the task completes or loop detection stops a repetitive pattern. When set, the valid range is 10–1000; values outside it are clamped to the nearest bound. The budget is per message: a follow-up message, or a run resuming after an approval, starts a fresh count. Subagent rounds are not counted."),
@@ -98,7 +98,7 @@ const RunConfigInputSchema = z.object({
 });
 type RunConfigInput = z.infer<typeof RunConfigInputSchema>;
 
-const PluginInputSchema = z.object({
+const PluginInputSchema = z.strictObject({
   org: z.string().optional().describe("Organization that owns the referenced resource, by slug or id. When non-empty: an organization slug (lowercase alphanumeric with hyphens, starts with a letter, 2-63 characters; e.g. 'stigmer', 'acme-corp') or an organization id (org_<ulid>). The server stores the id, so a stored reference keeps pointing at its organization across a rename. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form, the id). Use empty org for same-org references (the common case). An explicit other org is accepted only when that organization is your organization's parent and shares the resource with its children (visibility_child_orgs)."),
   slug: z.string().optional().describe("Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter and end with a letter or digit (e.g., 'web-search', 'variance-reporter'). Length: 2-63 characters. Written to name the resource; never stored; returned filled with the resource's current name, empty when the resource was deleted."),
   version: z.string().optional().describe("The version of a skill, a plugin or a subagent the reference asks for; every other kind ignores it. Formats: - empty or 'latest': the latest version; - a tag (e.g. 'stable', 'v1.0'): the version the tag names; - a 64-character hash: that exact version, which never changes. When it is read: a skill or plugin reference is resolved at the start of each turn, so a reference without a hash follows each new push, and the run records the version it loaded (RunStatus.loaded_versions). A subagent reference is resolved once, when the agent that lists it is saved, and the saved reference carries the hash it resolved to."),
@@ -106,7 +106,7 @@ const PluginInputSchema = z.object({
 });
 type PluginInput = z.infer<typeof PluginInputSchema>;
 
-const SubagentInputSchema = z.object({
+const SubagentInputSchema = z.strictObject({
   org: z.string().optional().describe("Organization that owns the referenced resource, by slug or id. When non-empty: an organization slug (lowercase alphanumeric with hyphens, starts with a letter, 2-63 characters; e.g. 'stigmer', 'acme-corp') or an organization id (org_<ulid>). The server stores the id, so a stored reference keeps pointing at its organization across a rename. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form, the id). Use empty org for same-org references (the common case). An explicit other org is accepted only when that organization is your organization's parent and shares the resource with its children (visibility_child_orgs)."),
   slug: z.string().optional().describe("Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter and end with a letter or digit (e.g., 'web-search', 'variance-reporter'). Length: 2-63 characters. Written to name the resource; never stored; returned filled with the resource's current name, empty when the resource was deleted."),
   version: z.string().optional().describe("The version of a skill, a plugin or a subagent the reference asks for; every other kind ignores it. Formats: - empty or 'latest': the latest version; - a tag (e.g. 'stable', 'v1.0'): the version the tag names; - a 64-character hash: that exact version, which never changes. When it is read: a skill or plugin reference is resolved at the start of each turn, so a reference without a hash follows each new push, and the run records the version it loaded (RunStatus.loaded_versions). A subagent reference is resolved once, when the agent that lists it is saved, and the saved reference carries the hash it resolved to."),
@@ -114,14 +114,14 @@ const SubagentInputSchema = z.object({
 });
 type SubagentInput = z.infer<typeof SubagentInputSchema>;
 
-const AgentMcpServerInputSchema = z.object({
+const AgentMcpServerInputSchema = z.strictObject({
   name: z.string().optional().describe("The server's name in this agent, which names its tools mcp__<name>__<tool>: 2 to 63 lowercase letters, digits and hyphens, starting with a letter and not ending with a hyphen."),
   url: z.string().optional().describe("The server's address: an https URL, or http on this machine."),
   headers: z.record(z.string()).optional().describe("Headers sent with every request to this server. A value may name a run value as ${NAME}, filled when the run starts."),
 });
 type AgentMcpServerInput = z.infer<typeof AgentMcpServerInputSchema>;
 
-const EnvironmentRefInputSchema = z.object({
+const EnvironmentRefInputSchema = z.strictObject({
   org: z.string().optional().describe("Organization that owns the referenced resource, by slug or id. When non-empty: an organization slug (lowercase alphanumeric with hyphens, starts with a letter, 2-63 characters; e.g. 'stigmer', 'acme-corp') or an organization id (org_<ulid>). The server stores the id, so a stored reference keeps pointing at its organization across a rename. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form, the id). Use empty org for same-org references (the common case). An explicit other org is accepted only when that organization is your organization's parent and shares the resource with its children (visibility_child_orgs)."),
   slug: z.string().optional().describe("Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter and end with a letter or digit (e.g., 'web-search', 'variance-reporter'). Length: 2-63 characters. Written to name the resource; never stored; returned filled with the resource's current name, empty when the resource was deleted."),
   id: z.string().optional().describe("The referenced resource's id: what a stored reference holds. Optional on write, where the slug may name the resource instead; an id no resource of the kind holds answers as a missing resource. At most 64 characters."),

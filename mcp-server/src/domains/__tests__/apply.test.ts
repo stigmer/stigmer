@@ -2,8 +2,9 @@
 // MCP boundary and asserts the codegen projection (src/gen/*) reconstitutes
 // the proto correctly: metadata hoist + slug generation, the agent tool
 // lists, enum-string conversion, ApiResourceReference kind injection for
-// the skills and plugins an agent lists, and the MCP servers written in the
-// agent itself (the advertised mcp_servers item shape and its proto).
+// the skills and plugins an agent lists, the MCP servers written in the
+// agent itself (the advertised mcp_servers item shape and its proto), and
+// an unknown nested key refused before the backend is called.
 
 import { clone } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -202,5 +203,20 @@ describe("apply tools integration", () => {
     expect(servers[0].name).toBe("zendesk");
     expect(servers[0].url).toBe("https://acme-co.zendesk.com/mcp");
     expect(servers[0].headers).toEqual({ "X-Api-Key": "${ZENDESK_KEY}" });
+  });
+
+  it("apply_agent refuses an unknown key inside a nested object, naming it, and applies nothing", async () => {
+    appliedAgent = undefined;
+
+    const result = await callTool("apply_agent", {
+      name: "Support Bot",
+      org: "acme",
+      run_config: { model_nmae: "claude-sonnet-4-5" },
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toMatch(/-32602: Input validation error/);
+    expect(result.content[0]?.text).toContain("model_nmae");
+    expect(appliedAgent, "a refused call never reaches the backend").toBeUndefined();
   });
 });

@@ -261,13 +261,13 @@ function genTSTopLevelSchema(m: McpGen, w: string[], kind: string, imports: TsIm
     genTSZodField(w, classifyField(m, f));
   }
   w.push("} as const;\n\n");
-  w.push(`export const ${kind}InputSchema = z.object(${kind}InputShape);\n`);
+  w.push(`export const ${kind}InputSchema = z.strictObject(${kind}InputShape);\n`);
   w.push(`export type ${kind}Input = z.infer<typeof ${kind}InputSchema>;\n\n`);
 }
 
 function genTSNestedSchema(m: McpGen, w: string[], it: McpInputType, cyclic: Set<string>, imports: TsImportSet): void {
   if (it.isReference) {
-    w.push(`const ${tsSchemaConst(it.name)} = z.object({\n`);
+    w.push(`const ${tsSchemaConst(it.name)} = z.strictObject({\n`);
     for (const f of it.fields) {
       genTSZodField(w, classifyField(m, f));
     }
@@ -278,7 +278,7 @@ function genTSNestedSchema(m: McpGen, w: string[], it: McpInputType, cyclic: Set
 
   if (cyclic.has(it.name)) {
     genTSInterface(m, w, it);
-    w.push(`const ${tsSchemaConst(it.name)}: z.ZodType<${it.name}> = z.lazy(() => z.object({\n`);
+    w.push(`const ${tsSchemaConst(it.name)}: z.ZodType<${it.name}> = z.lazy(() => z.strictObject({\n`);
     for (const f of it.fields) {
       genTSZodField(w, classifyField(m, f));
     }
@@ -286,7 +286,7 @@ function genTSNestedSchema(m: McpGen, w: string[], it: McpInputType, cyclic: Set
     return;
   }
 
-  w.push(`const ${tsSchemaConst(it.name)} = z.object({\n`);
+  w.push(`const ${tsSchemaConst(it.name)} = z.strictObject({\n`);
   for (const f of it.fields) {
     genTSZodField(w, classifyField(m, f));
   }
