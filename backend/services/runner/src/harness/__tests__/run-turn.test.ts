@@ -356,43 +356,56 @@ describe("run-turn: the fake adapter through the real runtime", () => {
         expectSettledNotRun(driver, id, errorLines, "platform_stop");
       });
 
-      it("a failure after the answers are copied: the plugin's hooks cannot be prepared on the resume", async () => {
-        const hooks = create(HookConfigSchema, {
-          format: HookFormat.CLAUDE_CODE,
-          groups: [create(HookGroupSchema, { event: "PreToolUse", matcher: "Bash", handlers: [create(HookHandlerSchema, { command: '"${CLAUDE_PLUGIN_ROOT}"/hooks/guard' })] })],
-        });
-        const archiveOf = (version: string) =>
-          buildZip([
-            { name: ".claude-plugin/plugin.json", content: `{"name":"safety","version":"${version}"}` },
-            { name: "hooks/guard", content: "#!/usr/bin/env bash\nexit 0\n" },
-          ]);
-        // The plugin as installed at `installed`, its archive served as `served`:
-        // a mount is cached by digest, so the resume's refusal needs a new
-        // version (upgraded between the turns) whose download does not verify.
-        const pluginServed = (installed: Uint8Array, served: Uint8Array) => ({
-          getPluginByReference: vi.fn(async () =>
-            create(PluginSchema, {
-              metadata: { id: "plg_safety", org: "kit-org", slug: "safety", name: "safety" },
-              status: { digest: createHash("sha256").update(installed).digest("hex"), artifactStorageKey: "plugins/safety.zip", hooks },
-            }),
-          ),
-          getPluginArtifactDownloadUrl: vi.fn(async () => create(PluginArtifactDownloadUrlSchema, mintedDownload(served))),
-        });
-        const v1 = archiveOf("1.0.0");
-        const v2 = archiveOf("2.0.0");
-        const forged = buildZip([{ name: "hooks/guard", content: "#!/usr/bin/env bash\nexit 0\n" }]);
+      // A plugin's hooks, as installed at one version and served at another:
+      // a mount is cached by digest, so the resume fails only on a new
+      // version (upgraded between the turns) whose archive cannot be had.
+      const hooks = create(HookConfigSchema, {
+        format: HookFormat.CLAUDE_CODE,
+        groups: [create(HookGroupSchema, { event: "PreToolUse", matcher: "Bash", handlers: [create(HookHandlerSchema, { command: '"${CLAUDE_PLUGIN_ROOT}"/hooks/guard' })] })],
+      });
+      const archiveOf = (version: string) =>
+        buildZip([
+          { name: ".claude-plugin/plugin.json", content: `{"name":"safety","version":"${version}"}` },
+          { name: "hooks/guard", content: "#!/usr/bin/env bash\nexit 0\n" },
+        ]);
+      const pluginServed = (installed: Uint8Array, download: () => Promise<Uint8Array>) => ({
+        getPluginByReference: vi.fn(async () =>
+          create(PluginSchema, {
+            metadata: { id: "plg_safety", org: "kit-org", slug: "safety", name: "safety" },
+            status: { digest: createHash("sha256").update(installed).digest("hex"), artifactStorageKey: "plugins/safety.zip", hooks },
+          }),
+        ),
+        getPluginArtifactDownloadUrl: vi.fn(async () => create(PluginArtifactDownloadUrlSchema, mintedDownload(await download()))),
+      });
 
+      it.each([
+        [
+          "a refusal after the answers are copied: the upgraded plugin's hooks cannot be prepared",
+          "fake-approved-hooks-refused",
+          async () => buildZip([{ name: "hooks/guard", content: "#!/usr/bin/env bash\nexit 0\n" }]),
+          "The hooks of plugin 'safety' could not be prepared",
+        ],
+        [
+          "a fault after the answers are copied: the upgraded plugin's download throws",
+          "fake-approved-hooks-fault",
+          async (): Promise<Uint8Array> => {
+            throw new Error("artifact store unreachable");
+          },
+          "artifact store unreachable",
+        ],
+      ] as const)("%s, before any engine turn began the log", async (_name, label, download, error) => {
+        const v1 = archiveOf("1.0.0");
         clock.reset();
-        const driver = new RuntimeExecutionDriver(harness, "fake-approved-hooks-refused");
+        const driver = new RuntimeExecutionDriver(harness, label);
         driver.record.agent!.spec!.plugins.push(create(ApiResourceReferenceSchema, { kind: 58, org: "kit-org", slug: "safety" }));
-        const id = "fake-approved-hooks-refused-shell";
-        const first = await driver.turn([scenario.propose(id, { kind: "shell", resource: "npm run release" })], { clientOverrides: pluginServed(v1, v1) });
+        const id = `${label}-shell`;
+        const first = await driver.turn([scenario.propose(id, { kind: "shell", resource: "npm run release" })], { clientOverrides: pluginServed(v1, async () => v1) });
         expect(slimOf(subject, first).phase).toBe("RUN_WAITING_FOR_APPROVAL");
         expect(driver.decide(ApprovalAction.APPROVE)).toBe(1);
 
-        const { result, errorLines } = await capturingErrors(() => driver.turn([scenario.say(NEVER_SEEN)], { clientOverrides: pluginServed(v2, forged) }));
+        const { result, errorLines } = await capturingErrors(() => driver.turn([scenario.say(NEVER_SEEN)], { clientOverrides: pluginServed(archiveOf("2.0.0"), download) }));
         expect(slimOf(subject, result).phase).toBe("RUN_FAILED");
-        expect(driver.record.lastFullStatus?.error).toContain("The hooks of plugin 'safety' could not be prepared");
+        expect(driver.record.lastFullStatus?.error).toContain(error);
         expectSettledNotRun(driver, id, errorLines, "failed");
       });
 
