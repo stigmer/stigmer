@@ -292,7 +292,7 @@ function RoleSection({
   return (
     <Section title="Organization role">
       <div className="stg:space-y-3 stg:p-4">
-        <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
+        <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
           {access.isLoading
             ? "Reading its role…"
             : current

@@ -196,7 +196,7 @@ function EstimateLines({ planName, estimate }: { planName: string; estimate: Per
   ];
   return (
     <Section title="This period's invoice, so far">
-      <Table aria-label="This period's invoice, so far" columns={ESTIMATE_COLUMNS} rows={rows} rowKey={(row) => row.key} />
+      <Table aria-label="This period's invoice, so far" columns={ESTIMATE_COLUMNS} rows={rows} rowKey={(row) => row.key} bare />
       <p className="stg:m-0 stg:px-4 stg:py-3 stg:text-xs stg:text-muted-foreground">
         The plan&apos;s fee for the whole period, with the child organizations and the agent hours past those
         included counted so far. Agent hours are counted while agents work in Stigmer&apos;s sandboxes, for this

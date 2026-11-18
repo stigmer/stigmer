@@ -251,13 +251,13 @@
       "sample": {},
       "ruled": {},
       "pending": {},
-      "unbuilt": "When its page is redesigned: the settings Built look's fixes build the profile's form as drawn, and its scene's organization gets child organizations."
+      "unbuilt": "The form is built as drawn (a Profile section on the kit's fields, settings-org-profile); the drawing's organization has a description, a logo and three child organizations, and no scene's organization does yet"
     },
     {
       "caption": "Organization profile: As a member: the same, read only",
       "narrow": false,
       "built": [],
-      "unbuilt": "No scene draws this state yet; the settings Built look's fixes add it.",
+      "unbuilt": "No scene draws this state yet.",
       "words": [
         {
           "text": "Organization profile",
@@ -477,7 +477,7 @@
       "caption": "Organization profile: Didn't load",
       "narrow": false,
       "built": [],
-      "unbuilt": "No scene draws this state yet; the settings Built look's fixes add it.",
+      "unbuilt": "No scene draws this state yet.",
       "words": [
         {
           "text": "Organization profile",
@@ -757,7 +757,7 @@
       "sample": {},
       "ruled": {},
       "pending": {},
-      "unbuilt": "When its page is redesigned: the settings Built look's fixes build the profile's form as drawn, and its scene's organization gets child organizations."
+      "unbuilt": "The form is built as drawn (a Profile section on the kit's fields, settings-org-profile); the drawing's organization has a description, a logo and three child organizations, and no scene's organization does yet"
     }
   ]
 }

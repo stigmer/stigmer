@@ -170,8 +170,8 @@
       },
       "ruled": {},
       "pending": {
-        "word Platform default (Stigmer)": "When its page is redesigned: the settings Built look's fixes draw the harness as a select; today it is radio rows",
-        "word Agents may propose facts to remember; only facts you confirm are kept, under Memory. Saves as you switch it.": "When its page is redesigned: the settings Built look decides the line; the kit's also says the organization's memory must be on and that kept facts show on the runs that use them"
+        "word Platform default (Stigmer)": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "word Agents may propose facts to remember; only facts you confirm are kept, under Memory. Saves as you switch it.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     },
     {
@@ -485,15 +485,15 @@
       },
       "ruled": {},
       "pending": {
-        "word Platform default (Stigmer)": "When its page is redesigned: the settings Built look's fixes draw the harness as a select; today it is radio rows",
-        "word Agents may propose facts to remember; only facts you confirm are kept, under Memory. Saves as you switch it.": "When its page is redesigned: the settings Built look decides the line; the kit's also says the organization's memory must be on and that kept facts show on the runs that use them"
+        "word Platform default (Stigmer)": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "word Agents may propose facts to remember; only facts you confirm are kept, under Memory. Saves as you switch it.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     },
     {
       "caption": "Account preferences: Didn't load",
       "narrow": false,
       "built": [],
-      "unbuilt": "No scene draws this state yet; the settings Built look's fixes add it.",
+      "unbuilt": "No scene draws this state yet.",
       "words": [
         {
           "text": "Account preferences",
@@ -732,8 +732,8 @@
       },
       "ruled": {},
       "pending": {
-        "word Platform default (Stigmer)": "When its page is redesigned: the settings Built look's fixes draw the harness as a select; today it is radio rows",
-        "word Agents may propose facts to remember; only facts you confirm are kept, under Memory. Saves as you switch it.": "When its page is redesigned: the settings Built look decides the line; the kit's also says the organization's memory must be on and that kept facts show on the runs that use them"
+        "word Platform default (Stigmer)": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "word Agents may propose facts to remember; only facts you confirm are kept, under Memory. Saves as you switch it.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     }
   ]

@@ -171,7 +171,7 @@
       },
       "ruled": {},
       "pending": {
-        "word The sandbox a run gets when its agent doesn't name one.": "When its page is redesigned: the settings Built look's fixes; the kit's line says more exactly which runs use it (a conversation, its routine or its agent may name one, and a run on a person's own machine ignores it)"
+        "word The sandbox a run gets when its agent doesn't name one.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     },
     {
@@ -307,7 +307,7 @@
       "caption": "Organization preferences: As a member: read only, said once",
       "narrow": false,
       "built": [],
-      "unbuilt": "No scene draws this state yet; the settings Built look's fixes add it.",
+      "unbuilt": "No scene draws this state yet.",
       "words": [
         {
           "text": "Organization preferences",
@@ -463,7 +463,7 @@
       "caption": "Organization preferences: The policy switch didn't save, said under it",
       "narrow": false,
       "built": [],
-      "unbuilt": "No scene draws this state yet; the settings Built look's fixes add it.",
+      "unbuilt": "No scene draws this state yet.",
       "words": [
         {
           "text": "Organization preferences",
@@ -632,7 +632,7 @@
       "caption": "Organization preferences: Didn't load",
       "narrow": false,
       "built": [],
-      "unbuilt": "No scene draws this state yet; the settings Built look's fixes add it.",
+      "unbuilt": "No scene draws this state yet.",
       "words": [
         {
           "text": "Organization preferences",
@@ -872,7 +872,7 @@
       },
       "ruled": {},
       "pending": {
-        "word The sandbox a run gets when its agent doesn't name one.": "When its page is redesigned: the settings Built look's fixes; the kit's line says more exactly which runs use it (a conversation, its routine or its agent may name one, and a run on a person's own machine ignores it)"
+        "word The sandbox a run gets when its agent doesn't name one.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     }
   ]

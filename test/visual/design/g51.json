@@ -180,12 +180,7 @@
         "word Edit prices: Claude Haiku 5.5": "The drawing's example data; the scene shows its own fixture's"
       },
       "ruled": {},
-      "pending": {
-        "word Input ($/M)": "When its page is redesigned again: the settings Built look's fixes (the rate fields' labels name their unit, \"Input ($/M)\")",
-        "word Output ($/M)": "When its page is redesigned again: the settings Built look's fixes (the rate fields' labels name their unit, \"Input ($/M)\")",
-        "word Cache write ($/M)": "When its page is redesigned again: the settings Built look's fixes (the rate fields' labels name their unit, \"Input ($/M)\")",
-        "word Cache read ($/M)": "When its page is redesigned again: the settings Built look's fixes (the rate fields' labels name their unit, \"Input ($/M)\")"
-      }
+      "pending": {}
     },
     {
       "caption": "Editing a model's prices: Partly filled: one error for the group",
@@ -371,12 +366,7 @@
         "word Edit prices: Claude Haiku 5.5": "The drawing's example data; the scene shows its own fixture's"
       },
       "ruled": {},
-      "pending": {
-        "word Input ($/M)": "When its page is redesigned again: the settings Built look's fixes (the rate fields' labels name their unit, \"Input ($/M)\")",
-        "word Output ($/M)": "When its page is redesigned again: the settings Built look's fixes (the rate fields' labels name their unit, \"Input ($/M)\")",
-        "word Cache write ($/M)": "When its page is redesigned again: the settings Built look's fixes (the rate fields' labels name their unit, \"Input ($/M)\")",
-        "word Cache read ($/M)": "When its page is redesigned again: the settings Built look's fixes (the rate fields' labels name their unit, \"Input ($/M)\")"
-      }
+      "pending": {}
     },
     {
       "caption": "Editing a model's prices: Confirm: each change on its own line",
@@ -535,10 +525,7 @@
         "word Save these prices for Claude Haiku 5.5?": "The drawing's example model; the scene's fixture is Claude Sonnet 4.6"
       },
       "ruled": {},
-      "pending": {
-        "button Close": "When its page is redesigned again: the settings Built look's fixes (the confirm as a dialog over the editor; it stays in the page)",
-        "word $0.50/M": "When its page is redesigned again: the settings Built look's fixes (a rate under $1 shows four decimals today, \"$0.5000/M\"; the drawing shows two)"
-      }
+      "pending": {}
     },
     {
       "caption": "Editing a model's prices: Retire: typed, so it stays a form",
@@ -632,13 +619,9 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "word Retire Claude Opus 4.8?": "When its page is redesigned again: the settings Built look's fixes (Retire as a dialog in the drawn words; it stays the inline typed form)",
-        "word New conversations can't pick it. Runs already on it finish.": "When its page is redesigned again: the settings Built look's fixes (Retire as a dialog in the drawn words; it stays the inline typed form)",
-        "word Type the model id to confirm": "When its page is redesigned again: the settings Built look's fixes (Retire as a dialog in the drawn words; it stays the inline typed form)",
-        "word claude-opus-4.8": "When its page is redesigned again: the settings Built look's fixes (Retire as a dialog in the drawn words; it stays the inline typed form)",
-        "word Why (optional)": "When its page is redesigned again: the settings Built look's fixes (Retire as a dialog in the drawn words; it stays the inline typed form)",
-        "word Replaced by Claude Opus 5": "When its page is redesigned again: the settings Built look's fixes (Retire as a dialog in the drawn words; it stays the inline typed form)",
-        "button Close": "When its page is redesigned again: the settings Built look's fixes (Retire as a dialog in the drawn words; it stays the inline typed form)"
+        "word Retire Claude Opus 4.8?": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "word claude-opus-4.8": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "word Replaced by Claude Opus 5": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     }
   ]

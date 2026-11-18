@@ -7,8 +7,12 @@
     {
       "caption": "Billing: The plan, this period's figures and invoice, the plans, the card",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned again: the settings Built look's fixes (the plan's three figures, the invoice as its own section, the plans as cards)",
+      "built": [
+        {
+          "scene": "settings-billing",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Billing",
@@ -413,15 +417,27 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word On Aug 9, 2026, for Jul 10 to Aug 9.": "The drawing's example data (a name, an amount, a date, a plan's own lines); the scene shows its own fixture's",
+        "word Child organizations past the 5 included": "The drawing's example data (a name, an amount, a date, a plan's own lines); the scene shows its own fixture's",
+        "word Agent hours past those included": "The drawing's example data (a name, an amount, a date, a plan's own lines); the scene shows its own fixture's",
+        "word Agent hours are counted while agents work in Stigmer's sandboxes, for acme and its child organizations; automatic grading is never counted. Model usage runs on your own provider keys and is not on this invoice.": "The drawing's example data (a name, an amount, a date, a plan's own lines); the scene shows its own fixture's",
+        "word Everything in Team": "The drawing's example data (a name, an amount, a date, a plan's own lines); the scene shows its own fixture's",
+        "word Child organizations: 5 included, then $25/month each": "The drawing's example data (a name, an amount, a date, a plan's own lines); the scene shows its own fixture's",
+        "word VISA": "The drawing's example data (a name, an amount, a date, a plan's own lines); the scene shows its own fixture's",
+        "word Visa ending 4242": "The drawing's example data (a name, an amount, a date, a plan's own lines); the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "type Team plan": "After the settings Built look's fix the kit keeps its own size or weight here: built 14/20 weight 400, drawn 14/20 weight 500; the next look decides",
+        "button Talk to us": "After the settings Built look's fix: no built button has this name; the next look decides"
+      }
     },
     {
       "caption": "Billing: Switch to Business, asked first (the dialog's body is the plan's own lines)",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned again: the settings Built look's fixes (the change of plan's dialog body as the plan's lines)",
+      "unbuilt": "No scene draws this state yet; the page's parts are built, this state has no scene.",
       "words": [
         {
           "text": "Switch acme to Business?",
@@ -1159,8 +1175,12 @@
     {
       "caption": "Billing: At 390 wide",
       "narrow": true,
-      "built": [],
-      "unbuilt": "When its page is redesigned again: the settings Built look's fixes (the plan's figures two to a row at 390)",
+      "built": [
+        {
+          "scene": "settings-billing",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Billing",
@@ -1549,9 +1569,21 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word On Aug 9, 2026, for Jul 10 to Aug 9.": "The drawing's example data (a name, an amount, a date, a plan's own lines); the scene shows its own fixture's",
+        "word Child organizations past the 5 included": "The drawing's example data (a name, an amount, a date, a plan's own lines); the scene shows its own fixture's",
+        "word Agent hours past those included": "The drawing's example data (a name, an amount, a date, a plan's own lines); the scene shows its own fixture's",
+        "word Agent hours are counted while agents work in Stigmer's sandboxes, for acme and its child organizations; automatic grading is never counted. Model usage runs on your own provider keys and is not on this invoice.": "The drawing's example data (a name, an amount, a date, a plan's own lines); the scene shows its own fixture's",
+        "word Everything in Team": "The drawing's example data (a name, an amount, a date, a plan's own lines); the scene shows its own fixture's",
+        "word Child organizations: 5 included, then $25/month each": "The drawing's example data (a name, an amount, a date, a plan's own lines); the scene shows its own fixture's",
+        "word VISA": "The drawing's example data (a name, an amount, a date, a plan's own lines); the scene shows its own fixture's",
+        "word Visa ending 4242": "The drawing's example data (a name, an amount, a date, a plan's own lines); the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "type Team plan": "After the settings Built look's fix the kit keeps its own size or weight here: built 14/20 weight 400, drawn 14/20 weight 500; the next look decides",
+        "button Talk to us": "After the settings Built look's fix: no built button has this name; the next look decides"
+      }
     }
   ]
 }

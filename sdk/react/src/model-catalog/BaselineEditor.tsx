@@ -507,7 +507,7 @@ export function BaselineEditor({
             No rate changes — only catalog fields move. Billing is unaffected.
           </p>
         ) : (
-          <Table aria-label="Rate changes" columns={CHANGE_COLUMNS} rows={changes} rowKey={(change) => change.label} />
+          <Table aria-label="Rate changes" columns={CHANGE_COLUMNS} rows={changes} rowKey={(change) => change.label} narrowBelow={320} />
         )}
         {submitError && <FieldError>{getUserMessage(submitError)}</FieldError>}
       </DialogBody>

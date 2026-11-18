@@ -269,18 +269,17 @@
       },
       "ruled": {},
       "pending": {
-        "word Facts agents proposed to remember about you in acme. Confirmed ones are shared with agents in your future sessions and show on those runs' records. Only you see them here; edit or delete any of them at any time.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Waiting for you 2": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Remembered 3": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Rejected 1": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Kept so an agent doesn't propose them again. Delete one to clear it.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Waiting for you 2": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "word Remembered 3": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "word Rejected 1": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "word Kept so an agent doesn't propose them again. Delete one to clear it.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     },
     {
       "caption": "Memory: Editing a memory in place",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings Built look's fixes build it.",
+      "unbuilt": "No scene draws this state yet; the page's parts are built, this state has no scene.",
       "words": [
         {
           "text": "Memory",
@@ -593,7 +592,7 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "word “Works in finance at Acme” stops being shared with agents. It can't be brought back.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word “Works in finance at Acme” stops being shared with agents. It can't be brought back.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     },
     {
@@ -792,10 +791,7 @@
       "buttons": [],
       "sample": {},
       "ruled": {},
-      "pending": {
-        "word Facts agents proposed to remember about you in acme. Confirmed ones are shared with agents in your future sessions and show on those runs' records. Only you see them here; edit or delete any of them at any time.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word When an agent proposes a fact worth keeping, it shows here for you to confirm or reject.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
-      }
+      "pending": {}
     },
     {
       "caption": "Memory: Memory turned off for acme",
@@ -1144,9 +1140,7 @@
         "word Stuck? Ask IT on Slack": "The drawing's example data; the scene shows its own fixture's"
       },
       "ruled": {},
-      "pending": {
-        "word Facts agents proposed to remember about you in acme. Confirmed ones are shared with agents in your future sessions and show on those runs' records. Only you see them here; edit or delete any of them at any time.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
-      }
+      "pending": {}
     },
     {
       "caption": "Memory: At 390 wide",
@@ -1413,11 +1407,10 @@
       },
       "ruled": {},
       "pending": {
-        "word Facts agents proposed to remember about you in acme. Confirmed ones are shared with agents in your future sessions and show on those runs' records. Only you see them here; edit or delete any of them at any time.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Waiting for you 2": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Remembered 3": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Rejected 1": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Kept so an agent doesn't propose them again. Delete one to clear it.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Waiting for you 2": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "word Remembered 3": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "word Rejected 1": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "word Kept so an agent doesn't propose them again. Delete one to clear it.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     }
   ]

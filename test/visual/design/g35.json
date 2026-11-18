@@ -275,18 +275,15 @@
       },
       "ruled": {},
       "pending": {
-        "word acme accepts sign-in tokens Northwind's platform issues.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Delete this issuer": "When its page is redesigned: the settings Built look's fixes adds the open issuer's Delete card (Delete stays on its list row today)",
-        "word Tokens from Northwind stop working at once. People who joined through it keep their accounts and roles.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Delete issuer": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "button Delete issuer": "When its page is redesigned: the settings Built look's fixes adds the open issuer's Delete card (Delete stays on its list row today)"
+        "word acme accepts sign-in tokens Northwind's platform issues.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "word Tokens from Northwind stop working at once. People who joined through it keep their accounts and roles.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     },
     {
       "caption": "Federation issuers: New issuer, an address the server refuses",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings Built look's fixes build it.",
+      "unbuilt": "No scene draws this state yet; the page's parts are built, this state has no scene.",
       "words": [
         {
           "text": "Federation issuers",
@@ -511,8 +508,8 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "word Delete Northwind platform?": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Tokens from Northwind stop working at once. People who joined through it keep their accounts and roles.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Delete Northwind platform?": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "word Tokens from Northwind stop working at once. People who joined through it keep their accounts and roles.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     },
     {
