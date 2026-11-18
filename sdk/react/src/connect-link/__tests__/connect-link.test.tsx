@@ -47,6 +47,7 @@ function keepPendingLink(): void {
 
 interface World {
   readonly dead: boolean;
+  readonly readUnavailable?: boolean;
   readonly startRefused?: boolean;
   readonly loginPage?: string;
   readonly completeUnavailable?: boolean;
@@ -62,6 +63,7 @@ function providers(world: World) {
       service(ConnectLinkController, {
         getConnectLink: () => {
           if (world.dead) throw new ConnectError("Connect link not found", Code.NotFound);
+          if (world.readUnavailable === true) throw new ConnectError("the vault did not answer", Code.Unavailable);
           return create(ConnectLinkInfoSchema, {
             providerName: "Slack",
             address: "https://mcp.slack.com/mcp",
@@ -102,12 +104,14 @@ function providers(world: World) {
 
 const assign = vi.fn();
 const replace = vi.fn();
+const reload = vi.fn();
 
 beforeEach(() => {
   sessionStorage.clear();
   assign.mockReset();
   replace.mockReset();
-  vi.stubGlobal("location", { ...window.location, assign, replace, search: "?code=c-1&state=st" });
+  reload.mockReset();
+  vi.stubGlobal("location", { ...window.location, assign, replace, reload, search: "?code=c-1&state=st" });
 });
 afterEach(() => {
   cleanup();
@@ -150,6 +154,12 @@ describe("ConnectLinkView", () => {
       window.dispatchEvent(restored);
     });
     expect((screen.getByRole("button", { name: "Continue to Slack" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("says a link it couldn't read apart from a dead one", async () => {
+    render(<ConnectLinkView token={TOKEN} />, { wrapper: providers({ dead: false, readUnavailable: true, completed: [] }) });
+    expect((await screen.findByRole("alert")).textContent).toContain("Stigmer couldn't open the link.");
+    expect(screen.queryByRole("heading", { name: "This link has expired or was already used" })).toBeNull();
   });
 
   it("says a dead link has expired or was used, and offers nothing to click", async () => {
@@ -245,14 +255,16 @@ describe("ConnectLinkCallback", () => {
     expect(pendingConnectLinkToken("st")).toBeNull();
   });
 
-  it("keeps the link when the answer does not arrive, so a reload tries again", async () => {
+  it("keeps the link when the answer does not arrive, and Try again reloads to try again", async () => {
     keepPendingLink();
     render(<ConnectLinkCallback token={TOKEN} />, {
       wrapper: providers({ dead: false, completeUnavailable: true, completed: [] }),
     });
-    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect((await screen.findByRole("alert")).textContent).toContain("The connection didn't finish.");
     expect(replace).not.toHaveBeenCalled();
     expect(pendingConnectLinkToken("st")).toBe(TOKEN);
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(reload).toHaveBeenCalledTimes(1);
   });
 
   it("never sends the browser to a return address that is not https, and says so", async () => {
