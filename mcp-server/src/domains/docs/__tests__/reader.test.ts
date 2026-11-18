@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createDocsReader,
   docPageUrl,
+  DOCS_ATTEMPTS,
   DOCS_INDEX_TTL_MS,
   DOCS_INDEX_URL,
   DOCS_MAX_BYTES,
@@ -248,12 +249,13 @@ describe("createDocsReader", () => {
   });
 
   it("reports a failed read of the body", async () => {
-    const broken = new ReadableStream<Uint8Array>({
-      start(controller) {
-        controller.error(new Error("socket hang up"));
-      },
-    });
-    const doFetch = fakeFetch({ "https://stigmer.ai/docs/a.md": () => new Response(broken) });
+    const broken = () =>
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.error(new Error("socket hang up"));
+        },
+      });
+    const doFetch = fakeFetch({ "https://stigmer.ai/docs/a.md": () => new Response(broken()) });
     await expect(createDocsReader({ fetch: doFetch }).readDocPage("a")).rejects.toThrow(/Reading .* failed: socket hang up/);
   });
 
@@ -271,11 +273,23 @@ describe("createDocsReader", () => {
     await expect(proxied.searchDocs("x")).rejects.toThrow(/\(fetch failed\)\.$/);
   });
 
-  it("says a read timed out", async () => {
+  it("tries a read the site doesn't answer once more, and says when both tries timed out", async () => {
     const slow = vi.fn(async () => {
       throw Object.assign(new Error("The operation was aborted due to timeout"), { name: "TimeoutError" });
     });
-    await expect(createDocsReader({ fetch: slow, env: {} }).searchDocs("x")).rejects.toThrow(/no answer within 10 s/);
+    await expect(createDocsReader({ fetch: slow, env: {} }).searchDocs("x")).rejects.toThrow(/no answer within 15 s, tried 2 times/);
+    expect(slow).toHaveBeenCalledTimes(DOCS_ATTEMPTS);
+    let calls = 0;
+    const stallsOnce = vi.fn(async () => {
+      calls += 1;
+      if (calls === 1) throw Object.assign(new Error("aborted"), { name: "TimeoutError" });
+      return respond(INDEX);
+    });
+    expect((await createDocsReader({ fetch: stallsOnce }).searchDocs("billing"))[0]?.title).toBe("Billing");
+    expect(stallsOnce).toHaveBeenCalledTimes(2);
+    const missing = fakeFetch({});
+    await expect(createDocsReader({ fetch: missing }).readDocPage("nosuch")).rejects.toMatchObject({ kind: "not-found" });
+    expect(missing).toHaveBeenCalledTimes(1);
     const odd = vi.fn(async () => {
       throw "boom";
     });

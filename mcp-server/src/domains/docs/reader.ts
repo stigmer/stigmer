@@ -12,7 +12,8 @@
 // redirect that leaves the docs, is refused rather than fetched: the tool can
 // never be turned into a general fetcher. Every read is bounded in time and
 // size. There is no search index: the site's llms.txt lists every page with a
-// one-line description, and is small enough to score line by line.
+// one-line description, and is small enough to score line by line. A read the
+// site doesn't answer in time is tried once more, each try bounded.
 
 /** The one origin the reader fetches from. */
 export const DOCS_ORIGIN = "https://stigmer.ai";
@@ -20,8 +21,15 @@ export const DOCS_ORIGIN = "https://stigmer.ai";
 /** The docs index: every page, its title and one line about it. */
 export const DOCS_INDEX_URL = `${DOCS_ORIGIN}/llms.txt`;
 
-/** How long one read may take, start to end. */
-export const DOCS_TIMEOUT_MS = 10_000;
+/** How long one try at a read may take, start to end. */
+export const DOCS_TIMEOUT_MS = 15_000;
+
+/**
+ * How many times a read is tried when the site doesn't answer in time or
+ * can't be reached. The site's CDN has been seen stalling a page for 40 s
+ * and answering the same page in half a second on the next request.
+ */
+export const DOCS_ATTEMPTS = 2;
 
 /** The largest body read; the index is about 40 KB, a page far less. */
 export const DOCS_MAX_BYTES = 2 * 1024 * 1024;
@@ -246,10 +254,30 @@ export function formatHits(query: string, hits: readonly DocsHit[]): string {
 }
 
 /**
- * GET one address as text, following redirects only while they stay on a
- * docs address, within the time and size bounds.
+ * GET one address as text, tried up to {@link DOCS_ATTEMPTS} times while
+ * the site can't be reached or doesn't answer in time; any other failure
+ * (a refusal, a missing page, an error status, a body past the cap) is
+ * final at once.
  */
 async function fetchText(
+  doFetch: typeof fetch,
+  address: string,
+  env: Readonly<Record<string, string | undefined>>,
+): Promise<string> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await fetchOnce(doFetch, address, env);
+    } catch (error) {
+      if (!(error instanceof DocsError) || error.kind !== "unreachable" || attempt >= DOCS_ATTEMPTS) throw error;
+    }
+  }
+}
+
+/**
+ * GET one address as text once, following redirects only while they stay
+ * on a docs address, within the time and size bounds.
+ */
+async function fetchOnce(
   doFetch: typeof fetch,
   address: string,
   env: Readonly<Record<string, string | undefined>>,
@@ -324,7 +352,7 @@ async function readBounded(response: Response, url: string): Promise<string> {
 function unreachableMessage(error: unknown, env: Readonly<Record<string, string | undefined>>): string {
   const reason =
     error instanceof Error && error.name === "TimeoutError"
-      ? `no answer within ${DOCS_TIMEOUT_MS / 1000} s`
+      ? `no answer within ${DOCS_TIMEOUT_MS / 1000} s, tried ${DOCS_ATTEMPTS} times`
       : error instanceof Error
         ? error.message
         : String(error);

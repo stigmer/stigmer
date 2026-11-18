@@ -36,7 +36,8 @@ about what the docs don't cover.
    docs' source, an issue or a pull request in its place.
 4. **Lead with the direct answer**, in plain words, then the commands or
    fields the person needs to act, checked against what they have
-   installed (see "Which version").
+   installed (see "Which version"). When comparing Stigmer with something
+   else, first say in a sentence what each one is.
 5. **Never invent product behaviour.** If the docs don't answer it, say so,
    answer the part you can, and point to the issue tracker (below).
 6. **Point to the next step**: the page or command that takes the person

@@ -58,7 +58,8 @@ export function registerAgentTools(server: McpServer, target: BackendTarget): st
     "delete_agent",
     {
       annotations: DESTRUCTIVE,
-      description: "Delete a Stigmer agent by its org and slug. Returns the deleted agent.",
+      description:
+        "Delete a Stigmer agent and every version of it, by its org and slug. It can't be undone. Returns the deleted agent.",
       inputSchema: {
         org: z
           .string()
