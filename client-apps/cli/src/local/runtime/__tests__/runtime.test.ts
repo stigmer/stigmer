@@ -114,6 +114,12 @@ describe("resolveServerNode", () => {
     expect(resolveServerNode()).toBe(later);
   });
 
+  it("rejects an override that is not a working Node, naming the range it should be", () => {
+    process.env.STIGMER_NODE_BIN = "/nonexistent/node";
+    expect(() => resolveServerNode()).toThrow(CliExitError);
+    expect(() => resolveServerNode()).toThrow("could not run /nonexistent/node to verify the stigmer server's Node requirements");
+  });
+
   it.each(["v22.13.0", "v22.18.0", "v23.4.0", "v23.11.1", "v20.19.0"])(
     "rejects %s with FTS5, naming the version to install",
     (version) => {
