@@ -17,7 +17,7 @@
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 
@@ -64,9 +64,20 @@ vi.mock("@stigmer/react-sdk", () => ({
   OrgProvider: marker("org"),
   // The kit's failure note (pinned in @stigmer/react-sdk): here a stand-in
   // shows the headline, the loader's own line and the comfort it is given.
-  ErrorMessage: ({ error, title, comfort }: { error: Error; title?: string; comfort?: React.ReactNode }) => (
+  ErrorMessage: ({
+    error,
+    title,
+    comfort,
+    retry,
+  }: {
+    error: Error;
+    title?: string;
+    comfort?: React.ReactNode;
+    retry?: () => void;
+  }) => (
     <div role="alert">
       {title} {error.message} {comfort}
+      {retry ? <button onClick={retry}>Try again</button> : null}
     </div>
   ),
 }));
@@ -237,5 +248,23 @@ describe("the config gate", () => {
       "This is the server's setup, not your account: nothing was lost.",
     );
     expect(screen.queryByText("page")).toBeNull();
+  });
+
+  it("tries the setup again by reloading the page", async () => {
+    config.load = () => Promise.reject(new Error("the setup did not load"));
+    const reload = vi.fn();
+    const original = window.location;
+    Object.defineProperty(window, "location", { configurable: true, value: { ...original, reload } });
+    try {
+      render(
+        <Providers>
+          <p>page</p>
+        </Providers>,
+      );
+      fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
+      expect(reload).toHaveBeenCalledTimes(1);
+    } finally {
+      Object.defineProperty(window, "location", { configurable: true, value: original });
+    }
   });
 });

@@ -62,6 +62,9 @@ secrets:
   # not: losing it costs at most one token lifetime, so it has no backup
   # story, and the server generates one on its claim when it is absent.
   #
+  # POSTGRES_PASSWORD must not contain a space: the bundled Temporal cannot
+  # use one, and its setup step refuses it. The hex password below has none.
+  #
   #   kubectl create secret generic stigmer-secrets \
   #     --from-literal=STIGMER_ENCRYPTION_KEY=$(openssl rand -base64 32) \
   #     --from-literal=STIGMER_RUNNER_TOKEN_KEY=$(openssl rand -base64 32) \
@@ -318,7 +321,7 @@ externalDatabase:
   # Connection options node-postgres reads from the environment, such as
   # PGSSLMODE=require for a managed Postgres, go through server.extraEnv.
   # Bundled Temporal creates its own two databases on this instance and
-  # needs CREATE DATABASE.
+  # needs CREATE DATABASE and a password without a space.
   host: ""
   port: 5432
   user: postgres

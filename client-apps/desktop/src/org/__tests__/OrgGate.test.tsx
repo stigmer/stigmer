@@ -17,8 +17,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OrgGate } from "../OrgGate";
 
 // The gate offers Sign in again through the app's sign-in; here it stands in.
+const auth = vi.hoisted(() => ({ login: vi.fn(async () => {}) }));
 vi.mock("../../auth/AuthProvider", () => ({
-  useAuth: () => ({ user: null, login: vi.fn(async () => {}), logout: vi.fn() }),
+  useAuth: () => ({ user: null, login: auth.login, logout: vi.fn() }),
 }));
 
 const gate = vi.hoisted(() => ({
@@ -36,11 +37,13 @@ vi.mock("@stigmer/react-sdk/console", () => ({
   OrgGateView: ({
     state,
     retry,
+    signIn,
     onCreated,
     children,
   }: {
     state: { status: string; message?: string };
     retry: () => void;
+    signIn?: () => void;
     onCreated: (org: Organization) => void;
     children?: React.ReactNode;
   }) => {
@@ -51,6 +54,7 @@ vi.mock("@stigmer/react-sdk/console", () => ({
         <p>gate: {state.status}</p>
         {state.message ? <p>{state.message}</p> : null}
         {state.status === "error" && <button onClick={retry}>Try again</button>}
+        {state.status === "error" && signIn && <button onClick={signIn}>Sign in again</button>}
       </div>
     );
   },
@@ -82,6 +86,7 @@ beforeEach(() => {
   gate.retry.mockClear();
   gate.refresh.mockClear();
   gate.onCreated = null;
+  auth.login.mockClear();
 });
 
 describe("desktop OrgGate", () => {
@@ -118,5 +123,14 @@ describe("desktop OrgGate", () => {
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
 
     expect(gate.retry).toHaveBeenCalledTimes(1);
+  });
+
+  it("hands Sign in again to the app's own sign-in", () => {
+    gate.status = "error";
+    renderGate();
+
+    fireEvent.click(screen.getByRole("button", { name: "Sign in again" }));
+
+    expect(auth.login).toHaveBeenCalledTimes(1);
   });
 });
