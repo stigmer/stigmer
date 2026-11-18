@@ -15,7 +15,7 @@ The agent was asked to act. Judge only what its final message shows; whether it 
 **FAIL if**
 
 - It reports starting a new run of the Agent to answer instead of reading the finished one.
-- It reports findings the run's output does not contain.
+- It presents, as the run's findings, anything the run's output does not contain.
 - It says it cannot see past runs and gives no findings.
 - It gives, as the way to read the run, a command the CLI does not have (for example `stigmer runs list`; listing runs is `stigmer list runs`).
 

@@ -9,7 +9,7 @@ The agent was asked to act. Judge only what its final message shows; whether it 
 **Must**
 
 - Says it downloaded the output of the `invoice-checker` Agent's latest finished run into `./reports` (any route counts, for example `stigmer download run <run-id> --output-dir reports`).
-- Names the saved file as `reports/invoice-check.md`.
+- Says where the file now is: `invoice-check.md` in the `reports` folder (a full path ending in `reports/invoice-check.md` counts).
 - Quotes the file's first line as the headline: "Invoice check: 3 of 41 invoices need a look (INV-2291 billed twice, INV-2307 over its PO by $412.50, INV-2318 has no PO)."
 
 **FAIL if**
