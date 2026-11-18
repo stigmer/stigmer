@@ -148,7 +148,7 @@ jobs:
           curl -fsSL https://stigmer.ai/install.sh | sh
           ```
 
-          Or with npm (Node 22.13 or later):
+          Or with npm (Node 22 (22.19 or newer) or Node 24 or newer):
 
           ```bash
           npm install -g @stigmer/cli

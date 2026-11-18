@@ -13,7 +13,7 @@ are retired; one TypeScript runner now executes everything.
 TypeScript gRPC control plane for local Stigmer deployment.
 
 **Location**: `services/stigmer-server/`
-**Language**: TypeScript (Node version pinned in `.nvmrc`; needs `node:sqlite` with FTS5, Node >= 22.13)
+**Language**: TypeScript (Node version pinned in `.nvmrc`; needs `node:sqlite` with FTS5, Node 22.19+ on 22.x or Node 24+, as its `package.json` `engines` declares)
 **Entry point**: `src/main.ts` (compiled; the daemon launches `dist/main.js`)
 
 **Key responsibilities**:

@@ -49,7 +49,7 @@ starts it from your own code.
 # Shell script (macOS/Linux) — no prerequisites, bundles its own Node.js runtime
 curl -fsSL https://stigmer.ai/install.sh | sh
 
-# npm (requires Node.js >= 22.13)
+# npm (requires Node.js 22.19+ on 22.x, or Node.js 24+)
 npm install -g @stigmer/cli
 
 # From source
@@ -181,7 +181,7 @@ profile images. Use `brand/avatar.png` for GitHub and other profile uploads.
 
 ### Prerequisites
 
-- Node.js 22+ (22.13 or newer; the server needs `node:sqlite` with FTS5)
+- Node.js 22 (22.19 or newer) or Node.js 24 or newer (the server needs `node:sqlite` with FTS5)
 - Go 1.25+ (for the Go SDK, codegen tools, and integration harnesses)
 - Git, Make
 

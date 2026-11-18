@@ -10,7 +10,8 @@
 // one level outside the installed package; and every published coding-agent
 // plugin once said it was 0.0.0-dev, because the build stamped the
 // workspace's version into its manifests and only dist/package.json got the
-// release's (stigmer/stigmer#3144).
+// release's (stigmer/stigmer#3144); and it once dropped peerDependenciesMeta,
+// so every optional peer published as required (stigmer/stigmer#2975).
 //
 // It also pins which registry a run is tied to: only an NPM_TOKEN run (the
 // release lane, npmjs.com) writes a registry into .npmrc. The dev lane sets no
@@ -176,6 +177,40 @@ test("generateDistPackageJson carries bin and pins workspace deps", () => {
   } finally {
     rmSync(pkgDir, { recursive: true, force: true });
   }
+});
+
+test("an optional peer publishes optional", () => {
+  // The script once built the manifest field by field and dropped
+  // peerDependenciesMeta, so every optional peer shipped required: npm 7+
+  // then installed @stigmer/client's Node transport into browser apps, and
+  // would have installed outbound's undici (with its Node floor) into the
+  // runner, which never loads the entry that needs it.
+  const dist = distPackageJsonOf(
+    {
+      name: "@stigmer/outbound",
+      peerDependencies: { undici: "8.12.3", "@stigmer/apis": "*" },
+      peerDependenciesMeta: { undici: { optional: true } },
+    },
+    "1.2.3",
+  );
+  assert.deepEqual(dist.peerDependencies, { undici: "8.12.3", "@stigmer/apis": "1.2.3" });
+  assert.deepEqual(dist.peerDependenciesMeta, { undici: { optional: true } });
+
+  assert.equal("peerDependenciesMeta" in distPackageJsonOf({ name: "@stigmer/x", peerDependencies: { a: "1" } }, "1.2.3"), false);
+});
+
+test("every published package keeps the peer meta its source declares", () => {
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+  let declaring = 0;
+  for (const relDir of PACKAGES) {
+    const src = JSON.parse(readFileSync(join(root, relDir, "package.json"), "utf8"));
+    if (!src.peerDependenciesMeta) continue;
+    declaring += 1;
+    assert.deepEqual(distPackageJsonOf(src, "1.2.3").peerDependenciesMeta, src.peerDependenciesMeta, relDir);
+  }
+  // @stigmer/client and @stigmer/outbound declare one today; a walk that
+  // read nothing cannot pass on nothing.
+  assert.ok(declaring >= 2, `only ${declaring} package(s) declare peerDependenciesMeta`);
 });
 
 // A synthetic publish set shaped like the real one's hazards: a peer-only

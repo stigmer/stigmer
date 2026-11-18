@@ -107,8 +107,8 @@ export const PACKAGES = [
   // lockstep version at stamp time), and the server links it once the plugin
   // install pipeline lands.
   "backend/libs/ts/plugin-package",
-  // @stigmer/outbound has no workspace deps (undici is its one, from the
-  // registry), so its position is order-free. It
+  // @stigmer/outbound has no workspace deps (undici is its one peer, optional,
+  // from the registry), so its position is order-free. It
   // MUST publish: the server and the runner both link it (the egress policy
   // and the MCP OAuth rules they share) and pin the exact release version at
   // stamp time.
@@ -357,6 +357,12 @@ export function distPackageJsonOf(srcPkg, version) {
       srcPkg.peerDependencies,
       version,
     );
+  }
+  // Without the meta an optional peer publishes as a required one, and npm 7+
+  // installs it into every consumer: a Node-only transport into a browser app,
+  // or undici (and its Node floor) into a runner that never loads `/dial`.
+  if (srcPkg.peerDependenciesMeta) {
+    distPkg.peerDependenciesMeta = srcPkg.peerDependenciesMeta;
   }
 
   return distPkg;
