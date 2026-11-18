@@ -50,7 +50,7 @@ function marketplaceRoutes(viewer: MarketplaceViewer) {
   };
 }
 
-/** Stigmer's words for an install it refuses: a plugin of that name held by another organization's admin. */
+/** Stigmer's words for an install it refuses: a plugin of that name is already being installed in this organization. */
 export const INSTALL_REFUSED_WORDS = "A plugin named notion is already being installed in this organization. Try again in a minute.";
 
 /** What else the scene does: a team source this browser added that can't be read, or an install the server refuses. */
