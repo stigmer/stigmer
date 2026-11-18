@@ -85,12 +85,12 @@ export function PaymentMethodCard({
   return (
     <Card className={className}>
       <div className="stg:flex stg:items-center stg:justify-between">
-        <h3 className="stg:text-xs stg:font-semibold stg:text-foreground">
-          Payment Method
+        <h3 className="stg:m-0 stg:text-sm stg:font-semibold stg:text-foreground">
+          Payment method
         </h3>
         {hasPm && (
           <Button
-            variant="ghost"
+            variant="outline"
             size="xs"
             disabled={!isAccountActive || isPortalLoading}
             onClick={onManage}

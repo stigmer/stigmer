@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@stigmer/design-tokens";
 import {
   PeriodEstimateLineKind,
   type PeriodEstimate,
@@ -8,9 +9,11 @@ import {
 import type { AgentHours } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Card } from "../internal/surface/Card.js";
+import { Figure, Figures } from "../internal/surface/Figure.js";
+import { Section } from "../resource-detail/Section.js";
 import { Table, type TableColumn } from "../internal/surface/Table.js";
 import { StatusBadge } from "../status/StatusBadge.js";
-import { AgentHoursStanding } from "./AgentHoursStanding.js";
+import { agentHoursFigure } from "./AgentHoursStanding.js";
 import { formatUsd } from "./format.js";
 import { formatAgentHours, formatDay, formatPeriodDay } from "./plan-features.js";
 import type { PlanStanding } from "./plan-state.js";
@@ -61,46 +64,54 @@ export function PlanCard({
   billedToParent,
   className,
 }: PlanCardProps) {
-  const child = billedToParent !== undefined;
-  return (
-    <Card className={className}>
-      <div className="stg:flex stg:items-center stg:justify-between stg:gap-3">
+  if (billedToParent !== undefined) {
+    return (
+      <Card className={className}>
         <h3 className="stg:text-xs stg:font-semibold stg:text-foreground">Plan</h3>
-        {!child && <StandingBadge standing={standing} />}
-      </div>
-      <p className="stg:mt-2 stg:text-sm stg:font-medium stg:text-foreground">
-        {child ? `Billed to ${billedToParent === "" ? "its parent organization" : billedToParent}` : planName}
-      </p>
-
-      {child ? (
+        <p className="stg:mt-2 stg:text-sm stg:font-medium stg:text-foreground">
+          {`Billed to ${billedToParent === "" ? "its parent organization" : billedToParent}`}
+        </p>
         <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">
           This is a child organization: it runs on its parent organization&apos;s plan, and has no plan or invoice
           of its own.
         </p>
-      ) : (
-        <StandingDetail standing={standing} />
-      )}
+      </Card>
+    );
+  }
 
-      {!child && agentHours && <AgentHoursStanding hours={agentHours} />}
-      {!child && !agentHours && agentHoursError && (
-        <ErrorMessage
-          error={agentHoursError}
-          title="Couldn't load the agent hours."
-          retry={onRetryAgentHours}
-          className="stg:mt-3"
+  const hours = agentHours ? agentHoursFigure(agentHours) : null;
+  return (
+    <div className={cn("stg:flex stg:flex-col stg:gap-4", className)}>
+      {/* The plan, this period's hours and its estimated invoice, at a glance. */}
+      <Figures columns={hours ? 3 : 2} aria-label="This period">
+        <Figure label="Plan" value={planName} line={<StandingBadge standing={standing} />} />
+        {hours && <Figure label={hours.label} value={hours.value} line={hours.line} />}
+        <Figure
+          label="Estimated invoice"
+          value={estimate ? formatUsd(estimate.totalMicros) : "—"}
+          line={
+            estimate
+              ? `On ${formatPeriodDay(estimate.periodEnd)}, for ${formatPeriodDay(estimate.periodStart)} to ${formatPeriodDay(estimate.periodEnd)}.`
+              : undefined
+          }
         />
+      </Figures>
+      <StandingDetail standing={standing} />
+      {!agentHours && agentHoursError && (
+        <ErrorMessage error={agentHoursError} title="Couldn't load the agent hours." retry={onRetryAgentHours} />
       )}
-
-      {!child && estimate && <EstimateLines planName={planName} estimate={estimate} />}
-      {!child && !estimate && estimateError && (
-        <ErrorMessage
-          error={estimateError}
-          title="Couldn't load this period's estimate."
-          retry={onRetryEstimate}
-          className="stg:mt-3"
-        />
+      {hours && !estimate && (
+        // With no invoice to sit under, the counting rule is said under the figures.
+        <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
+          Agent hours are counted while agents work in Stigmer&apos;s sandboxes, for this organization and its child
+          organizations; automatic grading is never counted.
+        </p>
       )}
-    </Card>
+      {estimate && <EstimateLines planName={planName} estimate={estimate} />}
+      {!estimate && estimateError && (
+        <ErrorMessage error={estimateError} title="Couldn't load this period's estimate." retry={onRetryEstimate} />
+      )}
+    </div>
   );
 }
 
@@ -125,20 +136,20 @@ function StandingDetail({ standing }: { standing: PlanStanding }) {
   switch (standing.kind) {
     case "free":
       return (
-        <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">
+        <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
           Chat links, Slack and WhatsApp, and unlimited members.
         </p>
       );
     case "past-due":
       return (
-        <p className="stg:mt-1 stg:text-xs stg:text-destructive" role="status">
-          The last period&apos;s payment failed. Stripe retries it; update the card under Payment Method. The plan stays
+        <p className="stg:m-0 stg:text-xs stg:text-destructive" role="status">
+          The last period&apos;s payment failed. Stripe retries it; update the card under Payment method. The plan stays
           in force meanwhile.
         </p>
       );
     case "ending":
       return (
-        <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">
+        <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
           Canceled. The plan stays in force until {formatDay(standing.endsAt)}, then this
           organization is on Free. Nothing you built is deleted.
         </p>
@@ -184,27 +195,15 @@ function EstimateLines({ planName, estimate }: { planName: string; estimate: Per
     { key: "total", label: "Total so far", amount: formatUsd(estimate.totalMicros), total: true },
   ];
   return (
-    <div className="stg:mt-4 stg:flex stg:flex-col stg:gap-2 stg:border-t stg:border-border stg:pt-3">
-      <div className="stg:flex stg:flex-wrap stg:items-baseline stg:justify-between stg:gap-x-3 stg:gap-y-1">
-        <p className="stg:m-0 stg:text-sm stg:font-medium stg:text-foreground">
-          Estimated invoice on {formatPeriodDay(estimate.periodEnd)}
-        </p>
-        <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
-          Period {formatPeriodDay(estimate.periodStart)} – {formatPeriodDay(estimate.periodEnd)}
-        </p>
-      </div>
-      <Table
-        aria-label="This period's invoice, so far"
-        columns={ESTIMATE_COLUMNS}
-        rows={rows}
-        rowKey={(row) => row.key}
-      />
-      <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
+    <Section title="This period's invoice, so far">
+      <Table aria-label="This period's invoice, so far" columns={ESTIMATE_COLUMNS} rows={rows} rowKey={(row) => row.key} />
+      <p className="stg:m-0 stg:px-4 stg:py-3 stg:text-xs stg:text-muted-foreground">
         The plan&apos;s fee for the whole period, with the child organizations and the agent hours past those
-        included counted so far. Model usage runs on your organization&apos;s own provider keys and is not on the
-        invoice.
+        included counted so far. Agent hours are counted while agents work in Stigmer&apos;s sandboxes, for this
+        organization and its child organizations; automatic grading is never counted. Model usage runs on your
+        organization&apos;s own provider keys and is not on the invoice.
       </p>
-    </div>
+    </Section>
   );
 }
 

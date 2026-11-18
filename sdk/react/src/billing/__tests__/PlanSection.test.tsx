@@ -211,10 +211,12 @@ describe("PlanSection", () => {
   it("shows an active plan's estimate, and says a cancel runs to the period's end", async () => {
     const client = mockClient({ subscribed: subscription(SubscriptionState.active) });
     renderSection(client);
-    expect(await screen.findByText("Estimated invoice on Feb 28, 2027")).toBeTruthy();
+    expect(await screen.findByText("Estimated invoice")).toBeTruthy();
+    expect(screen.getByText(/^On Feb 28, 2027, for /)).toBeTruthy();
     expect(screen.getByText("Team plan")).toBeTruthy();
     // The plan line and the total: the fee is the whole invoice.
-    expect(screen.getAllByText("$99.00")).toHaveLength(2);
+    // The figure, the plan line and the total: the fee is the whole invoice.
+    expect(screen.getAllByText("$99.00")).toHaveLength(3);
     expect(screen.getByRole("button", { name: "Switch to Business" })).toBeTruthy();
 
     await userEvent.click(screen.getByRole("button", { name: "Move to Free" }));
@@ -261,7 +263,9 @@ describe("PlanSection", () => {
   it("shows Free's hours used of those included this month, when they reset and that new work pauses", async () => {
     const client = mockClient();
     renderSection(client);
-    expect(await screen.findByText("3.2 h of 10 h used this month")).toBeTruthy();
+    expect(await screen.findByText("Agent hours this month")).toBeTruthy();
+    expect(screen.getByText("3.2 h")).toBeTruthy();
+    expect(screen.getByText("Of 10 h included.")).toBeTruthy();
     expect(client.subscription.getAgentHours.mock.calls[0]?.[0]).toMatchObject({ org: "acme" });
     const meter = screen.getByRole("meter", { name: "Agent hours used" });
     expect([meter.getAttribute("aria-valuenow"), meter.getAttribute("aria-valuemax")]).toEqual(["11520", "36000"]);
@@ -273,7 +277,7 @@ describe("PlanSection", () => {
     const client = mockClient();
     client.subscription.getAgentHours.mockResolvedValue(create(AgentHoursSchema, { ...FREE_HOURS, workingSeconds: 37_000n }));
     renderSection(client);
-    expect(await screen.findByText("10.3 h of 10 h used this month")).toBeTruthy();
+    expect(await screen.findByText("10.3 h")).toBeTruthy();
     expect(screen.getByRole("meter").getAttribute("aria-valuenow")).toBe("36000");
     expect(
       screen.getByText("The allowance is used: new work is paused until the count resets Mar 1, 2027 (UTC)."),
@@ -285,7 +289,9 @@ describe("PlanSection", () => {
     const priced = { ...FREE_HOURS, includedHours: 25, perAgentHourMicros: USD / 2n, window: AgentHoursWindow.billing_period };
     client.subscription.getAgentHours.mockResolvedValue(create(AgentHoursSchema, { ...priced, workingSeconds: 66_240n }));
     renderSection(client);
-    expect(await screen.findByText("18.4 h of 25 h used this period")).toBeTruthy();
+    expect(await screen.findByText("Agent hours this period")).toBeTruthy();
+    expect(screen.getByText("18.4 h")).toBeTruthy();
+    expect(screen.getByText("Of 25 h included.")).toBeTruthy();
     expect(screen.getByText("Resets Mar 1, 2027 (UTC). Then $0.50 an hour, on this period's invoice.")).toBeTruthy();
 
     cleanup();
@@ -306,7 +312,8 @@ describe("PlanSection", () => {
       }),
     );
     renderSection(client);
-    expect(await screen.findByText("18.4 h used this period")).toBeTruthy();
+    expect(await screen.findByText("18.4 h")).toBeTruthy();
+    expect(screen.queryByText(/included\./)).toBeNull();
     expect(screen.queryByRole("meter")).toBeNull();
   });
 
