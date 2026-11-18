@@ -94,6 +94,15 @@ describe("BaselineEditor confirm step", () => {
     expect((screen.getByLabelText("Input ($/M)") as HTMLInputElement).value).toBe("4");
   });
 
+  it("closes the confirm on Escape too, leaving the form as it was", () => {
+    renderEditor(SONNET);
+    fireEvent.change(screen.getByLabelText("Input ($/M)"), { target: { value: "4" } });
+    fireEvent.click(screen.getByRole("button", { name: "Review changes" }));
+    fireEvent(screen.getByRole("dialog"), new Event("cancel", { cancelable: true }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect((screen.getByLabelText("Input ($/M)") as HTMLInputElement).value).toBe("4");
+  });
+
   it("lists the moving rate, now and new, and sends nothing until saved", () => {
     const onSubmit = renderEditor(SONNET);
 

@@ -145,6 +145,17 @@ describe("OrgProfilePanel save payload", () => {
     expect(sent.id).toBe(ACME_ID);
   });
 
+  it("sends a new logo address typed into its field", async () => {
+    const update = vi.fn(async (_resource: Organization, _paths: string[]) => ORG);
+    renderPanel(createMockStigmer({ update }));
+    const logo = await screen.findByLabelText(/^Logo address/);
+    await waitFor(() => expect(logo).toHaveProperty("value", "https://acme.example/logo.png"));
+    fireEvent.change(logo, { target: { value: "https://acme.example/new-logo.svg" } });
+    fireEvent.click(await screen.findByRole("button", { name: "Save changes" }));
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    expect(sentUpdate<Organization>(update).resource.spec?.logoUrl).toBe("https://acme.example/new-logo.svg");
+  });
+
   it("sends the edited name and keeps discard/dirty semantics intact", async () => {
     const update = vi.fn(async (_resource: Organization, _paths: string[]) => ORG);
     renderPanel(createMockStigmer({ update }));
