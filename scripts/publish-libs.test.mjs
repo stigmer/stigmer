@@ -211,17 +211,16 @@ test("every published package keeps the peer meta its source declares", () => {
   assert.ok(declaring.includes("backend/libs/ts/outbound"), `peer meta found only in: ${declaring.join(", ")}`);
 });
 
-test("@stigmer/client publishes @connectrpc/connect-node as a required peer", () => {
-  // Its `/node` entry imports the package, and the docs install the client
-  // alone (`npm install @stigmer/client`), so Node apps rely on npm
-  // installing the peer. While publish-libs dropped peerDependenciesMeta,
-  // the source's `optional` never reached the registry; carried, it broke
-  // every Node app that followed the docs. Making it optional is a change
-  // to the client's install contract, with docs of its own.
+test("@stigmer/client publishes @connectrpc/connect-node as an optional peer", () => {
+  // Only its `/node` entry imports the transport, and four of the five app
+  // stacks the client hands over install a browser chat that never loads it.
+  // Optional, a browser app installs only what it uses; every install line
+  // that runs `@stigmer/client/node` names the transport itself, and a Node
+  // app that skips it gets Node's own error naming the package.
   const root = join(dirname(fileURLToPath(import.meta.url)), "..");
   const dist = distPackageJsonOf(JSON.parse(readFileSync(join(root, "sdk/typescript/package.json"), "utf8")), "1.2.3");
   assert.ok(dist.peerDependencies?.["@connectrpc/connect-node"], "the client names @connectrpc/connect-node as a peer");
-  assert.notEqual(dist.peerDependenciesMeta?.["@connectrpc/connect-node"]?.optional, true);
+  assert.equal(dist.peerDependenciesMeta?.["@connectrpc/connect-node"]?.optional, true);
 });
 
 // A synthetic publish set shaped like the real one's hazards: a peer-only

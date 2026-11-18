@@ -6,7 +6,9 @@
 // (a gRPC target, plaintext only for http://), no key is ever written into
 // it, and every route refuses when nobody is signed in. Each file is named
 // by its path in the builder's project, with a page to try the chat and the
-// settings file the backend reads, and Next.js, one app, installs once. That the text
+// settings file the backend reads, and Next.js, one app, installs once. Only a
+// line whose files run `@stigmer/client/node` installs the Node transport, a
+// rule derived from the code rather than listed. That the text
 // compiles in its language is the docs snippet gate's
 // (scripts/lib/docs-snippets/handover-snippets.mjs); that each route answers
 // a real token is the SDK quickstart smoke's.
@@ -39,8 +41,8 @@ describe("buildAppHandover, sign-in", () => {
   });
 
   it.each([
-    ["nextjs", "app/api/stigmer-token/route.ts", "typescript", "npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf"],
-    ["node", "server.ts", "typescript", "npm install @stigmer/client"],
+    ["nextjs", "app/api/stigmer-token/route.ts", "typescript", "npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf @connectrpc/connect-node"],
+    ["node", "server.ts", "typescript", "npm install @stigmer/client @connectrpc/connect-node"],
     ["python", "stigmer_token.py", "python", "pip install stigmer-sdk"],
     ["go", "main.go", "go", "go get go.stigmer.ai/sdk"],
   ] as const)("names %s's file, language and install", (stack, file, language, install) => {
@@ -175,8 +177,8 @@ describe("buildAppHandover, where each file goes", () => {
   it("Next.js is one app: one install covers the route, the chat and the page", () => {
     const { backend, chat, oneApp } = buildAppHandover({ ...CLOUD, stack: "nextjs" });
     expect(oneApp).toBe(true);
-    expect(backend?.install).toBe("npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf");
-    expect(backend?.install).toBe(chat.install);
+    expect(backend?.install).toBe("npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf @connectrpc/connect-node");
+    expect(backend?.install.startsWith(`${chat.install} `)).toBe(true);
   });
 
   it.each(["node", "python", "go", "java"] as const)("%s's backend and its React app each install their own", (stack) => {
@@ -210,6 +212,40 @@ describe("buildAppHandover, where each file goes", () => {
     expect(local.chat.file).toBe("components/StigmerAgentChat.tsx");
     expect(local.page.file).toBe("app/agent/page.tsx");
     expect(local.settingsFile).toBeUndefined();
+  });
+});
+
+describe("buildAppHandover, the Node transport", () => {
+  // `@connectrpc/connect-node` is an optional peer of `@stigmer/client`, loaded
+  // only by `@stigmer/client/node`. So the rule is derived from the code, for
+  // every mode and stack the builder accepts: the line a reader runs for a
+  // file (a one-app handover's single install, otherwise the file's own, the
+  // page riding its chat's) names the transport exactly when a file it covers
+  // imports `@stigmer/client/node`. A new stack, or a route that stops running
+  // on the Node entry, is held without editing this case.
+  const NODE_ENTRY = /from\s+["']@stigmer\/client\/node["']/;
+  const TRANSPORT = /(^|\s)@connectrpc\/connect-node(\s|$)/;
+  const cases = (["sign-in", "local"] as const).flatMap((mode) => STACKS.map((stack) => [mode, stack] as const));
+
+  it.each(cases)("%s, %s: a line names the transport exactly when its files run the Node entry", (mode, stack) => {
+    const handover = buildAppHandover({ ...CLOUD, mode, stack });
+    const { backend, chat, page, oneApp } = handover;
+    const lines = new Map<string, string[]>();
+    const cover = (line: string, code: string) => lines.set(line, [...(lines.get(line) ?? []), code]);
+    const once = (backend ?? chat).install;
+    if (backend !== undefined) cover(oneApp ? once : backend.install, backend.code);
+    cover(oneApp ? once : chat.install, chat.code);
+    cover(oneApp ? once : chat.install, page.code);
+    expect(lines.size).toBeGreaterThan(0);
+    for (const [line, codes] of lines) {
+      expect(TRANSPORT.test(line), line).toBe(codes.some((code) => NODE_ENTRY.test(code)));
+    }
+  });
+
+  it("the rule is not vacuous: some route runs the Node entry, and the chat never does", () => {
+    const routes = STACKS.map((stack) => backend(stack).code);
+    expect(routes.some((code) => NODE_ENTRY.test(code))).toBe(true);
+    expect(NODE_ENTRY.test(buildAppHandover({ ...CLOUD, stack: "node" }).chat.code)).toBe(false);
   });
 });
 

@@ -57,11 +57,12 @@ make one with Vite and add the SDK:
 npm create vite@latest my-app -- --template react-ts
 cd my-app
 npm install
-npm install @stigmer/react-sdk @stigmer/client @stigmer/apis @bufbuild/protobuf
+npm install @stigmer/react-sdk @stigmer/client @stigmer/apis @bufbuild/protobuf @connectrpc/connect-node
 ```
 
 `@stigmer/react-sdk` holds the chat and needs React 19, which the Vite template
-already uses.
+already uses. `@connectrpc/connect-node` is for the backend file you write next,
+which connects to Stigmer from Node.js.
 
 </Step>
 <Step>

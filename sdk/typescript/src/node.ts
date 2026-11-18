@@ -1,3 +1,15 @@
+/**
+ * `@stigmer/client/node`: the client for a Node.js process (a server route,
+ * the CLI, a script), over `@connectrpc/connect-node`'s native transport
+ * instead of the browser transport the `.` entry uses.
+ *
+ * The transport is an optional peer of the client, and this is the only module
+ * that loads it: a browser app installs the client without it, and a Node app
+ * that imports this entry installs it beside the client
+ * (`npm install @stigmer/client @connectrpc/connect-node`). Without it, Node's
+ * own resolution error names the missing package; no guard here restates it.
+ * The transport needs Node 22, which is the client's declared floor.
+ */
 import { createGrpcTransport, createGrpcWebTransport } from "@connectrpc/connect-node";
 import type { Transport, Interceptor } from "@connectrpc/connect";
 import { Stigmer, type TokenProvider } from "./index.js";

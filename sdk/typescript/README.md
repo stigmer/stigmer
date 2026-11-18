@@ -10,6 +10,16 @@ npm install @stigmer/client @stigmer/apis @bufbuild/protobuf
 
 `@stigmer/apis` and `@bufbuild/protobuf` are peer dependencies.
 
+### Node.js
+
+`@stigmer/client/node` (`createNodeClient`) connects over `@connectrpc/connect-node`, a third peer dependency. It is optional, so a browser app doesn't install it; a Node.js app that imports `@stigmer/client/node` adds it:
+
+```bash
+npm install @stigmer/client @stigmer/apis @bufbuild/protobuf @connectrpc/connect-node
+```
+
+Without it, Node.js stops with `Cannot find package '@connectrpc/connect-node'`. The client declares Node.js 22 or newer, which that transport needs.
+
 ## Quick Start
 
 ### Server-to-server (static API key)
