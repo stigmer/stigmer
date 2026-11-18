@@ -816,20 +816,10 @@ const STALL_CLOCK_INTERVAL_MS = 25;
  * this never does.
  */
 export async function assertStallFailsTheTurn(harness: RuntimeContractHarness, label = "rt-stall"): Promise<RuntimeArmResult> {
-  const { subject, clock } = harness;
+  const { subject } = harness;
   const driver = new RuntimeExecutionDriver(harness, label);
-  let running: NodeJS.Timeout | undefined;
-  void subject.whenHanging().then(() => {
-    clock.tick(STALL_TIMEOUT_MS);
-    running = setInterval(() => clock.tick(STALL_TIMEOUT_MS), STALL_CLOCK_INTERVAL_MS);
-  });
 
-  let invocation: ActivityInvocation;
-  try {
-    invocation = await driver.turn([scenario.hang(), scenario.say(NEVER_SEEN)], { config: { cursorStreamStallTimeoutMs: STALL_TIMEOUT_MS } });
-  } finally {
-    if (running) clearInterval(running);
-  }
+  const invocation = await turnThatStalls(harness, driver, [scenario.hang(), scenario.say(NEVER_SEEN)]);
 
   expect(slimOf(subject, invocation).phase, `${subject.name}: a stall RETURNS FAILED`).toBe("RUN_FAILED");
   expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_FAILED);
@@ -842,6 +832,26 @@ export async function assertStallFailsTheTurn(harness: RuntimeContractHarness, l
   expect(final.completedAt).not.toBe("");
   expect(aiMessages(driver.record.rowsOf(final))).not.toContain(NEVER_SEEN);
   return { driver, invocations: [invocation], final };
+}
+
+/**
+ * One invocation of `turn` (which hangs) on `driver`, with the stall
+ * window's clock running from the moment the engine parks until the turn
+ * settles: the drive of {@link assertStallFailsTheTurn}, for a test that
+ * stalls a turn of its own (an approved resume, say).
+ */
+export async function turnThatStalls(harness: RuntimeContractHarness, driver: RuntimeExecutionDriver, turn: TurnScenario): Promise<ActivityInvocation> {
+  const { subject, clock } = harness;
+  let running: NodeJS.Timeout | undefined;
+  void subject.whenHanging().then(() => {
+    clock.tick(STALL_TIMEOUT_MS);
+    running = setInterval(() => clock.tick(STALL_TIMEOUT_MS), STALL_CLOCK_INTERVAL_MS);
+  });
+  try {
+    return await driver.turn(turn, { config: { cursorStreamStallTimeoutMs: STALL_TIMEOUT_MS } });
+  } finally {
+    if (running) clearInterval(running);
+  }
 }
 
 /**
@@ -1358,21 +1368,23 @@ export async function assertLivenessNamesTheOpenOperation(harness: RuntimeContra
 export const KIT_OPEN_OPERATION_MAX_MS = (LONG_OPERATION_WINDOWS + 1) * STALL_TIMEOUT_MS;
 
 /**
- * An operation open past the runtime's backstop stops the turn: FAILED, with
- * the operation-limit copy naming the call and the limit, never the stall's
- * "made no progress", and the stall's stop cause. What it guards is an
- * operation with no bound of our own (an engine's opaque tool): a live heartbeat over
- * it would otherwise keep a dead turn alive forever.
+ * One invocation of `turn` on `driver` that opens `toolCallId` and leaves it
+ * open, silent, past {@link KIT_OPEN_OPERATION_MAX_MS}: the drive of
+ * {@link assertOpenOperationStopsAtTheBackstop}, for a test that stops a
+ * turn of its own at the backstop (an approved resume, say).
  */
-export async function assertOpenOperationStopsAtTheBackstop(harness: RuntimeContractHarness, label = "rt-operation-limit"): Promise<RuntimeArmResult> {
-  const { clock, subject } = harness;
-  const driver = new RuntimeExecutionDriver(harness, label, { autoApproveAll: true });
-  const id = `${label}-build`;
-  const invocation = await turnWithOpenOperation(
+export async function turnPastTheOperationLimit(
+  harness: RuntimeContractHarness,
+  driver: RuntimeExecutionDriver,
+  turn: TurnScenario,
+  toolCallId: string,
+): Promise<ActivityInvocation> {
+  const { clock } = harness;
+  return turnWithOpenOperation(
     harness,
     driver,
-    [scenario.say("Building."), scenario.open(id), scenario.say(NEVER_SEEN)],
-    id,
+    turn,
+    toolCallId,
     async () => {
       await silentFor(clock);
       clock.tick(KIT_OPEN_OPERATION_MAX_MS);
@@ -1380,6 +1392,20 @@ export async function assertOpenOperationStopsAtTheBackstop(harness: RuntimeCont
     },
     { openOperationMaxMs: KIT_OPEN_OPERATION_MAX_MS },
   );
+}
+
+/**
+ * An operation open past the runtime's backstop stops the turn: FAILED, with
+ * the operation-limit copy naming the call and the limit, never the stall's
+ * "made no progress", and the stall's stop cause. What it guards is an
+ * operation with no bound of our own (an engine's opaque tool): a live heartbeat over
+ * it would otherwise keep a dead turn alive forever.
+ */
+export async function assertOpenOperationStopsAtTheBackstop(harness: RuntimeContractHarness, label = "rt-operation-limit"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const driver = new RuntimeExecutionDriver(harness, label, { autoApproveAll: true });
+  const id = `${label}-build`;
+  const invocation = await turnPastTheOperationLimit(harness, driver, [scenario.say("Building."), scenario.open(id), scenario.say(NEVER_SEEN)], id);
   expect(slimOf(subject, invocation).phase, `${subject.name}: the backstop RETURNS FAILED`).toBe("RUN_FAILED");
   const final = finalStatusOf(harness, driver);
   const seconds = KIT_OPEN_OPERATION_MAX_MS / 1000;
