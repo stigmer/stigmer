@@ -14,7 +14,7 @@ import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { Turn } from "@stigmer/client";
 import { conversationOf, scenarios, stepStories, type Scenario } from "../../test";
 import { MessageThread, type MessageThreadProps } from "../MessageThread";
-import { conversation, result, use } from "./__fixtures__/thread-events";
+import { conversation, result, said, use } from "./__fixtures__/thread-events";
 
 beforeEach(() => {
   vi.stubGlobal(
@@ -91,12 +91,13 @@ describe("MessageThread steps", () => {
     renderThread(
       conversation({
         id: "f",
-        reply: "Fixed what I could.",
+        reply: "",
         extra: [
           use("f", "t", "write_todos", { todos: [{ content: "Fix it", status: "in_progress" }] }),
           result("f", "t", "ok"),
           use("f", "c1", "read_file", { path: "a.ts" }),
           result("f", "c1", "ok"),
+          said("f", 1, "Fixed what I could."),
         ],
       }),
     );

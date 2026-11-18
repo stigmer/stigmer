@@ -96,6 +96,7 @@ const LazyVirtualizedThread = lazy(() =>
 const EMPTY_SUBMITTING_IDS: ReadonlySet<string> = new Set();
 const EMPTY_ANSWER_ERRORS: ReadonlyMap<string, Error> = new Map();
 const EMPTY_RUNS: readonly Run[] = [];
+const NO_CARDED_ASKS: ReadonlySet<string> = new Set();
 
 /**
  * Component overrides for the chrome {@link MessageThread} renders — the
@@ -676,6 +677,37 @@ function lastMessageId(items: ReadonlyArray<TurnItem>): string | undefined {
 }
 
 /**
+ * The id of the message a finished turn closed on, its answer: the last
+ * agent message with content when nothing the agent did came after it but
+ * thinking, notes and its to-do updates. A turn that ended on a step, or on
+ * a message the person sent mid-turn, closed on no answer, and its last
+ * message is narration. `undefined` then, and when the turn wrote none.
+ *
+ * Not the plan rule ({@link lastMessageId}): the plan File is the last
+ * message wherever it sits.
+ */
+function closingMessageId(items: ReadonlyArray<TurnItem>): string | undefined {
+  for (let i = items.length - 1; i >= 0; i--) {
+    const item = items[i]!;
+    switch (item.kind) {
+      case "message":
+        if (item.text.trim().length > 0) return item.id;
+        break;
+      case "tool_use":
+        if (!isInternalTool(item.name)) return undefined;
+        break;
+      case "user_message":
+        return undefined;
+      case "thinking":
+      case "note":
+      case "compacted":
+        break;
+    }
+  }
+  return undefined;
+}
+
+/**
  * The plan's title for its compact card: the leading `# H1` of the plan
  * message, after the same plan-scoped bare-fence unwrap the document renderers
  * apply — so the card and the plan tab always agree on the title. `undefined`
@@ -688,13 +720,15 @@ function extractPlanTitle(content: string): string | undefined {
 /**
  * Adds the ids of the tool uses a subagent renders as nested rows (its
  * non-internal calls, at any depth) to `target`, so their asks are treated
- * as inline and skip the bottom backstop.
+ * as inline and skip the bottom backstop. `exceptWaiting` leaves out the
+ * calls that wait for a person, so their asks get the bottom card: inside a
+ * plan, where the item holding the helper may be closed.
  */
-function collectThreadToolUseIds(thread: Thread, target: Set<string>): void {
+function collectThreadToolUseIds(thread: Thread, target: Set<string>, exceptWaiting = false): void {
   for (const item of thread.items) {
     if (item.kind !== "tool_use" || isInternalTool(item.name)) continue;
-    target.add(item.id);
-    if (item.thread) collectThreadToolUseIds(item.thread, target);
+    if (!(exceptWaiting && item.state === "waiting")) target.add(item.id);
+    if (item.thread) collectThreadToolUseIds(item.thread, target, exceptWaiting);
   }
 }
 
@@ -783,11 +817,12 @@ export function buildThreadItems(
     const collapsePlanMessage = planMessageId !== undefined && planFile !== undefined;
 
     // A completed turn's final answer carries its scores (thumbs and the
-    // run-health flags): the last agent message with content, unless it is
-    // the turn's plan, which renders as a document or a card instead.
+    // run-health flags): the message it closed on, unless it is the turn's
+    // plan, which renders as a document or a card instead. A turn that ended
+    // on a step has no answer to score, and leads with nothing.
     const scoredMessageId =
       turn.status?.phase === "completed" && planMessageId === undefined
-        ? lastMessageId(turn.items)
+        ? closingMessageId(turn.items)
         : undefined;
 
     // The plan the live Plan-mode turn is writing RIGHT NOW (the H1
@@ -798,14 +833,14 @@ export function buildThreadItems(
 
 
     // A turn that keeps a to-do list draws it as its plan, every step under
-    // the item it served (turnSteps); a step that waits for a person stays
-    // out of it, so its ask is drawn as its own card (the backstop below).
+    // the item it served (turnSteps). A step that waits for a person, its
+    // own or a helper's, has its ask drawn as its own card below the plan
+    // (the backstop below), where a closed item cannot hide it.
     const steps = planSteps && turn.todos.length > 0 ? turnSteps(turn) : undefined;
     if (steps !== undefined) {
       for (const tool of [...steps.plan.flatMap((item) => item.calls), ...steps.loose]) {
-        if (tool.state === "waiting") continue;
-        inlineToolUseIds.add(tool.id);
-        if (tool.thread) collectThreadToolUseIds(tool.thread, inlineToolUseIds);
+        if (tool.state !== "waiting") inlineToolUseIds.add(tool.id);
+        if (tool.thread) collectThreadToolUseIds(tool.thread, inlineToolUseIds, true);
       }
     }
 
@@ -1307,7 +1342,19 @@ export function MessageThread({
       }),
     [turns, runs, pendingUserMessage, includeApprovals, resources, pendingMessageFailed, editableActiveTurn, collapseStreamingPlan, pendingFiles, queued, agentVersionLabel, planFiles, turnOutcome, ambientLiveness, slots?.TodoCard, slots?.TodoRow, turnEnding?.viewer, turnEnding?.names],
   );
-  const presentation = useMemo<ThreadPresentation>(() => ({ turnOutcome, ...(turnEnding !== undefined ? { turnEnding } : {}) }), [turnOutcome, turnEnding]);
+  // The asks answered in their own card, for the rows that would otherwise
+  // offer the same decision. Keyed on the ids themselves: `items` is a new
+  // array on every streamed frame, and the set changes only when an ask
+  // arrives or is answered.
+  const cardedKey = useMemo(
+    () => items.flatMap((item) => (item.kind === "approval-request" ? [item.toolUse.id] : [])).sort().join("\n"),
+    [items],
+  );
+  const cardedAsks = useMemo<ReadonlySet<string>>(() => (cardedKey === "" ? NO_CARDED_ASKS : new Set(cardedKey.split("\n"))), [cardedKey]);
+  const presentation = useMemo<ThreadPresentation>(
+    () => ({ turnOutcome, ...(turnEnding !== undefined ? { turnEnding } : {}), cardedAsks }),
+    [turnOutcome, turnEnding, cardedAsks],
+  );
 
   useKeyStability(items);
 
