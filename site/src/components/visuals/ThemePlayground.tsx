@@ -29,6 +29,7 @@ import {
   type LiveTheme,
   type LiveThemeMessage,
 } from "@/lib/live";
+import { CODE_HIGHLIGHT, CODE_VIEWPORT } from "@/lib/code-highlight";
 import { themeSnippet } from "@/lib/theme-snippet.mjs";
 
 /** The demo the playground dresses. */
@@ -153,8 +154,10 @@ export function ThemePlayground() {
         style={{ height: demo.height }}
       />
       <div className="p-4">
-        <DynamicCodeBlock lang="tsx" code={snippet.tsx} codeblock={{ title: "Themed.tsx" }} />
-        {snippet.css !== null && <DynamicCodeBlock lang="css" code={snippet.css} codeblock={{ title: "my-theme.css" }} />}
+        <DynamicCodeBlock lang="tsx" code={snippet.tsx} options={CODE_HIGHLIGHT} codeblock={{ title: "Themed.tsx", viewportProps: CODE_VIEWPORT }} />
+        {snippet.css !== null && (
+          <DynamicCodeBlock lang="css" code={snippet.css} options={CODE_HIGHLIGHT} codeblock={{ title: "my-theme.css", viewportProps: CODE_VIEWPORT }} />
+        )}
       </div>
       <figcaption className="px-4 pb-4 text-xs text-fd-muted-foreground">{LIVE_CAPTION}</figcaption>
     </figure>

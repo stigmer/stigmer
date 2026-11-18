@@ -7,6 +7,7 @@ import {
 import { z } from "zod";
 import remarkMermaid from "./src/lib/remark-mermaid";
 import remarkSnippetSetup from "./src/lib/remark-snippet-setup";
+import { CODE_HIGHLIGHT } from "./src/lib/code-highlight";
 
 export const docs = defineDocs({
   dir: "../docs",
@@ -38,5 +39,7 @@ export const blogPosts = defineCollections({
 export default defineConfig({
   mdxOptions: {
     remarkPlugins: (plugins) => [remarkSnippetSetup, remarkMermaid, ...plugins],
+    // Readable comments on the dark code ground (src/lib/code-highlight.ts).
+    rehypeCodeOptions: CODE_HIGHLIGHT,
   },
 });
