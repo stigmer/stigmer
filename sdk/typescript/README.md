@@ -18,7 +18,7 @@ npm install @stigmer/client @stigmer/apis @bufbuild/protobuf
 npm install @stigmer/client @stigmer/apis @bufbuild/protobuf @connectrpc/connect-node
 ```
 
-Without it, Node.js stops with `Cannot find package '@connectrpc/connect-node'`. The client declares Node.js 22 or newer, which that transport needs.
+Without it, Node.js stops with `Cannot find package '@connectrpc/connect-node'`. The client declares Node.js 22 (22.13 or newer) or Node.js 23.4 or newer.
 
 ## Quick Start
 
