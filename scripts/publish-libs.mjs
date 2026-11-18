@@ -359,8 +359,8 @@ export function distPackageJsonOf(srcPkg, version) {
     );
   }
   // Without the meta an optional peer publishes as a required one, and npm 7+
-  // installs it into every consumer: a Node-only transport into a browser app,
-  // or undici (and its Node floor) into a runner that never loads `/dial`.
+  // installs it into every consumer: undici (and its Node floor) into a runner
+  // that never loads `/dial`.
   if (srcPkg.peerDependenciesMeta) {
     distPkg.peerDependenciesMeta = srcPkg.peerDependenciesMeta;
   }

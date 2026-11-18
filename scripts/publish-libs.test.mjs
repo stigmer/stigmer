@@ -182,7 +182,6 @@ test("generateDistPackageJson carries bin and pins workspace deps", () => {
 test("an optional peer publishes optional", () => {
   // The script once built the manifest field by field and dropped
   // peerDependenciesMeta, so every optional peer shipped required: npm 7+
-  // then installed @stigmer/client's Node transport into browser apps, and
   // would have installed outbound's undici (with its Node floor) into the
   // runner, which never loads the entry that needs it.
   const dist = distPackageJsonOf(
@@ -201,16 +200,28 @@ test("an optional peer publishes optional", () => {
 
 test("every published package keeps the peer meta its source declares", () => {
   const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-  let declaring = 0;
+  const declaring = [];
   for (const relDir of PACKAGES) {
     const src = JSON.parse(readFileSync(join(root, relDir, "package.json"), "utf8"));
     if (!src.peerDependenciesMeta) continue;
-    declaring += 1;
+    declaring.push(relDir);
     assert.deepEqual(distPackageJsonOf(src, "1.2.3").peerDependenciesMeta, src.peerDependenciesMeta, relDir);
   }
-  // @stigmer/client and @stigmer/outbound declare one today; a walk that
-  // read nothing cannot pass on nothing.
-  assert.ok(declaring >= 2, `only ${declaring} package(s) declare peerDependenciesMeta`);
+  // A walk that read nothing cannot pass on nothing.
+  assert.ok(declaring.includes("backend/libs/ts/outbound"), `peer meta found only in: ${declaring.join(", ")}`);
+});
+
+test("@stigmer/client publishes @connectrpc/connect-node as a required peer", () => {
+  // Its `/node` entry imports the package, and the docs install the client
+  // alone (`npm install @stigmer/client`), so Node apps rely on npm
+  // installing the peer. While publish-libs dropped peerDependenciesMeta,
+  // the source's `optional` never reached the registry; carried, it broke
+  // every Node app that followed the docs. Making it optional is a change
+  // to the client's install contract, with docs of its own.
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+  const dist = distPackageJsonOf(JSON.parse(readFileSync(join(root, "sdk/typescript/package.json"), "utf8")), "1.2.3");
+  assert.ok(dist.peerDependencies?.["@connectrpc/connect-node"], "the client names @connectrpc/connect-node as a peer");
+  assert.notEqual(dist.peerDependenciesMeta?.["@connectrpc/connect-node"]?.optional, true);
 });
 
 // A synthetic publish set shaped like the real one's hazards: a peer-only
