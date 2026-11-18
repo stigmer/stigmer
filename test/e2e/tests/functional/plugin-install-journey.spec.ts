@@ -84,15 +84,16 @@ test.describe("Plugin install journey", () => {
     await page.goto("/marketplace");
     await expect(page.getByRole("heading", { level: 1, name: "Marketplace" })).toBeVisible({ timeout: 15_000 });
 
-    // The sources first, as chips: All sources, then the one built-in, the official catalogue, honest about
+    // The sources first, as a segmented choice: All sources, then the one built-in, the official catalogue, honest about
     // its read (it names the development build here), the page standing.
     const sources = page.getByRole("radiogroup", { name: "Sources" });
     const chips = sources.getByRole("radio");
     await expect(chips.nth(0)).toHaveAccessibleName("All sources");
     await expect(chips.nth(1)).toHaveAccessibleName("stigmer");
     await expect(chips).toHaveCount(2);
-    const unreadable = page.getByRole("list", { name: "Sources that cannot be read" });
-    await expect(unreadable.getByText(/development build/)).toBeVisible({ timeout: 15_000 });
+    // A source that cannot be read is one notice above the grid, with a retry.
+    await expect(page.getByText("Couldn't read stigmer.")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/development build/)).toBeVisible();
 
     // The Upload tile is the first tile in the grid; uploading is one more place plugins come from.
     await expect(page.getByRole("list", { name: "Plugins" }).getByRole("button", { name: /Upload a plugin/ })).toBeVisible();

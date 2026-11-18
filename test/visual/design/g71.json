@@ -1,0 +1,2162 @@
+{
+  "screen": "G71",
+  "title": "A provider's key",
+  "source": "the Workspace pages page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "A provider's key: Connect open, the endpoint folded",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene stops with the key form open and empty; models-hub-key-rejected pictures it after a refused key",
+      "words": [
+        {
+          "text": "Models & providers",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Which models Acme Corp's agents can run, and the provider keys behind them.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Providers",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Anthropic",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Not connected",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Runs that need Anthropic are refused until a key is added.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Anthropic API key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "sk-ant-…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer checks the key with Anthropic when you save it, and never shows it again: only its last four characters.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Use your own endpoint",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Connect Anthropic",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Get a key at console.anthropic.com",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Unlocks",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Haiku 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Agent",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Haiku 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "OpenAI",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Not connected",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Runs that need OpenAI are refused until a key is added.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Connect OpenAI",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Paste an OpenAI API key, and every member of Acme Corp can run these models. OpenAI bills Acme Corp directly.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Get a key at platform.openai.com",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Unlocks",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "GPT-5.2",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Your default models",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "The model a new conversation starts on, for each engine, on every device and in the CLI. A pick in the composer wins for that conversation.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer's own harness: runs any catalog model, open source end to end",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Platform default (Claude Sonnet 4.6)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Needs an Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Agent",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic's Claude Agent SDK: Claude models on your Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Platform default (Claude Sonnet 4.6)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Needs an Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Connect Anthropic",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Connect OpenAI",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A provider's key: your own endpoint, opened",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene opens Use your own endpoint; ModelsHub.test.tsx pins the field and its hint",
+      "words": [
+        {
+          "text": "Models & providers",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Which models Acme Corp's agents can run, and the provider keys behind them.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Providers",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Anthropic",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Not connected",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Runs that need Anthropic are refused until a key is added.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Anthropic API key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "sk-ant-api03-••••••••••••",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer checks the key with Anthropic when you save it, and never shows it again: only its last four characters.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Base URL (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "https://gateway.acme.example",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Leave it empty for Anthropic's own API, or give your own Anthropic-compatible endpoint.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Connect Anthropic",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Get a key at console.anthropic.com",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Unlocks",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Haiku 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Agent",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Haiku 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "OpenAI",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Not connected",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Runs that need OpenAI are refused until a key is added.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Connect OpenAI",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Paste an OpenAI API key, and every member of Acme Corp can run these models. OpenAI bills Acme Corp directly.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Get a key at platform.openai.com",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Unlocks",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "GPT-5.2",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Your default models",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "The model a new conversation starts on, for each engine, on every device and in the CLI. A pick in the composer wins for that conversation.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer's own harness: runs any catalog model, open source end to end",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Platform default (Claude Sonnet 4.6)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Needs an Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Agent",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic's Claude Agent SDK: Claude models on your Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Platform default (Claude Sonnet 4.6)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Needs an Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Connect Anthropic",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Connect OpenAI",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A provider's key: checking the key",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene holds the key's check in flight",
+      "words": [
+        {
+          "text": "Models & providers",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Which models Acme Corp's agents can run, and the provider keys behind them.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Providers",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Anthropic",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Not connected",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Runs that need Anthropic are refused until a key is added.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Anthropic API key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "sk-ant-api03-••••••••••••",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer checks the key with Anthropic when you save it, and never shows it again: only its last four characters.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Use your own endpoint",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Connect Anthropic",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Get a key at console.anthropic.com",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Unlocks",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Haiku 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Agent",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Haiku 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "OpenAI",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Not connected",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Runs that need OpenAI are refused until a key is added.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Connect OpenAI",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Paste an OpenAI API key, and every member of Acme Corp can run these models. OpenAI bills Acme Corp directly.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Get a key at platform.openai.com",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Unlocks",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "GPT-5.2",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Your default models",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "The model a new conversation starts on, for each engine, on every device and in the CLI. A pick in the composer wins for that conversation.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer's own harness: runs any catalog model, open source end to end",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Platform default (Claude Sonnet 4.6)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Needs an Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Agent",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic's Claude Agent SDK: Claude models on your Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Platform default (Claude Sonnet 4.6)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Needs an Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Connect Anthropic",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Connect OpenAI",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A provider's key: the key refused",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "models-hub-key-rejected",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Models & providers",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Which models Acme Corp's agents can run, and the provider keys behind them.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Providers",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Anthropic",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Not connected",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Runs that need Anthropic are refused until a key is added.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Anthropic API key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "sk-ant-api03-••••••••••••",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Anthropic didn't accept this key: invalid x-api-key. Check it was copied whole, or make a new one.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Use your own endpoint",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Connect Anthropic",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Get a key at console.anthropic.com",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Unlocks",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Haiku 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Agent",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Haiku 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "OpenAI",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Not connected",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Runs that need OpenAI are refused until a key is added.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Connect OpenAI",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Paste an OpenAI API key, and every member of Acme Corp can run these models. OpenAI bills Acme Corp directly.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Get a key at platform.openai.com",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Unlocks",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "GPT-5.2",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Your default models",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "The model a new conversation starts on, for each engine, on every device and in the CLI. A pick in the composer wins for that conversation.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer's own harness: runs any catalog model, open source end to end",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Platform default (Claude Sonnet 4.6)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Needs an Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Agent",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic's Claude Agent SDK: Claude models on your Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Platform default (Claude Sonnet 4.6)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Needs an Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Connect Anthropic",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Connect OpenAI",
+          "height": 32
+        }
+      ],
+      "sample": {
+        "word sk-ant-api03-••••••••••••": "The key the scene types is its own",
+        "word Anthropic didn't accept this key: invalid x-api-key. Check it was copied whole, or make a new one.": "The provider's refusal in the scene's server's words"
+      },
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A provider's key: Remove: asked",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "models-hub-remove",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Remove the Anthropic key?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Runs that need Anthropic are refused until a key serves Acme Corp again.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Remove key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Remove key",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A provider's key: Remove: removing",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene holds a removal in flight; ConfirmDialog.action.test.tsx pins the waiting dialog",
+      "words": [
+        {
+          "text": "Remove the Anthropic key?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Runs that need Anthropic are refused until a key serves Acme Corp again.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Remove key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Remove key",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A provider's key: Remove: didn't go through",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene refuses a removal; ModelsHub.test.tsx pins the refusal said in the dialog",
+      "words": [
+        {
+          "text": "Remove the Anthropic key?",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Runs that need Anthropic are refused until a key serves Acme Corp again.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't remove the key.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the billing service did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The key is still connected.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A provider's key: the one card before a run (the launcher's key step): no Unlocks",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "launcher-connect-admin",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "One more thing before it runs",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Your agents think with a model. Stigmer uses your own Anthropic key, so you pay Anthropic directly.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Anthropic",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Not connected",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Runs that need Anthropic are refused until a key is added.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Anthropic API key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "sk-ant-…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer checks the key with Anthropic when you save it, and never shows it again: only its last four characters.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Use your own endpoint",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Connect Anthropic",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Get a key at console.anthropic.com",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Connect Anthropic",
+          "height": 32
+        }
+      ],
+      "sample": {
+        "word One more thing before it runs": "launcher-connect-admin is the launcher's composer with nothing that can run; the first run's key step, with this heading, has no scene"
+      },
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A provider's key: Connect open at 390",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "No scene stops with the key form open at 390",
+      "words": [
+        {
+          "text": "Models & providers",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Which models Acme Corp's agents can run, and the provider keys behind them.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Providers",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Anthropic",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Not connected",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Runs that need Anthropic are refused until a key is added.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Anthropic API key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "sk-ant-…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer checks the key with Anthropic when you save it, and never shows it again: only its last four characters.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Use your own endpoint",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Connect Anthropic",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Get a key at console.anthropic.com",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Unlocks",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Haiku 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Agent",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Haiku 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "OpenAI",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Not connected",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Runs that need OpenAI are refused until a key is added.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Connect OpenAI",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Paste an OpenAI API key, and every member of Acme Corp can run these models. OpenAI bills Acme Corp directly.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Get a key at platform.openai.com",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Unlocks",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "GPT-5.2",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Your default models",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "The model a new conversation starts on, for each engine, on every device and in the CLI. A pick in the composer wins for that conversation.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer's own harness: runs any catalog model, open source end to end",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Platform default (Claude Sonnet 4.6)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Needs an Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Agent",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic's Claude Agent SDK: Claude models on your Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Platform default (Claude Sonnet 4.6)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Needs an Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Connect Anthropic",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Connect OpenAI",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

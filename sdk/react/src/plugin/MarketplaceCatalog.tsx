@@ -45,11 +45,11 @@ import { useCallback, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import type { MarketplaceEntry } from "@stigmer/plugin-package";
 
-import { Button } from "../button/Button.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { DialogBody, DialogHeader, DialogShell } from "../internal/DialogShell.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { cardClasses } from "../internal/surface/Card.js";
+import { Notice } from "../internal/surface/Notice.js";
 import { Pagination } from "../internal/Pagination.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
@@ -157,7 +157,14 @@ export function MarketplaceCatalog({ org, onInstalled, fetchImpl, className }: M
         />
       </div>
 
-      {failed.length > 0 && <FailedSources failed={failed} refetch={refetch} whole={selected !== null} />}
+      {failed.length > 0 && (
+        <FailedSources
+          failed={failed}
+          refetch={refetch}
+          whole={selected !== null}
+          othersShown={shownReads.some((read) => read.state.kind === "ready" && read.state.opened.marketplace.plugins.length > 0)}
+        />
+      )}
 
       {settling && <CatalogSkeleton label={`Reading ${selected ?? "the sources"}`} />}
 
@@ -288,31 +295,38 @@ function FailedSources({
   failed,
   refetch,
   whole,
+  othersShown,
 }: {
   readonly failed: readonly SourceRead[];
   readonly refetch: (name: string) => void;
   /** When one source is chosen its refusal is the page's whole body; among many it is one line. */
   readonly whole: boolean;
+  /** Another source's plugins are on the page, so the notice can say where they come from. */
+  readonly othersShown: boolean;
 }) {
   if (whole) {
     const [read] = failed;
     if (read === undefined || read.state.kind !== "failed") return null;
     return <ErrorMessage error={read.state.error} retry={() => refetch(read.marketplace.name)} title={`Couldn't load ${read.marketplace.name}.`} />;
   }
+  // Among many sources, the ones that could not be read are one notice: each
+  // source's own line, what still stands, and one Try again for them all.
+  const unread = failed.flatMap((read) => (read.state.kind === "failed" ? [{ name: read.marketplace.name, error: read.state.error }] : []));
+  const [only] = unread;
   return (
-    <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:gap-1")} aria-label="Sources that cannot be read">
-      {failed.map((read) =>
-        read.state.kind === "failed" ? (
-          <li key={read.marketplace.name} className="stg:flex stg:flex-wrap stg:items-baseline stg:gap-x-2 stg:text-xs stg:text-muted-foreground">
-            <span className="stg:font-medium stg:text-foreground">{read.marketplace.name}</span>
-            <span>cannot be read right now: {read.state.error.message}</span>
-            <Button variant="ghost" size="xs" onClick={() => refetch(read.marketplace.name)} aria-label={`Try again to load ${read.marketplace.name}`}>
-              Try again
-            </Button>
-          </li>
-        ) : null,
-      )}
-    </ul>
+    <Notice
+      tone="paused"
+      headline={unread.length === 1 && only !== undefined ? `Couldn't read ${only.name}.` : `Couldn't read ${unread.length} sources.`}
+      act={{ label: "Try again", onClick: () => unread.forEach(({ name }) => refetch(name)) }}
+      details={unread.map(({ name, error }) => `${name}: ${error.message}`).join("\n")}
+    >
+      {unread.map(({ name, error }) => (
+        <p key={name} className="stg:m-0 stg:text-muted-foreground">
+          {unread.length === 1 ? error.message : `${name}: ${error.message}`}
+        </p>
+      ))}
+      {othersShown && <p className="stg:m-0">The plugins below come from your other sources.</p>}
+    </Notice>
   );
 }
 

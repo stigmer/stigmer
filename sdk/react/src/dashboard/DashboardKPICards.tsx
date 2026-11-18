@@ -9,7 +9,9 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { Card } from "../internal/surface/Card.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { cardClasses } from "../internal/surface/Card.js";
+import { Figure, Figures, type FigureTone } from "../internal/surface/Figure.js";
 import { formatCompactCount } from "../usage/format.js";
 import type { DashboardSummary } from "./types.js";
 
@@ -21,31 +23,16 @@ export interface DashboardKPICardsProps {
 
 interface StatCardDef {
   readonly label: string;
-  readonly valueClass: string;
+  /** A hue only where the value is a status: runs completed, runs failed. */
+  readonly tone?: FigureTone;
   readonly getValue: (s: DashboardSummary) => string;
 }
 
 const STAT_CARDS: readonly StatCardDef[] = [
-  {
-    label: "Active",
-    valueClass: "stg:text-foreground",
-    getValue: (s) => String(s.activeCount),
-  },
-  {
-    label: "Completed",
-    valueClass: "stg:text-status-ready",
-    getValue: (s) => String(s.completedCount),
-  },
-  {
-    label: "Failed",
-    valueClass: "stg:text-destructive",
-    getValue: (s) => String(s.failedCount),
-  },
-  {
-    label: "Tokens",
-    valueClass: "stg:text-foreground",
-    getValue: (s) => formatCompactCount(s.totalTokens),
-  },
+  { label: "Active", getValue: (s) => String(s.activeCount) },
+  { label: "Completed", tone: "ready", getValue: (s) => String(s.completedCount) },
+  { label: "Failed", tone: "failed", getValue: (s) => String(s.failedCount) },
+  { label: "Tokens", getValue: (s) => formatCompactCount(s.totalTokens) },
 ];
 
 /**
@@ -62,30 +49,25 @@ export const DashboardKPICards = memo(function DashboardKPICards({
 }: DashboardKPICardsProps) {
   if (isLoading) {
     return (
-      <div className={cn("stg:space-y-3", className)} aria-busy="true">
-        <div className="stg:grid stg:gap-3 stg:sm:grid-cols-2 stg:lg:grid-cols-4">
-          {Array.from({ length: 4 }, (_, i) => (
-            <Card key={i} className="stg:h-[72px] stg:animate-pulse stg:bg-muted" />
-          ))}
-        </div>
-      </div>
+      <LoadingRegion label="Loading this week's figures" className={cn("stg:grid stg:grid-cols-2 stg:gap-3 stg:lg:grid-cols-4", className)}>
+        {STAT_CARDS.map((card) => (
+          // A figure's outline: its label's line over its value's.
+          <span key={card.label} className={cn(cardClasses(), "stg:flex stg:flex-col stg:gap-2")} aria-hidden="true">
+            <span className="stg:h-3 stg:w-2/5 stg:animate-pulse stg:rounded stg:bg-muted-subtle" />
+            <span className="stg:h-6 stg:w-1/2 stg:animate-pulse stg:rounded stg:bg-muted" />
+          </span>
+        ))}
+      </LoadingRegion>
     );
   }
 
   if (!summary) return null;
 
   return (
-    <div className={cn("stg:grid stg:gap-3 stg:sm:grid-cols-2 stg:lg:grid-cols-4", className)}>
+    <Figures aria-label="This week's runs" className={className}>
       {STAT_CARDS.map((card) => (
-        <Card key={card.label}>
-          <p className="stg:text-xs stg:font-medium stg:text-muted-foreground">
-            {card.label}
-          </p>
-          <p className={cn("stg:mt-1 stg:text-2xl stg:font-semibold", card.valueClass)}>
-            {card.getValue(summary)}
-          </p>
-        </Card>
+        <Figure key={card.label} label={card.label} value={card.getValue(summary)} tone={card.tone} />
       ))}
-    </div>
+    </Figures>
   );
 });

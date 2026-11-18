@@ -1,7 +1,7 @@
 /**
  * The Marketplace page's retry acts, against a fetch fake whose GitHub
  * listing is down for the first read and back for every read after: among
- * all sources the unreadable one is a line whose "Try again" reads it again,
+ * all sources the unreadable one is a notice whose "Try again" reads it again,
  * and with that source's chip chosen its refusal is the page's whole body,
  * whose own "Try again" does the same. Either way the source's cards appear.
  */
@@ -80,18 +80,35 @@ describe("MarketplaceCatalog: reading a source again", () => {
   it("among all sources, the unreadable source's Try again reads it again and its cards appear", async () => {
     renderCatalog();
 
-    const button = await screen.findByRole("button", { name: `Try again to load ${HOSTED_MARKETPLACE_NAME}` });
+    const notice = (await screen.findByText(/^Couldn't read /)).closest("[role]") as HTMLElement;
     expect(screen.queryByRole("button", { name: "Install thermos" })).toBeNull();
+    // No source's plugins are on the page, so the notice does not point at them.
+    expect(notice.textContent).not.toContain("The plugins below come from your other sources.");
 
-    fireEvent.click(button);
+    fireEvent.click(within(notice).getByRole("button", { name: "Try again" }));
 
     expect(await screen.findByRole("button", { name: "Install thermos" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: `Try again to load ${HOSTED_MARKETPLACE_NAME}` })).toBeNull();
+    expect(screen.queryByText(`Couldn't read ${HOSTED_MARKETPLACE_NAME}.`)).toBeNull();
+  });
+
+  it("says several unreadable sources in one notice, each line naming its source, with one Try again for them all", async () => {
+    renderCatalog();
+
+    const notice = (await screen.findByText(/^Couldn't read 2 sources\.$/)).closest("[role]") as HTMLElement;
+    const lines = Array.from(notice.querySelectorAll("p")).map((line) => line.textContent ?? "");
+    expect(lines.some((line) => line.startsWith("stigmer: "))).toBe(true);
+    expect(lines.some((line) => line.startsWith(`${HOSTED_MARKETPLACE_NAME}: `))).toBe(true);
+
+    fireEvent.click(within(notice).getByRole("button", { name: "Try again" }));
+
+    // Each unread source is read again: the hosted one answers this time, the official one still can't.
+    expect(await screen.findByRole("button", { name: "Install thermos" })).toBeTruthy();
+    expect(await screen.findByText("Couldn't read stigmer.")).toBeTruthy();
   });
 
   it("with the source chosen, its whole-page refusal's Try again reads it again and its cards appear", async () => {
     renderCatalog();
-    await screen.findByRole("button", { name: `Try again to load ${HOSTED_MARKETPLACE_NAME}` });
+    await screen.findByText(`Couldn't read ${HOSTED_MARKETPLACE_NAME}.`);
 
     fireEvent.click(within(screen.getByRole("radiogroup", { name: "Sources" })).getByRole("radio", { name: HOSTED_MARKETPLACE_NAME }));
     const refusal = screen.getByText(`Couldn't load ${HOSTED_MARKETPLACE_NAME}.`).closest("[role=alert]") as HTMLElement;
