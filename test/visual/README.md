@@ -8,7 +8,7 @@ Every hero component of the React kit, drawn from fixed data, one scene per stat
 - `make test-visual UPDATE=1` mints the screenshots again. Read the difference in review before committing it; the difference is the change.
 - `npm run gallery -w @stigmer/visual-tests` serves the gallery to browse. Its index lists every scene; `?scene=<id>&mode=<light|dark>` draws one.
 
-In CI the `visual` job of `ci.ts-workspace.yaml` runs inside the same image, on GitHub's arm64 runner, and uploads the expected, actual and diff pictures when a comparison fails.
+In CI the `visual` job of `ci.ts-workspace.yaml` runs inside the same image, on GitHub's arm64 runner, as four shards at once, each a quarter of the scenes (Playwright's `--shard`), and each shard uploads the expected, actual and diff pictures when a comparison fails. `make test-visual` runs them all.
 
 ## How a scene is drawn
 

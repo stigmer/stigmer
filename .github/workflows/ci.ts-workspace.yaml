@@ -336,17 +336,31 @@ jobs:
   # check in the package holds this `image` and `runs-on` to it. The image
   # carries its browser, so nothing is installed. The task runs the package's
   # unit checks, then the spec (turbo.json says what it hashes). On a failure
-  # the expected, actual and diff pictures upload.
+  # the expected, actual and diff pictures upload, one artifact per shard.
+  #
+  # The suite runs as four shards, the split that closed #3201. In one job
+  # it took 32-35 minutes on 2026-11-18 (2507 tests then, 3758
+  # worker-seconds on 2 workers; setup and builds about 3 minutes of the
+  # rest), so a loaded runner cancelled runs with nothing failing.
+  # Playwright splits by test (`fullyParallel`), and the per-test times are
+  # close (1.2 to 2.5 s), so a count-based quarter is a quarter of the time;
+  # a spec with much slower tests would skew that, and the split is
+  # re-measured then. `--shard` reaches only the spec: npm appends it to the
+  # script's last command, so every shard also runs the unit checks (about
+  # 11 s), which keeps the step unconditional. Locally, `make test-visual`
+  # runs the whole suite.
   visual:
-    name: Visual Suite (Screenshots + A11y)
+    name: Visual Suite (Screenshots + A11y, ${{ matrix.shard }}/4)
     runs-on: ubuntu-24.04-arm
-    # 18 minutes on main before the Library's scenes (2026-11-15), raised from
-    # 20 to 35 then; the settings and workspace pages' scenes (2026-11-18) bring
-    # the suite to 32-35 minutes, so pull requests were cancelled mid-suite with
-    # nothing failing. Raised to 45, the ceiling scripts/ci-timeouts.mjs allows
-    # under the merge queue's 60-minute timeout, with the maintainer's approval.
-    # Splitting the suite across jobs is #3201.
-    timeout-minutes: 45
+    # Sized by scripts/ci-timeouts.mjs's rule from the first sharded run
+    # (#3307, 2026-11-18: 2526 tests, shards 10m23s, 11m45s, 12m10s, 11m00s;
+    # the suite itself 7.5 to 9.4 minutes of each): 3 x the 11.4-minute
+    # median, rounded up to 35.
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     needs: changes
     if: contains(fromJSON(needs.changes.outputs.packages), '@stigmer/visual-tests')
     container:
@@ -370,13 +384,13 @@ jobs:
         run: npm ci
 
       - name: Run the visual suite
-        run: node scripts/turbo-set.mjs workspace test:visual --only=@stigmer/visual-tests
+        run: node scripts/turbo-set.mjs workspace test:visual --only=@stigmer/visual-tests -- --shard=${{ matrix.shard }}/4
 
       - name: Upload the screenshot differences
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: visual-differences
+          name: visual-differences-${{ matrix.shard }}
           path: test/visual/test-results/
           if-no-files-found: ignore
           retention-days: 14
