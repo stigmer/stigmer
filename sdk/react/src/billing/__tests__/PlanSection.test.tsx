@@ -212,7 +212,8 @@ describe("PlanSection", () => {
     const client = mockClient({ subscribed: subscription(SubscriptionState.active) });
     renderSection(client);
     expect(await screen.findByText("Estimated invoice")).toBeTruthy();
-    expect(screen.getByText(/^On Feb 28, 2027, for /)).toBeTruthy();
+    // The figure's label draws before the estimate lands; its line comes with the estimate.
+    expect(await screen.findByText(/^On Feb 28, 2027, for /)).toBeTruthy();
     expect(screen.getByText("Team plan")).toBeTruthy();
     // The plan line and the total: the fee is the whole invoice.
     // The figure, the plan line and the total: the fee is the whole invoice.
