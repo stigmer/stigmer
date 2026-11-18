@@ -125,6 +125,21 @@ export type {
   RenderSidebarLink,
 } from "./sidebar/index.js";
 
+// Gates — what a console shows between signing in and the app: the
+// identity account checked or set up, then the person's organizations.
+// The hooks (`useIdentityAccountGate`, `useOrgGate`) make the state; hosts
+// keep their sign-in wiring and pass the account's corner.
+export { IdentityAccountGateView, OrgGateView } from "./gate/index.js";
+export type { IdentityAccountGateViewProps, OrgGateViewProps } from "./gate/index.js";
+
+// Page states — a console page's place when there is nothing to show: an
+// address that leads nowhere, a page that broke, a run's address resolving
+// to its conversation. Hosts inject routing (`renderLink`, `onResolved`).
+export { PageNotFound, PageFailure } from "./page-state/index.js";
+export type { PageNotFoundProps, PageFailureProps, PageFailureLink } from "./page-state/index.js";
+export { RunResolveView } from "./page-state/index.js";
+export type { RunResolveViewProps } from "./page-state/index.js";
+
 // Page frame — the column every console zone frames its pages in (settings,
 // the Library, models, the dashboard, the marketplace), in both apps.
 export { PageFrame } from "./page-frame/PageFrame.js";

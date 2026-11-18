@@ -2,17 +2,10 @@
 
 import { useCallback } from "react";
 import { usePathname } from "next/navigation";
-import {
-  Loader2,
-  AlertCircle,
-  RefreshCw,
-  Building2,
-  LogOut,
-} from "lucide-react";
-import { Button, CreateOrganizationForm, useOrgGate } from "@stigmer/react-sdk";
-import { HelpLink } from "@stigmer/react-sdk/console";
+import { useOrgGate } from "@stigmer/react-sdk";
+import { OrgGateView } from "@stigmer/react-sdk/console";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
-import { useAuth } from "@/auth";
+import { GateAccount } from "../identity/GateAccount";
 
 /** Routes that bypass the org gate (user may not have an org yet). */
 const ORG_GATE_BYPASS_PREFIXES = ["/invite/"] as const;
@@ -20,9 +13,9 @@ const ORG_GATE_BYPASS_PREFIXES = ["/invite/"] as const;
 /**
  * Blocks the application shell until the user has at least one organization.
  *
- * Delegates the gate derivation to `useOrgGate()` from the SDK and renders
- * Console-specific gate screens based on the returned state. The list the
- * gate reads is final by the time it renders (the identity gate ahead of
+ * Delegates the gate derivation to `useOrgGate()` from the SDK and draws
+ * its states with the kit's `OrgGateView`, passing the signed-in corner.
+ * The list the gate reads is final by the time it renders (the identity gate ahead of
  * it has already provisioned whatever the server provisions), so an empty
  * list goes straight to onboarding — on Stigmer Cloud and on a self-hosted
  * server alike.
@@ -35,140 +28,20 @@ const ORG_GATE_BYPASS_PREFIXES = ["/invite/"] as const;
  */
 export function OrgGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-
   const isBypassed = ORG_GATE_BYPASS_PREFIXES.some((p) =>
     pathname.startsWith(p),
   );
-
   const { state, retry, refresh } = useOrgGate({ isBypassed });
-
-  switch (state.status) {
-    case "bypassed":
-    case "ready":
-      return <>{children}</>;
-    case "loading":
-      return <LoadingState />;
-    case "error":
-      return <ErrorState message={state.message} onRetry={retry} />;
-    case "no-orgs":
-      return <OnboardingState onRefresh={refresh} />;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Gate header — user identity + sign-out for pre-app screens
-// ---------------------------------------------------------------------------
-
-function GateHeader() {
-  const { user, logout } = useAuth();
-
-  if (!user) return null;
-
-  const displayName = user.name ?? user.email;
-  const initial = displayName.charAt(0).toUpperCase();
-
-  return (
-    <div className="absolute top-0 right-0 flex items-center gap-3 p-4">
-      <div className="flex items-center gap-2">
-        <div className="bg-muted text-muted-foreground flex size-6 shrink-0 items-center justify-center rounded-full">
-          <span className="text-xs font-medium">{initial}</span>
-        </div>
-        <span className="text-muted-foreground text-sm">{user.email}</span>
-      </div>
-      <Button
-        variant="ghost"
-        icon={<LogOut className="size-3.5" />}
-        onClick={logout}
-        className="text-muted-foreground hover:text-foreground"
-      >
-        Sign out
-      </Button>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Loading
-// ---------------------------------------------------------------------------
-
-function LoadingState() {
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-3">
-      <Loader2 className="text-muted-foreground size-8 animate-spin" />
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Error
-// ---------------------------------------------------------------------------
-
-function ErrorState({
-  message,
-  onRetry,
-}: {
-  message: string;
-  onRetry: () => void;
-}) {
-  return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center gap-4 p-8">
-      <GateHeader />
-      <AlertCircle className="text-destructive size-8" />
-      <p className="text-destructive text-sm font-medium">
-        Failed to load organizations
-      </p>
-      <p className="text-muted-foreground max-w-md text-center text-sm">
-        {message}
-      </p>
-      <Button icon={<RefreshCw className="size-3.5" />} onClick={onRetry}>
-        Try again
-      </Button>
-      <HelpLink />
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Onboarding — first-time user, no organizations
-// ---------------------------------------------------------------------------
-
-function OnboardingState({
-  onRefresh,
-}: {
-  onRefresh: (target?: string) => void;
-}) {
   const handleCreated = useCallback(
     (org: Organization) => {
-      onRefresh(org.metadata?.id);
+      refresh(org.metadata?.id);
     },
-    [onRefresh],
+    [refresh],
   );
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center p-8">
-      <GateHeader />
-      <div className="w-full max-w-sm space-y-6">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <div className="bg-muted flex size-12 items-center justify-center rounded-full">
-            <Building2 className="text-muted-foreground size-6" />
-          </div>
-          <h1 className="text-foreground text-lg font-semibold">
-            Welcome to Stigmer
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Create an organization to get started. Organizations are the
-            top-level context that owns your agents, vaults, and
-            resources. To join an existing one instead, ask one of its
-            admins to invite you.
-          </p>
-          <p className="text-muted-foreground text-sm">
-            Next, you connect a model provider, such as Anthropic or OpenAI,
-            so your agents can answer.
-          </p>
-        </div>
-
-        <CreateOrganizationForm onCreated={handleCreated} />
-      </div>
-    </div>
+    <OrgGateView state={state} retry={retry} onCreated={handleCreated} corner={<GateAccount />}>
+      {children}
+    </OrgGateView>
   );
 }

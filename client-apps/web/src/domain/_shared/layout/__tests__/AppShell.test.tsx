@@ -7,7 +7,7 @@
  * to) renders with no sidebar, which would read a session it does not have,
  * and with no Desktop banner, which reads the organization's journey and would
  * seed its first-seen key before the person ever signed in (stigmer#3194). The
- * run-not-found state, the sidebars, the banner and the session zone are
+ * kit's run view, the sidebars, the banner and the session zone are
  * stubbed; their wiring is pinned in their own suites.
  */
 import type { ReactNode } from "react";
@@ -43,33 +43,35 @@ vi.mock("@/domain/session/session-navigation", () => ({
 
 vi.mock("@stigmer/react-sdk", async () => {
   const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
+  return { Button: kit.Button, IconButton: kit.IconButton, LinkButton: kit.LinkButton };
+});
+
+// The run view is the kit's (its states pinned in @stigmer/react-sdk); this
+// stand-in resolves the run the way it does, so the test holds what the
+// shell hands it and where the resolved session goes.
+vi.mock("@stigmer/react-sdk/console", async () => {
+  const { useEffect } = await import("react");
   return {
-    Button: kit.Button,
-    IconButton: kit.IconButton,
-    LinkButton: kit.LinkButton,
-    useResolveRunSession: (id: string | null) => {
-      shell.resolving.push(id);
-      return {
-        sessionId: id ? (shell.sessionFor.get(id) ?? null) : null,
-        isLoading: id !== null && shell.pending.has(id),
-        error: id !== null && shell.failing.has(id) ? new Error("connection refused") : null,
-        refetch: () => {
-          shell.retries += 1;
-        },
-      };
+    RunResolveView: ({ runId, onResolved }: { runId: string; onResolved: (sessionId: string) => void }) => {
+      shell.resolving.push(runId);
+      const sessionId = shell.sessionFor.get(runId) ?? null;
+      useEffect(() => {
+        if (sessionId) onResolved(sessionId);
+      }, [sessionId, onResolved]);
+      if (shell.pending.has(runId) || sessionId) return null;
+      if (shell.failing.has(runId)) {
+        return (
+          <button type="button" onClick={() => (shell.retries += 1)}>
+            load failed: connection refused
+          </button>
+        );
+      }
+      return <p>not found</p>;
     },
   };
 });
 
 vi.mock("@/domain/session/AttentionNotifier", () => ({ AttentionNotifier: () => null }));
-vi.mock("@/domain/runs/RunNotFound", () => ({ RunNotFound: () => <p>not found</p> }));
-vi.mock("@/domain/runs/RunLoadFailed", () => ({
-  RunLoadFailed: ({ error, onRetry }: { error: Error; onRetry: () => void }) => (
-    <button type="button" onClick={onRetry}>
-      load failed: {error.message}
-    </button>
-  ),
-}));
 vi.mock("@/domain/session/SessionLauncher", () => ({ SessionLauncher: () => null }));
 vi.mock("@/domain/session/SessionPage", () => ({ SessionPageInner: () => null }));
 vi.mock("../Sidebar", () => ({ Sidebar: () => <nav>sidebar</nav> }));
