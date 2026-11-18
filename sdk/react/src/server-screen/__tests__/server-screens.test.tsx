@@ -98,6 +98,13 @@ describe("ServerChooserForm", () => {
     expect(onBack).toHaveBeenCalled();
   });
 
+  it("goes back when Escape cancels the dialog", () => {
+    const onBack = vi.fn();
+    render(<ServerChooserForm presentation="dialog" open onChoose={async () => null} onBack={onBack} />);
+    fireEvent(screen.getByRole("dialog", { hidden: true }), new Event("cancel", { cancelable: true }));
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
   it("opens empty each time, forgetting an address refused the last time", async () => {
     const onChoose = vi.fn(async () => "Use an https address, or http only on this computer.");
     const { rerender } = render(<ServerChooserForm presentation="dialog" open onChoose={onChoose} onBack={() => {}} />);
