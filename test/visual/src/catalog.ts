@@ -196,6 +196,15 @@ export type SceneId =
   | "oauth-popup-done"
   | "oauth-popup-declined"
   | "oauth-popup-missing"
+  | "sign-in-ready"
+  | "sign-in-handing-off"
+  | "sign-in-failed"
+  | "sign-in-return-finishing"
+  | "sign-in-return-failed"
+  | "handoff-card-saved"
+  | "handoff-nothing-changed"
+  | "handoff-going-back"
+  | "handoff-signed-in"
   | `preset-${Preset}`;
 
 /** The roles a control is pressed by: Playwright's own list, the one `getByRole` takes. */
@@ -1648,8 +1657,8 @@ const LISTED: readonly Scene[] = [
   { id: "connect-link-ready", title: "Connect link: ready to continue to the provider", widths: ["desktop", "narrow"] },
   { id: "connect-link-dead", title: "Connect link: expired or already used", widths: ["desktop"] },
   { id: "connect-link-loading", title: "Connect link: loading", widths: ["desktop"] },
-  { id: "connect-link-failed", title: "Connect link: the provider's sign-in could not be opened", widths: ["desktop"], opens: "Continue" },
-  { id: "connect-link-starting", title: "Connect link: opening the provider's sign-in", widths: ["desktop"], opens: "Continue" },
+  { id: "connect-link-failed", title: "Connect link: the provider's sign-in could not be opened", widths: ["desktop"], opens: "Continue to GitHub" },
+  { id: "connect-link-starting", title: "Connect link: opening the provider's sign-in", widths: ["desktop"], opens: "Continue to GitHub" },
   { id: "connect-return-working", title: "Connect link's return: finishing the connection", widths: ["desktop"] },
   { id: "connect-return-failed", title: "Connect link's return: it did not finish", widths: ["desktop"] },
   { id: "connect-return-dead", title: "Connect link's return: the link expired on the way", widths: ["desktop"] },
@@ -1657,6 +1666,15 @@ const LISTED: readonly Scene[] = [
   { id: "oauth-popup-done", title: "OAuth pop-up: the sign-in is handed back", widths: ["desktop"] },
   { id: "oauth-popup-declined", title: "OAuth pop-up: the provider says the person declined", widths: ["desktop"] },
   { id: "oauth-popup-missing", title: "OAuth pop-up: reached without the provider's answer", widths: ["desktop"] },
+  { id: "sign-in-ready", title: "Sign-in: ready, one Sign in", widths: ["desktop", "narrow"] },
+  { id: "sign-in-handing-off", title: "Sign-in: taking a newcomer to create their account", widths: ["desktop"] },
+  { id: "sign-in-failed", title: "Sign-in: it could not start", widths: ["desktop"] },
+  { id: "sign-in-return-finishing", title: "Back from the sign-in page: finishing the sign-in", widths: ["desktop"] },
+  { id: "sign-in-return-failed", title: "Back from the sign-in page: the sign-in didn't finish", widths: ["desktop"] },
+  { id: "handoff-card-saved", title: "Back to the desktop app: the card is saved", widths: ["desktop", "narrow"] },
+  { id: "handoff-nothing-changed", title: "Back to the desktop app: nothing was changed", widths: ["desktop"] },
+  { id: "handoff-going-back", title: "Back to the desktop app: going back after signing in", widths: ["desktop"] },
+  { id: "handoff-signed-in", title: "Back to the desktop app: signed in, the app didn't open", widths: ["desktop"] },
   ...PRESETS.map((preset) => ({
     id: `preset-${preset}` as const,
     title: `The completed thread in the ${preset} preset`,

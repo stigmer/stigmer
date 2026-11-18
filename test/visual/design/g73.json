@@ -7,8 +7,13 @@
     {
       "caption": "Signing in: Ready (the console)",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "sign-in-ready",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Sign in to Stigmer",
@@ -49,15 +54,22 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "Signing in: Ready, at 390",
       "narrow": true,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "sign-in-ready",
+          "width": "narrow"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Sign in to Stigmer",
@@ -98,15 +110,22 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "Signing in: Creating an account: the hand-off from the website's Start free",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "sign-in-handing-off",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Taking you to create your account…",
@@ -125,8 +144,13 @@
     {
       "caption": "Signing in: The sign-in couldn't start (new: today nothing happens)",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "sign-in-failed",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Sign in to Stigmer",
@@ -211,7 +235,9 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
       "pending": {}
     },
@@ -219,7 +245,7 @@
       "caption": "Signing in: Ready (the desktop app)",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "unbuilt": "The desktop app's own screens: its sign-in is drawn by the desktop's change.",
       "words": [
         {
           "text": "Sign in to Acme",
@@ -280,7 +306,7 @@
       "caption": "Signing in: The sign-in page is on another site (the desktop app)",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "unbuilt": "The desktop app's own screens: its sign-in is drawn by the desktop's change.",
       "words": [
         {
           "text": "Sign in to Acme",
@@ -357,7 +383,7 @@
       "caption": "Signing in: Waiting for the browser (the desktop app)",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "unbuilt": "The desktop app's own screens: its sign-in is drawn by the desktop's change.",
       "words": [
         {
           "text": "Finish signing in in your browser",
@@ -418,7 +444,7 @@
       "caption": "Signing in: The sign-in didn't finish (the desktop app)",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "unbuilt": "The desktop app's own screens: its sign-in is drawn by the desktop's change.",
       "words": [
         {
           "text": "Sign in to Acme",

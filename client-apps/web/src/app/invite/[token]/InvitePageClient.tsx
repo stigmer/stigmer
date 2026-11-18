@@ -10,7 +10,7 @@ import {
   rememberActiveOrg,
 } from "@stigmer/react-sdk";
 import type { ResolvedColorMode } from "@stigmer/react-sdk";
-import { HelpLink } from "@stigmer/react-sdk/console";
+import { StandaloneScreen } from "@stigmer/react-sdk/console";
 import type { Invitation } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
 import type { SigninRedirectArgs } from "oidc-client-ts";
 import { getApiBaseUrl } from "@/config/env";
@@ -118,26 +118,18 @@ export default function InvitePageClient() {
 
   return (
     <StigmerProvider client={client} colorMode={colorMode}>
-      <div className="bg-background flex min-h-screen flex-col items-center justify-center p-4">
-        <div className="w-full max-w-sm space-y-8">
-          <div className="text-center">
-            <StigmerLogo />
-            <h1 className="text-foreground mt-4 text-lg font-semibold">
-              You&rsquo;re invited
-            </h1>
-          </div>
-          <InvitationRedemption
-            token={token ?? ""}
-            isAuthenticated={isAuthenticated}
-            autoAccept={autoAccept}
-            onAccepted={handleAccepted}
-            onAuthRequired={handleAuthRequired}
-            onSignUp={signupArgs !== null ? handleSignUp : undefined}
-          />
-          {/* Where to ask when the invitation doesn't work: the server's own link, or nothing. */}
-          <HelpLink className="text-center" />
-        </div>
-      </div>
+      {/* The help line says where to ask when the invitation doesn't work: the server's own link, or nothing. */}
+      <StandaloneScreen mark={<StigmerLogo size={40} />} help>
+        <InvitationRedemption
+          token={token ?? ""}
+          isAuthenticated={isAuthenticated}
+          autoAccept={autoAccept}
+          onAccepted={handleAccepted}
+          onAuthRequired={handleAuthRequired}
+          onSignUp={signupArgs !== null ? handleSignUp : undefined}
+          headingLevel={1}
+        />
+      </StandaloneScreen>
     </StigmerProvider>
   );
 }

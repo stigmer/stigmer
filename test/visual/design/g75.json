@@ -7,8 +7,13 @@
     {
       "caption": "A connect link: Ready",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "connect-link-ready",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Connect GitHub for Acme Corp",
@@ -49,15 +54,22 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "A connect link: Ready, at 390",
       "narrow": true,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "connect-link-ready",
+          "width": "narrow"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Connect GitHub for Acme Corp",
@@ -98,15 +110,22 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "A connect link: Opening GitHub",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "connect-link-starting",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Connect GitHub for Acme Corp",
@@ -147,15 +166,22 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "A connect link: Couldn't open GitHub's sign-in",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "connect-link-failed",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Connect GitHub for Acme Corp",
@@ -240,15 +266,23 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "The drawing's server line; the scene's fake server answers in its own words",
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "A connect link: Expired or used",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "connect-link-dead",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "This link has expired or was already used",
@@ -276,15 +310,22 @@
         }
       ],
       "buttons": [],
-      "sample": {},
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "A connect link: Loading",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "connect-link-loading",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Opening the link…",
@@ -303,8 +344,13 @@
     {
       "caption": "A connect link: The return: finishing",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "connect-return-working",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Finishing the connection…",
@@ -323,8 +369,13 @@
     {
       "caption": "A connect link: The return: didn't finish",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "connect-return-failed",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "The connection didn't finish.",
@@ -385,15 +436,24 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "The drawing's server line; the scene's fake server answers in its own words",
+        "word Your GitHub login wasn't saved. Try again, or start from the app's link.": "The return page doesn't know the provider's name (the link's info is the start page's); the scene says 'your login'",
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "A connect link: The return: saved, but not sent back",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "connect-return-unsafe",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Your GitHub login is saved",
@@ -421,7 +481,10 @@
         }
       ],
       "buttons": [],
-      "sample": {},
+      "sample": {
+        "word Your GitHub login is saved": "The return page doesn't know the provider's name (the link's info is the start page's); the scene says 'your login'",
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
       "pending": {}
     }

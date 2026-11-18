@@ -5,8 +5,11 @@
 // kit's standalone frame; the console's page states inside its frame (an
 // address that leads nowhere, a page that broke, a run's address); and the
 // kit's views for arriving from a link (an invitation, a connect link and
-// its return, the OAuth pop-up). The gates are drawn from a fixed state, as
-// the hooks hand it; the rest run their own reads against the fake server.
+// its return, the OAuth pop-up), each on the frame its console page gives
+// it; and signing in (the sign-in screen, its return, the pages that hand
+// the browser back to the desktop app). The gates and the sign-in are drawn
+// from a fixed state, as their hosts hand it; the rest run their own reads
+// against the fake server.
 import type { ReactElement, ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
@@ -38,11 +41,14 @@ import {
   type OrgGateState,
 } from "@stigmer/react-sdk";
 import {
+  AppHandoffView,
   IdentityAccountGateView,
   OrgGateView,
   PageFailure,
   PageNotFound,
   RunResolveView,
+  SignInReturnView,
+  SignInView,
   StandaloneScreen,
   UserMenu,
 } from "@stigmer/react-sdk/console";
@@ -283,15 +289,17 @@ export function invitationScene(face: InviteFace): Drawing {
               : () => create(InvitationSchema, {}),
       });
     },
+    showHelpLink: true,
     render: () => (
-      <div style={{ padding: "48px 16px" }}>
+      <StandaloneScreen mark={<Mark />} help>
         <InvitationRedemption
           token={face === "not-found" ? "" : "inv_tok_finance"}
           isAuthenticated={signedIn}
           onAuthRequired={() => {}}
           onSignUp={face === "signed-out" ? () => {} : undefined}
+          headingLevel={1}
         />
-      </div>
+      </StandaloneScreen>
     ),
   };
 }
@@ -303,6 +311,7 @@ export function connectLinkScene(face: ConnectFace): Drawing {
   return {
     uncounted: face === "loading" ? ["getConnectLink"] : face === "starting" ? ["startConnectLink"] : undefined,
     routes: (router) => {
+      serverWithHelp(router);
       router.service(ConnectLinkController, {
         getConnectLink:
           face === "loading"
@@ -313,7 +322,12 @@ export function connectLinkScene(face: ConnectFace): Drawing {
         startConnectLink: face === "starting" ? pending : unavailable("the vault"),
       });
     },
-    render: () => <ConnectLinkView token="cl_tok_github" />,
+    showHelpLink: true,
+    render: () => (
+      <StandaloneScreen mark={<Mark />} help>
+        <ConnectLinkView token="cl_tok_github" />
+      </StandaloneScreen>
+    ),
   };
 }
 
@@ -324,6 +338,7 @@ export function connectReturnScene(face: ReturnFace): Drawing {
   return {
     uncounted: face === "working" ? ["completeConnectLink"] : undefined,
     routes: (router) => {
+      serverWithHelp(router);
       router.service(ConnectLinkController, {
         completeConnectLink:
           face === "working"
@@ -335,7 +350,12 @@ export function connectReturnScene(face: ReturnFace): Drawing {
                 : () => create(CompleteConnectLinkOutputSchema, { returnUrl: "acme-app://connected" }),
       });
     },
-    render: () => <ConnectLinkCallback token="cl_tok_github" />,
+    showHelpLink: true,
+    render: () => (
+      <StandaloneScreen mark={<Mark />} help>
+        <ConnectLinkCallback token="cl_tok_github" />
+      </StandaloneScreen>
+    ),
   };
 }
 
@@ -369,9 +389,73 @@ export function oauthPopupScene(face: PopupFace): Drawing {
   return {
     render: () => (
       <WithReturnQuery query={POPUP_QUERIES[face]}>
-        <OAuthCallbackHandler />
+        <StandaloneScreen mark={<Mark />}>
+          <OAuthCallbackHandler appName="Stigmer" />
+        </StandaloneScreen>
       </WithReturnQuery>
     ),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Signing in
+// ---------------------------------------------------------------------------
+
+/** The console's sign-in, in one of its states. */
+export function signInScene(face: "ready" | "handing-off" | "failed"): Drawing {
+  return {
+    routes: serverWithHelp,
+    showHelpLink: true,
+    render: () => (
+      <SignInView
+        state={
+          face === "failed"
+            ? { status: "failed", error: new Error("the sign-in page didn't answer") }
+            : face === "handing-off"
+              ? { status: "handing-off" }
+              : { status: "ready" }
+        }
+        serverName="Stigmer"
+        onSignIn={() => {}}
+        mark={<Mark />}
+      />
+    ),
+  };
+}
+
+/** The return from the sign-in page: finishing, or why it didn't. */
+export function signInReturnScene(face: "finishing" | "failed"): Drawing {
+  return {
+    routes: serverWithHelp,
+    showHelpLink: true,
+    render: () => (
+      <SignInReturnView
+        error={face === "failed" ? new Error("the sign-in page sent back: access_denied") : null}
+        onSignInAgain={() => {}}
+        mark={<Mark />}
+      />
+    ),
+  };
+}
+
+const DESKTOP_DEEP_LINK = "stigmer://billing/return";
+const GO_BACK = "Go back to Stigmer Desktop to carry on. You can close this tab.";
+
+/** A page that hands the browser back to the desktop app. */
+export function handoffScene(face: "card-saved" | "nothing-changed" | "going-back" | "signed-in"): Drawing {
+  return {
+    render: () =>
+      face === "going-back" ? (
+        <AppHandoffView mark={<Mark />} wait="Going back to Stigmer Desktop…" />
+      ) : (
+        <AppHandoffView
+          mark={<Mark />}
+          title={face === "card-saved" ? "Your card is saved" : face === "nothing-changed" ? "Nothing was changed" : "You're signed in"}
+          lead={face === "signed-in" ? "If Stigmer Desktop didn't open, open it here. You can close this tab after." : GO_BACK}
+          href={DESKTOP_DEEP_LINK}
+          actLabel="Open Stigmer Desktop"
+        />
+      ),
   };
 }
 
@@ -419,4 +503,13 @@ export const AROUND_CONSOLE_DRAWINGS = {
   "oauth-popup-done": () => oauthPopupScene("done"),
   "oauth-popup-declined": () => oauthPopupScene("declined"),
   "oauth-popup-missing": () => oauthPopupScene("missing"),
+  "sign-in-ready": () => signInScene("ready"),
+  "sign-in-handing-off": () => signInScene("handing-off"),
+  "sign-in-failed": () => signInScene("failed"),
+  "sign-in-return-finishing": () => signInReturnScene("finishing"),
+  "sign-in-return-failed": () => signInReturnScene("failed"),
+  "handoff-card-saved": () => handoffScene("card-saved"),
+  "handoff-nothing-changed": () => handoffScene("nothing-changed"),
+  "handoff-going-back": () => handoffScene("going-back"),
+  "handoff-signed-in": () => handoffScene("signed-in"),
 } as const satisfies Record<string, () => Drawing>;

@@ -3,7 +3,6 @@
 import { type FormEvent, useCallback, useId, useRef, useState } from "react";
 import { create as createMessage } from "@bufbuild/protobuf";
 import { cn } from "@stigmer/design-tokens";
-import { getUserMessage } from "@stigmer/client";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import { useCreateOrganization } from "./useCreateOrganization.js";
@@ -11,7 +10,8 @@ import { generateSlug } from "../internal/slug.js";
 import { validateMessage, getFieldError } from "../internal/validate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { Button } from "../button/Button.js";
-import { FIELD_LABEL_CLASSES, FieldError, TextInput } from "../internal/form/index.js";
+import { Field, FormFooter, TextInput } from "../internal/form/index.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -118,109 +118,63 @@ export function CreateOrganizationForm({
   );
 
   return (
-    <form onSubmit={handleSubmit} className={cn("stg:space-y-3", className)}>
-      <div className="stg:space-y-2">
-        {/* ---- Name ---- */}
-        <div className="stg:space-y-1">
-          <label
-            htmlFor={`${baseId}-name`}
-            className={FIELD_LABEL_CLASSES}
-          >
-            Name
-          </label>
-          <TextInput
-            id={`${baseId}-name`}
-            type="text"
-            value={name}
-            onChange={(e) => handleNameChange(e.target.value)}
-            placeholder="e.g. Acme Corp"
-            disabled={isCreating}
-            autoFocus
-            required
-            maxLength={63}
+    <form onSubmit={handleSubmit} className={cn("stg:flex stg:flex-col stg:gap-4", className)} noValidate>
+      <Field label="Name" error={nameError ?? undefined}>
+        <TextInput
+          type="text"
+          value={name}
+          onChange={(e) => handleNameChange(e.target.value)}
+          placeholder="e.g. Acme Corp"
+          disabled={isCreating}
+          autoFocus
+          required
+          maxLength={63}
+          className="stg:w-full"
+        />
+      </Field>
+      <Field label="Address" error={slugError ?? undefined} hint={`Its short name in links: ${slug || "acme-corp"}.`}>
+        <TextInput
+          type="text"
+          value={slug}
+          onChange={(e) => handleSlugChange(e.target.value)}
+          placeholder="e.g. acme-corp"
+          disabled={isCreating}
+          required
+          className="stg:w-full stg:font-mono"
+        />
+      </Field>
+      <Field label="Description" optional>
+        <TextInput
+          type="text"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="What is this organization for?"
+          disabled={isCreating}
+          className="stg:w-full"
+        />
+      </Field>
+      {onCancel !== undefined ? (
+        <FormFooter
+          submitLabel="Create organization"
+          submitDisabled={!canSubmit}
+          busy={isCreating}
+          onCancel={onCancel}
+          failure={<ErrorMessage error={error} title="Stigmer couldn't create the organization." />}
+        />
+      ) : (
+        <>
+          <ErrorMessage error={error} title="Stigmer couldn't create the organization." />
+          <Button
+            type="submit"
+            disabled={!canSubmit}
+            aria-busy={isCreating}
+            icon={isCreating ? <SpinnerIcon size={14} /> : undefined}
             className="stg:w-full"
-            invalid={Boolean(nameError)}
-          />
-          {nameError ? (
-            <FieldError>
-              {nameError}
-            </FieldError>
-          ) : (
-            <p className="stg:text-2xs stg:text-muted-foreground">
-              A human-readable display name for the organization.
-            </p>
-          )}
-        </div>
-
-        {/* ---- Slug ---- */}
-        <div className="stg:space-y-1">
-          <label
-            htmlFor={`${baseId}-slug`}
-            className={FIELD_LABEL_CLASSES}
           >
-            Slug
-          </label>
-          <TextInput
-            id={`${baseId}-slug`}
-            type="text"
-            value={slug}
-            onChange={(e) => handleSlugChange(e.target.value)}
-            placeholder="e.g. acme-corp"
-            disabled={isCreating}
-            required
-            className="stg:w-full stg:font-mono"
-            invalid={Boolean(slugError)}
-          />
-          {slugError ? (
-            <FieldError>
-              {slugError}
-            </FieldError>
-          ) : (
-            <p className="stg:text-2xs stg:text-muted-foreground">
-              URL-friendly identifier used in resource references. 2&ndash;63
-              characters: lowercase letters, numbers, and hyphens.
-            </p>
-          )}
-        </div>
-
-        {/* ---- Description ---- */}
-        <div className="stg:space-y-1">
-          <label
-            htmlFor={`${baseId}-desc`}
-            className={FIELD_LABEL_CLASSES}
-          >
-            Description{" "}
-            <span className="stg:text-muted-foreground-subtle">(optional)</span>
-          </label>
-          <TextInput
-            id={`${baseId}-desc`}
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="What is this organization for?"
-            disabled={isCreating}
-            className="stg:w-full"
-          />
-        </div>
-      </div>
-
-      {error && (
-        <FieldError>
-          {getUserMessage(error)}
-        </FieldError>
-      )}
-
-      <div className="stg:flex stg:items-center stg:gap-2">
-        <Button type="submit" disabled={!canSubmit} icon={isCreating ? <SpinnerIcon size={12} /> : undefined}>
-          Create organization
-        </Button>
-
-        {onCancel && (
-          <Button variant="ghost" onClick={onCancel} disabled={isCreating}>
-            Cancel
+            Create organization
           </Button>
-        )}
-      </div>
+        </>
+      )}
     </form>
   );
 }

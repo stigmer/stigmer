@@ -7,8 +7,13 @@
     {
       "caption": "An invitation: Signed in: accept",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "invite-ready",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Join Acme Corp",
@@ -65,15 +70,24 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word As a member you can use the organization's agents and start your own conversations.": "When its page is redesigned: the line under the invitation is the kit's role description, shared with the grant dialog and written of 'them'; an invitee's own line per role (the drawing words the member's) is for the Built look"
+      }
     },
     {
       "caption": "An invitation: Signed in, at 390",
       "narrow": true,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "invite-ready",
+          "width": "narrow"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Join Acme Corp",
@@ -130,15 +144,24 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word As a member you can use the organization's agents and start your own conversations.": "When its page is redesigned: the line under the invitation is the kit's role description, shared with the grant dialog and written of 'them'; an invitee's own line per role (the drawing words the member's) is for the Built look"
+      }
     },
     {
       "caption": "An invitation: Signed out: make an account or sign in",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "invite-signed-out",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Join Acme Corp",
@@ -207,15 +230,24 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word As a member you can use the organization's agents and start your own conversations.": "When its page is redesigned: the line under the invitation is the kit's role description, shared with the grant dialog and written of 'them'; an invitee's own line per role (the drawing words the member's) is for the Built look"
+      }
     },
     {
       "caption": "An invitation: Accepting",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "invite-accepting",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Join Acme Corp",
@@ -272,15 +304,24 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word As a member you can use the organization's agents and start your own conversations.": "When its page is redesigned: the line under the invitation is the kit's role description, shared with the grant dialog and written of 'them'; an invitee's own line per role (the drawing words the member's) is for the Built look"
+      }
     },
     {
       "caption": "An invitation: Couldn't accept",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "invite-redeem-failed",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Join Acme Corp",
@@ -381,15 +422,25 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "The drawing's server line; the scene's fake server answers in its own words",
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word As a member you can use the organization's agents and start your own conversations.": "When its page is redesigned: the line under the invitation is the kit's role description, shared with the grant dialog and written of 'them'; an invitee's own line per role (the drawing words the member's) is for the Built look"
+      }
     },
     {
       "caption": "An invitation: Accepted: it forwards",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "invite-accepted",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "You've joined Acme Corp",
@@ -416,8 +467,13 @@
     {
       "caption": "An invitation: Expired or used",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "invite-expired",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "This invitation has expired",
@@ -445,15 +501,24 @@
         }
       ],
       "buttons": [],
-      "sample": {},
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Invitations last seven days. Ask whoever sent it for a new link.": "When its page is redesigned: an invitation's lifetime is set when it is sent, so the build doesn't claim 'seven days'; for the Built look"
+      }
     },
     {
       "caption": "An invitation: Not found",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "invite-not-found",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "This invitation isn't here",
@@ -481,15 +546,22 @@
         }
       ],
       "buttons": [],
-      "sample": {},
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "An invitation: Couldn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "invite-load-failed",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Stigmer couldn't open the invitation.",
@@ -550,15 +622,23 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "The drawing's server line; the scene's fake server answers in its own words",
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "An invitation: Loading",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "invite-loading",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Opening your invitation…",

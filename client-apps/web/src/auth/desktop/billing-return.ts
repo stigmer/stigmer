@@ -19,5 +19,5 @@ export function desktopBillingDeepLink(searchParams: URLSearchParams): string {
 
 /** What the bridge's page says: a saved card, or nothing changed (a cancel or the portal). */
 export function desktopBillingOutcome(searchParams: URLSearchParams): string {
-  return searchParams.get("setup") === "success" ? "Your card is saved." : "Nothing was changed.";
+  return searchParams.get("setup") === "success" ? "Your card is saved" : "Nothing was changed";
 }

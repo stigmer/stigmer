@@ -19,13 +19,13 @@
 // session and lands on /login. It never builds a vendor URL — the Auth0
 // `/v2/logout` fallback is gone.
 //
-// A failed code exchange: the provider shows "Login Failed" with the
-// exchange's reason instead of looping back into the issuer, and its
-// "Try Again" starts a fresh sign-in redirect.
+// A failed code exchange: the provider says the sign-in didn't finish, with
+// the exchange's reason, instead of looping back into the issuer, and its
+// "Sign in again" starts a fresh sign-in redirect that lands home.
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { StrictMode, useEffect, type ReactNode } from "react";
+import { StrictMode, useEffect } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { User } from "oidc-client-ts";
 import type { OidcConfig } from "../types";
@@ -49,7 +49,7 @@ const mocks = vi.hoisted(() => {
   const manager = {
     signinRedirectCallback: vi.fn(async () => user),
     getUser: vi.fn(async (): Promise<User | null> => null),
-    signinRedirect: vi.fn(),
+    signinRedirect: vi.fn(async () => {}),
     signoutRedirect: vi.fn(async () => {}),
     removeUser: vi.fn(async () => {}),
     metadataService: {
@@ -74,15 +74,21 @@ vi.mock("../oidc-manager", () => ({
   createUserManager: vi.fn(() => mocks.manager),
 }));
 
-// The failed-login screen's retry is the kit's Button. Each test re-imports
-// the provider (vi.resetModules), so the whole kit would be re-imported cold
-// per test; a plain button stands in, pressed by the failed-login test.
-vi.mock("@stigmer/react-sdk", () => ({
-  Button: ({ children, onClick }: { children?: ReactNode; onClick?: () => void }) => (
-    <button type="button" onClick={onClick}>
-      {children}
-    </button>
-  ),
+// The failed sign-in's screen is the kit's SignInReturnView. Each test
+// re-imports the provider (vi.resetModules), so the whole kit would be
+// re-imported cold per test; a plain stand-in draws the failure's headline,
+// its reason and Sign in again, pressed by the failed-sign-in test.
+vi.mock("@stigmer/react-sdk/console", () => ({
+  SignInReturnView: ({ error, onSignInAgain }: { error: Error | null; onSignInAgain: () => void }) =>
+    error === null ? null : (
+      <div>
+        <p>The sign-in didn&apos;t finish.</p>
+        <p>{error.message}</p>
+        <button type="button" onClick={onSignInAgain}>
+          Sign in again
+        </button>
+      </div>
+    ),
 }));
 
 /** Re-import the provider so its module-scoped single-flight memo is fresh. */
@@ -236,7 +242,7 @@ describe("OidcAuthProvider failed callback", () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
 
-  it("shows the exchange's reason and starts a fresh sign-in on Try Again", async () => {
+  it("shows the exchange's reason and starts a fresh sign-in, landing home, on Sign in again", async () => {
     mocks.manager.signinRedirectCallback.mockRejectedValueOnce(
       new Error("Invalid authorization code"),
     );
@@ -247,13 +253,31 @@ describe("OidcAuthProvider failed callback", () => {
       </OidcAuthProvider>,
     );
 
-    expect(await screen.findByText("Login Failed")).toBeTruthy();
+    expect(await screen.findByText("The sign-in didn't finish.")).toBeTruthy();
     expect(screen.getByText("Invalid authorization code")).toBeTruthy();
     expect(screen.queryByText("app")).toBeNull();
     expect(mocks.manager.signinRedirect).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sign in again" }));
 
     expect(mocks.manager.signinRedirect).toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem(REDIRECT_PATH_KEY)).toBe("/");
+  });
+
+  it("says why when signing in again can't start either", async () => {
+    mocks.manager.signinRedirectCallback.mockRejectedValueOnce(
+      new Error("Invalid authorization code"),
+    );
+    mocks.manager.signinRedirect.mockRejectedValueOnce(new Error("issuer unreachable"));
+    const OidcAuthProvider = await importProvider();
+    render(
+      <OidcAuthProvider config={CONFIG}>
+        <div>app</div>
+      </OidcAuthProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Sign in again" }));
+
+    expect(await screen.findByText("issuer unreachable")).toBeTruthy();
   });
 });

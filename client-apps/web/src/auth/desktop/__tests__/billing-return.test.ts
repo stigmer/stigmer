@@ -23,8 +23,8 @@ describe("desktopBillingDeepLink", () => {
 
 describe("desktopBillingOutcome", () => {
   it("says the card is saved after a setup, and that nothing changed otherwise", () => {
-    expect(desktopBillingOutcome(new URLSearchParams("setup=success&plan=pln_team"))).toBe("Your card is saved.");
-    expect(desktopBillingOutcome(new URLSearchParams(""))).toBe("Nothing was changed.");
-    expect(desktopBillingOutcome(new URLSearchParams("checkout=success"))).toBe("Nothing was changed.");
+    expect(desktopBillingOutcome(new URLSearchParams("setup=success&plan=pln_team"))).toBe("Your card is saved");
+    expect(desktopBillingOutcome(new URLSearchParams(""))).toBe("Nothing was changed");
+    expect(desktopBillingOutcome(new URLSearchParams("checkout=success"))).toBe("Nothing was changed");
   });
 });

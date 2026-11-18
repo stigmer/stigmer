@@ -7,8 +7,13 @@
     {
       "caption": "Back to the desktop app: The card is saved",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "handoff-card-saved",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Your card is saved",
@@ -48,8 +53,13 @@
     {
       "caption": "Back to the desktop app: Nothing was changed",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "handoff-nothing-changed",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Nothing was changed",
@@ -89,8 +99,13 @@
     {
       "caption": "Back to the desktop app: Signed in: going back",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "handoff-going-back",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Going back to Stigmer Desktop…",
@@ -109,8 +124,13 @@
     {
       "caption": "Back to the desktop app: Signed in: the app didn't open (new, after a few seconds)",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "handoff-signed-in",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "You're signed in",
@@ -150,8 +170,13 @@
     {
       "caption": "Back to the desktop app: The card is saved, at 390",
       "narrow": true,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "handoff-card-saved",
+          "width": "narrow"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Your card is saved",

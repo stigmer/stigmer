@@ -1,6 +1,7 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { SignInReturnView } from "@stigmer/react-sdk/console";
+import { StigmerLogo } from "@/auth/StigmerLogo";
 
 /**
  * OIDC redirect callback page.
@@ -16,10 +17,6 @@ import { Loader2 } from "lucide-react";
  * an `auth/callback.html` in the static export.
  */
 export default function OidcCallbackPage() {
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-3">
-      <Loader2 className="text-muted-foreground size-8 animate-spin" />
-      <p className="text-muted-foreground text-sm">Completing sign-in...</p>
-    </div>
-  );
+  // The exchange's failure is drawn by `OidcAuthProvider` with the same view.
+  return <SignInReturnView error={null} onSignInAgain={() => window.location.replace("/login")} mark={<StigmerLogo size={40} />} />;
 }

@@ -42,7 +42,8 @@ describe("DSK-02 LoginScreen", () => {
   it("names the server it signs in to, as the server named itself", () => {
     server.label = "stigmer.acme.internal";
     render(<LoginScreen />);
-    expect(screen.getByRole("button", { name: "Sign in to stigmer.acme.internal" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Sign in to stigmer.acme.internal" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sign in" })).toBeTruthy();
   });
 
   it("waits for the browser with Reopen and Cancel, and treats a cancel as no failure", async () => {
@@ -51,15 +52,15 @@ describe("DSK-02 LoginScreen", () => {
     const tauri = mockTauri({ auth_reopen_browser: () => null, auth_cancel: () => null });
     render(<LoginScreen />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Sign in to Stigmer Cloud" }));
-    expect(screen.getByText("Completing sign-in in your browser…")).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: "Reopen browser" }));
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    expect(screen.getByRole("heading", { name: "Finish signing in in your browser" })).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Reopen the browser" }));
     expect(tauri.callsTo("auth_reopen_browser")).toHaveLength(1);
 
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(tauri.callsTo("auth_cancel")).toHaveLength(1);
     settle("Sign-in cancelled.");
-    expect(await screen.findByRole("button", { name: "Sign in to Stigmer Cloud" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Sign in" })).toBeTruthy();
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
@@ -67,13 +68,14 @@ describe("DSK-02 LoginScreen", () => {
     auth.login.mockRejectedValue("The sign-in provider refused the sign-in: access_denied");
     render(<LoginScreen />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Sign in to Stigmer Cloud" }));
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
 
-    expect((await screen.findByRole("alert")).textContent).toBe(
-      "The sign-in provider refused the sign-in: access_denied",
-    );
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("The sign-in didn't finish.");
+    expect(alert.textContent).toContain("The sign-in provider refused the sign-in: access_denied");
+    expect(alert.textContent).toContain("Nothing changed in your account.");
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
-    expect(screen.getByRole("button", { name: "Sign in to Stigmer Cloud" })).toBeTruthy();
+    expect(auth.login).toHaveBeenCalledTimes(2);
   });
 
   it("signs in on one press, with no question, at a provider on the server's own site", async () => {
@@ -81,7 +83,7 @@ describe("DSK-02 LoginScreen", () => {
     render(<LoginScreen />);
     expect(screen.queryByText(/on another site/)).toBeNull();
 
-    await userEvent.click(screen.getByRole("button", { name: "Sign in to Stigmer Cloud" }));
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
 
     expect(auth.login).toHaveBeenCalledWith({ providerConfirmed: false });
   });
@@ -99,7 +101,7 @@ describe("DSK-02 LoginScreen", () => {
 
     expect(screen.getByText("evil.example signs people in at id.acme.com, on another site.")).toBeTruthy();
     expect(screen.getByText("Go on only if you trust evil.example with your id.acme.com account.")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Sign in to Stigmer Cloud" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Sign in" })).toBeNull();
 
     await userEvent.click(screen.getByRole("button", { name: "Sign in at id.acme.com" }));
 

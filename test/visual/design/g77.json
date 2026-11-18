@@ -7,8 +7,13 @@
     {
       "caption": "Returns and pop-ups: Coming back from sign-in",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "sign-in-return-finishing",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Finishing the sign-in…",
@@ -27,8 +32,13 @@
     {
       "caption": "Returns and pop-ups: The sign-in didn't finish (new)",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "sign-in-return-failed",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "The sign-in didn't finish.",
@@ -89,7 +99,9 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
       "pending": {}
     },
@@ -97,7 +109,7 @@
       "caption": "Returns and pop-ups: The pop-up: finishing",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "unbuilt": "The pop-up's finishing state lasts one frame before it hands the sign-in back; no scene can hold it.",
       "words": [
         {
           "text": "Finishing the connection…",
@@ -116,8 +128,13 @@
     {
       "caption": "Returns and pop-ups: The pop-up: connected",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "oauth-popup-done",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Connected",
@@ -145,7 +162,7 @@
       "caption": "Returns and pop-ups: The pop-up opened as a tab",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "unbuilt": "The pop-up opened as a tab shows only when the browser has no broadcast channel either; the gallery's browser has one.",
       "words": [
         {
           "text": "Connected",
@@ -172,8 +189,13 @@
     {
       "caption": "Returns and pop-ups: The pop-up: didn't finish",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "built": [
+        {
+          "scene": "oauth-popup-declined",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "The connection didn't finish.",
@@ -222,7 +244,10 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word GitHub said: the request was declined": "The drawing invents the provider's words; the scene's provider sends 'The person declined access.' after 'the sign-in page said:'",
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
       "pending": {}
     }

@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { User, UserManager } from "oidc-client-ts";
-import { Button } from "@stigmer/react-sdk";
+import { SignInReturnView } from "@stigmer/react-sdk/console";
+import { StigmerLogo } from "../StigmerLogo";
 import { AuthContext } from "../context";
 import { setAuthToken } from "../token-store";
 import type { AuthState, AuthUser } from "../types";
@@ -69,7 +70,7 @@ export default function OidcAuthProvider({
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [callbackError, setCallbackError] = useState<string | null>(null);
+  const [callbackError, setCallbackError] = useState<Error | null>(null);
 
   useEffect(() => {
     const manager = managerRef.current!;
@@ -102,10 +103,8 @@ export default function OidcAuthProvider({
         }
       } catch (err) {
         if (isCallback) {
-          const message =
-            err instanceof Error ? err.message : "Authentication failed";
           console.error("[auth] callback exchange failed:", err);
-          setCallbackError(message);
+          setCallbackError(err instanceof Error ? err : new Error(String(err)));
         } else {
           console.error("[auth] session restore failed:", err);
         }
@@ -139,6 +138,14 @@ export default function OidcAuthProvider({
       manager.events.removeUserUnloaded(onUserUnloaded);
       manager.events.removeAccessTokenExpired(onTokenExpired);
     };
+  }, []);
+
+  const signInAgain = useCallback(() => {
+    sessionStorage.setItem(REDIRECT_PATH_KEY, "/");
+    managerRef.current!.signinRedirect().catch((err: unknown) => {
+      console.error("[auth] sign-in redirect failed:", err);
+      setCallbackError(err instanceof Error ? err : new Error(String(err)));
+    });
   }, []);
 
   const login = useCallback(() => {
@@ -199,18 +206,11 @@ export default function OidcAuthProvider({
     [user, isLoading, isLoggingOut, authUser, login, logout],
   );
 
-  // If the callback exchange failed, show the error with a retry action
-  // instead of allowing AuthGuard to loop back into login().
+  // If the callback exchange failed, say so with Sign in again, instead of
+  // letting AuthGuard loop back into login(). Signing in again lands home:
+  // the failed return's own address has nothing to come back to.
   if (callbackError) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8">
-        <p className="text-destructive text-sm font-medium">Login Failed</p>
-        <p className="text-muted-foreground max-w-md text-center text-sm">
-          {callbackError}
-        </p>
-        <Button onClick={login}>Try Again</Button>
-      </div>
-    );
+    return <SignInReturnView error={callbackError} onSignInAgain={signInAgain} mark={<StigmerLogo size={40} />} />;
   }
 
   return <AuthContext.Provider value={state}>{children}</AuthContext.Provider>;

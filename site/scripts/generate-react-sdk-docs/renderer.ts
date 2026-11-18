@@ -88,11 +88,12 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
       "help",
       "page",
       "page-frame",
-      // The console's standalone frame, gates and page states: the frame
-      // every screen outside the console's frame stands on, what it shows
-      // between signing in and the app, and in a page's place when there is
-      // nothing to show.
+      // The console's standalone frame, signing in, gates and page states:
+      // the frame every screen outside the console's frame stands on, the
+      // sign-in and its returns, what it shows between signing in and the
+      // app, and in a page's place when there is nothing to show.
       "standalone-screen",
+      "sign-in",
       "gate",
       "page-state",
       "status",

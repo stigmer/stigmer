@@ -1,11 +1,11 @@
 "use client";
 
-import { cn } from "@stigmer/design-tokens";
-import { getUserMessage } from "@stigmer/client";
-import { DEAD_CONNECT_LINK_MESSAGE, useConnectLink } from "./useConnectLink.js";
+import { DEAD_LINK_LEAD, DEAD_LINK_TITLE, useConnectLink } from "./useConnectLink.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { Button } from "../button/Button.js";
-import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
+import { ScreenColumn } from "../internal/ScreenColumn.js";
+import { ScreenWait } from "../standalone-screen/StandaloneScreen.js";
 
 /** Props for {@link ConnectLinkView}. */
 export interface ConnectLinkViewProps {
@@ -28,44 +28,49 @@ export interface ConnectLinkViewProps {
 export function ConnectLinkView({ token, className }: ConnectLinkViewProps) {
   const link = useConnectLink(token);
 
+  if (link.isLoading) {
+    return (
+      <ScreenColumn className={className}>
+        <ScreenWait>Opening the link…</ScreenWait>
+      </ScreenColumn>
+    );
+  }
+  if (link.isDead || link.info === null) {
+    if (link.error !== null && !link.isDead) {
+      return (
+        <ScreenColumn className={className}>
+          <ErrorMessage error={link.error} title="Stigmer couldn't open the link." comfort="The link itself is unaffected." />
+        </ScreenColumn>
+      );
+    }
+    return <ScreenColumn className={className} headingLevel={1} title={DEAD_LINK_TITLE} lead={DEAD_LINK_LEAD} />;
+  }
+  const { providerName, organizationName } = link.info;
+  const forWhom = organizationName !== "" ? organizationName : "the app that sent this link";
   return (
-    <div className={cn("stg:mx-auto stg:max-w-sm stg:space-y-4 stg:p-8 stg:text-center", className)}>
-      {link.isLoading ? (
-        <LoadingRegion label="Loading">
-          <SpinnerIcon className="stg:mx-auto stg:size-5 stg:text-muted-foreground" />
-        </LoadingRegion>
-      ) : link.isDead || link.info === null ? (
-        <p role="alert" className="stg:text-sm stg:text-foreground">
-          {link.error !== null ? getUserMessage(link.error) : DEAD_CONNECT_LINK_MESSAGE}
-        </p>
-      ) : (
-        <>
-          <div className="stg:space-y-1">
-            <h1 className="stg:text-base stg:font-semibold stg:text-foreground">
-              Connect {link.info.providerName}
-              {link.info.organizationName !== "" && <> for {link.info.organizationName}</>}
-            </h1>
-            <p className="stg:text-xs stg:text-muted-foreground">
-              You will sign in on {link.info.providerName}&apos;s own page. Your login is saved for{" "}
-              {link.info.organizationName !== "" ? link.info.organizationName : "the app that sent this link"}, and you
-              will be sent back to it.
-            </p>
-          </div>
-          <Button
-            onClick={() => void link.start()}
-            disabled={link.isStarting}
-            icon={link.isStarting ? <SpinnerIcon className="stg:size-3.5" /> : undefined}
-            className="stg:w-full"
-          >
-            Continue
-          </Button>
-          {link.error !== null && (
-            <p role="alert" className="stg:text-xs stg:text-destructive">
-              {getUserMessage(link.error)}
-            </p>
-          )}
-        </>
+    <ScreenColumn
+      className={className}
+      headingLevel={1}
+      title={organizationName !== "" ? `Connect ${providerName} for ${organizationName}` : `Connect ${providerName}`}
+      lead={`You'll sign in on ${providerName}'s own page. Your login is saved for ${forWhom}, and you come back here.`}
+      acts={
+        <Button
+          onClick={() => void link.start()}
+          disabled={link.isStarting}
+          aria-busy={link.isStarting}
+          icon={link.isStarting ? <SpinnerIcon className="stg:size-3.5" /> : undefined}
+        >
+          Continue to {providerName}
+        </Button>
+      }
+    >
+      {link.error !== null && (
+        <ErrorMessage
+          error={link.error}
+          title={`Stigmer couldn't open ${providerName}'s sign-in.`}
+          comfort="Nothing was saved yet."
+        />
       )}
-    </div>
+    </ScreenColumn>
   );
 }

@@ -59,7 +59,7 @@ describe("InvitationRedemption names the organization from org_name", () => {
   it("falls back to a plain phrase when the preview names no organization", async () => {
     state.orgName = "";
     render(<InvitationRedemption token="tok_1" isAuthenticated />);
-    expect(screen.getAllByText(/Unknown organization/).length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: "Join the organization" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /accept invitation/i }));
     expect(await screen.findByText(/joined the organization/)).toBeTruthy();
   });

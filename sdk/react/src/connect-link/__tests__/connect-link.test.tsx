@@ -47,6 +47,7 @@ function keepPendingLink(): void {
 
 interface World {
   readonly dead: boolean;
+  readonly readUnavailable?: boolean;
   readonly startRefused?: boolean;
   readonly loginPage?: string;
   readonly completeUnavailable?: boolean;
@@ -62,6 +63,7 @@ function providers(world: World) {
       service(ConnectLinkController, {
         getConnectLink: () => {
           if (world.dead) throw new ConnectError("Connect link not found", Code.NotFound);
+          if (world.readUnavailable === true) throw new ConnectError("the vault did not answer", Code.Unavailable);
           return create(ConnectLinkInfoSchema, {
             providerName: "Slack",
             address: "https://mcp.slack.com/mcp",
@@ -102,12 +104,14 @@ function providers(world: World) {
 
 const assign = vi.fn();
 const replace = vi.fn();
+const reload = vi.fn();
 
 beforeEach(() => {
   sessionStorage.clear();
   assign.mockReset();
   replace.mockReset();
-  vi.stubGlobal("location", { ...window.location, assign, replace, search: "?code=c-1&state=st" });
+  reload.mockReset();
+  vi.stubGlobal("location", { ...window.location, assign, replace, reload, search: "?code=c-1&state=st" });
 });
 afterEach(() => {
   cleanup();
@@ -120,7 +124,7 @@ describe("ConnectLinkView", () => {
     render(<ConnectLinkView token={TOKEN} />, { wrapper: providers(world) });
     expect(await screen.findByText("Connect Slack for Acme Helpdesk")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue to Slack" }));
     await waitFor(() => expect(assign).toHaveBeenCalledWith("https://slack.com/oauth/authorize?x=1"));
     expect(JSON.parse(sessionStorage.getItem(CONNECT_LINK_PENDING_KEY) ?? "null")).toEqual({ token: TOKEN, state: "st" });
     expect(pendingConnectLinkToken("st")).toBe(TOKEN);
@@ -131,7 +135,7 @@ describe("ConnectLinkView", () => {
   it("never visits a login page that is not an https address, and keeps no link", async () => {
     const world: World = { dead: false, loginPage: "javascript:alert(document.domain)//", completed: [] };
     render(<ConnectLinkView token={TOKEN} />, { wrapper: providers(world) });
-    fireEvent.click(await screen.findByRole("button", { name: "Continue" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Continue to Slack" }));
     expect(await screen.findByText(/The login page's address is not an https address/)).toBeTruthy();
     expect(assign).not.toHaveBeenCalled();
     expect(sessionStorage.getItem(CONNECT_LINK_PENDING_KEY)).toBeNull();
@@ -139,7 +143,7 @@ describe("ConnectLinkView", () => {
 
   it("offers Continue again when Back from the login page restores the page from the back-forward cache", async () => {
     render(<ConnectLinkView token={TOKEN} />, { wrapper: providers({ dead: false, completed: [] }) });
-    const button = await screen.findByRole("button", { name: "Continue" });
+    const button = await screen.findByRole("button", { name: "Continue to Slack" });
     fireEvent.click(button);
     await waitFor(() => expect(assign).toHaveBeenCalled());
     expect((button as HTMLButtonElement).disabled).toBe(true);
@@ -149,14 +153,21 @@ describe("ConnectLinkView", () => {
     act(() => {
       window.dispatchEvent(restored);
     });
-    expect((screen.getByRole("button", { name: "Continue" }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole("button", { name: "Continue to Slack" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("says a link it couldn't read apart from a dead one", async () => {
+    render(<ConnectLinkView token={TOKEN} />, { wrapper: providers({ dead: false, readUnavailable: true, completed: [] }) });
+    expect((await screen.findByRole("alert")).textContent).toContain("Stigmer couldn't open the link.");
+    expect(screen.queryByRole("heading", { name: "This link has expired or was already used" })).toBeNull();
   });
 
   it("says a dead link has expired or was used, and offers nothing to click", async () => {
     render(<ConnectLinkView token={TOKEN} />, { wrapper: providers({ dead: true, completed: [] }) });
     expect(
-      await screen.findByText("This link has expired or was already used: ask the app that sent it for a new one."),
+      await screen.findByRole("heading", { name: "This link has expired or was already used" }),
     ).toBeTruthy();
+    expect(screen.getByText("Ask the app that sent it for a new one.")).toBeTruthy();
     expect(screen.queryByRole("button")).toBeNull();
   });
 });
@@ -238,20 +249,22 @@ describe("ConnectLinkCallback", () => {
     keepPendingLink();
     render(<ConnectLinkCallback token={TOKEN} />, { wrapper: providers({ dead: true, completed: [] }) });
     expect(
-      await screen.findByText("This link has expired or was already used: ask the app that sent it for a new one."),
+      await screen.findByRole("heading", { name: "This link has expired or was already used" }),
     ).toBeTruthy();
     expect(replace).not.toHaveBeenCalled();
     expect(pendingConnectLinkToken("st")).toBeNull();
   });
 
-  it("keeps the link when the answer does not arrive, so a reload tries again", async () => {
+  it("keeps the link when the answer does not arrive, and Try again reloads to try again", async () => {
     keepPendingLink();
     render(<ConnectLinkCallback token={TOKEN} />, {
       wrapper: providers({ dead: false, completeUnavailable: true, completed: [] }),
     });
-    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect((await screen.findByRole("alert")).textContent).toContain("The connection didn't finish.");
     expect(replace).not.toHaveBeenCalled();
     expect(pendingConnectLinkToken("st")).toBe(TOKEN);
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(reload).toHaveBeenCalledTimes(1);
   });
 
   it("never sends the browser to a return address that is not https, and says so", async () => {
@@ -259,7 +272,8 @@ describe("ConnectLinkCallback", () => {
     render(<ConnectLinkCallback token={TOKEN} />, {
       wrapper: providers({ dead: false, returnUrl: "javascript:alert(document.domain)//", completed: [] }),
     });
-    expect(await screen.findByText(/the app's return address is not an https address/)).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Your login is saved" })).toBeTruthy();
+    expect(screen.getByText(/The app's return address isn't a secure one, so you weren't sent back/)).toBeTruthy();
     expect(replace).not.toHaveBeenCalled();
     expect(pendingConnectLinkToken("st")).toBeNull();
   });
