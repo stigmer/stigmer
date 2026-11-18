@@ -171,24 +171,27 @@
     },
     // The CLI holds the notes the docs' terminal recordings show `--download`
     // writing to its own words, reading the terminal kit's held recordings,
-    // and holds its stated server Node range to the server's own `engines`.
+    // and holds its stated server Node range to the server's own `engines`,
+    // and the coding-agent plugin's guide, front door and guard to its commands.
     "@stigmer/cli#test": {
       "dependsOn": ["^build"],
       "outputs": [],
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/sdk/ink/src/__tests__/__recordings__/**",
-        "$TURBO_ROOT$/backend/services/stigmer-server/package.json"
+        "$TURBO_ROOT$/backend/services/stigmer-server/package.json",
+        "$TURBO_ROOT$/coding-agents/plugin/**"
       ]
     },
     // The question bank's suite (__tests__/bank.test.ts) reads the bank's
     // jobs from the runner's lib and checks every cited page and every
     // concept page, getting-started page and guide group against docs/, so
-    // a change to either must invalidate the cached pass.
+    // a change to either must invalidate the cached pass. The front door's
+    // suite holds its shared sections to the docs assistant's skill.
     "@stigmer/coding-agent-plugin#test": {
       "dependsOn": ["^build"],
       "outputs": [],
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/test/install/lib/**", "$TURBO_ROOT$/docs/**"]
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/test/install/lib/**", "$TURBO_ROOT$/docs/**", "$TURBO_ROOT$/docs-agent/skills/**"]
     },
     // The client entry's parity test pins the digest of the official
     // catalogue's assistant plugin (the digest the live default plugin

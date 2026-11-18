@@ -126,38 +126,67 @@ export function parseIndex(text: string): DocsHit[] {
 
 /** Words that say nothing about which page answers. */
 const STOP_WORDS = new Set([
-  "a", "an", "and", "are", "as", "at", "be", "by", "can", "do", "does", "for", "from", "how", "i", "if",
-  "in", "is", "it", "its", "me", "my", "of", "on", "or", "so", "stigmer", "that", "the", "this", "to",
-  "what", "when", "where", "which", "who", "why", "with", "you", "your",
+  "a", "about", "after", "all", "an", "and", "any", "are", "as", "at", "be", "before", "but", "by", "can",
+  "could", "do", "does", "for", "from", "get", "have", "how", "i", "if", "in", "into", "is", "it", "its",
+  "me", "my", "need", "not", "of", "on", "or", "over", "should", "so", "stigmer", "than", "that", "the",
+  "then", "there", "they", "this", "to", "under", "use", "using", "via", "want", "we", "what", "when",
+  "where", "which", "who", "why", "will", "with", "without", "would", "you", "your",
 ]);
+
+/** A text's words, lower-cased, split at anything that is not a letter or digit. Pure. */
+function wordsOf(text: string): string[] {
+  return text.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+}
+
+/** A word without its plural ending, so "ports" finds "port" and "harnesses" finds "harness". Pure. */
+function stem(word: string): string {
+  if (word.length <= 3) return word;
+  if (/(?:ss|sh|ch|x)es$/.test(word)) return word.slice(0, -2);
+  return word.endsWith("s") && !word.endsWith("ss") ? word.slice(0, -1) : word;
+}
 
 /** The words of a query that can tell pages apart. Pure. */
 export function queryWords(query: string): string[] {
-  const words = query.toLowerCase().match(/[a-z0-9][a-z0-9_-]*/g) ?? [];
-  return [...new Set(words.filter((word) => word.length > 1 && !STOP_WORDS.has(word)))];
+  return [...new Set(wordsOf(query).filter((word) => word.length > 1 && !STOP_WORDS.has(word)))];
+}
+
+/**
+ * Whether a query word is one of a text's words: the same word, singular or
+ * plural, or, for a word of four letters or more, the start of one ("auth"
+ * finds "authentication"). Whole words only, so "port" never finds
+ * "report" and "up" never finds "upload". Pure.
+ */
+function hasWord(words: readonly string[], word: string): boolean {
+  const wanted = stem(word);
+  return words.some((w) => stem(w) === wanted || (word.length >= 4 && w.startsWith(word)));
 }
 
 /**
  * The pages that match the most of the query's words, best first. A word in
  * the title counts most, then in the page's path, then in its description; a
  * page matching more distinct words always ranks above one matching fewer.
- * Pages that match none are left out. Pure.
+ * Words match whole ({@link hasWord}). Among pages matching as many, one
+ * whose whole title the query holds ranks first, so a question naming
+ * `stigmer up` finds that command's page. Pages that match none are left
+ * out. Pure.
  */
 export function rankDocs(hits: readonly DocsHit[], query: string, limit = DOCS_SEARCH_LIMIT): DocsHit[] {
   const words = queryWords(query);
   if (words.length === 0) return [];
+  const asked = wordsOf(query);
   const scored = hits.map((hit, order) => {
-    const title = hit.title.toLowerCase();
-    const path = hit.url.toLowerCase().replace(/^https?:\/\/[^/]+/, "");
-    const description = hit.description.toLowerCase();
+    const title = wordsOf(hit.title);
+    const path = wordsOf(hit.url.replace(/^https?:\/\/[^/]+/, ""));
+    const description = wordsOf(hit.description);
     let matched = 0;
     let weight = 0;
     for (const word of words) {
-      const w = (title.includes(word) ? 3 : 0) + (path.includes(word) ? 2 : 0) + (description.includes(word) ? 1 : 0);
+      const w = (hasWord(title, word) ? 3 : 0) + (hasWord(path, word) ? 2 : 0) + (hasWord(description, word) ? 1 : 0);
       if (w > 0) matched += 1;
       weight += w;
     }
-    return { hit, order, score: matched * 100 + weight };
+    const named = title.length > 0 && title.every((word) => asked.some((a) => stem(a) === stem(word)));
+    return { hit, order, score: matched * 100 + (named ? 50 : 0) + weight };
   });
   return scored
     .filter((entry) => entry.score > 0)

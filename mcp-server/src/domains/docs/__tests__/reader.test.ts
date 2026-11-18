@@ -91,6 +91,34 @@ describe("rankDocs", () => {
     expect(queryWords("What IS Stigmer's port?")).toEqual(["port"]);
   });
 
+  it("matches whole words, singular or plural, and the start of a longer word", () => {
+    const pages = parseIndex(
+      [
+        "- [Reports](https://stigmer.ai/docs/a): the variance report and its support",
+        "- [Upload](https://stigmer.ai/docs/b): hooks for uploads",
+        "- [Harnesses](https://stigmer.ai/docs/concepts/harnesses): the loop",
+        "- [Authentication](https://stigmer.ai/docs/guides/authentication/overview): sign-in",
+        "- [stigmer up](https://stigmer.ai/docs/cli/commands/up): start the local stack",
+      ].join("\n"),
+    );
+    expect(rankDocs(pages, "port")).toEqual([]);
+    expect(rankDocs(pages, "up").map((h) => h.title)).toEqual(["stigmer up"]);
+    expect(rankDocs(pages, "harness").map((h) => h.title)).toEqual(["Harnesses"]);
+    expect(rankDocs(pages, "report").map((h) => h.title)).toEqual(["Reports"]);
+    expect(rankDocs(pages, "auth").map((h) => h.title)).toEqual(["Authentication"]);
+    expect(rankDocs(pages, "self-hosting stack").map((h) => h.title)).toEqual(["stigmer up"]);
+  });
+
+  it("ranks a page first among equals when the query names its whole title", () => {
+    const pages = parseIndex(
+      [
+        "- [Set up an Environment](https://stigmer.ai/docs/guides/set-up-an-environment): a sandbox",
+        "- [stigmer up](https://stigmer.ai/docs/cli/commands/up): start the local stack",
+      ].join("\n"),
+    );
+    expect(rankDocs(pages, "port stigmer up").map((h) => h.title)).toEqual(["stigmer up", "Set up an Environment"]);
+  });
+
   it("returns at most the limit", () => {
     expect(rankDocs(hits, "docs", 2)).toHaveLength(2);
   });
