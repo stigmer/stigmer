@@ -11,6 +11,7 @@
  * nobody else's.
  */
 import { MemoryListPanel } from "../memory/MemoryListPanel.js";
+import { useOrgDisplayName } from "../organization/useOrgDisplayName.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
 import { NoOrganization } from "./NoOrganization.js";
 import { SettingsPage } from "./SettingsPage.js";
@@ -18,18 +19,12 @@ import { SettingsPage } from "./SettingsPage.js";
 /** Settings section for the caller's own memories in the active organization. */
 export function MemorySection() {
   const org = useActiveOrgId();
+  const where = useOrgDisplayName();
 
   return (
     <SettingsPage
       title="Memory"
-      description={
-        <>
-          Facts agents proposed to remember about you in this organization. Confirmed memories are shared with agents in
-          your future sessions and appear in those runs&apos; records; once you have many, each conversation recalls the
-          most relevant ones, shown on the run. Only you can see them here, and you can edit or delete any of them at any
-          time.
-        </>
-      }
+      description={`Facts agents proposed to remember about you in ${where}. Confirmed ones are shared with agents in your future sessions and show on those runs' records. Only you see them here; edit or delete any of them at any time.`}
     >
       {!org ? <NoOrganization what="its memories" /> : <MemoryListPanel org={org} />}
     </SettingsPage>

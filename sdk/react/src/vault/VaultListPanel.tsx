@@ -53,6 +53,8 @@ export interface VaultListPanelProps {
    * create one, or a create is already open.
    */
   readonly emptyAction?: EmptyStateAction;
+  /** The empty list's line, for a caller who may not create a shared vault. */
+  readonly emptyDescription?: string;
   /**
    * Open a vault in place instead of expanding its row: rows become links
    * to the vault, and the panel draws the open one (`openId`) as its own
@@ -79,6 +81,7 @@ export function VaultListPanel({
   readOnly = false,
   onRefetchRef,
   emptyAction,
+  emptyDescription,
   onOpen,
   openId,
   onClose,
@@ -121,7 +124,7 @@ export function VaultListPanel({
       <EmptyState
         variant="first-use"
         title="No shared vaults yet"
-        description="A shared vault holds the organization's own keys; a conversation, a routine or a channel can name one so its runs use it."
+        description={emptyDescription ?? "A shared vault holds the organization's own keys; a conversation, a routine or a channel can name one so its runs use it."}
         action={emptyAction}
         className={className}
       />

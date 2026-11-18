@@ -203,8 +203,7 @@ export function VaultEntriesEditor({
       <section aria-label="Logins" className="stg:space-y-2">
         {only === undefined && <h3 className="stg:text-xs stg:font-semibold stg:text-foreground">Logins</h3>}
         <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
-          Matched by the address of the tool or Git host they are for, such as
-          https://mcp.linear.app/mcp or github.com.
+          Matched by the address of the tool or Git host they&apos;re for.
         </p>
         {connections.length === 0 ? (
           <EmptyState variant="first-use" size="inline" title="No logins saved." className="stg:px-0" />

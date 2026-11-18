@@ -133,7 +133,7 @@ describe("LicensesConsole calendar", () => {
     expect(screen.getByText("1 active · 1 expiring · 0 in grace")).toBeTruthy();
     expect(rowNames()).toEqual(["Globex", "Acme Corp", "Acme Corp"]);
     const rows = within(screen.getByRole("table", { name: "Licenses" })).getAllByRole("row");
-    expect(within(rows[1]!).getByText("Expiring")).toBeTruthy();
+    expect(within(rows[1]!).getByText("Renew soon")).toBeTruthy();
     expect(within(rows[2]!).getByText("Active")).toBeTruthy();
     expect(within(rows[3]!).getByText("Renewed")).toBeTruthy();
     expect(within(rows[2]!).getByText("2027-09-30")).toBeTruthy();
