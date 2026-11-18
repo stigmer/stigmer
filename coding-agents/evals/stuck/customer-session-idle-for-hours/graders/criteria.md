@@ -1,7 +1,0 @@
----
-type: llm
----
-
-PASS if the answer says the run is not hung: shell commands ask for approval by default, so the agent stopped before the command, the Session went idle with the stop reason `requires_action` naming the waiting tool use, and it waits for a person indefinitely without losing state (a server restart resumes the same wait). It must say how to answer it now: read the waiting call from the Session's events (a `stigmer.permission.asked` event) and allow or deny it, by the SDK's `confirmToolUse` naming its `tool_use_id`, with `stigmer runs approve <run-id>`, or in the console; a deny with a reason lets the agent adapt. It must say how to stop it recurring for a job nobody watches: keep the agent away from tools the job doesn't need with `tools` / `disallowed_tools` (as the quickstart's Agent sets `disallowed_tools: [Bash]`), or approve ahead where a human has already authorized it (`auto_approve_all` on the run), and that killing and retrying would only stop at the same approval again. Welcome but optional: `grantPermission` allows every call of its kind for the rest of the turn; on a channel or a chat link's guest there is no approver, so a tool that asks is skipped there; `stigmer runs logs` shows the tool use id.
-
-FAIL if it calls the run hung or crashed, recommends cancel, terminate or retry as the fix, invents an approval timeout or setting the docs don't name, or recommends approving everything without saying it skips every approval.

@@ -43,10 +43,24 @@ export const PLUGIN_TOOLS_GRANT = "mcp__plugin_stigmer_stigmer__*";
 
 /**
  * The operator's grants: the shell, the web, the plugin's tools, and the
- * fixture's loopback address, without which the sandbox's proxy refuses the
- * CLI's calls to the local Stigmer.
+ * hosts a shell command reaches on a person's own machine, since the
+ * sandbox's proxy admits a host only once it is granted as
+ * `WebFetch(domain:<host>)`: the fixture's loopback address, without which
+ * the CLI's calls to the local Stigmer are refused; `localhost`, the name the
+ * stage's file server hands out in a download's link (a try that reached
+ * `stigmer download run` was refused at `localhost:<port>` without it); and
+ * stigmer.ai, so a shell read of the docs' pages (`curl
+ * https://stigmer.ai/docs/<page>.md`) works as it does outside the sandbox.
  */
-export const TOOL_GRANTS = ["Bash", "WebFetch", "WebSearch", "WebFetch(domain:127.0.0.1)", PLUGIN_TOOLS_GRANT];
+export const TOOL_GRANTS = [
+  "Bash",
+  "WebFetch",
+  "WebSearch",
+  "WebFetch(domain:127.0.0.1)",
+  "WebFetch(domain:localhost)",
+  "WebFetch(domain:stigmer.ai)",
+  PLUGIN_TOOLS_GRANT,
+];
 
 export const USAGE = `Usage:
   node test/install/coding-agent-bank.mjs [--tag=<job>]... [--case=<glob>]

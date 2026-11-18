@@ -1,7 +1,0 @@
----
-type: llm
----
-
-PASS if the answer takes the coding-agent setup path: install the command line if missing (`npm install -g @stigmer/cli`, or `brew install stigmer/tap/stigmer`) and run `stigmer coding-agent`, following the guide it prints; with Stigmer Cloud chosen, sign in (`stigmer auth login`, or `--device` where no browser opens). It must name the steps that follow, asking before each choice that is the person's: suggest an agent that fits the app's users and let them choose, its manifest written under `stigmer/`; the model key checked without passing through the chat (from `ANTHROPIC_API_KEY` in the environment or a hidden prompt, or added in Models & providers); one run on a sample file; then the agent in the app: an admin service account's key saved to the app's env file and never printed, accounts made on users' first sign-in, and the token route and chat component fitted to the app's own sign-in (what `stigmer app-handover --stack nextjs` writes). Welcome but optional: the Stigmer plugin keeps the guide in the coding agent for next time; team members are added in the console under Settings → Members.
-
-FAIL if it asks the person to paste a model key or API key into the chat, prints a key, writes a key into source or a committed file, puts an admin key in browser code, builds its own agent loop or chat backend on a model SDK instead of Stigmer, or uses commands or flags the CLI doesn't have.

@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: credit balance
+pattern: credit balance|out of credits
 flags: i
 ---

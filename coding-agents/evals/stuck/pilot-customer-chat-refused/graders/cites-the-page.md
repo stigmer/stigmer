@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: docs/concepts/billing
+pattern: stigmer\.ai/docs/concepts/billing
 flags: i
 ---
