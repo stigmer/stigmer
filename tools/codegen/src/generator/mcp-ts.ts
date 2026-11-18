@@ -246,7 +246,7 @@ function identityZodFields(w: string[]): void {
   // (`enumFromString`, "Allowed values: ..."), naming every level the
   // server accepts.
   w.push(`  visibility: z.string().optional().describe(${goQuote("Resource visibility, by enum name. Applied at create; on updates a changed value is landed through the guarded UpdateVisibility RPC. Omit to leave unchanged. Allowed values: visibility_private, visibility_org, visibility_child_orgs.")}),\n`);
-  w.push(`  labels: z.record(z.string()).optional().describe(${goQuote("Key-value labels for organization and filtering.")}),\n`);
+  w.push(`  labels: z.record(z.string(), z.string()).optional().describe(${goQuote("Key-value labels for organization and filtering.")}),\n`);
   w.push(`  tags: z.array(z.string()).optional().describe(${goQuote("Tags for categorization and discovery.")}),\n`);
 }
 
@@ -298,7 +298,7 @@ function genTSZodField(w: string[], tf: TsField): void {
   const leaf = tsZodLeaf(tf);
   let expr = leaf;
   if (tf.coll === "array") expr = `z.array(${leaf})`;
-  else if (tf.coll === "map") expr = `z.record(${leaf})`;
+  else if (tf.coll === "map") expr = `z.record(z.string(), ${leaf})`;
   if (!tf.required) expr += ".optional()";
   if (tf.desc !== "") expr += `.describe(${goQuote(tf.desc)})`;
   w.push(`  ${tsObjectKey(tf.key)}: ${expr},\n`);
@@ -309,7 +309,7 @@ function tsZodLeaf(tf: TsField): string {
     return `z.lazy(() => ${tsSchemaConst(tf.nested.name)})`;
   }
   if (tf.enumType !== "") return "z.string()";
-  if (tf.isStruct) return "z.record(z.unknown())";
+  if (tf.isStruct) return "z.record(z.string(), z.unknown())";
   if (tf.isValue) return "z.unknown()";
   if (tf.isTimestamp) return "z.string()";
   return tsZodScalar(tf.scalar);

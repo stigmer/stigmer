@@ -3,7 +3,8 @@
  * top-level apply input and every nested input are `z.strictObject`, so the
  * MCP server advertises `additionalProperties: false` at every level and
  * refuses an argument the tool does not declare, naming it, instead of
- * dropping it without a word.
+ * dropping it without a word; and every map is written as zod 4's
+ * two-argument record, keyed by string.
  *
  * The generator runs over the real schemas into a temporary directory, and
  * the case reads what it wrote for Agent.
@@ -33,6 +34,12 @@ describe("the MCP apply tools' inputs", () => {
 
   it("closes the top-level input", () => {
     expect(agent).toContain("export const AgentInputSchema = z.strictObject(AgentInputShape);");
+  });
+
+  it("keys every map by string, the two-argument record zod 4 takes", () => {
+    expect(agent).toContain("labels: z.record(z.string(), z.string())");
+    expect(agent).toContain("env: z.record(z.string(), z.lazy(() => EnvVarDeclarationInputSchema))");
+    expect(agent).not.toMatch(/z\.record\((?!z\.string\(\), )/);
   });
 
   it("closes every nested input and writes no open object", () => {

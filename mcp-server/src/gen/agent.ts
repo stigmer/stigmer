@@ -24,13 +24,13 @@ export const AgentInputShape = {
   slug: z.string().optional().describe("URL-friendly identifier (lowercase alphanumeric with hyphens). Auto-generated from name if omitted."),
   org: z.string().describe("Organization that owns this resource (e.g. acme)."),
   visibility: z.string().optional().describe("Resource visibility, by enum name. Applied at create; on updates a changed value is landed through the guarded UpdateVisibility RPC. Omit to leave unchanged. Allowed values: visibility_private, visibility_org, visibility_child_orgs."),
-  labels: z.record(z.string()).optional().describe("Key-value labels for organization and filtering."),
+  labels: z.record(z.string(), z.string()).optional().describe("Key-value labels for organization and filtering."),
   tags: z.array(z.string()).optional().describe("Tags for categorization and discovery."),
   description: z.string().optional().describe("Human-readable description for UI and marketplace display."),
   icon_url: z.string().optional().describe("Icon URL for marketplace and UI display. Must be a publicly accessible URL to an image (SVG, PNG, or JPEG)."),
   instructions: z.string().optional().describe("System prompt defining the agent's behavior and personality."),
   skill_refs: z.array(z.lazy(() => SkillRefInputSchema)).optional().describe("Skill resources providing additional knowledge to the agent."),
-  env: z.record(z.lazy(() => EnvVarDeclarationInputSchema)).optional().describe("Environment variable declarations for this agent. Keys are variable names; values describe their metadata and optionality. A secret is found by its name in a vault when a run starts; a plain setting may carry its value in the declaration."),
+  env: z.record(z.string(), z.lazy(() => EnvVarDeclarationInputSchema)).optional().describe("Environment variable declarations for this agent. Keys are variable names; values describe their metadata and optionality. A secret is found by its name in a vault when a run starts; a plain setting may carry its value in the declaration."),
   tools: z.array(z.string()).optional().describe("Tools this agent may use; empty means every tool it has. Entries use Claude Code's names: a built-in such as Read, Grep, Bash, Write, Edit, Glob, Agent or WebFetch; mcp__<server> for every tool of one MCP server, mcp__<server>__<tool> for one tool, and mcp__* for every MCP tool. A plugin's server is named plugin_<plugin>_<server>, as Claude Code names it, with every character outside letters, digits, _ and - written as _. A specifier in parentheses, as in Bash(git push *), is accepted and governs the whole tool. Agent(explore, bank-reconciler) also limits which subagents this agent may start. The lists hold on every harness, and under 'approve everything' too. Skill is a name here too, for the agent's skills: a list without Skill keeps them, and a list holding only Skill names them, so it does not refuse the turn, also under an outer list that omits Skill (a plugin subagent's under its turn's, a turn's under the agent's). Denying Skill in disallowed_tools removes them, and then a list of Skill alone in a narrower layer refuses the turn."),
   disallowed_tools: z.array(z.string()).optional().describe("Tools this agent may never use, in the same names as tools. Applied before tools, so a tool named in both is excluded. Disallowing Skill hides every skill from this agent: no skill is listed or mounted for its turns, and the Read tool refuses reads of skill and plugin-tree files. Grep, Glob and a shell the agent is granted are not refused, so they can still reach those files."),
   hooks: z.array(z.lazy(() => HookSourceInputSchema)).optional().describe("Hooks written in this agent itself, run around its tool calls and its subagents' calls, after the hooks of the plugins it lists. A hook can refuse a call, ask a person first, or let it run without the approval it would otherwise need. Every harness runs hooks in Claude Code's format and in Cursor's."),
@@ -117,7 +117,7 @@ type SubagentInput = z.infer<typeof SubagentInputSchema>;
 const AgentMcpServerInputSchema = z.strictObject({
   name: z.string().optional().describe("The server's name in this agent, which names its tools mcp__<name>__<tool>: 2 to 63 lowercase letters, digits and hyphens, starting with a letter and not ending with a hyphen."),
   url: z.string().optional().describe("The server's address: an https URL, or http on this machine."),
-  headers: z.record(z.string()).optional().describe("Headers sent with every request to this server. A value may name a run value as ${NAME}, filled when the run starts."),
+  headers: z.record(z.string(), z.string()).optional().describe("Headers sent with every request to this server. A value may name a run value as ${NAME}, filled when the run starts."),
 });
 type AgentMcpServerInput = z.infer<typeof AgentMcpServerInputSchema>;
 

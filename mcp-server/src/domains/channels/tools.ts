@@ -34,7 +34,7 @@ const templateShape = z.strictObject({
       "Template language code (e.g. en, en_US). Omit when the template exists in exactly one language.",
     ),
   parameters: z
-    .record(z.string())
+    .record(z.string(), z.string())
     .optional()
     .describe(
       'Placeholder values. Positional templates key by position ("1", "2", …); ' +
