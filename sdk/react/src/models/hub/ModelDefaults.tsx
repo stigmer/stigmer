@@ -13,8 +13,8 @@ import { cn } from "@stigmer/design-tokens";
 import { saveErrorMessage } from "@stigmer/react-core/internal";
 import { ErrorMessage } from "../../error/ErrorMessage.js";
 import { LoadingRegion } from "../../internal/LoadingRegion.js";
-import { UNSTYLED_LIST } from "../../internal/element-resets.js";
-import { cardClasses } from "../../internal/surface/Card.js";
+import { cardClasses, cardHeaderClasses } from "../../internal/surface/Card.js";
+import { List, ListRow } from "../../internal/surface/List.js";
 import { ACCOUNT_DEFAULT_MODELS } from "../../identity-account/useAccountExecutionDefaults.js";
 import { useMyIdentityAccount } from "../../identity-account/useMyIdentityAccount.js";
 import { useUpdateIdentityAccount } from "../../identity-account/useUpdateIdentityAccount.js";
@@ -23,7 +23,7 @@ import { HARNESS_META, HARNESS_OPTIONS } from "@stigmer/react-core/internal";
 import { needsKeyLabel } from "../provider-presentation.js";
 import type { ModelReadinessLookup } from "../readiness.js";
 import { useModelRegistry } from "../useModelRegistry.js";
-import { FIELD_LABEL_CLASSES, FieldError, Select } from "../../internal/form/index.js";
+import { FieldError, Select } from "../../internal/form/index.js";
 
 /** Props for {@link ModelDefaults}. */
 export interface ModelDefaultsProps {
@@ -88,11 +88,11 @@ export function ModelDefaults({ readinessOf, className }: ModelDefaultsProps) {
       aria-labelledby={headingId}
       className={cn(cardClasses({ flush: true }), className)}
     >
-      <div className="stg:border-b stg:border-border-muted stg:px-4 stg:py-3">
-        <h2 id={headingId} className="stg:text-sm stg:font-semibold stg:text-foreground">
+      <div className={cn(cardHeaderClasses(), "stg:flex-col stg:items-start stg:gap-1")}>
+        <h2 id={headingId} className="stg:m-0 stg:text-sm stg:font-semibold stg:text-foreground">
           Your default models
         </h2>
-        <p className="stg:text-xs stg:text-muted-foreground">
+        <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
           The model a new conversation starts on, for each engine, on every device and in the CLI. A pick in the
           composer wins for that conversation.
         </p>
@@ -105,7 +105,7 @@ export function ModelDefaults({ readinessOf, className }: ModelDefaultsProps) {
       ) : error && !account ? (
         <ErrorMessage error={error} retry={refetch} className="stg:m-4" />
       ) : (
-        <ul className={cn(UNSTYLED_LIST, "stg:divide-y stg:divide-border-muted")}>
+        <List bare>
           {HARNESS_OPTIONS.map((harness) => (
             <DefaultRow
               key={harness}
@@ -117,7 +117,7 @@ export function ModelDefaults({ readinessOf, className }: ModelDefaultsProps) {
               readinessOf={readinessOf}
             />
           ))}
-        </ul>
+        </List>
       )}
       {saveError && (
         <FieldError className="stg:border-t stg:border-border stg:px-4 stg:py-2">
@@ -153,39 +153,43 @@ function DefaultRow({
   const status =
     readiness === undefined ? "" : readiness.availability.state === "missing" ? needsKeyLabel(readiness.provider) : "Ready";
   return (
-    <li className="stg:grid stg:items-center stg:gap-2 stg:px-3.5 stg:py-2.5 stg:sm:grid-cols-[12rem_1fr_11rem] stg:sm:gap-4">
-      <div>
-        <label htmlFor={selectId} className={cn(FIELD_LABEL_CLASSES, "stg:block")}>
+    <ListRow
+      name={
+        <label htmlFor={selectId} className="stg:cursor-default">
           {HARNESS_META[harness].label}
         </label>
-        <p id={descriptionId} className="stg:text-xs stg:text-muted-foreground">
-          {HARNESS_META[harness].description}
-        </p>
-      </div>
-      <Select
-        id={selectId}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        disabled={disabled || isLoading}
-        aria-describedby={`${descriptionId} ${statusId}`}
-      >
-        <option value="">Platform default{defaultModel ? ` (${defaultModel.displayName})` : ""}</option>
-        {isStale && <option value={value}>{value} (unavailable)</option>}
-        {models.map((model) => (
-          <option key={model.modelId} value={model.modelId}>
-            {model.displayName || model.modelId}
-          </option>
-        ))}
-      </Select>
-      <p
-        id={statusId}
-        className={cn(
-          "stg:text-xs",
-          readiness?.availability.state === "missing" ? "stg:text-foreground" : "stg:text-muted-foreground",
-        )}
-      >
-        {saving ? "Saving…" : status}
-      </p>
-    </li>
+      }
+      description={<span id={descriptionId}>{HARNESS_META[harness].description}</span>}
+      trailing={
+        <>
+          <Select
+            id={selectId}
+            size="xs"
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            disabled={disabled || isLoading}
+            aria-describedby={`${descriptionId} ${statusId}`}
+            wrapperClassName="stg:w-56 stg:max-w-[40vw]"
+          >
+            <option value="">Platform default{defaultModel ? ` (${defaultModel.displayName})` : ""}</option>
+            {isStale && <option value={value}>{value} (unavailable)</option>}
+            {models.map((model) => (
+              <option key={model.modelId} value={model.modelId}>
+                {model.displayName || model.modelId}
+              </option>
+            ))}
+          </Select>
+          <span
+            id={statusId}
+            className={cn(
+              "stg:text-xs stg:sm:w-36",
+              readiness?.availability.state === "missing" ? "stg:text-foreground" : "stg:text-muted-foreground",
+            )}
+          >
+            {saving ? "Saving…" : status}
+          </span>
+        </>
+      }
+    />
   );
 }

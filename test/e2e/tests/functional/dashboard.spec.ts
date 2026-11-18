@@ -40,7 +40,7 @@ test.describe("Dashboard", () => {
     for (const counter of ["Active", "Completed", "Failed", "Tokens"]) {
       await expect(summary.getByText(counter, { exact: true })).toHaveCount(0);
     }
-    await expect(summary.getByText("No recent failures")).toHaveCount(0);
+    await expect(summary.getByText("No recent failures.")).toHaveCount(0);
     // Usage is tokens, never money: no price anywhere on the dashboard.
     await expect(summary).not.toContainText("$");
   });

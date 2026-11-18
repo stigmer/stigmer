@@ -14,9 +14,10 @@ import { useId, useState, type ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { ProviderKeyCheck, type ProviderKey } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/api_pb";
-import { getUserMessage } from "@stigmer/client";
 import { ArrowUpRight } from "lucide-react";
 import { Button } from "../../button/index.js";
+import { ConfirmDialog } from "../../resource-detail/ConfirmDialog.js";
+import { useConfirmAction } from "../../resource-detail/useConfirmAction.js";
 import { CopyButton, useCopy } from "../../internal/CopyBlock.js";
 import { UNSTYLED_LIST } from "../../internal/element-resets.js";
 import { cardClasses } from "../../internal/surface/Card.js";
@@ -57,6 +58,12 @@ export interface ProviderViewer {
   readonly canManage: boolean;
   /** Whether the server runs on this machine (the open-source edition's local mode). */
   readonly local: boolean;
+  /**
+   * The check of who may manage the organization's keys failed: neither the
+   * form nor a member's line is offered, since either could be wrong. The
+   * page says the failure with a retry.
+   */
+  readonly unconfirmed?: boolean;
 }
 
 /** The act a card offers for a provider in `availability`, for `viewer`. */
@@ -64,6 +71,8 @@ export function providerFace(availability: ProviderAvailability, viewer: Provide
   if (availability.state === "served") return "served";
   if (availability.state === "unknown") return "unknown";
   if (availability.scope === "runners") return viewer.local ? "local-command" : "runners-line";
+  // Unknown who may connect it: no act, as for a provider the server cannot see.
+  if (viewer.unconfirmed === true) return "unknown";
   return viewer.canManage ? "admin-form" : "member-line";
 }
 
@@ -153,7 +162,7 @@ export function ProviderCard({
   // once the permission check has said the form is theirs.
   const [editingChoice, setEditing] = useState<boolean | null>(null);
   const editing = editingChoice ?? (initiallyEditing && canEdit);
-  const [confirming, setConfirming] = useState(false);
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
   const actions = useProviderKeyActions();
   const { availability } = report;
   const served = availability.state === "served";
@@ -161,17 +170,22 @@ export function ProviderCard({
   const canReplace = viewer.canManage && ownKey && keyProvider !== null;
   const Heading = prominent ? "h2" : "h3";
 
-  const remove = async (provider: ProviderKeyProvider) => {
-    try {
-      await actions.removeKey(org, provider);
-      setConfirming(false);
-      onChanged?.();
-    } catch {
-      // The hook holds the error; the card shows it.
-    }
+  // Removing asks in the dialog that does it: the dialog waits while the
+  // server removes the key and says a refusal there, so the key is only
+  // ever shown gone once it is.
+  const askToRemove = async (provider: ProviderKeyProvider) => {
+    const removed = await confirm({
+      title: `Remove the ${presentation.name} key?`,
+      description: `Runs that need ${presentation.name} are refused until a key serves ${orgName} again.`,
+      confirmLabel: "Remove key",
+      variant: "destructive",
+      failureTitle: "Couldn't remove the key.",
+      action: () => actions.removeKey(org, provider).then(() => undefined),
+    });
+    if (removed) onChanged?.();
   };
 
-  const showBody = editing || confirming || face !== "served";
+  const showBody = editing || face !== "served";
 
   return (
     <article
@@ -195,7 +209,7 @@ export function ProviderCard({
             </p>
           </div>
         </div>
-        {!editing && !confirming && (canEdit || canReplace) && (
+        {!editing && (canEdit || canReplace) && (
           <div className="stg:flex stg:shrink-0 stg:flex-wrap stg:gap-2">
             {canEdit && (
               <Button size="sm" onClick={() => setEditing(true)}>
@@ -207,7 +221,7 @@ export function ProviderCard({
                 <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
                   Replace key
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => setConfirming(true)}>
+                <Button size="sm" variant="ghost" onClick={() => keyProvider !== null && void askToRemove(keyProvider)}>
                   Remove
                 </Button>
               </>
@@ -223,26 +237,7 @@ export function ProviderCard({
             prominent ? "stg:px-5 stg:py-4" : "stg:px-4 stg:py-3",
           )}
         >
-          {confirming && keyProvider !== null ? (
-            <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-2">
-              <p className="stg:min-w-0 stg:flex-1 stg:text-xs stg:text-foreground">
-                {`Remove the ${presentation.name} key? Runs that need ${presentation.name} are refused until a key serves ${orgName} again.`}
-              </p>
-              <div className="stg:flex stg:gap-2">
-                <Button size="sm" variant="destructive" onClick={() => void remove(keyProvider)} disabled={actions.isSubmitting}>
-                  {actions.isSubmitting ? "Removing…" : "Remove key"}
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setConfirming(false)} disabled={actions.isSubmitting}>
-                  Cancel
-                </Button>
-              </div>
-              {actions.error && (
-                <p role="alert" className="stg:w-full stg:text-xs stg:text-destructive">
-                  {getUserMessage(actions.error)}
-                </p>
-              )}
-            </div>
-          ) : editing && keyProvider !== null ? (
+          {editing && keyProvider !== null ? (
             <ProviderKeyForm
               org={org}
               provider={keyProvider}
@@ -260,7 +255,7 @@ export function ProviderCard({
           {/* Where to get a key, wherever this person can add one: beside
               the Connect button on Stigmer Cloud, and for the setup command
               on a laptop. The open form says it in its own row. */}
-          {!confirming && !(editing && keyProvider !== null) && keyingFace(face) && presentation.keysUrl !== null && (
+          {!(editing && keyProvider !== null) && keyingFace(face) && presentation.keysUrl !== null && (
             <a
               href={presentation.keysUrl}
               target="_blank"
@@ -275,6 +270,7 @@ export function ProviderCard({
       )}
 
       {!prominent && <Unlocks models={models} served={served} />}
+      <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </article>
   );
 }
@@ -330,20 +326,20 @@ interface ActSubject {
  */
 const PROVIDER_ACTS: Readonly<Record<ProviderFace, ((subject: ActSubject) => ReactNode) | null>> = {
   "admin-form": ({ name, orgName }) => (
-    <p className="stg:text-xs stg:text-foreground">
+    <p className="stg:text-sm stg:text-foreground">
       Paste {/^[AEIOU]/.test(name) ? "an" : "a"} {name} API key, and every member of {orgName} can run these
       models. {name} bills {orgName} directly.
     </p>
   ),
   "member-line": ({ name, orgName }) => (
-    <p className="stg:text-xs stg:text-foreground">
+    <p className="stg:text-sm stg:text-foreground">
       An admin of {orgName} connects {name}. Ask one to add its key in Models &amp; providers, and these models
       are ready for everyone in {orgName}.
     </p>
   ),
   "local-command": ({ provider }) => <SetupCommand provider={provider} />,
   "runners-line": ({ name }) => (
-    <p className="stg:text-xs stg:text-foreground">
+    <p className="stg:text-sm stg:text-foreground">
       This server&apos;s runners have no {name} key; whoever runs them gives them one.
     </p>
   ),
@@ -369,14 +365,14 @@ export function SetupCommand({ provider }: SetupCommandProps) {
   const { copied, copy } = useCopy(commands);
   if (setup === null) {
     return (
-      <p className="stg:text-xs stg:text-foreground">
+      <p className="stg:text-sm stg:text-foreground">
         This machine&apos;s runner has no {presentationOf(provider).name} key.
       </p>
     );
   }
   return (
     <div className="stg:space-y-1.5">
-      <p className="stg:text-xs stg:text-foreground">{setup.lead}</p>
+      <p className="stg:text-sm stg:text-foreground">{setup.lead}</p>
       <div className="stg:flex stg:items-start stg:gap-2 stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:px-3 stg:py-2">
         <pre className="stg:m-0 stg:min-w-0 stg:flex-1 stg:overflow-x-auto stg:font-mono stg:text-xs stg:text-foreground">
           {commands}
@@ -414,7 +410,7 @@ function Unlocks({
           // On a phone the engine's name sits above its models, so the
           // models get the card's whole width.
           <div key={harness} className="stg:flex stg:flex-col stg:gap-1 stg:sm:flex-row stg:sm:items-baseline stg:sm:gap-3">
-            <dt className="stg:shrink-0 stg:text-2xs stg:text-muted-foreground stg:sm:w-20">{HARNESS_META[harness].label}</dt>
+            <dt className="stg:shrink-0 stg:text-xs stg:text-muted-foreground stg:sm:w-24">{HARNESS_META[harness].label}</dt>
             <dd className="stg:m-0 stg:min-w-0 stg:flex-1">
               <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-wrap stg:gap-1.5")}>
                 {engineModels.slice(0, named).map((model) => (

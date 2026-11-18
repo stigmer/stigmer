@@ -66,6 +66,8 @@ export interface ListRowProps {
   readonly onClick?: () => void;
   /** For a row whose name is a button: whether the row is open (a disclosure). */
   readonly "aria-expanded"?: boolean;
+  /** The row is the current one of a sequence (a journey's step): set on the row's item. */
+  readonly "aria-current"?: "step" | "page" | "true";
   /**
    * The leading, adornment and trailing slots hold only decoration (an icon,
    * a tag, a chevron): a click on them opens the row like a click anywhere
@@ -94,6 +96,7 @@ export function ListRow({
   renderLink = anchorLink,
   onClick,
   "aria-expanded": ariaExpanded,
+  "aria-current": ariaCurrent,
   decorativeSlots = false,
   className,
 }: ListRowProps) {
@@ -112,7 +115,7 @@ export function ListRow({
     );
 
   return (
-    <li className={cn(open && "stg:bg-muted-faint", className)}>
+    <li aria-current={ariaCurrent} className={cn(open && "stg:bg-muted-faint", className)}>
       <div
         className={cn(
           "stg:relative stg:flex stg:min-h-10 stg:items-center stg:gap-3 stg:px-3.5 stg:py-2.5 stg:text-sm",

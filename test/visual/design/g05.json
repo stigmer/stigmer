@@ -1,11 +1,11 @@
 {
   "screen": "G05",
   "title": "Dashboard",
-  "source": "the Console parts page, version 8",
+  "source": "the Workspace pages page, version 1",
   "reader": "bf8cb5c94919",
   "drawings": [
     {
-      "caption": "Dashboard",
+      "caption": "Dashboard: this week",
       "narrow": false,
       "built": [
         {
@@ -23,7 +23,7 @@
           ]
         },
         {
-          "text": "What your organization's agents did this week.",
+          "text": "What your organization's agents did this week, in conversations you can see.",
           "type": [
             14,
             20,
@@ -71,7 +71,7 @@
           ]
         },
         {
-          "text": "Recent Failures",
+          "text": "Recent failures 3",
           "type": [
             14,
             20,
@@ -103,6 +103,14 @@
           ]
         },
         {
+          "text": "View",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
           "text": "Reconcile the payroll clearing account",
           "type": [
             14,
@@ -125,13 +133,718 @@
             16,
             400
           ]
+        },
+        {
+          "text": "View",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Variance report for June",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic refused the request: the key's credit is used up",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "2d",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "View",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "View",
+          "height": 28
+        },
+        {
+          "name": "View",
+          "height": 28
+        },
+        {
+          "name": "View",
+          "height": 28
+        }
+      ],
+      "sample": {
+        "word Variance report for June": "The drawing lists three failures; the scene's server has two",
+        "word Anthropic refused the request: the key's credit is used up": "The drawing lists three failures; the scene's server has two",
+        "word 2d": "The drawing lists three failures; the scene's server has two"
+      },
+      "ruled": {},
+      "pending": {
+        "word Recent failures 3": "Section draws a count as its own tag beside the title, so the title and its count are two blocks; the drawing reads them as one. For the Built look"
+      }
+    },
+    {
+      "caption": "Dashboard: nothing failed",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene shows a week with nothing failed: the dashboard scenes' server always has failures",
+      "words": [
+        {
+          "text": "Dashboard",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What your organization's agents did this week, in conversations you can see.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Completed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Failed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Tokens",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "18.4M",
+          "type": [
+            24,
+            32,
+            600
+          ]
+        },
+        {
+          "text": "Recent failures",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "No recent failures.",
+          "type": [
+            14,
+            20,
+            400
+          ]
         }
       ],
       "buttons": [],
       "sample": {},
-      "ruled": {
-        "word What your organization's agents did this week.": "2026-11-17, the owner's look on the drawn change: all good. The subtitle reads \"What your organization's agents did this week, in conversations you can see.\": the figures count only the runs the viewer can see (stigmer#3207)."
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Dashboard: the failures didn't load",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "dashboard-failures-failed",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Dashboard",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What your organization's agents did this week, in conversations you can see.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Completed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Failed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Tokens",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "18.4M",
+          "type": [
+            24,
+            32,
+            600
+          ]
+        },
+        {
+          "text": "Recent failures",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Couldn't load recent failures.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the run service did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "This week's figures above are unaffected.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {
+        "word the run service did not answer in time": "The server's own line; the scene's server words it its way",
+        "word Stuck? Ask IT on Slack": "The help line the console turns on; the scene's server sets none"
       },
+      "ruled": {},
+      "pending": {
+        "word Recent failures": "A failed read is said on the page in the card's place, not inside the card: the failed tint on a card puts its muted line under the contrast floor in dark. For the Built look"
+      }
+    },
+    {
+      "caption": "Dashboard: the figures didn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene refuses the week's figures; OperationalDashboard.test.tsx pins the failure and its Try again",
+      "words": [
+        {
+          "text": "Dashboard",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What your organization's agents did this week, in conversations you can see.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't load this week's figures.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the run service did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Nothing is lost; only this page's read failed.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Recent failures 3",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Match the July receipts to the card statement",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The card statement export was empty",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "3h",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "View",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Reconcile the payroll clearing account",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The ledger server refused the read: its token expired",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1d",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "View",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Variance report for June",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic refused the request: the key's credit is used up",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "2d",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "View",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "View",
+          "height": 28
+        },
+        {
+          "name": "View",
+          "height": 28
+        },
+        {
+          "name": "View",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Dashboard: loading",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "The gallery pictures a page once it settles, so a loading state has no scene",
+      "words": [
+        {
+          "text": "Dashboard",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What your organization's agents did this week, in conversations you can see.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Recent failures",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Dashboard: at 390",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "No scene pictures the busy week at 390; dashboard-failures-failed narrow shows the page at that width",
+      "words": [
+        {
+          "text": "Dashboard",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What your organization's agents did this week, in conversations you can see.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Completed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Failed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Tokens",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "18.4M",
+          "type": [
+            24,
+            32,
+            600
+          ]
+        },
+        {
+          "text": "Recent failures 3",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Match the July receipts to the card statement",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The card statement export was empty",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "3h",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "View",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Reconcile the payroll clearing account",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The ledger server refused the read: its token expired",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1d",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "View",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Variance report for June",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic refused the request: the key's credit is used up",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "2d",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "View",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "View",
+          "height": 28
+        },
+        {
+          "name": "View",
+          "height": 28
+        },
+        {
+          "name": "View",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
       "pending": {}
     }
   ]

@@ -24,6 +24,7 @@ import { keyingFace, ProviderCard, providerFace, type ProviderFace } from "./hub
 import type { ModelsHubData } from "./hub/ModelsHub.js";
 import { keyPhrase, keyReason, presentationOf, type SentencePart } from "./provider-presentation.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 
 /** Props for {@link ConnectProviderPanel}. */
 export interface ConnectProviderPanelProps {
@@ -83,6 +84,15 @@ export function ConnectProviderPanel({
     <div className="stg:space-y-4">
       <div className="stg:text-center">
         {showHeading && <h1 className="stg:text-lg stg:font-medium stg:text-foreground">Connect a model provider to start</h1>}
+        {!hub.isLoading && hub.manageError && (
+          <ErrorMessage
+            error={hub.manageError}
+            title="Couldn't check who may connect a provider."
+            comfort="Nothing is lost; ask again, or connect it in Models & providers."
+            retry={hub.retryManage}
+            className="stg:mt-3 stg:text-left"
+          />
+        )}
         {hub.isLoading ? (
           // Who adds the key is not known until the permission answers: an
           // admin would read the member's lead, then the reason, so the

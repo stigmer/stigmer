@@ -24,6 +24,8 @@ const state = vi.hoisted(() => ({
   weekError: null as Error | null,
   journey: "new" as "new" | "ran" | "failed" | "off" | "pending",
   refetch: (() => {}) as () => void,
+  failedError: null as Error | null,
+  failedRefetch: (() => {}) as () => void,
 }));
 
 vi.mock("../useDashboardSummary.js", () => ({
@@ -67,6 +69,7 @@ vi.mock("../../journey/useJourney.js", () => ({
 vi.mock("../useDashboardFailedRuns.js", () => ({
   useDashboardFailedRuns: (org: unknown) => {
     state.asked.failed.push(org);
+    if (state.failedError) return { failedRuns: [], isLoading: false, error: state.failedError, refetch: state.failedRefetch };
     return {
       failedRuns: [
         {
@@ -99,6 +102,8 @@ beforeEach(() => {
   state.weekError = null;
   state.journey = "new";
   state.refetch = () => {};
+  state.failedError = null;
+  state.failedRefetch = () => {};
   window.localStorage.clear();
 });
 
@@ -232,6 +237,20 @@ describe("OperationalDashboard", () => {
     fireEvent.click(within(alert).getByRole("button", { name: "Try again" }));
     expect(state.refetch).toHaveBeenCalled();
     expect(screen.queryByText("Completed")).toBeNull();
+  });
+
+  it("says failures that could not be read, with a retry, never that nothing failed", () => {
+    state.failedError = new ConnectError("the run service did not answer in time", Code.Unavailable);
+    state.failedRefetch = vi.fn();
+    render(<OperationalDashboard org="acme" />);
+
+    expect(screen.queryByText("No recent failures.")).toBeNull();
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toContain("Couldn't load recent failures.");
+    fireEvent.click(within(alert).getByRole("button", { name: "Try again" }));
+    expect(state.failedRefetch).toHaveBeenCalled();
+    // The week's figures, read apart, still show.
+    expect(screen.getByText("Completed")).toBeTruthy();
   });
 
   it("says when no organization is active instead of drawing its figures", () => {
