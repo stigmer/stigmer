@@ -122,10 +122,11 @@ function endsTheRun(outcome: TurnOutcome["kind"]): boolean {
     case "awaiting_approval":
     case "interrupted":
       return false;
-    /* v8 ignore next 4 -- @preserve: the exhaustiveness guard over a closed union */
+    /* v8 ignore start -- @preserve: the never arm; the compiler proves no outcome kind reaches it */
     default: {
       const exhaustive: never = outcome;
       throw new Error(`terminalizeNonExecutingDecisions: unknown turn outcome ${String(exhaustive)}`);
     }
+    /* v8 ignore stop */
   }
 }
