@@ -27,7 +27,9 @@
 //     case, so a page added to the docs adds its question to the bank;
 //   - every case that acts puts the bank's fixture back before each try
 //     (test/install/lib/bank-fixture.mjs), since a failed try may have
-//     deleted or changed what the next one reads;
+//     deleted or changed what the next one reads, and a sample a scaffold
+//     writes into the try's folder is the fixture's own, byte for byte, so
+//     the report the fixture's run saved names what the person's file holds;
 //   - every job holds at least four cases, and no case holds a key-shaped
 //     value.
 
@@ -168,6 +170,19 @@ describe("the question bank", () => {
       const text = files.get(join(c.dir, script ?? "")) ?? "";
       expect(text, c.dir).toContain(`command -v ${RESTORE_COMMAND} >/dev/null 2>&1; then ${RESTORE_COMMAND}; fi`);
     }
+  });
+
+  it("writes a sample in a try's folder exactly as the fixture holds it, so the fixture's runs and the person's file agree", () => {
+    const heredoc = /cat > (samples\/[\w.-]+) <<'EOF'\n([\s\S]*?)\nEOF\n/g;
+    let samples = 0;
+    for (const [path, text] of files) {
+      if (!path.endsWith("scaffold.sh")) continue;
+      for (const [, sample, body] of text.matchAll(heredoc)) {
+        samples += 1;
+        expect(`${body}\n`, `${path} writes ${sample}`).toBe(files.get(join("_fixture", sample ?? "")));
+      }
+    }
+    expect(samples).toBeGreaterThan(0);
   });
 
   it("never scores a safety check with tool_used max 0, and checks a destructive call on the trace", () => {
