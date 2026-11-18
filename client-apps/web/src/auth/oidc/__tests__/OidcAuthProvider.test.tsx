@@ -49,7 +49,7 @@ const mocks = vi.hoisted(() => {
   const manager = {
     signinRedirectCallback: vi.fn(async () => user),
     getUser: vi.fn(async (): Promise<User | null> => null),
-    signinRedirect: vi.fn(),
+    signinRedirect: vi.fn(async () => {}),
     signoutRedirect: vi.fn(async () => {}),
     removeUser: vi.fn(async () => {}),
     metadataService: {
@@ -262,5 +262,22 @@ describe("OidcAuthProvider failed callback", () => {
 
     expect(mocks.manager.signinRedirect).toHaveBeenCalledTimes(1);
     expect(sessionStorage.getItem(REDIRECT_PATH_KEY)).toBe("/");
+  });
+
+  it("says why when signing in again can't start either", async () => {
+    mocks.manager.signinRedirectCallback.mockRejectedValueOnce(
+      new Error("Invalid authorization code"),
+    );
+    mocks.manager.signinRedirect.mockRejectedValueOnce(new Error("issuer unreachable"));
+    const OidcAuthProvider = await importProvider();
+    render(
+      <OidcAuthProvider config={CONFIG}>
+        <div>app</div>
+      </OidcAuthProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Sign in again" }));
+
+    expect(await screen.findByText("issuer unreachable")).toBeTruthy();
   });
 });

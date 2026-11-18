@@ -142,7 +142,10 @@ export default function OidcAuthProvider({
 
   const signInAgain = useCallback(() => {
     sessionStorage.setItem(REDIRECT_PATH_KEY, "/");
-    void managerRef.current!.signinRedirect();
+    managerRef.current!.signinRedirect().catch((err: unknown) => {
+      console.error("[auth] sign-in redirect failed:", err);
+      setCallbackError(err instanceof Error ? err : new Error(String(err)));
+    });
   }, []);
 
   const login = useCallback(() => {
