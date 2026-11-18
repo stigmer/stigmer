@@ -24,6 +24,10 @@
  * by its path in the builder's project: a Next.js app is one app, holding the
  * route, the chat and the page, so one install covers it; the other stacks'
  * backends serve a React app of its own, which holds the chat and the page.
+ * The client's Node transport (`@connectrpc/connect-node`, an optional peer
+ * of `@stigmer/client`) is installed only by a line whose files run
+ * `@stigmer/client/node`: the Node and Next.js routes. A React app of its own
+ * runs the chat in the browser and installs no transport.
  *
  * Who is signed in is the one thing Stigmer cannot know. Every route asks one
  * function, `currentUser`, which the builder replaces with their own sign-in.
@@ -265,8 +269,8 @@ function lit(value: string): string {
 /** Each stack's route; a typed record, so a stack without one fails to compile. */
 const BACKENDS: Record<AppHandoverStack, (code: Code, sdkVersion: string | undefined) => AppHandoverFile> = {
   // One app: its one install covers the route, the chat and the page.
-  nextjs: (code) => ({ install: CHAT_INSTALL, installLanguage: "bash", file: "app/api/stigmer-token/route.ts", language: "typescript", code: nextRoute(code) }),
-  node: (code) => ({ install: "npm install @stigmer/client", installLanguage: "bash", file: "server.ts", language: "typescript", code: nodeRoute(code) }),
+  nextjs: (code) => ({ install: NEXT_APP_INSTALL, installLanguage: "bash", file: "app/api/stigmer-token/route.ts", language: "typescript", code: nextRoute(code) }),
+  node: (code) => ({ install: "npm install @stigmer/client @connectrpc/connect-node", installLanguage: "bash", file: "server.ts", language: "typescript", code: nodeRoute(code) }),
   python: (code) => ({ install: "pip install stigmer-sdk", installLanguage: "bash", file: "stigmer_token.py", language: "python", code: pythonRoute(code) }),
   go: (code) => ({ install: "go get go.stigmer.ai/sdk", installLanguage: "bash", file: "main.go", language: "go", code: goRoute(code) }),
   java: (code, sdkVersion) => ({ install: mavenDependency(sdkVersion), installLanguage: "xml", file: "StigmerToken.java", language: "java", code: javaRoute(code) }),
@@ -690,7 +694,11 @@ ${CURRENT_USER_NOTE.map((l) => `    // ${l}`).join("\n")}
 `;
 }
 
+/** The chat's install: browser code only, so no Node transport. */
 const CHAT_INSTALL = "npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf";
+
+/** A Next.js app's one install: the chat's, and the transport its route runs on `@stigmer/client/node`. */
+const NEXT_APP_INSTALL = `${CHAT_INSTALL} @connectrpc/connect-node`;
 
 function signInChat({ agentRef, server }: Code, file: string): AppHandoverFile {
   return {

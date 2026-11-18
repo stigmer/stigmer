@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { HARNESS_LINES, docSteps, firstFence, parseInfo } from "./doc-steps.mjs";
+import { HARNESS_LINES, docSteps, firstFence, parseInfo, registryPackagesOf } from "./doc-steps.mjs";
 
 const fence = (info, body) => ["```" + info, ...body, "```"].join("\n");
 
@@ -123,6 +123,27 @@ test("the embedding tutorial parses into the app, its install, its files and its
     steps.filter((step) => step.kind === "command").map((step) => step.line),
     ["cd my-app", "npm install"],
   );
+});
+
+test("an install line's registry half is every package outside @stigmer/*, in its order", () => {
+  assert.deepEqual(registryPackagesOf("npm install @stigmer/client @connectrpc/connect-node"), ["@connectrpc/connect-node"]);
+  assert.deepEqual(
+    registryPackagesOf("npm install @stigmer/react-sdk @stigmer/client @stigmer/apis @bufbuild/protobuf @connectrpc/connect-node"),
+    ["@bufbuild/protobuf", "@connectrpc/connect-node"],
+  );
+  assert.deepEqual(registryPackagesOf("npm i  @stigmer/client "), []);
+  for (const line of ["npm install", "npm install -g @stigmer/cli", "npm install --save-dev x", "yarn add x", "pip install stigmer-sdk"]) {
+    assert.throws(() => registryPackagesOf(line), /not an npm install of named packages/, line);
+  }
+});
+
+test("each package install the harness performs from tarballs reads as one", () => {
+  // The smoke's `sdk` and the tutorial's `react-sdk` install the tarballs plus
+  // this half; a line that stopped reading as an npm install would fail here
+  // before any stack boots.
+  const performed = HARNESS_LINES.filter(({ performs }) => performs === "sdk" || performs === "react-sdk");
+  assert.equal(performed.length, 2);
+  for (const { line } of performed) assert.ok(registryPackagesOf(line).includes("@connectrpc/connect-node"), line);
 });
 
 test("firstFence reads the first fence of a language under a heading, and names what is missing", () => {

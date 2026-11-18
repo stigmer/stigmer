@@ -237,7 +237,7 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
     const route = await row("Add a token route to your backend");
     expect(within(route).getByText("Install, once")).toBeTruthy();
     expect(within(route).getByRole("region", { name: "Install, once" }).textContent).toBe(
-      "npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf",
+      "npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf @connectrpc/connect-node",
     );
     expect(within(route).getByRole("region", { name: "app/api/stigmer-token/route.ts" })).toBeTruthy();
 
@@ -254,7 +254,7 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
     renderPage({ defaultTab: "in-app" });
     fireEvent.click(await screen.findByRole("radio", { name: "Node" }));
     const route = await row("Add a token route to your backend");
-    expect(within(route).getByRole("region", { name: "Install" }).textContent).toBe("npm install @stigmer/client");
+    expect(within(route).getByRole("region", { name: "Install" }).textContent).toBe("npm install @stigmer/client @connectrpc/connect-node");
     const chat = await row("Show the chat in your app");
     expect(within(chat).getByText(/^These go in your React app, which is apart from your backend\. Your app reaches the route at/)).toBeTruthy();
     expect(within(chat).getByRole("region", { name: "Install" }).textContent).toBe("npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf");

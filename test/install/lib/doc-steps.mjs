@@ -23,6 +23,12 @@
  * page cannot drift into a step the smoke silently skips or one that would
  * install something other than the build under test.
  *
+ * A harness that installs the build's tarballs in place of a page's or a
+ * handover's `npm install` line installs the rest of that line as written:
+ * `registryPackagesOf` names the packages outside `@stigmer/*`, which the
+ * tarballs stand in for, so a line that names one more package needs no
+ * harness edit.
+ *
  * A copy of a page's code elsewhere (the README, the homepage) quotes it
  * under one rule, kept here beside the parser it reads with: runs of the
  * page's consecutive lines, each gap marked by a `// …` line
@@ -43,11 +49,11 @@ export const HARNESS_LINES = Object.freeze([
   { line: "brew install stigmer/tap/stigmer", performs: "cli" },
   { line: "curl -fsSL https://stigmer.ai/install.sh | sh", performs: "cli" },
   { line: "npm install -g @stigmer/cli", performs: "cli" },
-  { line: "npm install @stigmer/client", performs: "sdk" },
+  { line: "npm install @stigmer/client @connectrpc/connect-node", performs: "sdk" },
   { line: "export ANTHROPIC_API_KEY=<your Anthropic API key>", performs: "model-key" },
   // The embedding tutorial (embed-agent.mdx), run by test/e2e's embed-tutorial project.
   { line: "npm create vite@latest my-app -- --template react-ts", performs: "vite-app" },
-  { line: "npm install @stigmer/react-sdk @stigmer/client @stigmer/apis @bufbuild/protobuf", performs: "react-sdk" },
+  { line: "npm install @stigmer/react-sdk @stigmer/client @stigmer/apis @bufbuild/protobuf @connectrpc/connect-node", performs: "react-sdk" },
   { line: "npx tsx server.ts", performs: "backend" },
   { line: "VITE_STIGMER_ORG=$STIGMER_ORG npm run dev", performs: "dev-server" },
   // The terminal kit: its README and docs/sdk/ink/cli-integration.mdx, run by
@@ -55,6 +61,24 @@ export const HARNESS_LINES = Object.freeze([
   { line: "npm install @stigmer/ink-ui @stigmer/react-core @stigmer/client @stigmer/apis @bufbuild/protobuf ink react", performs: "ink-kit" },
   { line: "npm install --global @stigmer/ink-ui", performs: "ink-bin" },
 ]);
+
+const NPM_INSTALL = /^npm (?:install|i)(?:\s+(.*))?$/;
+
+/**
+ * The packages an `npm install` line names outside `@stigmer/*`, in its
+ * order: what a harness installs from the registry beside the build's
+ * tarballs, as the reader's `npm install` would. Throws on a line that is not
+ * a local `npm install` of named packages (a flag, a global install, a bare
+ * `npm install`), which no harness performs this way.
+ */
+export function registryPackagesOf(line) {
+  const match = NPM_INSTALL.exec(line.trim());
+  const names = match?.[1]?.split(/\s+/).filter((word) => word !== "") ?? [];
+  if (match === null || names.length === 0 || names.some((name) => name.startsWith("-"))) {
+    throw new Error(`not an npm install of named packages: ${line}`);
+  }
+  return names.filter((name) => !name.startsWith("@stigmer/"));
+}
 
 /** The tab the smoke never runs: the hosted target, which needs an account. */
 export const SKIPPED_TAB = "Stigmer Cloud";

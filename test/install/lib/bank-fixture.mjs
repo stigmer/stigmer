@@ -22,12 +22,18 @@
  * (a try that made one, `ci-runner` say, would otherwise make the next try
  * meet a name already taken). When nothing is missing it costs a few reads.
  *
+ * `writeProjectManifests` then gives the try's folder what a person who set
+ * up holds: each fixture agent's manifest at `stigmer/<agent>.yaml`, as the
+ * setup guide's step 2 leaves it. Without it a prompt that never says
+ * "Stigmer" ("run invoice-checker on samples/march.csv") meets a folder
+ * holding only the sample, and an agent cannot tell it is a Stigmer project.
+ *
  * Every call goes through the stage's `stigmer` shim, asynchronously: in the
  * runner, the issuer and the fake model live in the same process.
  */
 
 import { spawn } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
@@ -148,11 +154,35 @@ export async function restoreFixture({ stigmer: shim, env }) {
   return restored;
 }
 
+/** The folder in a person's project where the setup guide keeps their agents' manifests. */
+export const PROJECT_MANIFESTS = "stigmer";
+
+/**
+ * Copies each fixture agent's manifest into `<projectDir>/stigmer/`, as a
+ * person who set up holds them; returns the paths written, relative to
+ * `projectDir`.
+ * @param {string} projectDir
+ */
+export function writeProjectManifests(projectDir) {
+  const into = join(projectDir, PROJECT_MANIFESTS);
+  mkdirSync(into, { recursive: true });
+  const agents = join(FIXTURE_DIR, "agents");
+  return readdirSync(agents)
+    .filter((name) => name.endsWith(".yaml"))
+    .sort()
+    .map((name) => {
+      copyFileSync(join(agents, name), join(into, name));
+      return join(PROJECT_MANIFESTS, name);
+    });
+}
+
 /* v8 ignore start -- @preserve: the scaffold's entry (`stigmer-bank-fixture`), run by claude plugin eval before each acting try */
 if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1] && process.argv.includes("--restore")) {
   restoreFixture({ stigmer: "stigmer", env: process.env })
     .then((restored) => {
       if (restored.length > 0) process.stdout.write(`${RESTORE_COMMAND}: put back ${restored.join("; ")}\n`);
+      // The scaffold runs in the try's own folder: lay out the set-up project there.
+      writeProjectManifests(process.cwd());
     })
     .catch((error) => {
       process.stderr.write(`${RESTORE_COMMAND}: ${error instanceof Error ? error.message : String(error)}\n`);

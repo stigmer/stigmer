@@ -1,7 +1,0 @@
----
-type: llm
----
-
-PASS if the answer says Stigmer open source is free under Apache 2.0 and run by you (a laptop, one server or Kubernetes), with the full platform contract (Agents, Skills, Sessions and MCP servers through the same API, CLI and SDKs, not a trial edition) for one Organization; and names the two paid editions with what each adds: Stigmer Enterprise, the same server with a license key on your own infrastructure on an annual license (many Organizations, Teams and invitations, per-resource sharing, identity federation, the access history), and Stigmer Cloud, the managed service (hosted sign-in, Slack and WhatsApp channels, plans and billing, operations run for you). It must say that in every edition Agents run on your own model provider key and Stigmer runs no model of its own. Welcome but optional: the Cloud plans (Free, Team at $99, Business at $499, Enterprise Cloud quoted) with agent hours included; Enterprise's code is public in the repository's `ee/` directory; moving between editions is a configuration change, not a rewrite.
-
-FAIL if it says the open-source edition is a trial or caps Agents, runs or users in ways the docs don't name; puts Slack or WhatsApp channels in open source; mixes up the Enterprise Cloud plan (run by Stigmer) with the Stigmer Enterprise edition (self-hosted); says a paid edition includes model usage or a Stigmer-hosted model; or invents prices, plans or features the docs don't name.
