@@ -88,6 +88,10 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
       "help",
       "page",
       "page-frame",
+      // The console's gates and page states: what it shows between signing
+      // in and the app, and in a page's place when there is nothing to show.
+      "gate",
+      "page-state",
       "status",
       "resource-workbench",
       "resource-creation",

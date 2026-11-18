@@ -37,6 +37,7 @@ import {
 import { SETTINGS_ROUTE_DRAWINGS } from "./settings-routes.tsx";
 import { partsScene } from "./parts.tsx";
 import { helpNoneScene, helpScene } from "./help.tsx";
+import { AROUND_CONSOLE_DRAWINGS } from "./around-console.tsx";
 import type { Drawing } from "./drawing.ts";
 import {
   ANTHROPIC_ONLY,
@@ -371,5 +372,6 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   parts: partsScene,
   help: helpScene,
   "help-none": helpNoneScene,
+  ...AROUND_CONSOLE_DRAWINGS,
   ...presets,
 };

@@ -2,8 +2,9 @@
 // shows the onboarding form, and a newly created organization becomes the
 // active one by its minted id (the gate refreshes targeting that id, not the
 // slug the person typed); a failed organization load shows the reason and a
-// "Try again" that re-runs the gate's retry. The gate derivation and the form are the SDK's,
-// pinned by its own suite; here they are stubbed so each state holds still.
+// "Try again" that re-runs the gate's retry. The gate derivation and its
+// screens are the SDK's, pinned by its own suite; here they are stubbed so
+// each state holds still.
 
 import { create } from "@bufbuild/protobuf";
 import {
@@ -23,27 +24,40 @@ const gate = vi.hoisted(() => ({
   onCreated: null as ((org: Organization) => void) | null,
 }));
 
-// The help line reads the server's answer; here it stands in, so the test
-// holds where the gate places it.
+// The gate's screens are the kit's OrgGateView (its words, form and help
+// line pinned in @stigmer/react-sdk); this stand-in shows the state, keeps
+// the form's callback, and offers Try again, so the test holds the wiring.
 vi.mock("@stigmer/react-sdk/console", () => ({
-  HelpLink: () => <p>Stuck? Talk to us</p>,
+  OrgGateView: ({
+    state,
+    retry,
+    onCreated,
+    children,
+  }: {
+    state: { status: string; message?: string };
+    retry: () => void;
+    onCreated: (org: Organization) => void;
+    children?: React.ReactNode;
+  }) => {
+    if (state.status === "ready" || state.status === "bypassed") return <>{children}</>;
+    gate.onCreated = onCreated;
+    return (
+      <div>
+        <p>gate: {state.status}</p>
+        {state.message ? <p>{state.message}</p> : null}
+        {state.status === "error" && <button onClick={retry}>Try again</button>}
+      </div>
+    );
+  },
 }));
 
-vi.mock("@stigmer/react-sdk", async () => {
-  const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
-  return {
-    Button: kit.Button,
-    useOrgGate: () => ({
-      state: { status: gate.status, message: gate.message },
-      retry: gate.retry,
-      refresh: gate.refresh,
-    }),
-    CreateOrganizationForm: ({ onCreated }: { onCreated: (org: Organization) => void }) => {
-      gate.onCreated = onCreated;
-      return <p>create organization form</p>;
-    },
-  };
-});
+vi.mock("@stigmer/react-sdk", () => ({
+  useOrgGate: () => ({
+    state: { status: gate.status, message: gate.message },
+    retry: gate.retry,
+    refresh: gate.refresh,
+  }),
+}));
 
 vi.mock("../../shell/GateHeader", () => ({ GateHeader: () => null }));
 
@@ -76,8 +90,7 @@ describe("desktop OrgGate", () => {
   it("onboards a person with no organization and activates the created one by id", () => {
     renderGate();
 
-    expect(screen.getByText("Welcome to Stigmer")).toBeTruthy();
-    expect(screen.getByText(/ask one of its admins to invite you/)).toBeTruthy();
+    expect(screen.getByText("gate: no-orgs")).toBeTruthy();
     expect(screen.queryByText("the app")).toBeNull();
 
     const created = create(OrganizationSchema, {
@@ -93,10 +106,8 @@ describe("desktop OrgGate", () => {
     gate.message = "The server could not be reached.";
     renderGate();
 
-    expect(screen.getByText("Failed to load organizations")).toBeTruthy();
+    expect(screen.getByText("gate: error")).toBeTruthy();
     expect(screen.getByText("The server could not be reached.")).toBeTruthy();
-    // CON-13: under Try again, the server's help line.
-    expect(screen.getByText("Stuck? Talk to us")).toBeTruthy();
     expect(screen.queryByText("the app")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));

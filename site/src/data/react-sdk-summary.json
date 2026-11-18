@@ -162,6 +162,13 @@
       "components": 1
     },
     {
+      "slug": "gate",
+      "title": "gate",
+      "description": "",
+      "hooks": 0,
+      "components": 2
+    },
+    {
       "slug": "github",
       "title": "GitHub",
       "description": "Hooks and components for OAuth connection, repository search, and picker.",
@@ -265,6 +272,13 @@
       "description": "",
       "hooks": 0,
       "components": 1
+    },
+    {
+      "slug": "page-state",
+      "title": "page-state",
+      "description": "",
+      "hooks": 0,
+      "components": 3
     },
     {
       "slug": "plugin",

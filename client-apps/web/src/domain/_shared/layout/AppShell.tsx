@@ -4,14 +4,14 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { PanelLeft } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
-import { IconButton, useResolveRunSession } from "@stigmer/react-sdk";
+import { IconButton } from "@stigmer/react-sdk";
+import { RunResolveView } from "@stigmer/react-sdk/console";
+import { renderJourneyLink } from "@/domain/journey/journey-links";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
 import { useRunNavigation } from "@/domain/runs/run-navigation";
 import { SessionLauncher } from "@/domain/session/SessionLauncher";
 import { AttentionNotifier } from "@/domain/session/AttentionNotifier";
 import { SessionPageInner } from "@/domain/session/SessionPage";
-import { RunLoadFailed } from "@/domain/runs/RunLoadFailed";
-import { RunNotFound } from "@/domain/runs/RunNotFound";
 import { ShellDesktopBanner } from "./DesktopAppBanner";
 import { ManagementSidebar } from "./ManagementSidebar";
 import { Sidebar } from "./Sidebar";
@@ -151,18 +151,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
  */
 function RunZoneContent({ runId }: { runId: string }) {
   const { navigateToSession } = useSessionNavigation();
-  const { sessionId, isLoading, error, refetch } = useResolveRunSession(runId);
-
-  useEffect(() => {
-    if (sessionId) {
-      navigateToSession(sessionId);
-    }
-  }, [sessionId, navigateToSession]);
-
-  if (isLoading || sessionId) return null;
-  if (error) return <RunLoadFailed error={error} onRetry={refetch} />;
-
-  return <RunNotFound />;
+  return (
+    <RunResolveView
+      runId={runId}
+      onResolved={navigateToSession}
+      dashboardHref="/"
+      renderLink={renderJourneyLink}
+    />
+  );
 }
 
 /**

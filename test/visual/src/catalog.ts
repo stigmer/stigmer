@@ -154,6 +154,41 @@ export type SceneId =
   | "parts"
   | "help"
   | "help-none"
+  | "gate-account-checking"
+  | "gate-account-provisioning"
+  | "gate-account-failed"
+  | "gate-org-loading"
+  | "gate-org-failed"
+  | "gate-org-none"
+  | "page-not-found"
+  | "page-failure-unavailable"
+  | "page-failure-permission"
+  | "page-failure-unknown"
+  | "page-failure-section"
+  | "run-resolve-not-found"
+  | "run-resolve-failed"
+  | "invite-ready"
+  | "invite-signed-out"
+  | "invite-sign-in-only"
+  | "invite-expired"
+  | "invite-not-found"
+  | "invite-load-failed"
+  | "invite-loading"
+  | "invite-redeem-failed"
+  | "invite-accepting"
+  | "invite-accepted"
+  | "connect-link-ready"
+  | "connect-link-dead"
+  | "connect-link-loading"
+  | "connect-link-failed"
+  | "connect-link-starting"
+  | "connect-return-working"
+  | "connect-return-failed"
+  | "connect-return-dead"
+  | "connect-return-unsafe"
+  | "oauth-popup-done"
+  | "oauth-popup-declined"
+  | "oauth-popup-missing"
   | `preset-${Preset}`;
 
 /** The roles a control is pressed by: Playwright's own list, the one `getByRole` takes. */
@@ -1573,6 +1608,41 @@ const LISTED: readonly Scene[] = [
   { id: "parts", title: "The console's shared parts, each in every variant and state it has", widths: ["desktop", "narrow"] },
   { id: "help", title: "The deployment's help link at the sidebar's foot and under a failure note", widths: ["desktop"] },
   { id: "help-none", title: "A server that names no help link: no row at the sidebar's foot, no line under the failure", widths: ["desktop"] },
+  { id: "gate-account-checking", title: "Gate, your account: checked after signing in", widths: ["desktop"] },
+  { id: "gate-account-provisioning", title: "Gate, your account: set up on a first sign-in", widths: ["desktop"] },
+  { id: "gate-account-failed", title: "Gate, your account: it could not be set up", widths: ["desktop", "narrow"] },
+  { id: "gate-org-loading", title: "Gate, your organizations: loading", widths: ["desktop"] },
+  { id: "gate-org-failed", title: "Gate, your organizations: they could not be loaded", widths: ["desktop"] },
+  { id: "gate-org-none", title: "Gate, your organizations: in none yet, make the first", widths: ["desktop", "narrow"] },
+  { id: "page-not-found", title: "Console page: nothing at this address", widths: ["desktop", "narrow"] },
+  { id: "page-failure-unavailable", title: "Console page: it broke, the server did not answer", widths: ["desktop", "narrow"] },
+  { id: "page-failure-permission", title: "Console page: it broke, no access", widths: ["desktop"] },
+  { id: "page-failure-unknown", title: "Console page: it broke, with the failure's reference", widths: ["desktop"] },
+  { id: "page-failure-section", title: "Settings: a section broke, inside the settings frame", widths: ["desktop"] },
+  { id: "run-resolve-not-found", title: "A run's address: no run there", widths: ["desktop", "narrow"] },
+  { id: "run-resolve-failed", title: "A run's address: the run could not be read", widths: ["desktop"] },
+  { id: "invite-ready", title: "Invitation: signed in, ready to accept", widths: ["desktop", "narrow"] },
+  { id: "invite-signed-out", title: "Invitation: signed out, make an account or sign in", widths: ["desktop"] },
+  { id: "invite-sign-in-only", title: "Invitation: signed out, on a server that only signs in", widths: ["desktop"] },
+  { id: "invite-expired", title: "Invitation: no longer valid", widths: ["desktop"] },
+  { id: "invite-not-found", title: "Invitation: none at this link", widths: ["desktop"] },
+  { id: "invite-load-failed", title: "Invitation: it could not be read", widths: ["desktop"] },
+  { id: "invite-loading", title: "Invitation: loading", widths: ["desktop"] },
+  { id: "invite-redeem-failed", title: "Invitation: accepting it failed", widths: ["desktop"], opens: "Accept invitation" },
+  { id: "invite-accepting", title: "Invitation: accepting", widths: ["desktop"], opens: "Accept invitation" },
+  { id: "invite-accepted", title: "Invitation: accepted", widths: ["desktop"], opens: "Accept invitation" },
+  { id: "connect-link-ready", title: "Connect link: ready to continue to the provider", widths: ["desktop", "narrow"] },
+  { id: "connect-link-dead", title: "Connect link: expired or already used", widths: ["desktop"] },
+  { id: "connect-link-loading", title: "Connect link: loading", widths: ["desktop"] },
+  { id: "connect-link-failed", title: "Connect link: the provider's sign-in could not be opened", widths: ["desktop"], opens: "Continue" },
+  { id: "connect-link-starting", title: "Connect link: opening the provider's sign-in", widths: ["desktop"], opens: "Continue" },
+  { id: "connect-return-working", title: "Connect link's return: finishing the connection", widths: ["desktop"] },
+  { id: "connect-return-failed", title: "Connect link's return: it did not finish", widths: ["desktop"] },
+  { id: "connect-return-dead", title: "Connect link's return: the link expired on the way", widths: ["desktop"] },
+  { id: "connect-return-unsafe", title: "Connect link's return: saved, but the app's address is not a browser's", widths: ["desktop"] },
+  { id: "oauth-popup-done", title: "OAuth pop-up: the sign-in is handed back", widths: ["desktop"] },
+  { id: "oauth-popup-declined", title: "OAuth pop-up: the provider says the person declined", widths: ["desktop"] },
+  { id: "oauth-popup-missing", title: "OAuth pop-up: reached without the provider's answer", widths: ["desktop"] },
   ...PRESETS.map((preset) => ({
     id: `preset-${preset}` as const,
     title: `The completed thread in the ${preset} preset`,

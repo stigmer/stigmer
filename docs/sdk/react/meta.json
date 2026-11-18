@@ -48,6 +48,8 @@
     "help",
     "page",
     "page-frame",
+    "gate",
+    "page-state",
     "status",
     "resource-workbench",
     "resource-creation",

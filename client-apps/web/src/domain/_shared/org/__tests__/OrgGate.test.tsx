@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------------------
 // OrgGate — the app renders only once the visitor has an organization
 //
-// The SDK's useOrgGate derives the state; this gate decides what the console
-// shows for each one. Only `ready` and `bypassed` reach the app. The one
+// The SDK's useOrgGate derives the state and the kit's OrgGateView draws it;
+// this gate wires the two. Only `ready` and `bypassed` reach the app. The one
 // bypass is the invitation page (a visitor joining an org has none yet), and
 // it is a path prefix, so a route that merely contains "invite" stays gated.
 // An empty list goes to onboarding, and creating an org there refreshes the
@@ -25,35 +25,47 @@ const gate = vi.hoisted(() => ({
   refresh: vi.fn(),
 }));
 
-// The help line reads the server's answer; here it stands in, so the test
-// holds where the gate places it.
+// The gate's screens are the kit's OrgGateView (pinned in
+// @stigmer/react-sdk); here a stand-in shows what the console hands it: the
+// state, Try again, the org made at onboarding, and the signed-in corner.
 vi.mock("@stigmer/react-sdk/console", () => ({
-  HelpLink: () => <p>Stuck? Talk to us</p>,
+  OrgGateView: ({
+    state,
+    retry,
+    onCreated,
+    corner,
+    children,
+  }: {
+    state: OrgGateState;
+    retry: () => void;
+    onCreated: (org: { metadata?: { id?: string; slug?: string } }) => void;
+    corner?: React.ReactNode;
+    children?: React.ReactNode;
+  }) => {
+    if (state.status === "ready" || state.status === "bypassed") return <>{children}</>;
+    return (
+      <div>
+        <p>gate: {state.status}</p>
+        {corner}
+        {state.status === "error" && <button onClick={retry}>Try again</button>}
+        {state.status === "no-orgs" && (
+          <button onClick={() => onCreated({ metadata: { id: "org_01jnnnnnnnnnnnnnnnnnnnnnnn", slug: "new-org" } })}>
+            create org
+          </button>
+        )}
+      </div>
+    );
+  },
 }));
 
 vi.mock("@stigmer/react-sdk", async () => {
   const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
   return {
     Button: kit.Button,
-    IconButton: kit.IconButton,
-    LinkButton: kit.LinkButton,
     useOrgGate: ({ isBypassed }: { isBypassed: boolean }) => {
       gate.bypassArgs.push(isBypassed);
       return { state: gate.state, retry: gate.retry, refresh: gate.refresh };
     },
-    CreateOrganizationForm: ({
-      onCreated,
-    }: {
-      onCreated: (org: { metadata?: { id?: string; slug?: string } }) => void;
-    }) => (
-      <button
-        onClick={() =>
-          onCreated({ metadata: { id: "org_01jnnnnnnnnnnnnnnnnnnnnnnn", slug: "new-org" } })
-        }
-      >
-        create org
-      </button>
-    ),
   };
 });
 
@@ -106,10 +118,7 @@ describe("OrgGate", () => {
     renderGate();
 
     expect(screen.queryByText("the app")).toBeNull();
-    expect(screen.getByText("Failed to load organizations")).toBeTruthy();
-    expect(screen.getByText("organizations unavailable")).toBeTruthy();
-    // CON-13: under Try again, the server's help line.
-    expect(screen.getByText("Stuck? Talk to us")).toBeTruthy();
+    expect(screen.getByText("gate: error")).toBeTruthy();
 
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(gate.retry).toHaveBeenCalledTimes(1);
@@ -120,8 +129,7 @@ describe("OrgGate", () => {
     renderGate();
 
     expect(screen.queryByText("the app")).toBeNull();
-    expect(screen.getByText("Welcome to Stigmer")).toBeTruthy();
-    expect(screen.getByText(/ask one of its admins to invite you/)).toBeTruthy();
+    expect(screen.getByText("gate: no-orgs")).toBeTruthy();
 
     await userEvent.click(screen.getByRole("button", { name: "create org" }));
     expect(gate.refresh).toHaveBeenCalledWith("org_01jnnnnnnnnnnnnnnnnnnnnnnn");

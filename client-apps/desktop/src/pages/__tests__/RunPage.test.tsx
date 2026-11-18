@@ -1,41 +1,40 @@
 /**
- * Pins the desktop run page: /runs/<id> resolves the run named by its route
- * to the session it ran in and replaces itself with that session's page,
- * showing nothing of its own while the run resolves; a run that resolves to
- * no session shows the not-found state, and a failed read says so and
- * retries on request. The resolving hook is pinned in @stigmer/react-sdk.
+ * Pins the desktop run page's wiring: /runs/<id> hands the run named by its
+ * route to the kit's run view, with the desktop's dashboard address, and
+ * replaces itself with the session page the view resolves. The view's own
+ * states (nothing while resolving, not found, a failed read with Try again)
+ * are pinned in @stigmer/react-sdk.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { useEffect } from "react";
 
-const page = vi.hoisted(() => ({
-  resolving: [] as Array<string | null>,
+const view = vi.hoisted(() => ({
+  runIds: [] as string[],
+  dashboardHrefs: [] as string[],
   sessionFor: new Map<string, string>(),
-  pending: new Set<string>(),
-  failing: new Set<string>(),
-  retries: 0,
 }));
 
-vi.mock("@stigmer/react-sdk", async () => {
-  const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
-  return {
-    Button: kit.Button,
-    IconButton: kit.IconButton,
-    LinkButton: kit.LinkButton,
-    useResolveRunSession: (id: string | null) => {
-      page.resolving.push(id);
-      return {
-        sessionId: id ? (page.sessionFor.get(id) ?? null) : null,
-        isLoading: id !== null && page.pending.has(id),
-        error: id !== null && page.failing.has(id) ? new Error("connection refused") : null,
-        refetch: () => {
-          page.retries += 1;
-        },
-      };
-    },
-  };
-});
+vi.mock("@stigmer/react-sdk/console", () => ({
+  RunResolveView: ({
+    runId,
+    onResolved,
+    dashboardHref,
+  }: {
+    runId: string;
+    onResolved: (sessionId: string) => void;
+    dashboardHref: string;
+  }) => {
+    view.runIds.push(runId);
+    view.dashboardHrefs.push(dashboardHref);
+    const sessionId = view.sessionFor.get(runId);
+    useEffect(() => {
+      if (sessionId) onResolved(sessionId);
+    }, [sessionId, onResolved]);
+    return <p>run view</p>;
+  },
+}));
 
 import RunPage from "../runs/RunPage";
 
@@ -52,44 +51,24 @@ function renderAt(path: string) {
 
 beforeEach(() => {
   cleanup();
-  page.resolving.length = 0;
-  page.sessionFor.clear();
-  page.pending.clear();
-  page.failing.clear();
-  page.retries = 0;
+  view.runIds.length = 0;
+  view.dashboardHrefs.length = 0;
+  view.sessionFor.clear();
 });
 
 describe("desktop RunPage", () => {
+  it("hands the route's run to the kit's view, with the desktop's dashboard", () => {
+    renderAt("/runs/run_missing");
+
+    expect(screen.getByText("run view")).toBeTruthy();
+    expect(view.runIds).toContain("run_missing");
+    expect(view.dashboardHrefs).toContain("/dashboard");
+  });
+
   it("opens the session the run ran in", async () => {
-    page.sessionFor.set("run_1", "ses_1");
+    view.sessionFor.set("run_1", "ses_1");
     renderAt("/runs/run_1");
 
     expect(await screen.findByText("session page")).toBeTruthy();
-    expect(page.resolving).toContain("run_1");
-  });
-
-  it("shows nothing of its own while the run resolves", () => {
-    page.pending.add("run_2");
-    renderAt("/runs/run_2");
-
-    expect(screen.queryByText("session page")).toBeNull();
-    expect(screen.queryByText("Run not found")).toBeNull();
-  });
-
-  it("shows the not-found state when no run resolves", () => {
-    renderAt("/runs/run_missing");
-
-    expect(screen.getByText("Run not found")).toBeTruthy();
-    expect(screen.queryByText("session page")).toBeNull();
-  });
-
-  it("says the run failed to load, not that it is missing, and retries on request", () => {
-    page.failing.add("run_flaky");
-    renderAt("/runs/run_flaky");
-
-    expect(screen.getByRole("heading", { name: "Failed to load run" })).toBeTruthy();
-    expect(screen.queryByText("Run not found")).toBeNull();
-    screen.getByRole("button", { name: "Try again" }).click();
-    expect(page.retries).toBe(1);
   });
 });
