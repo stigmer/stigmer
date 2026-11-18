@@ -55,8 +55,8 @@ import {
 import { sampleDate } from "@stigmer/react-sdk/test";
 import type { Drawing } from "./drawing.ts";
 
-/** A self-hosting company's help: its own words and its own desk. */
-const COMPANY_HELP = { url: "https://support.example.com/stigmer", label: "Ask IT on Slack" };
+/** A server's help, as `stigmer up` announces it: the Stigmer community. */
+const COMMUNITY_HELP = { url: "https://discord.com/invite/EtANnfsJ8B", label: "Ask the Stigmer community" };
 
 /** A server that names where to ask, so the screens that end with the help line show it. */
 function serverWithHelp(router: ConnectRouter): void {
@@ -66,7 +66,7 @@ function serverWithHelp(router: ConnectRouter): void {
         edition: ServerEdition.cloud,
         version: "dev",
         authenticationRequired: true,
-        help: COMPANY_HELP,
+        help: COMMUNITY_HELP,
       }),
   });
 }

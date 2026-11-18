@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getUserMessage, grantableRoleDescription, iamRoleDisplayName } from "@stigmer/client";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import type { Invitation } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useInvitationPreview } from "./useInvitationPreview.js";
@@ -13,6 +14,28 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Tag } from "../internal/surface/Tag.js";
 import { ScreenWait } from "../standalone-screen/StandaloneScreen.js";
 import { ScreenColumn, type ScreenColumnProps } from "../internal/ScreenColumn.js";
+
+// ---------------------------------------------------------------------------
+// The invited person's line
+// ---------------------------------------------------------------------------
+
+/**
+ * What the invited person can do once they join, in their own words, one
+ * line per role an invitation can carry. The access lists' descriptions
+ * (`grantableRoleDescription`) are written about "them" for whoever picks a
+ * role; the invitation speaks to the person it invites. A role without a
+ * line here reads its description.
+ */
+const INVITED_ROLE_LINES: Partial<Record<IamRole, string>> = {
+  [IamRole.owner]: "As an owner you can do everything, including deleting the organization and choosing its owners.",
+  [IamRole.admin]: "As an admin you can manage the organization's people, settings, billing, agents and tools.",
+  [IamRole.member]: "As a member you can use the organization's agents and start your own conversations.",
+  [IamRole.viewer]: "As a viewer you can see what's shared with the organization, but not start conversations.",
+};
+
+function invitedRoleLine(role: IamRole): string {
+  return INVITED_ROLE_LINES[role] ?? grantableRoleDescription(ApiResourceKind.organization, role);
+}
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -232,7 +255,7 @@ export function InvitationRedemption({
 
   return column({
     title: `Join ${orgName}`,
-    lead: grantableRoleDescription(ApiResourceKind.organization, preview.role),
+    lead: invitedRoleLine(preview.role),
     meta: (
       <>
         <span className="stg:flex stg:flex-wrap stg:items-center stg:justify-center stg:gap-x-2 stg:gap-y-1">

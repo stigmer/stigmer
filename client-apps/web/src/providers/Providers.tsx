@@ -18,7 +18,7 @@ import { loadRuntimeConfig } from "@/config/runtime-config";
 /**
  * Routes rendered without the authenticated provider chain.
  *
- * Public routes receive only ConfigGate + ThemeProvider. They do NOT
+ * Public routes receive only ThemeProvider + ConfigGate. They do NOT
  * receive AuthProvider, AuthGuard, StigmerTransportBridge, OrgProvider,
  * or OrgGate — those assume an authenticated user and would fail or
  * redirect on pre-authentication pages.
@@ -67,8 +67,9 @@ const queryClient = new QueryClient({
  * Application-level provider composition root.
  *
  * Establishes the provider nesting order for authenticated routes:
- * 0. ConfigGate              — loads /config.json before anything else runs
- * 1. ThemeProvider            — manages dark/light/system class on <html>
+ * 0. ThemeProvider            — manages dark/light/system class on <html>; above the
+ *                               config gate, so the gate's wait and failure follow it
+ * 1. ConfigGate              — loads /config.json before anything else runs
  * 2. AuthProvider             — resolves auth mode and provides AuthContext
  * 3. AuthGuard                — blocks rendering until auth is resolved
  * 4. QueryClientProvider      — TanStack Query cache and state management
@@ -80,8 +81,8 @@ const queryClient = new QueryClient({
  * 9. OrgGate                  — blocks app until user has at least one organization
  * 10. Toaster                 — sonner toast container (themed, top-right)
  *
- * Public routes (e.g. `/login`, `/invite/`) receive only ConfigGate +
- * ThemeProvider. They manage their own SDK client and provider.
+ * Public routes (e.g. `/login`, `/invite/`) receive only ThemeProvider +
+ * ConfigGate. They manage their own SDK client and provider.
  *
  * Query retry strategy:
  * - Only transient errors (server / unavailable) are retried once
@@ -92,18 +93,20 @@ const queryClient = new QueryClient({
  */
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ConfigGate>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    // The theme reads no configuration, so it sits above the config gate:
+    // the gate's own wait and failure follow light or dark too.
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <ConfigGate>
         <ProvidersInner>{children}</ProvidersInner>
-      </ThemeProvider>
-    </ConfigGate>
+      </ConfigGate>
+    </ThemeProvider>
   );
 }
 
 /**
  * Switches between the full authenticated chain and a passthrough for
  * public routes. Separated from {@link Providers} so `usePathname()` is
- * called inside the ConfigGate / ThemeProvider tree.
+ * called inside the ThemeProvider / ConfigGate tree.
  */
 function ProvidersInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

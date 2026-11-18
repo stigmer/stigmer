@@ -74,9 +74,7 @@
         "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
       },
       "ruled": {},
-      "pending": {
-        "word As a member you can use the organization's agents and start your own conversations.": "When its page is redesigned: the line under the invitation is the kit's role description, shared with the grant dialog and written of 'them'; an invitee's own line per role (the drawing words the member's) is for the Built look"
-      }
+      "pending": {}
     },
     {
       "caption": "An invitation: Signed in, at 390",
@@ -148,9 +146,7 @@
         "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
       },
       "ruled": {},
-      "pending": {
-        "word As a member you can use the organization's agents and start your own conversations.": "When its page is redesigned: the line under the invitation is the kit's role description, shared with the grant dialog and written of 'them'; an invitee's own line per role (the drawing words the member's) is for the Built look"
-      }
+      "pending": {}
     },
     {
       "caption": "An invitation: Signed out: make an account or sign in",
@@ -234,9 +230,7 @@
         "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
       },
       "ruled": {},
-      "pending": {
-        "word As a member you can use the organization's agents and start your own conversations.": "When its page is redesigned: the line under the invitation is the kit's role description, shared with the grant dialog and written of 'them'; an invitee's own line per role (the drawing words the member's) is for the Built look"
-      }
+      "pending": {}
     },
     {
       "caption": "An invitation: Accepting",
@@ -308,9 +302,7 @@
         "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
       },
       "ruled": {},
-      "pending": {
-        "word As a member you can use the organization's agents and start your own conversations.": "When its page is redesigned: the line under the invitation is the kit's role description, shared with the grant dialog and written of 'them'; an invitee's own line per role (the drawing words the member's) is for the Built look"
-      }
+      "pending": {}
     },
     {
       "caption": "An invitation: Couldn't accept",
@@ -427,9 +419,7 @@
         "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
       },
       "ruled": {},
-      "pending": {
-        "word As a member you can use the organization's agents and start your own conversations.": "When its page is redesigned: the line under the invitation is the kit's role description, shared with the grant dialog and written of 'them'; an invitee's own line per role (the drawing words the member's) is for the Built look"
-      }
+      "pending": {}
     },
     {
       "caption": "An invitation: Accepted: it forwards",
@@ -504,10 +494,10 @@
       "sample": {
         "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
       },
-      "ruled": {},
-      "pending": {
-        "word Invitations last seven days. Ask whoever sent it for a new link.": "When its page is redesigned: an invitation's lifetime is set when it is sent, so the build doesn't claim 'seven days'; for the Built look"
-      }
+      "ruled": {
+        "word Invitations last seven days. Ask whoever sent it for a new link.": "2026-11-18, his Built look: kept as built: an expired invitation says to ask for a new link and makes no claim about how long invitations last (the server's reason is the title)"
+      },
+      "pending": {}
     },
     {
       "caption": "An invitation: Not found",

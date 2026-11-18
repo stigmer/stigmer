@@ -250,6 +250,18 @@ describe("the config gate", () => {
     expect(screen.queryByText("page")).toBeNull();
   });
 
+  it("draws the setup failure inside the theme, so it follows light or dark", async () => {
+    config.load = () => Promise.reject(new Error("the setup did not load"));
+    render(
+      <Providers>
+        <p>page</p>
+      </Providers>,
+    );
+
+    const alert = await screen.findByRole("alert");
+    expect(chainAround(alert)).toContain("theme");
+  });
+
   it("tries the setup again by reloading the page", async () => {
     config.load = () => Promise.reject(new Error("the setup did not load"));
     const reload = vi.fn();
