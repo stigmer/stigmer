@@ -14,7 +14,9 @@ import {
   type ModelPricingBaseline,
 } from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { Button } from "../button/index.js";
-import { Card, cardClasses } from "../internal/surface/Card.js";
+import { DialogBody, DialogFooter, DialogHeader, DialogShell } from "../internal/DialogShell.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { cardClasses } from "../internal/surface/Card.js";
 import { HARNESS_OPTIONS } from "@stigmer/react-core/internal";
 import {
   ZERO,
@@ -56,7 +58,8 @@ function RateField({
   readonly onChange: (value: string) => void;
 }) {
   return (
-    <Field label={label}>
+    // A rate names its unit, so "0.50" reads as dollars per million tokens.
+    <Field label={`${label} ($/M)`}>
       <TextInput
         inputMode="decimal"
         value={value}
@@ -484,21 +487,21 @@ export function BaselineEditor({
     }
   }, [pendingBaseline, form.revisionNote, onSubmit]);
 
-  // ── confirm step ──────────────────────────────────────────────────────────
-  if (pendingBaseline) {
-    const changes = diffRates(initial, pendingBaseline);
-    const name = pendingBaseline.displayName || pendingBaseline.modelId;
-    return (
-      <Card className="stg:flex stg:flex-col stg:gap-3">
-        <div className="stg:flex stg:flex-col stg:gap-1">
-          <p className="stg:m-0 stg:text-sm stg:font-semibold stg:text-foreground">
-            {initial ? `Save these prices for ${name}?` : `Add ${name} to the catalog?`}
-          </p>
-          <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
-            The registry serves the new revision at once; runs priced after that use it. Charges already made keep
-            their rates.
-          </p>
-        </div>
+  // ── confirm step: a dialog over the form, so the person sees what they edited ──
+  const changes = pendingBaseline ? diffRates(initial, pendingBaseline) : [];
+  const pendingName = pendingBaseline ? pendingBaseline.displayName || pendingBaseline.modelId : "";
+  const closeConfirm = () => {
+    if (!isSubmitting) setPendingBaseline(null);
+  };
+  const confirmDialog = (
+    <DialogShell open={pendingBaseline !== null} onOpenChange={(open) => !open && closeConfirm()} width="md">
+      <DialogHeader
+        title={initial ? `Save these prices for ${pendingName}?` : `Add ${pendingName} to the catalog?`}
+        description="The registry serves the new revision at once; runs priced after that use it. Charges already made keep their rates."
+        onClose={closeConfirm}
+        closeDisabled={isSubmitting}
+      />
+      <DialogBody>
         {changes.length === 0 ? (
           <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
             No rate changes — only catalog fields move. Billing is unaffected.
@@ -506,30 +509,28 @@ export function BaselineEditor({
         ) : (
           <Table aria-label="Rate changes" columns={CHANGE_COLUMNS} rows={changes} rowKey={(change) => change.label} />
         )}
-        {submitError && (
-          <FieldError>
-            {getUserMessage(submitError)}
-          </FieldError>
-        )}
-        <div className="stg:flex stg:gap-2">
-          <Button size="sm" disabled={isSubmitting} aria-busy={isSubmitting || undefined} onClick={handleConfirm}>
-            {isSubmitting ? "Saving…" : initial ? "Save prices" : "Add model"}
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={isSubmitting}
-            onClick={() => setPendingBaseline(null)}
-          >
-            Back
-          </Button>
-        </div>
-      </Card>
-    );
-  }
+        {submitError && <FieldError>{getUserMessage(submitError)}</FieldError>}
+      </DialogBody>
+      <DialogFooter>
+        <Button size="sm" variant="ghost" disabled={isSubmitting} onClick={closeConfirm}>
+          Back
+        </Button>
+        <Button
+          size="sm"
+          disabled={isSubmitting}
+          aria-busy={isSubmitting || undefined}
+          icon={isSubmitting ? <SpinnerIcon size={14} /> : undefined}
+          onClick={handleConfirm}
+        >
+          {initial ? "Save prices" : "Add model"}
+        </Button>
+      </DialogFooter>
+    </DialogShell>
+  );
 
   // ── form step ─────────────────────────────────────────────────────────────
   return (
+    <>
     <form
       onSubmit={handleReview}
       className={cn(cardClasses(), "stg:space-y-3")}
@@ -747,6 +748,8 @@ export function BaselineEditor({
         </Button>
       </div>
     </form>
+    {confirmDialog}
+    </>
   );
 }
 
