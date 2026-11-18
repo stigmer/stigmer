@@ -96,7 +96,8 @@ engine comes from in each edition is "The Claude engine" below.
   stigmer.permission.grant events are read from the session's log and mapped
   onto the seeded WAITING rows (`TurnInput.approvalDecisions`, and a deny's
   reason in `TurnInput.approvalDenyMessages`, which the model reads on every
-  engine). `harness/approval-decisions.ts` settles the rows that never run.
+  engine). `harness/approval-decisions.ts` settles the rows that never run:
+  SKIP and REJECT, and an approved call still waiting when the run ends.
 - `harness/owed-undos.ts` — the undos a person made after a turn, put back at
   every turn's start under the workspace lock, and the reconcile turn's whole
   act (`reconcileOwedUndos`).

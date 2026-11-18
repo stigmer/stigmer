@@ -113,7 +113,8 @@ import { TERMINAL_COPY } from "../terminal-table.js";
 import { environmentInstalled, resetEnvironmentInstallForTests, startEnvironmentInstall, type CommandRunner } from "../../environment/install.js";
 import { TURN_PHASES_EVENT } from "../turn-timeline.js";
 import type { HarnessAdapter } from "../types.js";
-import { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { ApprovalAction, ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { APPROVED_NOT_RUN_ERROR } from "../approval-decisions.js";
 
 const TASK_QUEUE = "runtime-test-queue";
 
@@ -221,6 +222,39 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       ]);
       expect(aiMessages(driver.record.rowsOf(final))).toContain("Moving on.");
       expect(systemMessages(driver.record.rowsOf(final)), "no terminal copy: the run ended normally").toEqual([]);
+    });
+
+    it("an approved call the engine never re-ran settles FAILED on the finished run, reaches the log as a failed result, and is logged once (stigmer#2915)", async () => {
+      // The resumed turn says its last word without re-running the approved
+      // call, as the Claude engine has been seen to: no engine event settles
+      // the row, so the runtime does, and the person's card stops waiting.
+      clock.reset();
+      const driver = new RuntimeExecutionDriver(harness, "fake-approved-not-run");
+      const id = "fake-approved-not-run-shell";
+      const first = await driver.turn([scenario.propose(id, { kind: "shell", resource: "make release" })]);
+      expect(slimOf(subject, first).phase).toBe("RUN_WAITING_FOR_APPROVAL");
+      expect(driver.decide(ApprovalAction.APPROVE)).toBe(1);
+
+      const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      let second: Awaited<ReturnType<typeof driver.turn>>;
+      let errorLines: string[];
+      try {
+        second = await driver.turn([scenario.say("Done.")]);
+      } finally {
+        errorLines = errors.mock.calls.map((call) => String(call[0]));
+        errors.mockRestore();
+      }
+
+      expect(slimOf(subject, second).phase, "the run still completes: the model's other work is real").toBe("RUN_COMPLETED");
+      expect(subject.executionCount(id), "the engine never ran it").toBe(0);
+      const row = driver.record.lastFullRows!.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id);
+      expect([row?.status, row?.approvalAction, row?.error]).toEqual([ToolCallStatus.TOOL_CALL_FAILED, ApprovalAction.APPROVE, APPROVED_NOT_RUN_ERROR]);
+      expect(driver.record.waitingToolCalls(), "nothing waits on a finished execution").toHaveLength(0);
+      const results = driver.record.sessionEvents.flatMap((e) => (e.event.case === "agentToolResult" && e.event.value.toolUseId.endsWith(id) ? [e.event.value] : []));
+      expect(results.map((r) => [r.isError, r.content.map((c) => c.text)]), "the card resolves through the log").toEqual([[true, [APPROVED_NOT_RUN_ERROR]]]);
+      const lines = errorLines.filter((line) => line.includes("approved calls did not run"));
+      expect(lines, "one line names the execution and the call").toEqual([expect.stringContaining(`calls=${id}`)]);
+      expect(lines[0]).toContain("execution=");
     });
 
     it("a resumed invocation that writes no message still reports the run's answer: its newest answer in the log", async () => {

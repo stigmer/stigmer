@@ -215,19 +215,20 @@ export class ExecutionDriver {
   async turn(turn: TurnScenario, options: TurnOptions = {}): Promise<TurnRun> {
     const { input, sink, settled } = this.begin(turn, options);
     const outcome = await settled;
-    await this.recordTurn(sink);
+    await this.recordTurn(sink, outcome.kind);
     return { input, sink, outcome };
   }
 
   /**
-   * The runtime's post-turn bookkeeping: settle the SKIP and REJECT rows the
-   * adapter never executes (the runtime's write, `terminalizeNonExecutingDecisions`,
-   * so a decided row is not re-read as WAITING on the next turn), write the
-   * rows into the log with the runtime's own emitter (its terminal write),
-   * persist the status, adopt a bound id, advance the cycle.
+   * The runtime's post-turn bookkeeping: settle the decisions the adapter
+   * never executed (the runtime's write, `terminalizeNonExecutingDecisions`,
+   * on the turn's outcome, so a decided row is not re-read as WAITING on the
+   * next turn), write the rows into the log with the runtime's own emitter
+   * (its terminal write), persist the status, adopt a bound id, advance the
+   * cycle.
    */
-  async recordTurn(sink: RecordingTurnSink): Promise<void> {
-    terminalizeNonExecutingDecisions(sink.rows);
+  async recordTurn(sink: RecordingTurnSink, outcome: TurnOutcome["kind"]): Promise<void> {
+    terminalizeNonExecutingDecisions(sink.rows, outcome);
     await this.writeRows(sink.rows, sink.seeded);
     this.persisted = sink.status;
     this.lastRows = sink.rows;
@@ -351,8 +352,8 @@ export async function assertEveryExitIsAnOutcome(subject: HarnessContractSubject
   ];
   for (const play of plays) {
     const { sink, settled } = driver.begin(play.turn, play.options);
-    await settleAsOutcome(subject, settleWithinBound(subject, settled, play.when, boundMs), play.when);
-    driver.recordTurn(sink);
+    const outcome = await settleAsOutcome(subject, settleWithinBound(subject, settled, play.when, boundMs), play.when);
+    driver.recordTurn(sink, outcome.kind);
   }
 
   const preAborted = driver.newSink();
@@ -417,7 +418,7 @@ export async function assertDecisionsExecuteExactlyOnce(subject: HarnessContract
 
     const resumed = await driver.turn([scenario.propose(approved, WRITE_ALPHA), scenario.say("done"), scenario.propose(later, WRITE_BETA)]);
     expect(resumed.outcome.kind, `${subject.name}: after APPROVE the turn must run on, here to its next proposal`).toBe("awaiting_approval");
-    expect(subject.executionCount(approved), `${subject.name}: an approved action must execute exactly once`).toBe(1);
+    expect(subject.executionCount(approved), `${subject.name}: an approved action must execute exactly once; ${rowReport(resumed.sink.rows, approved)}`).toBe(1);
     expect(findToolCallRow(resumed.sink.rows, approved)?.status, `${subject.name}: the approved row must be carried to COMPLETED`).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
     driver.decide(later, ApprovalAction.APPROVE);
 
@@ -460,7 +461,7 @@ export async function assertStopSignalInterrupts(subject: HarnessContractSubject
   expect(outcome.kind, `${subject.name}: a turn stopped mid-hang must settle interrupted`).toBe("interrupted");
   expect(subject.executionCount(id), `${subject.name}: nothing after the stop may execute`).toBe(0);
   expect(findToolCallRow(hanging.sink.rows, id), `${subject.name}: nothing after the stop may even reach the gate — the proposal after the hang has no row`).toBeUndefined();
-  driver.recordTurn(hanging.sink);
+  driver.recordTurn(hanging.sink, outcome.kind);
 
   const preAborted = driver.newSink();
   preAborted.abort("kit: aborted before the turn");
@@ -615,6 +616,12 @@ export type ApprovalInvariant = "proposal-waits" | "decisions-execute-once" | "c
 export interface HarnessContractOptions {
   /** The approval invariants that are a known gap on this subject, each with the open issue that names it (`<owner>/<repo>#<n>`). */
   readonly knownGaps?: Partial<Readonly<Record<ApprovalInvariant, string>>>;
+}
+
+/** A row's status and error for a failure message: an approved action that did not run says why on its row (an engine's refusal, or the runtime's settle of a call its engine never ran). */
+function rowReport(rows: TurnRows, toolCallId: string): string {
+  const row = findToolCallRow(rows, toolCallId);
+  return row === undefined ? `no row for ${toolCallId}` : `its row is ${ToolCallStatus[row.status]} ${JSON.stringify(row.error)}`;
 }
 
 function gapFor(issue: string | undefined, today: TodayOutcome): KnownGap | undefined {
