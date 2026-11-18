@@ -60,6 +60,11 @@ export interface VaultEntriesEditorProps {
    * sign-in saved. Rendered for every login, read-only or not.
    */
   readonly connectionAction?: (address: string, connection: VaultConnection) => ReactNode;
+  /**
+   * Draw the secrets alone or the logins alone, without their own heading,
+   * for a page that puts each in its own section card. Both by default.
+   */
+  readonly only?: "secrets" | "logins";
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -109,6 +114,7 @@ export function VaultEntriesEditor({
   isMutating = false,
   readOnly = false,
   connectionAction,
+  only,
   className,
 }: VaultEntriesEditorProps) {
   const [error, setError] = useState<string | null>(null);
@@ -157,9 +163,10 @@ export function VaultEntriesEditor({
 
   return (
     <div className={cn("stg:space-y-5", className)}>
+      {only !== "logins" && (
       <section aria-label="Secrets" className="stg:space-y-2">
-        <h3 className="stg:text-xs stg:font-semibold stg:text-foreground">Secrets</h3>
-        <p className="stg:text-2xs stg:text-muted-foreground">
+        {only === undefined && <h3 className="stg:text-xs stg:font-semibold stg:text-foreground">Secrets</h3>}
+        <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
           Matched by name, such as OPENAI_API_KEY. Saved values are never shown again.
         </p>
         {secrets.length === 0 ? (
@@ -190,12 +197,13 @@ export function VaultEntriesEditor({
           />
         )}
       </section>
+      )}
 
+      {only !== "secrets" && (
       <section aria-label="Logins" className="stg:space-y-2">
-        <h3 className="stg:text-xs stg:font-semibold stg:text-foreground">Logins</h3>
-        <p className="stg:text-2xs stg:text-muted-foreground">
-          Matched by the address of the tool or Git host they are for, such as
-          https://mcp.linear.app/mcp or github.com.
+        {only === undefined && <h3 className="stg:text-xs stg:font-semibold stg:text-foreground">Logins</h3>}
+        <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
+          Matched by the address of the tool or Git host they&apos;re for.
         </p>
         {connections.length === 0 ? (
           <EmptyState variant="first-use" size="inline" title="No logins saved." className="stg:px-0" />
@@ -225,6 +233,7 @@ export function VaultEntriesEditor({
           />
         )}
       </section>
+      )}
 
       {error && (
         <FieldError>

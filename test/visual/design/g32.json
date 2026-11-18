@@ -122,14 +122,14 @@
       },
       "ruled": {},
       "pending": {
-        "word Admin · One person only · not used yet": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Admin · One person only · not used yet": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     },
     {
       "caption": "Invitations: A link just made: copy it now",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings Built look's fixes build it.",
+      "unbuilt": "No scene draws this state yet; the page's parts are built, this state has no scene.",
       "words": [
         {
           "text": "Invitations",
@@ -274,7 +274,7 @@
       "caption": "Invitations: New invite link, the server refuses the date",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings Built look's fixes build it.",
+      "unbuilt": "No scene draws this state yet; the page's parts are built, this state has no scene.",
       "words": [
         {
           "text": "Invitations",
@@ -515,8 +515,8 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "word Revoke Engineering team invite?": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word The link stops working at once. The three people who joined with it stay in acme.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Revoke Engineering team invite?": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "word The link stops working at once. The three people who joined with it stay in acme.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     },
     {
@@ -885,8 +885,8 @@
       },
       "ruled": {},
       "pending": {
-        "word New invite link": "When its page is redesigned: the settings Built look's fixes keep the header's act when the list fails to load",
-        "button New invite link": "When its page is redesigned: the settings Built look's fixes keep the header's act when the list fails to load"
+        "word New invite link": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "button New invite link": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     },
     {
@@ -1007,7 +1007,7 @@
       },
       "ruled": {},
       "pending": {
-        "word Admin · One person only · not used yet": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Admin · One person only · not used yet": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     }
   ]

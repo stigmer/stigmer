@@ -26,7 +26,7 @@ import { SwitchField } from "../internal/form/SwitchField.js";
 import { Section } from "../resource-detail/Section.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
-import { FieldError, Radio } from "../internal/form/index.js";
+import { Field, FieldError, Select } from "../internal/form/index.js";
 
 /** Props for {@link AccountPreferencesPanel}. */
 export interface AccountPreferencesPanelProps {
@@ -285,30 +285,25 @@ export function AccountPreferencesPanel({
 
       <Section title="Default models">
         <fieldset className="stg:m-0 stg:flex stg:flex-col stg:gap-2 stg:border-0 stg:p-4" disabled={isUpdating}>
-          <legend className="stg:mb-1 stg:p-0 stg:text-sm stg:font-medium stg:text-foreground">
-            Harness a new conversation starts on
-          </legend>
-          <HarnessOptionRow
-            radioName={`${baseId}-default-harness`}
-            value=""
-            label="Platform default"
-            description="Stigmer picks the harness for new sessions."
-            checked={defaultHarness === ""}
-            onSelect={setDefaultHarness}
-            disabled={isUpdating}
-          />
-          {HARNESS_OPTIONS.map((harness) => (
-            <HarnessOptionRow
-              key={harness}
-              radioName={`${baseId}-default-harness`}
-              value={harness}
-              label={HARNESS_META[harness].label}
-              description={HARNESS_META[harness].description}
-              checked={defaultHarness === harness}
-              onSelect={setDefaultHarness}
-              disabled={isUpdating}
-            />
-          ))}
+          <legend className="stg:sr-only">Default models</legend>
+          {/* One harness of a few: a select, its choice's line under it. */}
+          <Field
+            label="Harness a new conversation starts on"
+            hint={
+              isHarnessOption(defaultHarness)
+                ? HARNESS_META[defaultHarness].description
+                : "Stigmer picks the harness for new sessions."
+            }
+          >
+            <Select value={defaultHarness} onChange={(e) => setDefaultHarness(e.target.value)} disabled={isUpdating}>
+              <option value="">Platform default</option>
+              {HARNESS_OPTIONS.map((harness) => (
+                <option key={harness} value={harness}>
+                  {HARNESS_META[harness].label}
+                </option>
+              ))}
+            </Select>
+          </Field>
           <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
             Each harness&apos;s default model is set on{" "}
             <a
@@ -371,83 +366,6 @@ export function AccountPreferencesPanel({
         </Section>
       )}
     </form>
-  );
-}
-
-/**
- * One selectable default-harness choice, presented as a bordered row
- * (the `VisibilityOptionRow` presentation shape): radio + label +
- * one-line description.
- *
- * The rows are the offered engines (`HARNESS_OPTIONS`), and must stay in
- * lockstep with the proto's `default_harness` in-list validation
- * (`["stigmer", "claude"]`).
- */
-function HarnessOptionRow({
-  radioName,
-  value,
-  label,
-  description,
-  checked,
-  onSelect,
-  disabled,
-}: {
-  readonly radioName: string;
-  readonly value: string;
-  readonly label: string;
-  readonly description: string;
-  readonly checked: boolean;
-  readonly onSelect: (value: string) => void;
-  readonly disabled: boolean;
-}) {
-  // The radio's accessible name is the title alone (aria-labelledby), with
-  // the description attached as aria-describedby — the wrapping label keeps
-  // the whole text block clickable without bloating the announced name.
-  const titleId = `${radioName}-${value || "platform"}-title`;
-  const descriptionId = `${radioName}-${value || "platform"}-description`;
-
-  return (
-    <div
-      className={cn(
-        "stg:rounded-md stg:border stg:px-3 stg:py-2.5 stg:transition-colors",
-        checked
-          ? "stg:border-primary stg:bg-accent"
-          : "stg:border-input stg:hover:bg-accent-hover",
-        disabled && "stg:opacity-50",
-      )}
-    >
-      <label
-        className={cn(
-          "stg:flex stg:cursor-pointer stg:items-start stg:gap-2",
-          disabled && "stg:cursor-default",
-        )}
-      >
-        <Radio
-          name={radioName}
-          value={value}
-          checked={checked}
-          onChange={() => onSelect(value)}
-          disabled={disabled}
-          aria-labelledby={titleId}
-          aria-describedby={descriptionId}
-          className="stg:mt-0.5"
-        />
-        <span className="stg:min-w-0 stg:flex-1">
-          <span
-            id={titleId}
-            className="stg:block stg:text-sm stg:font-medium stg:text-foreground"
-          >
-            {label}
-          </span>
-          <span
-            id={descriptionId}
-            className="stg:block stg:text-xs stg:text-muted-foreground"
-          >
-            {description}
-          </span>
-        </span>
-      </label>
-    </div>
   );
 }
 

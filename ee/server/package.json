@@ -56,7 +56,8 @@
     "@stigmer/apis": "file:../../apis/stubs/ts",
     "@stigmer/outbound": "file:../../backend/libs/ts/outbound",
     "@stigmer/server": "file:../../backend/services/stigmer-server",
-    "pg": "8.23.0"
+    "pg": "8.23.0",
+    "undici": "8.12.3"
   },
   "devDependencies": {
     "@connectrpc/connect-node": "^2.0.0",

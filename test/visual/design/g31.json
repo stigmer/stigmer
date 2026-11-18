@@ -334,20 +334,18 @@
       },
       "ruled": {},
       "pending": {
-        "word Members 4": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "type Add a person": "When its page is redesigned: the settings Built look's fixes draws a team's people as rows with Add a person",
-        "type Grace Hopper": "When its page is redesigned: the settings Built look's fixes draws a team's people as rows with Add a person",
-        "type Katherine Johnson": "When its page is redesigned: the settings Built look's fixes draws a team's people as rows with Add a person",
-        "word Shared with Finance": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Its four people lose what was shared with Finance. Nothing they made is deleted.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "button Add a person": "When its page is redesigned: the settings Built look's fixes draws a team's people as rows with Add a person"
+        "word Members 4": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "type Grace Hopper": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "type Katherine Johnson": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "word Shared with Finance": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "word Its four people lose what was shared with Finance. Nothing they made is deleted.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     },
     {
       "caption": "Teams: New team, its name taken",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings Built look's fixes build it.",
+      "unbuilt": "No scene draws this state yet; the page's parts are built, this state has no scene.",
       "words": [
         {
           "text": "Teams",
@@ -508,7 +506,7 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "word Its four people lose what was shared with Finance. Nothing they made is deleted.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Its four people lose what was shared with Finance. Nothing they made is deleted.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     },
     {
@@ -780,9 +778,7 @@
       "buttons": [],
       "sample": {},
       "ruled": {},
-      "pending": {
-        "word Admins of acme make teams. Once one adds you to a team, what's shared with it reaches you.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
-      }
+      "pending": {}
     },
     {
       "caption": "Teams: On the open-source edition",

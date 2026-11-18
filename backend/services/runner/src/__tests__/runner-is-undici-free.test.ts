@@ -7,8 +7,8 @@
  * preflight message in `preflight.ts`, the pins in `preflight.test.ts`) are
  * set by what it loads, and that is `node:sqlite`: 22.13 in the 22.x line,
  * 23.4 after it. undici needs more (22.19 / 23.8; on 23.4–23.7 it crashes at
- * load), and `@stigmer/outbound` installs it for its `/dial` entry, which
- * makes undici the process's dispatcher. The runner takes outbound's `/egress`
+ * load), and `@stigmer/outbound`'s `/dial` entry loads it (an optional peer
+ * the runner does not install) and makes it the process's dispatcher. The runner takes outbound's `/egress`
  * and `/mcp-oauth` entries only (`tools/url-guard.ts` says why it declines
  * `/dial`), and neither imports undici, nor does the bare `@stigmer/outbound`
  * entry, which re-exports just those two. So the floors stay true only while

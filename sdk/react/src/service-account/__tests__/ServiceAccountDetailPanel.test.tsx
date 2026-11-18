@@ -57,6 +57,7 @@ const ACCOUNT: IdentityAccount = create(IdentityAccountSchema, {
 
 function wrapper({ children }: { children: ReactNode }) {
   const client = {
+    platform: { getServerInfo: async () => ({ singleOrg: true }) },
     identityAccount: {
       update: async (resource: { metadata?: { id?: string; name?: string } }, paths: string[]) => {
         calls.updates.push({ resource, paths });
@@ -160,8 +161,11 @@ describe("ServiceAccountDetailPanel", () => {
 
   it("changes the role by granting the new one before revoking the old, and never offers Owner", async () => {
     renderPanel();
-    await screen.findByText(/acts with the Member role/);
+    await screen.findByText("ci-deploy acts with the Member role in this organization.");
     expect(screen.queryByRole("radio", { name: /^Owner/ })).toBeNull();
+    // One role of a few, each with what it allows: the kit's choice list.
+    const roles = screen.getByRole("radiogroup", { name: "Organization role" });
+    expect(within(roles).getAllByRole("radio")).toHaveLength(3);
 
     fireEvent.click(screen.getByRole("radio", { name: /^Viewer/ }));
     fireEvent.click(screen.getByRole("button", { name: "Save role" }));

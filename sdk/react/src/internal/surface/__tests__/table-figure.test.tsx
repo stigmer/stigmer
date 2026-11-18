@@ -123,6 +123,12 @@ describe("Table, wide", () => {
     render(<Table aria-label="Agents" columns={COLUMNS} rows={AGENTS} rowKey={(a) => a.slug} />);
     expect(screen.getByRole("table", { name: "Agents" })).toBeTruthy();
   });
+
+  it("keeps its columns down to a width of the host's choosing", () => {
+    layOutAt(400);
+    render(<Table aria-label="Agents" columns={COLUMNS} rows={AGENTS} rowKey={(a) => a.slug} narrowBelow={320} />);
+    expect(screen.getByRole("table", { name: "Agents" })).toBeTruthy();
+  });
 });
 
 describe("Table, narrower than 640px of its own width", () => {

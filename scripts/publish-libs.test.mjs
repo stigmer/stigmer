@@ -10,7 +10,8 @@
 // one level outside the installed package; and every published coding-agent
 // plugin once said it was 0.0.0-dev, because the build stamped the
 // workspace's version into its manifests and only dist/package.json got the
-// release's (stigmer/stigmer#3144).
+// release's (stigmer/stigmer#3144); and it once dropped peerDependenciesMeta,
+// so every optional peer published as required (stigmer/stigmer#2975).
 //
 // It also pins which registry a run is tied to: only an NPM_TOKEN run (the
 // release lane, npmjs.com) writes a registry into .npmrc. The dev lane sets no
@@ -176,6 +177,51 @@ test("generateDistPackageJson carries bin and pins workspace deps", () => {
   } finally {
     rmSync(pkgDir, { recursive: true, force: true });
   }
+});
+
+test("an optional peer publishes optional", () => {
+  // The script once built the manifest field by field and dropped
+  // peerDependenciesMeta, so every optional peer shipped required: npm 7+
+  // would have installed outbound's undici (with its Node floor) into the
+  // runner, which never loads the entry that needs it.
+  const dist = distPackageJsonOf(
+    {
+      name: "@stigmer/outbound",
+      peerDependencies: { undici: "8.12.3", "@stigmer/apis": "*" },
+      peerDependenciesMeta: { undici: { optional: true } },
+    },
+    "1.2.3",
+  );
+  assert.deepEqual(dist.peerDependencies, { undici: "8.12.3", "@stigmer/apis": "1.2.3" });
+  assert.deepEqual(dist.peerDependenciesMeta, { undici: { optional: true } });
+
+  assert.equal("peerDependenciesMeta" in distPackageJsonOf({ name: "@stigmer/x", peerDependencies: { a: "1" } }, "1.2.3"), false);
+});
+
+test("every published package keeps the peer meta its source declares", () => {
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+  const declaring = [];
+  for (const relDir of PACKAGES) {
+    const src = JSON.parse(readFileSync(join(root, relDir, "package.json"), "utf8"));
+    if (!src.peerDependenciesMeta) continue;
+    declaring.push(relDir);
+    assert.deepEqual(distPackageJsonOf(src, "1.2.3").peerDependenciesMeta, src.peerDependenciesMeta, relDir);
+  }
+  // A walk that read nothing cannot pass on nothing.
+  assert.ok(declaring.includes("backend/libs/ts/outbound"), `peer meta found only in: ${declaring.join(", ")}`);
+});
+
+test("@stigmer/client publishes @connectrpc/connect-node as a required peer", () => {
+  // Its `/node` entry imports the package, and the docs install the client
+  // alone (`npm install @stigmer/client`), so Node apps rely on npm
+  // installing the peer. While publish-libs dropped peerDependenciesMeta,
+  // the source's `optional` never reached the registry; carried, it broke
+  // every Node app that followed the docs. Making it optional is a change
+  // to the client's install contract, with docs of its own.
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+  const dist = distPackageJsonOf(JSON.parse(readFileSync(join(root, "sdk/typescript/package.json"), "utf8")), "1.2.3");
+  assert.ok(dist.peerDependencies?.["@connectrpc/connect-node"], "the client names @connectrpc/connect-node as a peer");
+  assert.notEqual(dist.peerDependenciesMeta?.["@connectrpc/connect-node"]?.optional, true);
 });
 
 // A synthetic publish set shaped like the real one's hazards: a peer-only

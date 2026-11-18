@@ -69,11 +69,6 @@
     "@connectrpc/connect-node": "^2.0.0",
     "@stigmer/apis": "*"
   },
-  "peerDependenciesMeta": {
-    "@connectrpc/connect-node": {
-      "optional": true
-    }
-  },
   "devDependencies": {
     "@stigmer/apis": "*",
     "vitest": "^3.2.4"

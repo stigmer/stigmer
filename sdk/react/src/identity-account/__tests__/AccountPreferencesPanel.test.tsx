@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
   IdentityAccountSchema,
@@ -354,11 +354,14 @@ describe("AccountPreferencesPanel", () => {
       renderPanel(createMockStigmer());
       await findSyncedField("Keep answers terse.");
 
-      expect(screen.getByRole("radio", { name: "Platform default" })).toBeTruthy();
-      expect(screen.getByRole("radio", { name: "Stigmer" })).toBeTruthy();
-      expect(screen.getByRole("radio", { name: "Claude Agent" })).toBeTruthy();
-      expect(screen.getAllByRole("radio")).toHaveLength(3);
-      expect(screen.queryByRole("combobox")).toBeNull();
+      // One harness of a few: a select, not a list of radio rows.
+      const harness = screen.getByRole("combobox", { name: "Harness a new conversation starts on" });
+      expect(within(harness).getAllByRole("option").map((o) => o.textContent)).toEqual([
+        "Platform default",
+        "Stigmer",
+        "Claude Agent",
+      ]);
+      expect(screen.queryByRole("radio")).toBeNull();
       expect(
         screen.getByRole("link", { name: "Models and providers" }).getAttribute("href"),
       ).toBe("/models");
@@ -376,12 +379,13 @@ describe("AccountPreferencesPanel", () => {
     it("discards an unsaved engine back to the saved one", async () => {
       renderPanel(createMockStigmer({ whoAmI: vi.fn(async () => ACCOUNT_WITH_DEFAULTS) }));
       await findSyncedField("Keep answers terse.");
-      await waitFor(() => expect(screen.getByRole("radio", { name: "Claude Agent" })).toHaveProperty("checked", true));
+      const harness = () => screen.getByRole("combobox", { name: "Harness a new conversation starts on" }) as HTMLSelectElement;
+      await waitFor(() => expect(harness().value).toBe("claude"));
 
-      fireEvent.click(screen.getByRole("radio", { name: "Stigmer" }));
+      fireEvent.change(harness(), { target: { value: "stigmer" } });
       fireEvent.click(screen.getByRole("button", { name: "Discard" }));
 
-      expect(screen.getByRole("radio", { name: "Claude Agent" })).toHaveProperty("checked", true);
+      expect(harness().value).toBe("claude");
     });
 
     it("saves Claude as the default engine without naming either engine's default model", async () => {
@@ -389,7 +393,9 @@ describe("AccountPreferencesPanel", () => {
       renderPanel(createMockStigmer({ update }));
       await findSyncedField("Keep answers terse.");
 
-      fireEvent.click(screen.getByRole("radio", { name: "Claude Agent" }));
+      fireEvent.change(screen.getByRole("combobox", { name: "Harness a new conversation starts on" }), {
+        target: { value: "claude" },
+      });
       fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
@@ -399,19 +405,17 @@ describe("AccountPreferencesPanel", () => {
       expect(sent.paths).not.toContain("spec.preferences.default_claude_model");
     });
 
-    it("pairs each harness row with its description (the row IS the context)", async () => {
+    it("says the chosen harness's line under the select", async () => {
       renderPanel(createMockStigmer());
       await findSyncedField("Keep answers terse.");
 
-      // Row subtitles come from HARNESS_META — the single source of harness
-      // display copy — plus the platform-default explainer.
+      // The lines come from HARNESS_META, the single source of harness
+      // display copy, plus the platform-default explainer.
       expect(screen.getByText("Stigmer picks the harness for new sessions.")).toBeTruthy();
-      expect(screen.getByText("Stigmer's own harness: runs any catalog model, open source end to end")).toBeTruthy();
+      const harness = screen.getByRole("combobox", { name: "Harness a new conversation starts on" });
+      fireEvent.change(harness, { target: { value: "claude" } });
       expect(screen.getByText("Anthropic's Claude Agent SDK: Claude models on your Anthropic key")).toBeTruthy();
-      // The radios' accessible descriptions are wired via aria-describedby.
-      expect(
-        screen.getByRole("radio", { name: "Stigmer" }).getAttribute("aria-describedby"),
-      ).toBeTruthy();
+      expect(harness.getAttribute("aria-describedby")).toBeTruthy();
     });
 
     it("reflects the saved default engine in the form", async () => {
@@ -419,7 +423,9 @@ describe("AccountPreferencesPanel", () => {
       await findSyncedField("Keep answers terse.");
 
       await waitFor(() => {
-        expect(screen.getByRole("radio", { name: "Claude Agent" })).toHaveProperty("checked", true);
+        expect(
+          (screen.getByRole("combobox", { name: "Harness a new conversation starts on" }) as HTMLSelectElement).value,
+        ).toBe("claude");
       });
     });
 
@@ -455,7 +461,9 @@ describe("AccountPreferencesPanel", () => {
         renderPanel(createMockStigmer({ whoAmI: vi.fn(async () => stale), update }));
 
         const field = await findSyncedField("Keep answers terse.");
-        expect(screen.getByRole("radio", { name: "Platform default" })).toHaveProperty("checked", true);
+        expect(
+          (screen.getByRole("combobox", { name: "Harness a new conversation starts on" }) as HTMLSelectElement).value,
+        ).toBe("");
         expect(screen.getByRole("button", { name: "Save" })).toHaveProperty("disabled", true);
 
         fireEvent.change(field, { target: { value: "Terser still." } });

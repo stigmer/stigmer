@@ -83,10 +83,30 @@ describe("BaselineEditor variants", () => {
 });
 
 describe("BaselineEditor confirm step", () => {
+  it("asks in a dialog over the form, which Back closes with the form as it was", () => {
+    renderEditor(SONNET);
+    fireEvent.change(screen.getByLabelText("Input ($/M)"), { target: { value: "4" } });
+    fireEvent.click(screen.getByRole("button", { name: "Review changes" }));
+    const dialog = screen.getByRole("dialog", { name: /Save these prices for/ });
+    expect(within(dialog).getByRole("table", { name: "Rate changes" })).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Back" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect((screen.getByLabelText("Input ($/M)") as HTMLInputElement).value).toBe("4");
+  });
+
+  it("closes the confirm on Escape too, leaving the form as it was", () => {
+    renderEditor(SONNET);
+    fireEvent.change(screen.getByLabelText("Input ($/M)"), { target: { value: "4" } });
+    fireEvent.click(screen.getByRole("button", { name: "Review changes" }));
+    fireEvent(screen.getByRole("dialog"), new Event("cancel", { cancelable: true }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect((screen.getByLabelText("Input ($/M)") as HTMLInputElement).value).toBe("4");
+  });
+
   it("lists the moving rate, now and new, and sends nothing until saved", () => {
     const onSubmit = renderEditor(SONNET);
 
-    fireEvent.change(screen.getByLabelText("Input"), { target: { value: "4" } });
+    fireEvent.change(screen.getByLabelText("Input ($/M)"), { target: { value: "4" } });
     fireEvent.click(screen.getByRole("button", { name: "Review changes" }));
 
     expect(changeLines()).toEqual(["Input: $3.00/M → $4.00/M"]);
@@ -119,7 +139,7 @@ describe("BaselineEditor and the long-prompt step (#3138)", () => {
 
     // The base block's group is first; the variant's carries the same labels.
     expect((screen.getAllByLabelText("Prompt tokens above")[0] as HTMLInputElement).value).toBe("100000");
-    fireEvent.change(screen.getAllByLabelText("Input")[0]!, { target: { value: "4" } });
+    fireEvent.change(screen.getAllByLabelText("Input ($/M)")[0]!, { target: { value: "4" } });
     fireEvent.click(screen.getByRole("button", { name: "Review changes" }));
     expect(changeLines()).toEqual(["Input: $3.00/M → $4.00/M"]);
     await save();
@@ -134,10 +154,10 @@ describe("BaselineEditor and the long-prompt step (#3138)", () => {
     const onSubmit = renderEditor(SONNET);
 
     fireEvent.change(screen.getByLabelText("Prompt tokens above"), { target: { value: "100000" } });
-    fireEvent.change(screen.getByLabelText("Input above"), { target: { value: "6" } });
-    fireEvent.change(screen.getByLabelText("Output above"), { target: { value: "30" } });
-    fireEvent.change(screen.getByLabelText("Cache write above"), { target: { value: "6" } });
-    fireEvent.change(screen.getByLabelText("Cache read above"), { target: { value: "0.6" } });
+    fireEvent.change(screen.getByLabelText("Input above ($/M)"), { target: { value: "6" } });
+    fireEvent.change(screen.getByLabelText("Output above ($/M)"), { target: { value: "30" } });
+    fireEvent.change(screen.getByLabelText("Cache write above ($/M)"), { target: { value: "6" } });
+    fireEvent.change(screen.getByLabelText("Cache read above ($/M)"), { target: { value: "0.6" } });
     fireEvent.click(screen.getByRole("button", { name: "Review changes" }));
 
     expect(changeLines()).toEqual([
@@ -145,7 +165,7 @@ describe("BaselineEditor and the long-prompt step (#3138)", () => {
       "Input above 100,000: — → $6.00/M",
       "Output above 100,000: — → $30.00/M",
       "Cache write above 100,000: — → $6.00/M",
-      "Cache read above 100,000: — → $0.6000/M",
+      "Cache read above 100,000: — → $0.60/M",
     ]);
     await save();
     expect(onSubmit.mock.calls[0]![0].pricing?.longContext).toEqual(step(6_000_000n));
@@ -154,7 +174,7 @@ describe("BaselineEditor and the long-prompt step (#3138)", () => {
   it("removes the step when every field of its group is emptied", async () => {
     const onSubmit = renderEditor(STEPPED);
 
-    for (const label of ["Prompt tokens above", "Input above", "Output above", "Cache write above", "Cache read above"]) {
+    for (const label of ["Prompt tokens above", "Input above ($/M)", "Output above ($/M)", "Cache write above ($/M)", "Cache read above ($/M)"]) {
       fireEvent.change(screen.getAllByLabelText(label)[0]!, { target: { value: "" } });
     }
     fireEvent.click(screen.getByRole("button", { name: "Review changes" }));
@@ -168,7 +188,7 @@ describe("BaselineEditor and the long-prompt step (#3138)", () => {
     const onSubmit = renderEditor(SONNET);
 
     fireEvent.change(screen.getByLabelText("Prompt tokens above"), { target: { value: "100000" } });
-    fireEvent.change(screen.getByLabelText("Input above"), { target: { value: "6" } });
+    fireEvent.change(screen.getByLabelText("Input above ($/M)"), { target: { value: "6" } });
     fireEvent.click(screen.getByRole("button", { name: "Review changes" }));
 
     expect(screen.getByText("Fill every long-prompt field, or none.")).toBeTruthy();
@@ -198,10 +218,10 @@ describe("BaselineEditor's long-prompt rules", () => {
 
   function fillBaseGroup(threshold: string, input = "6") {
     fireEvent.change(screen.getByLabelText("Prompt tokens above"), { target: { value: threshold } });
-    fireEvent.change(screen.getByLabelText("Input above"), { target: { value: input } });
-    fireEvent.change(screen.getByLabelText("Output above"), { target: { value: "30" } });
-    fireEvent.change(screen.getByLabelText("Cache write above"), { target: { value: "6" } });
-    fireEvent.change(screen.getByLabelText("Cache read above"), { target: { value: "0.6" } });
+    fireEvent.change(screen.getByLabelText("Input above ($/M)"), { target: { value: input } });
+    fireEvent.change(screen.getByLabelText("Output above ($/M)"), { target: { value: "30" } });
+    fireEvent.change(screen.getByLabelText("Cache write above ($/M)"), { target: { value: "6" } });
+    fireEvent.change(screen.getByLabelText("Cache read above ($/M)"), { target: { value: "0.6" } });
     fireEvent.click(screen.getByRole("button", { name: "Review changes" }));
   }
 
@@ -223,7 +243,7 @@ describe("BaselineEditor's long-prompt rules", () => {
   it("names the variant whose group is partly filled", () => {
     renderEditor(STEPPED);
     // The variant's group is the second.
-    fireEvent.change(screen.getAllByLabelText("Output above")[1]!, { target: { value: "" } });
+    fireEvent.change(screen.getAllByLabelText("Output above ($/M)")[1]!, { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: "Review changes" }));
     expect(screen.getByText('Variant "fast": Fill every long-prompt field, or none.')).toBeTruthy();
   });
@@ -231,7 +251,7 @@ describe("BaselineEditor's long-prompt rules", () => {
   it("lists a moved threshold, and one rate moved inside a step, base and variant", () => {
     renderEditor(STEPPED);
     fireEvent.change(screen.getAllByLabelText("Prompt tokens above")[0]!, { target: { value: "150000" } });
-    fireEvent.change(screen.getAllByLabelText("Output above")[1]!, { target: { value: "70" } });
+    fireEvent.change(screen.getAllByLabelText("Output above ($/M)")[1]!, { target: { value: "70" } });
     fireEvent.click(screen.getByRole("button", { name: "Review changes" }));
 
     expect(changeLines()).toEqual([
