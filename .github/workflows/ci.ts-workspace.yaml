@@ -339,21 +339,24 @@ jobs:
   # the expected, actual and diff pictures upload, one artifact per shard.
   #
   # The suite runs as four shards, the split that closed #3201. In one job
-  # it took 32-35 minutes on 2026-11-18 (2507 tests, 3758 worker-seconds on
-  # 2 workers; setup and builds about 3 minutes of the rest), so a loaded
-  # runner cancelled runs with nothing failing. Playwright splits by test
-  # (`fullyParallel`), and the per-test times are close (1.2 to 2.5 s), so a
-  # count-based quarter is a quarter of the time; a spec with much slower
-  # tests would skew that, and the split is re-measured then. `--shard`
-  # reaches only the spec: npm appends it to the script's last command, so
-  # every shard also runs the unit checks (about 11 s), which keeps the step
-  # unconditional. Locally, `make test-visual` runs the whole suite.
+  # it took 32-35 minutes on 2026-11-18 (2507 tests then, 3758
+  # worker-seconds on 2 workers; setup and builds about 3 minutes of the
+  # rest), so a loaded runner cancelled runs with nothing failing.
+  # Playwright splits by test (`fullyParallel`), and the per-test times are
+  # close (1.2 to 2.5 s), so a count-based quarter is a quarter of the time;
+  # a spec with much slower tests would skew that, and the split is
+  # re-measured then. `--shard` reaches only the spec: npm appends it to the
+  # script's last command, so every shard also runs the unit checks (about
+  # 11 s), which keeps the step unconditional. Locally, `make test-visual`
+  # runs the whole suite.
   visual:
     name: Visual Suite (Screenshots + A11y, ${{ matrix.shard }}/4)
     runs-on: ubuntu-24.04-arm
-    # About 3x a shard's time, by scripts/ci-timeouts.mjs's rule: without a
-    # cap a hung shard would hold a runner for GitHub's six-hour default.
-    timeout-minutes: 40
+    # Sized by scripts/ci-timeouts.mjs's rule from the first sharded run
+    # (#3307, 2026-11-18: 2526 tests, shards 10m23s, 11m45s, 12m10s, 11m00s;
+    # the suite itself 7.5 to 9.4 minutes of each): 3 x the 11.4-minute
+    # median, rounded up to 35.
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
