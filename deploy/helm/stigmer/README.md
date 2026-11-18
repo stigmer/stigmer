@@ -60,7 +60,9 @@ helm install stigmer oci://ghcr.io/stigmer/charts/stigmer \
 OAuth tokens). `STIGMER_RUNNER_TOKEN_KEY` signs the execution-scoped tokens the
 runner authenticates with. Both are 32 random bytes, base64-encoded. Keep the
 Secret with your backups: without the encryption key, every encrypted value in
-the database is unreadable.
+the database is unreadable. `POSTGRES_PASSWORD` must not contain a space: the
+bundled Temporal cannot use one, and its setup step refuses it. The hex password
+above has none.
 
 The Secret may also carry `STIGMER_PLATFORM_TOKEN_KEY`, the RSA key that signs
 the short-lived user tokens a service account's API key mints once authentication is on
@@ -390,7 +392,7 @@ Temporal's connections when it shares the instance, must fit the database's
 `max_connections`. When Temporal stays bundled and Postgres is yours, the
 Temporal pod's schema step creates its two databases (`temporal`,
 `temporal_visibility`) on your instance at first boot and needs a user with
-`CREATE DATABASE`.
+`CREATE DATABASE` and a password without a space.
 
 ## Backup, restore, upgrade
 

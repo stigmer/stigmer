@@ -214,6 +214,23 @@ export function readCompose() {
   return parse(readFileSync(COMPOSE_FILE, "utf8"));
 }
 
+/** A compose `sh -c` script as the shell receives it: compose reads `$$` as a literal `$`. */
+export function composeScript(service) {
+  const command = readCompose().services[service].command;
+  if (command?.[0] !== "sh" || command[1] !== "-c") {
+    throw new Error(`compose service '${service}' does not run a sh -c script`);
+  }
+  return command[2].replaceAll("$$", "$");
+}
+
+/** A chart container's `sh -c` script. */
+export function chartScript(container) {
+  if (container.command?.[0] !== "sh" || container.command[1] !== "-c") {
+    throw new Error(`container '${container.name}' does not run a sh -c script`);
+  }
+  return container.command[2];
+}
+
 /** The chart's `Chart.yaml`. */
 export function readChart() {
   return parse(readFileSync(join(CHART_DIR, "Chart.yaml"), "utf8"));

@@ -43,6 +43,8 @@ import { test } from "node:test";
 import { parse } from "yaml";
 
 import {
+  chartScript,
+  composeScript,
   containerNamed,
   envMap,
   findOne,
@@ -291,19 +293,6 @@ test("every Temporal image in compose names one version, so the server and its t
   );
   assert.equal(new Set(images.map((image) => image.split(":")[1])).size, 1, images.join(", "));
 });
-
-/** A compose `sh -c` script as the shell receives it: compose reads `$$` as a literal `$`. */
-function composeScript(service) {
-  const command = readCompose().services[service].command;
-  assert.deepEqual(command.slice(0, 2), ["sh", "-c"], `${service} runs a sh -c script`);
-  return command[2].replaceAll("$$", "$");
-}
-
-/** A chart container's `sh -c` script. */
-function chartScript(container) {
-  assert.deepEqual(container.command.slice(0, 2), ["sh", "-c"], `${container.name} runs a sh -c script`);
-  return container.command[2];
-}
 
 // What the chart's registrar runs after compose's script: it stays up, as the
 // image's own command does, so its readiness exec keeps reporting.

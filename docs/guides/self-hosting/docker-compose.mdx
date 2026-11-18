@@ -99,7 +99,8 @@ openssl rand -base64 32
 openssl rand -base64 32
 ```
 
-Paste each value into its line. Two optional lines are worth setting now:
+Paste each value into its line. A database password of your own must not contain
+a space, which Temporal can't use. Two optional lines are worth setting now:
 
 - `ANTHROPIC_API_KEY`, so Agents can answer. Without it the stack still serves
   the console and the API; runs fail at the LLM call. If your model traffic goes
@@ -126,7 +127,8 @@ namespace, so give it a few minutes. `docker compose ps` is the health check:
 every service shows `Up`, and `postgres` and `stigmer-server` also show
 `(healthy)`. The two setup steps exit once they finish, so `docker compose ps`
 leaves them out; `docker compose ps -a` lists them as `Exited (0)`, which is
-success.
+success. A step listed as `Exited (1)` failed, and its log says why: for
+example, `docker compose logs temporal-schema`.
 
 ### Open the console
 

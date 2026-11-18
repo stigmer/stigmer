@@ -75,12 +75,13 @@ kubectl -n stigmer create secret generic stigmer-secrets \
 ```
 
 `STIGMER_ENCRYPTION_KEY` encrypts secret values at rest.
-`STIGMER_RUNNER_TOKEN_KEY` signs the tokens the runner authenticates with. Keep
-this Secret with your backups: without the encryption key, every encrypted value
-in the database is unreadable. Once you turn on authentication, the Secret may
-also carry `STIGMER_PLATFORM_TOKEN_KEY`, which signs the tokens the server
-mints, such as your product's users' tokens; it is optional, and the server
-generates one on its volume without it.
+`STIGMER_RUNNER_TOKEN_KEY` signs the tokens the runner authenticates with. The
+database password must not contain a space, which Temporal can't use; the
+generated one has none. Keep this Secret with your backups: without the
+encryption key, every encrypted value in the database is unreadable. Once you
+turn on authentication, the Secret may also carry `STIGMER_PLATFORM_TOKEN_KEY`,
+which signs the tokens the server mints, such as your product's users' tokens;
+it is optional, and the server generates one on its volume without it.
 
 If you have an LLM provider key, put it in a second Secret now, so Agents can
 answer from the first run:
@@ -332,7 +333,7 @@ never appears in a rendered manifest: the server reads it from the Secret, apart
 from its connection string, so no character in it can break that string. If
 Temporal stays bundled while Postgres is yours, Temporal creates its two
 databases on your instance at first start and needs a user with
-`CREATE DATABASE`.
+`CREATE DATABASE` and a password without a space.
 
 ## Back up, upgrade, uninstall
 
