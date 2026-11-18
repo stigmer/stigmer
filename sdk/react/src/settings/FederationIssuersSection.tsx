@@ -103,6 +103,7 @@ export function FederationIssuersSection() {
           showName={false}
           federationIssuer={flow.federationIssuer}
           onUpdated={handleUpdated}
+          onDeleted={handleUpdated}
         />
       ) : (
         <FederationIssuerListPanel

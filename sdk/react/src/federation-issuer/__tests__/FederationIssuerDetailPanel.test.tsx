@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clone, create } from "@bufbuild/protobuf";
 import {
   FederationIssuerSchema,
@@ -207,5 +207,38 @@ describe("FederationIssuerDetailPanel rename", () => {
 
     await waitFor(() => expect(onUpdated).toHaveBeenCalledWith(renamed), { timeout: 5000 });
     expect(rename.mock.calls[0]).toEqual([expect.objectContaining({ resourceId: IDP.metadata?.id, slug: "renamed-slug" })]);
+  });
+});
+
+describe("FederationIssuerDetailPanel's own Delete", () => {
+  function renderWithDelete(isAuthorized: (relation: string) => boolean) {
+    const remove = vi.fn(async () => IDP);
+    const onDeleted = vi.fn();
+    const client = {
+      federationIssuer: { update: vi.fn(), delete: remove },
+      grant: { checkMyPermission: vi.fn(async (input: CheckMyPermissionInput) => ({ isAuthorized: isAuthorized(input.relation) })) },
+    } as never;
+    render(
+      <StigmerContext.Provider value={client}>
+        <FederationIssuerDetailPanel federationIssuer={IDP} onDeleted={onDeleted} />
+      </StigmerContext.Provider>,
+    );
+    return { remove, onDeleted };
+  }
+
+  it("asks in the dialog that deletes it, then hands the page back", async () => {
+    const { remove, onDeleted } = renderWithDelete(() => true);
+    expect(await screen.findByRole("heading", { name: "Delete this issuer" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Delete issuer" }));
+    const dialog = await screen.findByRole("dialog", { name: "Delete Acme Okta?" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete issuer" }));
+    await waitFor(() => expect(onDeleted).toHaveBeenCalledOnce());
+    expect(remove).toHaveBeenCalledWith({ resourceId: "issuer-1" });
+  });
+
+  it("offers no Delete card to a caller the server does not let delete it", async () => {
+    renderWithDelete((relation) => relation !== "can_delete");
+    await screen.findByRole("heading", { name: "How tokens are checked" });
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "Delete this issuer" })).toBeNull());
   });
 });
