@@ -4,7 +4,7 @@ import { SignInView, type SignInState } from "@stigmer/react-sdk/console";
 import { SIGN_IN_CANCELLED, useAuth } from "./AuthProvider";
 import { useServer } from "../server/ServerProvider";
 import { hostOf } from "../server/connect";
-import { GateMark } from "../shell/GateHeader";
+import { GateMark } from "../shell/GateMark";
 
 /**
  * The sign-in screen for a server that signs people in.

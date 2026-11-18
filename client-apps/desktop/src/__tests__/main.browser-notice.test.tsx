@@ -18,6 +18,11 @@ afterEach(() => {
   document.getElementById("root")?.remove();
 });
 
+// The entry module draws its failure and its notice on the kit's frame, so
+// importing it loads the kit cold in this environment (4 to 7 seconds here),
+// more than the default per-test budget.
+const IMPORT_BUDGET_MS = 30_000;
+
 describe("main outside the Tauri runtime", () => {
   it("shows the Tauri-required notice with the start command, and never mounts the app", async () => {
     expect("__TAURI_INTERNALS__" in window).toBe(false);
@@ -32,5 +37,5 @@ describe("main outside the Tauri runtime", () => {
     expect(screen.getByText("make desktop-dev")).toBeTruthy();
     expect(App).not.toHaveBeenCalled();
     expect(getCurrentWindow).not.toHaveBeenCalled();
-  });
+  }, IMPORT_BUDGET_MS);
 });

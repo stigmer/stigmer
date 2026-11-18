@@ -54,6 +54,29 @@ function SettingsNavigation({ path, onSignOut }: { path: string; onSignOut: () =
 ```
 
 
+### SidebarStatusRow
+
+The sidebar foot's status row: a dot, the state, its reason and its act.
+
+**Props** — `SidebarStatusRowProps`
+
+<TypeTable
+  type={{
+    action: { type: "{ busy?: boolean; label: string; onClick: () => void }", description: "The one act that helps (\"Restart\", \"Try again\")." },
+    className: { type: "string", description: "" },
+    detail: { type: "string", description: "Why, when it stopped or couldn't start." },
+    label: { type: "string", description: "The state in a few words (\"Agents ready\").", required: true },
+    tone: { type: "SidebarStatusTone", description: "How it stands; picks the dot's hue.", required: true, typeDescriptionLink: "#sidebarstatustone" },
+  }}
+/>
+
+```tsx
+function Agents({ restart }: { restart: () => void }) {
+  return <SidebarStatusRow tone="alert" label="Agents stopped" action={{ label: "Restart", onClick: restart }} />;
+}
+```
+
+
 ### WorkspaceSidebar
 
 The console's workspace-zone sidebar: org switcher, primary navigation
@@ -140,6 +163,11 @@ return inert rows decorated with capture markers.
     id: { type: "string", description: "Stable row identifier, for consumers that vary behavior per row: `\"new-session\"` / `\"dashboard\"` / `\"library\"` in the workspace sidebar, `\"back-to-sessions\"` or the settings route basename (e.g. `\"api-keys\"`) in the settings sidebar, and the entry id for recent activity rows.", required: true },
   }}
 />
+
+
+### SidebarStatusTone
+
+How the row's subject stands: before anything runs, running, or stopped.
 
 
 ### WorkspaceNavId

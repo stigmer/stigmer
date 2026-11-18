@@ -6,11 +6,13 @@
  * the page; the page itself is stubbed and pinned by its own suite. The
  * route saved at the last launch is reopened only while the app still
  * routes it, so a saved address the app no longer routes opens the home
- * screen.
+ * screen. Inside the shell, an address that leads nowhere draws the kit's
+ * not-found page and a page that throws draws its failure, both on a
+ * pathless route under the shell's layout so the sidebar stays.
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { MemoryRouter, matchRoutes } from "react-router-dom";
+import { MemoryRouter, Outlet, RouterProvider, createMemoryRouter, matchRoutes } from "react-router-dom";
 
 vi.mock("@tauri-apps/plugin-http", () => ({ fetch: vi.fn() }));
 vi.mock("@tauri-apps/plugin-deep-link", () => ({ onOpenUrl: vi.fn() }));
@@ -84,5 +86,38 @@ describe("desktop routes — the route reopened at launch", () => {
 
     expect(router.state.location.pathname).toBe("/");
     expect(localStorage.getItem("stigmer:lastRoute")).toBeNull();
+  });
+});
+
+describe("desktop routes — the shell's own states", () => {
+  it("says there's nothing at an address that leads nowhere, inside the shell", () => {
+    const matched = matchRoutes(router.routes, "/nowhere/at/all") ?? [];
+    expect(matched.at(-1)?.route.path).toBe("*");
+    // The shell's layout route frames it, so the sidebar stays.
+    expect(matched[0]?.route.children).toBeDefined();
+    renderRoute("/nowhere/at/all");
+
+    expect(screen.getByText("There's nothing at this address")).toBeTruthy();
+  });
+
+  it("draws a page that broke inside the shell, on a pathless route under its layout", () => {
+    const [shell] = router.routes;
+    const holder = shell?.children?.[0];
+    expect(holder?.path).toBeUndefined();
+    expect(holder?.errorElement).toBeDefined();
+
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    function Broken(): never {
+      throw new Error("a part of the page failed to draw");
+    }
+    const memory = createMemoryRouter(
+      [{ element: <div><p>the shell</p><Outlet /></div>, children: [{ errorElement: holder?.errorElement, children: [{ path: "/", element: <Broken /> }] }] }],
+      { initialEntries: ["/"] },
+    );
+    render(<RouterProvider router={memory} />);
+
+    expect(screen.getByText("the shell")).toBeTruthy();
+    expect(screen.getByRole("alert").textContent).toContain("a part of the page failed to draw");
+    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
   });
 });

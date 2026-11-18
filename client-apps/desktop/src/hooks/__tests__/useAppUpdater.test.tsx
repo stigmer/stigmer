@@ -10,7 +10,7 @@
 //   - quiet background checks: a background check that finds nothing, or
 //     fails, says nothing; a check the person asked for always answers;
 //   - an update is offered, never forced: it installs only from the toast's
-//     "Restart to Update" action, and the app relaunches only once the
+//     "Restart to update" action, and the app relaunches only once the
 //     install has succeeded;
 //   - a check already in flight is not started twice.
 // ---------------------------------------------------------------------------
@@ -62,12 +62,12 @@ async function advance(ms: number) {
   });
 }
 
-/** The "Restart to Update" action of the last update toast. */
+/** The "Restart to update" action of the last update toast. */
 function restartAction(): () => void {
   const options = toast.info.mock.calls.at(-1)?.[1] as {
     action: { label: string; onClick: () => void };
   };
-  expect(options.action.label).toBe("Restart to Update");
+  expect(options.action.label).toBe("Restart to update");
   return options.action.onClick;
 }
 
@@ -137,7 +137,7 @@ describe("useAppUpdater", () => {
     answer = new Error("offline");
     await act(() => result.current.checkForUpdate());
     expect(toast.error).toHaveBeenCalledWith(
-      "Could not check for updates. Try again later.",
+      "Couldn't check for updates. Try again later.",
       { id: "app-update" },
     );
   });
@@ -168,7 +168,7 @@ describe("useAppUpdater", () => {
     expect(result.current.status).toBe("available");
     expect(result.current.availableVersion).toBe("1.5.0");
     expect(toast.info).toHaveBeenCalledWith(
-      "Update available: v1.5.0",
+      "Update available: version 1.5.0",
       expect.objectContaining({ id: "app-update", duration: Infinity }),
     );
     expect(tauri.callsTo("plugin:updater|download_and_install")).toEqual([]);
@@ -216,7 +216,7 @@ describe("useAppUpdater", () => {
     expect(tauri.callsTo("plugin:process|restart")).toEqual([]);
     expect(result.current.status).toBe("error");
     expect(toast.error).toHaveBeenCalledWith(
-      "Update failed. Please try again later.",
+      "The update didn't install. Try again later.",
       { id: "app-update" },
     );
   });

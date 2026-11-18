@@ -12,5 +12,7 @@ export type {
   WorkspaceNavId,
 } from "./WorkspaceSidebar.js";
 export { SettingsSidebar } from "./SettingsSidebar.js";
+export { SidebarStatusRow } from "./SidebarStatusRow.js";
+export type { SidebarStatusRowProps, SidebarStatusTone } from "./SidebarStatusRow.js";
 export type { SettingsSidebarProps } from "./SettingsSidebar.js";
 export type { SidebarLinkRenderProps, RenderSidebarLink } from "./types.js";

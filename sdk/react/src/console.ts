@@ -115,7 +115,7 @@ export type { UserMenuProps } from "./user/index.js";
 export { HelpLink } from "./help/index.js";
 export type { HelpLinkProps } from "./help/index.js";
 
-export { WorkspaceSidebar, SettingsSidebar } from "./sidebar/index.js";
+export { WorkspaceSidebar, SettingsSidebar, SidebarStatusRow } from "./sidebar/index.js";
 export type {
   WorkspaceSidebarProps,
   WorkspaceSidebarActivity,
@@ -123,6 +123,8 @@ export type {
   SettingsSidebarProps,
   SidebarLinkRenderProps,
   RenderSidebarLink,
+  SidebarStatusRowProps,
+  SidebarStatusTone,
 } from "./sidebar/index.js";
 
 // Standalone screen — the frame every screen outside the console's frame
@@ -143,6 +145,13 @@ export type {
   SignInReturnViewProps,
   AppHandoffViewProps,
 } from "./sign-in/index.js";
+
+// The desktop app's server screens — connecting to the server a person
+// chose, why it can't be used, and choosing another, as a screen or a
+// dialog over the app. They render before any provider: they pick the
+// server the kit talks to.
+export { ServerConnectionView, ServerChooserForm } from "./server-screen/index.js";
+export type { ServerConnectionViewProps, ServerConnectionState, ServerChooserFormProps } from "./server-screen/index.js";
 
 // Gates — what a console shows between signing in and the app: the
 // identity account checked or set up, then the person's organizations.

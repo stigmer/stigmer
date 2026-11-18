@@ -244,8 +244,13 @@
     {
       "caption": "Signing in: Ready (the desktop app)",
       "narrow": false,
-      "built": [],
-      "unbuilt": "The desktop app's own screens: its sign-in is drawn by the desktop's change.",
+      "built": [
+        {
+          "scene": "desktop-sign-in-ready",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Sign in to Acme",
@@ -298,15 +303,22 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "Signing in: The sign-in page is on another site (the desktop app)",
       "narrow": false,
-      "built": [],
-      "unbuilt": "The desktop app's own screens: its sign-in is drawn by the desktop's change.",
+      "built": [
+        {
+          "scene": "desktop-sign-in-elsewhere",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Sign in to Acme",
@@ -375,15 +387,22 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "Signing in: Waiting for the browser (the desktop app)",
       "narrow": false,
-      "built": [],
-      "unbuilt": "The desktop app's own screens: its sign-in is drawn by the desktop's change.",
+      "built": [
+        {
+          "scene": "desktop-sign-in-waiting",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Finish signing in in your browser",
@@ -436,15 +455,22 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "Signing in: The sign-in didn't finish (the desktop app)",
       "narrow": false,
-      "built": [],
-      "unbuilt": "The desktop app's own screens: its sign-in is drawn by the desktop's change.",
+      "built": [
+        {
+          "scene": "desktop-sign-in-failed",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Sign in to Acme",
@@ -541,7 +567,9 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
       "pending": {}
     }

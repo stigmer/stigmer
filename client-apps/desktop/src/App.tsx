@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { RouterProvider } from "react-router-dom";
+import { StandaloneScreen } from "@stigmer/react-sdk/console";
 import { Stigmer } from "@stigmer/client";
 import type { DeploymentMode } from "@stigmer/client";
 import { StigmerProvider, OrgProvider, FetchCacheProvider } from "@stigmer/react-sdk";
@@ -15,7 +16,8 @@ import { EmbeddedRunnerProvider, useRunner } from "./hooks/EmbeddedRunnerContext
 import { useTauriRunnerAdapter } from "./hooks/useTauriRunnerAdapter";
 import { useColorModePreference } from "./hooks/useColorModePreference";
 import { ServerProvider, useServer } from "./server/ServerProvider";
-import { ChooseServerScreen, ConnectScreen } from "./server/ConnectScreen";
+import { GateMark } from "./shell/GateMark";
+import { ChooseServerDialog, ConnectScreen } from "./server/ConnectScreen";
 
 /**
  * The app: the server the person chose (server/ServerProvider.tsx), what it
@@ -34,7 +36,7 @@ export function App() {
 }
 
 function ServerGate() {
-  const { origin, connection, isChoosing } = useServer();
+  const { origin, connection } = useServer();
   if (connection.phase !== "connected" || connection.outcome.kind === "not-set-up") {
     return <ConnectScreen />;
   }
@@ -49,13 +51,9 @@ function ServerGate() {
         </AuthProvider>
       )}
       {/* Over the app, not in its place: Back leaves the app (and the
-          conversations its runner holds) as it was. */}
-      {isChoosing && (
-        // eslint-disable-next-line stigmer/no-handrolled-dialog -- The chooser draws before the kit's provider, so the kit's dialog shell can't hold it; its missing focus trap is #3212.
-        <div role="dialog" aria-modal="true" aria-label="Use another server" className="fixed inset-0 z-50">
-          <ChooseServerScreen />
-        </div>
-      )}
+          conversations its runner holds) as it was. The kit's modal dialog
+          holds the keyboard's focus while it is open. */}
+      <ChooseServerDialog />
     </>
   );
 }
@@ -143,11 +141,7 @@ function AppContent({
   isAuthenticated: boolean;
 }) {
   if (!isInitialized) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="size-6 animate-spin rounded-full border-2 border-muted border-t-primary" />
-      </div>
-    );
+    return <StandaloneScreen mark={<GateMark />} wait="Starting Stigmer Desktop…" />;
   }
 
   if (!isAuthenticated) {

@@ -337,6 +337,13 @@
       "components": 0
     },
     {
+      "slug": "server-screen",
+      "title": "server-screen",
+      "description": "",
+      "hooks": 0,
+      "components": 2
+    },
+    {
       "slug": "service-account",
       "title": "service-account",
       "description": "",
@@ -362,7 +369,7 @@
       "title": "Sidebar",
       "description": "The console's navigation chrome — workspace and settings sidebars that hosts wire to their own router and user menu.",
       "hooks": 0,
-      "components": 2
+      "components": 3
     },
     {
       "slug": "sign-in",
