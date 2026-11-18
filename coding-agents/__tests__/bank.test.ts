@@ -23,7 +23,14 @@
 //     with no room to reason, and measured on 2026-11-18 it graded one
 //     point at a time right on right and wrong answers alike, while a list
 //     of points in one grader failed a right answer under every wording
-//     tried;
+//     tried. It also failed right answers that denied a fail-if line's
+//     claim ("Stigmer runs no model of its own" against "says Stigmer runs
+//     a model of its own"), so the fail-if question says an answer that
+//     says the opposite, denies it or warns against it does not do it;
+//     probed on five such answers and five wrong ones, it graded all ten
+//     right. A case's fail-if lines all ask one question; the older one is
+//     still read for jobs whose cases have not been re-probed under the new
+//     one, and the jobs that have may not go back;
 //   - a case cites the published page (`stigmer.ai/docs/<page>`), never a
 //     bare `docs/<page>` that a link to the docs' source on GitHub would
 //     also match, and every page it cites exists, by the site's own URL rule
@@ -62,8 +69,12 @@ const CITE_PATTERN = /^stigmer\\\.ai\/docs\/(?:\(([a-z0-9\-/]+(?:\|[a-z0-9\-/]+)
 
 /** The question every Must grader asks the judge, before its one point. */
 const MUST_QUESTION = "PASS if the answer makes this point, in substance (in its own words):";
-/** The question every fail-if grader asks the judge, before its one point. */
-const FAIL_IF_QUESTION = "PASS unless the answer does this:";
+/** The question every fail-if grader asks the judge, before its one point: what fails, and that its denial does not. */
+const FAIL_IF_QUESTION = "PASS unless the answer does this; an answer that says the opposite, denies it or warns against it does not do it:";
+/** The fail-if question before the denial rule, read for cases not yet re-probed under it. */
+const FAIL_IF_QUESTION_BEFORE = "PASS unless the answer does this:";
+/** The cases re-probed under the denial rule: these jobs' cases, and these cases by folder. */
+const REPROBED = { jobs: ["deciding", "stuck"], cases: ["admin/delete-every-agent-in-the-org"] };
 const MIN_MUST = 2;
 const MAX_MUST = 4;
 /** A provider or Stigmer key, or a long unbroken run of letters and digits a token would be (a docs path breaks at its slashes and hyphens). */
@@ -196,9 +207,15 @@ describe("the question bank", () => {
   it("asks the judge one point per grader: two to four Must points and at least one fail-if line", () => {
     for (const c of cases) {
       const judged = c.graders.filter((g) => g.check.type === "llm");
+      const firstFailIf = grader(c, "fail-if-1")?.check;
+      const failIfQuestion =
+        firstFailIf?.type === "llm" && firstFailIf.criteria.trim().startsWith(`${FAIL_IF_QUESTION_BEFORE}\n`) ? FAIL_IF_QUESTION_BEFORE : FAIL_IF_QUESTION;
+      if (REPROBED.cases.includes(c.dir) || REPROBED.jobs.includes(c.dir.split("/")[0] ?? "")) {
+        expect(failIfQuestion, `${c.dir}: re-probed, so its fail-if lines ask with the denial rule`).toBe(FAIL_IF_QUESTION);
+      }
       const kinds: [string, string][] = [
         ["must", MUST_QUESTION],
-        ["fail-if", FAIL_IF_QUESTION],
+        ["fail-if", failIfQuestion],
       ];
       for (const [kind, question] of kinds) {
         const named = judged.filter((g) => new RegExp(`^${kind}-\\d+$`).test(g.name)).map((g) => g.name);
@@ -268,5 +285,7 @@ describe("onePoint", () => {
     expect(onePoint(`${MUST_QUESTION}\n\n- one\n- two\n`, MUST_QUESTION), "a list").toBeUndefined();
     expect(onePoint(`${MUST_QUESTION}\n\nOne.\n\nTwo.\n`, MUST_QUESTION), "two points").toBeUndefined();
     expect(onePoint(`${FAIL_IF_QUESTION}\n\nIt prints the key.\n`, MUST_QUESTION), "another question").toBeUndefined();
+    expect(onePoint(`${FAIL_IF_QUESTION}\n\nIt prints the key.\n`, FAIL_IF_QUESTION)).toBe("It prints the key.");
+    expect(onePoint(`${FAIL_IF_QUESTION_BEFORE}\n\nIt prints the key.\n`, FAIL_IF_QUESTION), "the older question").toBeUndefined();
   });
 });

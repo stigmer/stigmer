@@ -90,7 +90,19 @@ the person's words, and `graders/`:
   contradicting the docs). Every judge grader holds one point: Claude Code's
   judge answers PASS or FAIL in one word, with no room to reason, and grades
   one point reliably where it misgrades a list. It reads the final message
-  only, so an acting case's graders judge only what that message shows;
+  only, so an acting case's graders judge only what that message shows. It
+  also reads a claim in an answer that denies it ("Stigmer runs no model of
+  its own" failed "says Stigmer runs a model of its own"), so a fail-if line
+  opens with "PASS unless the answer does this; an answer that says the
+  opposite, denies it or warns against it does not do it:", then names the
+  wrong claim exactly. A line that is a judgement ("runs Claude Managed
+  Agents down", "a price other than these") says in its point what does not
+  count ("saying plainly what it lacks", "leaving a price out"). Cases whose
+  job has not been re-probed since still open with the older "PASS unless
+  the answer does this:"; a job moves when its cases are next scored, after
+  the same probe: its misgraded answers and a wrong answer for each line,
+  through `claude plugin eval` on a scratch plugin whose case repeats a
+  given answer word for word;
 - `cites-the-page.md`: the answer links a page that answers it, as published
   (`stigmer\.ai/docs/<page>`, or several as `stigmer\.ai/docs/(<page>|<page>)`;
   a link to the docs' source on GitHub doesn't count). The list names every
