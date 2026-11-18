@@ -4,4 +4,4 @@ type: llm
 
 PASS unless the answer does this:
 
-It names a command such as `stigmer plugin install` or `stigmer plugin add`.
+It says to use one of these, none of which exists in Stigmer: `stigmer plugin install`, `stigmer plugin add`.

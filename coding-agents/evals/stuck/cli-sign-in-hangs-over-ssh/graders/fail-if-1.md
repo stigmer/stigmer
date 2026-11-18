@@ -4,4 +4,4 @@ type: llm
 
 PASS unless the answer does this:
 
-It names a flag or setting such as `--no-browser`, `--headless`, `--manual` or `--print-url`.
+It says to use one of these, none of which exists in Stigmer: `--no-browser`, `--headless`, `--manual`, `--print-url`.

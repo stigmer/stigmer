@@ -4,4 +4,4 @@ type: llm
 
 PASS unless the answer does this:
 
-It names a command or field such as `stigmer whatsapp send`, `stigmer channel send`, or a `reminder_days` or `send_at` field on the channel.
+It says to use one of these, none of which exists in Stigmer: `stigmer whatsapp send`, `stigmer channel send`, a `reminder_days` or `send_at` field on the channel.

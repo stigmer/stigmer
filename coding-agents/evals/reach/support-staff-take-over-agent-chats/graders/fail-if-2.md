@@ -4,4 +4,4 @@ type: llm
 
 PASS unless the answer does this:
 
-It names a command or setting such as `stigmer handoff`, `stigmer conversation takeover`, a `human_handoff` setting on the Agent, or a handoff webhook.
+It says to use one of these, none of which exists in Stigmer: `stigmer handoff`, `stigmer conversation takeover`, a `human_handoff` setting on the Agent, a handoff webhook.

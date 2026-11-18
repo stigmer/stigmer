@@ -4,4 +4,4 @@ type: llm
 
 PASS unless the answer does this:
 
-It names a prop or token such as `theme={{ primaryColor }}`, `brandColor`, `accentColor` or `--stgm-brand`.
+It says to use one of these, none of which exists in Stigmer: `theme={{ primaryColor }}`, `brandColor`, `accentColor`, `--stgm-brand`.

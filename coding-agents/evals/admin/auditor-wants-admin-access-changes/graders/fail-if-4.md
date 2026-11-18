@@ -4,4 +4,4 @@ type: llm
 
 PASS unless the answer does this:
 
-It invents a filter flag the CLI does not have (such as `--role` or `--since`).
+It says to filter `stigmer access-history export` with `--role` or `--since`, flags that command does not have.

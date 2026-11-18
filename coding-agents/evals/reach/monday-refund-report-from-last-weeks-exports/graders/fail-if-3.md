@@ -4,4 +4,4 @@ type: llm
 
 PASS unless the answer does this:
 
-It invents a command such as `stigmer routine create`.
+It says to use this command, which does not exist in Stigmer: `stigmer routine create`.

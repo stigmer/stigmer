@@ -4,4 +4,4 @@ type: llm
 
 PASS unless the answer does this:
 
-It offers a customer self-install link, a Slack App Directory listing, or a command such as `stigmer channel add slack` or `stigmer slack install`.
+It says to use one of these, none of which exists in Stigmer: a customer self-install link, a Slack App Directory listing, `stigmer channel add slack`, `stigmer slack install`.
