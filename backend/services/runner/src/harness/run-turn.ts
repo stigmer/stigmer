@@ -76,7 +76,7 @@ import {
   getStopNowSignalForQueue,
   type TurnInterruption,
 } from "../shared/worker-shutdown.js";
-import { terminalizeNonExecutingDecisions } from "./approval-decisions.js";
+import { settleApprovedNotRun, terminalizeNonExecutingDecisions } from "./approval-decisions.js";
 import { captureCandidate, pinCaptureBaseline, type TurnCapture } from "./capture.js";
 import { SessionEventEmitter } from "./events/emitter.js";
 import { OpenOperations, OperationLimitError } from "./open-operations.js";
@@ -108,6 +108,7 @@ import {
   workerShutdownArm,
   workspaceLockTimeoutArm,
   type ContinuationCause,
+  type StopCause,
   type TerminalArm,
 } from "./terminal-table.js";
 import { TranscriptBuilder } from "./transcript/builder.js";
@@ -405,6 +406,22 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     });
 
   /**
+   * The invariant of a run that is complete: no approved call still waits
+   * (`approval-decisions.ts`). Called by the two completion writers, right
+   * before their final persist, so the settled row and its failed result
+   * reach the person's card in that same write. Logs the calls it settled,
+   * naming why the run ended: the arm's stop cause, or `completed` for a
+   * run the engine finished. (Every arm that completes has a stop cause;
+   * only the arms that wait or hand the run on have none.)
+   */
+  const settleApprovalsOfAnEndedRun = (cause: StopCause | "completed" | null): void => {
+    const approvedNotRun = settleApprovedNotRun(rows);
+    if (approvedNotRun.length > 0) {
+      console.error(`${activityName}: approved calls did not run (${cause}): execution=${executionId}, calls=${approvedNotRun.join(",")}`);
+    }
+  };
+
+  /**
    * The one writer of a terminal: apply the arm, persist it ONCE, and end
    * the activity the way the arm's disposition says. A thrown arm also marks
    * the in-progress sub-agent rows cancelled before that persist, so the
@@ -419,8 +436,17 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
    * evidence, #776) or to throw the after-error variant of the copy; every
    * other caller lets the arm's own message stand. A continuing arm always
    * throws its typed failure.
+   *
+   * An arm that `completes` ends the run, so an approved call still waiting
+   * never runs: it settles FAILED here, before the arm's persist, on every
+   * such arm (a stall, the operation limit, a cost cap, a platform stop, a
+   * refusal or a fault after the answers were copied, a failure, the
+   * tool-call limit). An arm that does not complete (a wait for approval, a
+   * pause, a drain, a restart, a continue) leaves it waiting for the
+   * invocation that resumes that very call.
    */
   const settleWith = async (arm: TerminalArm, failure?: CancelledFailure): Promise<Settled> => {
+    if (arm.completes) settleApprovalsOfAnEndedRun(arm.stopCause);
     events.skipRootRows(applyTerminalArm(status, rows, arm));
     await returnOutputs();
     await recordEvalFiles();
@@ -699,16 +725,15 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     };
     if (outcome.kind !== "interrupted") await captureBoundary();
 
-    // The rows whose decision never ran the tool are settled by the runtime,
-    // once, now that the adapter has had its look at them and before any
-    // persist of the outcome: SKIP and REJECT always, and an approved call
-    // still waiting once the outcome ends the run. No engine event flips such
+    // The rows whose decision never ran the tool (SKIP and REJECT) are
+    // settled by the runtime, once, now that the adapter has had its look at
+    // them and before any persist of the outcome. No engine event flips such
     // a row, so without this it would persist WAITING on a finished
-    // execution. Every outcome passes through here (`approval-decisions.ts`).
-    const approvedNotRun = terminalizeNonExecutingDecisions(rows, outcome.kind);
-    if (approvedNotRun.length > 0) {
-      console.error(`${activityName}: approved calls did not run (${outcome.kind}): execution=${executionId}, calls=${approvedNotRun.join(",")}`);
-    }
+    // execution. Every outcome passes through here. An approved call still
+    // waiting is not settled here: whether its run is over is the arm's to
+    // say, so the completion writers settle it (`settleWith`, `completeTurn`;
+    // `approval-decisions.ts`).
+    terminalizeNonExecutingDecisions(rows);
 
     switch (outcome.kind) {
       case "completed":
@@ -753,6 +778,16 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
    * cancellation outranks the yield because it is what stopped the turn
    * (a user's pause during a drain is the user's), and a platform stop
    * outranks it because a run the platform ended must not run on.
+   *
+   * An `interrupted` outcome does not say whether the run is over; the arm
+   * does. The returning arms here (the stall, the operation limit, a mock's
+   * abort, the cost cap, a platform stop) complete the run, so `settleWith`
+   * settles an approved call still waiting FAILED. The model's stall, the
+   * yield, a worker shutdown, an infrastructure cancel and an orchestrator
+   * stop do not: the run goes on, or is the workflow's to end, and the
+   * invocation that resumes it resumes that very call by its WAITING row.
+   * (An orchestrator stop is a Pause or a Cancel, indistinguishable here;
+   * the workflow writes both.)
    */
   async function settleInterrupted(maxCostUsd: number, accumulator: UsageAccumulator, captureBoundary: () => Promise<void>): Promise<Settled> {
     const evidence = stop.evidence;
@@ -835,6 +870,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
   async function completeTurn(turn: TurnInput, phase: RunPhase): Promise<Settled> {
     status.completedAt = utcTimestamp();
     status.phase = phase;
+    settleApprovalsOfAnEndedRun("completed");
 
     let finalText: string | undefined;
 
