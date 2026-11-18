@@ -47,6 +47,7 @@ import {
   runRefusal,
   modelSelectorNotReadyScene,
   modelsHubKeyRejectedScene,
+  modelsHubRemoveRefusedScene,
   modelsHubLocalScene,
   modelsHubScene,
 } from "./models.tsx";
@@ -111,6 +112,8 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "models-hub-member": () => modelsHubScene(NOTHING_CONNECTED, [], "member"),
   "models-hub-key-rejected": modelsHubKeyRejectedScene,
   "models-hub-remove": () => modelsHubScene(CONNECTED, [ownAnthropicKey(), inheritedOpenAiKey()], "admin"),
+  "models-hub-connect": () => modelsHubScene(NOTHING_CONNECTED, [], "admin"),
+  "models-hub-remove-refused": () => modelsHubRemoveRefusedScene([ownAnthropicKey(), inheritedOpenAiKey()]),
   "launcher-ready": () => launcherScene(ANTHROPIC_ONLY, "admin"),
   "launcher-key-missing": () =>
     launcherRefusedScene(
@@ -252,6 +255,8 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "marketplace-source-failed": () => marketplaceScene("admin", "failed"),
   "marketplace-install": () => marketplaceScene("admin"),
   "marketplace-upload": () => marketplaceScene("admin"),
+  "marketplace-source-unreadable": () => marketplaceScene("admin", "read", { unreadableSource: true }),
+  "marketplace-install-refused": () => marketplaceScene("admin", "read", { installRefused: true }),
   "session-waiting-for-sandbox": () => sessionScene("waiting-for-sandbox", { inspector: true }),
   "session-thinking": () => sessionScene("thinking", { inspector: true }),
   "session-busy": () => sessionScene("busy", { inspector: true }),

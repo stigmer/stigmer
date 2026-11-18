@@ -204,17 +204,17 @@
         "word 6 read": "The drawing installs Linear; the scene installs its own catalogue's plugin",
         "word linear (http)": "The drawing installs Linear; the scene installs its own catalogue's plugin"
       },
-      "ruled": {},
-      "pending": {
-        "type Name": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look",
-        "type Version": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look",
-        "type Format": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look",
-        "type Files": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look",
-        "type Skills": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look",
-        "type MCP servers": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look",
-        "type Subagents": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look",
-        "type Hooks": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look"
-      }
+      "ruled": {
+        "type Name": "His Built look, 2026-11-18: kept as built (The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16).",
+        "type Version": "His Built look, 2026-11-18: kept as built (The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16).",
+        "type Format": "His Built look, 2026-11-18: kept as built (The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16).",
+        "type Files": "His Built look, 2026-11-18: kept as built (The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16).",
+        "type Skills": "His Built look, 2026-11-18: kept as built (The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16).",
+        "type MCP servers": "His Built look, 2026-11-18: kept as built (The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16).",
+        "type Subagents": "His Built look, 2026-11-18: kept as built (The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16).",
+        "type Hooks": "His Built look, 2026-11-18: kept as built (The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16)."
+      },
+      "pending": {}
     },
     {
       "caption": "Install and upload: Install: installing",
@@ -465,8 +465,12 @@
     {
       "caption": "Install and upload: Install: didn't go through",
       "narrow": false,
-      "built": [],
-      "unbuilt": "No scene refuses an install",
+      "built": [
+        {
+          "scene": "marketplace-install-refused",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Install linear",
@@ -687,8 +691,26 @@
           "height": 32
         }
       ],
-      "sample": {},
-      "ruled": {},
+      "sample": {
+        "word Install linear": "The drawing installs Linear; the scene installs its own catalogue's plugin",
+        "word From stigmer (github.com/stigmer/plugins) into acme": "The drawing installs Linear; the scene installs its own catalogue's plugin",
+        "word linear": "The drawing installs Linear; the scene installs its own catalogue's plugin",
+        "word 6 read": "The drawing installs Linear; the scene installs its own catalogue's plugin",
+        "word linear (http)": "The drawing installs Linear; the scene installs its own catalogue's plugin",
+        "word the plugin service did not answer in time": "The drawing's failure is a timeout, which offers Try again; the scene's server refuses in its own words, and a refusal keeps the act's word",
+        "word Stuck? Ask IT on Slack": "The scene's server sets no help link",
+        "button Try again": "The drawing's failure is a timeout, which offers Try again; the scene's server refuses in its own words, and a refusal keeps the act's word"
+      },
+      "ruled": {
+        "type Name": "His Built look, 2026-11-18: kept as built (the install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16).",
+        "type Version": "His Built look, 2026-11-18: kept as built (the install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16).",
+        "type Format": "His Built look, 2026-11-18: kept as built (the install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16).",
+        "type Files": "His Built look, 2026-11-18: kept as built (the install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16).",
+        "type Skills": "His Built look, 2026-11-18: kept as built (the install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16).",
+        "type MCP servers": "His Built look, 2026-11-18: kept as built (the install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16).",
+        "type Subagents": "His Built look, 2026-11-18: kept as built (the install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16).",
+        "type Hooks": "His Built look, 2026-11-18: kept as built (the install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16)."
+      },
       "pending": {}
     },
     {
@@ -978,11 +1000,11 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "type Install": "The uploader's acts are its own form's at the small size, shared with the Library's Upload plugin page; the drawing's dialog footer has them at 32px. For the Built look",
-        "button Install": "The uploader's acts are its own form's at the small size, shared with the Library's Upload plugin page; the drawing's dialog footer has them at 32px. For the Built look"
-      }
+      "ruled": {
+        "type Install": "His Built look, 2026-11-18: kept as built (The uploader's acts are its own form's at the small size, shared with the Library's Upload plugin page; the drawing's dialog footer has them at 32px).",
+        "button Install": "His Built look, 2026-11-18: kept as built (The uploader's acts are its own form's at the small size, shared with the Library's Upload plugin page; the drawing's dialog footer has them at 32px)."
+      },
+      "pending": {}
     },
     {
       "caption": "Install and upload: Upload: a folder chosen",

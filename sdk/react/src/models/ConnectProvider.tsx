@@ -93,10 +93,11 @@ export function ConnectProviderPanel({
             className="stg:mt-3 stg:text-left"
           />
         )}
-        {hub.isLoading ? (
+        {!hub.isLoading && hub.manageError ? null : hub.isLoading ? (
           // Who adds the key is not known until the permission answers: an
           // admin would read the member's lead, then the reason, so the
-          // lead holds its place until then.
+          // lead holds its place until then; a failed check says only that
+          // it failed (above), since either lead could be wrong.
           // The card below says what is being checked; this only holds the place.
           <LoadingRegion
             className={cn("stg:mx-auto stg:h-5 stg:max-w-md stg:animate-pulse stg:rounded stg:bg-muted", showHeading && "stg:mt-1")}

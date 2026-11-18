@@ -194,10 +194,10 @@
         "word Anthropic refused the request: the key's credit is used up": "The drawing lists three failures; the scene's server has two",
         "word 2d": "The drawing lists three failures; the scene's server has two"
       },
-      "ruled": {},
-      "pending": {
-        "word Recent failures 3": "Section draws a count as its own tag beside the title, so the title and its count are two blocks; the drawing reads them as one. For the Built look"
-      }
+      "ruled": {
+        "word Recent failures 3": "His Built look, 2026-11-18: kept as built (Section draws a count as its own tag beside the title, so the title and its count are two blocks; the drawing reads them as one)."
+      },
+      "pending": {}
     },
     {
       "caption": "Dashboard: nothing failed",
@@ -420,10 +420,10 @@
         "word the run service did not answer in time": "The server's own line; the scene's server words it its way",
         "word Stuck? Ask IT on Slack": "The help line the console turns on; the scene's server sets none"
       },
-      "ruled": {},
-      "pending": {
-        "word Recent failures": "A failed read is said on the page in the card's place, not inside the card: the failed tint on a card puts its muted line under the contrast floor in dark. For the Built look"
-      }
+      "ruled": {
+        "word Recent failures": "His Built look, 2026-11-18: kept as built (A failed read is said on the page in the card's place, not inside the card: the failed tint on a card puts its muted line under the contrast floor in dark)."
+      },
+      "pending": {}
     },
     {
       "caption": "Dashboard: the figures didn't load",
