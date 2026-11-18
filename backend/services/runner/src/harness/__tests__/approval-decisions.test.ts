@@ -70,56 +70,65 @@ function subAgentRowsWith(toolCall: RowSpec) {
 const WAITING = ToolCallStatus.TOOL_CALL_WAITING_APPROVAL;
 
 describe("terminalizeNonExecutingDecisions", () => {
-  describe.each(EVERY)("after a %s outcome", (outcome) => {
-    it("terminalizes a REJECT decision to SKIPPED with the pinned reason (does not FAIL)", () => {
+  it("terminalizes a REJECT decision to SKIPPED with the pinned reason (does not FAIL)", () => {
+    for (const outcome of EVERY) {
       const rows = rowsWith([{ id: "call-reject", status: WAITING, approvalAction: ApprovalAction.REJECT }]);
 
-      expect(terminalizeNonExecutingDecisions(rows, outcome)).toEqual([]);
+      expect(terminalizeNonExecutingDecisions(rows, outcome), outcome).toEqual([]);
 
       const tc = rows.messages[0].toolCalls[0];
-      expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
-      expect(tc.error).toBe(REJECTED_BY_USER_ERROR);
+      expect(tc.status, outcome).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+      expect(tc.error, outcome).toBe(REJECTED_BY_USER_ERROR);
       // The REJECT decision is preserved so the audit trail stays honest.
-      expect(tc.approvalAction).toBe(ApprovalAction.REJECT);
-    });
+      expect(tc.approvalAction, outcome).toBe(ApprovalAction.REJECT);
+    }
+  });
 
-    it("terminalizes a SKIP decision to SKIPPED (fixes the stuck-WAITING for skip too)", () => {
+  it("terminalizes a SKIP decision to SKIPPED (fixes the stuck-WAITING for skip too)", () => {
+    for (const outcome of EVERY) {
       const rows = rowsWith([{ id: "call-skip", status: WAITING, approvalAction: ApprovalAction.SKIP }]);
 
       terminalizeNonExecutingDecisions(rows, outcome);
 
-      expect(rows.messages[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
-    });
+      expect(rows.messages[0].toolCalls[0].status, outcome).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+    }
+  });
 
-    it("leaves an undecided row alone", () => {
-      const rows = rowsWith([{ id: "call-pending", status: WAITING, approvalAction: ApprovalAction.UNSPECIFIED }]);
-
-      expect(terminalizeNonExecutingDecisions(rows, outcome)).toEqual([]);
-      expect(rows.messages[0].toolCalls[0].status).toBe(WAITING);
-    });
-
-    it("never touches an approved call that ran, whatever its end", () => {
+  it("leaves APPROVE / APPROVE_ALL untouched (the tool executes)", () => {
+    for (const outcome of EVERY) {
       const rows = rowsWith([
         { id: "call-done", status: ToolCallStatus.TOOL_CALL_COMPLETED, approvalAction: ApprovalAction.APPROVE },
         { id: "call-broke", status: ToolCallStatus.TOOL_CALL_FAILED, approvalAction: ApprovalAction.APPROVE_ALL, error: "exit 1" },
         { id: "call-running", status: ToolCallStatus.TOOL_CALL_RUNNING, approvalAction: ApprovalAction.APPROVE },
       ]);
 
-      expect(terminalizeNonExecutingDecisions(rows, outcome)).toEqual([]);
-      expect(rows.messages[0].toolCalls.map(tc => [tc.status, tc.error])).toEqual([
+      // A call that ran is the engine's events' to settle, whatever the outcome.
+      expect(terminalizeNonExecutingDecisions(rows, outcome), outcome).toEqual([]);
+      expect(rows.messages[0].toolCalls.map(tc => [tc.status, tc.error]), outcome).toEqual([
         [ToolCallStatus.TOOL_CALL_COMPLETED, ""],
         [ToolCallStatus.TOOL_CALL_FAILED, "exit 1"],
         [ToolCallStatus.TOOL_CALL_RUNNING, ""],
       ]);
-    });
+    }
+  });
 
-    it("settles sub-agent transcripts too", () => {
+  it("settles sub-agent transcripts too", () => {
+    for (const outcome of EVERY) {
       const rows = subAgentRowsWith({ id: "sub-call-skip", status: WAITING, approvalAction: ApprovalAction.SKIP });
 
       terminalizeNonExecutingDecisions(rows, outcome);
 
-      expect(rows.subAgentRuns[0].messages[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
-    });
+      expect(rows.subAgentRuns[0].messages[0].toolCalls[0].status, outcome).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+    }
+  });
+
+  it("is a no-op when there are no decided tool calls", () => {
+    for (const outcome of EVERY) {
+      const rows = rowsWith([{ id: "call-pending", status: WAITING, approvalAction: ApprovalAction.UNSPECIFIED }]);
+
+      expect(terminalizeNonExecutingDecisions(rows, outcome), outcome).toEqual([]);
+      expect(rows.messages[0].toolCalls[0].status, outcome).toBe(WAITING);
+    }
   });
 
   describe.each(ENDING)("an approved call still waiting after a %s outcome never ran", (outcome) => {
