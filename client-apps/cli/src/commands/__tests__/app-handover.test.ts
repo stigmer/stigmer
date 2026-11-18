@@ -51,10 +51,10 @@ describe("printedHandover", () => {
   it("prints one install for a Next.js app, and one per file for a backend and its React app", () => {
     const text = printedHandover(signIn, "sign-in");
     expect(text.match(/^# install/gm)).toEqual(["# install"]);
-    expect(text).toContain("# install, once: npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf");
+    expect(text).toContain("# install, once: npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf @connectrpc/connect-node");
     const node = buildAppHandover({ mode: "sign-in", stack: "node", baseUrl: "https://api.stigmer.ai", org: "acme", agent: "invoice-matcher" });
     expect(printedHandover(node, "sign-in").match(/^# install: .*/gm)).toEqual([
-      "# install: npm install @stigmer/client",
+      "# install: npm install @stigmer/client @connectrpc/connect-node",
       "# install: npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf",
     ]);
   });
@@ -73,7 +73,7 @@ describe("writeHandover", () => {
     expect(readFileSync(join(root, signIn.chat.file), "utf8")).toBe(signIn.chat.code);
     expect(signIn.chat.file).toBe("components/StigmerAgentChat.tsx");
     expect(result.hints).toContain("Replace currentUser in the route with your app's own sign-in.");
-    expect(result.hints).toContain("Install, once: npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf");
+    expect(result.hints).toContain("Install, once: npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf @connectrpc/connect-node");
     expect(result.hints.filter((hint) => hint.startsWith("For "))).toEqual([]);
     expect(result.hints).toContain("Put the admin service account's key in STIGMER_API_KEY in .env.local, and keep that file out of git.");
   });

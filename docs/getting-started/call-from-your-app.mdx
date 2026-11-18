@@ -25,12 +25,12 @@ Node.js 22 (22.19 or newer) or Node.js 24 or newer.
 ## Set up the project
 
 In the folder that holds `ledger.csv`, make it a Node.js project and install the
-TypeScript SDK:
+TypeScript SDK with the package it connects through from Node.js:
 
 ```bash
 npm init -y
 npm pkg set type=module
-npm install @stigmer/client
+npm install @stigmer/client @connectrpc/connect-node
 ```
 
 </Step>

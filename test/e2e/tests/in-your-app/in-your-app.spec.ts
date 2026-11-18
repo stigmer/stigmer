@@ -142,12 +142,16 @@ test.describe("CON-10 a scratch app built from exactly what the In your app tab 
     const route = (await page.getByRole("region", { name: "server.ts" }).textContent()) ?? "";
     const chat = (await page.getByRole("region", { name: "src/StigmerAgentChat.tsx" }).textContent()) ?? "";
     const tryIt = (await page.getByRole("region", { name: "src/App.tsx" }).textContent()) ?? "";
+    const installs = {
+      route: ((await row(page, "Add a token route to your backend").getByRole("region", { name: "Install" }).textContent()) ?? "").trim(),
+      chat: ((await row(page, "Show the chat in your app").getByRole("region", { name: "Install" }).textContent()) ?? "").trim(),
+    };
     expect(route).toContain(`const ORG = "${orgSlug}";`);
     expect(route).toContain("Run it with: npx tsx --env-file=.env server.ts");
     expect(chat).toContain(`agent={"${orgSlug}/variance-reporter"}`);
 
     folder = mkdtempSync(join(tmpdir(), "stigmer-in-your-app-"));
-    app = await runHandedOverApp(folder, packKit(join(folder, "tarballs")), { route, chat, page: tryIt, settings: settingsFile }, { devUser: DEV_USER });
+    app = await runHandedOverApp(folder, packKit(join(folder, "tarballs")), { route, chat, page: tryIt, settings: settingsFile, installs }, { devUser: DEV_USER });
 
     // The model: the report into the outputs folder, then a closing line.
     const control = new MockControl(mockUrl!);

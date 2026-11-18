@@ -31,9 +31,10 @@
  * The harness performs the lines the page names as the install's
  * (doc-steps.mjs HARNESS_LINES): the CLI is the build under test, installed
  * in an isolated home by test/install/lib/install-cli.mjs (the boot the CLI
- * smoke shares); `npm install @stigmer/client` installs the SDK the same
- * build packs; the model key is the fake model's, handed to the shell `stigmer
- * up` starts from. Everything else, `stigmer up` included, runs as written,
+ * smoke shares); the page's SDK install line installs the SDK the same
+ * build packs, and the rest of that line (`registryPackagesOf`: the Node
+ * transport) from the registry, as the reader's npm would; the model key is
+ * the fake model's, handed to the shell `stigmer up` starts from. Everything else, `stigmer up` included, runs as written,
  * through a `stigmer` on PATH that is that install.
  *
  * The model is test/support's fake, scripted per job (each `stigmer run`
@@ -83,7 +84,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { configuredRegistry, installGap, waitForRegistry } from "../../scripts/publish-standalone.mjs";
 import { anthropicText, anthropicToolUse } from "../support/src/llm-wire.ts";
-import { docSteps } from "./lib/doc-steps.mjs";
+import { docSteps, registryPackagesOf } from "./lib/doc-steps.mjs";
 import { LIVE_MODEL, fakeModelEnv, isTitleCall, liveModelEnv, startFakeModel } from "./lib/fake-model.mjs";
 import { CLI_SERVER_PORT, createCliInstall, spawnCommand } from "./lib/install-cli.mjs";
 import { assertPortFree } from "./lib/stigmer-smoke.mjs";
@@ -286,7 +287,7 @@ try {
   const performs = {
     cli: async () => log("CLI install: the build under test is installed in the isolated home"),
     "model-key": async () => log("model key: the fake model's key and address are in the shell"),
-    sdk: async () => run(`npm install ${sdkTargets.map(shellQuote).join(" ")}`),
+    sdk: async (line) => run(`npm install ${[...sdkTargets, ...registryPackagesOf(line)].map(shellQuote).join(" ")}`),
   };
 
   const outputs = new Map();
@@ -304,7 +305,7 @@ try {
         writeFileSync(path, step.content);
         if (step.path.endsWith(".ts")) typeScriptFiles.push(path);
       } else if (step.kind === "harness") {
-        await performs[step.performs]();
+        await performs[step.performs](step.line);
       } else {
         if (step.line.startsWith("npx tsx ")) await typecheck(typeScriptFiles, run);
         if (fake !== undefined && startsJob(step.line)) scriptTheJob(fake, { csv: skillPushed });

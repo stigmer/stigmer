@@ -8,8 +8,10 @@
 //   - "vite-app": the Vite React app the page makes with `npm create vite`,
 //     written from the template's files at the versions this repository
 //     locks, so the run never depends on what `create-vite@latest` is today;
-//   - "react-sdk": the page's install line, from the kit, client and stubs
-//     this checkout packs (scripts/publish-libs.mjs --pack-dir, prebuilt);
+//   - "react-sdk": the page's install line, its @stigmer/* packages from the
+//     kit, client and stubs this checkout packs (scripts/publish-libs.mjs
+//     --pack-dir, prebuilt) and the rest of the line from the registry
+//     (`registryPackagesOf`), as the reader's npm would;
 //   - "backend" and "dev-server": the page's two long-running commands,
 //     started in the background with the page's environment, and stopped
 //     when the run ends.
@@ -26,7 +28,7 @@ import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import type { Page } from "@playwright/test";
 // @ts-expect-error -- plain Node module without types, shared with the getting-started smoke
-import { docSteps } from "../../install/lib/doc-steps.mjs";
+import { docSteps, registryPackagesOf } from "../../install/lib/doc-steps.mjs";
 
 const REPO_ROOT = resolve(import.meta.dirname, "../../..");
 const PAGE = join(REPO_ROOT, "docs/getting-started/embed-agent.mdx");
@@ -160,6 +162,17 @@ function run(line: string, cwd: string, env: NodeJS.ProcessEnv): void {
 }
 
 /**
+ * Installs what the `npm install` lines name: their @stigmer/* packages as
+ * this checkout's tarballs, the rest from the registry as the reader's npm
+ * would (`registryPackagesOf`), so a line that names one more package needs
+ * no edit here.
+ */
+function installAsLine(tarballs: readonly string[], lines: readonly string[], cwd: string, env: NodeJS.ProcessEnv): void {
+  const registry = [...new Set(lines.flatMap((line) => registryPackagesOf(line) as string[]))];
+  run(`npm install ${[...tarballs, ...registry].map((arg) => JSON.stringify(arg)).join(" ")}`, cwd, env);
+}
+
+/**
  * Whether `localhost:port` answers HTTP, as the reader's browser reaches it:
  * Vite listens on `localhost`, which can be IPv6 alone.
  */
@@ -235,7 +248,7 @@ export async function runTutorial(folder: string, tarballs: readonly string[], e
       } else if (step.performs === "vite-app") {
         viteApp(join(cwd, "my-app"));
       } else if (step.performs === "react-sdk") {
-        run(`npm install ${[...tarballs, "@bufbuild/protobuf"].map((arg) => JSON.stringify(arg)).join(" ")}`, cwd, shellEnv);
+        installAsLine(tarballs, [step.line], cwd, shellEnv);
       } else if (step.performs === "backend") {
         running.push(await background(step.line, cwd, shellEnv, BACKEND_PORT));
       } else if (step.performs === "dev-server") {
@@ -263,6 +276,8 @@ export interface HandedOver {
   readonly page: string;
   /** The settings file, `.env`, as the tab held it with the key on screen. */
   readonly settings: string;
+  /** The install lines the tab names for the route and for the chat's React app. */
+  readonly installs: { readonly route: string; readonly chat: string };
 }
 
 /** The command a handed-over route's own comment says to run it with. */
@@ -275,8 +290,9 @@ export function runLineOf(route: string): string {
 /**
  * Builds a Vite React app from exactly the text the console handed over (the
  * route as `server.ts` beside it, the chat as `src/StigmerAgentChat.tsx`,
- * mounted by the page it hands over to try it, `src/App.tsx`), installs the
- * kit this checkout packs, checks it builds and typechecks (strict), and
+ * mounted by the page it hands over to try it, `src/App.tsx`), installs what
+ * the route's and the chat's install lines name (one folder holds both), from
+ * the kit this checkout packs and the registry, checks it builds and typechecks (strict), and
  * starts the route with the line its own comment names, reading the
  * handed-over `.env` and nothing from the environment, and the app, with
  * the app's `/api` proxied to the route as the tab says. The settings'
@@ -311,7 +327,7 @@ export async function runHandedOverApp(
   };
   try {
     run("npm install", appDir, shellEnv);
-    run(`npm install ${[...tarballs, "@bufbuild/protobuf"].map((arg) => JSON.stringify(arg)).join(" ")}`, appDir, shellEnv);
+    installAsLine(tarballs, [handedOver.installs.route, handedOver.installs.chat], appDir, shellEnv);
     run("npm run build", appDir, shellEnv);
     running.push(await background(runLineOf(handedOver.route), appDir, shellEnv, BACKEND_PORT));
     running.push(await background("npm run dev", appDir, shellEnv, APP_PORT));
@@ -433,7 +449,7 @@ a {
 `;
 
 /** The one install line the tab hands a Next.js app; the run installs the same packages from this checkout. */
-export const NEXT_APP_INSTALL = "npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf";
+export const NEXT_APP_INSTALL = "npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf @connectrpc/connect-node";
 
 /**
  * Builds a stock Next.js app from exactly what the console handed over:
@@ -441,7 +457,8 @@ export const NEXT_APP_INSTALL = "npm install @stigmer/client @stigmer/react-sdk 
  * that tries it, and the settings file `.env.local` holding the key and the
  * development user), with nothing about Stigmer in the environment, so the
  * app runs on what the settings file says. Installs what the one install
- * line names, from the kit, client and stubs this checkout packs; checks it
+ * line names, its @stigmer/* packages from the kit, client and stubs this
+ * checkout packs and the rest from the registry; checks it
  * builds and typechecks (strict); and starts it on {@link NEXT_APP_PORT}.
  */
 export async function runHandedOverNextApp(
@@ -466,7 +483,7 @@ export async function runHandedOverNextApp(
   };
   try {
     run("npm install", appDir, shellEnv);
-    run(`npm install ${[...tarballs, "@bufbuild/protobuf"].map((arg) => JSON.stringify(arg)).join(" ")}`, appDir, shellEnv);
+    installAsLine(tarballs, [install], appDir, shellEnv);
     run("npm run build", appDir, shellEnv);
     running.push(await background(`npx next start -p ${NEXT_APP_PORT}`, appDir, shellEnv, NEXT_APP_PORT));
   } catch (error) {
