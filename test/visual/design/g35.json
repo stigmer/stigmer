@@ -66,10 +66,7 @@
         "word https://auth.northwind.example · creates accounts on sign-in as Member": "The drawing's example data; the scene shows its own fixture's"
       },
       "ruled": {},
-      "pending": {
-        "word New issuer": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "button New issuer": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
-      }
+      "pending": {}
     },
     {
       "caption": "Federation issuers: One open: how tokens are checked, as read-only fields",
@@ -278,18 +275,18 @@
       },
       "ruled": {},
       "pending": {
-        "word acme accepts sign-in tokens Northwind's platform issues.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Delete this issuer": "When its page is redesigned: the settings forms PR adds the open issuer's Delete card (Delete stays on its list row today)",
-        "word Tokens from Northwind stop working at once. People who joined through it keep their accounts and roles.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Delete issuer": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "button Delete issuer": "When its page is redesigned: the settings forms PR adds the open issuer's Delete card (Delete stays on its list row today)"
+        "word acme accepts sign-in tokens Northwind's platform issues.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Delete this issuer": "When its page is redesigned: the settings Built look's fixes adds the open issuer's Delete card (Delete stays on its list row today)",
+        "word Tokens from Northwind stop working at once. People who joined through it keep their accounts and roles.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Delete issuer": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "button Delete issuer": "When its page is redesigned: the settings Built look's fixes adds the open issuer's Delete card (Delete stays on its list row today)"
       }
     },
     {
       "caption": "Federation issuers: New issuer, an address the server refuses",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "When its page is redesigned: the settings Built look's fixes build it.",
       "words": [
         {
           "text": "Federation issuers",
@@ -514,8 +511,8 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "word Delete Northwind platform?": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Tokens from Northwind stop working at once. People who joined through it keep their accounts and roles.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Delete Northwind platform?": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word Tokens from Northwind stop working at once. People who joined through it keep their accounts and roles.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
       }
     },
     {
@@ -739,12 +736,7 @@
       ],
       "sample": {},
       "ruled": {},
-      "pending": {
-        "word New issuer": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word No federation issuers yet": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Add one when another platform signs people in to acme for you, such as the platform that manages it.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "button New issuer": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
-      }
+      "pending": {}
     },
     {
       "caption": "Federation issuers: Didn't load",
@@ -840,10 +832,7 @@
         "word Stuck? Ask IT on Slack": "The drawing's example data; the scene shows its own fixture's"
       },
       "ruled": {},
-      "pending": {
-        "word New issuer": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "button New issuer": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
-      }
+      "pending": {}
     },
     {
       "caption": "Federation issuers: At 390 wide, one open",

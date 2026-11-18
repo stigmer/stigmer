@@ -127,7 +127,7 @@ export function RegisterChannelAppAffordance({
   readonly children: ReactNode;
 }) {
   if (!channelAppsHref) {
-    return <>{children} under Settings → Channel Apps</>;
+    return <>{children} under Settings → Channel apps</>;
   }
   return (
     <a

@@ -24,8 +24,6 @@ import { draw } from "./draw.ts";
 const KNOWN_VIOLATIONS: Readonly<Partial<Record<`${SceneId} ${Mode}`, readonly KnownViolation[]>>> = {
   "library-agents-apply-yaml light": [{ rule: "aria-input-field-name", issue: "stigmer#3196" }],
   "library-agents-apply-yaml dark": [{ rule: "aria-input-field-name", issue: "stigmer#3196" }],
-  "settings-model-catalog-confirm light": [{ rule: "aria-required-children", issue: "stigmer#3239" }],
-  "settings-model-catalog-confirm dark": [{ rule: "aria-required-children", issue: "stigmer#3239" }],
 };
 
 const SCREENSHOTS = fileURLToPath(new URL("./__screenshots__/", import.meta.url));

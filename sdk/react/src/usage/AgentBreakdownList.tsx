@@ -1,18 +1,17 @@
 "use client";
 
 /**
- * Ranked list of the organization's agents by tokens, each with its runs,
- * working time, tokens, share of the organization's tokens and a
- * proportional bar.
+ * Ranked table of the organization's agents by tokens, each with its runs,
+ * working time, tokens and share of the organization's tokens.
  *
  * Rows arrive ordered by the server (`top_agents`, most tokens first); the
- * list only lays them out. Usage is tokens, never money. The suite in
+ * table only lays them out. Usage is tokens, never money. The suite in
  * `__tests__/AgentBreakdownList.test.tsx` pins the cells (working time among them), the share and the
  * optional links.
  */
 
-import { cn } from "@stigmer/design-tokens";
-import { cardClasses } from "../internal/surface/Card.js";
+import { Section } from "../resource-detail/Section.js";
+import { Table, type TableColumn } from "../internal/surface/Table.js";
 import type { AgentUsageSummary } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { formatCompactCount, formatWorkingTime, sharePercent } from "./format.js";
 
@@ -29,10 +28,12 @@ export interface AgentBreakdownListProps {
 }
 
 /**
- * Renders a ranked list of agents by tokens with proportional bars.
+ * Renders the organization's agents ranked by tokens, on the table part in
+ * a section headed "Top agents by tokens".
  *
- * Each row shows the agent name, run count, working time, tokens with their share of
- * the organization's tokens, and a bar scaled to the top agent.
+ * Each row shows the agent's name (a link when `agentHref` is given), its
+ * runs, working time, tokens and share of the organization's tokens. Under
+ * 640px of its own width each agent is a list row.
  */
 export function AgentBreakdownList({
   agents,
@@ -42,98 +43,29 @@ export function AgentBreakdownList({
 }: AgentBreakdownListProps) {
   if (agents.length === 0) return null;
 
-  const maxTokens = Math.max(...agents.map((a) => Number(a.totalTokens)), 0);
+  const columns: readonly TableColumn<AgentUsageSummary>[] = [
+    { id: "agent", header: "Agent", cell: (agent) => agent.agentName || agent.agentId },
+    { id: "runs", header: "Runs", align: "end", cell: (agent) => agent.runCount },
+    { id: "working", header: "Working", align: "end", cell: (agent) => formatWorkingTime(agent.workingSeconds) },
+    { id: "tokens", header: "Tokens", align: "end", cell: (agent) => formatCompactCount(Number(agent.totalTokens)) },
+    {
+      id: "share",
+      header: "Share",
+      align: "end",
+      cell: (agent) => `${sharePercent(Number(agent.totalTokens), totalTokens)}%`,
+    },
+  ];
 
   return (
-    <div className={className}>
-      <h3 className="stg:mb-2 stg:text-xs stg:font-semibold stg:text-foreground">
-        Top Agents by Tokens
-      </h3>
-      <div
-        className={cardClasses({ flush: true })}
-        role="table"
+    <Section title="Top agents by tokens" className={className}>
+      <Table
+        bare
         aria-label="Agent token breakdown"
-      >
-        <div
-          role="row"
-          className="stg:grid stg:grid-cols-[1fr_auto_auto_auto] stg:gap-x-4 stg:border-b stg:border-border stg:px-3.5 stg:py-2.5 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground"
-        >
-          <span role="columnheader">Agent</span>
-          <span role="columnheader" className="stg:text-right">
-            Runs
-          </span>
-          <span role="columnheader" className="stg:text-right">
-            Working
-          </span>
-          <span role="columnheader" className="stg:text-right">
-            Tokens
-          </span>
-        </div>
-        {agents.map((agent) => {
-          const tokens = Number(agent.totalTokens);
-          const pct = sharePercent(tokens, totalTokens);
-          const barWidth = maxTokens > 0 ? (tokens / maxTokens) * 100 : 0;
-
-          const NameTag = agentHref ? "a" : "span";
-          const nameProps = agentHref
-            ? { href: agentHref(agent.agentId) }
-            : {};
-
-          return (
-            <div
-              key={agent.agentId}
-              className="stg:border-b stg:border-border-muted stg:px-3.5 stg:py-2.5 stg:last:border-b-0"
-            >
-              <div
-                role="row"
-                className="stg:grid stg:grid-cols-[1fr_auto_auto_auto] stg:gap-x-4"
-              >
-                <div role="cell" className="stg:min-w-0">
-                  <NameTag
-                    {...nameProps}
-                    className={cn(
-                      "stg:block stg:truncate stg:text-xs stg:font-medium",
-                      agentHref
-                        ? "stg:text-primary stg:hover:underline"
-                        : "stg:text-foreground",
-                    )}
-                  >
-                    {agent.agentName || agent.agentId}
-                  </NameTag>
-                </div>
-                <span
-                  role="cell"
-                  className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-muted-foreground"
-                >
-                  {agent.runCount}
-                </span>
-                <span
-                  role="cell"
-                  className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-muted-foreground"
-                >
-                  {formatWorkingTime(agent.workingSeconds)}
-                </span>
-                <span
-                  role="cell"
-                  className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-foreground"
-                >
-                  {formatCompactCount(tokens)}
-                  <span className="stg:ml-1.5 stg:text-2xs stg:text-muted-foreground">
-                    {pct}%
-                  </span>
-                </span>
-              </div>
-              {/* Bar scaled to the top agent */}
-              <div className="stg:mt-1.5 stg:h-1 stg:w-full stg:rounded-full stg:bg-muted">
-                <div
-                  className="stg:h-full stg:rounded-full stg:bg-chart-2 stg:transition-all"
-                  style={{ width: `${barWidth}%` }}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+        columns={columns}
+        rows={agents}
+        rowKey={(agent) => agent.agentId}
+        rowHref={agentHref ? (agent) => agentHref(agent.agentId) : undefined}
+      />
+    </Section>
   );
 }

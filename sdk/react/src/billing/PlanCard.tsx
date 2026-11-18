@@ -8,6 +8,7 @@ import {
 import type { AgentHours } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Card } from "../internal/surface/Card.js";
+import { Table, type TableColumn } from "../internal/surface/Table.js";
 import { StatusBadge } from "../status/StatusBadge.js";
 import { AgentHoursStanding } from "./AgentHoursStanding.js";
 import { formatUsd } from "./format.js";
@@ -151,32 +152,54 @@ function StandingDetail({ standing }: { standing: PlanStanding }) {
   }
 }
 
+/** One line of the estimate as the invoice will read it, the total last. */
+interface EstimateRow {
+  readonly key: string;
+  readonly label: string;
+  readonly amount: string;
+  readonly total?: boolean;
+}
+
+const ESTIMATE_COLUMNS: readonly TableColumn<EstimateRow>[] = [
+  {
+    id: "line",
+    header: "Line",
+    cell: (row) => <span className={row.total ? "stg:font-semibold" : "stg:font-normal"}>{row.label}</span>,
+  },
+  {
+    id: "amount",
+    header: "Amount",
+    align: "end",
+    cell: (row) => <span className={row.total ? "stg:font-semibold" : undefined}>{row.amount}</span>,
+  },
+];
+
 function EstimateLines({ planName, estimate }: { planName: string; estimate: PeriodEstimate }) {
+  const rows: EstimateRow[] = [
+    ...estimate.lines.map((line) => ({
+      key: String(line.kind),
+      label: lineLabel(line, planName, estimate),
+      amount: formatUsd(line.amountMicros),
+    })),
+    { key: "total", label: "Total so far", amount: formatUsd(estimate.totalMicros), total: true },
+  ];
   return (
-    <div className="stg:mt-4 stg:border-t stg:border-border stg:pt-3">
-      <div className="stg:flex stg:items-baseline stg:justify-between stg:gap-3">
-        <p className="stg:text-xs stg:font-medium stg:text-foreground">
+    <div className="stg:mt-4 stg:flex stg:flex-col stg:gap-2 stg:border-t stg:border-border stg:pt-3">
+      <div className="stg:flex stg:flex-wrap stg:items-baseline stg:justify-between stg:gap-x-3 stg:gap-y-1">
+        <p className="stg:m-0 stg:text-sm stg:font-medium stg:text-foreground">
           Estimated invoice on {formatPeriodDay(estimate.periodEnd)}
         </p>
-        <p className="stg:text-xs stg:text-muted-foreground">
+        <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
           Period {formatPeriodDay(estimate.periodStart)} – {formatPeriodDay(estimate.periodEnd)}
         </p>
       </div>
-      <dl className="stg:mt-2 stg:space-y-1">
-        {estimate.lines.map((line) => (
-          <div key={line.kind} className="stg:flex stg:justify-between stg:gap-3 stg:text-xs">
-            <dt className="stg:text-muted-foreground">{lineLabel(line, planName, estimate)}</dt>
-            <dd className="stg:tabular-nums stg:text-foreground">
-              {formatUsd(line.amountMicros)}
-            </dd>
-          </div>
-        ))}
-        <div className="stg:flex stg:justify-between stg:gap-3 stg:border-t stg:border-border stg:pt-1 stg:text-xs stg:font-medium">
-          <dt className="stg:text-foreground">Total so far</dt>
-          <dd className="stg:tabular-nums stg:text-foreground">{formatUsd(estimate.totalMicros)}</dd>
-        </div>
-      </dl>
-      <p className="stg:mt-2 stg:text-xs stg:text-muted-foreground">
+      <Table
+        aria-label="This period's invoice, so far"
+        columns={ESTIMATE_COLUMNS}
+        rows={rows}
+        rowKey={(row) => row.key}
+      />
+      <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
         The plan&apos;s fee for the whole period, with the child organizations and the agent hours past those
         included counted so far. Model usage runs on your organization&apos;s own provider keys and is not on the
         invoice.

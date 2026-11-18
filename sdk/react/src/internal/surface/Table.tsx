@@ -54,6 +54,13 @@ export interface TableColumn<Row> {
    * (`hidden`). The first column is always the row's name.
    */
   readonly narrow?: "line" | "adornment" | "trailing" | "hidden";
+  /**
+   * A quiet line under the cell (an address under a name, an id under a
+   * model), outside the row's act, so the act's name is the cell alone.
+   * Used on the first column; when the table draws as rows it leads the
+   * line under the name.
+   */
+  readonly detail?: (row: Row) => ReactNode;
 }
 
 /** Props for {@link Table}. */
@@ -171,6 +178,7 @@ function WideTable<Row>({
                     )}
                   >
                     {name}
+                    {column.detail && <CellDetail>{column.detail(row)}</CellDetail>}
                   </td>
                 );
               })}
@@ -207,8 +215,10 @@ function TableAsRows<Row>({
   return (
     <List bare={bare} aria-label={ariaLabel} aria-labelledby={ariaLabelledby}>
       {rows.map((row) => {
-        const parts = line
-          .map((column) => ({ id: column.id, node: column.cell(row) }))
+        const parts = [
+          ...(first.detail ? [{ id: `${first.id}-detail`, node: first.detail(row) }] : []),
+          ...line.map((column) => ({ id: column.id, node: column.cell(row) })),
+        ]
           .filter((part) => part.node !== null && part.node !== undefined && part.node !== "" && part.node !== false);
         const description =
           parts.length === 0
@@ -247,4 +257,10 @@ function TableAsRows<Row>({
       })}
     </List>
   );
+}
+
+/** The quiet line under a cell: 12/16 in the muted tone, never the row's act. */
+function CellDetail({ children }: { readonly children: ReactNode }) {
+  if (children === null || children === undefined || children === "" || children === false) return null;
+  return <span className="stg:block stg:truncate stg:text-xs stg:font-normal stg:text-muted-foreground">{children}</span>;
 }

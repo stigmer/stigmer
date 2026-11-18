@@ -107,7 +107,7 @@ test.describe("Settings index", () => {
       page.getByRole("heading", { name: "Configuration" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: /Billing & Usage/ }),
+      page.getByRole("heading", { name: "Billing and usage" }),
     ).toBeVisible();
   });
 
@@ -119,7 +119,7 @@ test.describe("Settings index", () => {
     const sidebar = page.getByLabel("Management navigation");
     await expect(sidebar).toBeVisible({ timeout: 15_000 });
 
-    await expect(sidebar.getByRole("link", { name: "API Keys" })).toBeVisible();
+    await expect(sidebar.getByRole("link", { name: "API keys" })).toBeVisible();
     await expect(
       sidebar.getByRole("link", { name: "Vaults" }),
     ).toBeVisible();
@@ -172,7 +172,7 @@ test.describe("Settings sections", () => {
     // local mode this is the ONLY memory switch (the account scope
     // collapses), so its presence here is load-bearing. Read-only
     // assertion — flipping would mutate the shared local org.
-    const memorySwitch = region.getByRole("switch", { name: "Memory" });
+    const memorySwitch = region.getByRole("switch", { name: "Agents may remember confirmed facts" });
     await expect(memorySwitch).toBeVisible();
     await expect(memorySwitch).toHaveAttribute("aria-checked", /true|false/);
     // The transparency helper copy is the switch's accessible description,
@@ -196,7 +196,8 @@ test.describe("Settings sections", () => {
     // while the server's posture loads the row renders nothing, so a bare
     // "no switch" would pass before the row exists.
     await expect(region.getByText(/memory follows your organization's setting/)).toBeVisible();
-    await expect(region.getByRole("switch", { name: "Memory" })).toHaveCount(0);
+    // Named as the account's switch is, so a rename can't make this pass on its own.
+    await expect(region.getByRole("switch", { name: "Agents may remember confirmed facts about me" })).toHaveCount(0);
   });
 
   for (const section of SETTINGS_SECTIONS) {

@@ -832,7 +832,7 @@ pages:
       tokens, the audience on the token, Dex's audience-is-the-client-ID rule),
       set issuer, audience and console client ID as .env lines or values-file
       lines, read the server's /config.json to confirm, sign in, create the
-      runner's never-expiring key and your own under Settings → API Keys, give
+      runner's never-expiring key and your own under Settings → API keys, give
       the runner its key (the chart's Secret and the order it forces), point the
       CLI at the stack on 443 — then what changes (roles, run attribution, what
       stays open) and what still needs an API key.

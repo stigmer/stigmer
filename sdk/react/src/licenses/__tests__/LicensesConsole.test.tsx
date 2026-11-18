@@ -137,9 +137,7 @@ describe("LicensesConsole calendar", () => {
     expect(within(rows[2]!).getByText("Active")).toBeTruthy();
     expect(within(rows[3]!).getByText("Renewed")).toBeTruthy();
     expect(within(rows[2]!).getByText("2027-09-30")).toBeTruthy();
-    const entitlements = within(within(rows[3]!).getAllByRole("cell")[2]!);
-    expect(entitlements.getByText("5 users")).toBeTruthy();
-    expect(entitlements.getByText("1 organization")).toBeTruthy();
+    expect(within(rows[3]!).getAllByRole("cell")[2]!.textContent).toBe("5 users · 1 organization");
   });
 });
 
@@ -235,6 +233,27 @@ describe("LicensesConsole issue", () => {
     await waitFor(() => expect(screen.getByText(/License issued and signed/)).toBeTruthy());
     expect(screen.getByRole("button", { name: /Copy ticket/ })).toBeTruthy();
     expect(client.license.get).not.toHaveBeenCalled();
+  });
+
+  it("says a lapsed license stops only growth, with or without grace (#3016)", async () => {
+    const user = userEvent.setup();
+    renderConsole(mockClient({}));
+
+    await user.click(await screen.findByRole("button", { name: /Issue license/ }));
+    await user.type(screen.getByLabelText(/Display name/), "Initech");
+    const grace = screen.getByLabelText(/Grace period/);
+    await user.clear(grace);
+    await user.type(grace, "0");
+    expect(
+      screen.getByText(
+        "No grace period: from the day after, the licensed server stops creating organizations, teams and federation issuers; everything already there keeps working.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText(/server stops the day after/)).toBeNull();
+
+    await user.clear(grace);
+    await user.type(grace, "14");
+    expect(screen.getByText(/Then 14 days of grace, while the licensed server keeps serving and warns\. After that it stops creating organizations/)).toBeTruthy();
   });
 
   it("holds a draft that breaks a contract rule and says which field", async () => {

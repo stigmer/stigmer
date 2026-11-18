@@ -607,6 +607,7 @@ or auth dependencies, so a platform builder can embed it directly:
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    embedded: { type: "boolean", description: "Drawn inside another page's section (Organization preferences), which says once who may change it: the panel then leaves out its own \"only admins\" line. A permission check of its own that fails is still said here, with its Try again, since it can fail while the host page's check succeeds." },
     onUpdated: { type: "(org: Organization) => void", description: "Fired with the updated resource after a successful save." },
     org: { type: "string", description: "The ID of the organization whose policies to display and edit.", required: true },
   }}

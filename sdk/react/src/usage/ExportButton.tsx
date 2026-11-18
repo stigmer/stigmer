@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "../button/Button.js";
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@stigmer/design-tokens";
 import type { ExportFormat } from "./useExportCSV.js";
@@ -44,21 +45,17 @@ export function ExportButton({
 
   return (
     <div ref={ref} className={cn("stg:relative", className)}>
-      <button
-        type="button"
+      <Button
+        variant="outline"
+        size="xs"
+        icon={<DownloadIcon className="stg:size-3.5" />}
         onClick={() => setOpen(!open)}
         disabled={disabled || isExporting}
-        className={cn(
-          "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:border-border stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
-          "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent",
-          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-        )}
         aria-expanded={open}
         aria-haspopup="true"
       >
-        <DownloadIcon className="stg:size-3.5" />
         {isExporting ? "Exporting…" : "Export"}
-      </button>
+      </Button>
 
       {open && (
         <div

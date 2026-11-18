@@ -7,8 +7,12 @@
     {
       "caption": "Licenses: Licenses on the table part, soonest renewal first",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-licenses",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Licenses",
@@ -201,15 +205,27 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word State": "The drawing's example data; the scene shows its own fixture's",
+        "word Annual": "The drawing's example data; the scene shows its own fixture's",
+        "word Aug 31, 2026": "The drawing's example data; the scene shows its own fixture's",
+        "word 50 users · 5 organizations": "The drawing's example data; the scene shows its own fixture's",
+        "word Mar 14, 2027": "The drawing's example data; the scene shows its own fixture's",
+        "word 200 users · 20 organizations": "The drawing's example data; the scene shows its own fixture's",
+        "word Jul 30, 2026": "The drawing's example data; the scene shows its own fixture's",
+        "word 10 users · 1 organization": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Every Stigmer license issued, ordered by when it needs renewing.": "When its page is redesigned again: the settings Built look's fixes (the page's description; the calendar's summary line stands in its place)",
+        "word Renew soon": "When its page is redesigned again: the settings Built look's fixes (a license near its end named \"Renew soon\")"
+      }
     },
     {
       "caption": "Licenses: One open",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "unbuilt": "When its page is redesigned again: the settings Built look's fixes (the open license's record as one section of read-only pairs)",
       "words": [
         {
           "text": "Licenses",
@@ -398,7 +414,7 @@
       "caption": "Licenses: Issue a license, an address the server refuses (the grace line corrected: only growth stops)",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "unbuilt": "When its page is redesigned again: the settings Built look's fixes (the issue form's sections, and an address the server refuses)",
       "words": [
         {
           "text": "Licenses",
@@ -622,8 +638,12 @@
     {
       "caption": "Licenses: None yet",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-licenses-empty",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Licenses",
@@ -691,8 +711,12 @@
     {
       "caption": "Licenses: On the open-source edition",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-licenses-oss",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Licenses",
@@ -735,8 +759,12 @@
     {
       "caption": "Licenses: Didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-licenses-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Licenses",
@@ -817,15 +845,25 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "The drawing's example server line and help line; the scene's server sends its own",
+        "word Stuck? Ask IT on Slack": "The drawing's example server line and help line; the scene's server sends its own"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Issue license": "When its page is redesigned again: the settings Built look's fixes (the page's main act offered while its list failed to load)",
+        "button Issue license": "When its page is redesigned again: the settings Built look's fixes (the page's main act offered while its list failed to load)"
+      }
     },
     {
       "caption": "Licenses: At 390 wide",
       "narrow": true,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-licenses",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Licenses",
@@ -930,9 +968,16 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Annual · Aug 31, 2026 · 50 users · 5 organizations": "The drawing's example data; the scene shows its own fixture's",
+        "word Annual · Mar 14, 2027 · 200 users · 20 organizations": "The drawing's example data; the scene shows its own fixture's",
+        "word Trial · Jul 30, 2026 · 10 users · 1 organization": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Every Stigmer license issued, ordered by when it needs renewing.": "When its page is redesigned again: the settings Built look's fixes (the page's description; the calendar's summary line stands in its place)",
+        "word Renew soon": "When its page is redesigned again: the settings Built look's fixes (a license near its end named \"Renew soon\")"
+      }
     }
   ]
 }

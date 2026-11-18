@@ -7,8 +7,12 @@
     {
       "caption": "Notifications, kept separate: Kept as its own page: one decision, with room",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "built": [
+        {
+          "scene": "settings-notifications",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Notifications",
@@ -60,7 +64,7 @@
       "caption": "Notifications, kept separate: Blocked by the browser, said under the switch",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "No scene draws this state yet; the settings Built look's fixes add it.",
       "words": [
         {
           "text": "Notifications",
@@ -127,8 +131,12 @@
     {
       "caption": "Notifications, kept separate: A browser that can't show notifications",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "built": [
+        {
+          "scene": "settings-notifications-unsupported",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Notifications",

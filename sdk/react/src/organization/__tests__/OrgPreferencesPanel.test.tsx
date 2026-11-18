@@ -41,6 +41,8 @@ let serverInfo: UseServerInfoReturn = SIGN_IN_SERVER;
 
 vi.mock("../../server-info.js", () => ({
   useServerInfo: () => serverInfo,
+  // As the real hook reads the same answer.
+  useSingleOrg: () => (serverInfo.isLoading ? undefined : serverInfo.serverInfo?.singleOrg === true),
   useEnvironmentAvailability: () => serverInfo.serverInfo?.environments,
 }));
 
@@ -122,7 +124,7 @@ describe("OrgPreferencesPanel", () => {
 
     const field = await findSyncedField("We deploy to us-east-1.");
     fireEvent.change(field, { target: { value: "Prefer terse answers." } });
-    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
     const sent = sentUpdate<Organization>(update);
@@ -140,7 +142,7 @@ describe("OrgPreferencesPanel", () => {
 
     const field = await findSyncedField("We deploy to us-east-1.");
     fireEvent.change(field, { target: { value: "" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
     const sent = sentUpdate<Organization>(update);
@@ -166,9 +168,27 @@ describe("OrgPreferencesPanel", () => {
       expect(field).toHaveProperty("readOnly", true),
     );
     expect(
-      screen.getByText("Only organization admins can edit these preferences."),
+      screen.getByText("Only admins of acme change these."),
     ).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Save changes" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+  });
+
+  it("names the organization only where the server holds several", async () => {
+    renderPanel(createMockStigmer({ canEdit: false }));
+    expect(await screen.findByText("Only admins of acme change these.")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "What agents should know about acme" })).toBeTruthy();
+    cleanup();
+
+    // A server that holds one organization never names it.
+    serverInfo = { ...SIGN_IN_SERVER, serverInfo: { ...SIGN_IN_SERVER.serverInfo!, singleOrg: true } };
+    try {
+      renderPanel(createMockStigmer({ canEdit: false }));
+      expect(await screen.findByText("Only admins of this organization change these.")).toBeTruthy();
+      expect(screen.getByRole("heading", { name: "What agents should know about this organization" })).toBeTruthy();
+      expect(screen.queryByText(/acme/)).toBeNull();
+    } finally {
+      serverInfo = SIGN_IN_SERVER;
+    }
   });
 
   it("memory toggle applies instantly, naming the flag alone", async () => {
@@ -179,7 +199,7 @@ describe("OrgPreferencesPanel", () => {
     // No Save click: consent applies the moment it is flipped (the
     // UX-checkpoint decision — a flipped-but-unsaved consent bit that
     // silently reverts on navigation is the failure this prevents).
-    fireEvent.click(screen.getByRole("switch", { name: "Memory" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Agents may remember confirmed facts" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
     const sent = sentUpdate<Organization>(update);
@@ -215,7 +235,7 @@ describe("OrgPreferencesPanel", () => {
 
     const field = await findSyncedField("We deploy to us-east-1.");
     fireEvent.change(field, { target: { value: "Prefer terse answers." } });
-    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
     // The form names its one preference: the memory switch is not among
@@ -229,7 +249,7 @@ describe("OrgPreferencesPanel", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByRole("switch", { name: "Memory" }).hasAttribute("disabled"),
+        screen.getByRole("switch", { name: "Agents may remember confirmed facts" }).hasAttribute("disabled"),
       ).toBe(true),
     );
   });
@@ -352,21 +372,21 @@ describe("CON-01 the preferences offer no edit before the server says yes (stigm
     renderPanel(clientAnswering("pending"));
     const field = await findSyncedField("We deploy to us-east-1.");
     expect(field).toHaveProperty("readOnly", true);
-    expect(screen.queryByRole("button", { name: "Save changes" })).toBeNull();
-    expect(screen.queryByText("Only organization admins can edit these preferences.")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+    expect(screen.queryByText("Only admins of acme change these.")).toBeNull();
   });
 
   it("says who can edit them once the server says no", async () => {
     renderPanel(clientAnswering("refused"));
-    expect(await screen.findByText("Only organization admins can edit these preferences.")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Save changes" })).toBeNull();
+    expect(await screen.findByText("Only admins of acme change these.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
   });
 
   it("keeps the standing context read-only, with no Save, and says it could not check when the check fails", async () => {
     renderPanel(clientAnswering("fails"));
     expect(await screen.findByText(/Could not check whether you may edit these preferences\./)).toBeTruthy();
     expect(await screen.findByLabelText("Standing context")).toHaveProperty("readOnly", true);
-    expect(screen.queryByRole("button", { name: "Save changes" })).toBeNull();
-    expect(screen.queryByText("Only organization admins can edit these preferences.")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+    expect(screen.queryByText("Only admins of acme change these.")).toBeNull();
   });
 });

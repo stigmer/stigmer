@@ -311,14 +311,14 @@
       },
       "ruled": {},
       "pending": {
-        "word Its endpoints": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Its endpoints": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
       }
     },
     {
       "caption": "OAuth apps: New OAuth app, a field missing (Advanced stays a disclosure)",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "When its page is redesigned: the settings Built look's fixes build it.",
       "words": [
         {
           "text": "OAuth apps",
@@ -545,7 +545,7 @@
       },
       "ruled": {},
       "pending": {
-        "word Delete Linear (acme)?": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Delete Linear (acme)?": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
       }
     },
     {

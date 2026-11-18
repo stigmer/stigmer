@@ -816,13 +816,6 @@
   "agent-new-refused": {
     "type-off-scale pre \"apiVersion: agentic.stigmer.ai/v1 kind: Agent metadata: name\": 12px on 19.5px lines, its step pairs 16px": "On the scale where its screen is designed and rebuilt"
   },
-  "settings-account-preferences": {
-    "spacing-off-scale fieldset \"Default harness Platform default Stigmer picks the harness f\": paddingTop 5.6px": "On the scale where the settings pages are redrawn (stigmer#3239)",
-    "type-off-scale p \"When on, agents may propose facts to remember about you; onl\": 11px on 15.125px lines, its step pairs 16px": "On the scale where the settings pages are redrawn (stigmer#3239)",
-    "type-off-scale span \"Anthropic's Claude Agent SDK: Claude models on your Anthropi\": 11px on 15.125px lines, its step pairs 16px": "On the scale where the settings pages are redrawn (stigmer#3239)",
-    "type-off-scale span \"Stigmer picks the harness for new sessions.\": 11px on 15.125px lines, its step pairs 16px": "On the scale where the settings pages are redrawn (stigmer#3239)",
-    "type-off-scale span \"Stigmer's own harness: runs any catalog model, open source e\": 11px on 15.125px lines, its step pairs 16px": "On the scale where the settings pages are redrawn (stigmer#3239)"
-  },
   "settings-channel-apps-delete": {
     "type-off-scale pre \"display_information: name: Acme Slack description: Chat with\": 11px on 17.875px lines, its step pairs 16px": "On the scale where the settings pages are redrawn (stigmer#3239)"
   },
@@ -832,22 +825,9 @@
   "settings-channel-apps-new-error": {
     "type-off-scale pre \"display_information: name: Acme Slack description: Chat with\": 11px on 17.875px lines, its step pairs 16px": "On the scale where the settings pages are redrawn (stigmer#3239)"
   },
-  "settings-notifications": {
-    "type-off-scale p \"A notification when a conversation you started finishes, sto\": 11px on 15.125px lines, its step pairs 16px": "On the scale where the settings pages are redrawn (stigmer#3239)"
-  },
-  "settings-notifications-unsupported": {
-    "type-off-scale p \"A notification when a conversation you started finishes, sto\": 11px on 15.125px lines, its step pairs 16px": "On the scale where the settings pages are redrawn (stigmer#3239)"
-  },
   "settings-org-embedding": {
     "type-off-scale p \"Create a person's Stigmer account the first time a token is \": 11px on 15.125px lines, its step pairs 16px": "On the scale where the settings pages are redrawn (stigmer#3239)",
     "type-off-scale p \"Your product's backend signs its users in to this organizati\": 11px on 15.125px lines, its step pairs 16px": "On the scale where the settings pages are redrawn (stigmer#3239)"
-  },
-  "settings-org-policies": {
-    "type-off-scale p \"When on, every member can create agents. A member's agent is\": 11px on 15.125px lines, its step pairs 16px": "On the scale where the settings pages are redrawn (stigmer#3239)"
-  },
-  "settings-org-preferences": {
-    "type-off-scale p \"Allow agents to remember confirmed facts about members of th\": 11px on 15.125px lines, its step pairs 16px": "On the scale where the settings pages are redrawn (stigmer#3239)",
-    "type-off-scale p \"Conversations in sandboxes this server starts use it when ne\": 11px on 15.125px lines, its step pairs 16px": "On the scale where the settings pages are redrawn (stigmer#3239)"
   },
   "settings-sidebar": {
     "type-off-scale span \"Acme Corp\": 14px on 17.5px lines, its step pairs 20px": "On the scale where the settings pages are redrawn (stigmer#3239)",

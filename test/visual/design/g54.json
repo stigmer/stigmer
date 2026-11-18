@@ -8,7 +8,7 @@
       "caption": "Table and Figure: Table and Figure",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "unbuilt": "No scene pictures the parts on their own; usage, licenses and the model catalog draw them",
       "words": [
         {
           "text": "Agent",
@@ -180,7 +180,7 @@
       "caption": "Table and Figure: At 390 wide",
       "narrow": true,
       "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "unbuilt": "No scene pictures the parts on their own; usage and licenses at 390 draw them",
       "words": [
         {
           "text": "Ledger reviewer",

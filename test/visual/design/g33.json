@@ -101,7 +101,7 @@
       },
       "ruled": {},
       "pending": {
-        "word Member · no keys": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Member · no keys": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
       }
     },
     {
@@ -294,21 +294,21 @@
       },
       "ruled": {},
       "pending": {
-        "word ci-deploy acts with the Member role in acme.": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "type Admin": "When its page is redesigned: the settings forms PR draws the role chooser",
-        "word Manage people, settings, billing, and the organization's agents and tools; can't read private conversations, delete the organization or change its owners": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "type Member": "When its page is redesigned: the settings forms PR draws the role chooser",
-        "type Start conversations with the agents shared with them, and create agents when the organization allows it": "When its page is redesigned: the settings forms PR draws the role chooser",
-        "type Viewer": "When its page is redesigned: the settings forms PR draws the role chooser",
-        "word See what is shared with the organization; can't start conversations": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word API keys 1": "When its page is redesigned: the settings forms PR puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word ci-deploy acts with the Member role in acme.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "type Admin": "When its page is redesigned: the settings Built look's fixes draws the role chooser",
+        "word Manage people, settings, billing, and the organization's agents and tools; can't read private conversations, delete the organization or change its owners": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "type Member": "When its page is redesigned: the settings Built look's fixes draws the role chooser",
+        "type Start conversations with the agents shared with them, and create agents when the organization allows it": "When its page is redesigned: the settings Built look's fixes draws the role chooser",
+        "type Viewer": "When its page is redesigned: the settings Built look's fixes draws the role chooser",
+        "word See what is shared with the organization; can't start conversations": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
+        "word API keys 1": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
       }
     },
     {
       "caption": "Service accounts: New service account, a name the server refuses",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "When its page is redesigned: the settings Built look's fixes build it.",
       "words": [
         {
           "text": "Service accounts",

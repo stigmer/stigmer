@@ -7,8 +7,12 @@
     {
       "caption": "Model catalog: The catalog on the table part; a row opens its record",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-model-catalog",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Model catalog",
@@ -289,15 +293,22 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Claude Haiku 5.5": "The drawing's example data; the scene shows its own fixture's",
+        "word claude-haiku-5.5": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "Model catalog: None yet, in a reader's words",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-model-catalog-empty",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Model catalog",
@@ -365,8 +376,12 @@
     {
       "caption": "Model catalog: Not allowed",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-model-catalog-denied",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Model catalog",
@@ -409,8 +424,12 @@
     {
       "caption": "Model catalog: Didn't load",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "built": [
+        {
+          "scene": "settings-model-catalog-failed",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Model catalog",
@@ -491,15 +510,21 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the server did not answer in time": "The drawing's example server line and help line; the scene's server sends its own",
+        "word Stuck? Ask IT on Slack": "The drawing's example server line and help line; the scene's server sends its own"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Add model": "When its page is redesigned again: the settings Built look's fixes (the page's main act offered while its list failed to load)",
+        "button Add model": "When its page is redesigned again: the settings Built look's fixes (the page's main act offered while its list failed to load)"
+      }
     },
     {
       "caption": "Model catalog: At 390 wide",
       "narrow": true,
       "built": [],
-      "unbuilt": "When its page is redesigned: billing, usage, plans, licenses and the model catalog are built on the table and figure parts next.",
+      "unbuilt": "No scene pictures the catalog's list at 390",
       "words": [
         {
           "text": "Model catalog",

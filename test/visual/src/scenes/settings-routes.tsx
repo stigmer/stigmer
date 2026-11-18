@@ -90,7 +90,7 @@ import { DATA_SCIENCE } from "../docs-fixtures.ts";
 import { ACCOUNT, BILLING_ACCOUNT, BUSY_WEEK_USAGE, EMPTY_USAGE, ORGANIZATION, PLANS, PRICING_BASELINES, TEAM_AGENT_HOURS, TEAM_ESTIMATE, TEAM_SUBSCRIPTION } from "../fixtures.ts";
 import type { Drawing } from "./drawing.ts";
 import { serviceAccountsScene } from "./access.tsx";
-import { settingsScene as frame } from "./settings-pages.tsx";
+import { OWNER_SETTINGS_NAV_GROUPS, settingsScene as frame } from "./settings-pages.tsx";
 
 const ORG_ID = ORGANIZATION.metadata?.id ?? "";
 const ORG_SLUG = ORGANIZATION.metadata?.slug ?? "";
@@ -160,7 +160,7 @@ export function settingsSidebarScene(): Drawing {
       <div style={{ display: "flex", minHeight: 800 }}>
         <div style={{ width: 240, flex: "none", display: "flex" }}>
           <SettingsSidebar
-            groups={SETTINGS_NAV_GROUPS}
+            groups={OWNER_SETTINGS_NAV_GROUPS}
             activePath="/settings/members"
             renderLink={({ href, children, id: _id, active: _active, ...rest }) => (
               <a href={href} {...rest} style={{ textDecoration: "none" }} onClick={(event) => event.preventDefault()}>
@@ -583,7 +583,16 @@ export const SETTINGS_ROUTE_DRAWINGS = {
   "settings-access-history-denied": () => accessHistoryScene("rows", false),
   "settings-access-history-oss": () => accessHistoryScene("rows", true, "local"),
   "settings-access-history-plan": () => accessHistoryScene("rows", true, undefined, Feature.access_history),
-  "settings-account-preferences": () => settingsScene(() => <AccountPreferencesSection />),
+  "settings-account-preferences": () => settingsScene(() => <AccountPreferencesSection requestPermission={async () => true} />),
+  "settings-account-preferences-blocked": () => settingsScene(() => <AccountPreferencesSection requestPermission={async () => false} />),
+  "settings-account-preferences-ask-failed": () =>
+    settingsScene(() => (
+      <AccountPreferencesSection
+        requestPermission={async () => {
+          throw new Error("the notifications plugin did not answer");
+        }}
+      />
+    )),
   "settings-channel-apps": () => channelAppsScene("rows"),
   "settings-channel-apps-empty": () => channelAppsScene("none"),
   "settings-channel-apps-empty-member": () => channelAppsScene("none", false),
@@ -663,7 +672,11 @@ export const SETTINGS_ROUTE_DRAWINGS = {
   "settings-model-catalog-detail": () => modelCatalogScene("rows"),
   "settings-model-catalog-stepped": () => modelCatalogScene("stepped"),
   "settings-model-catalog-editor": () => modelCatalogScene("stepped"),
+  // A model without a step, its Long prompts group given a threshold and one rate only.
+  "settings-model-catalog-editor-partial": () => modelCatalogScene("rows"),
   "settings-model-catalog-confirm": () => modelCatalogScene("stepped"),
+  // A model without a step, given one: the confirm lists the step's five lines.
+  "settings-model-catalog-confirm-step": () => modelCatalogScene("rows"),
   "settings-model-catalog-retire": () => modelCatalogScene("rows"),
   "settings-model-catalog-empty": () => modelCatalogScene("none"),
   "settings-model-catalog-failed": () => modelCatalogScene("failed"),

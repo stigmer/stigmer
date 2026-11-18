@@ -1,23 +1,25 @@
 // ---------------------------------------------------------------------------
-// The Settings → Policies route — renders the React SDK's policies section
-//
-// The page is the route's whole job: it hands Settings → Policies to
-// OrgPoliciesSection (what the organization lets its members do), so a
-// route that drifted to another section would show here.
+// The old Settings → Policies address: Policies are a section of
+// Organization preferences now, so a bookmark or a shared link to this
+// address replaces itself with that page's.
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 
-vi.mock("@stigmer/react-sdk/console", () => ({
-  OrgPoliciesSection: () => <p>policies section</p>,
+const nav = vi.hoisted(() => ({ replaced: [] as string[] }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: (to: string) => nav.replaced.push(to) }),
 }));
 
 import OrgPoliciesPage from "../page";
 
-describe("Settings → Policies route", () => {
-  it("renders the policies section", () => {
-    render(<OrgPoliciesPage />);
-    expect(screen.getByText("policies section")).toBeTruthy();
+describe("the old Settings → Policies address", () => {
+  it("replaces itself with /settings/org-preferences", async () => {
+    const { container } = render(<OrgPoliciesPage />);
+    await waitFor(() =>
+      expect(nav.replaced).toEqual(["/settings/org-preferences"]),
+    );
+    expect(container.textContent).toBe("");
   });
 });

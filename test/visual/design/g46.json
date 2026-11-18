@@ -7,8 +7,12 @@
     {
       "caption": "Account preferences: Merged: Notifications as a section of Account preferences",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "built": [
+        {
+          "scene": "settings-account-preferences",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Account preferences",
@@ -161,15 +165,20 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word I work in finance at Acme. Write amounts in USD with two decimals. Prefer short answers.": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Platform default (Stigmer)": "When its page is redesigned: the settings Built look's fixes draw the harness as a select; today it is radio rows",
+        "word Agents may propose facts to remember; only facts you confirm are kept, under Memory. Saves as you switch it.": "When its page is redesigned: the settings Built look decides the line; the kit's also says the organization's memory must be on and that kept facts show on the runs that use them"
+      }
     },
     {
       "caption": "Account preferences: Kept separate: as today, on sections",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "The other answer to the page's first call: Policies and Notifications were merged into their neighbours (2026-11-17), so this shape is not built.",
       "words": [
         {
           "text": "Account preferences",
@@ -297,8 +306,12 @@
     {
       "caption": "Account preferences: Notifications blocked by the browser (stigmer#2857: today the switch says nothing)",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "built": [
+        {
+          "scene": "settings-account-preferences-blocked",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Account preferences",
@@ -467,15 +480,20 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word I work in finance at Acme. Write amounts in USD with two decimals. Prefer short answers.": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Platform default (Stigmer)": "When its page is redesigned: the settings Built look's fixes draw the harness as a select; today it is radio rows",
+        "word Agents may propose facts to remember; only facts you confirm are kept, under Memory. Saves as you switch it.": "When its page is redesigned: the settings Built look decides the line; the kit's also says the organization's memory must be on and that kept facts show on the runs that use them"
+      }
     },
     {
       "caption": "Account preferences: Didn't load",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "No scene draws this state yet; the settings Built look's fixes add it.",
       "words": [
         {
           "text": "Account preferences",
@@ -551,8 +569,12 @@
     {
       "caption": "Account preferences: At 390 wide",
       "narrow": true,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "built": [
+        {
+          "scene": "settings-account-preferences",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Account preferences",
@@ -705,9 +727,14 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word I work in finance at Acme. Write amounts in USD with two decimals. Prefer short answers.": "The drawing's example data; the scene shows its own fixture's"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Platform default (Stigmer)": "When its page is redesigned: the settings Built look's fixes draw the harness as a select; today it is radio rows",
+        "word Agents may propose facts to remember; only facts you confirm are kept, under Memory. Saves as you switch it.": "When its page is redesigned: the settings Built look decides the line; the kit's also says the organization's memory must be on and that kept facts show on the runs that use them"
+      }
     }
   ]
 }

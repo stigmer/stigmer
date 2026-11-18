@@ -7,8 +7,12 @@
     {
       "caption": "The sidebar: 32px rows, Members open",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "built": [
+        {
+          "scene": "settings-sidebar",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Back to Sessions",
@@ -349,7 +353,31 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Who belongs to this organization and the role each holds: owner, admin, member or viewer. Only an owner grants or removes owner.": "The drawing draws Members beside the sidebar; the scene draws the sidebar alone",
+        "word People": "The drawing draws Members beside the sidebar; the scene draws the sidebar alone",
+        "word Ada Lovelace": "The drawing draws Members beside the sidebar; the scene draws the sidebar alone",
+        "word You": "The drawing draws Members beside the sidebar; the scene draws the sidebar alone",
+        "word ada@acme.example": "The drawing draws Members beside the sidebar; the scene draws the sidebar alone",
+        "word Owner": "The drawing draws Members beside the sidebar; the scene draws the sidebar alone",
+        "word Grace Hopper": "The drawing draws Members beside the sidebar; the scene draws the sidebar alone",
+        "word grace@acme.example": "The drawing draws Members beside the sidebar; the scene draws the sidebar alone",
+        "word Admin": "The drawing draws Members beside the sidebar; the scene draws the sidebar alone",
+        "word Katherine Johnson": "The drawing draws Members beside the sidebar; the scene draws the sidebar alone",
+        "word katherine@acme.example": "The drawing draws Members beside the sidebar; the scene draws the sidebar alone",
+        "word Member": "The drawing draws Members beside the sidebar; the scene draws the sidebar alone",
+        "word Alan Turing": "The drawing draws Members beside the sidebar; the scene draws the sidebar alone",
+        "word alan@acme.example": "The drawing draws Members beside the sidebar; the scene draws the sidebar alone",
+        "word Viewer": "The drawing draws Members beside the sidebar; the scene draws the sidebar alone",
+        "word Service accounts hold roles too; they're listed under Service accounts.": "The drawing draws Members beside the sidebar; the scene draws the sidebar alone",
+        "type Members": "The drawing draws Members beside the sidebar; the scene draws the sidebar alone",
+        "button Change Grace Hopper's role": "The drawing draws Members beside the sidebar; the scene draws the sidebar alone",
+        "button Remove Grace Hopper": "The drawing draws Members beside the sidebar; the scene draws the sidebar alone",
+        "button Change Katherine Johnson's role": "The drawing draws Members beside the sidebar; the scene draws the sidebar alone",
+        "button Remove Katherine Johnson": "The drawing draws Members beside the sidebar; the scene draws the sidebar alone",
+        "button Change Alan Turing's role": "The drawing draws Members beside the sidebar; the scene draws the sidebar alone",
+        "button Remove Alan Turing": "The drawing draws Members beside the sidebar; the scene draws the sidebar alone"
+      },
       "ruled": {},
       "pending": {}
     },
@@ -357,7 +385,7 @@
       "caption": "The sidebar: A platform operator: the Platform group last",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings forms, landing, navigation words and merged pages are built next.",
+      "unbuilt": "No scene draws this state yet; the settings Built look's fixes add it.",
       "words": [
         {
           "text": "Back to Sessions",
