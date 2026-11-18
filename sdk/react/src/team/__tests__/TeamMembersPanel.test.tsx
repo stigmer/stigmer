@@ -6,7 +6,7 @@
  * because a team is a group of the organization's people.
  * The share flow, the permission gate and the picker are stubbed.
  */
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -42,13 +42,20 @@ vi.mock("../../grant/PrincipalPicker.js", () => ({
     org,
     includeAppUsers,
     includeServiceAccounts,
+    onChange,
   }: {
     org: string;
     includeAppUsers?: boolean;
     includeServiceAccounts?: boolean;
+    onChange?: (selected: unknown) => void;
   }) => {
     picked.push({ org, includeAppUsers, includeServiceAccounts });
-    return null;
+    // A stand-in pick, so a test can add someone.
+    return (
+      <button type="button" onClick={() => onChange?.({ grantee: { kind: "identity_account", id: "ida_grace" } })}>
+        Pick Grace
+      </button>
+    );
   },
 }));
 
@@ -85,5 +92,16 @@ describe("TeamMembersPanel", () => {
     expect(picked.map((p) => p.org)).toContain("acme");
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.getByRole("button", { name: "Add a person" })).toBeTruthy();
+  });
+
+  it("as a team's section, closes the picker once someone is added", async () => {
+    render(<TeamMembersPanel teamId="team_1" org="acme" asSection />);
+    fireEvent.click(screen.getByRole("button", { name: "Add a person" }));
+    fireEvent.click(screen.getByRole("button", { name: "Pick Grace" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Add member" }));
+    });
+    expect(screen.getByRole("button", { name: "Add a person" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Pick Grace" })).toBeNull();
   });
 });

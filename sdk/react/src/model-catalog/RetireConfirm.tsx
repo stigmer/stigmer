@@ -40,7 +40,7 @@ export function RetireConfirm({
     <DialogShell open onOpenChange={(open) => !open && close()} width="sm">
       <DialogHeader
         title={`Retire ${target.displayName || target.modelId}?`}
-        description="New conversations can't pick it. Runs already on it finish."
+        description="New conversations can't pick it. Runs already on it finish. Its revision history is kept, and a later save of the same model brings it back."
         onClose={close}
         closeDisabled={isSubmitting}
       />

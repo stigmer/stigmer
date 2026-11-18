@@ -23,7 +23,7 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { RenameSlugField } from "../resource-detail/RenameSlugField.js";
 import { Tag } from "../internal/surface/Tag.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
-import { FIELD_LABEL_CLASSES, Field, FieldError, TextArea, TextInput } from "../internal/form/index.js";
+import { Field, FieldError, TextArea, TextInput } from "../internal/form/index.js";
 import { Section } from "../resource-detail/Section.js";
 
 // ---------------------------------------------------------------------------

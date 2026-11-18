@@ -119,8 +119,11 @@ function providers(client: Stigmer) {
 
 function clientWith(
   writes: string[],
-  opts: { refuse?: boolean; listError?: boolean; mine?: Vault | null; onlyMine?: boolean } = {},
+  opts: { refuse?: boolean; listError?: boolean; mine?: Vault | null; onlyMine?: boolean; live?: boolean } = {},
 ) {
+  // With `live`, the list reads back the writes: a delete drops the vault, an update renames it.
+  let support: Vault = SUPPORT;
+  let supportGone = false;
   const refuse = () => {
     if (opts.refuse) throw new ConnectError("not allowed here", Code.PermissionDenied);
   };
@@ -133,7 +136,10 @@ function clientWith(
           if (opts.listError) throw new ConnectError("list failed", Code.Unavailable);
           return opts.onlyMine
             ? create(VaultListSchema, { entries: [MINE], nextPageToken: "" })
-            : create(VaultListSchema, { entries: [MINE, SUPPORT, HANDBOOK], nextPageToken: "" });
+            : create(VaultListSchema, {
+                entries: opts.live ? [MINE, ...(supportGone ? [] : [support]), HANDBOOK] : [MINE, SUPPORT, HANDBOOK],
+                nextPageToken: "",
+              });
         },
         getMine: () => {
           if (opts.mine === null) throw new ConnectError("none yet", Code.NotFound);
@@ -149,11 +155,13 @@ function clientWith(
         update: (req) => {
           refuse();
           writes.push(`update:${req.resource?.metadata?.name}:${req.resource?.spec?.description}:${req.resource?.spec?.externalId}`);
+          if (opts.live && req.resource) support = req.resource;
           return SUPPORT;
         },
         delete: (req) => {
           refuse();
           writes.push(`delete:${req.resourceId}`);
+          if (opts.live) supportGone = true;
           return SUPPORT;
         },
         setSecrets: (req) => {
@@ -422,6 +430,35 @@ describe("VaultListPanel", () => {
       fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete vault" }));
     });
     await waitFor(() => expect(writes).toContain("delete:vlt_team"));
+  });
+
+  it("sends the page back to the list once the open vault is gone", async () => {
+    const writes: string[] = [];
+    const onClose = vi.fn();
+    render(<VaultListPanel org={ORG} onOpen={vi.fn()} openId="vlt_team" onClose={onClose} />, {
+      wrapper: providers(clientWith(writes, { live: true })),
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "Delete vault" }));
+    await act(async () => {
+      fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete vault" }));
+    });
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(writes).toContain("delete:vlt_team");
+  });
+
+  it("hands the page the open vault again once a save renames it", async () => {
+    const writes: string[] = [];
+    const onOpen = vi.fn();
+    render(<VaultListPanel org={ORG} onOpen={onOpen} openId="vlt_team" />, {
+      wrapper: providers(clientWith(writes, { live: true })),
+    });
+    fireEvent.change(await screen.findByLabelText(/^Name$/), { target: { value: "Renamed" } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Save details" }));
+    });
+    await waitFor(() =>
+      expect(onOpen).toHaveBeenLastCalledWith(expect.objectContaining({ metadata: expect.objectContaining({ name: "Renamed" }) })),
+    );
   });
 
   it("shows a refused save or delete", async () => {

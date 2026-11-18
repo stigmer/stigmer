@@ -369,6 +369,18 @@ export function AccountPreferencesPanel({
   );
 }
 
+/**
+ * Who decides memory on the connected server, for the memory row.
+ *
+ * - `"person"`: the person's own switch counts (a server that authenticates
+ *   its callers, one too old to report its posture, or one whose answer
+ *   failed: an unknown posture offers the control and lets the server
+ *   decide, as `authentication_required`'s contract says).
+ * - `"organization"`: the server trusts every request, so its one operator
+ *   decides memory through the organization's switch alone.
+ * - `null`: the server has not answered yet, so the row renders nothing
+ *   rather than a switch that flashes and disappears.
+ */
 function useMemoryGovernance(): "person" | "organization" | null {
   const { serverInfo, error } = useServerInfo();
   if (serverInfo !== null) {

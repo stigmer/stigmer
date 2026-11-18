@@ -1,7 +1,5 @@
 "use client";
 
-import { cn } from "@stigmer/design-tokens";
-import { TruncatedText } from "../internal/truncated-text.js";
 import { UnknownPublicAddressNotice } from "../internal/UnknownPublicAddressNotice.js";
 import { useCopy } from "../internal/CopyBlock.js";
 import { Copy } from "lucide-react";
