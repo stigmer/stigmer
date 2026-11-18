@@ -19,35 +19,19 @@
  * error-boundary.ts), so a stream that breaks part-way logs its error, and
  * `durationMs` is the stream's whole life (stigmer/stigmer#2691).
  *
- * The departure rule. A caller that leaves (a closed console tab, a
- * dropped connection, the server's shutdown destroying open requests)
- * does not reach the handler as an error: connect aborts the request's
- * signal and the stream handlers return on it (domain/session/events/
- * stream.ts, attention.ts, transport/health.ts). So the departure is read
- * from `request.signal`: aborted with a reason whose code is not
- * DeadlineExceeded means the caller left, and the line is "rpc cancelled"
- * with the reason's code: Canceled for a close with no reason, Aborted or
- * Internal for a reset, Unknown for the raw error of a write that failed
- * first. It covers a stream however it ended, a stream the consumer
- * stopped early, and a unary call that FAILED after the abort; a unary
- * call that succeeded after its caller left did its whole job and stays
- * "rpc completed". A call that threw keeps its error on the cancelled
- * line (`error`, `cause`, and the stack at debug), so a real fault in a
- * request its caller gave up on is still on record, beside the metrics'
- * count of its code. A deadline is not a departure: the server ran out of
- * the caller's budget, so it is tiered by its code like any other
- * failure, including a stream that ended on the deadline's abort.
- *
- * What the signal cannot tell apart: connect also aborts it, with no
- * reason, before it stops a stream it failed to send (a message over the
- * write limit, or one that cannot be encoded). That stream logs
- * "rpc cancelled" with Canceled while its client receives the failure,
- * as a departure would; the error boundary and the metrics see neither.
- *
- * The request-metrics interceptor also measures a stream to its end but
- * labels a departure by how the iterable ended, so the two disagree on a
- * closed tab (OK there, cancelled here) until that signal's owner decides
- * whether a departure is counted CANCELLED (request-metrics.ts).
+ * How the call ended is decided by rpc-end.ts, the rule the request
+ * metrics read too, so the line and the count agree on every call
+ * (stigmer/stigmer#2890). A caller that left (the request's signal
+ * aborted with any code but DeadlineExceeded) logs "rpc cancelled" with
+ * the abort's code, for a stream however it ended and for a unary call
+ * that failed; a unary call that succeeded after its caller left did its
+ * whole job and stays "rpc completed". A call that threw keeps its error
+ * on the cancelled line (`error`, `cause`, and the stack at debug), so a
+ * real fault in a request its caller gave up on is still on record. A
+ * deadline is not a departure: it is tiered by its code like any other
+ * failure, including a stream that ended on the deadline's abort. A
+ * stream the consumer stopped with the signal live logs "rpc cancelled"
+ * with Canceled. What the signal cannot tell apart is in rpc-end.ts.
  *
  * The log carries the REAL error while the wire carries the sanitized
  * status message: the `error` field is the thrown error's own message, whatever the handler chose to
@@ -65,22 +49,14 @@ import type {
 
 import type { LogFields, Logger } from "../../boot/logger.js";
 import { causeFields, causeStack } from "../error-cause.js";
+import { classifyRpcEnd } from "./rpc-end.js";
+import type { Outcome } from "./rpc-end.js";
 
 /** Health successes are polled chatter, logged at debug. */
 const HEALTH_SERVICE_TYPE_NAME = "grpc.health.v1.Health";
 
 /** Test seam: a fake clock; production reads `performance.now()`. */
 export type Clock = () => number;
-
-/**
- * How an RPC ended, as the interceptor saw it. `stopped` is a stream the
- * consumer closed before its end (connect aborts the signal first, so a
- * real one also reads as a departure).
- */
-type Outcome =
-  | { readonly ended: "completed"; readonly stream: boolean }
-  | { readonly ended: "stopped" }
-  | { readonly ended: "threw"; readonly error: unknown };
 
 type LoggedRequest = UnaryRequest | StreamRequest;
 
@@ -136,42 +112,41 @@ function logOutcome(
 ): void {
   const procedure = `/${request.service.typeName}/${request.method.name}`;
   const isHealth = request.service.typeName === HEALTH_SERVICE_TYPE_NAME;
-  const abort = abortCode(request.signal);
-  const departed = abort !== undefined && abort !== Code.DeadlineExceeded;
-  // A unary success after a departure did its whole job (the header).
-  const unarySuccess = outcome.ended === "completed" && !outcome.stream;
+  const end = classifyRpcEnd(request.signal, outcome);
 
-  if (departed && !unarySuccess) {
-    const fields = { procedure, code: Code[abort], durationMs };
-    if (outcome.ended === "threw") {
-      logCancelled(logger, isHealth, {
-        ...fields,
-        ...errorFields(outcome.error),
-      });
-      logStack(logger, procedure, outcome.error);
-    } else {
-      logCancelled(logger, isHealth, fields);
+  switch (end.end) {
+    case "departed": {
+      const fields = { procedure, code: Code[end.code], durationMs };
+      if (end.thrown === undefined) {
+        logCancelled(logger, isHealth, fields);
+      } else {
+        logCancelled(logger, isHealth, {
+          ...fields,
+          ...errorFields(end.thrown.error),
+        });
+        logStack(logger, procedure, end.thrown.error);
+      }
+      break;
     }
-  } else if (outcome.ended === "threw") {
-    logFailure(logger, procedure, durationMs, outcome.error);
-  } else if (abort === Code.DeadlineExceeded && !unarySuccess) {
-    // A stream that ended on its deadline's abort.
-    logFailure(logger, procedure, durationMs, request.signal.reason);
-  } else if (outcome.ended === "stopped") {
-    // The consumer closed it with the signal still live.
-    logCancelled(logger, isHealth, {
-      procedure,
-      code: Code[Code.Canceled],
-      durationMs,
-    });
-  } else {
-    logSuccess(logger, isHealth, { procedure, durationMs });
+    case "failed":
+      logFailure(logger, procedure, durationMs, end.error);
+      break;
+    case "stopped":
+      logCancelled(logger, isHealth, {
+        procedure,
+        code: Code[Code.Canceled],
+        durationMs,
+      });
+      break;
+    case "completed":
+      logSuccess(logger, isHealth, { procedure, durationMs });
+      break;
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
+    default: {
+      const exhaustive: never = end;
+      return exhaustive;
+    }
   }
-}
-
-/** The code of the signal's abort reason, or undefined while it runs. */
-function abortCode(signal: AbortSignal): Code | undefined {
-  return signal.aborted ? ConnectError.from(signal.reason).code : undefined;
 }
 
 function logSuccess(

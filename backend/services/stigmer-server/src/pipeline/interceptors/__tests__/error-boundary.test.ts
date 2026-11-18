@@ -8,9 +8,11 @@
  * refusal codes untouched byte-identically; non-eligible callers keep
  * full diagnostics — the cloud's schedule-caller arm rides this), the
  * fail-safe arms (eligibility throw → sanitize; copy rejection → the
- * fallback copy, never the original), the mid-stream guard, and the
- * NEGATIVE CONTROL: the same call WITHOUT the boundary proves the raw
- * message crosses verbatim.
+ * fallback copy, never the original), the mid-stream guard, arm 1's line
+ * when the caller left (debug with the abort's code, by the rule in
+ * ../rpc-end.ts; error with a live signal or under a deadline; the wire
+ * identical either way), and the NEGATIVE CONTROL: the same call WITHOUT
+ * the boundary proves the raw message crosses verbatim.
  */
 import { describe, expect, it } from "vitest";
 import { Code, ConnectError, createContextValues } from "@connectrpc/connect";
@@ -62,7 +64,44 @@ function guestPolicy(
 interface RunOptions {
   identity?: CallerIdentity;
   method?: DescMethod;
+  /** The request's signal; a live one unless the case aborts it. */
+  signal?: AbortSignal;
 }
+
+interface CapturedLine {
+  level: string;
+  message: string;
+  fields: Record<string, unknown> | undefined;
+}
+
+function capturingLogger() {
+  const lines: CapturedLine[] = [];
+  const at =
+    (level: string) =>
+    (message: string, fields?: Record<string, unknown>): void => {
+      lines.push({ level, message, fields });
+    };
+  const logger = {
+    debug: at("debug"),
+    info: at("info"),
+    warn: at("warn"),
+    error: at("error"),
+  };
+  return { logger, lines };
+}
+
+function abortedWith(reason?: unknown): AbortSignal {
+  const controller = new AbortController();
+  if (reason === undefined) {
+    controller.abort();
+  } else {
+    controller.abort(reason);
+  }
+  return controller.signal;
+}
+
+const RAW_LINE = "unhandled non-ConnectError at the transport boundary";
+const PROCEDURE = `/${ApiKeyQueryController.typeName}/${ApiKeyQueryController.method.get.name}`;
 
 /**
  * Drives the boundary with a unary-shaped request whose handler throws.
@@ -85,6 +124,7 @@ async function runFailing(
       method: options.method ?? ApiKeyQueryController.method.get,
       service: ApiKeyQueryController,
       stream: false,
+      signal: options.signal ?? new AbortController().signal,
     } as never);
   } catch (error) {
     expect(error).toBeInstanceOf(ConnectError);
@@ -98,6 +138,7 @@ async function runFailingStream(
   interceptor: Interceptor,
   thrown: unknown,
   identity?: CallerIdentity,
+  signal: AbortSignal = new AbortController().signal,
 ): Promise<{ received: string[]; error: ConnectError }> {
   const contextValues = createContextValues();
   if (identity !== undefined) {
@@ -115,6 +156,7 @@ async function runFailingStream(
     method: ApiKeyQueryController.method.get,
     service: ApiKeyQueryController,
     stream: false,
+    signal,
   } as never)) as { stream: true; message: AsyncIterable<string> };
   const received: string[] = [];
   try {
@@ -171,6 +213,80 @@ describe("arm 1: structural raw-error conversion", () => {
       thrown,
     );
     expect(error).toBe(thrown);
+  });
+});
+
+describe("arm 1's line when the caller left (stigmer/stigmer#2890)", () => {
+  it("logs a raw error after a departure at debug with the abort's code; the wire is unchanged", async () => {
+    const { logger, lines } = capturingLogger();
+    const error = await runFailing(
+      createErrorBoundaryInterceptor(logger),
+      new Error("write after close"),
+      { signal: abortedWith(new ConnectError("socket hang up", Code.Aborted)) },
+    );
+
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe("internal server error");
+    expect(lines).toEqual([
+      {
+        level: "debug",
+        message: RAW_LINE,
+        fields: {
+          procedure: PROCEDURE,
+          code: "Aborted",
+          error: "write after close",
+        },
+      },
+    ]);
+  });
+
+  it("logs a raw mid-stream error after a departure at debug too", async () => {
+    const { logger, lines } = capturingLogger();
+    const { error } = await runFailingStream(
+      createErrorBoundaryInterceptor(logger),
+      new Error("write EPIPE"),
+      undefined,
+      abortedWith(),
+    );
+
+    expect(error.code).toBe(Code.Internal);
+    expect(lines.map((line) => [line.level, line.fields?.["code"]])).toEqual([
+      ["debug", "Canceled"],
+    ]);
+  });
+
+  it("keeps the error line with a live signal", async () => {
+    const { logger, lines } = capturingLogger();
+    await runFailingStream(
+      createErrorBoundaryInterceptor(logger),
+      new Error("sqlite exploded"),
+    );
+
+    expect(lines).toEqual([
+      {
+        level: "error",
+        message: RAW_LINE,
+        fields: {
+          procedure: PROCEDURE,
+          error: "sqlite exploded",
+        },
+      },
+    ]);
+  });
+
+  it("keeps the error line when the caller's deadline ended the call: a deadline is not a departure", async () => {
+    const { logger, lines } = capturingLogger();
+    await runFailing(
+      createErrorBoundaryInterceptor(logger),
+      new Error("sqlite exploded"),
+      {
+        signal: abortedWith(
+          new ConnectError("the operation timed out", Code.DeadlineExceeded),
+        ),
+      },
+    );
+
+    expect(lines.map((line) => line.level)).toEqual(["error"]);
   });
 });
 

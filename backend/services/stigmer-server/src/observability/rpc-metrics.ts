@@ -9,9 +9,11 @@
  * SigNoz rules would not match). Three consumers read the pair under the
  * dotted-to-underscored spelling: `telemetry-heartbeat-lost` (the absence
  * of the count series for ten minutes), `grpc-error-rate-spike` (the
- * share of `status_code != OK`) and `grpc-latency-regression-p95` (the
- * duration histogram's buckets), plus the `gRPC RED` dashboard grouped by
- * every label.
+ * share of the server's own failure codes: `INTERNAL`, `UNKNOWN`,
+ * `UNAVAILABLE`, `DEADLINE_EXCEEDED`, `DATA_LOSS`) and
+ * `grpc-latency-regression-p95` (the duration histogram's buckets), plus
+ * the `gRPC RED` dashboard grouped by every label. A caller that left is
+ * `CANCELLED`, outside that set (pipeline/interceptors/request-metrics.ts).
  *
  * This module is library instrumentation, on `@opentelemetry/api` alone:
  * instruments are created lazily on first use against the GLOBAL meter

@@ -13,6 +13,13 @@
  *   - a server stream is measured to its END — OK on completion, the
  *     error's code on a mid-stream throw, CANCELLED when the consumer
  *     stops early — never to the handler's return;
+ *   - the label is the code the caller received, by the rule the log
+ *     reads too (../rpc-end.ts, stigmer/stigmer#2890): a stream that
+ *     returned on its caller's abort and a raw write error after a
+ *     departure are CANCELLED, never OK or UNKNOWN; a unary failure after
+ *     a departure is CANCELLED; a stream that ended on its caller's
+ *     deadline is DEADLINE_EXCEEDED; a unary success after its caller
+ *     left stays OK;
  *   - the count series is born attribute-less at zero and the histogram
  *     is not (the heartbeat's premise);
  *   - instruments resolve lazily, so a provider registered after the
@@ -162,6 +169,43 @@ function servingTransport(
 }
 
 async function* emptyStream(): AsyncIterable<unknown> {}
+
+/**
+ * A request for the interceptor driven directly, carrying the signal
+ * connect gives every request: the departure and the deadline are read
+ * from it.
+ */
+function directRequest(
+  signal: AbortSignal,
+  options: { stream?: boolean } = {},
+): never {
+  const stream = options.stream ?? true;
+  return {
+    service: { typeName: stream ? STREAM_SERVICE : AGENT_SERVICE },
+    method: { name: stream ? "streamEvents" : "create" },
+    stream,
+    signal,
+  } as never;
+}
+
+/** Runs the interceptor over a stream handler and returns its iterator. */
+async function measureDirect(
+  messages: AsyncIterable<string>,
+  now: () => number,
+  signal: AbortSignal,
+): Promise<AsyncIterator<string>> {
+  const next = async () => ({ stream: true, message: messages }) as never;
+  const response = (await createRequestMetricsInterceptor(now)(next)(
+    directRequest(signal),
+  )) as { message: AsyncIterable<string> };
+  return response.message[Symbol.asyncIterator]();
+}
+
+function statusesOf(collected: CollectedMetrics): unknown[] {
+  return requestPoints(collected).map(
+    (point) => point.attributes["rpc.grpc.status_code"],
+  );
+}
 
 function frame(id: string) {
   return create(StreamSessionEventsResponseSchema, {
@@ -433,12 +477,9 @@ describe("the request-metrics interceptor on the serving chain", () => {
             yield "never-pulled";
           })(),
         }) as never;
-      const request = {
-        service: { typeName: STREAM_SERVICE },
-        method: { name: "streamEvents" },
-      } as never;
-
-      const response = (await interceptor(next)(request)) as {
+      const response = (await interceptor(next)(
+        directRequest(new AbortController().signal),
+      )) as {
         message: AsyncIterable<string>;
       };
       for await (const message of response.message) {
@@ -454,6 +495,139 @@ describe("the request-metrics interceptor on the serving chain", () => {
         "rpc.grpc.status_code": "CANCELLED",
       });
       expect(sumOf(durationPoints(collected)[0]!)).toBe(7);
+    } finally {
+      await meter.dispose();
+    }
+  });
+
+  it("labels a stream that returned on its caller's abort CANCELLED, not OK", async () => {
+    const meter = await inMemoryMeter();
+    const clock = fakeClock();
+    try {
+      const controller = new AbortController();
+      const it = await measureDirect(
+        (async function* () {
+          yield "m1";
+          clock.advance(9);
+          // connect aborts the signal; the stream handler returns on it.
+          controller.abort();
+        })(),
+        clock.now,
+        controller.signal,
+      );
+
+      await it.next();
+      expect((await it.next()).done).toBe(true);
+
+      const collected = await until(
+        meter.collect,
+        (m) => requestPoints(m).length >= 1,
+      );
+      expect(statusesOf(collected)).toEqual(["CANCELLED"]);
+      expect(sumOf(durationPoints(collected)[0]!)).toBe(9);
+    } finally {
+      await meter.dispose();
+    }
+  });
+
+  it("labels a raw write error after the caller left CANCELLED, not UNKNOWN", async () => {
+    const meter = await inMemoryMeter();
+    try {
+      const controller = new AbortController();
+      const it = await measureDirect(
+        (async function* () {
+          yield "m1";
+          yield "m2";
+        })(),
+        fakeClock().now,
+        controller.signal,
+      );
+
+      await it.next();
+      // The socket's reset got there first (connect-node maps it to
+      // Aborted); then the writer throws its raw error into the iterable.
+      controller.abort(new ConnectError("socket hang up", Code.Aborted));
+      await expect(it.throw?.(new Error("write after close"))).rejects.toThrow(
+        "write after close",
+      );
+
+      const collected = await until(
+        meter.collect,
+        (m) => requestPoints(m).length >= 1,
+      );
+      expect(statusesOf(collected)).toEqual(["CANCELLED"]);
+    } finally {
+      await meter.dispose();
+    }
+  });
+
+  it("labels a stream that ended on its caller's deadline DEADLINE_EXCEEDED, not OK", async () => {
+    const meter = await inMemoryMeter();
+    try {
+      const controller = new AbortController();
+      const it = await measureDirect(
+        (async function* () {
+          yield "m1";
+          controller.abort(
+            new ConnectError("the operation timed out", Code.DeadlineExceeded),
+          );
+        })(),
+        fakeClock().now,
+        controller.signal,
+      );
+
+      await it.next();
+      expect((await it.next()).done).toBe(true);
+
+      const collected = await until(
+        meter.collect,
+        (m) => requestPoints(m).length >= 1,
+      );
+      expect(statusesOf(collected)).toEqual(["DEADLINE_EXCEEDED"]);
+    } finally {
+      await meter.dispose();
+    }
+  });
+
+  it("labels a unary call that failed after its caller left CANCELLED", async () => {
+    const meter = await inMemoryMeter();
+    try {
+      const controller = new AbortController();
+      controller.abort(new ConnectError("socket hang up", Code.Aborted));
+      const next = () => Promise.reject(new Error("write after close"));
+
+      await expect(
+        createRequestMetricsInterceptor(fakeClock().now)(next as never)(
+          directRequest(controller.signal, { stream: false }),
+        ),
+      ).rejects.toThrow("write after close");
+
+      const collected = await until(
+        meter.collect,
+        (m) => requestPoints(m).length >= 1,
+      );
+      expect(statusesOf(collected)).toEqual(["CANCELLED"]);
+    } finally {
+      await meter.dispose();
+    }
+  });
+
+  it("keeps a unary success after its caller left OK — it did its whole job", async () => {
+    const meter = await inMemoryMeter();
+    try {
+      const controller = new AbortController();
+      controller.abort();
+      const next = async () => ({ stream: false, message: {} }) as never;
+
+      await createRequestMetricsInterceptor(fakeClock().now)(next)(
+        directRequest(controller.signal, { stream: false }),
+      );
+
+      const collected = await until(
+        meter.collect,
+        (m) => requestPoints(m).length >= 1,
+      );
+      expect(statusesOf(collected)).toEqual(["OK"]);
     } finally {
       await meter.dispose();
     }
