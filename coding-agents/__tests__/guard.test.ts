@@ -156,6 +156,19 @@ describe("decide", () => {
     },
   );
 
+  it("says nothing when reading the input throws, rather than fail the call", () => {
+    const hostile = {
+      get tool_name(): string {
+        throw new Error("boom");
+      },
+    };
+    expect(guard.decide(hostile)).toBeNull();
+  });
+
+  it("reads no command words after `--`", () => {
+    expect(guard.decide(bash("stigmer -- delete agent x -f"))).toBeNull();
+  });
+
   it("splits a shell line into its commands, quotes and assignments removed", () => {
     expect(guard.commands(`A=1 stigmer run x -m "a; b" && echo 'c|d' | cat\nls \\-f`)).toEqual([
       ["stigmer", "run", "x", "-m", "a; b"],

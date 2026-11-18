@@ -4,6 +4,7 @@
 // would read as a block.
 import { decide } from "./decide.mjs";
 
+/* v8 ignore start -- @preserve: Claude Code's entry, which __tests__/guard.test.ts runs in a child process that this suite's coverage can't see */
 let input = "";
 process.stdin.setEncoding("utf8");
 process.stdin.on("data", (chunk) => (input += chunk));
@@ -16,3 +17,4 @@ process.stdin.on("end", () => {
   }
   process.exitCode = 0;
 });
+/* v8 ignore stop */
