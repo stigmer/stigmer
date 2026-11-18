@@ -1,0 +1,349 @@
+{
+  "anthropic, not thinking": {
+    "model": "claude-sonnet-4-5",
+    "tools": [
+      {
+        "name": "extract-1",
+        "description": "Tool for extracting structured output from the model's response.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "score": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "level": {
+              "type": "string",
+              "enum": [
+                "junior",
+                "senior",
+                "staff"
+              ]
+            },
+            "contact": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "string"
+                },
+                "phone": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "email",
+                "phone"
+              ],
+              "additionalProperties": true
+            },
+            "skills": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "skill": {
+                    "type": "string"
+                  },
+                  "years": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "skill",
+                  "years"
+                ],
+                "additionalProperties": true
+              }
+            },
+            "decision": {}
+          },
+          "required": [
+            "name",
+            "score",
+            "level",
+            "contact",
+            "skills"
+          ],
+          "additionalProperties": true,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "strict": false
+      }
+    ],
+    "tool_choice": {
+      "type": "any"
+    }
+  },
+  "anthropic, thinking": {
+    "model": "claude-sonnet-4-5",
+    "tools": [],
+    "output_config": {
+      "format": {
+        "type": "json_schema",
+        "schema": {
+          "type": "object",
+          "description": "A reviewed candidate.",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The candidate's full name."
+            },
+            "score": {
+              "type": "number",
+              "description": "0 to 10; 10 is a perfect fit.\n\n{minimum: 0, maximum: 10}"
+            },
+            "level": {
+              "type": "string",
+              "description": "{enum: [\"junior\",\"senior\",\"staff\"]}"
+            },
+            "contact": {
+              "type": "object",
+              "description": "How to reach them.",
+              "properties": {
+                "email": {
+                  "type": "string",
+                  "format": "email"
+                },
+                "phone": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "email"
+              ]
+            },
+            "skills": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "skill": {
+                    "type": "string"
+                  },
+                  "years": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "skill"
+                ]
+              },
+              "minItems": 1
+            },
+            "decision": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "description": "{const: \"hire\"}"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reject": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "required": [
+                    "reject"
+                  ]
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "level",
+            "contact",
+            "skills",
+            "decision"
+          ]
+        }
+      }
+    }
+  },
+  "openai, not thinking": {
+    "model": "gpt-4.1",
+    "response_format": {
+      "type": "json_schema",
+      "json_schema": {
+        "name": "extract",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "score": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "level": {
+              "type": "string",
+              "enum": [
+                "junior",
+                "senior",
+                "staff"
+              ]
+            },
+            "contact": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "string"
+                },
+                "phone": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "email",
+                "phone"
+              ],
+              "additionalProperties": true
+            },
+            "skills": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "skill": {
+                    "type": "string"
+                  },
+                  "years": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "skill",
+                  "years"
+                ],
+                "additionalProperties": true
+              }
+            },
+            "decision": {}
+          },
+          "required": [
+            "name",
+            "score",
+            "level",
+            "contact",
+            "skills"
+          ],
+          "additionalProperties": true,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "strict": true
+      }
+    }
+  },
+  "gemini on an openai-compatible endpoint, not thinking": {
+    "model": "gemini-2.5-flash",
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "extract-2",
+          "strict": false,
+          "description": "Tool for extracting structured output from the model's response.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "score": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "level": {
+                "type": "string",
+                "enum": [
+                  "junior",
+                  "senior",
+                  "staff"
+                ]
+              },
+              "contact": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "phone": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "email",
+                  "phone"
+                ],
+                "additionalProperties": true
+              },
+              "skills": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "skill": {
+                      "type": "string"
+                    },
+                    "years": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "skill",
+                    "years"
+                  ],
+                  "additionalProperties": true
+                }
+              },
+              "decision": {}
+            },
+            "required": [
+              "name",
+              "score",
+              "level",
+              "contact",
+              "skills"
+            ],
+            "additionalProperties": true,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          }
+        }
+      }
+    ],
+    "tool_choice": "required"
+  }
+}
