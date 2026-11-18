@@ -1096,7 +1096,12 @@
     {
       "caption": "Marketplace: a source couldn't be read",
       "narrow": false,
-      "built": [],
+      "built": [
+        {
+          "scene": "marketplace-source-unreadable",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Marketplace",
@@ -1585,10 +1590,19 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word All sources 8": "The drawing's catalogue has eight plugins; the scene's catalogue offers its own count",
+        "word stigmer 8": "The drawing's catalogue has eight plugins; the scene's catalogue offers its own count",
+        "word acme-internal ⚠": "The drawing's team source is acme-internal and times out; the scene's is acme-plugins, which GitHub doesn't serve",
+        "word Couldn't read acme-internal.": "The drawing's team source is acme-internal and times out; the scene's is acme-plugins, which GitHub doesn't serve",
+        "word the source did not answer in time (https://plugins.acme.example/marketplace.json)The plugins below come from your other sources.": "The drawing's failure is a timeout, which offers Try again; the scene's server refuses in its own words, and a refusal keeps the act's word",
+        "word Sentry's hosted MCP server: issues, events and projects in your Sentry organization. Sign in with Sentry.": "The scene's catalogue describes it in its own words",
+        "word Stripe's hosted MCP server: customers, payments, subscriptions and the Stripe docs.": "The scene's catalogue describes it in its own words",
+        "word Vercel's hosted MCP server: projects, deployments and logs in your Vercel team. Sign in with Vercel.": "The scene's catalogue describes it in its own words",
+        "button Install again": "Each card's act is named for its plugin (\"Install linear\") for assistive technology; the drawing names it by its words"
+      },
       "ruled": {},
-      "pending": {},
-      "unbuilt": "No scene has one source of two unreadable: marketplace-source-failed's only source is the one that fails (MarketplaceCatalog.test.tsx pins the notice among sources)"
+      "pending": {}
     },
     {
       "caption": "Marketplace: loading",

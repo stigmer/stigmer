@@ -56,6 +56,8 @@ export type SceneId =
   | "models-hub-member"
   | "models-hub-key-rejected"
   | "models-hub-remove"
+  | "models-hub-connect"
+  | "models-hub-remove-refused"
   | "launcher-ready"
   | "launcher-key-missing"
   | "launcher-hours-used"
@@ -120,6 +122,8 @@ export type SceneId =
   | "marketplace-source-failed"
   | "marketplace-install"
   | "marketplace-upload"
+  | "marketplace-source-unreadable"
+  | "marketplace-install-refused"
   | `session-${SessionSceneName}`
   | `story-${StorySceneName}`
   | "agent-chat-page"
@@ -1261,6 +1265,13 @@ const LISTED: readonly Scene[] = [
     opens: ["Connect Anthropic", { fill: "Anthropic API key", with: "sk-ant-api03-gallery", exact: true }, { press: "Connect Anthropic", role: "button", first: true }],
   },
   { id: "models-hub-remove", title: "Models & providers: Remove asked first, on the organization's Anthropic key", widths: ["desktop"], opens: "Remove" },
+  { id: "models-hub-connect", title: "Models & providers: Connect Anthropic open, its endpoint folded", widths: ["desktop", "narrow"], opens: "Connect Anthropic" },
+  {
+    id: "models-hub-remove-refused",
+    title: "Models & providers: the removal of the Anthropic key refused, said in its dialog",
+    widths: ["desktop"],
+    opens: ["Remove", { press: "Remove key", role: "button", exact: true }],
+  },
   { id: "launcher-ready", title: "Launcher: a model provider connected, ready to send", widths: ["desktop", "narrow"] },
   {
     id: "launcher-key-missing",
@@ -1501,6 +1512,13 @@ const LISTED: readonly Scene[] = [
   { id: "marketplace-source-failed", title: "Marketplace: the official catalogue could not be read", widths: ["desktop"] },
   { id: "marketplace-install", title: "Marketplace: Install Notion asked first, in the install dialog", widths: ["desktop", "narrow"], opens: "Install notion" },
   { id: "marketplace-upload", title: "Marketplace: the Upload a plugin dialog", widths: ["desktop"], opens: "Upload a plugin" },
+  { id: "marketplace-source-unreadable", title: "Marketplace: a team source that can't be read, beside the official catalogue", widths: ["desktop"] },
+  {
+    id: "marketplace-install-refused",
+    title: "Marketplace: Install Notion refused by the server, said in its dialog",
+    widths: ["desktop"],
+    opens: ["Install notion", { press: "Install", role: "button", exact: true }],
+  },
   ...SESSION_SCENES,
   ...STORY_SCENES,
   ...ROUTINE_SCENES,

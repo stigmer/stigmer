@@ -7,8 +7,12 @@
     {
       "caption": "A provider's key: Connect open, the endpoint folded",
       "narrow": false,
-      "built": [],
-      "unbuilt": "No scene stops with the key form open and empty; models-hub-key-rejected pictures it after a refused key",
+      "built": [
+        {
+          "scene": "models-hub-connect",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Models & providers",
@@ -1588,8 +1592,12 @@
     {
       "caption": "A provider's key: Remove: didn't go through",
       "narrow": false,
-      "built": [],
-      "unbuilt": "No scene refuses a removal; ModelsHub.test.tsx pins the refusal said in the dialog",
+      "built": [
+        {
+          "scene": "models-hub-remove-refused",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Remove the Anthropic key?",
@@ -1682,9 +1690,15 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word the billing service did not answer in time": "The drawing's failure is a timeout, which offers Try again; the scene's server refuses in its own words, and a refusal keeps the act's word",
+        "word Stuck? Ask IT on Slack": "The scene's server sets no help link",
+        "button Try again": "The drawing's failure is a timeout, which offers Try again; the scene's server refuses in its own words, and a refusal keeps the act's word"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word The key is still connected.": "The kit's confirm dialog says a failure with no comfort line beside it; the drawing adds one. For the next look at the dialog parts"
+      }
     },
     {
       "caption": "A provider's key: the one card before a run (the launcher's key step): no Unlocks",
@@ -1800,8 +1814,12 @@
     {
       "caption": "A provider's key: Connect open at 390",
       "narrow": true,
-      "built": [],
-      "unbuilt": "No scene stops with the key form open at 390",
+      "built": [
+        {
+          "scene": "models-hub-connect",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Models & providers",
