@@ -309,6 +309,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     evalMocks: undefined,
     evalReadFiles: undefined,
     runWroteEvents: false,
+    answeredSessionId: undefined,
     priorAnswer: undefined,
     lostRunner: false,
   };
@@ -413,11 +414,19 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
    * naming why the run ended: the arm's stop cause, or `completed` for a
    * run the engine finished. (Every arm that completes has a stop cause;
    * only the arms that wait or hand the run on have none.)
+   *
+   * A run can end during resolution, after the person's answers were
+   * copied onto the rows and before the engine's turn started the session's
+   * log (a plugin's hooks that cannot be prepared, a fault): the log is then
+   * started here, reading back what the run already wrote, so the failed
+   * result reaches the card all the same.
    */
-  const settleApprovalsOfAnEndedRun = (cause: StopCause | "completed" | null): void => {
+  const settleApprovalsOfAnEndedRun = async (cause: StopCause | "completed" | null): Promise<void> => {
     const approvedNotRun = settleApprovedNotRun(rows);
-    if (approvedNotRun.length > 0) {
-      console.error(`${activityName}: approved calls did not run (${cause}): execution=${executionId}, calls=${approvedNotRun.join(",")}`);
+    if (approvedNotRun.length === 0) return;
+    console.error(`${activityName}: approved calls did not run (${cause}): execution=${executionId}, calls=${approvedNotRun.join(",")}`);
+    if (engineTurn === undefined && frame.answeredSessionId !== undefined) {
+      await events.begin({ sessionId: frame.answeredSessionId, resumed: true, rows });
     }
   };
 
@@ -446,7 +455,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
    * invocation that resumes that very call.
    */
   const settleWith = async (arm: TerminalArm, failure?: CancelledFailure): Promise<Settled> => {
-    if (arm.completes) settleApprovalsOfAnEndedRun(arm.stopCause);
+    if (arm.completes) await settleApprovalsOfAnEndedRun(arm.stopCause);
     events.skipRootRows(applyTerminalArm(status, rows, arm));
     await returnOutputs();
     await recordEvalFiles();
@@ -870,7 +879,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
   async function completeTurn(turn: TurnInput, phase: RunPhase): Promise<Settled> {
     status.completedAt = utcTimestamp();
     status.phase = phase;
-    settleApprovalsOfAnEndedRun("completed");
+    await settleApprovalsOfAnEndedRun("completed");
 
     let finalText: string | undefined;
 
