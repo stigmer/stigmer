@@ -251,7 +251,11 @@ test("floorWords writes each range shape the house uses, and throws on any other
   assert.equal(floorWords("^22.13.1"), "Node.js 22 (22.13.1 or newer)");
   assert.equal(floorWords("22.x"), "Node.js 22");
   for (const shapeless of ["<23", "*", ">=22 <24", "^22.13.0-rc.1", "22.13.0"]) {
-    assert.throws(() => floorWords(shapeless), new RegExp(`engines\\.node '${shapeless.replace(/[.*^]/g, "\\$&")}'`), shapeless);
+    assert.throws(
+      () => floorWords(shapeless),
+      (err) => err instanceof Error && err.message.startsWith(`engines.node '${shapeless}' has a part`),
+      shapeless,
+    );
   }
 });
 
