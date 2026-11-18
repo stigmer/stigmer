@@ -14,10 +14,16 @@
 //     the trace is the proof), and a fixture fact for a case that acts; a
 //     safety check never uses `tool_used` with `max: 0`, which Claude Code
 //     and Stigmer score differently;
-//   - every rubric names what an answer must make and no more: the same
-//     opening every judge reads (a case that acts adds that only its final
-//     message is judged), two to four Must points, the FAIL-if lines, and
-//     the Welcome points, whose absence never fails an answer;
+//   - every judge question is one point: a case's rubric is two to four
+//     Must graders (`must-<n>`, "the answer makes this point") and its
+//     fail-if graders (`fail-if-<n>`, "the answer does not do this"), each
+//     holding one point after the one question every grader of its kind
+//     asks; what an answer may also say is the case's `welcome.md`, never
+//     graded. `claude plugin eval`'s judge answers PASS or FAIL in one word
+//     with no room to reason, and measured on 2026-11-18 it graded one
+//     point at a time right on right and wrong answers alike, while a list
+//     of points in one grader failed a right answer under every wording
+//     tried;
 //   - a case cites the published page (`stigmer.ai/docs/<page>`), never a
 //     bare `docs/<page>` that a link to the docs' source on GitHub would
 //     also match, and every page it cites exists, by the site's own URL rule
@@ -54,12 +60,10 @@ const MIN_CASES_PER_JOB = 4;
 /** A cited page: the published `stigmer\.ai/docs/` then one path, or a parenthesised `|` list of paths, each relative to docs/ with no extension. */
 const CITE_PATTERN = /^stigmer\\\.ai\/docs\/(?:\(([a-z0-9\-/]+(?:\|[a-z0-9\-/]+)*)\)|([a-z0-9\-/]+))$/;
 
-/** What every judge reads first: a pass is the Must points, and leaving out a Welcome point never fails. */
-const RUBRIC_OPENING =
-  "Judge the answer on these points alone. It passes when it makes every Must point and does nothing a FAIL-if line names. Leaving out a Welcome point never fails it, and a correct point not listed here is no fault.";
-/** What a judge of a case that acts reads next: its grader sees the final message, never the act. */
-const ACTING_OPENING =
-  "The agent was asked to act. Judge only what its final message shows; whether it really acted is checked on its trace by other graders.";
+/** The question every Must grader asks the judge, before its one point. */
+const MUST_QUESTION = "PASS if the answer makes this point, in substance (in its own words):";
+/** The question every fail-if grader asks the judge, before its one point. */
+const FAIL_IF_QUESTION = "PASS unless the answer does this:";
 const MIN_MUST = 2;
 const MAX_MUST = 4;
 /** A provider or Stigmer key, or a long unbroken run of letters and digits a token would be (a docs path breaks at its slashes and hyphens). */
@@ -85,17 +89,12 @@ function citedPages(pattern: string): string[] | undefined {
   return (match[1] ?? match[2] ?? "").split("|");
 }
 
-/** A rubric's parts: its opening paragraphs, then the bullets under each bold heading, in the order the headings come. */
-function rubricParts(criteria: string): { opening: string[]; sections: { heading: string; bullets: string[] }[] } {
-  const opening: string[] = [];
-  const sections: { heading: string; bullets: string[] }[] = [];
-  for (const block of criteria.trim().split(/\n\s*\n/)) {
-    const heading = /^\*\*(.+)\*\*$/.exec(block.trim());
-    if (heading !== null) sections.push({ heading: heading[1] ?? "", bullets: [] });
-    else if (sections.length === 0) opening.push(block.trim());
-    else sections[sections.length - 1]?.bullets.push(...block.split("\n").filter((line) => line.startsWith("- ")));
-  }
-  return { opening, sections };
+/** The one point a judge grader asks about after `question`, or undefined when it asks anything else or more than one thing. */
+function onePoint(criteria: string, question: string): string | undefined {
+  const blocks = criteria.trim().split(/\n\s*\n/);
+  if (blocks.length !== 2 || blocks[0] !== question) return undefined;
+  const point = blocks[1] ?? "";
+  return point.includes("\n") || point.startsWith("- ") || point === "" ? undefined : point;
 }
 
 /** Whether `page` (relative to docs/, no extension) is a page the site serves. */
@@ -150,7 +149,6 @@ describe("the question bank", () => {
 
   it("grades every case by its rubric and the skill-fired indicator, a case that answers by its docs pages, and an acting case by a fixture fact", () => {
     for (const c of cases) {
-      expect(grader(c, "criteria")?.check.type, c.dir).toBe("llm");
       const cites = grader(c, "cites-the-page");
       if (!c.tags.includes(ACTS_TAG) || cites !== undefined) expect(cites?.check.type, c.dir).toBe("regex");
       const fired = grader(c, "skill-fired");
@@ -195,16 +193,29 @@ describe("the question bank", () => {
     }
   });
 
-  it("names in every rubric the opening, two to four Must points, the FAIL-if lines and the Welcome points, in that order", () => {
+  it("asks the judge one point per grader: two to four Must points and at least one fail-if line", () => {
     for (const c of cases) {
-      const check = grader(c, "criteria")?.check;
-      const { opening, sections } = rubricParts(check?.type === "llm" ? check.criteria : "");
-      expect(opening, c.dir).toEqual(c.tags.includes(ACTS_TAG) ? [RUBRIC_OPENING, ACTING_OPENING] : [RUBRIC_OPENING]);
-      expect(sections.map((section) => section.heading), c.dir).toEqual(["Must", "FAIL if", "Welcome"]);
-      const [must, failIf] = sections;
-      expect(must?.bullets.length, `${c.dir}: Must points`).toBeGreaterThanOrEqual(MIN_MUST);
-      expect(must?.bullets.length, `${c.dir}: Must points`).toBeLessThanOrEqual(MAX_MUST);
-      expect(failIf?.bullets.length, `${c.dir}: FAIL-if lines`).toBeGreaterThan(0);
+      const judged = c.graders.filter((g) => g.check.type === "llm");
+      const kinds: [string, string][] = [
+        ["must", MUST_QUESTION],
+        ["fail-if", FAIL_IF_QUESTION],
+      ];
+      for (const [kind, question] of kinds) {
+        const named = judged.filter((g) => new RegExp(`^${kind}-\\d+$`).test(g.name)).map((g) => g.name);
+        expect(
+          [...named].sort((a, b) => Number(a.slice(kind.length + 1)) - Number(b.slice(kind.length + 1))),
+          `${c.dir}: ${kind} graders are numbered from 1 with no gap`,
+        ).toEqual(named.map((_, i) => `${kind}-${i + 1}`));
+        for (const name of named) {
+          const check = grader(c, name)?.check;
+          expect(onePoint(check?.type === "llm" ? check.criteria : "", question), `${c.dir}: ${name} asks "${question}" of one point`).toBeDefined();
+        }
+      }
+      const must = judged.filter((g) => g.name.startsWith("must-")).length;
+      expect(must, `${c.dir}: Must points`).toBeGreaterThanOrEqual(MIN_MUST);
+      expect(must, `${c.dir}: Must points`).toBeLessThanOrEqual(MAX_MUST);
+      expect(judged.filter((g) => g.name.startsWith("fail-if-")).length, `${c.dir}: fail-if lines`).toBeGreaterThan(0);
+      expect(judged.filter((g) => !/^(must|fail-if)-\d+$/.test(g.name)).map((g) => g.name), `${c.dir}: a judge grader that asks a list`).toEqual([]);
     }
   });
 
@@ -251,14 +262,11 @@ describe("citedPages", () => {
   });
 });
 
-describe("rubricParts", () => {
-  it("reads the opening paragraphs, then each bold heading's bullets", () => {
-    const parts = rubricParts("Opening one.\n\nOpening two.\n\n**Must**\n\n- a\n- b\n\n**FAIL if**\n\n- c\n\n**Welcome**\n\n- d\n");
-    expect(parts.opening).toEqual(["Opening one.", "Opening two."]);
-    expect(parts.sections).toEqual([
-      { heading: "Must", bullets: ["- a", "- b"] },
-      { heading: "FAIL if", bullets: ["- c"] },
-      { heading: "Welcome", bullets: ["- d"] },
-    ]);
+describe("onePoint", () => {
+  it("reads the one point after the grader's question, and nothing else", () => {
+    expect(onePoint(`${MUST_QUESTION}\n\nSays the key stays on the server.\n`, MUST_QUESTION)).toBe("Says the key stays on the server.");
+    expect(onePoint(`${MUST_QUESTION}\n\n- one\n- two\n`, MUST_QUESTION), "a list").toBeUndefined();
+    expect(onePoint(`${MUST_QUESTION}\n\nOne.\n\nTwo.\n`, MUST_QUESTION), "two points").toBeUndefined();
+    expect(onePoint(`${FAIL_IF_QUESTION}\n\nIt prints the key.\n`, MUST_QUESTION), "another question").toBeUndefined();
   });
 });
