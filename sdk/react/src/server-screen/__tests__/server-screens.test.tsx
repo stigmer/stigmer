@@ -97,4 +97,18 @@ describe("ServerChooserForm", () => {
     await userEvent.click(screen.getByRole("button", { name: "Back", hidden: true }));
     expect(onBack).toHaveBeenCalled();
   });
+
+  it("opens empty each time, forgetting an address refused the last time", async () => {
+    const onChoose = vi.fn(async () => "Use an https address, or http only on this computer.");
+    const { rerender } = render(<ServerChooserForm presentation="dialog" open onChoose={onChoose} onBack={() => {}} />);
+    await userEvent.type(screen.getByLabelText("Server address"), "http://old.example");
+    await userEvent.click(screen.getByRole("button", { name: "Connect", hidden: true }));
+    expect(await screen.findByText("Use an https address, or http only on this computer.")).toBeTruthy();
+
+    rerender(<ServerChooserForm presentation="dialog" open={false} onChoose={onChoose} onBack={() => {}} />);
+    rerender(<ServerChooserForm presentation="dialog" open onChoose={onChoose} onBack={() => {}} />);
+
+    expect((screen.getByLabelText("Server address") as HTMLInputElement).value).toBe("");
+    expect(screen.queryByText("Use an https address, or http only on this computer.")).toBeNull();
+  });
 });

@@ -9,7 +9,7 @@
 // and says why not; the form draws the refusal under the field. It renders
 // before any `StigmerProvider`: it picks the server the kit will talk to.
 
-import { type FormEvent, type ReactNode, useId, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useId, useState } from "react";
 import { Button } from "../button/Button.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { DialogBody, DialogFooter, DialogHeader, DialogShell } from "../internal/DialogShell.js";
@@ -63,6 +63,14 @@ export function ServerChooserForm({
   const [address, setAddress] = useState("");
   const [refusal, setRefusal] = useState<string | null>(null);
   const [isChoosing, setIsChoosing] = useState(false);
+
+  // The dialog stays mounted over the app between opens: each opening starts
+  // empty, never with an address refused the last time.
+  useEffect(() => {
+    if (!open) return;
+    setAddress("");
+    setRefusal(null);
+  }, [open]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
