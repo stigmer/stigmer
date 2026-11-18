@@ -32,10 +32,14 @@ export interface IdentityAccountGateViewProps {
  *
  * @example
  * ```tsx
- * const { state, retry } = useIdentityAccountGate({ isEnabled: true });
- * <IdentityAccountGateView state={state} retry={retry} displayName={user.name} corner={<AccountCorner />}>
- *   <App />
- * </IdentityAccountGateView>
+ * // `state` and `retry` come from the kit's `useIdentityAccountGate`; the host passes the signed-in name.
+ * function AccountGate({ state, retry, children }: Pick<IdentityAccountGateViewProps, "state" | "retry" | "children">) {
+ *   return (
+ *     <IdentityAccountGateView state={state} retry={retry} displayName="Ada Lovelace">
+ *       {children}
+ *     </IdentityAccountGateView>
+ *   );
+ * }
  * ```
  */
 export function IdentityAccountGateView({ state, retry, displayName, corner, children }: IdentityAccountGateViewProps) {

@@ -54,7 +54,10 @@ const DEFAULT_TITLES: Partial<Record<ErrorCategory, string>> = {
  *
  * @example
  * ```tsx
- * <PageFailure error={error} onRetry={reset} link={{ label: "Go to Dashboard", href: "/" }} />
+ * // A Next.js `error.tsx`: the framework passes the error and `reset`.
+ * function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+ *   return <PageFailure error={error} onRetry={reset} link={{ label: "Go to Dashboard", href: "/" }} />;
+ * }
  * ```
  */
 export function PageFailure({ error, onRetry, link, renderLink, placement = "page", titles }: PageFailureProps) {

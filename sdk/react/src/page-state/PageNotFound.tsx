@@ -21,7 +21,8 @@ export interface PageNotFoundProps {
  *
  * @example
  * ```tsx
- * <PageNotFound homeHref="/" renderLink={renderLink} />
+ * // renderLink is where the host's router link goes; a plain anchor works too.
+ * <PageNotFound homeHref="/" renderLink={({ href, children, ...rest }) => <a href={href} {...rest}>{children}</a>} />
  * ```
  */
 export function PageNotFound({ homeHref, renderLink }: PageNotFoundProps) {

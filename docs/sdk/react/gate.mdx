@@ -25,10 +25,14 @@ Draws the identity account gate's states, and the app once it's ready.
 />
 
 ```tsx
-const { state, retry } = useIdentityAccountGate({ isEnabled: true });
-<IdentityAccountGateView state={state} retry={retry} displayName={user.name} corner={<AccountCorner />}>
-  <App />
-</IdentityAccountGateView>
+// `state` and `retry` come from the kit's `useIdentityAccountGate`; the host passes the signed-in name.
+function AccountGate({ state, retry, children }: Pick<IdentityAccountGateViewProps, "state" | "retry" | "children">) {
+  return (
+    <IdentityAccountGateView state={state} retry={retry} displayName="Ada Lovelace">
+      {children}
+    </IdentityAccountGateView>
+  );
+}
 ```
 
 
@@ -49,9 +53,13 @@ Draws the organization gate's states, and the app once it's ready.
 />
 
 ```tsx
-const { state, retry, refresh } = useOrgGate({ isBypassed: false });
-<OrgGateView state={state} retry={retry} onCreated={(org) => refresh(org.metadata?.id)} corner={<AccountCorner />}>
-  <App />
-</OrgGateView>
+// `state`, `retry` and `refresh` come from the kit's `useOrgGate`.
+function OrganizationsGate({ state, retry, refresh, children }: Pick<OrgGateViewProps, "state" | "retry" | "children"> & { refresh: (orgId?: string) => void }) {
+  return (
+    <OrgGateView state={state} retry={retry} onCreated={(org) => refresh(org.metadata?.id)}>
+      {children}
+    </OrgGateView>
+  );
+}
 ```
 

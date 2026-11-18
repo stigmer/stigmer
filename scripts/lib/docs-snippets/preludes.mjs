@@ -82,9 +82,11 @@ export const DEFAULT_PRELUDE = { typescript: "client", go: "sdk", python: "sdk",
  * holds the two together).
  */
 export const PAGE_PRELUDES = [
+  { page: "docs/sdk/react/gate.mdx", typescript: "react-console" },
   { page: "docs/sdk/react/help.mdx", typescript: "react-console" },
   { page: "docs/sdk/react/library-pages.mdx", typescript: "react-console" },
   { page: "docs/sdk/react/page-frame.mdx", typescript: "react-console" },
+  { page: "docs/sdk/react/page-state.mdx", typescript: "react-console" },
   { page: "docs/sdk/react/settings.mdx", typescript: "react-console" },
   { page: "docs/sdk/react/sidebar.mdx", typescript: "react-console" },
   { page: "docs/sdk/react/user.mdx", typescript: "react-console" },

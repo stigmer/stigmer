@@ -33,7 +33,11 @@ export interface RunResolveViewProps {
  *
  * @example
  * ```tsx
- * <RunResolveView runId={id} onResolved={(sessionId) => navigate(`/sessions/${sessionId}`)} dashboardHref="/" />
+ * function RunPage({ runId }: { runId: string }) {
+ *   return (
+ *     <RunResolveView runId={runId} onResolved={(sessionId) => window.location.assign(`/sessions/${sessionId}`)} dashboardHref="/" />
+ *   );
+ * }
  * ```
  */
 export function RunResolveView({ runId, onResolved, dashboardHref, renderLink }: RunResolveViewProps) {

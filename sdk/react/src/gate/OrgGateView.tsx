@@ -32,10 +32,14 @@ export interface OrgGateViewProps {
  *
  * @example
  * ```tsx
- * const { state, retry, refresh } = useOrgGate({ isBypassed: false });
- * <OrgGateView state={state} retry={retry} onCreated={(org) => refresh(org.metadata?.id)} corner={<AccountCorner />}>
- *   <App />
- * </OrgGateView>
+ * // `state`, `retry` and `refresh` come from the kit's `useOrgGate`.
+ * function OrganizationsGate({ state, retry, refresh, children }: Pick<OrgGateViewProps, "state" | "retry" | "children"> & { refresh: (orgId?: string) => void }) {
+ *   return (
+ *     <OrgGateView state={state} retry={retry} onCreated={(org) => refresh(org.metadata?.id)}>
+ *       {children}
+ *     </OrgGateView>
+ *   );
+ * }
  * ```
  */
 export function OrgGateView({ state, retry, onCreated, corner, children }: OrgGateViewProps) {

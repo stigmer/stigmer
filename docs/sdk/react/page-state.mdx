@@ -26,7 +26,10 @@ The page for a page that broke: what happened, Try again, and the way out.
 />
 
 ```tsx
-<PageFailure error={error} onRetry={reset} link={{ label: "Go to Dashboard", href: "/" }} />
+// A Next.js `error.tsx`: the framework passes the error and `reset`.
+function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  return <PageFailure error={error} onRetry={reset} link={{ label: "Go to Dashboard", href: "/" }} />;
+}
 ```
 
 
@@ -44,7 +47,8 @@ The page for an address that leads nowhere, with the way home.
 />
 
 ```tsx
-<PageNotFound homeHref="/" renderLink={renderLink} />
+// renderLink is where the host's router link goes; a plain anchor works too.
+<PageNotFound homeHref="/" renderLink={({ href, children, ...rest }) => <a href={href} {...rest}>{children}</a>} />
 ```
 
 
@@ -64,7 +68,11 @@ Opens a run's conversation, or says why it can't.
 />
 
 ```tsx
-<RunResolveView runId={id} onResolved={(sessionId) => navigate(`/sessions/${sessionId}`)} dashboardHref="/" />
+function RunPage({ runId }: { runId: string }) {
+  return (
+    <RunResolveView runId={runId} onResolved={(sessionId) => window.location.assign(`/sessions/${sessionId}`)} dashboardHref="/" />
+  );
+}
 ```
 
 
