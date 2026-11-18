@@ -4,10 +4,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import "./fonts.css";
 import "./globals.css";
 import { App } from "./App";
-import { ErrorMessage } from "@stigmer/react-sdk";
-import { StandaloneScreen } from "@stigmer/react-sdk/console";
-import { ServerScreen } from "./server/ServerScreen";
-import { GateMark } from "./shell/GateMark";
+import { BootFailure } from "./shell/BootFailure";
 
 /**
  * The app's last resort: a failure while it draws itself, before any screen
@@ -34,21 +31,6 @@ class BootErrorBoundary extends Component<
   }
 }
 
-function BootFailure({ error }: { error: Error }) {
-  return (
-    <ServerScreen>
-      <StandaloneScreen mark={<GateMark />}>
-        <ErrorMessage
-          error={error}
-          title="Stigmer Desktop couldn't start."
-          comfort="Your conversations are safe on your server."
-          retry={() => window.location.reload()}
-          reference={error.stack}
-        />
-      </StandaloneScreen>
-    </ServerScreen>
-  );
-}
 
 /**
  * Tauri v2 injects `__TAURI_INTERNALS__` into the webview at startup.
