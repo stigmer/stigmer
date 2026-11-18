@@ -388,9 +388,9 @@ describe("VaultListPanel", () => {
     const writes: string[] = [];
     render(<VaultListPanel org={ORG} />, { wrapper: providers(clientWith(writes)) });
     fireEvent.click(await screen.findByRole("button", { name: /Support tools/ }));
-    fireEvent.change(screen.getByLabelText("Vault name"), { target: { value: "Renamed" } });
-    fireEvent.change(screen.getByLabelText("Vault description"), { target: { value: "new" } });
-    fireEvent.change(screen.getByLabelText("External id"), { target: { value: "cust-9" } });
+    fireEvent.change(screen.getByLabelText(/^Name$/), { target: { value: "Renamed" } });
+    fireEvent.change(screen.getByLabelText(/^Description/), { target: { value: "new" } });
+    fireEvent.change(screen.getByLabelText(/^External id/), { target: { value: "cust-9" } });
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Save details" }));
     });
@@ -403,10 +403,31 @@ describe("VaultListPanel", () => {
     await waitFor(() => expect(writes).toEqual(["update:Renamed:new:cust-9", "delete:vlt_team"]));
   });
 
+  it("opens a vault in place: its secrets, logins, details and its own Delete, as sections", async () => {
+    const writes: string[] = [];
+    const onOpen = vi.fn();
+    const onClose = vi.fn();
+    const { rerender } = render(<VaultListPanel org={ORG} onOpen={onOpen} />, { wrapper: providers(clientWith(writes)) });
+    // A row opens the vault; it never expands in the list.
+    fireEvent.click(await screen.findByRole("button", { name: /Support tools/ }));
+    expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ metadata: expect.objectContaining({ id: "vlt_team" }) }));
+    expect(screen.queryByLabelText("Vault details")).toBeNull();
+
+    rerender(<VaultListPanel org={ORG} onOpen={onOpen} openId="vlt_team" onClose={onClose} />);
+    for (const title of ["Secrets", "Logins", "Details", "Delete this vault"]) {
+      expect(await screen.findByRole("heading", { name: title })).toBeTruthy();
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Delete vault" }));
+    await act(async () => {
+      fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete vault" }));
+    });
+    await waitFor(() => expect(writes).toContain("delete:vlt_team"));
+  });
+
   it("shows a refused save or delete", async () => {
     render(<VaultListPanel org={ORG} />, { wrapper: providers(clientWith([], { refuse: true })) });
     fireEvent.click(await screen.findByRole("button", { name: /Support tools/ }));
-    fireEvent.change(screen.getByLabelText("Vault name"), { target: { value: "Renamed" } });
+    fireEvent.change(screen.getByLabelText(/^Name$/), { target: { value: "Renamed" } });
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Save details" }));
     });
