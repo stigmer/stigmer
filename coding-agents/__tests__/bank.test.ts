@@ -8,11 +8,19 @@
 //   - every case is one job's, holds the one tool list and turn cap every
 //     case shares (so both arms meet the same agent, `Skill` among its tools
 //     or the plugin's own arm runs without its skill), and carries its
-//     graders: the rubric, the docs page it is answered from, the skill-fired
-//     indicator, a fixture fact for a case that acts; a safety check never
-//     uses `tool_used` with `max: 0`, which Claude Code and Stigmer score
-//     differently;
-//   - every docs page a case cites exists, by the site's own URL rule
+//     graders: the rubric, the skill-fired indicator, the docs pages it is
+//     answered from on every case that answers (a case that acts may cite:
+//     where its answer is the fixture's fact or the act itself, that fact or
+//     the trace is the proof), and a fixture fact for a case that acts; a
+//     safety check never uses `tool_used` with `max: 0`, which Claude Code
+//     and Stigmer score differently;
+//   - every rubric names what an answer must make and no more: the same
+//     opening every judge reads (a case that acts adds that only its final
+//     message is judged), two to four Must points, the FAIL-if lines, and
+//     the Welcome points, whose absence never fails an answer;
+//   - a case cites the published page (`stigmer.ai/docs/<page>`), never a
+//     bare `docs/<page>` that a link to the docs' source on GitHub would
+//     also match, and every page it cites exists, by the site's own URL rule
 //     (site/src/lib/llms-pages.ts: `docs/<path>.mdx` or
 //     `docs/<path>/index.mdx`), so a moved page reds here;
 //   - every concept page, getting-started page and guide group is cited by a
@@ -41,8 +49,17 @@ const ANSWER_TURNS = 15;
 const ACTING_TURNS = 30;
 const MIN_CASES_PER_JOB = 4;
 
-/** A cited page: `docs/` then one path, or a parenthesised `|` list of paths, each relative to docs/ with no extension. */
-const CITE_PATTERN = /^docs\/(?:\(([a-z0-9\-/]+(?:\|[a-z0-9\-/]+)*)\)|([a-z0-9\-/]+))$/;
+/** A cited page: the published `stigmer\.ai/docs/` then one path, or a parenthesised `|` list of paths, each relative to docs/ with no extension. */
+const CITE_PATTERN = /^stigmer\\\.ai\/docs\/(?:\(([a-z0-9\-/]+(?:\|[a-z0-9\-/]+)*)\)|([a-z0-9\-/]+))$/;
+
+/** What every judge reads first: a pass is the Must points, and leaving out a Welcome point never fails. */
+const RUBRIC_OPENING =
+  "Judge the answer on these points alone. It passes when it makes every Must point and does nothing a FAIL-if line names. Leaving out a Welcome point never fails it, and a correct point not listed here is no fault.";
+/** What a judge of a case that acts reads next: its grader sees the final message, never the act. */
+const ACTING_OPENING =
+  "The agent was asked to act. Judge only what its final message shows; whether it really acted is checked on its trace by other graders.";
+const MIN_MUST = 2;
+const MAX_MUST = 4;
 /** A provider or Stigmer key, or a long unbroken run of letters and digits a token would be (a docs path breaks at its slashes and hyphens). */
 const KEY_SHAPED = /sk-ant-|\bsk-[A-Za-z0-9]{16,}|\bstg_[A-Za-z0-9]{8,}|[A-Za-z0-9]{32,}/;
 
@@ -64,6 +81,19 @@ function citedPages(pattern: string): string[] | undefined {
   const match = CITE_PATTERN.exec(pattern);
   if (match === null) return undefined;
   return (match[1] ?? match[2] ?? "").split("|");
+}
+
+/** A rubric's parts: its opening paragraphs, then the bullets under each bold heading, in the order the headings come. */
+function rubricParts(criteria: string): { opening: string[]; sections: { heading: string; bullets: string[] }[] } {
+  const opening: string[] = [];
+  const sections: { heading: string; bullets: string[] }[] = [];
+  for (const block of criteria.trim().split(/\n\s*\n/)) {
+    const heading = /^\*\*(.+)\*\*$/.exec(block.trim());
+    if (heading !== null) sections.push({ heading: heading[1] ?? "", bullets: [] });
+    else if (sections.length === 0) opening.push(block.trim());
+    else sections[sections.length - 1]?.bullets.push(...block.split("\n").filter((line) => line.startsWith("- ")));
+  }
+  return { opening, sections };
 }
 
 /** Whether `page` (relative to docs/, no extension) is a page the site serves. */
@@ -116,10 +146,11 @@ describe("the question bank", () => {
     }
   });
 
-  it("grades every case by its rubric, its docs page and the skill-fired indicator, and an acting case by a fixture fact", () => {
+  it("grades every case by its rubric and the skill-fired indicator, a case that answers by its docs pages, and an acting case by a fixture fact", () => {
     for (const c of cases) {
       expect(grader(c, "criteria")?.check.type, c.dir).toBe("llm");
-      expect(grader(c, "cites-the-page")?.check.type, c.dir).toBe("regex");
+      const cites = grader(c, "cites-the-page");
+      if (!c.tags.includes(ACTS_TAG) || cites !== undefined) expect(cites?.check.type, c.dir).toBe("regex");
       const fired = grader(c, "skill-fired");
       expect(fired?.check, c.dir).toMatchObject({ type: "tool_used", tool: "Skill" });
       expect(fired?.arm, c.dir).toBe("with-only");
@@ -149,11 +180,25 @@ describe("the question bank", () => {
     }
   });
 
-  it("cites only docs pages that exist", () => {
+  it("names in every rubric the opening, two to four Must points, the FAIL-if lines and the Welcome points, in that order", () => {
+    for (const c of cases) {
+      const check = grader(c, "criteria")?.check;
+      const { opening, sections } = rubricParts(check?.type === "llm" ? check.criteria : "");
+      expect(opening, c.dir).toEqual(c.tags.includes(ACTS_TAG) ? [RUBRIC_OPENING, ACTING_OPENING] : [RUBRIC_OPENING]);
+      expect(sections.map((section) => section.heading), c.dir).toEqual(["Must", "FAIL if", "Welcome"]);
+      const [must, failIf] = sections;
+      expect(must?.bullets.length, `${c.dir}: Must points`).toBeGreaterThanOrEqual(MIN_MUST);
+      expect(must?.bullets.length, `${c.dir}: Must points`).toBeLessThanOrEqual(MAX_MUST);
+      expect(failIf?.bullets.length, `${c.dir}: FAIL-if lines`).toBeGreaterThan(0);
+    }
+  });
+
+  it("cites only published docs pages that exist", () => {
     for (const c of cases) {
       const check = grader(c, "cites-the-page")?.check;
+      if (check === undefined && c.tags.includes(ACTS_TAG)) continue;
       const pages = check?.type === "regex" ? citedPages(check.pattern) : undefined;
-      expect(pages, `${c.dir}: cites-the-page must be docs/<page> or docs/(<page>|<page>)`).toBeDefined();
+      expect(pages, `${c.dir}: cites-the-page must be stigmer\\.ai/docs/<page> or stigmer\\.ai/docs/(<page>|<page>)`).toBeDefined();
       for (const page of pages ?? []) expect(pageExists(page), `${c.dir} cites docs/${page}, which is no page`).toBe(true);
     }
   });
@@ -182,10 +227,23 @@ describe("the question bank", () => {
 
 describe("citedPages", () => {
   it("reads one page or a list of pages, and nothing else", () => {
-    expect(citedPages("docs/concepts/vaults")).toEqual(["concepts/vaults"]);
-    expect(citedPages("docs/(concepts/vaults|guides/integrations/model-provider-keys)")).toEqual(["concepts/vaults", "guides/integrations/model-provider-keys"]);
-    expect(citedPages("stigmer\\.ai/docs/concepts/vaults")).toBeUndefined();
-    expect(citedPages("docs/concepts/vaults.mdx")).toBeUndefined();
-    expect(citedPages("docs/(concepts/vaults|)")).toBeUndefined();
+    expect(citedPages("stigmer\\.ai/docs/concepts/vaults")).toEqual(["concepts/vaults"]);
+    expect(citedPages("stigmer\\.ai/docs/(concepts/vaults|guides/integrations/model-provider-keys)")).toEqual(["concepts/vaults", "guides/integrations/model-provider-keys"]);
+    expect(citedPages("docs/concepts/vaults"), "a bare docs/ path also matches a link to the source on GitHub").toBeUndefined();
+    expect(citedPages("stigmer.ai/docs/concepts/vaults"), "an unescaped dot matches any character").toBeUndefined();
+    expect(citedPages("stigmer\\.ai/docs/concepts/vaults.mdx")).toBeUndefined();
+    expect(citedPages("stigmer\\.ai/docs/(concepts/vaults|)")).toBeUndefined();
+  });
+});
+
+describe("rubricParts", () => {
+  it("reads the opening paragraphs, then each bold heading's bullets", () => {
+    const parts = rubricParts("Opening one.\n\nOpening two.\n\n**Must**\n\n- a\n- b\n\n**FAIL if**\n\n- c\n\n**Welcome**\n\n- d\n");
+    expect(parts.opening).toEqual(["Opening one.", "Opening two."]);
+    expect(parts.sections).toEqual([
+      { heading: "Must", bullets: ["- a", "- b"] },
+      { heading: "FAIL if", bullets: ["- c"] },
+      { heading: "Welcome", bullets: ["- d"] },
+    ]);
   });
 });

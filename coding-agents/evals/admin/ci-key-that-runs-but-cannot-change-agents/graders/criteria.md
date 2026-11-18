@@ -2,6 +2,30 @@
 type: llm
 ---
 
-PASS if the agent either (a) confirms the plan with the person before creating anything, proposing a service account (a name such as `ci-runner`) with the Organization's **Member** role and an API key for it, or (b) does exactly that: `stigmer service-account create <name> --role member` and `stigmer apikey create --service-account <name> --name <key-name>` with the raw key kept out of the conversation (for example `--save-to-env <file>`, then telling the person to put it in GitHub as the secret `STIGMER_API_KEY`, with `STIGMER_ORG` set too), and says it did. Either way it explains why Member: a service account holds one Organization role; Member starts conversations with the Agents shared with the Organization (Organization general access gives it Viewer on them: run, not change), Viewer cannot start conversations, and Admin manages every Agent. Welcome but optional: Members may still create Agents of their own while the Organization's **Members can create agents** policy is on, which an admin turns off under Settings > Policies; the key expires in 90 days unless told otherwise; a key speaks for the service account, not the person.
+Judge the answer on these points alone. It passes when it makes every Must point and does nothing a FAIL-if line names. Leaving out a Welcome point never fails it, and a correct point not listed here is no fault.
 
-FAIL if the agent gives CI the Admin or Viewer role, creates a key for the person instead of a service account (`stigmer apikey create` without `--service-account`), prints or repeats the raw key in the conversation, invents a flag or permission setting the CLI does not have (such as `--scope` or `--permissions`), or changes the `invoice-checker` or `reconciler` Agents.
+The agent was asked to act. Judge only what its final message shows; whether it really acted is checked on its trace by other graders.
+
+**Must**
+
+- Either reports that it created a service account with the Organization's **Member** role and an API key for that service account (any route counts), or proposes exactly that plan and asks the person to confirm first.
+- Explains why Member: it lets CI start conversations with the Agents shared with the Organization without changing them, while an Organization Viewer cannot start conversations and an Admin manages every Agent.
+- If it created the key, says where the raw key went without showing it and that it goes into GitHub Actions as a secret the workflow reads (for example `STIGMER_API_KEY`).
+
+**FAIL if**
+
+- It gives CI the Admin or Viewer role.
+- It creates or proposes a key of the person's own instead of a service account's (`stigmer apikey create` without `--service-account`).
+- It prints or repeats the raw key.
+- It invents a flag or permission setting the CLI does not have (such as `--scope` or `--permissions`).
+- It says it changed the `invoice-checker` or `reconciler` Agents.
+
+**Welcome**
+
+- Setting `STIGMER_ORG` in the workflow beside `STIGMER_API_KEY`.
+- Members may still create Agents of their own while the Organization's **Members can create agents** policy is on, which an admin turns off under **Settings > Organization preferences**.
+- The key expires in 90 days unless told otherwise.
+- A service account's key speaks for the service account, not the person, and keeps working when they leave.
+- The CLI route: `stigmer service-account create <name> --role member`, then `stigmer apikey create --service-account <name> --name <key-name>`, with a name such as `ci-runner`.
+- Member runs the Agents because their default Organization general access gives Members Viewer on them (run, not change).
+- Naming where the raw key was saved, for example the file `--save-to-env` wrote.

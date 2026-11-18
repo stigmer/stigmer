@@ -2,9 +2,33 @@
 type: llm
 ---
 
-PASS if the answer lays out one of the two documented paths correctly, and ideally names both with when to pick each:
-- **Minted user tokens**: an admin service account's API key on the server only; a Next.js route (such as `app/api/stigmer-token/route.ts`, `GET /api/stigmer-token`) that, for the user Auth0 says is signed in, calls `stigmer.tokens.mintUserToken({ org, userId, userEmail, userName })` with a stable `userId` (for example the Auth0 `sub`) and returns `{ accessToken, expiresAt }`; the Organization's embedding settings with **Create accounts on sign-in** on and the sign-in role `member` (console Settings → Embedding, or `stigmer embedding set --create-accounts-on-sign-in on --sign-in-role member`); the browser builds `new Stigmer({ baseUrl, getAccessToken: tokens.getAccessToken })` from `createTokenCache(...)`, wraps the page in `StigmerProvider`, and renders `AgentChat` from `@stigmer/react-sdk`; `tokens.invalidate()` on sign-out.
-- **Identity federation**: register Auth0 as a Federation Issuer so Stigmer trusts its tokens, with JIT provisioning (a sign-in role) or manual provisioning, and pass the Auth0 JWT through `getAccessToken`; and it says federation is served by Stigmer Cloud and the Enterprise edition, not the open-source server.
-Welcome but optional: listing the app's origin under **Allowed origins**; tokens living 15 minutes; `stigmer app-handover --stack nextjs --agent <agent>` printing or writing the route and chat; a server that trusts every caller (`stigmer up`) refusing to mint tokens.
+Judge the answer on these points alone. It passes when it makes every Must point and does nothing a FAIL-if line names. Leaving out a Welcome point never fails it, and a correct point not listed here is no fault.
 
-FAIL if the answer puts an API key in browser code or a `NEXT_PUBLIC_` variable; has them mint with a person's key or a non-admin service account; invents an "Auth0 integration" setting, a Stigmer login widget, or SDK options the docs don't name; claims federation works on the open-source server; or tells them to proxy every Stigmer call through their own backend as the only option without mentioning token minting or federation.
+**Must**
+
+- Lays out at least one of the two documented paths: minted user tokens (their server mints a Stigmer token for each signed-in user) or identity federation (Auth0 registered as a Federation Issuer so Stigmer trusts its tokens).
+- When it gives the minting path: an admin service account's key stays on the server, in a route that mints a token for the user Auth0 signed in, with accounts created on sign-in.
+- When it gives the federation path: the browser passes the Auth0 token to Stigmer, and federation is served by Stigmer Cloud and the Enterprise edition, not the open-source server.
+- The browser renders Stigmer's React chat (for example `AgentChat` inside `StigmerProvider`) on a client that gets its token from that path, with no Stigmer key in browser code.
+
+**FAIL if**
+
+- It puts an API key in browser code or a `NEXT_PUBLIC_` variable.
+- It has them mint with a person's key or a non-admin service account.
+- It invents an "Auth0 integration" setting, a Stigmer login widget, or SDK options the docs don't name.
+- It claims federation works on the open-source server.
+- It tells them to proxy every Stigmer call through their own backend as the only option, without mentioning token minting or federation.
+
+**Welcome**
+
+- Naming both paths, with when to pick each.
+- `tokens.invalidate()` on sign-out.
+- Listing the app's origin under **Allowed origins**.
+- Tokens live 15 minutes.
+- `stigmer app-handover --stack nextjs --agent <agent>` printing or writing the route and chat.
+- A server that trusts every caller (`stigmer up`) refuses to mint tokens.
+- The minting route uses a stable user id, for example the Auth0 `sub`.
+- The minting route, such as `app/api/stigmer-token/route.ts`, calls `stigmer.tokens.mintUserToken({ org, userId, userEmail, userName })` with the Auth0 `sub` as `userId` and returns `{ accessToken, expiresAt }`.
+- Embedding settings: **Create accounts on sign-in** on and sign-in role `member` (console **Settings → Embedding**, or `stigmer embedding set --create-accounts-on-sign-in on --sign-in-role member`).
+- Federation provisions accounts JIT (with a sign-in role) or manually, and the Auth0 JWT is passed through `getAccessToken`.
+- The browser client is `new Stigmer({ baseUrl, getAccessToken })` (from `createTokenCache(...)` on the minting path), from `@stigmer/react-sdk`.

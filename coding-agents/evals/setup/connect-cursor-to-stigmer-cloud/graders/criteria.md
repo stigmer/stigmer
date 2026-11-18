@@ -2,6 +2,27 @@
 type: llm
 ---
 
-PASS if the answer gives one of the documented ways, with its steps: (a) the hosted MCP connector at `https://mcp.stigmer.ai`: create a Stigmer API key in the console under Settings → API Keys (shown only once), add a `stigmer` entry under `mcpServers` in `.cursor/mcp.json` (or `~/.cursor/mcp.json` for every repository) with that URL and an `Authorization: Bearer <key>` header, reload Cursor, see it under Settings → MCP, and check it by asking Cursor to list the agents; or (b) Stigmer's plugin for Cursor (cloned into `~/.cursor/plugins/local/stigmer`, then Developer: Reload Window), which carries the guide as a skill and the local `stigmer mcp-server`, using the command line's own sign-in. It must treat the API key like a password: never committed to a repository (so a repository-level `mcp.json` holding it stays out of git) and never pasted into a chat. Welcome but optional: `stigmer mcp-server` runs on stdio and reads the active backend from the CLI's config; Claude Desktop signs in through the browser instead of a key.
+Judge the answer on these points alone. It passes when it makes every Must point and does nothing a FAIL-if line names. Leaving out a Welcome point never fails it, and a correct point not listed here is no fault.
 
-FAIL if it invents an endpoint, a Cursor marketplace listing or a setting the docs don't name; tells them to commit the key or put it in a shared file; asks for the key in the chat or prints one; or says Cursor connects through the browser sign-in.
+**Must**
+
+- Names a documented way to connect Cursor to Stigmer Cloud: the hosted Stigmer MCP connector at `https://mcp.stigmer.ai`, or Stigmer's plugin for Cursor, which runs the local `stigmer mcp-server` on the command line's own sign-in.
+- Gives that way's setup in substance: for the connector, a Stigmer API key and a Cursor MCP entry with that URL and a bearer header; for the plugin, installing it locally with the CLI signed in.
+- Where it uses an API key, says to treat it like a password: never committed (a repository's `mcp.json` holding it stays out of git) and never shared in plain text, such as in a chat.
+
+**FAIL if**
+
+- It invents an endpoint, a Cursor marketplace listing or a setting the docs don't name.
+- It tells them to commit the key or put it in a shared file.
+- It asks for the key in the chat or prints one.
+- It says Cursor connects through the browser sign-in.
+
+**Welcome**
+
+- The key is shown only once and starts with `stk_`.
+- After the reload the connector appears in Cursor under Settings → MCP, and asking Cursor to list the agents checks it works.
+- `stigmer mcp-server` runs on stdio and reads the active backend from the CLI's config (`~/.stigmer/config.yaml`).
+- The plugin also carries the setup guide as a skill, and shows under Customize after the reload.
+- Claude Desktop signs in through the browser instead of a key.
+- The connector's steps: a key created in the console under Settings → API Keys, a `stigmer` entry under `mcpServers` in `.cursor/mcp.json` (or `~/.cursor/mcp.json` for every repository) with an `Authorization: Bearer <key>` header, then reloading Cursor.
+- The plugin's steps: clone it into `~/.cursor/plugins/local/stigmer` and run Developer: Reload Window, with the command line installed and signed in.

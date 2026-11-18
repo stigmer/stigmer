@@ -2,6 +2,28 @@
 type: llm
 ---
 
-PASS if the agent finds the `reconciler` Agent's failed run on Stigmer (for example with `stigmer list runs`, `stigmer get run <run-id>`, `stigmer runs logs <run-id>` or `stigmer get session <session-id>`) and reports the real cause from it: the model provider refused the call because the credit balance is too low to access the Anthropic API. It must also say what to do: this is a failure on the Organization's own provider key, reported with the provider's own message, so the fix is in their Anthropic account (add credit / fix billing there) or replacing the key, and then running the job again. Replacing a key is done in the console's **Models & providers** or with `stigmer provider-key set anthropic` at a hidden prompt (Stigmer Cloud), or, on a Stigmer running on their own machine, with `stigmer setup` then `stigmer down && stigmer up` (the runner holds the key there). Saying that Stigmer never runs a model call on a key of its own and never retries on another key is welcome.
+Judge the answer on these points alone. It passes when it makes every Must point and does nothing a FAIL-if line names. Leaving out a Welcome point never fails it, and a correct point not listed here is no fault.
 
-FAIL if the agent guesses a cause without reading the run, blames the Agent's instructions, the bank statement or a Stigmer plan or agent hours, tells the person to buy Stigmer credits or upgrade a Stigmer plan, asks them to paste an API key into the chat or pass it on the command line, or invents a command or flag the CLI reference does not list.
+The agent was asked to act. Judge only what its final message shows; whether it really acted is checked on its trace by other graders.
+
+**Must**
+
+- Reports the cause read from the `reconciler` Agent's failed run: the model provider refused the call because the credit balance is too low to access the Anthropic API.
+- Says the refusal concerns the Anthropic account behind the key the run used (the Organization's own provider key, or on a Stigmer running on their own machine the runner's key), not the Agent, the bank statement or Stigmer.
+- Says the fix is to add credit or fix billing in that Anthropic account, or replace the key with one that has credit, and then run the reconciliation again.
+
+**FAIL if**
+
+- It gives a cause without having read the run.
+- It blames the Agent's instructions, the bank statement, or a Stigmer plan or agent hours.
+- It tells the person to buy Stigmer credits or upgrade a Stigmer plan.
+- It asks them to paste an API key into the chat or pass it on the command line.
+- It invents a command or flag the CLI reference does not list.
+
+**Welcome**
+
+- Names how it found the run: for example `stigmer list runs`, `stigmer get run <run-id>`, `stigmer runs logs <run-id>` or `stigmer get session <session-id>`.
+- A failure on the Organization's own key is reported as that key's, with the provider's own message.
+- On Stigmer Cloud, a key is replaced in the console's **Models & providers** or with `stigmer provider-key set anthropic` at a hidden prompt.
+- On a Stigmer running on their own machine, the runner holds the key: `stigmer setup`, then `stigmer down && stigmer up`.
+- Stigmer never runs a model call on a key of its own and never retries the call on another key.
