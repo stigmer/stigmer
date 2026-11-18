@@ -169,11 +169,12 @@ away:
   `/docs/` (`concepts/tools`) or its full URL.
 - With the Stigmer tools but no shell, `search_docs` and `read_doc` do the
   same.
-- A CLI older than `stigmer docs` answers "unknown command": read the same
-  files with curl instead. `curl -s https://stigmer.ai/llms.txt` is the
-  index of every page with one line about it; every page has a Markdown
-  export at its URL plus `.md`, as in
-  `curl -s https://stigmer.ai/docs/concepts/tools.md`. Prefer either over
+- When `stigmer docs` can't run (a CLI older than it answers "unknown
+  command") or can't reach stigmer.ai, read the same files with curl.
+  Behind a proxy, `NODE_USE_ENV_PROXY=1` makes the CLI use it too.
+  `curl -s https://stigmer.ai/llms.txt` is the index of every page with one
+  line about it; every page has a Markdown export at its URL plus `.md`, as
+  in `curl -s https://stigmer.ai/docs/concepts/tools.md`. Prefer either over
   WebFetch, which hands back a summary, not the page.
 - Two or three pages answer most questions; read more when the question
   spans several. A question comparing Stigmer with an agent SDK or with
