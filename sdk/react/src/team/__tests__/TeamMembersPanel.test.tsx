@@ -6,7 +6,7 @@
  * because a team is a group of the organization's people.
  * The share flow, the permission gate and the picker are stubbed.
  */
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -75,5 +75,15 @@ describe("TeamMembersPanel", () => {
     render(<TeamMembersPanel teamId="team_1" org="acme" />);
     expect(picked.length).toBeGreaterThan(0);
     expect(picked.every((p) => p.includeServiceAccounts === false)).toBe(true);
+  });
+
+  it("as a team's section, waits for Add a person before it shows the picker", () => {
+    render(<TeamMembersPanel teamId="team_1" org="acme" asSection />);
+    expect(screen.getByRole("heading", { name: "Members" })).toBeTruthy();
+    expect(picked).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: "Add a person" }));
+    expect(picked.map((p) => p.org)).toContain("acme");
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("button", { name: "Add a person" })).toBeTruthy();
   });
 });
