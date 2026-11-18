@@ -140,6 +140,7 @@ const SITES: readonly Site[] = [
       ...ORG_PROVIDER_CALLS,
       vault: { getMine: pending, list: pending },
       grant: { checkMyPermission: pending },
+      platform: { getServerInfo: pending },
     },
     ui: (
       <OrgProvider>

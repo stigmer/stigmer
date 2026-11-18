@@ -101,7 +101,7 @@
       },
       "ruled": {},
       "pending": {
-        "word Member · no keys": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Member · no keys": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     },
     {
@@ -294,21 +294,16 @@
       },
       "ruled": {},
       "pending": {
-        "word ci-deploy acts with the Member role in acme.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "type Admin": "When its page is redesigned: the settings Built look's fixes draws the role chooser",
-        "word Manage people, settings, billing, and the organization's agents and tools; can't read private conversations, delete the organization or change its owners": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "type Member": "When its page is redesigned: the settings Built look's fixes draws the role chooser",
-        "type Start conversations with the agents shared with them, and create agents when the organization allows it": "When its page is redesigned: the settings Built look's fixes draws the role chooser",
-        "type Viewer": "When its page is redesigned: the settings Built look's fixes draws the role chooser",
-        "word See what is shared with the organization; can't start conversations": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word API keys 1": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Manage people, settings, billing, and the organization's agents and tools; can't read private conversations, delete the organization or change its owners": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "word See what is shared with the organization; can't start conversations": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "word API keys 1": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     },
     {
       "caption": "Service accounts: New service account, a name the server refuses",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings Built look's fixes build it.",
+      "unbuilt": "No scene draws this state yet; the page's parts are built, this state has no scene.",
       "words": [
         {
           "text": "Service accounts",

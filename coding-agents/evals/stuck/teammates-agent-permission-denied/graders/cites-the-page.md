@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: docs/(concepts/sharing-and-access|concepts/sessions|sdk/resources/roles)
+pattern: stigmer\.ai/docs/(concepts/sharing-and-access|concepts/sessions|sdk/resources/roles|concepts/agents)
 flags: i
 ---

@@ -14,6 +14,7 @@ const state = vi.hoisted(() => ({
   given: [] as Array<{ panel: string; org: string }>,
 }));
 
+vi.mock("../../organization/useOrgDisplayName.js", () => ({ useOrgDisplayName: () => "acme" }));
 vi.mock("../../organization/OrgProvider.js", () => ({
   useActiveOrgId: () => state.activeId,
   useActiveOrgSlug: () => (state.activeId === "" ? "" : "acme"),

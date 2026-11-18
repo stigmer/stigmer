@@ -36,6 +36,8 @@ import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Tag } from "../internal/surface/Tag.js";
+import { Section } from "../resource-detail/Section.js";
+import { Plus } from "lucide-react";
 
 /** Props for {@link TeamMembersPanel}. */
 export interface TeamMembersPanelProps {
@@ -48,6 +50,13 @@ export interface TeamMembersPanelProps {
    * the panel stands alone; `false` inside a card whose header names it.
    */
   readonly showHeading?: boolean;
+  /**
+   * Draw the panel as a section card: "Members" with its count in the
+   * card's header, an "Add a person" act there for who may add, the people
+   * as rows, and the picker only once Add a person is pressed. A team's
+   * page uses it; `showHeading` is then ignored.
+   */
+  readonly asSection?: boolean;
   readonly className?: string;
 }
 
@@ -57,7 +66,7 @@ export interface TeamMembersPanelProps {
  *
  * All visual properties flow through `--stgm-*` design tokens.
  */
-export function TeamMembersPanel({ teamId, org, showHeading = true, className }: TeamMembersPanelProps) {
+export function TeamMembersPanel({ teamId, org, showHeading = true, asSection = false, className }: TeamMembersPanelProps) {
   const team = useMemo(
     () => ({ kind: "team", id: teamId, resourceKind: ApiResourceKind.team }),
     [teamId],
@@ -76,6 +85,8 @@ export function TeamMembersPanel({ teamId, org, showHeading = true, className }:
   } = useShareFlow(team);
 
   const [adding, setAdding] = useState<SelectedGrantee | null>(null);
+  // As a section, the picker waits for "Add a person"; standing alone it is always there.
+  const [pickerOpen, setPickerOpen] = useState(!asSection);
 
   const members = useMemo(
     () =>
@@ -93,14 +104,15 @@ export function TeamMembersPanel({ teamId, org, showHeading = true, className }:
     try {
       await grant(adding.grantee, IamRole.member);
       setAdding(null);
+      if (asSection) setPickerOpen(false);
     } catch {
       // The share flow holds the error; it is shown below.
     }
   };
 
-  return (
-    <div className={cn("stg:space-y-3", className)}>
-      {showHeading && (
+  const content = (
+    <div className={cn("stg:space-y-3", asSection ? "stg:p-4" : className)}>
+      {showHeading && !asSection && (
         <div className="stg:flex stg:items-center stg:gap-2">
           <h4 className="stg:text-xs stg:font-semibold stg:text-foreground">Members</h4>
           {!isLoading && accessList.length > 0 && (
@@ -141,7 +153,8 @@ export function TeamMembersPanel({ teamId, org, showHeading = true, className }:
       )}
 
       <PermissionGate fail="closed" resource={grantGate} relation="can_grant_access">
-        <div className="stg:mt-4 stg:flex stg:items-end stg:gap-2 stg:border-t stg:border-border stg:pt-4">
+        {pickerOpen && (
+        <div className={cn("stg:flex stg:items-end stg:gap-2", accessList.length > 0 && "stg:mt-4 stg:border-t stg:border-border stg:pt-4")}>
           <PrincipalPicker
             org={org}
             value={adding}
@@ -162,7 +175,13 @@ export function TeamMembersPanel({ teamId, org, showHeading = true, className }:
           >
             Add member
           </Button>
+          {asSection && (
+            <Button variant="ghost" size="xs" onClick={() => { setAdding(null); setPickerOpen(false); }} disabled={isGranting}>
+              Cancel
+            </Button>
+          )}
         </div>
+        )}
         {grantError && planUpgradeFeature(grantError) === Feature.teams ? (
           <UpgradeNotice feature={Feature.teams} error={grantError} className="stg:mt-1" />
         ) : grantError ? (
@@ -172,5 +191,24 @@ export function TeamMembersPanel({ teamId, org, showHeading = true, className }:
         ) : null}
       </PermissionGate>
     </div>
+  );
+
+  if (!asSection) return content;
+  return (
+    <Section
+      title="Members"
+      count={isLoading || fetchError ? undefined : accessList.length}
+      headerActions={
+        !pickerOpen && (
+          <PermissionGate fail="closed" resource={grantGate} relation="can_grant_access">
+            <Button variant="outline" size="xs" icon={<Plus className="stg:size-3.5" aria-hidden="true" />} onClick={() => setPickerOpen(true)}>
+              Add a person
+            </Button>
+          </PermissionGate>
+        )
+      }
+    >
+      {content}
+    </Section>
   );
 }

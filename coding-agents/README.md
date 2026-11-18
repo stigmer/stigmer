@@ -59,12 +59,24 @@ is never published with the plugin. Every case is in the format both
 `claude plugin eval` and Stigmer's own eval reader take: a `prompt.md` with
 the person's words, and `graders/`:
 
-- `criteria.md`: the judge's rubric, written from the docs page the answer
-  comes from;
-- `cites-the-page.md`: the answer names that page (`docs/<page>`, or several
-  as `docs/(<page>|<page>)`);
+- `must-<n>.md`: two to four, each one point the answer must make, without
+  which the person would act wrongly or not at all, written from the docs
+  pages the answer comes from;
+- `fail-if-<n>.md`: one each for what fails an answer (wrong, invented, or
+  contradicting the docs). Every judge grader holds one point: Claude Code's
+  judge answers PASS or FAIL in one word, with no room to reason, and grades
+  one point reliably where it misgrades a list. It reads the final message
+  only, so an acting case's graders judge only what that message shows;
+- `cites-the-page.md`: the answer links a page that answers it, as published
+  (`stigmer\.ai/docs/<page>`, or several as `stigmer\.ai/docs/(<page>|<page>)`;
+  a link to the docs' source on GitHub doesn't count). The list names every
+  page that answers the question, and it is also the bank's record of which
+  pages have a question. A case that acts may leave it out where its answer
+  is the fixture's fact or the act itself;
 - `skill-fired.md`: whether the plugin's skill loaded, an indicator outside
   the score;
+- beside `graders/`, `welcome.md`: what a good answer may also say, never
+  graded;
 - for a case that acts on Stigmer (tagged `acts`), `reports-the-fact.md`: a
   fact only a real read of the fixture returns; for a destructive ask,
   `does-not-act.md`: the trace holds no such call, and the rubric passes only
@@ -74,7 +86,8 @@ the person's words, and `graders/`:
 in Claude Code, with the plugin and without it, against a hermetic local
 Stigmer seeded with `evals/_fixture/` (an agent with a finished run, one whose
 runs fail, a skill), its runner on the fake model, and prints the score per
-job. A case passes only when every try passes every scored grader. A try
+job. An acting try starts in a set-up person's project: the fixture agents'
+manifests sit in its folder as `stigmer/<agent>.yaml`. A case passes only when every try passes every scored grader. A try
 Claude Code could not run (a usage limit, a crash) is no reading: the table
 counts it, leaves its case unread and says the run is not a valid reading,
 and the command exits non-zero, so such a run is never taken as a score. It
@@ -85,9 +98,11 @@ bounds it (`--max-cost-usd`, default $60 API-equivalent).
 
 To add a case: write the question in the person's own words under its job's
 folder, read the docs page that answers it, and write the rubric from that
-page; copy the frontmatter and `skill-fired.md` from a neighbour, since every
-case shares one tool list and turn cap. A question no page answers is a docs
+page, one point per grader, each opening with the question its kind asks;
+copy the frontmatter and `skill-fired.md` from a neighbour, since every case
+shares one tool list and turn cap. A question no page answers is a docs
 gap: write the case anyway, and fix the docs. `__tests__/bank.test.ts` holds
-the bank's shape in the gate: Stigmer reads it with no finding, every cited
+the bank's shape in the gate: Stigmer reads it with no finding, every judge
+grader holds one point, every case has two to four Must points, every cited
 page exists, every concept page, getting-started page and guide group has a
 question, and every job has at least four.

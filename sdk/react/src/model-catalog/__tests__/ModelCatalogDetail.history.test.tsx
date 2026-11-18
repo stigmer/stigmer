@@ -104,7 +104,7 @@ describe("ModelCatalogDetail long-prompt step", () => {
       "$5.00/M",
       "$25.00/M",
       "$6.25/M",
-      "$0.5000/M",
+      "$0.50/M",
     ]);
     const variant = screen.getByRole("table", { name: "Variant batch rates, above 100,000 prompt tokens" });
     expect(within(variant).getAllByRole("cell")[0]!.textContent).toBe("$10.00/M");

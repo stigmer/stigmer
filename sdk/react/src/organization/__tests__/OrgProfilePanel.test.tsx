@@ -125,7 +125,7 @@ describe("OrgProfilePanel save payload", () => {
 
     // Wait for the server-sync effect to fill the form before editing —
     // interacting on first appearance races the sync.
-    const description = await screen.findByLabelText("Description");
+    const description = await screen.findByLabelText(/^Description/);
     await waitFor(() =>
       expect(description).toHaveProperty("value", "We make everything."),
     );
@@ -143,6 +143,17 @@ describe("OrgProfilePanel save payload", () => {
     expect(sent.resource.spec?.logoUrl).toBe("https://acme.example/logo.png");
     // The update addresses the organization by its id.
     expect(sent.id).toBe(ACME_ID);
+  });
+
+  it("sends a new logo address typed into its field", async () => {
+    const update = vi.fn(async (_resource: Organization, _paths: string[]) => ORG);
+    renderPanel(createMockStigmer({ update }));
+    const logo = await screen.findByLabelText(/^Logo address/);
+    await waitFor(() => expect(logo).toHaveProperty("value", "https://acme.example/logo.png"));
+    fireEvent.change(logo, { target: { value: "https://acme.example/new-logo.svg" } });
+    fireEvent.click(await screen.findByRole("button", { name: "Save changes" }));
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    expect(sentUpdate<Organization>(update).resource.spec?.logoUrl).toBe("https://acme.example/new-logo.svg");
   });
 
   it("sends the edited name and keeps discard/dirty semantics intact", async () => {
@@ -164,7 +175,7 @@ describe("OrgProfilePanel save payload", () => {
 describe("OrgProfilePanel edit gate", () => {
   const ADMINS_LINE = "Only organization admins can edit this profile.";
   const fields = () =>
-    ["Name", "Description", "Logo URL"].map(
+    [/^Name/, /^Description/, /^Logo address/].map(
       (label) => screen.getByLabelText(label) as HTMLInputElement | HTMLTextAreaElement,
     );
 
@@ -190,7 +201,7 @@ describe("OrgProfilePanel edit gate", () => {
     expect(screen.queryByRole("button", { name: "Discard" })).toBeNull();
     expect(screen.queryByText(/characters$/)).toBeNull();
     // The profile still reads in full, logo included.
-    expect(screen.getByLabelText("Description")).toHaveProperty("value", "We make everything.");
+    expect(screen.getByLabelText(/^Description/)).toHaveProperty("value", "We make everything.");
     expect(screen.getByAltText("Organization logo preview")).toBeTruthy();
     expect(
       checkMyPermission.mock.calls.map(([i]) => [
@@ -249,7 +260,7 @@ describe("OrgProfilePanel edit gate", () => {
       expect(field.className).not.toContain("stg:bg-muted-subtle");
     }
     expect(screen.getByText(/\/500 characters$/)).toBeTruthy();
-    expect(screen.getByLabelText("Logo URL").getAttribute("placeholder")).toBe(
+    expect(screen.getByLabelText(/^Logo address/).getAttribute("placeholder")).toBe(
       "https://example.com/logo.png",
     );
   });

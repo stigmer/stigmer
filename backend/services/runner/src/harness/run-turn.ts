@@ -407,24 +407,34 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     });
 
   /**
-   * The invariant of a run that is complete: no approved call still waits
-   * (`approval-decisions.ts`). Called by the two completion writers, right
-   * before their final persist, so the settled row and its failed result
-   * reach the person's card in that same write. Logs the calls it settled,
-   * naming why the run ended: the arm's stop cause, or `completed` for a
-   * run the engine finished. (Every arm that completes has a stop cause;
-   * only the arms that wait or hand the run on have none.)
+   * The invariant of a run that is complete: no decided call still waits
+   * (`approval-decisions.ts`). A SKIP or REJECT settles SKIPPED; an
+   * approved call settles FAILED. Called by the two completion writers,
+   * right before their final persist, so each settled row and its result
+   * reach the person's card in that same write. Logs the approved calls it
+   * settled, naming why the run ended: the arm's stop cause, or `completed`
+   * for a run the engine finished. (Every arm that completes has a stop
+   * cause; only the arms that wait or hand the run on have none.) A rejected
+   * or skipped call that did not run is the person's decision, not an
+   * anomaly, so it is not logged.
    *
-   * A run can end during resolution, after the person's answers were
-   * copied onto the rows and before the engine's turn started the session's
-   * log (a plugin's hooks that cannot be prepared, a fault): the log is then
-   * started here, reading back what the run already wrote, so the failed
-   * result reaches the card all the same.
+   * On a run the engine reached, its turn has already settled SKIP and
+   * REJECT on every outcome, so that settle finds nothing here: the call is
+   * idempotent, and it states the invariant rather than the path that
+   * reached it. A run can end during resolution, after the person's answers
+   * were copied onto the rows and before the engine's turn started the
+   * session's log (a plugin's hooks that cannot be prepared, a fault;
+   * stigmer#3277, stigmer#3289): the log is then started here, reading back
+   * what the run already wrote, so each settled result reaches the card all
+   * the same.
    */
-  const settleApprovalsOfAnEndedRun = async (cause: StopCause | "completed" | null): Promise<void> => {
+  const settleDecisionsOfAnEndedRun = async (cause: StopCause | "completed" | null): Promise<void> => {
+    const notExecuted = terminalizeNonExecutingDecisions(rows);
     const approvedNotRun = settleApprovedNotRun(rows);
-    if (approvedNotRun.length === 0) return;
-    console.error(`${activityName}: approved calls did not run (${cause}): execution=${executionId}, calls=${approvedNotRun.join(",")}`);
+    if (approvedNotRun.length > 0) {
+      console.error(`${activityName}: approved calls did not run (${cause}): execution=${executionId}, calls=${approvedNotRun.join(",")}`);
+    }
+    if (notExecuted.length + approvedNotRun.length === 0) return;
     if (engineTurn === undefined && frame.answeredSessionId !== undefined) {
       await events.begin({ sessionId: frame.answeredSessionId, resumed: true, rows });
     }
@@ -446,16 +456,17 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
    * other caller lets the arm's own message stand. A continuing arm always
    * throws its typed failure.
    *
-   * An arm that `completes` ends the run, so an approved call still waiting
-   * never runs: it settles FAILED here, before the arm's persist, on every
-   * such arm (a stall, the operation limit, a cost cap, a platform stop, a
-   * refusal or a fault after the answers were copied, a failure, the
-   * tool-call limit). An arm that does not complete (a wait for approval, a
-   * pause, a drain, a restart, a continue) leaves it waiting for the
-   * invocation that resumes that very call.
+   * An arm that `completes` ends the run, so a decided call still waiting
+   * never runs: an approved one settles FAILED and a rejected or skipped one
+   * SKIPPED here, before the arm's persist, on every such arm (a stall, the
+   * operation limit, a cost cap, a platform stop, a refusal or a fault after
+   * the answers were copied, a failure, the tool-call limit). An arm that
+   * does not complete (a wait for approval, a pause, a drain, a restart, a
+   * continue) leaves it waiting for the invocation that resumes that very
+   * call.
    */
   const settleWith = async (arm: TerminalArm, failure?: CancelledFailure): Promise<Settled> => {
-    if (arm.completes) await settleApprovalsOfAnEndedRun(arm.stopCause);
+    if (arm.completes) await settleDecisionsOfAnEndedRun(arm.stopCause);
     events.skipRootRows(applyTerminalArm(status, rows, arm));
     await returnOutputs();
     await recordEvalFiles();
@@ -735,13 +746,14 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     if (outcome.kind !== "interrupted") await captureBoundary();
 
     // The rows whose decision never ran the tool (SKIP and REJECT) are
-    // settled by the runtime, once, now that the adapter has had its look at
-    // them and before any persist of the outcome. No engine event flips such
-    // a row, so without this it would persist WAITING on a finished
-    // execution. Every outcome passes through here. An approved call still
-    // waiting is not settled here: whether its run is over is the arm's to
-    // say, so the completion writers settle it (`settleWith`, `completeTurn`;
-    // `approval-decisions.ts`).
+    // settled by the runtime now that the adapter has had its look at them
+    // and before any persist of the outcome. No engine event flips such a
+    // row, so without this it would persist WAITING on a finished execution.
+    // Every outcome passes through here, a pause included: the engine has
+    // seen the decision. A run that ends before any engine saw it is settled
+    // by the completion writers instead (`settleWith`, `completeTurn`), as
+    // is an approved call still waiting, whose run being over is the arm's
+    // to say (`approval-decisions.ts`).
     terminalizeNonExecutingDecisions(rows);
 
     switch (outcome.kind) {
@@ -879,7 +891,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
   async function completeTurn(turn: TurnInput, phase: RunPhase): Promise<Settled> {
     status.completedAt = utcTimestamp();
     status.phase = phase;
-    await settleApprovalsOfAnEndedRun("completed");
+    await settleDecisionsOfAnEndedRun("completed");
 
     let finalText: string | undefined;
 

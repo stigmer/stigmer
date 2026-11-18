@@ -12,10 +12,15 @@
 // app's tsconfig guarantees — the constructor form is target-agnostic.
 export const ZERO = BigInt(0);
 
-/** Micro-USD per million tokens → "$X.XX/M" (raw provider rate). */
+/**
+ * Micro-USD per million tokens → "$X.XX/M" (raw provider rate): two
+ * decimals, and up to four only when the price needs them ("$0.075/M").
+ */
 export function formatRate(microsPerMillion: bigint): string {
   const dollars = Number(microsPerMillion) / 1_000_000;
-  return `$${dollars.toFixed(dollars < 1 ? 4 : 2)}/M`;
+  let shown = dollars.toFixed(4);
+  while (shown.endsWith("0") && shown.length - shown.indexOf(".") > 3) shown = shown.slice(0, -1);
+  return `$${shown}/M`;
 }
 
 /** Micro-USD → editable dollar string, trailing zeros trimmed ("0.075"). */

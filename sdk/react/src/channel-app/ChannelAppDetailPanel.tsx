@@ -128,7 +128,7 @@ export function ChannelAppDetailPanel({
         {showName ? (
           <div className="stg:min-w-0">
             <h3 className="stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">{name}</h3>
-            <p className="stg:font-mono stg:text-2xs stg:text-muted-foreground">{appId}</p>
+            <p className="stg:font-mono stg:text-xs stg:text-muted-foreground">{appId}</p>
           </div>
         ) : (
           <span />
@@ -268,7 +268,7 @@ function SlackAppDetail({
       {/* Finish setup: the per-app webhook URL only exists after creation */}
       <Section title="Finish setup in Slack">
         <div className="stg:space-y-3 stg:p-4">
-        <p className="stg:text-2xs stg:text-muted-foreground">
+        <p className="stg:text-xs stg:text-muted-foreground">
           On the app&apos;s <span className="stg:font-medium">Event
           Subscriptions</span> page, enable events and set the request URL
           below (Slack verifies it immediately). The completed manifest is
@@ -296,7 +296,7 @@ function SlackAppDetail({
       >
         <Section title="Credentials">
           <form onSubmit={handleSave} className="stg:space-y-3 stg:p-4" aria-label="Credentials">
-          <p className="stg:m-0 stg:text-2xs stg:text-muted-foreground">
+          <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
             Secrets show as <code className="stg:font-mono">***REDACTED***</code>;
             leave a field untouched to keep its stored value, or paste a new
             one to rotate it.
@@ -338,7 +338,7 @@ function SlackAppDetail({
             </FieldError>
           )}
 
-          <Button type="submit" size="xs" disabled={!canSave} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>
+          <Button type="submit" size="sm" disabled={!canSave} icon={isUpdating ? <SpinnerIcon size={14} /> : undefined}>
             Save credentials
           </Button>
         </form>
@@ -427,7 +427,7 @@ function WhatsAppAppDetail({
           and the verify token is only visible in the create handoff. */}
       <Section title="Finish setup in Meta">
         <div className="stg:space-y-3 stg:p-4">
-        <p className="stg:text-2xs stg:text-muted-foreground">
+        <p className="stg:text-xs stg:text-muted-foreground">
           On the app&apos;s <span className="stg:font-medium">WhatsApp →
           Configuration</span> page, set the callback URL and verify token
           below, click <span className="stg:font-medium">Verify and save</span>{" "}
@@ -455,7 +455,7 @@ function WhatsAppAppDetail({
         ) : (
           <div className="stg:space-y-1">
             <p className="stg:text-xs stg:font-medium stg:text-foreground">Verify token</p>
-            <p className="stg:text-2xs stg:text-muted-foreground">
+            <p className="stg:text-xs stg:text-muted-foreground">
               Shown once at registration. If you no longer have it, paste a
               new one below and update Meta&apos;s webhook configuration to
               match.
@@ -473,7 +473,7 @@ function WhatsAppAppDetail({
       >
         <Section title="Credentials">
           <form onSubmit={handleSave} className="stg:space-y-3 stg:p-4" aria-label="Credentials">
-          <p className="stg:m-0 stg:text-2xs stg:text-muted-foreground">
+          <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
             Secrets show as <code className="stg:font-mono">***REDACTED***</code>;
             leave a field untouched to keep its stored value, or paste a new
             one to rotate it.
@@ -526,7 +526,7 @@ function WhatsAppAppDetail({
             </FieldError>
           )}
 
-          <Button type="submit" size="xs" disabled={!canSave} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>
+          <Button type="submit" size="sm" disabled={!canSave} icon={isUpdating ? <SpinnerIcon size={14} /> : undefined}>
             Save credentials
           </Button>
         </form>

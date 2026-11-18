@@ -1780,9 +1780,9 @@ export interface TurnFrame {
   runWroteEvents: boolean;
   /**
    * The run's session, set by the reinvocation phase once the person's
-   * answers are on the rows: where the runtime writes an approved call it
+   * answers are on the rows: where the runtime writes a decided call it
    * settled when the run ends before any engine turn started the session's
-   * log (`run-turn.ts`, `settleApprovalsOfAnEndedRun`).
+   * log (`run-turn.ts`, `settleDecisionsOfAnEndedRun`).
    */
   answeredSessionId: string | undefined;
   /**

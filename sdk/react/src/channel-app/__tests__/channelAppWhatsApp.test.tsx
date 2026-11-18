@@ -211,9 +211,9 @@ describe("ChannelAppDetailPanel — WhatsApp branch", () => {
     // in cleartext again.
     expect(screen.getByText(/finish setup in meta/i)).toBeTruthy();
     expect(
-      screen.getByText("https://api.stigmer.ai/webhook/whatsapp/chapp_1"),
+      screen.getByDisplayValue("https://api.stigmer.ai/webhook/whatsapp/chapp_1"),
     ).toBeTruthy();
-    expect(screen.getByText("verify-me")).toBeTruthy();
+    expect(screen.getByDisplayValue("verify-me")).toBeTruthy();
     // The subscribed field is named so the checklist is complete.
     expect(screen.getByText(/messages/)).toBeTruthy();
   });
@@ -226,7 +226,7 @@ describe("ChannelAppDetailPanel — WhatsApp branch", () => {
     );
 
     expect(screen.getByText(/shown once at registration/i)).toBeTruthy();
-    expect(screen.queryByText("verify-me")).toBeNull();
+    expect(screen.queryByDisplayValue("verify-me")).toBeNull();
   });
 
   it("rotates credentials through the whatsapp arm, preserving untouched secrets", async () => {
@@ -284,7 +284,7 @@ describe("ChannelAppDetailPanel — WhatsApp branch", () => {
 
     expect(screen.getByText(/finish setup in slack/i)).toBeTruthy();
     expect(
-      screen.getByText("https://api.stigmer.ai/webhook/slack/chapp_s"),
+      screen.getByDisplayValue("https://api.stigmer.ai/webhook/slack/chapp_s"),
     ).toBeTruthy();
     expect(screen.queryByText(/finish setup in meta/i)).toBeNull();
   });
@@ -323,9 +323,9 @@ describe("ChannelAppDetailPanel — the server's public address (stigmer/stigmer
 
     expect(screen.getByText("Callback URL")).toBeTruthy();
     expect(screen.getByText(UNKNOWN_ADDRESS)).toBeTruthy();
-    expect(screen.queryByText(/\/webhook\/whatsapp\//)).toBeNull();
+    expect(screen.queryByDisplayValue(/\/webhook\/whatsapp\//)).toBeNull();
     // The verify token is not an address and is still offered.
-    expect(screen.getByText("verify-me")).toBeTruthy();
+    expect(screen.getByDisplayValue("verify-me")).toBeTruthy();
   });
 
   it("says the Slack request URL is unknown and leaves event subscriptions out of the manifest", () => {
@@ -337,7 +337,7 @@ describe("ChannelAppDetailPanel — the server's public address (stigmer/stigmer
 
     expect(screen.getByText("Events request URL")).toBeTruthy();
     expect(screen.getByText(UNKNOWN_ADDRESS)).toBeTruthy();
-    expect(screen.queryByText(/\/webhook\/slack\//)).toBeNull();
+    expect(screen.queryByDisplayValue(/\/webhook\/slack\//)).toBeNull();
     expect(document.body.textContent).not.toContain("request_url");
     expect(document.body.textContent).not.toContain("event_subscriptions");
     // The OAuth redirect is the console's own address and is unaffected.
@@ -352,7 +352,7 @@ describe("ChannelAppDetailPanel — the server's public address (stigmer/stigmer
         <ChannelAppDetailPanel channelApp={slackApp} />
       </Providers>,
     );
-    expect(screen.getByText("https://api.acme.example/webhook/slack/chapp_s")).toBeTruthy();
+    expect(screen.getByDisplayValue("https://api.acme.example/webhook/slack/chapp_s")).toBeTruthy();
     expect(document.body.textContent).toContain(
       'request_url: "https://api.acme.example/webhook/slack/chapp_s"',
     );
@@ -363,7 +363,7 @@ describe("ChannelAppDetailPanel — the server's public address (stigmer/stigmer
         <ChannelAppDetailPanel channelApp={makeWhatsAppApp()} />
       </Providers>,
     );
-    expect(screen.getByText("https://api.acme.example/webhook/whatsapp/chapp_1")).toBeTruthy();
+    expect(screen.getByDisplayValue("https://api.acme.example/webhook/whatsapp/chapp_1")).toBeTruthy();
     expect(screen.queryByText(UNKNOWN_ADDRESS)).toBeNull();
   });
 });

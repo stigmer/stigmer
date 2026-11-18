@@ -90,7 +90,7 @@ describe("deriveLicenseStandings", () => {
       label: "Renewed",
     });
     expect(standings.get("lic_renewal")).toMatchObject({ renewedBy: undefined, label: "Active", phase: "ready" });
-    expect(standings.get("lic_other")).toMatchObject({ label: "Expiring", phase: "degraded" });
+    expect(standings.get("lic_other")).toMatchObject({ label: "Renew soon", phase: "degraded" });
     expect(standings.get("lic_first")?.reason).toBe("Renewed by a license covering through 2027-09-30");
   });
 

@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: docs/(concepts/what-is-stigmer|concepts/harnesses)
+pattern: stigmer\.ai/docs/(concepts/what-is-stigmer|concepts/harnesses)
 flags: i
 ---

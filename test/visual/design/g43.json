@@ -326,20 +326,17 @@
       },
       "ruled": {},
       "pending": {
-        "word A Meta app for acme's WhatsApp channels.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Finish setup in Meta": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word Paste these two into your app's WhatsApp settings at developers.facebook.com.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "type Copy": "When its page is redesigned: the settings Built look's fixes draws the copy rows and the credentials form at 32px",
-        "word WhatsApp channels that use it stop answering.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "button Copy": "When its page is redesigned: the settings Built look's fixes draws the copy rows and the credentials form at 32px",
-        "button Save": "When its page is redesigned: the settings Built look's fixes draws the copy rows and the credentials form at 32px"
+        "word A Meta app for acme's WhatsApp channels.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "word Finish setup in Meta": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "word Paste these two into your app's WhatsApp settings at developers.facebook.com.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "word WhatsApp channels that use it stop answering.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     },
     {
       "caption": "Channel apps: New channel app, a field missing",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings Built look's fixes build it.",
+      "unbuilt": "No scene draws this state yet; the page's parts are built, this state has no scene.",
       "words": [
         {
           "text": "Channel apps",
@@ -548,8 +545,8 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "word Delete Acme support?": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)",
-        "word WhatsApp channels that use it stop answering.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Delete Acme support?": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
+        "word WhatsApp channels that use it stop answering.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     },
     {

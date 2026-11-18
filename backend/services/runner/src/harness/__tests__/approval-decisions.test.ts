@@ -5,7 +5,9 @@
  * (`reconcileNonExecutingDecisions`, in #1096): SKIP and REJECT settle to
  * SKIPPED (REJECT with the pinned reason) on every outcome, APPROVE and
  * APPROVE_ALL are left to the engine's own events, sub-agent transcripts
- * are settled alike, and an undecided row is untouched.
+ * are settled alike, and an undecided row is untouched. It returns the ids
+ * it moved out of WAITING, so the runtime's ended-run settle knows a run
+ * that ended during setup owes the person's card a result (stigmer#3289).
  *
  * An approved call still WAITING on a run that has ended is a call that
  * never ran, and `settleApprovedNotRun` settles it FAILED with the sentence
@@ -71,7 +73,7 @@ describe("terminalizeNonExecutingDecisions", () => {
   it("terminalizes a REJECT decision to SKIPPED with the pinned reason (does not FAIL)", () => {
     const rows = rowsWith([{ id: "call-reject", status: WAITING, approvalAction: ApprovalAction.REJECT }]);
 
-    terminalizeNonExecutingDecisions(rows);
+    expect(terminalizeNonExecutingDecisions(rows)).toEqual(["call-reject"]);
 
     const tc = rows.messages[0].toolCalls[0];
     expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
@@ -83,7 +85,7 @@ describe("terminalizeNonExecutingDecisions", () => {
   it("terminalizes a SKIP decision to SKIPPED (fixes the stuck-WAITING for skip too)", () => {
     const rows = rowsWith([{ id: "call-skip", status: WAITING, approvalAction: ApprovalAction.SKIP }]);
 
-    terminalizeNonExecutingDecisions(rows);
+    expect(terminalizeNonExecutingDecisions(rows)).toEqual(["call-skip"]);
 
     expect(rows.messages[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
   });
@@ -99,8 +101,8 @@ describe("terminalizeNonExecutingDecisions", () => {
 
     // A call that ran is the engine's events' to settle; one still waiting is
     // owed to the invocation that resumes it, or to `settleApprovedNotRun`
-    // once the run has ended.
-    terminalizeNonExecutingDecisions(rows);
+    // once the run has ended. None of them is returned.
+    expect(terminalizeNonExecutingDecisions(rows)).toEqual([]);
     expect(rows.messages[0].toolCalls.map(tc => [tc.status, tc.error])).toEqual([
       [ToolCallStatus.TOOL_CALL_COMPLETED, ""],
       [ToolCallStatus.TOOL_CALL_FAILED, "exit 1"],
@@ -113,7 +115,7 @@ describe("terminalizeNonExecutingDecisions", () => {
   it("settles sub-agent transcripts too", () => {
     const rows = subAgentRowsWith({ id: "sub-call-skip", status: WAITING, approvalAction: ApprovalAction.SKIP });
 
-    terminalizeNonExecutingDecisions(rows);
+    expect(terminalizeNonExecutingDecisions(rows)).toEqual(["sub-call-skip"]);
 
     expect(rows.subAgentRuns[0].messages[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
   });
@@ -121,9 +123,31 @@ describe("terminalizeNonExecutingDecisions", () => {
   it("is a no-op when there are no decided tool calls", () => {
     const rows = rowsWith([{ id: "call-pending", status: WAITING, approvalAction: ApprovalAction.UNSPECIFIED }]);
 
-    terminalizeNonExecutingDecisions(rows);
+    expect(terminalizeNonExecutingDecisions(rows)).toEqual([]);
 
     expect(rows.messages[0].toolCalls[0].status).toBe(WAITING);
+  });
+
+  it("is idempotent: a second pass re-settles alike and returns no id", () => {
+    const rows = rowsWith([
+      { id: "call-reject", status: WAITING, approvalAction: ApprovalAction.REJECT },
+      { id: "call-skip", status: WAITING, approvalAction: ApprovalAction.SKIP },
+    ]);
+    expect(terminalizeNonExecutingDecisions(rows)).toEqual(["call-reject", "call-skip"]);
+    const once = structuredClone(rows.messages[0].toolCalls.map(tc => [tc.status, tc.error]));
+
+    expect(terminalizeNonExecutingDecisions(rows)).toEqual([]);
+    expect(rows.messages[0].toolCalls.map(tc => [tc.status, tc.error])).toEqual(once);
+  });
+
+  it("returns only the rows it moved out of WAITING: one an engine already settled SKIPPED is not returned", () => {
+    const rows = rowsWith([
+      { id: "call-settled", status: ToolCallStatus.TOOL_CALL_SKIPPED, approvalAction: ApprovalAction.REJECT, error: REJECTED_BY_USER_ERROR },
+      { id: "call-reject", status: WAITING, approvalAction: ApprovalAction.REJECT },
+    ]);
+
+    expect(terminalizeNonExecutingDecisions(rows)).toEqual(["call-reject"]);
+    expect(rows.messages[0].toolCalls.map(tc => tc.status)).toEqual([ToolCallStatus.TOOL_CALL_SKIPPED, ToolCallStatus.TOOL_CALL_SKIPPED]);
   });
 });
 
