@@ -59,7 +59,7 @@ describe("buildThreadItems answer", () => {
     expect(howKeys(items)).toEqual([m(0), `${toolId(R, "c1")}-tc`]);
   });
 
-  it("keeps the closing message the answer when only a to-do update, thinking or a note came after it", () => {
+  it("keeps the closing message the answer when only a to-do update, thinking, a note or an empty message came after it", () => {
     const items = finished(
       call("c1", "read_file"),
       said(R, 0, "Done."),
@@ -67,6 +67,7 @@ describe("buildThreadItems answer", () => {
       result(R, "t1", "ok"),
       thought(R, 1, "wrapping up"),
       note(R, 2, "Context saved"),
+      said(R, 3, ""),
     );
 
     expect(lead(items)[0]).toBe(m(0));
