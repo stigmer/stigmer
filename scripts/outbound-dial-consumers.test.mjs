@@ -100,7 +100,12 @@ test("every package that imports @stigmer/outbound/dial declares undici at outbo
 test("the guard still finds the consumers it exists for", () => {
   // If the walk were rooted wrong or the scan broke, the rule above would
   // pass on nothing.
-  assert.deepEqual([...dialConsumers(tracked, readTracked).keys()].sort(), ["backend/services/stigmer-server", "ee/server"]);
+  // Contains, not equals: a new consumer that declares undici passes
+  // without an edit here.
+  const consumers = [...dialConsumers(tracked, readTracked).keys()];
+  for (const pkg of ["backend/services/stigmer-server", "ee/server"]) {
+    assert.ok(consumers.includes(pkg), `the guard no longer finds ${pkg} importing ${ENTRY}`);
+  }
 });
 
 /** A fixture tree: path -> text. */

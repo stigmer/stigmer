@@ -116,8 +116,15 @@ describe("resolveServerNode", () => {
 
   it("rejects an override that is not a working Node, naming the range it should be", () => {
     process.env.STIGMER_NODE_BIN = "/nonexistent/node";
-    expect(() => resolveServerNode()).toThrow(CliExitError);
-    expect(() => resolveServerNode()).toThrow("could not run /nonexistent/node to verify the stigmer server's Node requirements");
+    let hints: readonly string[] = [];
+    try {
+      resolveServerNode();
+    } catch (err) {
+      expect(err).toBeInstanceOf(CliExitError);
+      expect((err as Error).message).toBe("could not run /nonexistent/node to verify the stigmer server's Node requirements");
+      hints = (err as CliExitError).hints ?? [];
+    }
+    expect(hints).toEqual([`Ensure /nonexistent/node is a working ${SERVER_NODE_FLOOR} runtime.`]);
   });
 
   it.each(["v22.13.0", "v22.18.0", "v23.4.0", "v23.11.1", "v20.19.0"])(

@@ -157,6 +157,13 @@
         "$TURBO_ROOT$/docs/sdk/managed-agents.mdx"
       ]
     },
+    // outbound's suite holds its engines to the runner's floor, reading the
+    // runner's manifest, which no workspace's hash covers.
+    "@stigmer/outbound#test": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/backend/services/runner/package.json"]
+    },
     "@stigmer/react-sdk#test": {
       "dependsOn": ["^build"],
       "outputs": [],

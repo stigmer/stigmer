@@ -103,7 +103,8 @@ describe("undici stays inside @stigmer/outbound/dial", () => {
 
   it("engines is the runner's floor, which the entries outside src/dial/ need", () => {
     const own = readManifest(join(PACKAGE_ROOT, "package.json")).engines?.node;
-    const runner = readManifest(join(PACKAGE_ROOT, "..", "..", "..", "services", "runner", "package.json")).engines?.node;
+    // A `../` literal, so scripts/turbo-inputs.test.mjs holds turbo.json to hashing it for this suite.
+    const runner = readManifest(fileURLToPath(new URL("../../../../../services/runner/package.json", import.meta.url))).engines?.node;
     expect(runner).toBeDefined();
     expect(own).toBe(runner);
   });
