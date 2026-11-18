@@ -15,11 +15,21 @@
  *  - {@link terminalizeNonExecutingDecisions} settles SKIP and REJECT rows to
  *    TOOL_CALL_SKIPPED (REJECT also carries `error: "Rejected by user"`),
  *    root and sub-agent transcripts alike. Their outcome is the decision's
- *    alone, so it holds on every outcome: the runtime calls it once,
- *    immediately after `adapter.runTurn` returns and before any persist of
- *    the outcome. A decision that never runs the tool has no engine event to
- *    flip its row, so the row would otherwise persist WAITING on a
- *    completed execution.
+ *    alone, but WHEN it may settle is not: a decision settles once an engine
+ *    has seen it, or once the run is over, and at no other time. So the
+ *    runtime calls it from two places (`run-turn.ts`). The first is right
+ *    after `adapter.runTurn` returns, on every outcome, a pause included,
+ *    because the engine has resumed onto the decision and answered it. The
+ *    second is the ended-run settle beside {@link settleApprovedNotRun}, for
+ *    a run that ended during resolution, after the answers were copied onto
+ *    the rows and before any engine saw them (a plugin's hooks that cannot be
+ *    prepared, a fault; stigmer#3289). A pause during resolution settles
+ *    nothing: no engine has seen the decision yet, and the run that resumes
+ *    reads it by its WAITING row. A decision that never runs the tool has no
+ *    engine event to flip its row, so without these the row would persist
+ *    WAITING on a run that is over. It returns the ids it moved out of
+ *    WAITING, so the ended-run settle knows the person's card is owed a
+ *    result on the session's log.
  *  - {@link settleApprovedNotRun} settles an APPROVE or APPROVE_ALL row
  *    still WAITING to TOOL_CALL_FAILED with {@link APPROVED_NOT_RUN_ERROR},
  *    the row shape of an approved call that failed. Its outcome depends on
@@ -44,10 +54,12 @@
  *    very call by its WAITING status. It returns the ids it settled, so the
  *    runtime logs each recurrence; it writes nothing but the rows.
  *
- * Why after the adapter, not before: the door filters on WAITING, so
- * settling first would hide the decision from the reinvocation prompt. Why
- * by decision and not by row status: the outcome
- * of SKIP and REJECT is fully determined by the recorded decision, whatever
+ * Why after the adapter, or once the run is over, and never before: the door
+ * filters on WAITING, so settling a decision no engine has seen on a run that
+ * goes on would hide it from the reinvocation prompt. Both settles share one
+ * ended-run call in `run-turn.ts` (the invariant: a run that is over has no
+ * decided call still waiting). Why by decision and not by row status: the
+ * outcome of SKIP and REJECT is fully determined by the recorded decision, whatever
  * transient status an engine left (a denial ToolMessage with no tool events,
  * or a replay that never re-drove the gate), so the stamp is idempotent and
  * checkpointer-independent by construction. REJECT and SKIP share SKIPPED as
@@ -83,13 +95,16 @@ function* toolCallRows(rows: SettledRows): Generator<ToolCall> {
 
 /**
  * Settle the decisions that never run the tool, in place: every SKIP and
- * REJECT row to TOOL_CALL_SKIPPED, on every outcome. Approved rows are
- * {@link settleApprovedNotRun}'s. Idempotent: a row already settled carries
- * the same decision and re-settles identically. An error is set only when
- * the row has none, so an engine's own text, if any, stands.
+ * REJECT row to TOOL_CALL_SKIPPED (the module header says when). Approved
+ * rows are {@link settleApprovedNotRun}'s. Returns the ids of the rows it
+ * moved out of WAITING. Idempotent: a row already settled carries the same
+ * decision, re-settles identically and is not returned. An error is set only
+ * when the row has none, so an engine's own text, if any, stands.
  */
-export function terminalizeNonExecutingDecisions(rows: SettledRows): void {
+export function terminalizeNonExecutingDecisions(rows: SettledRows): string[] {
+  const settled: string[] = [];
   for (const row of toolCallRows(rows)) {
+    const wasWaiting = row.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL;
     switch (row.approvalAction) {
       case ApprovalAction.SKIP:
         row.status = ToolCallStatus.TOOL_CALL_SKIPPED;
@@ -101,7 +116,7 @@ export function terminalizeNonExecutingDecisions(rows: SettledRows): void {
       case ApprovalAction.APPROVE:
       case ApprovalAction.APPROVE_ALL:
       case ApprovalAction.UNSPECIFIED:
-        break;
+        continue;
       /* v8 ignore start -- @preserve: the never arm; the compiler proves no approval action reaches it */
       default: {
         const exhaustive: never = row.approvalAction;
@@ -109,7 +124,9 @@ export function terminalizeNonExecutingDecisions(rows: SettledRows): void {
       }
       /* v8 ignore stop */
     }
+    if (wasWaiting) settled.push(row.id);
   }
+  return settled;
 }
 
 /**
