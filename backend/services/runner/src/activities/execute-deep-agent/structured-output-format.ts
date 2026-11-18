@@ -2,19 +2,32 @@
  * The response format a Stigmer turn hands `createDeepAgent` when its message
  * asks for structured output (`spec.structured_output_schema`).
  *
- * Structured output takes one of langchain's two strategies, chosen here
- * explicitly. A graph that thinks uses the provider strategy: Anthropic's
- * own JSON output (`output_config.format`), which forces no tool, because
- * forced tool use and thinking do not combine on every platform and
- * model. Its schema goes through the SDK's own transform (the one
- * @langchain/anthropic's withStructuredOutput applies): Anthropic accepts
- * only closed objects, and the runner's zod keeps them open. A graph that
- * does not think keeps the tool strategy, the raw zod, unchanged.
+ * The runner names the strategy itself; it never hands langchain a bare
+ * schema, because langchain would then pick by the model's profile table
+ * (`langchain` `transformResponseFormat`): OpenAI's strict native output for
+ * most GPT models, a tool for Claude, a tool for a model with no profile.
+ * That table moves with every langchain release, and OpenAI's strict mode
+ * refuses a schema with an optional field, so the person's schema could not
+ * reach a GPT model whole. Two strategies, chosen here:
+ *
+ * - A graph that does not think, on every provider: the tool strategy,
+ *   with the person's schema whole as the tool's input (`shared/answer-form.ts`
+ *   says what the runner adds and why). The model calls the tool to answer;
+ *   langchain checks the arguments against the schema and asks again on a
+ *   miss.
+ * - A graph that thinks: the provider strategy, Anthropic's own JSON output
+ *   (`output_config.format`), which forces no tool, because forced tool use
+ *   and thinking do not combine on every platform and model. Its schema goes
+ *   through the Anthropic SDK's own transform (the one
+ *   @langchain/anthropic's withStructuredOutput applies), because Anthropic
+ *   accepts only closed objects and a subset of keywords. That transform runs
+ *   for every provider today; an OpenAI reasoning model under it is
+ *   stigmer#3322.
  */
 
-import { providerStrategy } from "langchain";
+import { providerStrategy, toolStrategy } from "langchain";
 import { transformJSONSchema } from "@anthropic-ai/sdk/lib/transform-json-schema";
-import { jsonSchemaToZod } from "../../shared/json-schema-to-zod.js";
+import { answerFormOf } from "../../shared/answer-form.js";
 
 /**
  * A JSON object schema, the shape langchain's provider strategy takes for a
@@ -32,5 +45,5 @@ export function structuredOutputFormat(
   if (outputSchema === undefined) return undefined;
   return graphThinks
     ? providerStrategy({ schema: transformJSONSchema(outputSchema) as ObjectJsonSchema })
-    : jsonSchemaToZod(outputSchema);
+    : toolStrategy(answerFormOf(outputSchema));
 }

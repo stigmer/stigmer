@@ -3,104 +3,21 @@
     "model": "claude-haiku-4-5",
     "tools": [
       {
-        "name": "extract",
-        "description": "A function available to call.",
+        "name": "StructuredOutput",
+        "description": "A reviewed candidate.",
         "input_schema": {
           "type": "object",
+          "description": "A reviewed candidate.",
           "properties": {
             "name": {
-              "type": "string"
-            },
-            "score": {
-              "type": [
-                "number",
-                "null"
-              ]
-            },
-            "level": {
               "type": "string",
-              "enum": [
-                "junior",
-                "senior",
-                "staff"
-              ]
-            },
-            "contact": {
-              "type": "object",
-              "properties": {
-                "email": {
-                  "type": "string"
-                },
-                "phone": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                }
-              },
-              "required": [
-                "email",
-                "phone"
-              ],
-              "additionalProperties": true
-            },
-            "skills": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "skill": {
-                    "type": "string"
-                  },
-                  "years": {
-                    "type": [
-                      "number",
-                      "null"
-                    ]
-                  }
-                },
-                "required": [
-                  "skill",
-                  "years"
-                ],
-                "additionalProperties": true
-              }
-            },
-            "decision": {}
-          },
-          "required": [
-            "name",
-            "score",
-            "level",
-            "contact",
-            "skills"
-          ],
-          "additionalProperties": true,
-          "$schema": "http://json-schema.org/draft-07/schema#"
-        }
-      }
-    ],
-    "tool_choice": {
-      "type": "tool",
-      "name": "extract"
-    }
-  },
-  "openai": {
-    "model": "gpt-4.1-mini",
-    "response_format": {
-      "type": "json_schema",
-      "json_schema": {
-        "name": "extract",
-        "strict": true,
-        "schema": {
-          "type": "object",
-          "properties": {
-            "name": {
-              "type": "string"
+              "description": "The candidate's full name."
             },
             "score": {
               "type": "number",
-              "nullable": true
+              "minimum": 0,
+              "maximum": 10,
+              "description": "0 to 10; 10 is a perfect fit."
             },
             "level": {
               "type": "string",
@@ -112,23 +29,23 @@
             },
             "contact": {
               "type": "object",
+              "description": "How to reach them.",
               "properties": {
                 "email": {
-                  "type": "string"
+                  "type": "string",
+                  "format": "email"
                 },
                 "phone": {
-                  "type": "string",
-                  "nullable": true
+                  "type": "string"
                 }
               },
               "required": [
-                "email",
-                "phone"
-              ],
-              "additionalProperties": true
+                "email"
+              ]
             },
             "skills": {
               "type": "array",
+              "minItems": 1,
               "items": {
                 "type": "object",
                 "properties": {
@@ -136,30 +53,150 @@
                     "type": "string"
                   },
                   "years": {
-                    "type": "number",
-                    "nullable": true
+                    "type": "integer"
                   }
                 },
                 "required": [
-                  "skill",
-                  "years"
-                ],
-                "additionalProperties": true
+                  "skill"
+                ]
               }
             },
-            "decision": {}
+            "decision": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "const": "hire"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reject": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reject"
+                  ]
+                }
+              ]
+            }
           },
           "required": [
             "name",
-            "score",
             "level",
             "contact",
             "skills",
             "decision"
           ],
-          "additionalProperties": true,
-          "$schema": "http://json-schema.org/draft-07/schema#"
+          "title": "StructuredOutput"
         }
+      }
+    ],
+    "tool_choice": {
+      "type": "tool",
+      "name": "StructuredOutput"
+    }
+  },
+  "openai": {
+    "model": "gpt-4.1-mini",
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "StructuredOutput",
+          "description": "A reviewed candidate.",
+          "parameters": {
+            "type": "object",
+            "description": "A reviewed candidate.",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The candidate's full name."
+              },
+              "score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 10,
+                "description": "0 to 10; 10 is a perfect fit."
+              },
+              "level": {
+                "type": "string",
+                "enum": [
+                  "junior",
+                  "senior",
+                  "staff"
+                ]
+              },
+              "contact": {
+                "type": "object",
+                "description": "How to reach them.",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "phone": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              },
+              "skills": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "skill": {
+                      "type": "string"
+                    },
+                    "years": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "skill"
+                  ]
+                }
+              },
+              "decision": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "const": "hire"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "reject": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reject"
+                    ]
+                  }
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "level",
+              "contact",
+              "skills",
+              "decision"
+            ],
+            "title": "StructuredOutput"
+          }
+        }
+      }
+    ],
+    "tool_choice": {
+      "type": "function",
+      "function": {
+        "name": "StructuredOutput"
       }
     }
   }

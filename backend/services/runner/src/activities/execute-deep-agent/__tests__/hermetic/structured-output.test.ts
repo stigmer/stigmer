@@ -2,14 +2,13 @@
  * Hermetic goldens: STRUCTURED OUTPUT — an execution whose config carries a
  * JSON schema, through the three paths a Stigmer turn has:
  *
- *  1. The engine's `structuredResponse`. langchain 1.4.1 turns a bare schema
- *     into `toolStrategy` when the model's profile does not declare native
- *     structured output (`agents/responses.js`): a synthetic function tool is
- *     bound (named `extract-N` from a per-module counter — deepagents passes
- *     no name and the schema's `title` is not consulted, so the script selects
- *     it by pattern rather than by name), the model calls it with the answer
- *     as arguments, and the graph's `run.output.structuredResponse` holds the
- *     parsed object. The adapter folds it onto the status (`turn-settle.ts`).
+ *  1. The engine's `structuredResponse`. A graph that does not think takes
+ *     the tool strategy on every provider (`structured-output-format.ts`):
+ *     the answer form's tool is bound (`StructuredOutput`, with the
+ *     person's schema whole as its input, `shared/answer-form.ts`), the
+ *     model calls it with the answer as arguments, and the graph's
+ *     `run.output.structuredResponse` holds the checked object. The adapter
+ *     folds it onto the status (`turn-settle.ts`).
  *  2. The text fallback (the runtime's tier 1): the model answers in prose
  *     with a fenced JSON block and `shared/extract-json.ts` recovers the
  *     object from the final text (`run-turn.ts` `extractStructuredOutputFromText`).
@@ -29,13 +28,13 @@
  *     refusal is a log line, never a lost run.
  *
  * Whatever each path yields is recorded as found, on `status.structuredOutput`.
+ * A schema whose root is not an object reaches the model wrapped as the one
+ * property `value` of the answer form, and its answer is recorded so: a run's
+ * structured output is an object (`shared/answer-form.ts`).
  *
- * The `extract-N` name is deterministic per test FILE (vitest isolates each
- * file's module graph, so the counter starts at 1), and only the tool-strategy
- * arm compiles a graph with a schema tool in this file, so its row — if one
- * is persisted — is `extract-1`. Tier 2's tool is `@langchain/core`'s default
- * `extract` (`withStructuredOutput` with no name), bound on the extraction
- * model alone, which is how the script tells the two calls apart.
+ * Tier 2 binds the same answer-form tool, on the extraction model alone, so
+ * the script tells the two calls apart by the bound list: the extraction
+ * model binds that one tool and nothing else.
  *
  * Since #1096 the activity is the turn runtime over the Stigmer harness's adapter, and
  * `streamingUsage` carries the runtime accountant's fields — `model`,
@@ -74,6 +73,7 @@ import {
 import { recordedModelBuilds } from "../../__test-utils__/scripted-model-module.js";
 import { FIXTURE_STIGMER_MODEL } from "../../../../__test-utils__/model-registry-fixture.js";
 import { DEFAULT_RECORD_IDS } from "../../../../__test-utils__/execution-record-fixture.js";
+import { ANSWER_TOOL_NAME, WRAPPED_ANSWER_KEY } from "../../../../shared/answer-form.js";
 
 const SCHEMA = {
   type: "object",
@@ -81,7 +81,6 @@ const SCHEMA = {
   required: ["answer", "score"],
 };
 const ANSWER = { answer: "forty-two", score: 42 };
-const SCHEMA_TOOL_PATTERN = /^extract-\d+$/;
 
 describe("ExecuteDeepAgent hermetic — structured output", () => {
   let env: HermeticEnvironment;
@@ -110,7 +109,7 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
       clock,
       record,
       script: (tools) => {
-        const schemaTool = tools.find((t) => SCHEMA_TOOL_PATTERN.test(t));
+        const schemaTool = tools.find((t) => t === ANSWER_TOOL_NAME);
         if (schemaTool) boundSchemaTools.push(schemaTool);
         return {
           turns: [
@@ -132,7 +131,7 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
     expect(invocation.outcome.kind).toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
     expect(slim.phase).toBe("RUN_COMPLETED");
-    expect(boundSchemaTools[0], "langchain bound the toolStrategy schema tool").toBe("extract-1");
+    expect(boundSchemaTools[0], "the graph bound the answer form's tool").toBe(ANSWER_TOOL_NAME);
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
     const final = record.lastFullStatus!;
     const finalRows = record.rowsOf(final);
@@ -141,6 +140,44 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
     await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/structured-output.tool-strategy.status.json");
     await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/structured-output.tool-strategy.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/structured-output.tool-strategy.events.json");
+  });
+
+  it("tool strategy, a root that is not an object: the answer arrives wrapped under value", async () => {
+    // ── Arrange ──────────────────────────────────────────────────────────────
+    clock.reset();
+    const listSchema = { type: "array", items: { type: "string" }, minItems: 1 };
+    const record = deepAgentExecutionRecord({ message: "List the answers.", structuredOutputSchema: listSchema });
+    const boundSchemaTools: string[] = [];
+    const scenario = beginDeepAgentScenario({
+      env,
+      clock,
+      record,
+      script: (tools) => {
+        const schemaTool = tools.find((t) => t === ANSWER_TOOL_NAME);
+        if (schemaTool) boundSchemaTools.push(schemaTool);
+        return {
+          turns: [
+            {
+              text: "Here are the answers.",
+              toolCalls: schemaTool ? [{ id: "call-hermetic-wrapped-0001", name: schemaTool, args: { [WRAPPED_ANSWER_KEY]: ["forty-two", "seven"] } }] : [],
+              usage: { inputTokens: 1_300, outputTokens: 40 },
+            },
+            { text: "Recorded.", usage: { inputTokens: 1_500, outputTokens: 10 } },
+          ],
+        };
+      },
+    });
+
+    // ── Act ──────────────────────────────────────────────────────────────────
+    const invocation = await runDeepAgentTurn(scenario);
+
+    // ── Assert ───────────────────────────────────────────────────────────────
+    expect(invocation.outcome.kind).toBe("returned");
+    expect(boundSchemaTools[0], "a non-object root still binds the answer form's tool").toBe(ANSWER_TOOL_NAME);
+    const finalRows = record.rowsOf(record.lastFullStatus!);
+    expect(finalRows.structuredOutput, "the structured output is an object, the answer under value").toEqual({
+      [WRAPPED_ANSWER_KEY]: ["forty-two", "seven"],
+    });
   });
 
   it("text fallback: a fenced JSON block in the final text", async () => {
@@ -193,11 +230,11 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
       clock,
       record,
       script: (tools) => {
-        // The extraction model binds exactly one tool, core's default `extract`;
-        // the agent's graph never binds a tool of that name.
-        if (tools.length === 1 && tools[0] === "extract") {
+        // The extraction model binds exactly one tool, the answer form's; the
+        // agent's graph binds many.
+        if (tools.length === 1 && tools[0] === ANSWER_TOOL_NAME) {
           extractionCalls.push([...tools]);
-          return { turns: [{ text: "", toolCalls: [{ id: "call-hermetic-tier2-0001", name: "extract", args: ANSWER }] }] };
+          return { turns: [{ text: "", toolCalls: [{ id: "call-hermetic-tier2-0001", name: ANSWER_TOOL_NAME, args: ANSWER }] }] };
         }
         return { turns: [{ text: PROSE, usage: { inputTokens: 1_300, outputTokens: 40 } }] };
       },
