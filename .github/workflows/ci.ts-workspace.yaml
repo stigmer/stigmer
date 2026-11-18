@@ -340,10 +340,13 @@ jobs:
   visual:
     name: Visual Suite (Screenshots + A11y)
     runs-on: ubuntu-24.04-arm
-    # 18 minutes on main before the Library's scenes (2026-11-15); raised from 20
-    # so a pull request that adds scenes is not cancelled mid-run. Splitting the
-    # suite across jobs is #3201.
-    timeout-minutes: 35
+    # 18 minutes on main before the Library's scenes (2026-11-15), raised from
+    # 20 to 35 then; the settings and workspace pages' scenes (2026-11-18) bring
+    # the suite to 32-35 minutes, so pull requests were cancelled mid-suite with
+    # nothing failing. Raised to 45, the ceiling scripts/ci-timeouts.mjs allows
+    # under the merge queue's 60-minute timeout, with the maintainer's approval.
+    # Splitting the suite across jobs is #3201.
+    timeout-minutes: 45
     needs: changes
     if: contains(fromJSON(needs.changes.outputs.packages), '@stigmer/visual-tests')
     container:

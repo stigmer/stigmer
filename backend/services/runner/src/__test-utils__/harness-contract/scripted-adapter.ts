@@ -31,8 +31,9 @@
  * is on the row (the server's field) and the transition follows from it with
  * no engine knowledge, so it belongs to the runtime — one writer per field,
  * as `approval-answers.ts` is the runtime's one reader and
- * `terminalizeNonExecutingDecisions` its one writer (landed in #1096,
- * `harness/approval-decisions.ts`). An adapter's whole duty for a
+ * `harness/approval-decisions.ts` its one writer
+ * (`terminalizeNonExecutingDecisions`, landed in #1096, for SKIP and REJECT;
+ * `settleApprovedNotRun` for an approved call its ended run never ran). An adapter's whole duty for a
  * non-executing decision is to not execute.
  *
  * An `open` operation is a latch the kit releases: the row starts, the

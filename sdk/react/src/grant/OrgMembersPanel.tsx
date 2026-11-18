@@ -298,7 +298,7 @@ function ServiceAccountRow({ entry }: { entry: PrincipalAccess }) {
       }
       name={name}
       trailing={
-        <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-1.5">
+        <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">
           {directRoles.map((grant) => (
             <RoleBadge key={grant.role?.code ?? ""} grant={grant} />
           ))}
@@ -422,8 +422,8 @@ function MemberRow({
       description={email && email !== name ? email : undefined}
       trailing={
         <>
-          {/* Role badges */}
-          <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-1.5">
+          {/* Role badges, at every width: a phone shows each person's role too. */}
+          <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">
             {directRoles.map((grant) => (
               <RoleBadge key={grant.role?.code ?? ""} grant={grant} />
             ))}

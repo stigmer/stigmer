@@ -245,13 +245,16 @@ function ModelCatalogBody({
     }
     if (flow.mode === "retire") {
       return (
-        <RetireConfirm
-          target={selected.baseline}
-          isSubmitting={isRetiring}
-          submitError={retireError}
-          onConfirm={onRetire}
-          onCancel={onCancelRetire}
-        />
+        <>
+          <ModelCatalogDetail row={selected} />
+          <RetireConfirm
+            target={selected.baseline}
+            isSubmitting={isRetiring}
+            submitError={retireError}
+            onConfirm={onRetire}
+            onCancel={onCancelRetire}
+          />
+        </>
       );
     }
     return <ModelCatalogDetail row={selected} />;

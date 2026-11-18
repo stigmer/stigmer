@@ -5,7 +5,8 @@ import { ArrowLeft, RefreshCw } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import type { License } from "@stigmer/apis/ai/stigmer/billing/license/v1/api_pb";
 import { Button } from "../button/index.js";
-import { cardClasses } from "../internal/surface/Card.js";
+import { ReadOnlyField, ReadOnlyFields } from "../internal/form/ReadOnlyField.js";
+import { Section } from "../resource-detail/Section.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { StatusBadge } from "../status/StatusBadge.js";
 import { Notice } from "../internal/surface/Notice.js";
@@ -109,7 +110,8 @@ export function LicenseDetail({
 
       <LicenseTicketPanel ticket={ticket} isLoading={!issuedTicket && read.isLoading} error={read.error} />
 
-      <dl className={cn(cardClasses(), "stg:m-0 stg:grid stg:grid-cols-1 stg:gap-x-6 stg:gap-y-4 stg:sm:grid-cols-2")}>
+      <Section title="The license">
+        <ReadOnlyFields className="stg:p-4">
         <Row label="Customer">
           <span className="stg:block">{customer?.displayName}</span>
           <span className="stg:block stg:text-muted-foreground">{customer?.contactEmail}</span>
@@ -166,30 +168,19 @@ export function LicenseDetail({
           <span className="stg:block stg:font-mono stg:text-muted-foreground">{id}</span>
         </Row>
         {spec?.notes && (
-          <Row label="Notes" wide>
+          <Row label="Notes">
             <span className="stg:whitespace-pre-wrap">{spec.notes}</span>
           </Row>
         )}
-      </dl>
+        </ReadOnlyFields>
+      </Section>
     </div>
   );
 }
 
-function Row({
-  label,
-  wide,
-  children,
-}: {
-  readonly label: string;
-  readonly wide?: boolean;
-  readonly children: ReactNode;
-}) {
-  return (
-    <div className={cn("stg:min-w-0", wide && "stg:sm:col-span-2")}>
-      <dt className="stg:text-xs stg:text-muted-foreground">{label}</dt>
-      <dd className="stg:m-0 stg:mt-0.5 stg:break-words stg:text-sm stg:text-foreground">{children}</dd>
-    </div>
-  );
+/** One label and value pair of the license's record. */
+function Row({ label, children }: { readonly label: string; readonly children: ReactNode }) {
+  return <ReadOnlyField label={label}>{children}</ReadOnlyField>;
 }
 
 /** A day that carries its exact UTC instant in a tooltip. */

@@ -344,7 +344,7 @@
       "caption": "The landing: As a member: the admin pages aren't listed",
       "narrow": false,
       "built": [],
-      "unbuilt": "No scene draws this state yet; the settings Built look's fixes add it.",
+      "unbuilt": "No scene draws this state yet.",
       "words": [
         {
           "text": "Settings",
@@ -1008,7 +1008,7 @@
       "caption": "The landing: On a server that holds one organization: General, no profile",
       "narrow": false,
       "built": [],
-      "unbuilt": "No scene draws this state yet; the settings Built look's fixes add it.",
+      "unbuilt": "No scene draws this state yet.",
       "words": [
         {
           "text": "Settings",

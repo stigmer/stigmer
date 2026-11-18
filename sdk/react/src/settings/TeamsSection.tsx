@@ -32,6 +32,7 @@ import { ApiResourceKind } from "@stigmer/react-core/internal";
 import { Button } from "../button/Button.js";
 import { Card } from "../internal/surface/Card.js";
 import { NoOrganization } from "./NoOrganization.js";
+import { useOrgDisplayName } from "../organization/useOrgDisplayName.js";
 import { SettingsPage } from "./SettingsPage.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { useOrg } from "../organization/OrgProvider.js";
@@ -64,6 +65,9 @@ export function TeamsSection() {
   // list's.
   const createCheck = useCheckPermission(orgId ? { kind: "organization", id: orgId } : null, "can_create_team", { fail: "closed" });
   const canCreate = !createCheck.isLoading && createCheck.allowed && !planLacksTeams;
+  // The server's no (not a check that failed) names who makes teams.
+  const deniedCreate = !createCheck.isLoading && !createCheck.allowed && createCheck.error === null && !planLacksTeams;
+  const where = useOrgDisplayName();
 
   const handleCreated = useCallback(
     (team: Team) => {
@@ -132,6 +136,11 @@ export function TeamsSection() {
           onRetry={refetch}
           onOpen={(team) => setFlow({ phase: "viewing", team })}
           emptyAction={canCreate ? { label: "New team", onClick: startCreate } : undefined}
+          emptyDescription={
+            deniedCreate
+              ? `Admins of ${where} make teams. Once one adds you to a team, what's shared with it reaches you.`
+              : undefined
+          }
         />
       )}
     </SettingsPage>

@@ -487,7 +487,7 @@
       },
       "ruled": {},
       "pending": {
-        "word Service accounts hold roles too; they're listed under Service accounts.": "When its page is redesigned: the settings Built look decides; the line shows only to who may open Service accounts (or where some are listed), as the navigation offers that page"
+        "word Service accounts hold roles too; they're listed under Service accounts.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     },
     {
@@ -741,7 +741,7 @@
       },
       "ruled": {},
       "pending": {
-        "word Grace Hopper loses the Admin role and everything shared through acme. The conversations Grace started stay Grace's. You can invite Grace again.": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Grace Hopper loses the Admin role and everything shared through acme. The conversations Grace started stay Grace's. You can invite Grace again.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     },
     {
@@ -1155,15 +1155,14 @@
         "word ada@acme.example": "The drawing's example data; the scene shows its own fixture's",
         "word grace@acme.example": "The drawing's example data; the scene shows its own fixture's",
         "word katherine@acme.example": "The drawing's example data; the scene shows its own fixture's",
-        "word alan@acme.example": "The drawing's example data; the scene shows its own fixture's"
+        "word alan@acme.example": "The drawing's example data; the scene shows its own fixture's",
+        "word Owner": "The role's name as the server sends it; the scene's roles are lower case",
+        "word Admin": "The role's name as the server sends it; the scene's roles are lower case",
+        "word Member": "The role's name as the server sends it; the scene's roles are lower case",
+        "word Viewer": "The role's name as the server sends it; the scene's roles are lower case"
       },
       "ruled": {},
-      "pending": {
-        "word Owner": "At 390 the role sits under the name, as the drawing shows; the row hides it below sm today. Built with the settings Built look's fixes",
-        "word Admin": "At 390 the role sits under the name, as the drawing shows; the row hides it below sm today. Built with the settings Built look's fixes",
-        "word Member": "At 390 the role sits under the name, as the drawing shows; the row hides it below sm today. Built with the settings Built look's fixes",
-        "word Viewer": "At 390 the role sits under the name, as the drawing shows; the row hides it below sm today. Built with the settings Built look's fixes"
-      }
+      "pending": {}
     }
   ]
 }

@@ -16,6 +16,9 @@ import {
   type SignInSettings,
 } from "./SignInSettings.js";
 import { useUpdateFederationIssuer } from "./useUpdateFederationIssuer.js";
+import { useDeleteFederationIssuer } from "./useDeleteFederationIssuer.js";
+import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
+import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { PermissionGate } from "../grant/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
@@ -40,6 +43,12 @@ export interface FederationIssuerDetailPanelProps {
    * title already names the issuer (the settings page while one is open).
    */
   readonly showName?: boolean;
+  /**
+   * Fired once the issuer is deleted from the panel's own "Delete this
+   * issuer" card. The card shows only when this is given, for a caller the
+   * server lets delete the issuer (`can_delete`).
+   */
+  readonly onDeleted?: () => void;
 }
 
 /**
@@ -74,6 +83,7 @@ export function FederationIssuerDetailPanel({
   onBack,
   className,
   showName = true,
+  onDeleted,
 }: FederationIssuerDetailPanelProps) {
   const baseId = useId();
   const spec = federationIssuer.spec;
@@ -208,11 +218,16 @@ export function FederationIssuerDetailPanel({
 
       {/* Body */}
       {mode === "view" ? (
-        <ViewMode
-          spec={spec}
-          createdAt={createdAt}
-          updatedAt={updatedAt}
-        />
+        <>
+          <ViewMode
+            spec={spec}
+            createdAt={createdAt}
+            updatedAt={updatedAt}
+          />
+          {onDeleted && meta?.id && (
+            <DeleteIssuer issuerId={meta.id} name={spec?.displayName || meta.name || "this issuer"} onDeleted={onDeleted} />
+          )}
+        </>
       ) : (
         <form onSubmit={handleSave} className="stg:space-y-3">
           <FieldInput
@@ -416,3 +431,45 @@ function formatDate(date: Date): string {
 // Icons
 // ---------------------------------------------------------------------------
 
+
+/** The open issuer's own Delete, asked in the dialog that does it. */
+function DeleteIssuer({
+  issuerId,
+  name,
+  onDeleted,
+}: {
+  readonly issuerId: string;
+  readonly name: string;
+  readonly onDeleted: () => void;
+}) {
+  const { deleteProvider } = useDeleteFederationIssuer();
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
+  const consequence = `Tokens from ${name} stop working at once. People who joined through it keep their accounts and roles.`;
+  const askToDelete = useCallback(async () => {
+    const deleted = await confirm({
+      title: `Delete ${name}?`,
+      description: consequence,
+      confirmLabel: "Delete issuer",
+      variant: "destructive",
+      action: async () => {
+        await deleteProvider({ resourceId: issuerId });
+      },
+      failureTitle: `Couldn't delete ${name}.`,
+    });
+    if (deleted) onDeleted();
+  }, [confirm, deleteProvider, issuerId, name, consequence, onDeleted]);
+
+  return (
+    <PermissionGate fail="closed" resource={{ kind: "federation_issuer", id: issuerId }} relation="can_delete">
+      <Section title="Delete this issuer">
+        <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-3 stg:p-4">
+          <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">{consequence}</p>
+          <Button variant="outline" size="sm" onClick={() => void askToDelete()}>
+            Delete issuer
+          </Button>
+        </div>
+        <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
+      </Section>
+    </PermissionGate>
+  );
+}

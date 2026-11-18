@@ -1,9 +1,9 @@
 "use client";
 
-import { cn } from "@stigmer/design-tokens";
-import { TruncatedText } from "../internal/truncated-text.js";
 import { UnknownPublicAddressNotice } from "../internal/UnknownPublicAddressNotice.js";
-import { CopyButton, useCopy } from "../internal/CopyBlock.js";
+import { useCopy } from "../internal/CopyBlock.js";
+import { Copy } from "lucide-react";
+import { Button } from "../button/Button.js";
 import { Field, TextInput } from "../internal/form/index.js";
 
 /**
@@ -63,20 +63,28 @@ export function CopyRow({
 }) {
   const { copied, copy } = useCopy(value);
 
+  // A copy row is a read-only field at the fields' size, its Copy beside it.
   return (
-    <div className="stg:space-y-1">
-      <p className="stg:text-xs stg:font-medium stg:text-foreground">{label}</p>
-      <div className="stg:flex stg:items-center stg:gap-1.5">
-        <TruncatedText
-          text={value}
-          className={cn(
-            "stg:min-w-0 stg:flex-1 stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle",
-            "stg:px-2 stg:py-1.5 stg:font-mono stg:text-2xs stg:text-foreground",
-          )}
+    <Field label={label}>
+      <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-2">
+        <TextInput
+          readOnly
+          value={value}
+          className="stg:min-w-0 stg:flex-1 stg:font-mono"
+          onFocus={(e) => e.currentTarget.select()}
         />
-        <CopyButton copied={copied} onCopy={copy} copyTargetId={copyTargetId} />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={copy}
+          data-cursor-target={copyTargetId}
+          icon={<Copy className="stg:size-3.5" aria-hidden="true" />}
+          aria-live="polite"
+        >
+          {copied ? "Copied" : "Copy"}
+        </Button>
       </div>
-    </div>
+    </Field>
   );
 }
 

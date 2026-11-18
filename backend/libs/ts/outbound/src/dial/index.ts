@@ -4,6 +4,10 @@
  * fetch over it that a process composes at its root. Importing this entry
  * loads undici, which registers itself as the process's dispatcher; the
  * module header of `pinned-fetch.ts` says why that keeps it off the other
- * entries.
+ * entries. undici is an optional peer: the process that imports this entry
+ * declares it, and `runtime-floor.ts`, imported first, refuses a Node below
+ * undici's floor before undici loads.
  */
+import "./runtime-floor.js";
+
 export { nodeGuardedFetch, pinnedFetch, type NodeGuardedFetchOptions, type PinnedFetchOptions } from "./pinned-fetch.js";

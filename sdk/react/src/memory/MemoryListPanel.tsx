@@ -113,7 +113,7 @@ export function MemoryListPanel({ org, className, now }: MemoryListPanelProps) {
       <EmptyState
         variant="first-use"
         title="Nothing remembered yet"
-        description="When an agent proposes a fact worth keeping, it appears here for your decision."
+        description="When an agent proposes a fact worth keeping, it shows here for you to confirm or reject."
         className={className}
       />
     );

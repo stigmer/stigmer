@@ -1,7 +1,0 @@
----
-type: llm
----
-
-PASS if the answer says a Harness is the loop that runs a Session's turns and Stigmer has two: Stigmer's own (`stigmer`, the default) and Claude Agent (`claude`, Anthropic's Claude Agent SDK). It must say the Stigmer harness runs the catalog's models and any model your own OpenAI- or Anthropic-compatible endpoint serves, named `openai:<name>` or `anthropic:<name>`, which is how a model the catalog doesn't list, such as Gemini, is reached (through an OpenAI-compatible endpoint, as `openai:<name>`); and that Claude Agent runs Claude models only, on the Organization's own Anthropic key. It must say the Harness is chosen per Session when it is created (defaulting to the Agent's `harness` run setting, else Stigmer's) and cannot be switched once the first run starts, and when to pick Claude Agent: for Anthropic's own loop on Claude models. Welcome but optional: what Claude Agent does not offer yet (background commands, built-in web fetch and search, the fast tier); neither harness carries a Stigmer charge; the Stigmer harness gives explicit control of prompt caching; keys are added in Models & providers (or `stigmer provider-key set`); `--harness claude` on `stigmer run`.
-
-FAIL if it says Claude Agent runs GPT or Gemini, that Stigmer has a native Gemini key slot, that the Harness can be changed mid-conversation, that a harness carries a Stigmer charge, or that Stigmer provides a model of its own.
