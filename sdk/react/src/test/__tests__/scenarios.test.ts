@@ -427,6 +427,22 @@ describe("the step turns", () => {
     expect(story.outputs).toHaveLength(2);
     expect(upTo(story, story.events.length - 1).outputs).toBeUndefined();
   });
+
+  it("waits, in a plan, on a helper's command under the item in progress", () => {
+    const story = stepStories["plan-helper-waits"];
+    const turn = story.fold.turns[0]!;
+    const helper = toolsOf(story).find((tool) => tool.name === "task")!;
+    expect(turn.todos.map((todo) => todo.status)).toEqual(["completed", "in_progress", "pending"]);
+    expect(turn.status?.phase).toBe("waiting");
+    expect(turn.asks.map((ask) => [ask.id, ask.threadId, ask.input.command])).toEqual([[`${helper.id}.execute`, helper.id, "npm test -- billing"]]);
+  });
+
+  it("ends a finished turn on a step, its messages before it", () => {
+    const story = stepStories["ended-on-step"];
+    const turn = story.fold.turns[0]!;
+    expect(turn.status?.phase).toBe("completed");
+    expect(turn.items.map((item) => item.kind)).toEqual(["message", "tool_use", "tool_use", "message", "tool_use"]);
+  });
 });
 
 describe("the ending turns", () => {

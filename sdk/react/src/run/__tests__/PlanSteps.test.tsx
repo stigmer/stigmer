@@ -4,22 +4,27 @@
  * progress, not finished, dropped or to do; the item in progress is open
  * to its steps while the turn works, a finished item opens on a click, and
  * an item with no steps is a plain line; an item whose step waits for a
- * person says who it waits on, in the viewer's words ("Waiting for you"
- * for whoever answers, else "Waiting for {owner} to approve", or "Waiting
- * for the owner" unnamed) and leaves that step to the bottom card;
+ * person, or holds a helper whose step does, says who it waits on, in the
+ * viewer's words ("Waiting for you" for whoever answers, else "Waiting for
+ * {owner} to approve", or "Waiting for the owner" unnamed); a waiting step
+ * the thread answers in its own card (`cardedAsks`) is left out of the
+ * plan, and one it does not (a viewer who cannot answer) stays in its item
+ * as a row saying whom it waits on, with no decision;
  * an item left in progress by an ended turn says where it stopped, in its
  * ending's words ("Stopped here" unless told otherwise); and the
  * steps outside any item draw at the foot, the settled ones folded under
- * "Steps so far" and the open ones as rows, a waiting one left out.
+ * "Steps so far" and the open ones as rows, a carded waiting one left out.
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
+import type { ReactNode } from "react";
 import type { JsonObject } from "@bufbuild/protobuf";
 import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import { turnSteps, type TurnSteps } from "@stigmer/client";
 import { PlanSteps } from "../PlanSteps";
 import { ApprovalContext } from "../ApprovalContext";
-import { asked, result, status, turnsOf, use, user } from "./__fixtures__/thread-events";
+import { ThreadPresentationContext } from "../ThreadPresentationContext";
+import { asked, result, status, subagent, toolId, turnsOf, use, user } from "./__fixtures__/thread-events";
 
 afterEach(cleanup);
 
@@ -58,6 +63,26 @@ function waitingSteps(): TurnSteps {
     use(R, "c2", "execute", { command: "git push" }, { ask: true }),
     asked(R, "c2"),
     status(R, "waiting"),
+  );
+}
+
+/** A plan whose item in progress holds a helper with a step waiting on a person's answer. */
+function helperWaitingSteps(): TurnSteps {
+  const task = toolId(R, "task1");
+  return stepsOf(
+    todos("t", [{ content: "Check the tests", status: "in_progress" }]),
+    use(R, "task1", "task", { description: "Run the suite" }),
+    subagent(R, "task1", { items: [use(R, "s1", "execute", { command: "npm test" }, { ask: true, threadId: task }), asked(R, "s1", { threadId: task })] }),
+    status(R, "waiting"),
+  );
+}
+
+/** The owner's thread: it answers `asks` in their own card. */
+function Owner({ asks, children }: { readonly asks: readonly string[]; readonly children: ReactNode }) {
+  return (
+    <ThreadPresentationContext.Provider value={{ cardedAsks: new Set(asks) }}>
+      <ApprovalContext.Provider value={{ onAnswer: () => undefined, submittingIds: new Set(), errorsByToolUseId: new Map() }}>{children}</ApprovalContext.Provider>
+    </ThreadPresentationContext.Provider>
   );
 }
 
@@ -193,11 +218,11 @@ describe("PlanSteps", () => {
     expect(rowOf("Running a command").querySelector(".stg\\:bg-status-running-band"), "the running step").not.toBeNull();
   });
 
-  it("says an item waits for you, and leaves its waiting step to the bottom card", () => {
+  it("says an item waits for you, and leaves its carded waiting step to the bottom card", () => {
     render(
-      <ApprovalContext.Provider value={{ onAnswer: () => undefined, submittingIds: new Set(), errorsByToolUseId: new Map() }}>
+      <Owner asks={[toolId(R, "c2")]}>
         <PlanSteps working steps={waitingSteps()} />
-      </ApprovalContext.Provider>,
+      </Owner>,
     );
     const line = itemLine("Push the fix");
 
@@ -205,20 +230,45 @@ describe("PlanSteps", () => {
     // Still the item in hand: its line on the band.
     expect(line.querySelector(".stg\\:bg-status-running-band")).not.toBeNull();
     expect(within(line).getByRole("group", { name: "1 tool call" })).toBeTruthy();
+    expect(screen.queryByText(/git push/)).toBeNull();
   });
 
-  it("tells a viewer who cannot answer whom the item waits on, by name or as the owner", () => {
+  it("says an item waits for you when a helper it holds has a step waiting, whose decision is in the bottom card", () => {
+    render(
+      <Owner asks={[toolId(R, "s1")]}>
+        <PlanSteps working steps={helperWaitingSteps()} />
+      </Owner>,
+    );
+    const item = itemLine("Check the tests");
+    const line = itemToggle("Check the tests").parentElement!;
+
+    expect(within(line).getByText("Waiting for you")).toBeTruthy();
+    // The helper stays in its item; its waiting step offers no decision there.
+    expect(within(item).getByText("Run the suite")).toBeTruthy();
+    expect(screen.queryByLabelText("Allow")).toBeNull();
+  });
+
+  it("keeps a waiting step a viewer cannot answer in its item, saying whom it waits on, with no decision", () => {
     const { unmount } = render(
       <ApprovalContext.Provider value={{ submittingIds: new Set(), errorsByToolUseId: new Map(), approverName: "Maya Okafor" }}>
         <PlanSteps working steps={waitingSteps()} />
       </ApprovalContext.Provider>,
     );
-    expect(within(itemLine("Push the fix")).getByText("Waiting for Maya Okafor to approve")).toBeTruthy();
+    const item = itemLine("Push the fix");
+    const line = itemToggle("Push the fix").parentElement!;
+
+    expect(within(line).getByText("Waiting for Maya Okafor to approve")).toBeTruthy();
     expect(screen.queryByText("Waiting for you")).toBeNull();
+    // The step itself, in the item, open while the turn works.
+    expect(within(item).getByRole("group", { name: "2 tool calls" })).toBeTruthy();
+    expect(within(item).getByText("git push")).toBeTruthy();
+    expect(within(item).getByText("Wants to run a command")).toBeTruthy();
+    expect(screen.queryByLabelText("Allow")).toBeNull();
+    expect(screen.queryByLabelText("Deny")).toBeNull();
     unmount();
 
     render(<PlanSteps working steps={waitingSteps()} />);
-    expect(within(itemLine("Push the fix")).getByText("Waiting for the owner")).toBeTruthy();
+    expect(within(itemToggle("Push the fix").parentElement!).getByText("Waiting for the owner")).toBeTruthy();
   });
 
   it("says where its ended turn stopped on an item left in progress, closed", () => {
@@ -250,6 +300,7 @@ describe("PlanSteps", () => {
           todos("t", [{ content: "Test it", status: "pending" }]),
         )}
       />,
+      { wrapper: ({ children }) => <Owner asks={[toolId(R, "c2")]}>{children}</Owner> },
     );
     const fold = screen.getByRole("button", { name: /^Steps so far: edited a\.ts/ });
 
@@ -261,6 +312,22 @@ describe("PlanSteps", () => {
     fireEvent.click(fold);
     expect(fold.getAttribute("aria-expanded")).toBe("true");
     expect(screen.getAllByRole("group", { name: "2 tool calls" })).toHaveLength(1);
+  });
+
+  it("keeps a waiting step outside any item as a row for a viewer who cannot answer", () => {
+    render(
+      <PlanSteps
+        working
+        steps={stepsOf(
+          use(R, "c2", "delete_file", { path: "b.ts" }, { ask: true }),
+          asked(R, "c2"),
+          todos("t", [{ content: "Test it", status: "pending" }]),
+        )}
+      />,
+    );
+
+    expect(screen.getByText(/b\.ts/)).toBeTruthy();
+    expect(screen.queryByLabelText("Allow")).toBeNull();
   });
 
   it("keeps a single settled step outside any item as its own row, not a fold", () => {

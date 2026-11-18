@@ -47,6 +47,7 @@ import {
   runRefusal,
   modelSelectorNotReadyScene,
   modelsHubKeyRejectedScene,
+  modelsHubRemoveRefusedScene,
   modelsHubLocalScene,
   modelsHubScene,
 } from "./models.tsx";
@@ -111,6 +112,8 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "models-hub-member": () => modelsHubScene(NOTHING_CONNECTED, [], "member"),
   "models-hub-key-rejected": modelsHubKeyRejectedScene,
   "models-hub-remove": () => modelsHubScene(CONNECTED, [ownAnthropicKey(), inheritedOpenAiKey()], "admin"),
+  "models-hub-connect": () => modelsHubScene(NOTHING_CONNECTED, [], "admin"),
+  "models-hub-remove-refused": () => modelsHubRemoveRefusedScene([ownAnthropicKey(), inheritedOpenAiKey()]),
   "launcher-ready": () => launcherScene(ANTHROPIC_ONLY, "admin"),
   "launcher-key-missing": () =>
     launcherRefusedScene(
@@ -252,6 +255,8 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "marketplace-source-failed": () => marketplaceScene("admin", "failed"),
   "marketplace-install": () => marketplaceScene("admin"),
   "marketplace-upload": () => marketplaceScene("admin"),
+  "marketplace-source-unreadable": () => marketplaceScene("admin", "read", { unreadableSource: true }),
+  "marketplace-install-refused": () => marketplaceScene("admin", "read", { installRefused: true }),
   "session-waiting-for-sandbox": () => sessionScene("waiting-for-sandbox", { inspector: true }),
   "session-thinking": () => sessionScene("thinking", { inspector: true }),
   "session-busy": () => sessionScene("busy", { inspector: true }),
@@ -290,6 +295,9 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "session-many-files": () => stepStoryScene("many-files", { inspector: true }),
   "session-file-steps": () => stepStoryScene("file-steps", { inspector: true, height: 2400 }),
   "session-shell-steps": () => stepStoryScene("shell-steps", { inspector: true, height: 2200 }),
+  "session-plan-helper-waits": () => stepStoryScene("plan-helper-waits", { inspector: true }),
+  "session-plan-waits-participant": () => stepStoryScene("shell-steps", { inspector: true, role: "participant", height: 2200 }),
+  "session-ended-on-step": () => stepStoryScene("ended-on-step", { inspector: true }),
   "session-slow": () => sessionScene("busy", { inspector: true }),
   "session-starting": () => sessionStartingScene(),
   "session-first-job-next": sessionFirstJobNextScene,

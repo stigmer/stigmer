@@ -909,11 +909,12 @@ export function ledgerStory(): Scenario {
 // ---------------------------------------------------------------------------
 // The step turns: one turn per family of step the session viewer draws, so
 // every kind of step has a picture: a connected app's tools, a turn that made
-// twenty Files, every file step, and every shell step
+// twenty Files, every file step, every shell step, a helper's step waiting
+// for a yes inside a plan, and a turn that ended on a step
 // ---------------------------------------------------------------------------
 
 /** The step turns, in the order the gallery draws them. */
-export const STEP_STORY_NAMES = ["mcp-turn", "many-files", "file-steps", "shell-steps"] as const;
+export const STEP_STORY_NAMES = ["mcp-turn", "many-files", "file-steps", "shell-steps", "plan-helper-waits", "ended-on-step"] as const;
 
 /** One of the step turns. */
 export type StepStoryName = (typeof STEP_STORY_NAMES)[number];
@@ -1233,6 +1234,58 @@ function shellStepsTurn(): SessionEvent[] {
   ];
 }
 
+/** The helper the plan's suite check hands its run to, and the command it waits to run. */
+const SUITE_HELPER_ID = `${RUN_ID}.tc-task-suite`;
+const SUITE_ASK_ID = `${SUITE_HELPER_ID}.execute`;
+
+/**
+ * A plan turn whose second item hands the billing suite to a helper, and
+ * the helper's command waits for a yes: the decision the item holds is a
+ * helper's, not its own.
+ */
+function planHelperWaitsTurn(): SessionEvent[] {
+  const todos = (check: string) => [
+    { content: "Fix credit-note rounding", status: check === "pending" ? "in_progress" : "completed" },
+    { content: "Check the billing suite", status: check },
+    { content: "Push the fix", status: "pending" },
+  ];
+  const command = { command: "npm test -- billing", description: "Run the whole billing suite" };
+  return [
+    samples.userMessageEvent("Fix the credit-note rounding, check the billing suite still passes, and push the fix."),
+    samples.runStatusEvent("running"),
+    ...step({ name: "write_todos", input: { todos: todos("pending") }, atMs: 2_000, tookMs: 200, result: "Updated the to-do list", id: `${RUN_ID}.tc-write_todos-1` }),
+    ...step({ name: "edit_file", input: { path: "src/billing/credit-note.ts" }, atMs: 8_000, tookMs: 600, result: "1 edit applied" }),
+    ...step({ name: "write_todos", input: { todos: todos("in_progress") }, atMs: 20_000, tookMs: 200, result: "Updated the to-do list", id: `${RUN_ID}.tc-write_todos-2` }),
+    samples.toolUseEvent("task", { description: "Run the billing suite and report what fails" }, { id: SUITE_HELPER_ID, processedAt: sampleInstant(22_000) }),
+    event({ case: "sessionThreadCreated", value: { id: `${SUITE_HELPER_ID}.created`, sessionThreadId: SUITE_HELPER_ID, agentName: "tester" } }),
+    event({
+      case: "agentThreadMessageSent",
+      value: { id: `${SUITE_HELPER_ID}.sent`, toSessionThreadId: SUITE_HELPER_ID, content: [{ type: "text", text: "Run the billing suite and report what fails" }] },
+    }),
+    samples.toolUseEvent("execute", command, { threadId: SUITE_HELPER_ID, id: SUITE_ASK_ID, evaluatedPermission: "ask", processedAt: sampleInstant(25_000) }),
+    samples.permissionAskedEvent(SUITE_ASK_ID, { threadId: SUITE_HELPER_ID, processedAt: sampleInstant(25_100), argsPreview: JSON.stringify(command) }),
+    samples.runStatusEvent("waiting", { processedAt: sampleInstant(25_200) }),
+  ];
+}
+
+/**
+ * A finished turn that ended on a step: it said what it would look for,
+ * searched and read, said what it would check next, read again, and ended
+ * with no closing message.
+ */
+function endedOnStepTurn(): SessionEvent[] {
+  return [
+    samples.userMessageEvent("Why are invoices a cent off?"),
+    samples.runStatusEvent("running"),
+    samples.agentMessageEvent("Let me find where invoices round.", { id: `${RUN_ID}.root.m0`, processedAt: sampleInstant(2_000) }),
+    ...step({ name: "grep", input: { pattern: "round(", path: "src/billing" }, atMs: 4_000, result: "src/billing/invoice.ts:41:      sum + roundCents(lineTotal(line))" }),
+    ...step({ name: "read_file", input: { path: "src/billing/invoice.ts" }, atMs: 6_000, result: "export function lineTotal(line: Line): Cents {", id: `${RUN_ID}.tc-read-invoice` }),
+    samples.agentMessageEvent("Each line rounds before the total. Checking credit notes too.", { id: `${RUN_ID}.root.m1`, processedAt: sampleInstant(9_000) }),
+    ...step({ name: "read_file", input: { path: "src/billing/credit-note.ts" }, atMs: 10_000, result: "amount: roundCents(line.amount)", id: `${RUN_ID}.tc-read-credit-note` }),
+    samples.runStatusEvent("completed", { processedAt: sampleInstant(12_000) }),
+  ];
+}
+
 /** Builds the step turn `name`. */
 function buildStepStory(name: StepStoryName): Scenario {
   switch (name) {
@@ -1254,6 +1307,10 @@ function buildStepStory(name: StepStoryName): Scenario {
         shellStepsTurn(),
         { liveness: SHELL_LIVENESS, outputs: SHELL_OUTPUTS },
       );
+    case "plan-helper-waits":
+      return loaded(name, "a plan turn whose helper waits for a yes to run the billing suite, under the item in progress", planHelperWaitsTurn());
+    case "ended-on-step":
+      return loaded(name, "a finished turn that said what it looked for, searched and read, and ended on a step with no closing message", endedOnStepTurn());
   }
 }
 
@@ -1263,6 +1320,8 @@ export const stepStories: Readonly<Record<StepStoryName, Scenario>> = {
   "many-files": buildStepStory("many-files"),
   "file-steps": buildStepStory("file-steps"),
   "shell-steps": buildStepStory("shell-steps"),
+  "plan-helper-waits": buildStepStory("plan-helper-waits"),
+  "ended-on-step": buildStepStory("ended-on-step"),
 };
 
 // ---------------------------------------------------------------------------

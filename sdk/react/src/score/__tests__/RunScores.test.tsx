@@ -4,7 +4,9 @@
  * control; with them on, the session's scores are read once, the final
  * answer of a completed run carries the thumbs and the health chip (in the
  * at-risk colour the theme contract measures on the page and on the chip's
- * hover), the chip opens to each flag's reason, a run the platform could not grade
+ * hover), the chip opens to each flag's reason, a completed run that ended
+ * on a step with no closing message carries them at the turn's foot, under
+ * its folded steps, a run the platform could not grade
  * says so, and a thumbs-down is sent as a feedback score whose value is
  * false. A second rating the server refuses with SCORE_EXISTS changes the
  * existing one.
@@ -155,6 +157,32 @@ describe("run scores in a thread", () => {
     expect(
       screen.getByText("ended on a failed action: create_ticket (step 7)"),
     ).toBeDefined();
+  });
+
+  it("keeps the thumbs and the flag chip of a run that ended on a step, at the turn's foot", async () => {
+    const mock = client([flaggedHealth("run_1")]);
+    const message = "triage last night's tickets";
+    const run = create(RunSchema, {
+      metadata: { id: "run_1", org: "org_acme" },
+      spec: { message, target: { case: "sessionId", value: "ses_1" } },
+      status: { phase: RunPhase.RUN_COMPLETED },
+    });
+    const turns = samples.fold([
+      samples.userMessageEvent(message, { runId: "run_1" }),
+      samples.runStatusEvent("running", { runId: "run_1" }),
+      samples.agentMessageEvent("Filing the first ticket.", { runId: "run_1" }),
+      samples.toolUseEvent("create_ticket", {}, { runId: "run_1", id: "run_1.c1" }),
+      samples.toolResultEvent("run_1.c1", "refused", { runId: "run_1", isError: true }),
+      samples.runStatusEvent("completed", { runId: "run_1" }),
+    ]).turns;
+    render(<MessageThread turns={turns} runs={[run]} runScores />, { wrapper: wrap(mock) });
+
+    const chip = await screen.findByRole("button", { name: "1 flag" });
+    const how = screen.getByRole("button", { name: /^How it got there/ });
+    expect(how.compareDocumentPosition(chip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Good answer" })).toHaveLength(1);
+    // Its narration is folded away, not shown as an answer.
+    expect(screen.queryByText("Filing the first ticket.")).toBeNull();
   });
 
   it("says a run was not graded, with the reason", async () => {

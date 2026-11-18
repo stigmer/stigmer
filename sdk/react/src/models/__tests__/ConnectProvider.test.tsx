@@ -148,6 +148,9 @@ describe("ConnectProviderPanel", () => {
     fireEvent.click(within(alert).getByRole("button", { name: "Try again" }));
     expect(retryManage).toHaveBeenCalledOnce();
     expect(screen.queryByText(/An admin of Acme Research connects/)).toBeNull();
+    // Nor the member's lead: whose key the model waits on is not known yet.
+    expect(screen.queryByText(/runs on Anthropic/)).toBeNull();
+    expect(screen.queryByText(/Once Acme Research has an Anthropic key/)).toBeNull();
     expect(screen.queryByLabelText("Anthropic API key")).toBeNull();
   });
 

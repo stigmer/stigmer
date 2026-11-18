@@ -4,7 +4,8 @@
  * calls (a subagent's `task` call too) nested under the item in progress
  * when each was made and never also drawn as rows; a call that waits for a
  * person stays out of the plan and is drawn as the bottom approval card,
- * while a nested subagent's own ask stays inline; `planSteps: false` keeps
+ * and so is a nested subagent's own ask, the subagent kept in the plan;
+ * `planSteps: false` keeps
  * the to-dos card and the calls in time order. The working turn folds a
  * stretch of two or more calls once every call in it returned and no
  * background command still runs (a single step stays its own row); an ended
@@ -133,7 +134,7 @@ describe("buildThreadItems plan", () => {
     expect(items[2]?.kind === "approval-request" && items[2].toolUse.id).toBe(`${story.fold.turns[0]!.runId}.tc-execute-push`);
   });
 
-  it("nests a subagent's call in the plan, its own ask left inline", () => {
+  it("nests a subagent's call in the plan, its own ask drawn as the bottom card", () => {
     const task = toolId(R, "task1");
     const turns = turnsOf(
       user(R, "go"),
@@ -146,7 +147,8 @@ describe("buildThreadItems plan", () => {
     const items = buildThreadItems(turns, [], { includeApprovals: true, includeLiveness: false });
 
     expect(turns[0]!.asks.map((ask) => ask.id)).toEqual([toolId(R, "s1")]);
-    expect(items.map((i) => i.kind)).toEqual(["message", "plan"]);
+    expect(items.map((i) => i.kind)).toEqual(["message", "plan", "approval-request"]);
+    expect(items[2]?.kind === "approval-request" && items[2].toolUse.id).toBe(toolId(R, "s1"));
     expect(ids(planOf(items)!.steps.plan[0]!.calls)).toEqual([task]);
   });
 
@@ -333,8 +335,9 @@ describe("buildThreadItems finished turn", () => {
       [user(R, "go"), status(R, "running"), said(R, 0, "Looking."), call(R, "c1", "read_file", { path: "a.ts" }), status(R, "completed", { stopCause: "platform_stop" })],
       { includeOutcomes: true },
     );
-    // Not folded as a finished turn: no "How it got there", the step in view.
-    expect(keys(items)).toEqual([`${R}-spec`, m(R, 0), tc(R, "c1"), `execution-error-${R}`, `outcome-${R}`]);
+    // Not folded as a finished turn: no "How it got there", the step in view;
+    // it closed on no message, so its scores sit at its foot.
+    expect(keys(items)).toEqual([`${R}-spec`, m(R, 0), tc(R, "c1"), `${R}-scores`, `execution-error-${R}`, `outcome-${R}`]);
   });
 
   it.each(["failed", "cancelled"] as const)("keeps a turn that %s in time order, its ending's notice before what it produced", (phase) => {

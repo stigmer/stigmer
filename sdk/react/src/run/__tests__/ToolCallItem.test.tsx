@@ -5,7 +5,9 @@
 // first argument; a settled step closed behind a chevron that opens in place
 // to its body, a step with nothing to show a static line with no chevron;
 // auto-open while it runs with something to show, while it waits for a
-// person (ApprovalContext) and for a failed command; a command that exited
+// person (ApprovalContext), unless the thread answers its ask in its own
+// card (ThreadPresentationContext's `cardedAsks`: the row then says it
+// waits, with no decision), and for a failed command; a command that exited
 // non-zero marked failed though the engine did not, a denied call not; the
 // preview layout a host asks for per kind; the density tier, the status
 // vocabulary read from `ToolUse.state`, duration chips from the use and
@@ -22,6 +24,7 @@ import userEvent from "@testing-library/user-event";
 import type { FileReviewSet, ToolUse } from "@stigmer/client";
 import { ToolCallItem } from "../ToolCallItem";
 import { ApprovalContext, type ApprovalContextValue } from "../ApprovalContext";
+import { ThreadPresentationContext } from "../ThreadPresentationContext";
 import { registerToolPresenter } from "../tool-presenter";
 import { StepPlaceContext } from "../step-place";
 import { FileReviewContext } from "@stigmer/react-core";
@@ -463,6 +466,37 @@ describe("ToolCallItem disclosure", () => {
     // A call waiting on someone else is drawn running (the session page,
     // S48): the running spinner, its words saying whom it waits on.
     expect(container.querySelector(".stg\\:text-status-running")).not.toBeNull();
+  });
+
+  it("says a waiting call the thread answers in its own card waits for you, and offers no decision on the row", () => {
+    const tu = toolUse({ id: "tc-gated", name: "delete_file", ask: {} });
+    const { container } = render(
+      <ThreadPresentationContext.Provider value={{ cardedAsks: new Set(["tc-gated"]) }}>
+        <ApprovalContext.Provider value={answering()}>
+          <ToolCallItem toolUse={tu} />
+        </ApprovalContext.Provider>
+      </ThreadPresentationContext.Provider>,
+    );
+
+    expect(screen.queryByLabelText("Allow")).toBeNull();
+    expect(screen.queryByLabelText("Deny")).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByText(/Waiting for you/)).toBeTruthy();
+    expect(container.querySelector(".stg\\:text-status-running")).not.toBeNull();
+  });
+
+  it("offers the decision on a waiting row whose ask is not carded, though others are", () => {
+    const tu = toolUse({ id: "tc-gated", name: "delete_file", ask: {} });
+    render(
+      <ThreadPresentationContext.Provider value={{ cardedAsks: new Set(["tc-other"]) }}>
+        <ApprovalContext.Provider value={answering()}>
+          <ToolCallItem toolUse={tu} />
+        </ApprovalContext.Provider>
+      </ThreadPresentationContext.Provider>,
+    );
+
+    expect(screen.getByLabelText("Allow")).toBeTruthy();
+    expect(screen.queryByText(/Waiting for you/)).toBeNull();
   });
 
   it("renders a waiting preview tool's actions inline with no chevron", () => {

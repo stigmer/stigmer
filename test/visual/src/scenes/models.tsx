@@ -118,6 +118,30 @@ export function modelsHubKeyRejectedScene(): Drawing {
   };
 }
 
+/** Stigmer Cloud's words for a key it will not remove while a run still needs it. */
+export const KEY_REMOVAL_REFUSED_WORDS =
+  "The Anthropic key can't be removed while a run is using it. Try again when the run ends.";
+
+/**
+ * Models & providers for an admin whose removal of the organization's
+ * Anthropic key the server refuses: the scene asks Remove and confirms it, so
+ * the dialog says the refusal.
+ */
+export function modelsHubRemoveRefusedScene(keys: readonly ProviderKey[]): Drawing {
+  return {
+    inOrganization: true,
+    routes: (router) => {
+      modelsRoutes(CONNECTED, keys, "admin")(router);
+      router.service(ProviderKeyCommandController, {
+        delete: () => {
+          throw new ConnectError(KEY_REMOVAL_REFUSED_WORDS, Code.FailedPrecondition);
+        },
+      });
+    },
+    render: () => <HubPage />,
+  };
+}
+
 /** Models & providers on a laptop whose runner has no key. */
 export function modelsHubLocalScene(): Drawing {
   return {

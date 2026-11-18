@@ -18,7 +18,7 @@
  * may rename it), failing closed so the field never flashes for someone the
  * server would refuse, and renders its `fallback` otherwise.
  */
-import { type ReactNode, useCallback, useEffect, useId, useState } from "react";
+import { type ReactNode, useCallback, useId, useState } from "react";
 import { getUserMessage } from "@stigmer/client";
 import { Button } from "../button/Button.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
@@ -71,11 +71,15 @@ export function RenameSlugField<T>({
   const [slug, setSlug] = useState(currentSlug);
   // The slug a landed rename left behind, until the page shows another.
   const [renamedFrom, setRenamedFrom] = useState<string | null>(null);
-
-  useEffect(() => {
+  // A new slug from the page resets the draft during render, not in an
+  // effect: a mount effect ran after the field's first paint and put the
+  // stored slug back over anything typed in that moment (stigmer#3217).
+  const [shownSlug, setShownSlug] = useState(currentSlug);
+  if (shownSlug !== currentSlug) {
+    setShownSlug(currentSlug);
     setSlug(currentSlug);
     setRenamedFrom(null);
-  }, [currentSlug]);
+  }
 
   const settling = renamedFrom !== null;
   const busy = isRenaming || settling;
