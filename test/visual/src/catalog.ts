@@ -446,6 +446,23 @@ const SESSION_SCENES = [
     opens: ["Ran a command npm test -- billing/invoice"],
   },
   {
+    id: "session-plan-helper-waits",
+    title: "Session: in a plan, a helper's command waits for the owner's yes, answered below the plan, the item saying it waits",
+    widths: ["desktop", "narrow"],
+  },
+  {
+    id: "session-plan-waits-participant",
+    title: "Session: the plan's push waits for the owner's yes, for a teammate who sees the waiting step in its item",
+    widths: ["desktop"],
+    // As session-shell-steps: the turn drawn at 4m 20s.
+    elapse: 160_750,
+  },
+  {
+    id: "session-ended-on-step",
+    title: "Session: a finished turn that ended on a step, leading with what it changed, its narration under How it got there",
+    widths: ["desktop", "narrow"],
+  },
+  {
     id: "session-slow",
     title: "Session: the long turn has said nothing for over a minute",
     widths: ["desktop"],
