@@ -418,7 +418,7 @@ export async function assertDecisionsExecuteExactlyOnce(subject: HarnessContract
 
     const resumed = await driver.turn([scenario.propose(approved, WRITE_ALPHA), scenario.say("done"), scenario.propose(later, WRITE_BETA)]);
     expect(resumed.outcome.kind, `${subject.name}: after APPROVE the turn must run on, here to its next proposal`).toBe("awaiting_approval");
-    expect(subject.executionCount(approved), `${subject.name}: an approved action must execute exactly once`).toBe(1);
+    expect(subject.executionCount(approved), `${subject.name}: an approved action must execute exactly once; ${rowReport(resumed.sink.rows, approved)}`).toBe(1);
     expect(findToolCallRow(resumed.sink.rows, approved)?.status, `${subject.name}: the approved row must be carried to COMPLETED`).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
     driver.decide(later, ApprovalAction.APPROVE);
 
@@ -616,6 +616,12 @@ export type ApprovalInvariant = "proposal-waits" | "decisions-execute-once" | "c
 export interface HarnessContractOptions {
   /** The approval invariants that are a known gap on this subject, each with the open issue that names it (`<owner>/<repo>#<n>`). */
   readonly knownGaps?: Partial<Readonly<Record<ApprovalInvariant, string>>>;
+}
+
+/** A row's status and error for a failure message: an approved action that did not run says why on its row (an engine's refusal, or the runtime's settle of a call its engine never ran). */
+function rowReport(rows: TurnRows, toolCallId: string): string {
+  const row = findToolCallRow(rows, toolCallId);
+  return row === undefined ? `no row for ${toolCallId}` : `its row is ${ToolCallStatus[row.status]} ${JSON.stringify(row.error)}`;
 }
 
 function gapFor(issue: string | undefined, today: TodayOutcome): KnownGap | undefined {
