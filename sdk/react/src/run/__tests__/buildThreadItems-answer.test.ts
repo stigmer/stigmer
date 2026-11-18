@@ -2,9 +2,10 @@
  * Which message a finished turn leads with, as its answer, and scores: the
  * message it closed on, when nothing the agent did came after it but its
  * thinking, notes and to-do updates. A turn that ended on a step, or on a
- * message the person sent mid-turn, closed on no answer: nothing leads,
- * nothing is scored, and its messages stay in time order under "How it got
- * there".
+ * message the person sent mid-turn, closed on no answer: nothing leads, no
+ * message carries the scores, its messages stay in time order under "How
+ * it got there", and the run's scores sit at the turn's foot. A turn that
+ * wrote no message carries no scores, as before.
  */
 import { describe, it, expect } from "vitest";
 import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
@@ -27,9 +28,15 @@ function finished(...events: ReadonlyArray<SessionEvent | readonly SessionEvent[
   return buildThreadItems(turnsOf(user(R, "go"), status(R, "running"), ...events, status(R, "completed")), [], { includeLiveness: false });
 }
 
-/** The keys a finished turn leads with: everything after the person's message, before "How it got there". */
+/** The keys a finished turn leads with: everything after the person's message, before "How it got there" and the scores row. */
 function lead(items: readonly ThreadItem[]): string[] {
-  return items.slice(1).filter((item) => item.kind !== "how-it-got-there").map((item) => item.key);
+  return items.slice(1).filter((item) => item.kind !== "how-it-got-there" && item.kind !== "turn-scores").map((item) => item.key);
+}
+
+/** The run whose scores sit at the turn's foot, if any. */
+function footScores(items: readonly ThreadItem[]): string | undefined {
+  const last = items.at(-1);
+  return last?.kind === "turn-scores" ? last.runId : undefined;
 }
 
 /** The message carrying the turn's scores, if any. */
@@ -43,12 +50,19 @@ function howKeys(items: readonly ThreadItem[]): string[] {
 }
 
 describe("buildThreadItems answer", () => {
-  it("leads with nothing and scores nothing when the turn ended on a step", () => {
+  it("leads with nothing when the turn ended on a step, its scores at its foot", () => {
     const items = finished(said(R, 0, "Let me find where invoices round."), call("c1", "read_file"), call("c2", "grep"));
 
     expect(lead(items)).toEqual([]);
     expect(scored(items)).toBeUndefined();
     expect(howKeys(items)[0]).toBe(m(0));
+    expect(footScores(items)).toBe(R);
+    expect(items.filter((item) => item.kind === "turn-scores")).toHaveLength(1);
+  });
+
+  it("carries no scores row when the turn closed on its answer, or wrote no message", () => {
+    expect(footScores(finished(call("c1", "read_file"), said(R, 0, "Done.")))).toBeUndefined();
+    expect(footScores(finished(call("c1", "read_file")))).toBeUndefined();
   });
 
   it("leads with the last message when the turn closed on it", () => {
@@ -82,5 +96,6 @@ describe("buildThreadItems answer", () => {
 
     expect(lead(items)).toEqual([]);
     expect(scored(items)).toBeUndefined();
+    expect(footScores(items)).toBe(R);
   });
 });

@@ -526,6 +526,8 @@ export type ThreadItem =
       readonly items: readonly ThreadItem[];
     }
   | { readonly kind: "subagent"; readonly toolUse: ToolUse; readonly thread: Thread; readonly key: string }
+  /** A completed turn's scores where no answer carries them: it wrote messages but ended on a step. */
+  | { readonly kind: "turn-scores"; readonly runId: string; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: RunPhase; readonly key: string }
   | { readonly kind: "outcome"; readonly turn: Turn; readonly key: string }
   | {
@@ -1084,6 +1086,13 @@ export function buildThreadItems(
           items: working,
         });
       }
+    }
+
+    // A completed turn that wrote messages but closed on none of them
+    // still carries its scores (the thumbs, the run-health, judge and eval
+    // chips, Make a test case): at its foot, since no answer leads.
+    if (turn.status?.phase === "completed" && planMessageId === undefined && scoredMessageId === undefined && lastMessageId(turn.items) !== undefined) {
+      items.push({ kind: "turn-scores", runId, key: `${runId}-scores` });
     }
 
     // Every ended turn but the last closes here; the last closes after its
@@ -1726,6 +1735,8 @@ export function ThreadItemRenderer({
       return <ToolGroupRow toolUses={item.toolUses} fold={item.fold === true} formatSummary={formatToolCallSummary} />;
     case "plan":
       return <PlanSteps steps={item.steps} working={item.working} stoppedNote={item.stoppedNote} stoppedTone={item.stoppedTone} />;
+    case "turn-scores":
+      return runScoresEnabled ? <RunScores runId={item.runId} /> : null;
     case "how-it-got-there":
       return (
         <SettledStepsRow toolUses={item.toolUses} prefix="How it got there">
