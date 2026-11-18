@@ -25,6 +25,8 @@ const sdk = vi.hoisted(() => ({
 vi.mock("@stigmer/client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@stigmer/client")>();
   return {
+    // The kit's failure note reads the error's kind with the client's own helpers.
+    ...actual,
     Stigmer: class {
     platform: { getServerInfo: () => Promise<Record<string, unknown>> };
     constructor(config: ConstructorParameters<typeof actual.Stigmer>[0]) {
@@ -162,7 +164,7 @@ describe("DSK-07 connecting to the chosen server", () => {
     answers(ACME, unreachable);
     renderScreen();
 
-    expect(await screen.findByRole("heading", { name: "Can't reach stigmer.acme.internal" })).toBeTruthy();
+    expect((await screen.findByRole("alert")).textContent).toContain("Stigmer Desktop can't reach stigmer.acme.internal.");
     answers(ACME, async () => ({ authenticationRequired: false, deploymentMode: "local" }));
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
 
@@ -170,15 +172,16 @@ describe("DSK-07 connecting to the chosen server", () => {
     expect(sdk.asked).toEqual([ACME, ACME]);
   });
 
-  it("says when what answered is not a Stigmer server", async () => {
+  it("says when what answered is not a Stigmer server, with nothing to try again", async () => {
     host(ACME);
     answers(ACME, notStigmer);
     renderScreen();
 
-    expect(
-      await screen.findByRole("heading", { name: "stigmer.acme.internal doesn't look like a Stigmer server" }),
-    ).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "stigmer.acme.internal doesn't look like a Stigmer server.",
+    );
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Use another server" })).toBeTruthy();
   });
 
   it("says a server that signs people in but offers the app no sign-in is not set up, and how an operator sets it up", async () => {
@@ -186,7 +189,7 @@ describe("DSK-07 connecting to the chosen server", () => {
     answers(CLOUD, async () => ({ authenticationRequired: true, deploymentMode: "cloud" }));
     renderScreen();
 
-    expect(await screen.findByRole("heading", { name: "Stigmer Cloud isn’t set up for the desktop app" })).toBeTruthy();
+    expect(await screen.findByText("Stigmer Cloud isn't set up for Stigmer Desktop yet.")).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "How an operator sets it up" }));
     expect(tauri.callsTo("open_auth_in_browser")).toEqual([{ authUrl: DESKTOP_SIGN_IN_GUIDE }]);
   });
@@ -303,7 +306,7 @@ describe("DSK-07 choosing another server", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Use another server" }));
     await userEvent.click(screen.getByRole("button", { name: "Back" }));
 
-    expect(screen.getByRole("heading", { name: "stigmer.acme.internal doesn't look like a Stigmer server" })).toBeTruthy();
+    expect(screen.getByRole("alert").textContent).toContain("stigmer.acme.internal doesn't look like a Stigmer server.");
   });
 
   it("asks for another server, with no way back, when the build's own address is not usable", async () => {

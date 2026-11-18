@@ -23,7 +23,4 @@ export function GateHeader() {
   );
 }
 
-/** The app's mark on the gate screens, at the frame's 40px. */
-export function GateMark() {
-  return <img src="/app-icon-light.svg" alt="Stigmer" width={40} height={40} className="size-10 rounded-xl" />;
-}
+export { GateMark } from "./GateMark";

@@ -94,6 +94,9 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
       // app, and in a page's place when there is nothing to show.
       "standalone-screen",
       "sign-in",
+      // The desktop app's server screens: connecting, why a server can't be
+      // used, and choosing another.
+      "server-screen",
       "gate",
       "page-state",
       "status",

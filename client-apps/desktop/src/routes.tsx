@@ -5,6 +5,7 @@ import {
   Navigate,
   type RouteObject,
 } from "react-router-dom";
+import { RouteFailure, RouteNotFound } from "./shell/RouteStates";
 import {
   AccessHistorySection,
   AccountPreferencesSection,
@@ -83,312 +84,327 @@ function LazyPage({ children }: { children: React.ReactNode }) {
   );
 }
 
-const routes: RouteObject[] = [
+/** Every route the app's shell frames. */
+const shellRoutes: RouteObject[] = [
   {
-    element: <AppShell />,
+    index: true,
+    element: <SessionLauncher />,
+  },
+  {
+    path: "sessions/:id",
+    element: (
+      <LazyPage>
+        <SessionPage />
+      </LazyPage>
+    ),
+  },
+  {
+    path: "dashboard",
+    element: (
+      <LazyPage>
+        <DashboardPage />
+      </LazyPage>
+    ),
+  },
+  {
+    path: "conversations",
+    element: (
+      <LazyPage>
+        <ConversationsPage />
+      </LazyPage>
+    ),
+  },
+  {
+    path: "marketplace",
+    element: (
+      <LazyPage>
+        <MarketplacePage />
+      </LazyPage>
+    ),
+  },
+  {
+    path: "models",
+    element: (
+      <LazyPage>
+        <ModelsPage />
+      </LazyPage>
+    ),
+  },
+  {
+    path: "conversations/:channelId/:key",
+    element: (
+      <LazyPage>
+        <ConversationsPage />
+      </LazyPage>
+    ),
+  },
+  {
+    path: "library",
+    element: (
+      <LazyPage>
+        <LibraryLayout />
+      </LazyPage>
+    ),
     children: [
       {
         index: true,
-        element: <SessionLauncher />,
-      },
-      {
-        path: "sessions/:id",
         element: (
           <LazyPage>
-            <SessionPage />
+            <LibraryLanding />
           </LazyPage>
         ),
       },
       {
-        path: "dashboard",
+        path: "agents",
         element: (
           <LazyPage>
-            <DashboardPage />
+            <AgentListPage />
           </LazyPage>
         ),
       },
       {
-        path: "conversations",
+        path: "agents/new",
         element: (
           <LazyPage>
-            <ConversationsPage />
+            <AgentNewPage />
           </LazyPage>
         ),
       },
       {
-        path: "marketplace",
+        path: "agents/:org/:slug",
         element: (
           <LazyPage>
-            <MarketplacePage />
+            <AgentDetailPage />
           </LazyPage>
         ),
       },
       {
-        path: "models",
+        path: "skills",
         element: (
           <LazyPage>
-            <ModelsPage />
+            <SkillListPage />
           </LazyPage>
         ),
       },
       {
-        path: "conversations/:channelId/:key",
+        path: "skills/new",
         element: (
           <LazyPage>
-            <ConversationsPage />
+            <SkillNewPage />
           </LazyPage>
         ),
       },
       {
-        path: "library",
+        path: "skills/:org/:slug",
         element: (
           <LazyPage>
-            <LibraryLayout />
+            <SkillDetailPage />
+          </LazyPage>
+        ),
+      },
+      {
+        path: "plugins",
+        element: (
+          <LazyPage>
+            <PluginListPage />
+          </LazyPage>
+        ),
+      },
+      {
+        path: "plugins/upload",
+        element: (
+          <LazyPage>
+            <PluginUploadPage />
+          </LazyPage>
+        ),
+      },
+      {
+        path: "plugins/:org/:slug",
+        element: (
+          <LazyPage>
+            <PluginDetailPage />
+          </LazyPage>
+        ),
+      },
+      {
+        path: "routines",
+        element: (
+          <LazyPage>
+            <RoutineListPage />
+          </LazyPage>
+        ),
+      },
+      {
+        path: "routines/new",
+        element: (
+          <LazyPage>
+            <RoutineNewPage />
+          </LazyPage>
+        ),
+      },
+      {
+        path: "routines/:org/:slug",
+        element: (
+          <LazyPage>
+            <RoutineDetailPage />
+          </LazyPage>
+        ),
+      },
+      {
+        path: "environments",
+        element: (
+          <LazyPage>
+            <EnvironmentListPage />
+          </LazyPage>
+        ),
+      },
+      {
+        path: "environments/new",
+        element: (
+          <LazyPage>
+            <EnvironmentNewPage />
+          </LazyPage>
+        ),
+      },
+      {
+        path: "environments/:org/:slug",
+        element: (
+          <LazyPage>
+            <EnvironmentDetailPage />
+          </LazyPage>
+        ),
+      },
+      {
+        // A File has no detail route: a row opens its preview.
+        path: "files",
+        element: (
+          <LazyPage>
+            <FileListPage />
+          </LazyPage>
+        ),
+      },
+    ],
+  },
+  {
+    path: "runs/:id",
+    element: (
+      <LazyPage>
+        <RunPage />
+      </LazyPage>
+    ),
+  },
+  {
+    path: "settings",
+    children: [
+      {
+        element: (
+          <LazyPage>
+            <SettingsLayout />
           </LazyPage>
         ),
         children: [
           {
             index: true,
             element: (
-              <LazyPage>
-                <LibraryLanding />
-              </LazyPage>
+              <SettingsLazyPage>
+                <SettingsLanding />
+              </SettingsLazyPage>
+            ),
+          },
+          { path: "api-keys", element: <ApiKeysSection /> },
+          { path: "vaults", element: <VaultsSection /> },
+          {
+            path: "members",
+            element: <MembersSection serviceAccountsHref="#/settings/service-accounts" />,
+          },
+          { path: "teams", element: <TeamsSection /> },
+          {
+            path: "org-profile",
+            element: (
+              <SettingsLazyPage>
+                <OrgProfilePage />
+              </SettingsLazyPage>
+            ),
+          },
+          { path: "org-preferences", element: <OrgPreferencesSection /> },
+          // Policies and Notifications are sections of the two preferences
+          // pages now; their old addresses forward, so no link breaks.
+          { path: "org-policies", element: <Navigate to="/settings/org-preferences" replace /> },
+          {
+            path: "org-embedding",
+            element: <OrgEmbeddingSection serviceAccountsHref="#/settings/service-accounts" />,
+          },
+          {
+            path: "account-preferences",
+            element: (
+              <AccountPreferencesSection
+                modelsHubHref="#/models"
+                requestPermission={requestDesktopNotificationPermission}
+              />
+            ),
+          },
+          { path: "notifications", element: <Navigate to="/settings/account-preferences" replace /> },
+          { path: "memory", element: <MemorySection /> },
+          { path: "invitations", element: <DesktopInvitationsSection /> },
+          { path: "bring-others-in", element: <DesktopBringOthersIn /> },
+          { path: "federation-issuers", element: <FederationIssuersSection /> },
+          { path: "service-accounts", element: <ServiceAccountsSection /> },
+          { path: "access-history", element: <AccessHistorySection /> },
+          { path: "oauth-apps", element: <OAuthAppsSection /> },
+          { path: "channel-apps", element: <ChannelAppsSection /> },
+          { path: "usage", element: <UsageSection /> },
+          {
+            path: "billing",
+            element: (
+              <SettingsLazyPage>
+                <BillingPage />
+              </SettingsLazyPage>
             ),
           },
           {
-            path: "agents",
+            path: "model-catalog",
             element: (
-              <LazyPage>
-                <AgentListPage />
-              </LazyPage>
+              <SettingsLazyPage>
+                <ModelCatalogPage />
+              </SettingsLazyPage>
             ),
           },
           {
-            path: "agents/new",
+            path: "licenses",
             element: (
-              <LazyPage>
-                <AgentNewPage />
-              </LazyPage>
+              <SettingsLazyPage>
+                <LicensesPage />
+              </SettingsLazyPage>
             ),
           },
           {
-            path: "agents/:org/:slug",
+            path: "plans",
             element: (
-              <LazyPage>
-                <AgentDetailPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: "skills",
-            element: (
-              <LazyPage>
-                <SkillListPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: "skills/new",
-            element: (
-              <LazyPage>
-                <SkillNewPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: "skills/:org/:slug",
-            element: (
-              <LazyPage>
-                <SkillDetailPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: "plugins",
-            element: (
-              <LazyPage>
-                <PluginListPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: "plugins/upload",
-            element: (
-              <LazyPage>
-                <PluginUploadPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: "plugins/:org/:slug",
-            element: (
-              <LazyPage>
-                <PluginDetailPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: "routines",
-            element: (
-              <LazyPage>
-                <RoutineListPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: "routines/new",
-            element: (
-              <LazyPage>
-                <RoutineNewPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: "routines/:org/:slug",
-            element: (
-              <LazyPage>
-                <RoutineDetailPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: "environments",
-            element: (
-              <LazyPage>
-                <EnvironmentListPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: "environments/new",
-            element: (
-              <LazyPage>
-                <EnvironmentNewPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: "environments/:org/:slug",
-            element: (
-              <LazyPage>
-                <EnvironmentDetailPage />
-              </LazyPage>
-            ),
-          },
-          {
-            // A File has no detail route: a row opens its preview.
-            path: "files",
-            element: (
-              <LazyPage>
-                <FileListPage />
-              </LazyPage>
+              <SettingsLazyPage>
+                <PlansPage />
+              </SettingsLazyPage>
             ),
           },
         ],
       },
+    ],
+  },
+];
+
+/**
+ * The shell, and inside it a pathless route that holds every page: its
+ * `errorElement` draws a page that broke inside the shell, so the sidebar
+ * stays (on the shell's own route the shell would go with it), and `*`
+ * says an address leads nowhere, where react-router's developer page
+ * stood before.
+ */
+const routes: RouteObject[] = [
+  {
+    element: <AppShell />,
+    children: [
       {
-        path: "runs/:id",
-        element: (
-          <LazyPage>
-            <RunPage />
-          </LazyPage>
-        ),
-      },
-      {
-        path: "settings",
-        children: [
-          {
-            element: (
-              <LazyPage>
-                <SettingsLayout />
-              </LazyPage>
-            ),
-            children: [
-              {
-                index: true,
-                element: (
-                  <SettingsLazyPage>
-                    <SettingsLanding />
-                  </SettingsLazyPage>
-                ),
-              },
-              { path: "api-keys", element: <ApiKeysSection /> },
-              { path: "vaults", element: <VaultsSection /> },
-              {
-                path: "members",
-                element: <MembersSection serviceAccountsHref="#/settings/service-accounts" />,
-              },
-              { path: "teams", element: <TeamsSection /> },
-              {
-                path: "org-profile",
-                element: (
-                  <SettingsLazyPage>
-                    <OrgProfilePage />
-                  </SettingsLazyPage>
-                ),
-              },
-              { path: "org-preferences", element: <OrgPreferencesSection /> },
-              // Policies and Notifications are sections of the two preferences
-              // pages now; their old addresses forward, so no link breaks.
-              { path: "org-policies", element: <Navigate to="/settings/org-preferences" replace /> },
-              {
-                path: "org-embedding",
-                element: <OrgEmbeddingSection serviceAccountsHref="#/settings/service-accounts" />,
-              },
-              {
-                path: "account-preferences",
-                element: (
-                  <AccountPreferencesSection
-                    modelsHubHref="#/models"
-                    requestPermission={requestDesktopNotificationPermission}
-                  />
-                ),
-              },
-              { path: "notifications", element: <Navigate to="/settings/account-preferences" replace /> },
-              { path: "memory", element: <MemorySection /> },
-              { path: "invitations", element: <DesktopInvitationsSection /> },
-              { path: "bring-others-in", element: <DesktopBringOthersIn /> },
-              { path: "federation-issuers", element: <FederationIssuersSection /> },
-              { path: "service-accounts", element: <ServiceAccountsSection /> },
-              { path: "access-history", element: <AccessHistorySection /> },
-              { path: "oauth-apps", element: <OAuthAppsSection /> },
-              { path: "channel-apps", element: <ChannelAppsSection /> },
-              { path: "usage", element: <UsageSection /> },
-              {
-                path: "billing",
-                element: (
-                  <SettingsLazyPage>
-                    <BillingPage />
-                  </SettingsLazyPage>
-                ),
-              },
-              {
-                path: "model-catalog",
-                element: (
-                  <SettingsLazyPage>
-                    <ModelCatalogPage />
-                  </SettingsLazyPage>
-                ),
-              },
-              {
-                path: "licenses",
-                element: (
-                  <SettingsLazyPage>
-                    <LicensesPage />
-                  </SettingsLazyPage>
-                ),
-              },
-              {
-                path: "plans",
-                element: (
-                  <SettingsLazyPage>
-                    <PlansPage />
-                  </SettingsLazyPage>
-                ),
-              },
-            ],
-          },
-        ],
+        errorElement: <RouteFailure />,
+        children: [...shellRoutes, { path: "*", element: <RouteNotFound /> }],
       },
     ],
   },
@@ -408,12 +424,14 @@ router.subscribe((state) => {
 /**
  * The saved route to reopen at launch, when it still names a screen. A
  * path the app no longer routes (a screen removed or moved, such as a run's
- * page before runs lived at /runs) opens the home screen instead of a page
- * with no way out.
+ * page before runs lived at /runs) opens the home screen instead of the
+ * not-found page.
  */
 export function restorableRoute(saved: string | null): string | undefined {
   if (!saved || saved === "/") return undefined;
-  return matchRoutes(routes, saved) === null ? undefined : saved;
+  // `*` matches anything; only a page of the app counts.
+  const matched = matchRoutes(routes, saved);
+  return matched === null || matched[matched.length - 1]?.route.path === "*" ? undefined : saved;
 }
 
 /**

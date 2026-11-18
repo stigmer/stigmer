@@ -87,6 +87,7 @@ export const PAGE_PRELUDES = [
   { page: "docs/sdk/react/library-pages.mdx", typescript: "react-console" },
   { page: "docs/sdk/react/page-frame.mdx", typescript: "react-console" },
   { page: "docs/sdk/react/page-state.mdx", typescript: "react-console" },
+  { page: "docs/sdk/react/server-screen.mdx", typescript: "react-console" },
   { page: "docs/sdk/react/settings.mdx", typescript: "react-console" },
   { page: "docs/sdk/react/sign-in.mdx", typescript: "react-console" },
   { page: "docs/sdk/react/sidebar.mdx", typescript: "react-console" },

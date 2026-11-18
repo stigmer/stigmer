@@ -4,28 +4,33 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import "./fonts.css";
 import "./globals.css";
 import { App } from "./App";
+import { BootFailure } from "./shell/BootFailure";
 
+/**
+ * The app's last resort: a failure while it draws itself, before any screen
+ * of its own can say so. It renders before every provider, so it stands on
+ * the kit's standalone frame inside the pre-app colour scheme, with the
+ * failure in the console's words; the stack goes to Copy details, for
+ * whoever fixes it, and never onto the screen.
+ */
 class BootErrorBoundary extends Component<
   { children: ReactNode },
   { error: Error | null }
 > {
   state: { error: Error | null } = { error: null };
+
   static getDerivedStateFromError(error: Error) {
     return { error };
   }
+
   render() {
     if (this.state.error) {
-      return (
-        <div style={{ padding: "2rem", color: "#f87171", fontFamily: "monospace", whiteSpace: "pre-wrap", backgroundColor: "#09090b", minHeight: "100vh" }}>
-          <h2 style={{ marginBottom: "1rem" }}>Runtime Error</h2>
-          <p>{this.state.error.message}</p>
-          <pre style={{ marginTop: "1rem", fontSize: "var(--stgm-text-xs)", color: "#a1a1aa" }}>{this.state.error.stack}</pre>
-        </div>
-      );
+      return <BootFailure error={this.state.error} />;
     }
     return this.props.children;
   }
 }
+
 
 /**
  * Tauri v2 injects `__TAURI_INTERNALS__` into the webview at startup.

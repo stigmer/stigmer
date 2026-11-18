@@ -7,8 +7,13 @@
     {
       "caption": "Starting the app: Starting",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "built": [
+        {
+          "scene": "desktop-starting",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Starting Stigmer Desktop…",
@@ -27,8 +32,13 @@
     {
       "caption": "Starting the app: Couldn't start",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "built": [
+        {
+          "scene": "desktop-start-failed",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Stigmer Desktop couldn't start.",
@@ -89,9 +99,13 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "word Your conversations are safe on stigmer.acme.example.": "When its page is redesigned: the boot failure comes before the app knows its server, so the build says 'your server', not its address; for the Built look"
+      }
     }
   ]
 }

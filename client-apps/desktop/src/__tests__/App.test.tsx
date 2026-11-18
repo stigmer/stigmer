@@ -36,7 +36,9 @@ vi.mock("../server/ServerProvider", () => ({
 }));
 vi.mock("../server/ConnectScreen", () => ({
   ConnectScreen: () => <p>connect screen</p>,
-  ChooseServerScreen: () => <p>server form</p>,
+  // The kit's modal dialog opens itself while the person chooses; its focus
+  // trap is pinned by the kit's tests.
+  ChooseServerDialog: () => <p>server form over the app</p>,
 }));
 
 const auth = vi.hoisted(() => ({
@@ -213,7 +215,7 @@ describe("App", () => {
     server.state = { ...server.state, isChoosing: true };
     render(<App />);
 
-    expect(screen.getByRole("dialog", { name: "Use another server" }).textContent).toBe("server form");
+    expect(screen.getByText("server form over the app")).toBeTruthy();
     expect(screen.getByText("the routes")).toBeTruthy();
   });
 

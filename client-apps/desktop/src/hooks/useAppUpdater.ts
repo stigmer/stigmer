@@ -31,7 +31,7 @@ const TRAY_CHECK_EVENT = "check-for-update";
  * Also listens for the `check-for-update` Tauri event so the system tray
  * menu can trigger a user-initiated check.
  *
- * The toast has a "Restart to Update" action. Clicking it downloads the update,
+ * The toast has a "Restart to update" action. Clicking it downloads the update,
  * installs it, and relaunches the app.
  *
  * Mount once in the authenticated app root.
@@ -61,12 +61,12 @@ export function useAppUpdater(): AppUpdaterState {
       setStatus("available");
       busyRef.current = false;
 
-      toast.info(`Update available: v${update.version}`, {
+      toast.info(`Update available: version ${update.version}`, {
         duration: Infinity,
         id: "app-update",
         closeButton: true,
         action: {
-          label: "Restart to Update",
+          label: "Restart to update",
           onClick: () => downloadAndRelaunch(update, setStatus),
         },
       });
@@ -75,7 +75,7 @@ export function useAppUpdater(): AppUpdaterState {
       setStatus("error");
       busyRef.current = false;
       if (userInitiated) {
-        toast.error("Could not check for updates. Try again later.", {
+        toast.error("Couldn't check for updates. Try again later.", {
           id: "app-update",
         });
       }
@@ -108,14 +108,14 @@ async function downloadAndRelaunch(
 ): Promise<void> {
   setStatus("downloading");
   try {
-    toast.loading("Downloading update...", { id: "app-update" });
+    toast.loading("Downloading the update…", { id: "app-update" });
     await update.downloadAndInstall();
     setStatus("ready");
     await relaunch();
   } catch (err: unknown) {
     console.warn("[updater] Failed to download/install update:", err);
     setStatus("error");
-    toast.error("Update failed. Please try again later.", {
+    toast.error("The update didn't install. Try again later.", {
       id: "app-update",
     });
   }

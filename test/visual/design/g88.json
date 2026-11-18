@@ -7,8 +7,13 @@
     {
       "caption": "The agents' status: Before anything runs",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "built": [
+        {
+          "scene": "sidebar-status-idle",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Agents start with a conversation",
@@ -44,15 +49,24 @@
         }
       ],
       "buttons": [],
-      "sample": {},
+      "sample": {
+        "word Settings": "The drawing crops the sidebar's foot (Settings and the account under the row); the scene draws the row alone",
+        "word AL": "The drawing crops the sidebar's foot (Settings and the account under the row); the scene draws the row alone",
+        "word Ada Lovelace": "The drawing crops the sidebar's foot (Settings and the account under the row); the scene draws the row alone"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "The agents' status: Starting",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "built": [
+        {
+          "scene": "sidebar-status-starting",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Starting agents…",
@@ -88,15 +102,24 @@
         }
       ],
       "buttons": [],
-      "sample": {},
+      "sample": {
+        "word Settings": "The drawing crops the sidebar's foot (Settings and the account under the row); the scene draws the row alone",
+        "word AL": "The drawing crops the sidebar's foot (Settings and the account under the row); the scene draws the row alone",
+        "word Ada Lovelace": "The drawing crops the sidebar's foot (Settings and the account under the row); the scene draws the row alone"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "The agents' status: Ready",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "built": [
+        {
+          "scene": "sidebar-status-ready",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Agents ready",
@@ -132,15 +155,24 @@
         }
       ],
       "buttons": [],
-      "sample": {},
+      "sample": {
+        "word Settings": "The drawing crops the sidebar's foot (Settings and the account under the row); the scene draws the row alone",
+        "word AL": "The drawing crops the sidebar's foot (Settings and the account under the row); the scene draws the row alone",
+        "word Ada Lovelace": "The drawing crops the sidebar's foot (Settings and the account under the row); the scene draws the row alone"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "The agents' status: Working",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "built": [
+        {
+          "scene": "sidebar-status-working",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Agents working on 2 conversations",
@@ -176,15 +208,24 @@
         }
       ],
       "buttons": [],
-      "sample": {},
+      "sample": {
+        "word Settings": "The drawing crops the sidebar's foot (Settings and the account under the row); the scene draws the row alone",
+        "word AL": "The drawing crops the sidebar's foot (Settings and the account under the row); the scene draws the row alone",
+        "word Ada Lovelace": "The drawing crops the sidebar's foot (Settings and the account under the row); the scene draws the row alone"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "The agents' status: Stopped",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "built": [
+        {
+          "scene": "sidebar-status-stopped",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Agents stopped",
@@ -233,15 +274,24 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Settings": "The drawing crops the sidebar's foot (Settings and the account under the row); the scene draws the row alone",
+        "word AL": "The drawing crops the sidebar's foot (Settings and the account under the row); the scene draws the row alone",
+        "word Ada Lovelace": "The drawing crops the sidebar's foot (Settings and the account under the row); the scene draws the row alone"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "The agents' status: Couldn't start",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "built": [
+        {
+          "scene": "sidebar-status-failed",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Agents couldn't start",
@@ -298,7 +348,11 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Settings": "The drawing crops the sidebar's foot (Settings and the account under the row); the scene draws the row alone",
+        "word AL": "The drawing crops the sidebar's foot (Settings and the account under the row); the scene draws the row alone",
+        "word Ada Lovelace": "The drawing crops the sidebar's foot (Settings and the account under the row); the scene draws the row alone"
+      },
       "ruled": {},
       "pending": {}
     }

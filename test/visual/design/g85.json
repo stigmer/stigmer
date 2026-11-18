@@ -7,8 +7,13 @@
     {
       "caption": "Connecting to a server: Connecting",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "built": [
+        {
+          "scene": "server-connecting",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Connecting to stigmer.acme.example…",
@@ -27,8 +32,13 @@
     {
       "caption": "Connecting to a server: Can't reach it",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "built": [
+        {
+          "scene": "server-unreachable",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Stigmer Desktop can't reach stigmer.acme.example.",
@@ -101,15 +111,22 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "Connecting to a server: Not a Stigmer server",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "built": [
+        {
+          "scene": "server-not-stigmer",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "stigmer.acme.example doesn't look like a Stigmer server.",
@@ -170,15 +187,22 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
       "pending": {}
     },
     {
       "caption": "Connecting to a server: Not set up for the desktop app",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "built": [
+        {
+          "scene": "server-not-set-up",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Acme isn't set up for Stigmer Desktop yet.",
@@ -227,9 +251,13 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
-      "pending": {}
+      "pending": {
+        "type How an operator sets it up": "When its page is redesigned: the notice's link is the kit's 14/20, as every notice's link is; the drawing draws it at 12/16; for the Built look"
+      }
     }
   ]
 }

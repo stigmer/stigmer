@@ -756,8 +756,13 @@
     {
       "caption": "A page that broke: The desktop app (new)",
       "narrow": false,
-      "built": [],
-      "unbuilt": "When its page is redesigned: the desktop app's router draws its unknown address and a page that broke inside its frame, with the next change to the desktop app's own screens",
+      "built": [
+        {
+          "scene": "page-failure-unknown",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
       "words": [
         {
           "text": "Acme Corp",
@@ -906,7 +911,22 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Acme Corp": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word New Session": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Dashboard": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Conversations": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Library": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Marketplace": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Models & providers": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Agents ready": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Settings": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word AL": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Ada Lovelace": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Something went wrong in this page.": "The drawing words a render failure 'Something went wrong in this page.' with an invented line; the kit says a failure of no known kind from its kind, as the console's broken pages do",
+        "word a part of the page failed to draw": "The drawing words a render failure 'Something went wrong in this page.' with an invented line; the kit says a failure of no known kind from its kind, as the console's broken pages do",
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
       "ruled": {},
       "pending": {}
     }

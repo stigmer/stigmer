@@ -205,6 +205,25 @@ export type SceneId =
   | "handoff-nothing-changed"
   | "handoff-going-back"
   | "handoff-signed-in"
+  | "desktop-sign-in-ready"
+  | "desktop-sign-in-elsewhere"
+  | "desktop-sign-in-waiting"
+  | "desktop-sign-in-failed"
+  | "server-connecting"
+  | "server-unreachable"
+  | "server-not-stigmer"
+  | "server-not-set-up"
+  | "server-chooser"
+  | "server-chooser-unusable"
+  | "server-chooser-dialog"
+  | "desktop-starting"
+  | "desktop-start-failed"
+  | "sidebar-status-idle"
+  | "sidebar-status-starting"
+  | "sidebar-status-ready"
+  | "sidebar-status-working"
+  | "sidebar-status-stopped"
+  | "sidebar-status-failed"
   | `preset-${Preset}`;
 
 /** The roles a control is pressed by: Playwright's own list, the one `getByRole` takes. */
@@ -1675,6 +1694,25 @@ const LISTED: readonly Scene[] = [
   { id: "handoff-nothing-changed", title: "Back to the desktop app: nothing was changed", widths: ["desktop"] },
   { id: "handoff-going-back", title: "Back to the desktop app: going back after signing in", widths: ["desktop"] },
   { id: "handoff-signed-in", title: "Back to the desktop app: signed in, the app didn't open", widths: ["desktop"] },
+  { id: "desktop-sign-in-ready", title: "Desktop sign-in: ready, on the server's own sign-in", widths: ["desktop"] },
+  { id: "desktop-sign-in-elsewhere", title: "Desktop sign-in: the sign-in page is on another site", widths: ["desktop"] },
+  { id: "desktop-sign-in-waiting", title: "Desktop sign-in: waiting for the browser", widths: ["desktop"] },
+  { id: "desktop-sign-in-failed", title: "Desktop sign-in: it didn't finish", widths: ["desktop"] },
+  { id: "server-connecting", title: "Desktop server: connecting", widths: ["desktop"] },
+  { id: "server-unreachable", title: "Desktop server: nothing answered", widths: ["desktop"] },
+  { id: "server-not-stigmer", title: "Desktop server: not a Stigmer server", widths: ["desktop"] },
+  { id: "server-not-set-up", title: "Desktop server: not set up for the desktop app", widths: ["desktop"] },
+  { id: "server-chooser", title: "Desktop server: choosing another", widths: ["desktop"] },
+  { id: "server-chooser-unusable", title: "Desktop server: choosing, when the build's server can't be used", widths: ["desktop"] },
+  { id: "server-chooser-dialog", title: "Desktop server: choosing another, over the app", widths: ["desktop"] },
+  { id: "desktop-starting", title: "Desktop app: starting", widths: ["desktop"] },
+  { id: "desktop-start-failed", title: "Desktop app: it couldn't start", widths: ["desktop"] },
+  { id: "sidebar-status-idle", title: "Agents' status: before anything runs", widths: ["desktop"] },
+  { id: "sidebar-status-starting", title: "Agents' status: starting", widths: ["desktop"] },
+  { id: "sidebar-status-ready", title: "Agents' status: ready", widths: ["desktop"] },
+  { id: "sidebar-status-working", title: "Agents' status: working", widths: ["desktop"] },
+  { id: "sidebar-status-stopped", title: "Agents' status: stopped", widths: ["desktop"] },
+  { id: "sidebar-status-failed", title: "Agents' status: couldn't start", widths: ["desktop"] },
   ...PRESETS.map((preset) => ({
     id: `preset-${preset}` as const,
     title: `The completed thread in the ${preset} preset`,
