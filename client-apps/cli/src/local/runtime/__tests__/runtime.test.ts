@@ -1,9 +1,9 @@
-import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CliExitError } from "../../../errors/cli-exit-error.js";
-import { resolveNode, resolveServerNode } from "../node.js";
+import { SERVER_NODE_FLOOR, SERVER_NODE_RANGE, resolveNode, resolveServerNode, serverRunsOn } from "../node.js";
 import { acquireRunner, resolveRunner } from "../runner.js";
 import { which } from "../which.js";
 
@@ -104,20 +104,66 @@ describe("resolveNode", () => {
 });
 
 describe("resolveServerNode", () => {
-  it("honors an override that passes the FTS5 capability probe", () => {
-    const bin = fakeNodeBinary({ version: "v22.13.0", hasSqlite: true });
+  it("honors an override in the server's range that passes the FTS5 capability probe", () => {
+    const bin = fakeNodeBinary({ version: "v22.19.0", hasSqlite: true });
     process.env.STIGMER_NODE_BIN = bin;
     expect(resolveServerNode()).toBe(bin);
+
+    const later = fakeNodeBinary({ version: "v24.1.0", hasSqlite: true });
+    process.env.STIGMER_NODE_BIN = later;
+    expect(resolveServerNode()).toBe(later);
   });
 
-  it("rejects a Node whose sqlite lacks FTS5, naming the capability (the 23.4 trap)", () => {
-    // The shape of a REAL 23.4 binary: node:sqlite present (the module probe
-    // would pass), FTS5 absent (the fts5 probe fails) — pinning that the
-    // server resolution dispatches the STRONGER probe.
-    process.env.STIGMER_NODE_BIN = fakeNodeBinary({ version: "v23.4.0", hasSqlite: true, hasFts5: false });
+  it("rejects an override that is not a working Node, naming the range it should be", () => {
+    process.env.STIGMER_NODE_BIN = "/nonexistent/node";
+    let hints: readonly string[] = [];
+    try {
+      resolveServerNode();
+    } catch (err) {
+      expect(err).toBeInstanceOf(CliExitError);
+      expect((err as Error).message).toBe("could not run /nonexistent/node to verify the stigmer server's Node requirements");
+      hints = (err as CliExitError).hints ?? [];
+    }
+    expect(hints).toEqual([`Ensure /nonexistent/node is a working ${SERVER_NODE_FLOOR} runtime.`]);
+  });
+
+  it.each(["v22.13.0", "v22.18.0", "v23.4.0", "v23.11.1", "v20.19.0"])(
+    "rejects %s with FTS5, naming the version to install",
+    (version) => {
+      // Node 22.13-22.18 pass the FTS5 probe, so a capability gate alone let
+      // them through to a server that declares 22.19 (its network client,
+      // undici, needs it); the version check is what refuses them.
+      process.env.STIGMER_NODE_BIN = fakeNodeBinary({ version, hasSqlite: true });
+      expect(() => resolveServerNode()).toThrow(
+        `(${version}) cannot run the stigmer server: it needs Node.js 22 (22.19 or newer) or Node.js 24 or newer`,
+      );
+    },
+  );
+
+  it("rejects a Node in range whose sqlite lacks FTS5, naming the capability", () => {
+    // node:sqlite present (the module probe would pass), FTS5 absent (the
+    // fts5 probe fails), on a version the range accepts — pinning that the
+    // server resolution dispatches the STRONGER probe after the version check.
+    process.env.STIGMER_NODE_BIN = fakeNodeBinary({ version: "v24.1.0", hasSqlite: true, hasFts5: false });
 
     expect(() => resolveServerNode()).toThrow(/FTS5/);
-    expect(() => resolveServerNode()).toThrow(/v23\.4\.0/);
+    expect(() => resolveServerNode()).toThrow(/v24\.1\.0/);
+  });
+
+  it("states the server's own range, and the CLI's engines is that range", () => {
+    // The CLI's copy of the server's floor drifted once (it said 22.13 while
+    // the server declared 22.19); these three cannot disagree again.
+    const manifest = (path: string): { engines?: { node?: string } } =>
+      JSON.parse(readFileSync(new URL(path, import.meta.url), "utf8")) as { engines?: { node?: string } };
+    expect(SERVER_NODE_RANGE).toBe(">=22.19.0 <23 || >=24");
+    expect(manifest("../../../../../../backend/services/stigmer-server/package.json").engines?.node).toBe(SERVER_NODE_RANGE);
+    expect(manifest("../../../../package.json").engines?.node).toBe(SERVER_NODE_RANGE);
+    expect(SERVER_NODE_FLOOR).toBe("Node.js 22 (22.19 or newer) or Node.js 24 or newer");
+  });
+
+  it("reads versions the way the range does", () => {
+    for (const ok of ["v22.19.0", "22.22.1", "v24.0.0", "v26.3.1"]) expect(serverRunsOn(ok), ok).toBe(true);
+    for (const no of ["v22.18.9", "v23.8.0", "v21.9.0", "unknown"]) expect(serverRunsOn(no), no).toBe(false);
   });
 
   it("the runner resolution still accepts the 23.4 shape (module present, FTS5 absent)", () => {
@@ -133,7 +179,9 @@ describe("resolveServerNode", () => {
     // the runtime's own capability — the resolveNode own-runtime pattern —
     // so a no-FTS5 Node (e.g. 23.4) asserts the throw instead of the pass.
     delete process.env.STIGMER_NODE_BIN;
-    if (currentRuntimeHasFts5()) {
+    if (!serverRunsOn(process.version)) {
+      expect(() => resolveServerNode()).toThrow(/cannot run the stigmer server/);
+    } else if (currentRuntimeHasFts5()) {
       expect(resolveServerNode()).toBe(process.execPath);
     } else {
       expect(() => resolveServerNode()).toThrow(/FTS5/);

@@ -83,7 +83,7 @@ import { eventTypeOf } from "@stigmer/session-log";
 
 import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import { approvalAnswersOf, copyAnswersOntoRows } from "../../harness/approval-answers.js";
-import { terminalizeNonExecutingDecisions } from "../../harness/approval-decisions.js";
+import { settleApprovedNotRun, terminalizeNonExecutingDecisions } from "../../harness/approval-decisions.js";
 import { answerEventsFor } from "../approval-log.js";
 import { SessionEventEmitter } from "../../harness/events/emitter.js";
 import { resumeSeedOf } from "../../harness/transcript/resume-seed.js";
@@ -138,6 +138,35 @@ export interface TurnInFlight {
   readonly input: TurnInput;
   readonly sink: RecordingTurnSink;
   readonly settled: Promise<TurnOutcome>;
+}
+
+/**
+ * Whether the runtime ends the run on an outcome of this kind, so an
+ * approved call still waiting is settled FAILED (`run-turn.ts`, the
+ * completion writers): the kit's replay of the terminal table's `completes`.
+ * `completed` goes to `completeTurn`, which always stamps completion;
+ * `failed` and `tool_call_limit` to `failedArm` and `toolCallLimitArm`, which
+ * complete; `awaiting_approval` to `awaitingApprovalArm`, which does not.
+ * An `interrupted` outcome's arm is picked by stop evidence only the runtime
+ * holds, and the kit has none, so it leaves the row as a resumable stop does.
+ * `approval-decisions.test.ts` pins this against the real arms.
+ */
+export function outcomeCompletesTheRun(outcome: TurnOutcome["kind"]): boolean {
+  switch (outcome) {
+    case "completed":
+    case "failed":
+    case "tool_call_limit":
+      return true;
+    case "awaiting_approval":
+    case "interrupted":
+      return false;
+    /* v8 ignore start -- @preserve: the never arm; the compiler proves no outcome kind reaches it */
+    default: {
+      const exhaustive: never = outcome;
+      throw new Error(`outcomeCompletesTheRun: unknown turn outcome ${String(exhaustive)}`);
+    }
+    /* v8 ignore stop */
+  }
 }
 
 /**
@@ -221,14 +250,16 @@ export class ExecutionDriver {
 
   /**
    * The runtime's post-turn bookkeeping: settle the decisions the adapter
-   * never executed (the runtime's write, `terminalizeNonExecutingDecisions`,
-   * on the turn's outcome, so a decided row is not re-read as WAITING on the
-   * next turn), write the rows into the log with the runtime's own emitter
-   * (its terminal write), persist the status, adopt a bound id, advance the
-   * cycle.
+   * never executed (the runtime's writes: `terminalizeNonExecutingDecisions`
+   * on every outcome, so a decided row is not re-read as WAITING on the next
+   * turn, and `settleApprovedNotRun` once the outcome's arm completes the
+   * run, {@link outcomeCompletesTheRun}), write the rows into the log with
+   * the runtime's own emitter (its terminal write), persist the status,
+   * adopt a bound id, advance the cycle.
    */
   async recordTurn(sink: RecordingTurnSink, outcome: TurnOutcome["kind"]): Promise<void> {
-    terminalizeNonExecutingDecisions(sink.rows, outcome);
+    terminalizeNonExecutingDecisions(sink.rows);
+    if (outcomeCompletesTheRun(outcome)) settleApprovedNotRun(sink.rows);
     await this.writeRows(sink.rows, sink.seeded);
     this.persisted = sink.status;
     this.lastRows = sink.rows;
@@ -399,7 +430,8 @@ export async function assertProposalIsWaitingAndUnexecuted(subject: HarnessContr
  * it is not the adapter's to write (the decision is the log's answer, which
  * the runtime's seed copies onto the row, and the WAITING → SKIPPED transition follows from it with no engine knowledge,
  * so it is the runtime's — `terminalizeNonExecutingDecisions`, landed in
- * #1096 and pinned by the runtime half's REJECT / SKIP arms).
+ * #1096 and pinned by the runtime half's REJECT / SKIP arms; an approved
+ * call the run ended without running is `settleApprovedNotRun`'s).
  * The reinvocation sees a CLONE of the persisted status, as it would from
  * the server. Each decision is its own execution, as each message is its own
  * run in production: an execution that completed is never handed a new

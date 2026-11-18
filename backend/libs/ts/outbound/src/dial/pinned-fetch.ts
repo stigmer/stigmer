@@ -4,12 +4,15 @@
  *
  * Importing this module loads undici, and undici registers itself as the
  * process's dispatcher on import (the slot Node's built-in `fetch` reads)
- * when nothing registered one first. A Stigmer server process already
- * carries undici from its Kubernetes client, so nothing changes there; a
- * process without it (the runner) would change every `fetch` it makes by
- * importing this. That is why the dialer is its own entry,
- * `@stigmer/outbound/dial`, on neither the root barrel nor `./egress`, and
- * why `package.json` lists it as the library's one module with side effects.
+ * when nothing registered one first. A Stigmer server process carries
+ * undici anyway (its Kubernetes client depends on it), so nothing changes
+ * there; a process without it (the runner) would change every `fetch` it
+ * makes by importing this, and would need undici's higher Node floor. That
+ * is why the dialer is its own entry, `@stigmer/outbound/dial`, on neither
+ * the root barrel nor `./egress`; why `package.json` lists it as the
+ * library's one module with side effects; and why undici is an optional
+ * peer, declared by the process that composes this entry (the server,
+ * Enterprise), whose floor `runtime-floor.ts` states at load.
  *
  * Why it exists: the guarded fetch (`../egress/fetch.ts`) checks a URL's
  * addresses and then asks a `fetch` to dial its hostname, which resolves

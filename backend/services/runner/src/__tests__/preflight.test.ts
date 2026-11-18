@@ -53,7 +53,7 @@ describe("preflightNodeRuntime", () => {
     // excludes that gap. If the floors genuinely move, update the preflight
     // message, this pin, and package.json together. These floors hold only
     // while the runner loads nothing that needs more: runner-is-undici-free
-    // fences off undici, whose 22.19 / 23.8 floor is @stigmer/outbound's.
+    // fences off undici, whose 22.19 / 23.8 floor is @stigmer/outbound/dial's.
     const pkg = JSON.parse(
       readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
     ) as { engines: { node: string } };

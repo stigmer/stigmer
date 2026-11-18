@@ -11,7 +11,7 @@ This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.
 ### Development Setup
 
 **Prerequisites**:
-- Node.js 22.13 or later (server, runner, CLI, web console)
+- Node.js 22 (22.19 or newer) or Node.js 24 or newer (server, runner, CLI, web console)
 - Go 1.25 or later (Go SDK, codegen tools, integration harnesses)
 - `buf` CLI tool
 
