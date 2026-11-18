@@ -47,36 +47,65 @@ MCP client ──JSON-RPC──▶ stdio | HTTP (stateless) ──▶ tool handl
   flattening, oneof expansion) are produced at build time by the codegen in
   `tools/codegen/src/generator/mcp-ts.ts`. Never hand-edit `src/gen/`.
 
-## Tools (11)
+## Tools (16)
 
-### Discovery
+Every tool carries MCP tool annotations (`src/domains/toolmarks.ts`), its
+**marks**, which clients act on: Codex asks the person before any tool not
+marked read-only or closed-world and not destructive, and Stigmer's own runner
+tightens approval for a tool marked destructive. The marks below are those
+sets: **read** (read-only), **read, open world** (reads the public docs),
+**write** (changes Stigmer data, losing nothing), **write, open world**
+(spends model tokens, reaches a person or lets a run act), **destructive**
+(can't be undone). `src/__tests__/roster.test.ts` holds this list equal to
+what each roster registers.
 
-| Tool | Description |
-| --- | --- |
-| `search` | Search across agents and skills; results are enriched with `stigmer://` resource URIs. |
+The full roster also sends MCP `instructions` (`src/instructions.ts`): what the
+tools are for, how to answer from the docs, and the rules for acting for a
+person (propose a delete, an overwrite, a key, access or spending first; never
+answer a run's approval for the person). Claude Code puts them in the agent's
+prompt whether or not any skill loads.
 
-### Authoring
+### Full roster: discovery and docs
 
-| Tool | Description |
-| --- | --- |
-| `get_agent` | Read an agent by org + slug. |
-| `apply_agent` | Create or update an agent (idempotent). |
-| `delete_agent` | Delete an agent. |
-| `get_skill` | Read a skill (optionally a specific version). |
-| `delete_skill` | Delete a skill (all versions). |
-| `list_skill_versions` | List a skill's version history. |
+| Tool | Marks | Description |
+| --- | --- | --- |
+| `search` | read | Search across agents and skills; results are enriched with `stigmer://` resource URIs. |
+| `search_docs` | read, open world | Find the stigmer.ai/docs pages that answer a question, from the site's `llms.txt`. |
+| `read_doc` | read, open world | Read one stigmer.ai/docs page whole, as its Markdown export, opening with its `Source:` URL. Only stigmer.ai/docs is read. |
 
-### Runs
+### Full roster: authoring
+
+| Tool | Marks | Description |
+| --- | --- | --- |
+| `get_agent` | read | Read an agent by org + slug. |
+| `apply_agent` | write | Create or update an agent (idempotent); every new spec keeps the version it replaces. |
+| `delete_agent` | destructive | Delete an agent. |
+| `get_skill` | read | Read a skill (optionally a specific version). |
+| `delete_skill` | destructive | Delete a skill (all versions). |
+| `list_skill_versions` | read | List a skill's version history. |
+
+### Full roster: runs
 
 Runs are asynchronous: the `run_*` tools return immediately with the run ID and
 the assistant polls the observation tools.
 
-| Tool | Description |
-| --- | --- |
-| `run_agent` | Start a run of an agent (new session or `session_id` follow-up); a new session uses the caller's My vault unless `include_my_vault` is false, then the shared `vaults` it names, and the installed `plugins` it names beside its agent's. |
-| `get_run` | Poll a run: its lifecycle and its events from the session's event log, as a turn summary (phase, answer, the tool uses waiting for an answer by `tool_use_id`, a bounded item tail) or every event as Managed Agents JSON. |
-| `submit_run_approval` | Answer a tool use the run waits on, by `tool_use_id`: allow, deny (with a reason for the agent) or allow_all (the call's class for the rest of the turn). |
-| `cancel_run` | Cancel a run (`run_*`) by interrupting its conversation: every unfinished turn stops. |
+| Tool | Marks | Description |
+| --- | --- | --- |
+| `run_agent` | write, open world | Start a run of an agent (new session or `session_id` follow-up); a new session uses the caller's My vault unless `include_my_vault` is false, then the shared `vaults` it names, and the installed `plugins` it names beside its agent's. |
+| `get_run` | read | Poll a run: its lifecycle and its events from the session's event log, as a turn summary (phase, answer, the tool uses waiting for an answer by `tool_use_id`, a bounded item tail) or every event as Managed Agents JSON. |
+| `submit_run_approval` | write, open world | Answer a tool use the run waits on, by `tool_use_id`: allow, deny (with a reason for the agent) or allow_all (the call's class for the rest of the turn). |
+| `cancel_run` | destructive | Cancel a run (`run_*`) by interrupting its conversation: every unfinished turn stops. |
+
+### Narrow rosters
+
+Each serves one tool to agents running inside Stigmer, attached by the runner
+(`/channels`, `/conversation`, `/memory`); none carries instructions.
+
+| Tool | Roster | Marks | Description |
+| --- | --- | --- | --- |
+| `send_channel_message` | channels | write, open world | Send a message on a Channel, to a person outside Stigmer. |
+| `escalate_to_human` | conversation | write | Ask a human to take over the conversation; safe to repeat. |
+| `remember` | memory | write | Propose a durable fact about the person, for review. |
 
 ## Resources (3)
 

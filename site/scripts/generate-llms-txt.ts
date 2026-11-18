@@ -36,6 +36,13 @@ const OUT_DIR = path.resolve(process.cwd(), "out");
 
 const PROJECT_NAME = POSITIONING.name;
 const PROJECT_DESCRIPTION = POSITIONING.oneSentence;
+// The site publishes on pushes to main, never on a release, so a release
+// number written here would be stale from each release until the next docs
+// push. It links the newest release instead, which is never wrong.
+const VERSION_NOTE =
+  "These docs follow Stigmer's main branch, so a page can describe what the newest release " +
+  "(https://github.com/stigmer/stigmer/releases/latest) doesn't have yet; `stigmer version` " +
+  "and `stigmer auth whoami` say which CLI and server you have.";
 
 /** Subdirectory paths (relative to docs/) whose non-index pages are optional. */
 const OPTIONAL_SUBSECTIONS = new Set(["cli/commands"]);
@@ -84,6 +91,8 @@ function generateLlmsTxt(pages: Page[]): string {
     `# ${PROJECT_NAME}`,
     "",
     `> ${PROJECT_DESCRIPTION}`,
+    "",
+    VERSION_NOTE,
     "",
   ];
 

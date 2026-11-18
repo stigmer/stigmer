@@ -1,7 +1,7 @@
 {
   "name": "stigmer",
   "version": "0.0.0-dev",
-  "description": "Stigmer for your coding agent: set Stigmer up for your project, from signing in to your agent's chat in your own app, then make, run and read agents.",
+  "description": "Stigmer for your coding agent: answers questions about Stigmer from its live docs, and sets Stigmer up for your project, from signing in to your agent's chat in your own app, then makes, runs and reads agents.",
   "author": { "name": "Stigmer", "url": "https://stigmer.ai" },
   "homepage": "https://stigmer.ai/docs/getting-started/coding-agent",
   "repository": "https://github.com/stigmer/coding-agent-plugin",

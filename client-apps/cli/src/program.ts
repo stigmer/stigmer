@@ -53,6 +53,7 @@ import { registerUsage } from "./commands/usage.js";
 import { registerValidate } from "./commands/validate.js";
 import { registerVault } from "./commands/vault.js";
 import { registerVersion } from "./commands/version.js";
+import { registerDocs } from "./commands/docs/index.js";
 import { registerAppHandover } from "./commands/app-handover.js";
 import { registerCodingAgent } from "./commands/coding-agent.js";
 import { registerEmbedding } from "./commands/embedding.js";
@@ -138,6 +139,7 @@ export function buildProgram(): Command {
   registerConfig(program);
   registerCompletion(program);
   registerVersion(program);
+  registerDocs(program);
   registerInternalDaemon(program);
 
   // After registration, so every command is reached.

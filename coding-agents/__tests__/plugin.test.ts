@@ -2,9 +2,10 @@
 // by scripts/build.mjs into dist/plugin): one plugin named `stigmer` under
 // the Claude Code, Cursor and Codex manifests, each stamped with the
 // package's version (a release's is stamped at publish, where
-// scripts/publish-libs.test.mjs proves it); its guide (skills/stigmer/SKILL.md) and the bundled
-// `stigmer mcp-server` read with no warning by `@stigmer/plugin-package`,
-// which knows all three dialects; each tool's marketplace file offering that
+// scripts/publish-libs.test.mjs proves it); its front door
+// (skills/stigmer/SKILL.md), its setup guide (skills/stigmer-setup/SKILL.md),
+// the bundled `stigmer mcp-server` and Claude Code's guard hook read with no
+// warning by `@stigmer/plugin-package`, which knows all three dialects; each tool's marketplace file offering that
 // one plugin at the repository's root; and dist/index.js exporting the guide
 // without its frontmatter, as `stigmer coding-agent` prints it, and no
 // version of its own. The build's
@@ -56,17 +57,22 @@ describe("the plugin", () => {
     }
   });
 
-  it("reads with no error or warning: the guide's skill and the bundled MCP server", () => {
+  it("reads with no error or warning: the front door, the setup guide, the bundled MCP server and the guard", () => {
     const outcome = readPluginPackage(inMemoryPluginFiles(files));
     expect(outcome.warnings).toEqual([]);
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
     expect(outcome.plugin.name).toBe("stigmer");
-    expect(outcome.plugin.skills.map((skill) => skill.name)).toEqual(["stigmer"]);
+    expect(outcome.plugin.skills.map((skill) => skill.name).sort()).toEqual(["stigmer", "stigmer-setup"]);
     expect(JSON.parse(files.get(".mcp.json") ?? "{}")).toEqual({
       mcpServers: { stigmer: { command: "stigmer", args: ["mcp-server"] } },
     });
     expect(outcome.plugin.mcpServers.map((server) => server.name)).toEqual(["stigmer"]);
+    expect(outcome.plugin.hooks?.format).toBe("claude-code");
+    expect(outcome.plugin.hooks?.groups.map((group) => [group.event, group.handlers.map((h) => [h.command, ...h.args])])).toEqual([
+      ["PreToolUse", [["node", "${CLAUDE_PLUGIN_ROOT}/hooks/guard.mjs"]]],
+      ["PreToolUse", [["node", "${CLAUDE_PLUGIN_ROOT}/hooks/guard.mjs"]]],
+    ]);
   });
 
   it.each(MARKETPLACES)("%s offers the one plugin at the repository's root", (marketplace) => {
@@ -107,13 +113,13 @@ describe("the guide", () => {
   });
 
   it("names no key-shaped value and never asks for a key in the chat", () => {
-    const guide = files.get("skills/stigmer/SKILL.md") ?? "";
+    const guide = files.get("skills/stigmer-setup/SKILL.md") ?? "";
     expect(guide).not.toMatch(/sk-ant-|stk_[A-Za-z0-9]{8}/);
     expect(guide).toContain("Never print, echo or ask for a key");
   });
 
   it("passes on the help line the command line prints, in the words it prints it", () => {
-    const guide = files.get("skills/stigmer/SKILL.md") ?? "";
+    const guide = files.get("skills/stigmer-setup/SKILL.md") ?? "";
     expect(guide).toContain("a `Stuck? …` line");
     expect(guide).toContain("`stigmer auth whoami`");
     const handle = readFileSync(join(root, "..", "client-apps", "cli", "src", "errors", "handle.ts"), "utf8");
@@ -123,7 +129,7 @@ describe("the guide", () => {
   });
 
   it("never routes a key through the coding agent: no `!` command, the console's key page instead (stigmer#3229)", () => {
-    const guide = files.get("skills/stigmer/SKILL.md") ?? "";
+    const guide = files.get("skills/stigmer-setup/SKILL.md") ?? "";
     // `!` runs a command inside Claude Code, which has no terminal for a
     // hidden prompt, and led a person to type the key into the chat.
     expect(guide).not.toMatch(/`!\s*stigmer/);
@@ -134,7 +140,7 @@ describe("the guide", () => {
   });
 
   it("defines <console> in step 1, before any step uses it", () => {
-    const guide = files.get("skills/stigmer/SKILL.md") ?? "";
+    const guide = files.get("skills/stigmer-setup/SKILL.md") ?? "";
     const defined = guide.indexOf("written here as\n`<console>`");
     expect(defined).toBeGreaterThan(guide.indexOf("## 1. Where it runs"));
     expect(defined).toBeLessThan(guide.indexOf("## 2."));
@@ -142,7 +148,7 @@ describe("the guide", () => {
   });
 
   it("asks where the key goes in the command line's own words", () => {
-    const guide = files.get("skills/stigmer/SKILL.md") ?? "";
+    const guide = files.get("skills/stigmer-setup/SKILL.md") ?? "";
     expect(guide).toContain("`stigmer provider-key set anthropic < /dev/null`");
     const cli = readFileSync(join(root, "..", "client-apps", "cli", "src", "resources", "provider-key.ts"), "utf8");
     for (const words of ["Add it in the console: ", "the console's Models & providers page", "This server's runners use the keys whoever runs them gives them"]) {
@@ -153,12 +159,12 @@ describe("the guide", () => {
   });
 
   it("gives skill_refs its exact shape (stigmer#3233)", () => {
-    const guide = files.get("skills/stigmer/SKILL.md") ?? "";
+    const guide = files.get("skills/stigmer-setup/SKILL.md") ?? "";
     expect(guide).toContain("  skill_refs:\n    - kind: skill\n      slug: spreadsheet-export\n");
   });
 
   it("sends the last step to a console page that exists", () => {
-    const guide = files.get("skills/stigmer/SKILL.md") ?? "";
+    const guide = files.get("skills/stigmer-setup/SKILL.md") ?? "";
     const path = /<console>(\/settings\/[a-z-]+)/.exec(guide)?.[1];
     expect(path).toBe("/settings/bring-others-in");
     const page = join(root, "..", "client-apps", "web", "src", "app", ...(path ?? "").split("/").filter(Boolean), "page.tsx");

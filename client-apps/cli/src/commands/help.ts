@@ -69,6 +69,7 @@ export const COMMAND_GROUPS: Readonly<Record<string, HelpGroup>> = {
   config: "Configuration",
   completion: "Configuration",
   version: "Configuration",
+  docs: "Configuration",
 };
 
 /** Each runnable command's examples, by path. */
@@ -102,6 +103,8 @@ export const HELP_EXAMPLES: ReadonlyMap<string, readonly HelpExample[]> = new Ma
   ["stigmer config set", [{ say: "make acme the active organization", run: "stigmer config set context.org acme" }]],
   ["stigmer connect plugin", [{ say: "list the tools the linear plugin's MCP server offers", run: "stigmer connect plugin linear" }]],
   ["stigmer delete", [{ say: "delete an agent by slug", run: "stigmer delete agent my-agent" }, { say: "delete an agent by ID", run: "stigmer delete agent agt_abc123" }]],
+  ["stigmer docs read", [{ say: "print a page whole, opening with its Source URL", run: "stigmer docs read concepts/runners" }]],
+  ["stigmer docs search", [{ say: "find the pages about moving the local server's port", run: "stigmer docs search port stigmer up" }]],
   ["stigmer down", [{ say: "stop the local stack", run: "stigmer down" }]],
   ["stigmer down server", [{ say: "stop the whole stack, as stigmer down does", run: "stigmer down server" }]],
   ["stigmer download", [{ say: "download all outputs from a run", run: "stigmer download run run_01abc123" }, { say: "download to a specific directory", run: "stigmer download run run_01abc123 --output-dir ./results/" }]],

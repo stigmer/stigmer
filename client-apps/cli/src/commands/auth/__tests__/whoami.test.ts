@@ -8,6 +8,10 @@
 // only the fields it has. Accounts are built with the generated schema
 // (the generated type is the contract).
 //
+// It names the server's version and edition from the server-info answer,
+// as text and in `-o json`'s data, so a docs page can be checked against the
+// server the person talks to.
+//
 // runWhoami is the I/O half: it names the context organization by the slug
 // the backend answers now, falls back to the slug `config context set`
 // stored and then to the id, and stores a slug that changed since. The
@@ -21,11 +25,12 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { IdentityAccountSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { load } from "../../../config/index.js";
-import { runWhoami, whoamiResult } from "../whoami.js";
+import { runWhoami, serverLine, whoamiResult } from "../whoami.js";
 
 const ALICE = {
   metadata: { id: "ida_wtr3jcf281yfk9xx61kj59fsme", name: "alice@example.com" },
@@ -47,7 +52,42 @@ function fields(
   );
 }
 
+describe("serverLine", () => {
+  it("names the version and the edition as the docs name it", () => {
+    expect(serverLine("0.2.0", ServerEdition.cloud)).toBe("0.2.0 (Cloud)");
+    expect(serverLine("0.2.0", ServerEdition.oss)).toBe("0.2.0 (open source)");
+    expect(serverLine("1.0.0", ServerEdition.enterprise)).toBe("1.0.0 (Enterprise)");
+  });
+
+  it("says what it knows when one half is missing, and nothing when both are", () => {
+    expect(serverLine("0.2.0", ServerEdition.server_edition_unspecified)).toBe("0.2.0");
+    expect(serverLine("", ServerEdition.cloud)).toBe("version unknown (Cloud)");
+    expect(serverLine("", ServerEdition.server_edition_unspecified)).toBe("");
+  });
+});
+
 describe("whoamiResult", () => {
+  it("names the server's version and edition, as a field and in the JSON data", () => {
+    const result = whoamiResult(ACCOUNT, {
+      created: false,
+      org: "acme",
+      singleOrg: false,
+      server: { version: "0.2.0", edition: ServerEdition.cloud },
+    });
+    expect(fields(result).Server).toBe("0.2.0 (Cloud)");
+    expect(result.data).toEqual({ server: { version: "0.2.0", edition: "cloud" } });
+
+    const unnamed = whoamiResult(ACCOUNT, {
+      created: false,
+      org: "acme",
+      singleOrg: false,
+      server: { version: "", edition: ServerEdition.server_edition_unspecified },
+    });
+    expect(fields(unnamed).Server).toBeUndefined();
+    expect(unnamed.data).toEqual({ server: { version: "", edition: "" } });
+    expect(whoamiResult(ACCOUNT, { created: false, org: "acme", singleOrg: false }).data).toBeUndefined();
+  });
+
   it("renders an existing account as 'Authenticated' with its identity fields", () => {
     const result = whoamiResult(ACCOUNT, { created: false, org: "acme", singleOrg: false });
     expect(result.status).toBe("success");
@@ -159,13 +199,17 @@ const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
 // slug, refuse it as hidden, or fail as an unreachable server.
 let organizationAnswer: { slug: string } | "hidden" | "unreachable" = { slug: "acme" };
 let helpAnswer: { url: string; label: string } | undefined;
+let serverAnswer: "answers" | "unreachable" = "answers";
 
 vi.mock("../../../backend.js", async () => {
   const { load: loadConfig } = await import("../../../config/index.js");
   return {
     connectBackend: () => ({
       config: loadConfig(),
-      serverInfo: async () => ({ singleOrg: false, help: helpAnswer }),
+      serverInfo: async () => {
+        if (serverAnswer === "unreachable") throw new ConnectError("backend unavailable", Code.Unavailable);
+        return { singleOrg: false, help: helpAnswer, version: "0.2.0", edition: ServerEdition.oss };
+      },
       stigmer: {
         organization: {
           get: async (value: string) => {
@@ -214,6 +258,7 @@ describe("runWhoami's organization", () => {
   beforeEach(() => {
     organizationAnswer = { slug: "acme" };
     helpAnswer = undefined;
+    serverAnswer = "answers";
     originalHome = process.env.HOME;
     home = mkdtempSync(join(tmpdir(), "stigmer-whoami-"));
     process.env.HOME = home;
@@ -239,6 +284,15 @@ describe("runWhoami's organization", () => {
     expect((await runWhoami()).hints).toEqual([]);
     helpAnswer = { url: "https://help.acme.example", label: "Ask IT" };
     expect((await runWhoami()).hints).toEqual(["Stuck? Ask IT: https://help.acme.example"]);
+  });
+
+  it("names the server it asked, and prints without it when the ask fails", async () => {
+    writeConfig(["context:", `  org: ${ACME_ID}`, "  org_slug: acme"]);
+    expect(fields(await runWhoami()).Server).toBe("0.2.0 (open source)");
+    serverAnswer = "unreachable";
+    const result = await runWhoami();
+    expect(fields(result).Server).toBeUndefined();
+    expect(result.status).toBe("success");
   });
 
   it("leaves the config alone when the stored slug is current", async () => {

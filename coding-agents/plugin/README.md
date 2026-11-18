@@ -3,11 +3,14 @@
 This repository is published from [stigmer/stigmer](https://github.com/stigmer/stigmer)'s
 `coding-agents/` folder at each release; change it there.
 
-It is one plugin for Claude Code, Codex and Cursor: a skill that sets Stigmer up
-for the project your coding agent is in (signing in, an agent for your app's
-users, a first run, and the agent's chat in your own app), and Stigmer's MCP
-server (`stigmer mcp-server`) for making, running and reading agents afterwards.
-It needs the Stigmer command line: `npm install -g @stigmer/cli`.
+It is one plugin for Claude Code, Codex and Cursor. Its front-door skill answers
+questions about Stigmer from the live docs at stigmer.ai/docs and links the page
+it read; its setup skill sets Stigmer up for the project your coding agent is in
+(signing in, an agent for your app's users, a first run, and the agent's chat in
+your own app); and Stigmer's MCP server (`stigmer mcp-server`) makes, runs and
+reads agents afterwards. In Claude Code it asks you before anything that can't
+be undone, such as deleting an agent, even after you allowed its tools. It needs
+the Stigmer command line: `npm install -g @stigmer/cli`.
 
 You don't need the plugin to start. Paste this into your coding agent:
 

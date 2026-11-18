@@ -20,12 +20,14 @@ import { APPROVAL_DECISIONS, submitRunApproval } from "./approve.js";
 import { cancelRun } from "./cancel.js";
 import { DEFAULT_ITEM_LIMIT, fetchRun } from "./fetch.js";
 import { runAgent } from "./run.js";
+import { DESTRUCTIVE, READ, WRITE_OPEN_WORLD } from "../toolmarks.js";
 
 /** Register the tools that start, observe and steer a run; returns the registered tool names. */
 export function registerRunTools(server: McpServer, target: BackendTarget): string[] {
   server.registerTool(
     "run_agent",
     {
+      annotations: WRITE_OPEN_WORLD,
       description:
         "Start a run (asynchronous). Returns immediately with the created run " +
         "(run_* ID) while the run continues in the background — poll get_run to observe " +
@@ -98,6 +100,7 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
   server.registerTool(
     "get_run",
     {
+      annotations: READ,
       description:
         "Get a run and what its agent did: the run's lifecycle (phase, timing, error, " +
         "stop_cause) and the run's events from its session's event log. Poll this tool to " +
@@ -138,12 +141,14 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
   server.registerTool(
     "submit_run_approval",
     {
+      annotations: WRITE_OPEN_WORLD,
       description:
         "Answer a tool use a run is waiting on (get_run's turn.phase is waiting). Find the waiting tool uses " +
         "in get_run's turn.asks — tool_use_id must match exactly. The run continues once " +
         "every waiting tool use of its turn is answered. deny refuses the one call and feeds " +
         "your reason back to the agent, which then continues; to stop the conversation use " +
-        "cancel_run instead.",
+        "cancel_run instead. An approval is the person's to give: send allow or allow_all only " +
+        "when the person you are working for said so, in this conversation, for this call.",
       inputSchema: {
         run_id: z.string().describe("Run ID (run_*)."),
         tool_use_id: z
@@ -182,6 +187,7 @@ export function registerRunControlTools(server: McpServer, target: BackendTarget
   server.registerTool(
     "cancel_run",
     {
+      annotations: DESTRUCTIVE,
       description:
         "Cancel a run in progress (run_*) by interrupting " +
         "its conversation: every unfinished turn of the conversation stops (queued, working, " +

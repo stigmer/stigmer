@@ -10,6 +10,10 @@
 // <words>: <address>"), so a person, or a coding agent signing its person
 // in, learns where to ask before anything fails.
 //
+// It names the server's version and edition (`Server: 0.2.0 (Cloud)`), from
+// the same server-info answer, so a person, or their coding agent, can tell
+// whether a feature the docs describe has reached the server they talk to.
+//
 // It names the context organization by the slug the backend answers now,
 // not the one `config context set` stored, and stores the current one when
 // the organization was renamed since.
@@ -19,6 +23,7 @@
 
 import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { ensureMyIdentityAccount, type Stigmer } from "@stigmer/client";
 import {
   type Config,
@@ -44,6 +49,8 @@ export interface WhoamiContext {
   readonly singleOrg: boolean;
   /** Where the server says to ask for help; absent when it names none. */
   readonly help?: { readonly url: string; readonly label: string };
+  /** The server's version and edition; absent when the server didn't say. */
+  readonly server?: { readonly version: string; readonly edition: ServerEdition };
 }
 
 /**
@@ -91,11 +98,38 @@ export function whoamiResult(
     }
   }
 
+  if (context.server !== undefined) {
+    const server = serverLine(context.server.version, context.server.edition);
+    if (server !== "") section.field("Server", server);
+    result.withData({ server: { version: context.server.version, edition: EDITION_KEYS[context.server.edition] ?? "" } });
+  }
+
   if (context.help !== undefined) {
     result.hint(helpLine(context.help));
   }
 
   return result;
+}
+
+/** Each edition's name as the docs say it. */
+const EDITION_NAMES: Readonly<Partial<Record<ServerEdition, string>>> = {
+  [ServerEdition.oss]: "open source",
+  [ServerEdition.cloud]: "Cloud",
+  [ServerEdition.enterprise]: "Enterprise",
+};
+
+/** Each edition's wire name, for `-o json`. */
+const EDITION_KEYS: Readonly<Partial<Record<ServerEdition, string>>> = {
+  [ServerEdition.oss]: "oss",
+  [ServerEdition.cloud]: "cloud",
+  [ServerEdition.enterprise]: "enterprise",
+};
+
+/** `0.2.0 (Cloud)`; either half alone when the other is unknown; "" when both are. Pure. */
+export function serverLine(version: string, edition: ServerEdition): string {
+  const name = EDITION_NAMES[edition] ?? "";
+  if (version === "") return name === "" ? "" : `version unknown (${name})`;
+  return name === "" ? version : `${version} (${name})`;
 }
 
 export async function runWhoami(): Promise<CommandResult> {
@@ -108,11 +142,20 @@ export async function runWhoami(): Promise<CommandResult> {
   });
   const singleOrg = await omitsOrganization(client.stigmer);
   const org = singleOrg ? { label: "", id: "" } : await liveContextOrganization(client.stigmer, client.config);
-  // Printing never fails the command: a failed ask shows no help line.
-  const help = await Promise.resolve()
+  // Printing never fails the command: a failed ask shows no help line and no server.
+  const info = await Promise.resolve()
     .then(() => client.serverInfo())
-    .then((info) => info.help, () => undefined);
-  return whoamiResult(account, { created, org: org.label, orgId: org.id, singleOrg, ...(help !== undefined ? { help } : {}) });
+    .then((answer) => answer, () => undefined);
+  const help = info?.help;
+  const server = info === undefined ? undefined : { version: info.version, edition: info.edition };
+  return whoamiResult(account, {
+    created,
+    org: org.label,
+    orgId: org.id,
+    singleOrg,
+    ...(help !== undefined ? { help } : {}),
+    ...(server !== undefined ? { server } : {}),
+  });
 }
 
 /**

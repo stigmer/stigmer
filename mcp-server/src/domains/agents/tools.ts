@@ -14,12 +14,14 @@ import { textOrError } from "../toolresult.js";
 import { applyAgent } from "./apply.js";
 import { deleteAgent } from "./delete.js";
 import { fetchAgent } from "./fetch.js";
+import { DESTRUCTIVE, READ, WRITE_IDEMPOTENT } from "../toolmarks.js";
 
 /** Register every Agent-domain tool; returns the registered tool names. */
 export function registerAgentTools(server: McpServer, target: BackendTarget): string[] {
   server.registerTool(
     "get_agent",
     {
+      annotations: READ,
       description:
         "Get full details of a Stigmer agent by its org and slug (e.g. org=stigmer slug=variance-reporter).",
       inputSchema: {
@@ -43,6 +45,7 @@ export function registerAgentTools(server: McpServer, target: BackendTarget): st
   server.registerTool(
     "apply_agent",
     {
+      annotations: WRITE_IDEMPOTENT,
       description:
         "Create or update a Stigmer agent (idempotent). Provide identity fields (name, org) and agent configuration (instructions, skills, plugins, etc.).",
       inputSchema: AgentInputShape,
@@ -54,6 +57,7 @@ export function registerAgentTools(server: McpServer, target: BackendTarget): st
   server.registerTool(
     "delete_agent",
     {
+      annotations: DESTRUCTIVE,
       description: "Delete a Stigmer agent by its org and slug. Returns the deleted agent.",
       inputSchema: {
         org: z

@@ -35,6 +35,7 @@ export {
   type McpHttpHandlerOptions,
   type McpHttpHandlerSettings,
 } from "./http-handler.js";
+export { AGENT_RULES, SERVER_INSTRUCTIONS } from "./instructions.js";
 export { configureLogger, type LogFormat, type LogLevel } from "./logger.js";
 export {
   CHANNELS_ROUTE,

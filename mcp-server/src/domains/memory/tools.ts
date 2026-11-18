@@ -26,6 +26,7 @@ import {
   type RequestHeaders,
 } from "./context.js";
 import { memoryResult } from "./errors.js";
+import { WRITE } from "../toolmarks.js";
 
 /**
  * Register the memory capture tool; returns the tool names.
@@ -42,6 +43,7 @@ export function registerMemoryTools(
   server.registerTool(
     "remember",
     {
+      annotations: WRITE,
       description:
         "Propose one durable fact about the person you are assisting, to be recalled in " +
         "their future sessions — a stable preference, situation, or way of working " +

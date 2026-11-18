@@ -1,7 +1,8 @@
 # Stigmer's plugin for coding agents
 
-`@stigmer/coding-agent-plugin`: one plugin for Claude Code, Codex and Cursor,
-and the guide a coding agent follows to set Stigmer up for a person's project.
+`@stigmer/coding-agent-plugin`: one plugin for Claude Code, Codex and Cursor
+that answers a person's questions about Stigmer from the live docs, and the
+guide a coding agent follows to set Stigmer up for their project.
 It is the "Let your coding agent set it up" door
 (`docs/getting-started/coding-agent.mdx`).
 
@@ -10,12 +11,29 @@ one is for the coding agent on a person's laptop.
 
 ## What is in it
 
-- `plugin/skills/stigmer/SKILL.md`: the guide. `stigmer coding-agent` prints it
-  without its frontmatter (`client-apps/cli/src/commands/coding-agent.ts`), so
-  a person who pastes the prompt gets the guide released with the CLI they
-  installed.
+- `plugin/skills/stigmer/SKILL.md`: the front door. It answers any question
+  about Stigmer from the live docs (`stigmer docs search` and `stigmer docs
+  read`, or the tool server's `search_docs` and `read_doc`), cited, checks the
+  person's installed CLI and server before naming a command or feature, and
+  carries the rules for acting for a person (`AGENT_RULES`,
+  `mcp-server/src/instructions.ts`). Its "What Stigmer is", map and "when the
+  answer isn't in the docs" sections are the docs assistant's
+  (`docs-agent/skills/stigmer-docs/SKILL.md`), word for word.
+- `plugin/skills/stigmer-setup/SKILL.md`: the setup guide. `stigmer
+  coding-agent` prints it without its frontmatter
+  (`client-apps/cli/src/commands/coding-agent.ts`), so a person who pastes the
+  prompt gets the guide released with the CLI they installed.
 - `plugin/.mcp.json`: the bundled `stigmer mcp-server`, for making, running and
   reading agents once setup is done.
+- `plugin/hooks/`: the guard. `hooks.json` is Claude Code's: a `PreToolUse`
+  hook (`guard.mjs`, deciding in `decide.mjs`) that asks the person before a
+  destructive tool, before answering a run's approval with allow, and before a
+  `stigmer` command forced past its own question, even after they allowed the
+  plugin's tools. Codex and Cursor each load `hooks/hooks.json` when their
+  manifest names no hooks file, and would run Claude Code's hook wrongly, so
+  their manifests name an empty file each (`codex-hooks.json`,
+  `cursor-hooks.json`). Codex asks before the tools from their marks
+  (`mcp-server/src/domains/toolmarks.ts`).
 - The manifests and marketplace files of each tool, one plugin named `stigmer`
   at the folder's root: `.claude-plugin/` (Claude Code), `.cursor-plugin/`
   (Cursor), `.codex-plugin/plugin.json` and `.agents/plugins/marketplace.json`
@@ -43,7 +61,13 @@ from that repository; the install lines are on the docs page.
 with Stigmer's own plugin reader (`@stigmer/plugin-package`), which knows all
 three dialects: every manifest names the one plugin at the package's version,
 the skill and the MCP server read with no warning, and each marketplace file
-offers the plugin at the root. The CLI's suite holds the guide to the CLI
+offers the plugin at the root. `__tests__/front-door.test.ts` holds the front
+door's shared sections to the docs assistant's and its rules to
+`AGENT_RULES`; `__tests__/guard.test.ts` holds the guard's tool list to the
+tools the full roster marks destructive and tests every decision. The CLI's
+suite holds the guard's command list to every command with a `--force`
+option (`client-apps/cli/src/commands/__tests__/coding-agent.test.ts`). The
+CLI's suite holds the guide to the CLI
 (`client-apps/cli/src/commands/__tests__/coding-agent.test.ts`): every
 `stigmer …` line it names is a command this CLI has, with flags it declares.
 Run both after a change here. The door end to end, in a real coding agent, is
