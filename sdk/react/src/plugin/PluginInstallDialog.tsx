@@ -22,6 +22,8 @@ import { Button } from "../button/Button.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { DialogBody, DialogFooter, DialogHeader, DialogShell } from "../internal/DialogShell.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { Notice } from "../internal/surface/Notice.js";
+import { Check } from "lucide-react";
 import { InstallPreview, PrepareRefusal, describeOrigin } from "./InstallPreview.js";
 import type { OpenedMarketplace } from "./sources/read.js";
 import { type InstallPluginOutcome, useInstallPlugin } from "./useInstallPlugin.js";
@@ -174,9 +176,16 @@ function InstallDialogContent({
       {installError && <ErrorMessage error={installError} title="The install didn't go through." />}
 
       {outcome && (
-        <div role="status" className="stg:rounded-md stg:border stg:border-border stg:bg-muted stg:p-3 stg:text-sm stg:text-foreground">
-          Installed plugin '{outcome.plugin.metadata?.slug}' ({summariseInstall(outcome)}).
-        </div>
+        <Notice
+          tone="plain"
+          role="status"
+          icon={<Check aria-hidden="true" className="stg:size-4" />}
+          headline={`${outcome.plugin.metadata?.name || outcome.plugin.metadata?.slug || "The plugin"} is installed.`}
+        >
+          <p className="stg:m-0">
+            It brings {summariseInstall(outcome)} to {slugForOrg(org)}. Add it to an agent from the agent&apos;s page.
+          </p>
+        </Notice>
       )}
 
       </DialogBody>

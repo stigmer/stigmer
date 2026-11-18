@@ -47,8 +47,8 @@ import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js"
 import { HttpMcpServer } from "../../../__test-utils__/http-mcp-server.js";
 import { runMessageIdOf, sentMessageIdOf } from "../engine-session-id.js";
 import { ApprovalAction, ApprovalPolicySource, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
-import { MISNAMED_SHELL_MESSAGE, ROOT_CALLER, type GateVerdict } from "../gate.js";
-import { MISNAMED_RESUMES, STOP_GRACE_MS, proposeDeferred, runClaudeTurn, type ClaudeAdapterConfig, type ClaudeSdk } from "../turn.js";
+import { MISNAMED_AT_PERMISSION_LOG, MISNAMED_SHELL_MESSAGE, ROOT_CALLER, type GateVerdict } from "../gate.js";
+import { MISNAMED_RESUMES, RESUMED_UNASKED_LOG, STOP_GRACE_MS, proposeDeferred, runClaudeTurn, type ClaudeAdapterConfig, type ClaudeSdk } from "../turn.js";
 
 const env = createHermeticEnvironment();
 const SESSION = "ses_turn_unit";
@@ -472,6 +472,38 @@ describe("an approved shell call the engine hands back under its own name (stigm
     expect(played).toHaveLength(MISNAMED_RESUMES + 1);
     expect(answers.map(decisionOf)).toEqual(["defer", "defer", "deny"]);
     expect(answers[2]).toMatchObject({ hookSpecificOutput: { permissionDecisionReason: MISNAMED_SHELL_MESSAGE } });
+  });
+
+  it("names the slip it cannot hand back: the engine skips the callback and asks canUseTool, which refuses the call, logged once, and the engine is not started again (stigmer#2915)", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const answers: unknown[] = [];
+    const { sdk, played } = scriptedSdk(async function* (run) {
+      yield init();
+      answers.push(await run.options.canUseTool!("Bash", { ...SHOWN }, { signal: new AbortController().signal, toolUseID: CALL, requestId: "r1" }));
+      yield result();
+    });
+    const { turnInput, sink } = pausedRun();
+    expect((await turn(turnInput, sink, sdk, sqlite)).kind).toBe("completed");
+    expect(played, "canUseTool cannot defer, so nothing is handed back").toHaveLength(1);
+    expect(answers).toEqual([{ behavior: "deny", message: MISNAMED_SHELL_MESSAGE }]);
+    const warned = warn.mock.calls.map((args) => String(args[0]));
+    expect(warned.filter((line) => line.includes(MISNAMED_AT_PERMISSION_LOG) && line.includes(`call=${CALL}`))).toHaveLength(1);
+    expect(warned.filter((line) => line.includes("resuming again"))).toEqual([]);
+    expect(warned.filter((line) => line.includes(RESUMED_UNASKED_LOG)), "the gate decided the call").toEqual([]);
+  });
+
+  it("names an engine that resumes without ever asking the gate for the approved call, logged once (stigmer#2915)", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const { sdk, played } = scriptedSdk(async function* () {
+      yield init();
+      yield result();
+    });
+    const { turnInput, sink } = pausedRun();
+    expect((await turn(turnInput, sink, sdk, sqlite)).kind).toBe("completed");
+    expect(played).toHaveLength(1);
+    const warned = warn.mock.calls.map((args) => String(args[0]));
+    expect(warned.filter((line) => line.includes(RESUMED_UNASKED_LOG) && line.includes(`call=${CALL}`))).toHaveLength(1);
+    expect(waitingRows(sink).map((row) => row.status), "the runtime settles it once the run ends (harness/approval-decisions.ts)").toEqual([ToolCallStatus.TOOL_CALL_WAITING_APPROVAL]);
   });
 
   it("settles a stop during the handed-back run as interrupted, and never starts the engine again", async () => {

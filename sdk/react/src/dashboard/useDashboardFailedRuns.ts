@@ -20,6 +20,8 @@ export interface UseDashboardFailedRunsReturn {
   readonly failedRuns: readonly DashboardFailedRun[];
   readonly isLoading: boolean;
   readonly error: Error | null;
+  /** Reads the failures again (the card's Try again). */
+  readonly refetch: () => void;
 }
 
 /**
@@ -62,7 +64,7 @@ export function useDashboardFailedRuns(
     [stigmer, orgVal],
   );
 
-  const { data: failed, isLoading, error } =
+  const { data: failed, isLoading, error, refetch } =
     useFetch<readonly Run[]>(fetchFn, [stigmer, orgVal], [], {
       refetchInterval: 60_000,
     });
@@ -86,5 +88,5 @@ export function useDashboardFailedRuns(
     return entries.slice(0, PAGE_SIZE);
   }, [failed]);
 
-  return { failedRuns, isLoading, error };
+  return { failedRuns, isLoading, error, refetch };
 }

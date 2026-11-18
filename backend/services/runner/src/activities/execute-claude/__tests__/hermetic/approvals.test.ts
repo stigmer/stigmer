@@ -36,14 +36,14 @@ vi.mock("../../../../client/stigmer-client.js", async () =>
 );
 
 import { ScriptedClock, createHermeticEnvironment, rowsGolden, rowsGoldenPath, statusGolden, type ExecutionRecord } from "../../../../__test-utils__/hermetic-activity.js";
-import { REJECTED_BY_USER_ERROR } from "../../../../harness/approval-decisions.js";
+import { APPROVED_NOT_RUN_ERROR, REJECTED_BY_USER_ERROR } from "../../../../harness/approval-decisions.js";
 import { ApprovalAction, ApprovalPolicySource, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 import { personDecisionSentence } from "../../../../shared/hooks/messages.js";
 import { getClaudeEngineDir } from "../../../../shared/workspace/platform-dir.js";
 import { anthropicText, anthropicToolUses, type WireConversation, type WireScript } from "../../__test-utils__/claude-wire.js";
 import { FIXTURE, claudeExecutionRecord, claudeScenarioFile, sessionWorkspaceDir, type ClaudeScenarioFile } from "../../__test-utils__/hermetic-claude.js";
 import { HttpMcpServer } from "../../../../__test-utils__/http-mcp-server.js";
-import { ASK_ALONE_MESSAGE, STALE_CALL_MESSAGE } from "../../gate.js";
+import { ASK_ALONE_MESSAGE, MISNAMED_SHELL_MESSAGE, STALE_CALL_MESSAGE } from "../../gate.js";
 
 /** One model step: the calls of one message. */
 type Step = readonly { readonly id: string; readonly name: string; readonly input: Record<string, unknown> }[];
@@ -73,6 +73,27 @@ let file: ClaudeScenarioFile;
 function runs(): string[] {
   const ledger = join(sessionWorkspaceDir(env), "ledger.txt");
   return existsSync(ledger) ? readFileSync(ledger, "utf8").trim().split("\n").filter(Boolean) : [];
+}
+
+/**
+ * The failure message of an approved call that did not run as it should:
+ * its row and what the model read for it, and, when it is the engine's own
+ * slip, which one. These cases stay strict on that slip: a pass on a lost
+ * approval would hide the engine bug the person meets (stigmer#2915).
+ */
+function approvedRunReport(record: ExecutionRecord, ids: readonly string[]): string {
+  return ids
+    .map((id) => {
+      const row = record.toolCalls().find((r) => r.id === id);
+      const read = [...file.wire().conversations].reverse().find((c) => c.toolResults.has(id))?.toolResults.get(id);
+      const slip = read?.text.includes(MISNAMED_SHELL_MESSAGE)
+        ? "; the engine handed the approved call back as its own Bash where the gate could not start it again: at canUseTool, or on the last engine start (anthropics/claude-agent-sdk-typescript#532)"
+        : row?.error === APPROVED_NOT_RUN_ERROR
+          ? "; the engine resumed without running the approved call (anthropics/claude-agent-sdk-typescript#532)"
+          : "";
+      return `${id}: row ${row === undefined ? "missing" : `${ToolCallStatus[row.status]} ${JSON.stringify(row.error)}`}, the model read ${read === undefined ? "no result" : JSON.stringify(read.text)}${slip}`;
+    })
+    .join("\n");
 }
 
 function phaseOf(invocation: { readonly outcome: unknown }): unknown {
@@ -119,7 +140,7 @@ describe("ExecuteClaude hermetic — approvals", () => {
     const resumed = await file.resume(record, script, { turnSeq: 1 });
 
     expect(phaseOf(resumed)).toBe("RUN_COMPLETED");
-    expect(runs()).toEqual(["toolu_clean"]);
+    expect(runs(), approvedRunReport(record, ["toolu_clean"])).toEqual(["toolu_clean"]);
     const done = record.toolCalls().find((r) => r.id === "toolu_clean")!;
     expect([done.status, done.approvalAction]).toEqual([ToolCallStatus.TOOL_CALL_COMPLETED, ApprovalAction.APPROVE]);
     const after = file.wire().conversations.slice(before);
@@ -153,7 +174,7 @@ describe("ExecuteClaude hermetic — approvals", () => {
     const resumed = await file.resume(record, script, { turnSeq: 1 });
 
     expect(phaseOf(resumed)).toBe("RUN_COMPLETED");
-    expect(runs()).toEqual(["toolu_build", "toolu_test"]);
+    expect(runs(), approvedRunReport(record, ["toolu_build", "toolu_test"])).toEqual(["toolu_build", "toolu_test"]);
     const next = record.toolCalls().find((r) => r.id === "toolu_test")!;
     expect([next.status, next.requiresApproval, next.approvalPolicySource]).toEqual([ToolCallStatus.TOOL_CALL_COMPLETED, false, ApprovalPolicySource.APPROVAL_LEASE]);
   });
@@ -169,11 +190,11 @@ describe("ExecuteClaude hermetic — approvals", () => {
     expect(record.decideWaitingToolCalls(ApprovalAction.APPROVE, AT)).toBe(1);
     expect(phaseOf(await file.resume(record, script, { turnSeq: 1 }))).toBe("RUN_WAITING_FOR_APPROVAL");
     expect(record.waitingToolCalls().map((r) => r.id)).toEqual(["toolu_second_alone"]);
-    expect(runs()).toEqual(["toolu_first"]);
+    expect(runs(), approvedRunReport(record, ["toolu_first"])).toEqual(["toolu_first"]);
 
     expect(record.decideWaitingToolCalls(ApprovalAction.APPROVE, AT)).toBe(1);
     expect(phaseOf(await file.resume(record, script, { turnSeq: 2 }))).toBe("RUN_COMPLETED");
-    expect(runs()).toEqual(["toolu_first", "toolu_second_alone"]);
+    expect(runs(), approvedRunReport(record, ["toolu_first", "toolu_second_alone"])).toEqual(["toolu_first", "toolu_second_alone"]);
     await goldens(record, "ask-alone");
   });
 
@@ -234,7 +255,7 @@ describe("ExecuteClaude hermetic — approvals", () => {
     expect(record.decideWaitingToolCalls(ApprovalAction.APPROVE, AT)).toBe(1);
     const before = file.wire().conversations.length;
     expect(phaseOf(await file.resume(record, script, { turnSeq: 1 }))).toBe("RUN_COMPLETED");
-    expect(runs()).toEqual(["toolu_queued"]);
+    expect(runs(), approvedRunReport(record, ["toolu_queued"])).toEqual(["toolu_queued"]);
     const reading = file.wire().conversations.slice(before).find((c) => c.userTexts.some((t) => t.includes("Also keep the logs.")) || [...c.toolResults.values()].some((r) => r.text.includes("Also keep the logs.")));
     expect(reading, "the resumed run reads the message").toBeDefined();
     expect(reading!.toolResults.has("toolu_queued"), "after the approved call's result").toBe(true);

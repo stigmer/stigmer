@@ -108,7 +108,7 @@ export function ProviderKeyForm({ org, provider, initialBaseUrl = "", onSaved, o
           )}
         </div>
       </div>
-      <p id={keyHintId} className="stg:text-muted-foreground stg:text-2xs">
+      <p id={keyHintId} className="stg:text-muted-foreground stg:text-xs">
         Stigmer checks the key with {presentation.name} when you save it, and never shows it again: only its last
         four characters.
       </p>
@@ -159,7 +159,7 @@ export function ProviderKeyForm({ org, provider, initialBaseUrl = "", onSaved, o
             aria-describedby={baseUrlHintId}
             disabled={actions.isSubmitting}
           />
-          <p id={baseUrlHintId} className="stg:text-muted-foreground stg:text-2xs">
+          <p id={baseUrlHintId} className="stg:text-muted-foreground stg:text-xs">
             Leave the base URL empty for {presentation.name}&apos;s own API, or give your own{" "}
             {presentation.name}-compatible endpoint, such as {presentation.baseUrlExample}.
           </p>

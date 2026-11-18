@@ -53,7 +53,15 @@
  *     observer it holds. The store still holds the call pending with its
  *     WAITING row and answer, so the next invocation resumes it again, and
  *     no person is asked twice (stigmer#2667). A stop, a yield, a lost
- *     store batch or an engine error ends the turn instead.
+ *     store batch or an engine error ends the turn instead. The hand-back
+ *     needs the engine's `PreToolUse` callback: when the engine skips it as
+ *     well, the call reaches `canUseTool`, which cannot defer, and is
+ *     refused there (`gate.ts`), so the approved command does not run and
+ *     the turn goes on. A resumed run whose call the gate never decided at
+ *     all is the engine skipping the approved call outright. Both are the
+ *     engine's (anthropics/claude-agent-sdk-typescript#532), and each is
+ *     logged once, so a recurrence is counted (stigmer#2915); the runtime
+ *     settles a row left waiting (`harness/approval-decisions.ts`).
  *  5. Settle (`settle.ts`).
  *
  * Stop: the runtime's stop interrupts the engine at once, and aborts it
@@ -162,8 +170,10 @@ export async function admitHeld(gate: Pick<ClaudeGate, "admit">, mirrored: Mirro
  * How many more times a turn starts the engine on the same paused call when
  * the engine hands it back under its own shell's name (step 4 of the
  * header): three engine runs in all. Each costs an engine start and no
- * model call; at the measured one slip in ten, three in a row is about one
- * in a thousand.
+ * model call. The slips are not independent: under load CI has seen all
+ * three starts slip (stigmer#3076). More starts would not reach the slip
+ * measured under load either, since it skips the callback and is refused
+ * at `canUseTool` on the first start (stigmer#2915), so the count stays.
  */
 export const MISNAMED_RESUMES = 2;
 
@@ -171,6 +181,9 @@ export const MISNAMED_RESUMES = 2;
 interface ResumeAgain {
   readonly kind: "resume_again";
 }
+
+/** The log line's mark for a resumed run whose approved call the gate never decided (step 4 of the header): the engine skipped it. */
+export const RESUMED_UNASKED_LOG = "the engine resumed without asking the gate for the approved call; it did not run";
 
 /** What a continued turn is told when there is nothing new to read: never the task again. */
 export const CONTINUE_NOTE = "Continue where you left off.";
@@ -503,6 +516,9 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
       unattendedSkips: gate.unattendedSkips,
       propose: (callId) => proposeDeferred(sink, gate, bridge, callId),
     });
+    if (opening.kind === "resume" && !end.stopped && gate.verdictOf(opening.call) === undefined) {
+      console.warn(`[claude-turn] execution=${input.executionId} call=${opening.call}: ${RESUMED_UNASKED_LOG} (anthropics/claude-agent-sdk-typescript#532)`);
+    }
     return end.resumeAgain ? { kind: "resume_again" } : settleClaudeTurn(sink, end, { model: model.stopId, proxyMode: config.proxyEndpoint !== null });
   } finally {
     await closeQuietly(input.executionId, "the tools' endpoint", () => endpoint?.close());

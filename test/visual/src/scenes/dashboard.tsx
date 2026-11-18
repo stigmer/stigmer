@@ -96,6 +96,8 @@ export function dashboardPageScene(week: DashboardWeek, failures: "read" | "fail
         </div>
         <OperationalDashboard
           org={ORG_ID}
+          // The console routes a failed run's View to its session, so each row offers it.
+          onFailedRunClick={() => {}}
           firstStepLinks={{ connectProvider: "/models", createAgent: "/library/agents/new", startSession: "/" }}
         />
       </div>

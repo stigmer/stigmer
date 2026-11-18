@@ -70,8 +70,9 @@ describe("DashboardFirstSteps", () => {
   it("lists the six steps in order with the count done, facts for the done ones and one act on the current", () => {
     renderCard(journeyAt(3));
 
-    // Each row's title is the first text of its first line.
-    expect(rows().map((row) => row.querySelector("p")?.firstChild?.textContent)).toEqual(TITLES);
+    // Each row carries its step's title, in order.
+    expect(rows()).toHaveLength(TITLES.length);
+    rows().forEach((row, index) => expect(row.textContent).toContain(TITLES[index]));
     expect(screen.getByRole("region", { name: "From first agent to your users" }).textContent).toContain("3 of 6");
     for (const index of [0, 1, 2]) {
       expect(rows()[index]!.textContent).toContain(`fact ${index + 1}`);

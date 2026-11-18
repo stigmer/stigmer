@@ -9,8 +9,9 @@
  * lead by who adds the key: the reason Stigmer wants their own key for the
  * person who adds it, and whose key it is for anyone else.
  */
-import { describe, it, expect, afterEach } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { describe, it, expect, afterEach, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { ConnectError, Code } from "@connectrpc/connect";
 import { ConnectProviderPanel, ModelNeedsProvider } from "../ConnectProvider";
 import type { ModelsHubData } from "../hub/ModelsHub";
 import type { ProviderReadiness } from "../readiness";
@@ -125,6 +126,29 @@ describe("ConnectProviderPanel", () => {
 
     renderPanel({ provider: "anthropic", availability: { state: "missing", scope: "runners" } }, { canManage: false, local: true });
     expect(screen.getByText(`${WHY} Give this machine's runner a key, and you can send your first task.`)).toBeTruthy();
+  });
+
+  it("says a failed check of who may connect it, with Try again, and never a member's line", () => {
+    const retryManage = vi.fn();
+    render(
+      <ConnectProviderPanel
+        hub={hub([ANTHROPIC_MISSING], {
+          viewer: { canManage: false, local: false, unconfirmed: true },
+          manageError: new ConnectError("the permission service did not answer", Code.Unavailable),
+          retryManage,
+        })}
+        harness="stigmer"
+        provider="anthropic"
+        modelName="Claude Sonnet 4.6"
+      />,
+      { wrapper: readinessWrapper(fakeClient(server()).client) },
+    );
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toContain("Couldn't check who may connect a provider.");
+    fireEvent.click(within(alert).getByRole("button", { name: "Try again" }));
+    expect(retryManage).toHaveBeenCalledOnce();
+    expect(screen.queryByText(/An admin of Acme Research connects/)).toBeNull();
+    expect(screen.queryByLabelText("Anthropic API key")).toBeNull();
   });
 
   it("holds the lead while the permission is pending, so an admin never reads the member's lead first", () => {

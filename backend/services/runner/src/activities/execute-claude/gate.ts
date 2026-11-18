@@ -97,7 +97,13 @@
  * again. The turn turns the deferral into the WAITING row (`turn.ts`).
  * A call handed back to resume again (item 1) is deferred the same way, and
  * refused the same way at `canUseTool`, but it is no person's ask: it never
- * becomes a WAITING row.
+ * becomes a WAITING row. That refusal is the person's approved command not
+ * running, and no runner remedy exists for it: `canUseTool` can only allow
+ * or deny, and an engine stopped there writes the call's result as failed
+ * and finishes the run anyway (measured on SDK 0.3.311). It is what the
+ * engine does when it hands the call back under its own name and skips the
+ * callback too (stigmer#2915; anthropics/claude-agent-sdk-typescript#532),
+ * so each one is logged, {@link MISNAMED_AT_PERMISSION_LOG}.
  *
  * A file tool's write the gate lets run is observed first when review
  * captures what git cannot (an ignored path, a workspace with no git): its
@@ -176,6 +182,9 @@ export const ASK_ALONE_MESSAGE = "Ask for this call on its own: it needs a perso
 
 /** What the paused shell call is refused with when the engine hands it back under its own name and may not be started again (the header, item 1). */
 export const MISNAMED_SHELL_MESSAGE = "This command could not reach the workspace's shell; it was not run. Ask for it again.";
+
+/** The log line's mark for an approved shell call refused at `canUseTool` (the header): the engine's own slip, counted in the logs. */
+export const MISNAMED_AT_PERMISSION_LOG = "the engine handed the approved shell call back as its own Bash at canUseTool, which cannot defer it; refused, it did not run";
 
 /** What a call left waiting by a stopped turn is refused with when a later run's engine reaches it. */
 export const STALE_CALL_MESSAGE = "This call was waiting for an answer when its turn was stopped; it was not run.";
@@ -899,6 +908,7 @@ export function canUseToolOf(gate: ClaudeGate): CanUseTool {
         return { behavior: "deny", message: ASK_ALONE_MESSAGE };
       case "resume_again":
         gate.releaseDeferral(options.toolUseID);
+        console.warn(`[claude-gate] call=${options.toolUseID}: ${MISNAMED_AT_PERMISSION_LOG} (anthropics/claude-agent-sdk-typescript#532)`);
         return { behavior: "deny", message: MISNAMED_SHELL_MESSAGE };
       /* v8 ignore next 2 -- @preserve: the exhaustiveness guard over a closed union */
       default:

@@ -45,7 +45,9 @@
  * The run's output (`--out`, by default coding-agents/.bank-results/<time>/)
  * holds Claude Code's result and report, every try's trace under traces/
  * (what a reader needs to tell a skill that did not fire from one that did
- * not know), and the per-job summary.
+ * not know), and the per-job summary. A try Claude Code could not run (a
+ * usage limit, a crash) is no reading: the summary counts it and names the
+ * most common error, leaves its case unread, and the run exits non-zero.
  *
  * Usage: lib/coding-agent-bank.mjs, USAGE (`--help` prints it).
  * Needs `claude` signed in, and `make build-libs build-server build-runner`
@@ -229,7 +231,7 @@ async function main() {
 
     const result = JSON.parse(readFileSync(resultPath, "utf8"));
     log(`${collectTraces(result, out)} tries' traces kept in ${join(out, "traces")}`);
-    const summary = summarizeResult(result);
+    const summary = summarizeResult(result, { indicators: new Map(selected.map((kase) => [kase.dir, kase.indicators])) });
     writeFileSync(join(out, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`);
     const table = renderSummary(summary);
     writeFileSync(join(out, "summary.md"), `${table}\n`);
@@ -240,6 +242,8 @@ async function main() {
       process.stdout.write(`\nWith the plugin, against ${args.compare}:\n${spread}\n`);
     }
     log(`result, report and summary in ${out}`);
+    // A try that never ran is no reading; a run holding one is never recorded as a score.
+    check(summary.valid, `not a valid reading: ${summary.erroredTries} tries errored${summary.commonError === undefined ? "" : ` (most often: ${summary.commonError.error})`}`);
   } finally {
     await stage?.stop();
     if (args.keep) log(`kept ${root}`);

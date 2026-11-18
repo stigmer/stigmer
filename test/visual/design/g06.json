@@ -1,11 +1,11 @@
 {
   "screen": "G06",
   "title": "Marketplace",
-  "source": "the Console parts page, version 8",
+  "source": "the Workspace pages page, version 1",
   "reader": "bf8cb5c94919",
   "drawings": [
     {
-      "caption": "Marketplace",
+      "caption": "Marketplace: as an admin",
       "narrow": false,
       "built": [
         {
@@ -33,16 +33,16 @@
         {
           "text": "All sources 8",
           "type": [
-            12,
-            16,
+            14,
+            20,
             500
           ]
         },
         {
           "text": "stigmer 8",
           "type": [
-            12,
-            16,
+            14,
+            20,
             500
           ]
         },
@@ -63,7 +63,7 @@
           ]
         },
         {
-          "text": "Search every source by name or description\u2026",
+          "text": "Search every source by name or description…",
           "type": [
             14,
             20,
@@ -183,7 +183,7 @@
           ]
         },
         {
-          "text": "Figma's hosted MCP server: read design files, components, variables and comments. Sign in with Figma.",
+          "text": "Figma's hosted MCP server: read design files, components, variables and comments. Sign in with your Figma account.",
           "type": [
             12,
             16,
@@ -293,6 +293,126 @@
             16,
             500
           ]
+        },
+        {
+          "text": "Sentry",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Sentry's hosted MCP server: issues, events and projects in your Sentry organization. Sign in with Sentry.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stripe",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Stripe's hosted MCP server: customers, payments, subscriptions and the Stripe docs.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Vercel",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Vercel's hosted MCP server: projects, deployments and logs in your Vercel team. Sign in with Vercel.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            12,
+            16,
+            500
+          ]
         }
       ],
       "buttons": [
@@ -319,17 +439,1689 @@
         {
           "name": "Install",
           "height": 28
+        },
+        {
+          "name": "Install",
+          "height": 28
+        },
+        {
+          "name": "Install",
+          "height": 28
+        },
+        {
+          "name": "Install",
+          "height": 28
         }
       ],
       "sample": {
-        "word Figma's hosted MCP server: read design files, components, variables and comments. Sign in with Figma.": "The scene's catalogue describes it: \"\u2026 Sign in with your Figma account.\""
+        "word Sentry's hosted MCP server: issues, events and projects in your Sentry organization. Sign in with Sentry.": "The scene's catalogue describes it in its own words",
+        "word Stripe's hosted MCP server: customers, payments, subscriptions and the Stripe docs.": "The scene's catalogue describes it in its own words",
+        "word Vercel's hosted MCP server: projects, deployments and logs in your Vercel team. Sign in with Vercel.": "The scene's catalogue describes it in its own words",
+        "word All sources 8": "The drawing's catalogue has eight plugins; the scene's catalogue offers its own count",
+        "word stigmer 8": "The drawing's catalogue has eight plugins; the scene's catalogue offers its own count",
+        "button Install again": "Each card's act is named for its plugin (\"Install linear\") for assistive technology; the drawing names it by its visible words"
       },
       "ruled": {},
-      "pending": {
-        "button Install again": "When its page is redesigned: an installed source offers Install again",
-        "word All sources 8": "When its page is redesigned: each source in the filter counts its plugins",
-        "word stigmer 8": "When its page is redesigned: each source in the filter counts its plugins"
-      }
+      "pending": {}
+    },
+    {
+      "caption": "Marketplace: a member",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "marketplace-member",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Marketplace",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Plugins for acme's agents: tools, skills and whole agents, from Stigmer's catalogue or one you add.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "All sources 8",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "stigmer 8",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Manage sources",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Search plugins",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Search every source by name or description…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Atlassian",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Atlassian's Rovo MCP server: Jira issues and Confluence pages across your Atlassian site. Sign in with your Atlassian account.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ask an admin to install",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Cloudflare",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Cloudflare's hosted MCP server: the zones, Workers, DNS and settings of your Cloudflare account.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ask an admin to install",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Figma",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Figma's hosted MCP server: read design files, components, variables and comments. Sign in with your Figma account.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ask an admin to install",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Linear",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Installed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Linear's hosted MCP server: issues, projects, cycles and comments in your Linear workspace.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Notion",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Notion's hosted MCP server: search, read and write the pages and databases your account can reach.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ask an admin to install",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Sentry",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Sentry's hosted MCP server: issues, events and projects in your Sentry organization. Sign in with Sentry.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ask an admin to install",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Stripe",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Stripe's hosted MCP server: customers, payments, subscriptions and the Stripe docs.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ask an admin to install",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Vercel",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Vercel's hosted MCP server: projects, deployments and logs in your Vercel team. Sign in with Vercel.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ask an admin to install",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Manage sources",
+          "height": 28
+        }
+      ],
+      "sample": {
+        "word Sentry's hosted MCP server: issues, events and projects in your Sentry organization. Sign in with Sentry.": "The scene's catalogue describes it in its own words",
+        "word Stripe's hosted MCP server: customers, payments, subscriptions and the Stripe docs.": "The scene's catalogue describes it in its own words",
+        "word Vercel's hosted MCP server: projects, deployments and logs in your Vercel team. Sign in with Vercel.": "The scene's catalogue describes it in its own words",
+        "word All sources 8": "The drawing's catalogue has eight plugins; the scene's catalogue offers its own count",
+        "word stigmer 8": "The drawing's catalogue has eight plugins; the scene's catalogue offers its own count"
+      },
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Marketplace: searching",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene types a search; MarketplaceCatalog.test.tsx pins the filtered grid",
+      "words": [
+        {
+          "text": "Marketplace",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Plugins for acme's agents: tools, skills and whole agents, from Stigmer's catalogue or one you add.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "All sources 8",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "stigmer 8",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Manage sources",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Search plugins",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "linear",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Linear",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Installed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Linear's hosted MCP server: issues, projects, cycles and comments in your Linear workspace.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install again",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Manage sources",
+          "height": 28
+        },
+        {
+          "name": "Install again",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Marketplace: no match",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene types a search that matches nothing; MarketplaceCatalog.test.tsx pins the empty state",
+      "words": [
+        {
+          "text": "Marketplace",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Plugins for acme's agents: tools, skills and whole agents, from Stigmer's catalogue or one you add.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "All sources 8",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "stigmer 8",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Manage sources",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Search plugins",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "jira cloud",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No plugins match “jira cloud”",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Try another word, or look in every source.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Clear search",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Manage sources",
+          "height": 28
+        },
+        {
+          "name": "Clear search",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Marketplace: a source couldn't be read",
+      "narrow": false,
+      "built": [],
+      "words": [
+        {
+          "text": "Marketplace",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Plugins for acme's agents: tools, skills and whole agents, from Stigmer's catalogue or one you add.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "All sources 8",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "stigmer 8",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "acme-internal ⚠",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Manage sources",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Search plugins",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Search every source by name or description…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't read acme-internal.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the source did not answer in time (https://plugins.acme.example/marketplace.json)The plugins below come from your other sources.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Upload a plugin",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "A Cursor, Claude Code, Codex or Agent Plugins folder from your computer, or a .zip of one.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Atlassian",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Atlassian's Rovo MCP server: Jira issues and Confluence pages across your Atlassian site. Sign in with your Atlassian account.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cloudflare",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Cloudflare's hosted MCP server: the zones, Workers, DNS and settings of your Cloudflare account.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Figma",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Figma's hosted MCP server: read design files, components, variables and comments. Sign in with your Figma account.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Linear",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Installed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Linear's hosted MCP server: issues, projects, cycles and comments in your Linear workspace.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install again",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Notion",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Notion's hosted MCP server: search, read and write the pages and databases your account can reach.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Sentry",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Sentry's hosted MCP server: issues, events and projects in your Sentry organization. Sign in with Sentry.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stripe",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Stripe's hosted MCP server: customers, payments, subscriptions and the Stripe docs.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Vercel",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Vercel's hosted MCP server: projects, deployments and logs in your Vercel team. Sign in with Vercel.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Manage sources",
+          "height": 28
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Install",
+          "height": 28
+        },
+        {
+          "name": "Install",
+          "height": 28
+        },
+        {
+          "name": "Install",
+          "height": 28
+        },
+        {
+          "name": "Install again",
+          "height": 28
+        },
+        {
+          "name": "Install",
+          "height": 28
+        },
+        {
+          "name": "Install",
+          "height": 28
+        },
+        {
+          "name": "Install",
+          "height": 28
+        },
+        {
+          "name": "Install",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {},
+      "unbuilt": "No scene has one source of two unreadable: marketplace-source-failed's only source is the one that fails (MarketplaceCatalog.test.tsx pins the notice among sources)"
+    },
+    {
+      "caption": "Marketplace: loading",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "The gallery pictures a page once it settles, so a loading state has no scene",
+      "words": [
+        {
+          "text": "Marketplace",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Plugins for acme's agents: tools, skills and whole agents, from Stigmer's catalogue or one you add.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "All sources 8",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "stigmer 8",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Manage sources",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Search plugins",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Search every source by name or description…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Manage sources",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Marketplace: at 390",
+      "narrow": true,
+      "built": [
+        {
+          "scene": "marketplace-admin",
+          "width": "narrow"
+        }
+      ],
+      "words": [
+        {
+          "text": "Marketplace",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Plugins for acme's agents: tools, skills and whole agents, from Stigmer's catalogue or one you add.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "All sources 8",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "stigmer 8",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Manage sources",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Search plugins",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Search every source by name or description…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Upload a plugin",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "A Cursor, Claude Code, Codex or Agent Plugins folder from your computer, or a .zip of one.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Atlassian",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Atlassian's Rovo MCP server: Jira issues and Confluence pages across your Atlassian site. Sign in with your Atlassian account.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Cloudflare",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Cloudflare's hosted MCP server: the zones, Workers, DNS and settings of your Cloudflare account.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Figma",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Figma's hosted MCP server: read design files, components, variables and comments. Sign in with your Figma account.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Linear",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Installed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Linear's hosted MCP server: issues, projects, cycles and comments in your Linear workspace.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install again",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Notion",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Notion's hosted MCP server: search, read and write the pages and databases your account can reach.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Sentry",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Sentry's hosted MCP server: issues, events and projects in your Sentry organization. Sign in with Sentry.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stripe",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Stripe's hosted MCP server: customers, payments, subscriptions and the Stripe docs.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Vercel",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Vercel's hosted MCP server: projects, deployments and logs in your Vercel team. Sign in with Vercel.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Manage sources",
+          "height": 28
+        },
+        {
+          "name": "Install",
+          "height": 28
+        },
+        {
+          "name": "Install",
+          "height": 28
+        },
+        {
+          "name": "Install",
+          "height": 28
+        },
+        {
+          "name": "Install again",
+          "height": 28
+        },
+        {
+          "name": "Install",
+          "height": 28
+        },
+        {
+          "name": "Install",
+          "height": 28
+        },
+        {
+          "name": "Install",
+          "height": 28
+        },
+        {
+          "name": "Install",
+          "height": 28
+        }
+      ],
+      "sample": {
+        "word Sentry's hosted MCP server: issues, events and projects in your Sentry organization. Sign in with Sentry.": "The scene's catalogue describes it in its own words",
+        "word Stripe's hosted MCP server: customers, payments, subscriptions and the Stripe docs.": "The scene's catalogue describes it in its own words",
+        "word Vercel's hosted MCP server: projects, deployments and logs in your Vercel team. Sign in with Vercel.": "The scene's catalogue describes it in its own words",
+        "word All sources 8": "The drawing's catalogue has eight plugins; the scene's catalogue offers its own count",
+        "word stigmer 8": "The drawing's catalogue has eight plugins; the scene's catalogue offers its own count",
+        "button Install again": "Each card's act is named for its plugin (\"Install linear\") for assistive technology; the drawing names it by its visible words"
+      },
+      "ruled": {},
+      "pending": {}
     }
   ]
 }

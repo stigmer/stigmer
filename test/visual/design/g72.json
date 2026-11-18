@@ -1,0 +1,1209 @@
+{
+  "screen": "G72",
+  "title": "Install and upload",
+  "source": "the Workspace pages page, version 1",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Install and upload: Install: what it brings",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "marketplace-install",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Install linear",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "From stigmer (github.com/stigmer/plugins) into acme",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Plugin",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "linear",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Version",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Format",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Code",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Files",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "6 read",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Installs",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Skills",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "none",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "MCP servers",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "linear (http)",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Subagents",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "none",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Hooks",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "none",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Install",
+          "height": 32
+        }
+      ],
+      "sample": {
+        "word Install linear": "The drawing installs Linear; the scene installs its own catalogue's plugin",
+        "word From stigmer (github.com/stigmer/plugins) into acme": "The drawing installs Linear; the scene installs its own catalogue's plugin",
+        "word linear": "The drawing installs Linear; the scene installs its own catalogue's plugin",
+        "word 6 read": "The drawing installs Linear; the scene installs its own catalogue's plugin",
+        "word linear (http)": "The drawing installs Linear; the scene installs its own catalogue's plugin"
+      },
+      "ruled": {},
+      "pending": {
+        "type Name": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look",
+        "type Version": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look",
+        "type Format": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look",
+        "type Files": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look",
+        "type Skills": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look",
+        "type MCP servers": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look",
+        "type Subagents": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look",
+        "type Hooks": "The install preview's labels at 14/20, as the Library's Upload plugin page passed it; the drawing has 12/16. For the Built look"
+      }
+    },
+    {
+      "caption": "Install and upload: Install: installing",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene holds an install in flight",
+      "words": [
+        {
+          "text": "Install linear",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "From stigmer (github.com/stigmer/plugins) into acme",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Plugin",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "linear",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Version",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Format",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Code",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Files",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "6 read",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Installs",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Skills",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "none",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "MCP servers",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "linear (http)",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Subagents",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "none",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Hooks",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "none",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Install",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Install and upload: Install: installed",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene completes an install; PluginInstallDialog.test.tsx pins the installed note",
+      "words": [
+        {
+          "text": "Install linear",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "From stigmer (github.com/stigmer/plugins) into acme",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Linear is installed.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "It brings 1 MCP server to acme. Add it to an agent from the agent's page.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Close",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Install and upload: Install: didn't go through",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene refuses an install",
+      "words": [
+        {
+          "text": "Install linear",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "From stigmer (github.com/stigmer/plugins) into acme",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Plugin",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "linear",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Version",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Format",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Code",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Files",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "6 read",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Installs",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Skills",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "none",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "MCP servers",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "linear (http)",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Subagents",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "none",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Hooks",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "none",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The install didn't go through.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the plugin service did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Ask IT on Slack",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Install and upload: already installed at another version",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "No scene's organization holds the plugin at another version; PluginInstallDialog.test.tsx pins the notice",
+      "words": [
+        {
+          "text": "Upgrade linear",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "From stigmer (github.com/stigmer/plugins) into acme",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Plugin",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "linear",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Version",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Format",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Code",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Files",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "6 read",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Installs",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Skills",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "none",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "MCP servers",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "linear (http)",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Subagents",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "none",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Hooks",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "none",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "linear is already installed at version 1.3.2.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Installing replaces its skills, servers and agent with this version's; the agent is made again, so a session on the old one doesn't follow.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Upgrade",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Upgrade",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Install and upload: Upload: nothing chosen",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "marketplace-upload",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Upload a plugin",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Drop a plugin folder or a .zip of one here",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "A Cursor, Claude Code, Codex or Agent Plugins folder installs unchanged.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Choose a folder",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Choose a folder",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Install",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "type Install": "The uploader's acts are its own form's at the small size, shared with the Library's Upload plugin page; the drawing's dialog footer has them at 32px. For the Built look",
+        "button Install": "The uploader's acts are its own form's at the small size, shared with the Library's Upload plugin page; the drawing's dialog footer has them at 32px. For the Built look"
+      }
+    },
+    {
+      "caption": "Install and upload: Upload: a folder chosen",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "A scene can't drive the uploader's folder input",
+      "words": [
+        {
+          "text": "Upload a plugin",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "From the folder ledger-tools into acme",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "ledger-tools",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "A folder · 14 files · Claude Code",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Choose another",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Plugin",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "linear",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Version",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Format",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Code",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Files",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "6 read",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Installs",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Skills",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "none",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "MCP servers",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "linear (http)",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Subagents",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "none",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Hooks",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "none",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Install ledger-tools",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Choose another",
+          "height": 28
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Install ledger-tools",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

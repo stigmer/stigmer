@@ -11,6 +11,7 @@
 import { useCallback, useId, useMemo } from "react";
 import { cn } from "@stigmer/design-tokens";
 import type { ProviderKey } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/api_pb";
+import { EmptyState } from "../../empty-state/EmptyState.js";
 import { ErrorMessage } from "../../error/ErrorMessage.js";
 import { useProviderKeys } from "../../billing/useProviderKeys.js";
 import { useDeploymentMode, useResourceAvailable } from "@stigmer/react-core";
@@ -54,6 +55,14 @@ export interface ModelsHubData {
   readonly error: Error | null;
   /** Asks the server again for readiness and the key list, after a key is saved or removed. */
   readonly refresh: () => void;
+  /**
+   * Why the check of who may save and remove keys failed, or `null`. The
+   * acts on keys wait for the server's yes, so a failed check hides them
+   * (`viewer.unconfirmed`) and is said, never shown as a member's line.
+   */
+  readonly manageError?: Error | null;
+  /** Asks the server again who may save and remove keys. */
+  readonly retryManage?: () => void;
 }
 
 /**
@@ -88,7 +97,11 @@ export function useModelsHubData(org: string | null): ModelsHubData {
         (availability.state === "missing" && availability.scope === "organization") ||
         (availability.state === "served" && availability.source === "organization"),
     );
-  const manage = useCheckPermission(asksPermission ? { kind: "organization", id: orgId } : null, "can_manage_billing");
+  // Saving and removing keys is offered only on the server's yes: a check
+  // that fails hides the acts rather than offering what may be refused.
+  const manage = useCheckPermission(asksPermission ? { kind: "organization", id: orgId } : null, "can_manage_billing", {
+    fail: "closed",
+  });
 
   const nameOfOrg = useCallback(
     (ref: string): string | undefined => {
@@ -140,7 +153,7 @@ export function useModelsHubData(org: string | null): ModelsHubData {
     () => ({
       org: orgId,
       orgName: nameOfOrg(orgId) ?? "this organization",
-      viewer: { canManage, local },
+      viewer: { canManage, local, unconfirmed: asksPermission && manage.error !== null },
       providers: readiness.providers,
       models,
       keyOf,
@@ -150,6 +163,8 @@ export function useModelsHubData(org: string | null): ModelsHubData {
       readinessLoading,
       error: readiness.error,
       refresh,
+      manageError: asksPermission ? manage.error : null,
+      retryManage: manage.refetch,
     }),
     [
       orgId,
@@ -165,6 +180,9 @@ export function useModelsHubData(org: string | null): ModelsHubData {
       readinessLoading,
       readiness.error,
       refresh,
+      asksPermission,
+      manage.error,
+      manage.refetch,
     ],
   );
 }
@@ -209,14 +227,38 @@ function HubBody({ hub }: { readonly hub: ModelsHubData }) {
   const providersHeadingId = useId();
   if (hub.providers === null || hub.models === null) {
     if (hub.error !== null) {
-      return <ErrorMessage error={hub.error} retry={hub.refresh} />;
+      return (
+        <ErrorMessage
+          error={hub.error}
+          title="Couldn't load the providers."
+          comfort="Your keys are safe; only this page's read failed."
+          retry={hub.refresh}
+        />
+      );
     }
     return <HubSkeleton />;
   }
   if (hub.isLoading) return <HubSkeleton />;
+  if (hub.providers.length === 0) {
+    return (
+      <EmptyState
+        variant="first-use"
+        title="No model providers on this server"
+        description="This server offers no provider your agents can use. Whoever runs it adds one; until then, runs are refused."
+      />
+    );
+  }
   const models = hub.models;
   return (
     <>
+      {hub.manageError && (
+        <ErrorMessage
+          error={hub.manageError}
+          title="Couldn't check who may change the keys."
+          comfort="The keys are as they were; connecting, replacing and removing wait for the check."
+          retry={hub.retryManage}
+        />
+      )}
       <section aria-labelledby={providersHeadingId} className="stg:space-y-3">
         <h2 id={providersHeadingId} className="stg:text-sm stg:font-semibold stg:text-foreground">
           Providers

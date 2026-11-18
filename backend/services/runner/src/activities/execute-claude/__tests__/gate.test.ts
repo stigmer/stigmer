@@ -65,6 +65,7 @@ import {
   HALTED_MESSAGE,
   BOUNDARY_STOP_REASON,
   HIDDEN_SKILLS_MESSAGE,
+  MISNAMED_AT_PERMISSION_LOG,
   MISNAMED_SHELL_MESSAGE,
   PLATFORM_READ_ONLY_MESSAGE,
   NOT_ADMITTED_MESSAGE,
@@ -489,7 +490,15 @@ describe("the paused shell call the engine hands back under its own name (stigme
     const hookInput: HookInput = { hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { ...SHOWN }, tool_use_id: "toolu_w", session_id: "s", transcript_path: "", cwd: WORKSPACE };
     expect(await preToolUse(hookInput, "toolu_w", { signal })).toEqual({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "defer" } });
     expect(gate.deferredCall).toBe("toolu_w");
-    expect(await canUseToolOf(gate)("Bash", { ...SHOWN }, { signal, toolUseID: "toolu_w", requestId: "r1" })).toEqual({ behavior: "deny", message: MISNAMED_SHELL_MESSAGE });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      expect(await canUseToolOf(gate)("Bash", { ...SHOWN }, { signal, toolUseID: "toolu_w", requestId: "r1" })).toEqual({ behavior: "deny", message: MISNAMED_SHELL_MESSAGE });
+      expect(warn.mock.calls.map((args) => String(args[0])), "the approved command did not run, so the log counts it").toEqual([
+        `[claude-gate] call=toolu_w: ${MISNAMED_AT_PERMISSION_LOG} (anthropics/claude-agent-sdk-typescript#532)`,
+      ]);
+    } finally {
+      warn.mockRestore();
+    }
     expect(gate.deferredCall, "the deferral the engine ran past is free again").toBeUndefined();
   });
 
