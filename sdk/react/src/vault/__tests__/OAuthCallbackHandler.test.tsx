@@ -4,7 +4,9 @@
  * its opener, with the refusal and the state it belongs to, and the page
  * shows the refusal; a refusal with no state tells no one. A sign-in that
  * reaches no page to tell says it is connected, and to go back to the app the
- * host names.
+ * host names; one handed back says it is connected and the window may close;
+ * a page opened without the sign-in's code, or a window that started it but
+ * can't be told, says the connection didn't finish.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -73,5 +75,48 @@ describe("OAuthCallbackHandler when no page can be told", () => {
 
     expect(await screen.findByRole("heading", { name: "Connected" })).toBeTruthy();
     expect(screen.getByText("Close this tab and go back to Stigmer to carry on.")).toBeTruthy();
+  });
+});
+
+describe("OAuthCallbackHandler handing the sign-in back", () => {
+  it("says it is connected once the window that started the sign-in is told", async () => {
+    const opener = { closed: false, postMessage: vi.fn() };
+    at("?code=c-1&state=st-1", opener);
+    vi.stubGlobal("close", vi.fn());
+    render(<OAuthCallbackHandler />);
+
+    expect(await screen.findByRole("heading", { name: "Connected" })).toBeTruthy();
+    expect(screen.getByText("You can close this window.")).toBeTruthy();
+    expect(opener.postMessage).toHaveBeenCalled();
+  });
+
+  it("says the connection didn't finish when the page has no sign-in's code", async () => {
+    at("", null);
+    render(<OAuthCallbackHandler />);
+
+    expect(await screen.findByText("The connection didn't finish.")).toBeTruthy();
+    expect(screen.getByText(/this page was opened without the sign-in's code/)).toBeTruthy();
+  });
+
+  it("says the connection didn't finish when the window that started it can't be told", async () => {
+    const opener = {
+      closed: false,
+      postMessage: vi.fn(() => {
+        throw new Error("blocked");
+      }),
+    };
+    at("?code=c-1&state=st-1", opener);
+    vi.stubGlobal(
+      "BroadcastChannel",
+      class {
+        constructor() {
+          throw new Error("BroadcastChannel unavailable");
+        }
+      },
+    );
+    render(<OAuthCallbackHandler appName="Stigmer" />);
+
+    expect(await screen.findByText("the window that started the sign-in couldn't be reached")).toBeTruthy();
+    expect(screen.getByText("Nothing was saved. Close this window and try again from Stigmer.")).toBeTruthy();
   });
 });
