@@ -32,9 +32,11 @@
  * validation (it would threaten ToolNode execution identity); a params
  * object is exactly the declaration-without-execution the validation exists
  * to protect, and the graph keeps executing the untouched original. Schema
- * extension happens at the JSON-schema level via @langchain/core's interop
- * serializer — the runner's zod (v3) must never construct fields inside the
- * library's zod (v4) schema object.
+ * extension happens at the JSON-schema level via @langchain/core's
+ * serializer, the one every provider binding calls: the declaration is
+ * frozen and executes nothing, so it needs no zod schema of its own, and
+ * serializing never changes the schema the original parses its arguments
+ * with (`shared/__tests__/zod-serializer-isolation.test.ts`).
  */
 
 import { toJsonSchema } from "@langchain/core/utils/json_schema";
