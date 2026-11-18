@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": "^22.13.0 || >=23.4.0"
   },
   "bin": {
     "mcp-server-stigmer": "./dist/cli/mcp-server-stigmer.js"

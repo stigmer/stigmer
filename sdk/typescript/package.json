@@ -24,7 +24,7 @@
     "src"
   ],
   "engines": {
-    "node": ">=22"
+    "node": "^22.13.0 || >=23.4.0"
   },
   "keywords": [
     "stigmer",
