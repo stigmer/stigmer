@@ -7,8 +7,12 @@
  * archive aside, which the site does not build) and checks every
  * capitalized tag against the page's own imports and `getMDXComponents`,
  * naming the page and the tag.
+ *
+ * And every Markdown code block's scroll area is a Tab stop, so a keyboard
+ * can scroll a long line (stigmer#2902).
  */
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, render } from "@testing-library/react";
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -63,7 +67,21 @@ function pages(): string[] {
     .sort();
 }
 
+afterEach(cleanup);
+
 describe("the docs' MDX components", () => {
+  it("makes every code block's scroll area a Tab stop", () => {
+    const { pre: Pre } = getMDXComponents();
+    const { container } = render(
+      <Pre>
+        <code>echo a line long enough to scroll</code>
+      </Pre>,
+    );
+    const area = container.querySelector(".fd-scroll-container");
+    expect(area?.getAttribute("tabindex")).toBe("0");
+    expect(area?.textContent).toBe("echo a line long enough to scroll");
+  });
+
   it("provides every component a docs page renders", () => {
     const provided = getMDXComponents();
     const read = pages();

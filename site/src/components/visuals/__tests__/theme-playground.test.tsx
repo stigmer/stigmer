@@ -3,21 +3,30 @@
  * six presets, light or dark and a radius as controls, each change posted to
  * the frame from the page's own origin (and again when the frame says it
  * listens), native radios to pick with, and the code beside it following
- * the pick.
+ * the pick, highlighted and keyboard-scrollable as the docs' own code blocks
+ * are.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { THEME_PRESETS } from "@stigmer/design-tokens";
 import { LIVE_CAPTION, LIVE_READY_MESSAGE, LIVE_THEME_MESSAGE } from "@/lib/live";
+import { CODE_HIGHLIGHT, CODE_VIEWPORT } from "@/lib/code-highlight";
 import { ThemePlayground } from "../ThemePlayground";
 
+/** The props each code block was last drawn with, by its title. */
+const drawnBlocks = new Map<string | undefined, { options?: unknown; codeblock?: { title?: string; viewportProps?: unknown } }>();
+
 vi.mock("fumadocs-ui/components/dynamic-codeblock", () => ({
-  DynamicCodeBlock: ({ code, codeblock }: { code: string; codeblock?: { title?: string } }) => (
-    <pre data-title={codeblock?.title}>{code}</pre>
-  ),
+  DynamicCodeBlock: (props: { code: string; options?: unknown; codeblock?: { title?: string; viewportProps?: unknown } }) => {
+    drawnBlocks.set(props.codeblock?.title, props);
+    return <pre data-title={props.codeblock?.title}>{props.code}</pre>;
+  },
 }));
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  drawnBlocks.clear();
+});
 
 /** The playground drawn, its frame's window replaced by one that records what it is posted. */
 function draw() {
@@ -74,6 +83,16 @@ describe("ThemePlayground", () => {
     expect(postMessage).not.toHaveBeenCalled();
     ready({ origin: window.location.origin, source: frame.contentWindow });
     expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({ preset: "fintech" }), window.location.origin);
+  });
+
+  it("highlights both code blocks as the docs' own are, each a Tab stop", () => {
+    draw();
+    fireEvent.change(screen.getByRole("slider"), { target: { value: "0.75" } });
+    expect([...drawnBlocks.keys()].sort()).toEqual(["Themed.tsx", "my-theme.css"]);
+    for (const block of drawnBlocks.values()) {
+      expect(block.options).toBe(CODE_HIGHLIGHT);
+      expect(block.codeblock?.viewportProps).toBe(CODE_VIEWPORT);
+    }
   });
 
   it("is driven by native radios: one group per choice, each named once", () => {

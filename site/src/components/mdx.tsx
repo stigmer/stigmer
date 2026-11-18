@@ -1,5 +1,7 @@
 import defaultMdxComponents from "fumadocs-ui/mdx";
+import type { ComponentProps } from "react";
 import type { MDXComponents } from "mdx/types";
+import { CodeBlock, Pre } from "fumadocs-ui/components/codeblock";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { Step, Steps } from "fumadocs-ui/components/steps";
 import { TypeTable } from "fumadocs-ui/components/type-table";
@@ -12,10 +14,17 @@ import { Live } from "@/components/visuals/Live";
 import { Screen } from "@/components/visuals/Screen";
 import { TerminalRecording } from "@/components/visuals/TerminalRecording";
 import { ThemePlayground } from "@/components/visuals/ThemePlayground";
+import { CODE_VIEWPORT } from "@/lib/code-highlight";
 
 export function getMDXComponents(components?: MDXComponents) {
   return {
     ...defaultMdxComponents,
+    // fumadocs' own `pre`, its scroll area made a Tab stop (src/lib/code-highlight.ts).
+    pre: (props: ComponentProps<"pre">) => (
+      <CodeBlock {...props} viewportProps={CODE_VIEWPORT}>
+        <Pre>{props.children}</Pre>
+      </CodeBlock>
+    ),
     Tab,
     Tabs,
     Step,
