@@ -73,6 +73,16 @@ describe("ErrorMessage", () => {
     expect(container.firstChild).toBeNull();
   });
 
+  it("copies the failure's reference in its details, and never reads it aloud on the screen", async () => {
+    const writeText = vi.fn(async (_text: string) => {});
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    render(<ErrorMessage error={new Error("Invalid time value")} reference="1234567890" />);
+    expect(screen.getByRole("alert").textContent).not.toContain("1234567890");
+    fireEvent.click(screen.getByRole("button", { name: "Copy details" }));
+    await vi.waitFor(() => expect(writeText).toHaveBeenCalled());
+    expect(String(writeText.mock.calls[0]?.[0])).toContain("Reference: 1234567890");
+  });
+
   it("draws on the failed tone with the foreground text, not red text on red", () => {
     render(<ErrorMessage error={new ConnectError("x", Code.Internal)} />);
     const alert = screen.getByRole("alert");

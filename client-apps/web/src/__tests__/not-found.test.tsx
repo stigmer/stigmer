@@ -9,19 +9,19 @@ vi.mock("next/link", () => ({
 
 vi.mock("lucide-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("lucide-react")>()),
-  FileQuestion: () => <svg data-testid="file-question-icon" />,
+  Search: () => <svg data-testid="search-icon" />,
 }));
 
 import NotFound from "../app/not-found";
 
 describe("NotFound page", () => {
-  it("renders 404 message and dashboard link", () => {
+  it("says there's nothing at the address and links to the dashboard", () => {
     render(<NotFound />);
 
-    expect(screen.getByText("Page not found")).toBeTruthy();
-    expect(screen.getByText(/doesn't exist/)).toBeTruthy();
+    expect(screen.getByText("There's nothing at this address")).toBeTruthy();
+    expect(screen.getByText("It may have been mistyped, or the page has moved.")).toBeTruthy();
 
-    const link = screen.getByRole("link", { name: "Go to Dashboard" });
+    const link = screen.getByRole("link", { name: "Go to the dashboard" });
     expect(link).toBeTruthy();
     expect(link.getAttribute("href")).toBe("/");
   });

@@ -1,0 +1,578 @@
+{
+  "screen": "G74",
+  "title": "An invitation",
+  "source": "Sign-in and failures, version 2",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "An invitation: Signed in: accept",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Join Acme Corp",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "As a member you can use the organization's agents and start your own conversations.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Member access",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Expires in 6 days",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Accept invitation",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Accept invitation",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "An invitation: Signed in, at 390",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Join Acme Corp",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "As a member you can use the organization's agents and start your own conversations.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Member access",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Expires in 6 days",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Accept invitation",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Accept invitation",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "An invitation: Signed out: make an account or sign in",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Join Acme Corp",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "As a member you can use the organization's agents and start your own conversations.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Member access",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Expires in 6 days",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Create your account and join",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "I already have an account",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Create your account and join",
+          "height": 32
+        },
+        {
+          "name": "I already have an account",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "An invitation: Accepting",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Join Acme Corp",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "As a member you can use the organization's agents and start your own conversations.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Member access",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Expires in 6 days",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Accepting…",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Accepting…",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "An invitation: Couldn't accept",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Join Acme Corp",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "As a member you can use the organization's agents and start your own conversations.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Member access",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Expires in 6 days",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer couldn't accept the invitation.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The invitation is still good.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Accept invitation",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Accept invitation",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "An invitation: Accepted: it forwards",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "You've joined Acme Corp",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "You have Member access. Taking you there…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "An invitation: Expired or used",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "This invitation has expired",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Invitations last seven days. Ask whoever sent it for a new link.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "An invitation: Not found",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "This invitation isn't here",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "It may have been withdrawn, or the link was copied in part. Ask whoever sent it for a new link.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "An invitation: Couldn't load",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Stigmer couldn't open the invitation.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The invitation itself is unaffected.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "An invitation: Loading",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Opening your invitation…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

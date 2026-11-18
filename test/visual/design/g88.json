@@ -1,0 +1,306 @@
+{
+  "screen": "G88",
+  "title": "The agents' status",
+  "source": "Sign-in and failures, version 2",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "The agents' status: Before anything runs",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "words": [
+        {
+          "text": "Agents start with a conversation",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Settings",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "AL",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "The agents' status: Starting",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "words": [
+        {
+          "text": "Starting agents…",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Settings",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "AL",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "The agents' status: Ready",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "words": [
+        {
+          "text": "Agents ready",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Settings",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "AL",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "The agents' status: Working",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "words": [
+        {
+          "text": "Agents working on 2 conversations",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Settings",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "AL",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "The agents' status: Stopped",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "words": [
+        {
+          "text": "Agents stopped",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Restart",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Settings",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "AL",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Restart",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "The agents' status: Couldn't start",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "words": [
+        {
+          "text": "Agents couldn't start",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "The agents' process exited: port 7466 is in use by another app.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Settings",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "AL",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

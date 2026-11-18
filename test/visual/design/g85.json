@@ -1,0 +1,235 @@
+{
+  "screen": "G85",
+  "title": "Connecting to a server",
+  "source": "Sign-in and failures, version 2",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Connecting to a server: Connecting",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "words": [
+        {
+          "text": "Connecting to stigmer.acme.example…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Connecting to a server: Can't reach it",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "words": [
+        {
+          "text": "Stigmer Desktop can't reach stigmer.acme.example.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "nothing answered at that address",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Check the address and your network, then try again.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Use another server",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Use another server",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Connecting to a server: Not a Stigmer server",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "words": [
+        {
+          "text": "stigmer.acme.example doesn't look like a Stigmer server.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "it answered, but not as a Stigmer server does",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Check the address, or choose another server.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Use another server",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Use another server",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Connecting to a server: Not set up for the desktop app",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "words": [
+        {
+          "text": "Acme isn't set up for Stigmer Desktop yet.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Its operator hasn't registered the desktop app as a sign-in client. Ask them to set one up.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "How an operator sets it up",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Use another server",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Use another server",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

@@ -1,0 +1,192 @@
+{
+  "screen": "G76",
+  "title": "Back to the desktop app",
+  "source": "Sign-in and failures, version 2",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Back to the desktop app: The card is saved",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Your card is saved",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Go back to Stigmer Desktop to carry on. You can close this tab.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Open Stigmer Desktop",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Open Stigmer Desktop",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Back to the desktop app: Nothing was changed",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Nothing was changed",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Go back to Stigmer Desktop to carry on. You can close this tab.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Open Stigmer Desktop",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Open Stigmer Desktop",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Back to the desktop app: Signed in: going back",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Going back to Stigmer Desktop…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Back to the desktop app: Signed in: the app didn't open (new, after a few seconds)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "You're signed in",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "If Stigmer Desktop didn't open, open it here. You can close this tab after.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Open Stigmer Desktop",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Open Stigmer Desktop",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Back to the desktop app: The card is saved, at 390",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Your card is saved",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Go back to Stigmer Desktop to carry on. You can close this tab.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Open Stigmer Desktop",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Open Stigmer Desktop",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

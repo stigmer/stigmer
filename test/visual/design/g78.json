@@ -1,0 +1,344 @@
+{
+  "screen": "G78",
+  "title": "Your account",
+  "source": "Sign-in and failures, version 2",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Your account: Checking",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "gate-account-checking",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "AL Ada Lovelace",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Checking your account…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {
+        "word AL Ada Lovelace": "His look, 2026-11-18, all as recommended: the gates' corner is the account menu as the sidebar's foot draws it (one initial, the name over the email); the drawing abbreviates it"
+      },
+      "pending": {}
+    },
+    {
+      "caption": "Your account: The first sign-in: setting up",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "gate-account-provisioning",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "AL Ada Lovelace",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Welcome, Ada Lovelace",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Setting up your account…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {
+        "word AL Ada Lovelace": "His look, 2026-11-18, all as recommended: the gates' corner is the account menu as the sidebar's foot draws it (one initial, the name over the email); the drawing abbreviates it"
+      },
+      "pending": {}
+    },
+    {
+      "caption": "Your account: Couldn't set up",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "gate-account-failed",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "AL Ada Lovelace",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer couldn't set up your account.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "You're signed in, and nothing was lost.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
+      "ruled": {
+        "word AL Ada Lovelace": "His look, 2026-11-18, all as recommended: the gates' corner is the account menu as the sidebar's foot draws it (one initial, the name over the email); the drawing abbreviates it"
+      },
+      "pending": {}
+    },
+    {
+      "caption": "Your account: Couldn't set up, at 390",
+      "narrow": true,
+      "built": [
+        {
+          "scene": "gate-account-failed",
+          "width": "narrow"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "AL Ada Lovelace",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer couldn't set up your account.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "You're signed in, and nothing was lost.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
+      "ruled": {
+        "word AL Ada Lovelace": "His look, 2026-11-18, all as recommended: the gates' corner is the account menu as the sidebar's foot draws it (one initial, the name over the email); the drawing abbreviates it"
+      },
+      "pending": {}
+    },
+    {
+      "caption": "Your account: Signed out on the way",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "gate-account-signed-out",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "AL Ada Lovelace",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "You're signed out.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "your session ended",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Sign in again to carry on where you were.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Sign in again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Sign in again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
+      "ruled": {
+        "word AL Ada Lovelace": "His look, 2026-11-18, all as recommended: the gates' corner is the account menu as the sidebar's foot draws it (one initial, the name over the email); the drawing abbreviates it"
+      },
+      "pending": {}
+    }
+  ]
+}

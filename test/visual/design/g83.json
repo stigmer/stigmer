@@ -1,0 +1,488 @@
+{
+  "screen": "G83",
+  "title": "Opening a run",
+  "source": "Sign-in and failures, version 2",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Opening a run: Opening",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "run-resolve-opening",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "Acme Corp",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "New Session",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Dashboard",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Conversations",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Library",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Marketplace",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Models & providers",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Settings",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "AL",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Opening the conversation…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {
+        "word Acme Corp": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word New Session": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Dashboard": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Conversations": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Library": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Marketplace": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Models & providers": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Settings": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word AL": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Ada Lovelace": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone"
+      },
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Opening a run: Not here",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "run-resolve-not-found",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "Acme Corp",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "New Session",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Dashboard",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Conversations",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Library",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Marketplace",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Models & providers",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Settings",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "AL",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "This run isn't here",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "It may have been deleted, or it belongs to an organization you're not in.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Go to conversations",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Go to conversations",
+          "height": 32
+        }
+      ],
+      "sample": {
+        "word Acme Corp": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word New Session": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Dashboard": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Conversations": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Library": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Marketplace": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Models & providers": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Settings": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word AL": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Ada Lovelace": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone"
+      },
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Opening a run: Not here, at 390",
+      "narrow": true,
+      "built": [
+        {
+          "scene": "run-resolve-not-found",
+          "width": "narrow"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "Acme Corp",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "This run isn't here",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "It may have been deleted, or it belongs to an organization you're not in.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Go to conversations",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Open the sidebar",
+          "height": 32
+        },
+        {
+          "name": "Go to conversations",
+          "height": 32
+        }
+      ],
+      "sample": {
+        "word Acme Corp": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "button Open the sidebar": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone"
+      },
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Opening a run: Didn't load",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "run-resolve-failed",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "Acme Corp",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "New Session",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Dashboard",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Conversations",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Library",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Marketplace",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Models & providers",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Settings",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "AL",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer couldn't open this run.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The run itself is unaffected.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {
+        "word Acme Corp": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word New Session": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Dashboard": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Conversations": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Library": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Marketplace": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Models & providers": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Settings": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word AL": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Ada Lovelace": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

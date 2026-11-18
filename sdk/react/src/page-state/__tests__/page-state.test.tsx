@@ -1,10 +1,11 @@
 /**
- * Pins the console's page states. PageNotFound names the missing page and
- * links home. PageFailure titles a failure by its kind (the host may rename
- * a kind), shows the server's line and the failure's reference, retries,
- * offers the host's way out, and ends a whole page's failure with the help
- * line (CON-13), while a failure inside a titled frame (settings) is an h2
- * without it.
+ * Pins the console's page states, drawn inside the console's frame.
+ * PageNotFound says there's nothing at the address and offers the
+ * dashboard. PageFailure says the failure from its kind (the kit's
+ * sentence: the server didn't answer, no access, signed out), says what
+ * wasn't lost, offers the act that can help (Try again, or Sign in again),
+ * keeps the failure's reference in Copy details rather than on the screen,
+ * ends with the help line (CON-13), and offers the host's quiet way out.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -12,55 +13,72 @@ import userEvent from "@testing-library/user-event";
 import { StigmerError } from "@stigmer/client";
 import { PageFailure, PageNotFound } from "../index";
 
-vi.mock("../../help/HelpLink.js", () => ({ HelpLink: () => <p>Stuck? Talk to us</p> }));
+vi.mock("../../help/HelpLink.js", () => ({
+  HelpLink: () => <p>Stuck? Talk to us</p>,
+  FailureHelpLine: () => <p>Stuck? Talk to us</p>,
+}));
 
 afterEach(cleanup);
 
-const HOME = { label: "Go to Dashboard", href: "/" };
-
 describe("PageNotFound", () => {
-  it("names the missing page and links home", () => {
+  it("says there's nothing at the address and offers the dashboard", () => {
     render(<PageNotFound homeHref="/dashboard" />);
-    expect(screen.getByRole("heading", { level: 1, name: "Page not found" })).toBeTruthy();
-    expect(screen.getByText("The page you're looking for doesn't exist or has been moved.")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Go to Dashboard" }).getAttribute("href")).toBe("/dashboard");
+    expect(screen.getByText("There's nothing at this address")).toBeTruthy();
+    expect(screen.getByText("It may have been mistyped, or the page has moved.")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Go to the dashboard" }).getAttribute("href")).toBe("/dashboard");
   });
 });
 
 describe("PageFailure", () => {
-  it("names an unrecognised failure, shows its line, reference and help, and retries", async () => {
+  it("says an unrecognised failure, keeps its reference off the screen, ends with help, and retries", async () => {
     const onRetry = vi.fn();
     const error = Object.assign(new Error("The agent list could not be read."), { digest: "abc123" });
-    render(<PageFailure error={error} onRetry={onRetry} link={HOME} />);
+    render(<PageFailure error={error} onRetry={onRetry} />);
 
-    expect(screen.getByRole("heading", { level: 1, name: "Something went wrong" })).toBeTruthy();
-    expect(screen.getByText("The agent list could not be read.")).toBeTruthy();
-    expect(screen.getByText("Reference: abc123")).toBeTruthy();
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toContain("Something went wrong.");
+    expect(alert.textContent).toContain("The agent list could not be read.");
+    expect(alert.textContent).toContain("Nothing was lost; only this page didn't load.");
+    expect(alert.textContent).not.toContain("abc123");
+    expect(screen.getByRole("button", { name: "Copy details" })).toBeTruthy();
     expect(screen.getByText("Stuck? Talk to us")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Go to Dashboard" }).getAttribute("href")).toBe("/");
 
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
-  it("titles a failure by its kind", () => {
-    render(<PageFailure error={new StigmerError("permission-denied", "You cannot view this agent.", 7)} onRetry={vi.fn()} link={HOME} />);
-    expect(screen.getByRole("heading", { level: 1, name: "Access denied" })).toBeTruthy();
-    expect(screen.queryByText(/Reference:/)).toBeNull();
-  });
-
-  it("draws a section's failure as an h2 without the help line, with the host's titles and way out", () => {
+  it("says a failure from its kind, with no Try again where trying can't help, and the host's way out", () => {
     render(
       <PageFailure
-        error={new StigmerError("not-found", "No such section.", 5)}
+        error={new StigmerError("permission-denied", "You cannot view this agent.", 7)}
         onRetry={vi.fn()}
-        placement="section"
-        titles={{ "not-found": "Section not found" }}
-        link={{ label: "Go to Members", href: "/settings/members" }}
+        link={{ label: "Go to the dashboard", href: "/" }}
       />,
     );
-    expect(screen.getByRole("heading", { level: 2, name: "Section not found" })).toBeTruthy();
-    expect(screen.queryByText("Stuck? Talk to us")).toBeNull();
-    expect(screen.getByRole("link", { name: "Go to Members" }).getAttribute("href")).toBe("/settings/members");
+    expect(screen.getByRole("alert").textContent).toContain("You don't have access to this.");
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Go to the dashboard" }).getAttribute("href")).toBe("/");
+  });
+
+  it("offers Sign in again for a signed-out failure", async () => {
+    const signIn = vi.fn();
+    render(<PageFailure error={new StigmerError("unauthenticated", "Your session ended.", 16)} onRetry={vi.fn()} signIn={signIn} />);
+    expect(screen.getByRole("alert").textContent).toContain("You're signed out.");
+    await userEvent.click(screen.getByRole("button", { name: "Sign in again" }));
+    expect(signIn).toHaveBeenCalledTimes(1);
+  });
+
+  it("draws a section's failure inside its layout's frame, with the host's comfort and way back", () => {
+    render(
+      <PageFailure
+        error={new StigmerError("internal", "internal error", 13)}
+        onRetry={vi.fn()}
+        placement="section"
+        comfort="Your settings are as you left them; only this page didn't load."
+        link={{ label: "Back to Settings", href: "/settings" }}
+      />,
+    );
+    expect(screen.getByRole("alert").textContent).toContain("Your settings are as you left them; only this page didn't load.");
+    expect(screen.getByRole("link", { name: "Back to Settings" }).getAttribute("href")).toBe("/settings");
   });
 });

@@ -1,9 +1,9 @@
 /**
- * Pins the run page both consoles draw at a run's address: nothing of its
- * own while the run resolves; the run's conversation handed to the host
- * once, when its session resolves; "Run not found" with the way to the
- * dashboard when nothing resolves; and a failed read said as a failure,
- * with Try again, never as a missing run.
+ * Pins the run page both consoles draw at a run's address: "Opening the
+ * conversation…" while the run resolves, never a blank page; the run's
+ * conversation handed to the host once, when its session resolves; "This
+ * run isn't here" with the way to the conversations when nothing resolves;
+ * and a failed read said as a failure, with Try again, never as a missing run.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -30,36 +30,38 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("RunResolveView", () => {
-  it("shows nothing of its own while the run resolves", () => {
+  it("says it is opening the conversation while the run resolves", () => {
     read.answer = { ...read.answer, isLoading: true };
-    const { container } = render(<RunResolveView runId="run_1" onResolved={vi.fn()} dashboardHref="/" />);
-    expect(container.innerHTML).toBe("");
+    render(<RunResolveView runId="run_1" onResolved={vi.fn()} conversationsHref="/conversations" />);
+    expect(screen.getByRole("status").textContent).toBe("Opening the conversation…");
     expect(read.asked).toContain("run_1");
   });
 
   it("hands the run's session to the host once it resolves", () => {
     read.answer = { ...read.answer, sessionId: "ses_1" };
     const onResolved = vi.fn();
-    const { container, rerender } = render(<RunResolveView runId="run_1" onResolved={onResolved} dashboardHref="/" />);
-    rerender(<RunResolveView runId="run_1" onResolved={onResolved} dashboardHref="/" />);
+    const { rerender } = render(<RunResolveView runId="run_1" onResolved={onResolved} conversationsHref="/conversations" />);
+    rerender(<RunResolveView runId="run_1" onResolved={onResolved} conversationsHref="/conversations" />);
     expect(onResolved).toHaveBeenCalledTimes(1);
     expect(onResolved).toHaveBeenCalledWith("ses_1");
-    expect(container.innerHTML).toBe("");
+    expect(screen.getByRole("status").textContent).toBe("Opening the conversation…");
   });
 
-  it("names the missing run and links to the host's dashboard", () => {
-    render(<RunResolveView runId="run_missing" onResolved={vi.fn()} dashboardHref="/dashboard" />);
-    expect(screen.getByRole("heading", { level: 1, name: "Run not found" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Go to Dashboard" }).getAttribute("href")).toBe("/dashboard");
+  it("names the missing run and links to the host's conversations", () => {
+    render(<RunResolveView runId="run_missing" onResolved={vi.fn()} conversationsHref="/conversations" />);
+    expect(screen.getByText("This run isn't here")).toBeTruthy();
+    expect(screen.getByText("It may have been deleted, or it belongs to an organization you're not in.")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Go to conversations" }).getAttribute("href")).toBe("/conversations");
   });
 
   it("says the run failed to load, not that it is missing, and retries on request", async () => {
     const refetch = vi.fn();
     read.answer = { ...read.answer, error: new Error("connection refused"), refetch };
-    render(<RunResolveView runId="run_flaky" onResolved={vi.fn()} dashboardHref="/" />);
-    expect(screen.getByRole("heading", { level: 1, name: "Failed to load run" })).toBeTruthy();
-    expect(screen.queryByText("Run not found")).toBeNull();
-    expect(screen.getByRole("link", { name: "Go to Dashboard" }).getAttribute("href")).toBe("/");
+    render(<RunResolveView runId="run_flaky" onResolved={vi.fn()} conversationsHref="/conversations" />);
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toContain("Stigmer couldn't open this run.");
+    expect(alert.textContent).toContain("The run itself is unaffected.");
+    expect(screen.queryByText("This run isn't here")).toBeNull();
 
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(refetch).toHaveBeenCalledTimes(1);

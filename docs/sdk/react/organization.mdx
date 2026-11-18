@@ -867,6 +867,7 @@ Value exposed by [`OrgProvider`](#orgprovider) via [`useOrg`](#useorg).
   type={{
     activeOrg: { type: "Organization | null", description: "The currently selected organization. Null while loading or if the user has no orgs.  Usually one of `orgs`, but it may be an organization outside them that the person opened and can read: a child organization its parent's admin opened from the parent's Child organizations list. Such an organization is never added to `orgs`.", required: true },
     error: { type: "string | null", description: "Non-null when the fetch failed.", required: true },
+    errorCause: { type: "Error | null", description: "The caught error when the fetch failed (its kind says why), beside error's words.", required: true },
     isLoading: { type: "boolean", description: "True during the initial fetch of organizations.", required: true },
     orgs: { type: "Organization[]", description: "All organizations the authenticated user belongs to.", required: true },
     refresh: { type: "(target?: string) => void", description: "Refetch the organization list. If `target` is provided, the org it names — by id or by slug — is selected after the fetch completes (useful after creating or renaming an organization), read from the server when it is not one of `orgs`, as a remembered one is.", required: true },

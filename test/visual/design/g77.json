@@ -1,0 +1,230 @@
+{
+  "screen": "G77",
+  "title": "Returns and pop-ups",
+  "source": "Sign-in and failures, version 2",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Returns and pop-ups: Coming back from sign-in",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Finishing the sign-in…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Returns and pop-ups: The sign-in didn't finish (new)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "The sign-in didn't finish.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the sign-in page sent back: access_denied",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Nothing changed in your account.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Sign in again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Sign in again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Returns and pop-ups: The pop-up: finishing",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Finishing the connection…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Returns and pop-ups: The pop-up: connected",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Connected",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "You can close this window.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Returns and pop-ups: The pop-up opened as a tab",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Connected",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Close this tab and go back to Stigmer to carry on.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Returns and pop-ups: The pop-up: didn't finish",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "The connection didn't finish.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "GitHub said: the request was declined",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Nothing was saved. Close this window and try again from Stigmer.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

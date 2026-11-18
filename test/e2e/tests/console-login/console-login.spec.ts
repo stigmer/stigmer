@@ -81,7 +81,7 @@ test.describe("console login against an authenticated self-hosted server", () =>
     await expect(page.getByRole("navigation").first()).toBeVisible({
       timeout: NO_DEAD_WAIT_MS,
     });
-    await expect(page.getByText("Welcome to Stigmer")).toHaveCount(0);
+    await expect(page.getByText("You're not in an organization yet")).toHaveCount(0);
     await expect(page.getByText("Setting up your workspace")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Organization menu" })).toHaveCount(0);
 

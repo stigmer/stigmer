@@ -9,7 +9,7 @@ import type { ReactNode } from "react";
 import { useIdentityAccountGate } from "@stigmer/react-sdk";
 import { IdentityAccountGateView } from "@stigmer/react-sdk/console";
 import { useAuth } from "../auth/AuthProvider";
-import { GateHeader } from "../shell/GateHeader";
+import { GateHeader, GateMark } from "../shell/GateHeader";
 
 /**
  * Blocks the app until the caller's identity account is resolved, or
@@ -24,14 +24,16 @@ import { GateHeader } from "../shell/GateHeader";
  * organization exists before `listMine()` is called.
  */
 export function IdentityAccountGate({ children }: { children: ReactNode }) {
-  const { isAuthEnabled, user } = useAuth();
+  const { isAuthEnabled, user, login } = useAuth();
   const { state, retry } = useIdentityAccountGate({ isEnabled: isAuthEnabled });
 
   return (
     <IdentityAccountGateView
       state={state}
       retry={retry}
+      signIn={() => void login().catch(() => {})}
       displayName={user?.name ?? user?.email}
+      mark={<GateMark />}
       corner={<GateHeader />}
     >
       {children}

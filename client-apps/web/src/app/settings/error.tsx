@@ -26,8 +26,8 @@ export default function SettingsError({ error, reset }: SettingsErrorProps) {
       error={error}
       onRetry={reset}
       placement="section"
-      titles={{ "not-found": "Section not found" }}
-      link={{ label: "Go to Members", href: "/settings/members" }}
+      comfort="Your settings are as you left them; only this page didn't load."
+      link={{ label: "Back to Settings", href: "/settings" }}
       renderLink={renderJourneyLink}
     />
   );

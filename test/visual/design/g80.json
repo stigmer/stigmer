@@ -1,0 +1,210 @@
+{
+  "screen": "G80",
+  "title": "Opening and its setup",
+  "source": "Sign-in and failures, version 2",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Opening and its setup: Opening",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "console-opening",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "Opening Stigmer…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Opening and its setup: Taking you to sign in",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "console-to-sign-in",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "Taking you to sign in…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Opening and its setup: Its setup couldn't load",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "console-config-failed",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "Stigmer couldn't load its setup.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "sign-in is on, but no sign-in client is set up for the console",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "This is the server's setup, not your account: nothing was lost. If it keeps happening, tell whoever runs Stigmer for you.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {
+        "word Stuck? Talk to Suresh": "His look, 2026-11-18, all as recommended: a screen drawn before the server's client exists (the console's setup, the whole console failing) has no help line to show; the drawing draws one"
+      },
+      "pending": {}
+    },
+    {
+      "caption": "Opening and its setup: Its setup couldn't load, at 390",
+      "narrow": true,
+      "built": [
+        {
+          "scene": "console-config-failed",
+          "width": "narrow"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "Stigmer couldn't load its setup.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "sign-in is on, but no sign-in client is set up for the console",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "This is the server's setup, not your account: nothing was lost. If it keeps happening, tell whoever runs Stigmer for you.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {
+        "word Stuck? Talk to Suresh": "His look, 2026-11-18, all as recommended: a screen drawn before the server's client exists (the console's setup, the whole console failing) has no help line to show; the drawing draws one"
+      },
+      "pending": {}
+    }
+  ]
+}

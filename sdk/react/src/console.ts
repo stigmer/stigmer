@@ -125,6 +125,13 @@ export type {
   RenderSidebarLink,
 } from "./sidebar/index.js";
 
+// Standalone screen — the frame every screen outside the console's frame
+// stands on (signing in, the gates, a configuration or console that
+// failed): the host's mark, a title, a line, one act and the help line. It
+// renders before any provider.
+export { StandaloneScreen } from "./standalone-screen/index.js";
+export type { StandaloneScreenProps } from "./standalone-screen/index.js";
+
 // Gates — what a console shows between signing in and the app: the
 // identity account checked or set up, then the person's organizations.
 // The hooks (`useIdentityAccountGate`, `useOrgGate`) make the state; hosts

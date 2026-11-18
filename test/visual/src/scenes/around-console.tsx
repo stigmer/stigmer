@@ -1,7 +1,9 @@
-// The screens a person meets around the console rather than inside it, in
-// the look both apps draw today: the gates between signing in and the app
-// (the identity account, the organizations), the console's page states (an
-// address that leads nowhere, a page that broke, a run's address), and the
+// The screens a person meets around the console rather than inside it: the
+// gates between signing in and the app (the identity account, the
+// organizations) and the console's first moments (opening, the hand-off to
+// sign in, a setup that didn't load, a console that stopped), all on the
+// kit's standalone frame; the console's page states inside its frame (an
+// address that leads nowhere, a page that broke, a run's address); and the
 // kit's views for arriving from a link (an invitation, a connect link and
 // its return, the OAuth pop-up). The gates are drawn from a fixed state, as
 // the hooks hand it; the rest run their own reads against the fake server.
@@ -9,7 +11,6 @@ import type { ReactElement, ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
-import { LogOut } from "lucide-react";
 import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { InvitationCommandController } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/command_pb";
 import { InvitationQueryController } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/query_pb";
@@ -28,8 +29,8 @@ import {
 } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { StigmerError } from "@stigmer/client";
 import {
-  Button,
   ConnectLinkCallback,
+  ErrorMessage,
   ConnectLinkView,
   InvitationRedemption,
   OAuthCallbackHandler,
@@ -42,6 +43,8 @@ import {
   PageFailure,
   PageNotFound,
   RunResolveView,
+  StandaloneScreen,
+  UserMenu,
 } from "@stigmer/react-sdk/console";
 import { sampleDate } from "@stigmer/react-sdk/test";
 import type { Drawing } from "./drawing.ts";
@@ -76,29 +79,41 @@ const notFound = (what: string) => () => {
 // The gates
 // ---------------------------------------------------------------------------
 
-/** The corner a host passes: who is signed in, and Sign out (as both apps draw it). */
-function SignedInCorner(): ReactElement {
+/** A host's mark: the apps pass their own logo; here a plain 40px square stands in. */
+function Mark(): ReactElement {
   return (
-    <div className="stg:flex stg:items-center stg:gap-3">
-      <div className="stg:flex stg:items-center stg:gap-2">
-        <div className="stg:flex stg:size-6 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:bg-muted stg:text-muted-foreground">
-          <span className="stg:text-xs stg:font-medium">A</span>
-        </div>
-        <span className="stg:text-sm stg:text-muted-foreground">ada@acme.example</span>
-      </div>
-      <Button variant="ghost" icon={<LogOut className="stg:size-3.5" />} onClick={() => {}}>
-        Sign out
-      </Button>
-    </div>
+    <span aria-hidden="true" className="stg:grid stg:size-10 stg:place-items-center stg:rounded-xl stg:bg-foreground stg:text-background">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+        <path d="M17 7.5c-1-1.6-2.8-2.5-5-2.5-2.8 0-4.6 1.5-4.6 3.5 0 4.6 9.8 2.4 9.8 7.4 0 2-2 3.6-5.1 3.6-2.5 0-4.4-1-5.4-2.8" />
+      </svg>
+    </span>
   );
 }
+
+/** The corner a host passes: the account menu, as the sidebar's foot draws it. */
+function SignedInCorner(): ReactElement {
+  return <UserMenu user={{ name: "Ada Lovelace", email: "ada@acme.example" }} onSignOut={() => {}} />;
+}
+
+/** The server's line when it doesn't answer, and when the session has ended. */
+const NO_ANSWER = new StigmerError("unavailable", "the server did not answer in time", 14);
+const SIGNED_OUT = new StigmerError("unauthenticated", "your session ended", 16);
 
 /** The identity account gate, held in one state. */
 export function accountGateScene(state: IdentityAccountGateState): Drawing {
   return {
     routes: serverWithHelp,
+    // Both consoles end their failure notes with the server's help line.
+    showHelpLink: true,
     render: () => (
-      <IdentityAccountGateView state={state} retry={() => {}} displayName="Ada Lovelace" corner={<SignedInCorner />} />
+      <IdentityAccountGateView
+        state={state}
+        retry={() => {}}
+        signIn={() => {}}
+        displayName="Ada Lovelace"
+        mark={<Mark />}
+        corner={<SignedInCorner />}
+      />
     ),
   };
 }
@@ -107,7 +122,52 @@ export function accountGateScene(state: IdentityAccountGateState): Drawing {
 export function orgGateScene(state: OrgGateState): Drawing {
   return {
     routes: serverWithHelp,
-    render: () => <OrgGateView state={state} retry={() => {}} onCreated={() => {}} corner={<SignedInCorner />} />,
+    // Both consoles end their failure notes with the server's help line.
+    showHelpLink: true,
+    render: () => (
+      <OrgGateView state={state} retry={() => {}} signIn={() => {}} onCreated={() => {}} mark={<Mark />} corner={<SignedInCorner />} />
+    ),
+  };
+}
+
+/**
+ * The console's first moments, as the web console composes them on the
+ * standalone frame: opening, the hand-off to sign in, a setup that didn't
+ * load (`providers/Providers.tsx`), and the console stopping (`global-error.tsx`).
+ */
+export function consoleMomentScene(moment: "opening" | "to-sign-in" | "config-failed" | "stopped"): Drawing {
+  return {
+    render: () => {
+      switch (moment) {
+        case "opening":
+          return <StandaloneScreen mark={<Mark />} wait="Opening Stigmer…" />;
+        case "to-sign-in":
+          return <StandaloneScreen mark={<Mark />} wait="Taking you to sign in…" />;
+        case "config-failed":
+          return (
+            <StandaloneScreen mark={<Mark />}>
+              <ErrorMessage
+                error={new Error("sign-in is on, but no sign-in client is set up for the console")}
+                title="Stigmer couldn't load its setup."
+                comfort="This is the server's setup, not your account: nothing was lost. If it keeps happening, tell whoever runs Stigmer for you."
+                retry={() => {}}
+              />
+            </StandaloneScreen>
+          );
+        case "stopped":
+          return (
+            <StandaloneScreen mark={<Mark />}>
+              <ErrorMessage
+                error={new Error("an unexpected error")}
+                title="The console stopped working."
+                comfort="Your agents and conversations are safe on the server; trying again usually brings it back."
+                retry={() => {}}
+                reference="4071923856"
+              />
+            </StandaloneScreen>
+          );
+      }
+    },
   };
 }
 
@@ -128,9 +188,10 @@ export function pageNotFoundScene(): Drawing {
 
 /** The failure each scene draws, by the kind a page's read failed with. */
 const FAILURES = {
-  unavailable: new StigmerError("unavailable", "The agent store did not answer.", 14),
-  permission: new StigmerError("permission-denied", "You cannot view this agent.", 7),
-  unknown: Object.assign(new Error("The agent list could not be read."), { digest: "4071923856" }),
+  unavailable: NO_ANSWER,
+  permission: new StigmerError("permission-denied", "permission denied", 7),
+  unknown: Object.assign(new StigmerError("internal", "internal error", 13), { digest: "4071923856" }),
+  "signed-out": SIGNED_OUT,
 } as const;
 
 /** A page that broke, as the root boundary draws it, or settings' inside its frame. */
@@ -138,26 +199,49 @@ export function pageFailureScene(kind: keyof typeof FAILURES, placement: "page" 
   const section = placement === "section";
   return {
     routes: serverWithHelp,
+    // Both consoles end their failure notes with the server's help line.
+    showHelpLink: true,
     render: () => (
       <PageFailure
         error={FAILURES[kind]}
         onRetry={() => {}}
+        signIn={() => {}}
         placement={placement}
-        titles={section ? { "not-found": "Section not found" } : undefined}
-        link={section ? { label: "Go to Members", href: "/settings/members" } : { label: "Go to Dashboard", href: "/" }}
+        comfort={section ? "Your settings are as you left them; only this page didn't load." : undefined}
+        link={
+          section
+            ? { label: "Back to Settings", href: "/settings" }
+            : kind === "permission"
+              ? { label: "Go to the dashboard", href: "/" }
+              : undefined
+        }
         renderLink={link}
       />
     ),
   };
 }
 
-/** A run's address whose run isn't there, or whose read failed. */
-export function runResolveScene(read: "not-found" | "failed"): Drawing {
+/** A run's address while its run resolves, whose run isn't there, or whose read failed. */
+export function runResolveScene(read: "opening" | "not-found" | "failed"): Drawing {
   return {
+    uncounted: read === "opening" ? ["get"] : undefined,
+    showHelpLink: true,
     routes: (router) => {
-      router.service(RunQueryController, { get: read === "failed" ? unavailable("the run store") : notFound("run") });
+      serverWithHelp(router);
+      router.service(RunQueryController, {
+        get:
+          read === "opening"
+            ? pending
+            : read === "failed"
+              ? () => {
+                  throw new ConnectError(NO_ANSWER.message, Code.Unavailable);
+                }
+              : notFound("run"),
+      });
     },
-    render: () => <RunResolveView runId="run_01j0000000000000000000000r" onResolved={() => {}} dashboardHref="/" renderLink={link} />,
+    render: () => (
+      <RunResolveView runId="run_01j0000000000000000000000r" onResolved={() => {}} conversationsHref="/conversations" renderLink={link} />
+    ),
   };
 }
 
@@ -295,17 +379,24 @@ export function oauthPopupScene(face: PopupFace): Drawing {
 export const AROUND_CONSOLE_DRAWINGS = {
   "gate-account-checking": () => accountGateScene({ status: "checking" }),
   "gate-account-provisioning": () => accountGateScene({ status: "provisioning" }),
-  "gate-account-failed": () => accountGateScene({ status: "error", message: "The identity service did not answer." }),
+  "gate-account-failed": () => accountGateScene({ status: "error", message: NO_ANSWER.message, error: NO_ANSWER }),
+  "gate-account-signed-out": () => accountGateScene({ status: "error", message: SIGNED_OUT.message, error: SIGNED_OUT }),
   "gate-org-loading": () => orgGateScene({ status: "loading" }),
-  "gate-org-failed": () => orgGateScene({ status: "error", message: "The organization service did not answer." }),
+  "gate-org-failed": () => orgGateScene({ status: "error", message: NO_ANSWER.message, error: NO_ANSWER }),
   "gate-org-none": () => orgGateScene({ status: "no-orgs" }),
   "page-not-found": pageNotFoundScene,
   "page-failure-unavailable": () => pageFailureScene("unavailable"),
   "page-failure-permission": () => pageFailureScene("permission"),
   "page-failure-unknown": () => pageFailureScene("unknown"),
+  "page-failure-signed-out": () => pageFailureScene("signed-out"),
   "page-failure-section": () => pageFailureScene("unknown", "section"),
+  "run-resolve-opening": () => runResolveScene("opening"),
   "run-resolve-not-found": () => runResolveScene("not-found"),
   "run-resolve-failed": () => runResolveScene("failed"),
+  "console-opening": () => consoleMomentScene("opening"),
+  "console-to-sign-in": () => consoleMomentScene("to-sign-in"),
+  "console-config-failed": () => consoleMomentScene("config-failed"),
+  "console-stopped": () => consoleMomentScene("stopped"),
   "invite-ready": () => invitationScene("ready"),
   "invite-signed-out": () => invitationScene("signed-out"),
   "invite-sign-in-only": () => invitationScene("sign-in-only"),

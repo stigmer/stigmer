@@ -1,36 +1,29 @@
-// The corner a pre-app gate screen shares: who is signed in, and the way out.
-// The identity gate and the organization gate pass it to the kit's gate
-// views, which place it top-right on the screens a person can be stuck on
-// (an error, an onboarding form, account setup), so signing out never
-// depends on getting past the gate.
+// The corner a pre-app gate screen shares: the account as the sidebar's
+// foot draws it (the kit's `UserMenu`), so a person stuck at a gate (an
+// error, the first organization's form, account setup) sees who is signed
+// in and can always sign out. It renders above the router, so it holds only
+// what works there: the colour scheme and Sign out. The identity gate and
+// the organization gate pass it, with the app's mark, to the kit's views.
 
-import { LogOut } from "lucide-react";
-import { Button } from "@stigmer/react-sdk";
+import { UserMenu } from "@stigmer/react-sdk/console";
 import { useAuth } from "../auth/AuthProvider";
+import { useColorModePreference } from "../hooks/useColorModePreference";
 
 export function GateHeader() {
   const { user, logout } = useAuth();
+  const { colorMode, setColorMode } = useColorModePreference();
   if (!user) return null;
-
-  const displayName = user.name ?? user.email;
-  const initial = (displayName ?? "?").charAt(0).toUpperCase();
-
   return (
-    <div className="flex items-center gap-3">
-      <div className="flex items-center gap-2">
-        <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-          <span className="text-xs font-medium">{initial}</span>
-        </div>
-        <span className="text-sm text-muted-foreground">{user.email}</span>
-      </div>
-      <Button
-        variant="ghost"
-        icon={<LogOut className="size-3.5" />}
-        onClick={logout}
-        className="text-muted-foreground hover:text-foreground"
-      >
-        Sign out
-      </Button>
-    </div>
+    <UserMenu
+      user={{ name: user.name, email: user.email }}
+      colorMode={colorMode}
+      onColorModeChange={setColorMode}
+      onSignOut={logout}
+    />
   );
+}
+
+/** The app's mark on the gate screens, at the frame's 40px. */
+export function GateMark() {
+  return <img src="/app-icon-light.svg" alt="Stigmer" width={40} height={40} className="size-10 rounded-xl" />;
 }

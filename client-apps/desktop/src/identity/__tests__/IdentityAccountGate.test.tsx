@@ -14,6 +14,7 @@ import {
   useIdentityAccountGate,
   type IdentityAccountGateState,
 } from "@stigmer/react-sdk";
+import { StigmerError } from "@stigmer/client";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuth, type AuthState } from "../../auth/AuthProvider";
@@ -38,6 +39,7 @@ const ACCOUNT: IdentityAccount = create(IdentityAccountSchema, {
 });
 
 const retry = vi.fn();
+const login = vi.fn(async () => {});
 
 function authAs(isAuthEnabled: boolean): void {
   const state: AuthState = {
@@ -49,7 +51,7 @@ function authAs(isAuthEnabled: boolean): void {
       : null,
     getAccessToken: () => null,
     provider: null,
-    login: async () => {},
+    login,
     logout: () => {},
   };
   vi.mocked(useAuth).mockReturnValue(state);
@@ -100,9 +102,10 @@ describe("IdentityAccountGate", () => {
   it("tells a first-time person their account is being set up, and holds the app back", () => {
     gateIn({ status: "provisioning" });
     renderGate();
-    expect(screen.getByText("Welcome, Ada!")).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "Welcome, Ada" })).toBeTruthy();
     expect(screen.getByText("Setting up your account…")).toBeTruthy();
-    expect(screen.getByText("Sign out")).toBeTruthy();
+    // The corner is the account menu, as the sidebar's foot draws it.
+    expect(screen.getByText("Ada")).toBeTruthy();
     expect(screen.queryByText("the app")).toBeNull();
   });
 
@@ -112,15 +115,27 @@ describe("IdentityAccountGate", () => {
     expect(screen.getByText("the app")).toBeTruthy();
   });
 
-  it("shows why setup failed, retries on request, and keeps sign-out reachable", () => {
-    gateIn({ status: "error", message: "the server is unavailable" });
+  it("says setup failed in plain words, retries on request, and keeps the account menu reachable", () => {
+    gateIn({ status: "error", message: "the server is unavailable", error: new Error("the server is unavailable") });
     renderGate();
-    expect(screen.getByText("Failed to set up your account")).toBeTruthy();
-    expect(screen.getByText("the server is unavailable")).toBeTruthy();
-    expect(screen.getByText("Sign out")).toBeTruthy();
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toContain("Stigmer couldn't set up your account.");
+    expect(alert.textContent).toContain("the server is unavailable");
+    expect(alert.textContent).toContain("You're signed in, and nothing was lost.");
+    expect(screen.getByText("Ada")).toBeTruthy();
     expect(screen.queryByText("the app")).toBeNull();
 
     fireEvent.click(screen.getByText("Try again"));
     expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers Sign in again through the app's own sign-in when the session ended", () => {
+    const signedOut = new StigmerError("unauthenticated", "your session ended", 16);
+    gateIn({ status: "error", message: signedOut.message, error: signedOut });
+    renderGate();
+
+    fireEvent.click(screen.getByText("Sign in again"));
+    expect(login).toHaveBeenCalledTimes(1);
+    expect(retry).not.toHaveBeenCalled();
   });
 });

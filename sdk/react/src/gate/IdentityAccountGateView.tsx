@@ -3,15 +3,18 @@
 // What a console shows between signing in and the app: the person's
 // identity account being checked, set up on a first sign-in, or the reason
 // it couldn't be. `useIdentityAccountGate` makes the state; this view draws
-// it, so the web console and the desktop app show one screen. The host keeps
-// its sign-in wiring and passes the account's corner (who is signed in, and
-// Sign out), so a person stuck here can always leave.
+// it on the console's standalone frame, so the web console and the desktop
+// app show one screen. A failure is the kit's failure note, said from the
+// error's kind (signed out, the server didn't answer), never its raw line
+// alone. The host keeps its sign-in wiring and passes its mark and the
+// account's corner (who is signed in, and Sign out), so a person stuck here
+// can always leave.
 
 import type { ReactNode } from "react";
-import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
-import { Button } from "../button/Button.js";
-import { HelpLink } from "../help/HelpLink.js";
+import { classifyError } from "@stigmer/client";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 import type { IdentityAccountGateState } from "../identity-account/useIdentityAccountGate.js";
+import { ScreenWait, StandaloneScreen } from "../standalone-screen/StandaloneScreen.js";
 
 /** Props for {@link IdentityAccountGateView}. */
 export interface IdentityAccountGateViewProps {
@@ -19,9 +22,13 @@ export interface IdentityAccountGateViewProps {
   readonly state: IdentityAccountGateState;
   /** Tries again after a failure, from `useIdentityAccountGate`. */
   readonly retry: () => void;
+  /** Signs the person in again, offered when the failure is that they're signed out. */
+  readonly signIn?: () => void;
   /** The signed-in person's name (or email), for the welcome while their account is set up. */
   readonly displayName?: string;
-  /** The top-right corner while the person waits or is stuck: who is signed in, and Sign out. */
+  /** The host's mark, on top of every screen the gate draws. */
+  readonly mark?: ReactNode;
+  /** The top-right corner while the person waits or is stuck: who is signed in, and Sign out (the console's `UserMenu`). */
   readonly corner?: ReactNode;
   /** The app, drawn once the account is ready. */
   readonly children?: ReactNode;
@@ -42,80 +49,69 @@ export interface IdentityAccountGateViewProps {
  * }
  * ```
  */
-export function IdentityAccountGateView({ state, retry, displayName, corner, children }: IdentityAccountGateViewProps) {
+export function IdentityAccountGateView({ state, retry, signIn, displayName, mark, corner, children }: IdentityAccountGateViewProps) {
   switch (state.status) {
     case "ready":
       return <>{children}</>;
     case "checking":
-      return (
-        <div className="stg:flex stg:min-h-screen stg:flex-col stg:items-center stg:justify-center stg:gap-3">
-          <Loader2 className="stg:size-8 stg:animate-spin stg:text-muted-foreground" />
-        </div>
-      );
+      return <StandaloneScreen mark={mark} corner={corner} wait="Checking your account…" />;
     case "provisioning":
       return (
-        <div className="stg:relative stg:flex stg:min-h-screen stg:flex-col stg:items-center stg:justify-center stg:p-8">
-          <GateCorner>{corner}</GateCorner>
-          <div className="stg:flex stg:flex-col stg:items-center stg:gap-4 stg:text-center">
-            {displayName !== undefined && (
-              <div className="stg:flex stg:size-12 stg:items-center stg:justify-center stg:rounded-full stg:bg-muted">
-                <span className="stg:text-lg stg:font-medium stg:text-muted-foreground">
-                  {displayName.charAt(0).toUpperCase()}
-                </span>
-              </div>
-            )}
-            <div className="stg:space-y-1.5">
-              <h1 className="stg:m-0 stg:text-lg stg:font-semibold stg:text-foreground">
-                {displayName ? `Welcome, ${displayName}!` : "Welcome!"}
-              </h1>
-              <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">Setting up your account&hellip;</p>
-            </div>
-            <Loader2 className="stg:size-5 stg:animate-spin stg:text-muted-foreground" />
-          </div>
-        </div>
+        <StandaloneScreen
+          mark={mark}
+          corner={corner}
+          title={displayName ? `Welcome, ${displayName}` : "Welcome"}
+          lead="Setting up your account…"
+        >
+          <ScreenWait />
+        </StandaloneScreen>
       );
     case "error":
       return (
-        <GateFailure corner={corner} headline="Failed to set up your account" message={state.message} retry={retry} />
+        <GateFailure
+          mark={mark}
+          corner={corner}
+          error={state.error}
+          headline="Stigmer couldn't set up your account."
+          retry={retry}
+          signIn={signIn}
+        />
       );
   }
 }
 
 /**
- * The gate's top-right corner, holding what the host passes.
- *
- * @internal Not part of the public API.
- */
-export function GateCorner({ children }: { readonly children?: ReactNode }) {
-  return <div className="stg:absolute stg:top-0 stg:right-0 stg:p-4">{children}</div>;
-}
-
-/**
- * A gate's failure: the red line, the server's message, Try again and the help line.
+ * A gate's failure: the failure note alone under the mark. A signed-out
+ * failure keeps the kit's own headline and offers Sign in again; any other
+ * says what the gate couldn't do and that nothing was lost.
  *
  * @internal Not part of the public API.
  */
 export function GateFailure({
+  mark,
   corner,
+  error,
   headline,
-  message,
   retry,
+  signIn,
 }: {
+  readonly mark?: ReactNode;
   readonly corner?: ReactNode;
+  readonly error: Error;
   readonly headline: string;
-  readonly message: string;
   readonly retry: () => void;
+  readonly signIn?: () => void;
 }) {
+  const signedOut = classifyError(error) === "auth";
   return (
-    <div className="stg:relative stg:flex stg:min-h-screen stg:flex-col stg:items-center stg:justify-center stg:gap-4 stg:p-8">
-      <GateCorner>{corner}</GateCorner>
-      <AlertCircle className="stg:size-8 stg:text-destructive" />
-      <p className="stg:m-0 stg:text-sm stg:font-medium stg:text-destructive">{headline}</p>
-      <p className="stg:m-0 stg:max-w-md stg:text-center stg:text-sm stg:text-muted-foreground">{message}</p>
-      <Button icon={<RefreshCw className="stg:size-3.5" />} onClick={retry}>
-        Try again
-      </Button>
-      <HelpLink />
-    </div>
+    <StandaloneScreen mark={mark} corner={corner}>
+      <ErrorMessage
+        error={error}
+        title={signedOut ? undefined : headline}
+        comfort={signedOut ? "Sign in again to carry on where you were." : "You're signed in, and nothing was lost."}
+        retry={retry}
+        signIn={signIn}
+      />
+    </StandaloneScreen>
   );
 }

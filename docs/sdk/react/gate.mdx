@@ -17,9 +17,11 @@ Draws the identity account gate's states, and the app once it's ready.
 <TypeTable
   type={{
     children: { type: "ReactNode", description: "The app, drawn once the account is ready." },
-    corner: { type: "ReactNode", description: "The top-right corner while the person waits or is stuck: who is signed in, and Sign out." },
+    corner: { type: "ReactNode", description: "The top-right corner while the person waits or is stuck: who is signed in, and Sign out (the console's `UserMenu`)." },
     displayName: { type: "string", description: "The signed-in person's name (or email), for the welcome while their account is set up." },
+    mark: { type: "ReactNode", description: "The host's mark, on top of every screen the gate draws." },
     retry: { type: "() => void", description: "Tries again after a failure, from `useIdentityAccountGate`.", required: true },
+    signIn: { type: "() => void", description: "Signs the person in again, offered when the failure is that they're signed out." },
     state: { type: "IdentityAccountGateState", description: "The gate's state, from `useIdentityAccountGate`.", required: true, typeDescriptionLink: "/docs/sdk/react/identity-account#identityaccountgatestate" },
   }}
 />
@@ -46,8 +48,10 @@ Draws the organization gate's states, and the app once it's ready.
   type={{
     children: { type: "ReactNode", description: "The app, drawn once an organization is ready or the route bypasses the gate." },
     corner: { type: "ReactNode", description: "The top-right corner while the person is stuck or makes their first organization: who is signed in, and Sign out." },
+    mark: { type: "ReactNode", description: "The host's mark, on top of every screen the gate draws." },
     onCreated: { type: "(org: Organization) => void", description: "Called with the organization the person just made (the host refreshes the list onto it).", required: true },
     retry: { type: "() => void", description: "Tries again after a failure, from `useOrgGate`.", required: true },
+    signIn: { type: "() => void", description: "Signs the person in again, offered when the failure is that they're signed out." },
     state: { type: "OrgGateState", description: "The gate's state, from `useOrgGate`.", required: true, typeDescriptionLink: "/docs/sdk/react/organization#orggatestate" },
   }}
 />

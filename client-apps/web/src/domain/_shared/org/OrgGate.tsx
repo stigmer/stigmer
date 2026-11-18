@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { useOrgGate } from "@stigmer/react-sdk";
 import { OrgGateView } from "@stigmer/react-sdk/console";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import { useAuth } from "@/auth";
+import { StigmerLogo } from "@/auth/StigmerLogo";
 import { GateAccount } from "../identity/GateAccount";
 
 /** Routes that bypass the org gate (user may not have an org yet). */
@@ -31,6 +33,7 @@ export function OrgGate({ children }: { children: React.ReactNode }) {
   const isBypassed = ORG_GATE_BYPASS_PREFIXES.some((p) =>
     pathname.startsWith(p),
   );
+  const { login } = useAuth();
   const { state, retry, refresh } = useOrgGate({ isBypassed });
   const handleCreated = useCallback(
     (org: Organization) => {
@@ -40,7 +43,14 @@ export function OrgGate({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <OrgGateView state={state} retry={retry} onCreated={handleCreated} corner={<GateAccount />}>
+    <OrgGateView
+      state={state}
+      retry={retry}
+      signIn={login}
+      onCreated={handleCreated}
+      mark={<StigmerLogo size={40} />}
+      corner={<GateAccount />}
+    >
       {children}
     </OrgGateView>
   );
