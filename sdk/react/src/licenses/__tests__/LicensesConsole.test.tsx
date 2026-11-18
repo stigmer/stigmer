@@ -133,7 +133,7 @@ describe("LicensesConsole calendar", () => {
     expect(screen.getByText("1 active · 1 expiring · 0 in grace")).toBeTruthy();
     expect(rowNames()).toEqual(["Globex", "Acme Corp", "Acme Corp"]);
     const rows = within(screen.getByRole("table", { name: "Licenses" })).getAllByRole("row");
-    expect(within(rows[1]!).getByText("Expiring")).toBeTruthy();
+    expect(within(rows[1]!).getByText("Renew soon")).toBeTruthy();
     expect(within(rows[2]!).getByText("Active")).toBeTruthy();
     expect(within(rows[3]!).getByText("Renewed")).toBeTruthy();
     expect(within(rows[2]!).getByText("2027-09-30")).toBeTruthy();
@@ -154,6 +154,9 @@ describe("LicensesConsole detail", () => {
 
     await user.click(await screen.findByRole("button", { name: "Acme Corp" }));
     expect(client.license.get).toHaveBeenCalledWith("lic_paid");
+    // The record is one section of label and value pairs.
+    const record = screen.getByRole("heading", { name: "The license" }).closest("section")!;
+    expect(within(record).getByText("Signing key").tagName).toBe("DT");
     expect(screen.getByText("Paid")).toBeTruthy();
     expect(screen.getByText("PO 4411")).toBeTruthy();
     // No server reads a license's features, so the detail names none of the

@@ -87,10 +87,10 @@ export function PlanPicker({
       })}
       <li className={cn(cardClasses(), "stg:flex stg:flex-col")}>
         <div className="stg:flex stg:items-baseline stg:justify-between stg:gap-2">
-          <p className="stg:text-sm stg:font-medium stg:text-foreground">{ENTERPRISE_CLOUD_PLAN.name}</p>
+          <p className="stg:m-0 stg:text-sm stg:font-semibold stg:text-foreground">{ENTERPRISE_CLOUD_PLAN.name}</p>
           <p className="stg:text-xs stg:text-foreground">Quoted</p>
         </div>
-        <ul className={cn(UNSTYLED_LIST, "stg:mt-2 stg:space-y-0.5 stg:text-xs stg:text-muted-foreground")}>
+        <ul className={cn(UNSTYLED_LIST, "stg:mt-2 stg:space-y-0.5 stg:text-sm stg:text-muted-foreground")}>
           {[
             ENTERPRISE_CLOUD_PLAN.includes,
             ...ENTERPRISE_CLOUD_PLAN.features.map((feature) => FEATURE_COPY[feature].label),
@@ -135,10 +135,10 @@ function PlanOption({
       aria-current={current ? "true" : undefined}
     >
       <div className="stg:flex stg:items-baseline stg:justify-between stg:gap-2">
-        <p className="stg:text-sm stg:font-medium stg:text-foreground">{name}</p>
+        <p className="stg:m-0 stg:text-sm stg:font-semibold stg:text-foreground">{name}</p>
         <p className="stg:text-xs stg:tabular-nums stg:text-foreground">{price}</p>
       </div>
-      <ul className={cn(UNSTYLED_LIST, "stg:mt-2 stg:space-y-0.5 stg:text-xs stg:text-muted-foreground")}>
+      <ul className={cn(UNSTYLED_LIST, "stg:mt-2 stg:space-y-0.5 stg:text-sm stg:text-muted-foreground")}>
         {features.map((feature) => (
           <li key={feature}>{feature}</li>
         ))}

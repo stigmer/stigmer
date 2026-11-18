@@ -5,7 +5,7 @@
 // operator access notice; any other failure renders its message.
 
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
@@ -183,11 +183,11 @@ describe("ModelCatalogConsole — detail view", () => {
     await user.click(await screen.findByRole("button", { name: /Claude Sonnet/ }));
     await user.click(screen.getByRole("button", { name: "Retire" }));
 
-    await user.type(
-      screen.getByLabelText("Type the model id to confirm retirement"),
-      "claude-sonnet-4-6",
-    );
-    await user.click(screen.getByRole("button", { name: "Retire model" }));
+    // Retiring asks in a dialog over the model's record, typed so it is never a slip.
+    const dialog = screen.getByRole("dialog", { name: /Retire Claude Sonnet/ });
+    expect(within(dialog).getByRole("button", { name: "Retire" })).toHaveProperty("disabled", true);
+    await user.type(within(dialog).getByLabelText("Type the model id to confirm"), "claude-sonnet-4-6");
+    await user.click(within(dialog).getByRole("button", { name: "Retire" }));
 
     await waitFor(() =>
       expect(retireModelPricingBaseline).toHaveBeenCalledWith(
@@ -213,11 +213,13 @@ describe("ModelCatalogConsole — detail view", () => {
     render(<ModelCatalogConsole />, { wrapper: wrapper(client) });
     await user.click(await screen.findByRole("button", { name: /Claude Sonnet/ }));
     await user.click(screen.getByRole("button", { name: "Retire" }));
-    await user.type(screen.getByLabelText("Type the model id to confirm retirement"), "claude-sonnet-4-6");
-    await user.click(screen.getByRole("button", { name: "Retire model" }));
-    expect(await screen.findByText(/still featured/)).toBeTruthy();
+    const dialog = screen.getByRole("dialog", { name: /Retire Claude Sonnet/ });
+    await user.type(within(dialog).getByLabelText("Type the model id to confirm"), "claude-sonnet-4-6");
+    await user.click(within(dialog).getByRole("button", { name: "Retire" }));
+    expect(await within(dialog).findByText(/still featured/)).toBeTruthy();
 
-    // The page's way back, then the same model's Retire again: no stale failure.
+    // The dialog's Cancel, the page's way back, then the same model's Retire again: no stale failure.
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
     await user.click(screen.getByRole("button", { name: "Model catalog" }));
     await user.click(await screen.findByRole("button", { name: /Claude Sonnet/ }));
     await user.click(screen.getByRole("button", { name: "Retire" }));

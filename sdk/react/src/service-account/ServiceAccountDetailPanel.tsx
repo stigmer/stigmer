@@ -30,7 +30,9 @@ import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccou
 import type { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { ApiKeyCreatedAlert } from "../api-key/ApiKeyCreatedAlert.js";
 import { useUpdateIdentityAccount } from "../identity-account/useUpdateIdentityAccount.js";
-import { RoleSelector } from "../grant/RoleSelector.js";
+import { useRoleSelector } from "../grant/useRoleSelector.js";
+import { ChoiceGroup } from "../internal/form/ChoiceGroup.js";
+import { useOrgDisplayName } from "../organization/useOrgDisplayName.js";
 import { useCreateGrant } from "../grant/useCreateGrant.js";
 import { useDeleteGrant } from "../grant/useDeleteGrant.js";
 import { useResourceAccess } from "../grant/useResourceAccess.js";
@@ -284,21 +286,26 @@ function RoleSection({
     }
   }, [accountId, org, grant, current, revoke, refetchAccess, onChanged]);
 
+  const where = useOrgDisplayName();
+  const { options } = useRoleSelector(ApiResourceKind.organization, undefined, "identity_account", SERVICE_ACCOUNT_OMITTED_ROLES);
+
   return (
     <Section title="Organization role">
       <div className="stg:space-y-3 stg:p-4">
-        <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
+        <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
           {access.isLoading
             ? "Reading its role…"
             : current
-              ? `${name} acts with the ${iamRoleDisplayName(current.role)} role in this organization.`
-              : `${name} holds no role in this organization. Give it one so its keys can act.`}
+              ? `${name} acts with the ${iamRoleDisplayName(current.role)} role in ${where}.`
+              : `${name} holds no role in ${where}. Give it one so its keys can act.`}
         </p>
-        <RoleSelector
-          kind={ApiResourceKind.organization}
-          selected={chosen}
-          onSelect={setSelected}
-          omitRoles={SERVICE_ACCOUNT_OMITTED_ROLES}
+        {/* One role of a few, each with what it allows: a choice list. */}
+        <ChoiceGroup
+          variant="list"
+          aria-label="Organization role"
+          value={chosen === null ? "" : String(chosen)}
+          onChange={(value) => setSelected(Number(value) as IamRole)}
+          options={options.map((opt) => ({ value: String(opt.role), label: opt.label, description: opt.description }))}
           disabled={isWorking || access.isLoading}
         />
         {error && (
@@ -309,14 +316,14 @@ function RoleSection({
         {selected !== null && selected !== current?.role && (
           <div className="stg:flex stg:items-center stg:gap-2">
             <Button
-              size="xs"
+              size="sm"
               onClick={() => void handleSave(selected)}
               disabled={isWorking}
-              icon={isWorking ? <SpinnerIcon size={12} /> : undefined}
+              icon={isWorking ? <SpinnerIcon size={14} /> : undefined}
             >
               {isWorking ? "Changing role…" : "Save role"}
             </Button>
-            <Button variant="ghost" size="xs" onClick={() => setSelected(null)} disabled={isWorking}>
+            <Button variant="ghost" size="sm" onClick={() => setSelected(null)} disabled={isWorking}>
               Cancel
             </Button>
           </div>

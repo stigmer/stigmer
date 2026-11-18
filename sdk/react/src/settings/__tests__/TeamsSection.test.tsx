@@ -30,6 +30,7 @@ const stubs = vi.hoisted(() => ({
   catalogReads: [] as Array<boolean | undefined>,
 }));
 
+vi.mock("../../organization/useOrgDisplayName.js", () => ({ useOrgDisplayName: () => "acme" }));
 vi.mock("../../organization/OrgProvider.js", () => ({
   useOrg: () => ({
     activeOrg: { metadata: { id: "org_acme", slug: "acme", name: "Acme" } },
@@ -126,6 +127,10 @@ describe("TeamsSection", () => {
     renderSection("cloud");
     expect(screen.queryByRole("button", { name: /New team/ })).toBeNull();
     expect(stubs.checked).toContainEqual(["organization", "org_acme", "can_create_team"]);
+    // A member's empty list names who makes teams, and what reaches them.
+    expect(
+      screen.getByText("Admins of acme make teams. Once one adds you to a team, what's shared with it reaches you."),
+    ).toBeTruthy();
 
     cleanup();
     stubs.allowed = new Set(["can_create_team"]);

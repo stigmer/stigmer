@@ -228,6 +228,7 @@ All visual properties flow through `--stgm-*` design tokens.
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     emptyAction: { type: "EmptyStateAction", description: "The page's create act, carried by the empty list (the same label and handler as the page header's button). Absent when the caller may not create one, or a create is already open." },
+    emptyDescription: { type: "string", description: "The empty list's line, for a caller who may not make a team (who does, and what reaches them)." },
     error: { type: "Error | null", description: "", required: true },
     isLoading: { type: "boolean", description: "", required: true },
     onOpen: { type: "(team: Team) => void", description: "Fired when a person opens a team.", required: true },
@@ -257,6 +258,7 @@ All visual properties flow through `--stgm-*` design tokens.
 
 <TypeTable
   type={{
+    asSection: { type: "boolean", description: "Draw the panel as a section card: \"Members\" with its count in the card's header, an \"Add a person\" act there for who may add, the people as rows, and the picker only once Add a person is pressed. A team's page uses it; `showHeading` is then ignored." },
     className: { type: "string", description: "" },
     org: { type: "string", description: "The organization's id (`metadata.id`), whose members can be added.", required: true },
     showHeading: { type: "boolean", description: "Draw the \"Members\" heading with its count. `true` (the default) where the panel stands alone; `false` inside a card whose header names it." },

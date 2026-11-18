@@ -19,7 +19,7 @@ import { Card } from "../internal/surface/Card.js";
 import { useOrg } from "../organization/OrgProvider.js";
 import { ASK_AN_ADMIN, NoOrganization } from "./NoOrganization.js";
 import { SettingsPage } from "./SettingsPage.js";
-import { useOrgDisplayName } from "../organization/useOrgDisplayName.js";
+import { UNNAMED_ORGANIZATION, useOrgDisplayName } from "../organization/useOrgDisplayName.js";
 
 type FlowState =
   | { phase: "idle" }
@@ -77,7 +77,7 @@ export function FederationIssuersSection() {
     <SettingsPage
       title={detailName ?? "Federation issuers"}
       back={detailName !== null ? { label: "Federation issuers", onBack: () => setFlow({ phase: "idle" }) } : undefined}
-      description={detailName !== null ? undefined : "Other platforms whose sign-in tokens this organization accepts, such as the platform that manages it."}
+      description={detailName !== null ? `${orgName === UNNAMED_ORGANIZATION ? "This organization" : orgName} accepts sign-in tokens ${detailName} issues.` : "Other platforms whose sign-in tokens this organization accepts, such as the platform that manages it."}
       actions={
         orgId &&
         canCreate &&
@@ -103,6 +103,7 @@ export function FederationIssuersSection() {
           showName={false}
           federationIssuer={flow.federationIssuer}
           onUpdated={handleUpdated}
+          onDeleted={handleUpdated}
         />
       ) : (
         <FederationIssuerListPanel
