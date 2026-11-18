@@ -1,5 +1,6 @@
 // How a thread's rows are presented beyond their own data: what closes an
-// ended turn. MessageThread provides it from its props, so the options
+// ended turn, and which asks the thread answers in a card of their own.
+// MessageThread provides it from its props and its items, so the options
 // reach the rows of both the plain and the virtualized list without
 // threading through either (the pattern of FilePathContext and
 // FileReviewContext beside it).
@@ -38,6 +39,13 @@ export interface ThreadPresentation {
   readonly turnOutcome?: (turn: Turn) => ReactNode;
   /** How an ended turn's notice is wired. */
   readonly turnEnding?: TurnEndingWiring;
+  /**
+   * The tool-use ids whose ask the thread draws as its own card (the
+   * `approval-request` items): a row for one of them says it waits and
+   * offers no decision, and a plan leaves it out, so the decision is drawn
+   * once. Absent, none is: every row offers its own.
+   */
+  readonly cardedAsks?: ReadonlySet<string>;
 }
 
 const DEFAULT: ThreadPresentation = {};

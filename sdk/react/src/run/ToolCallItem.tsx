@@ -23,6 +23,7 @@ import { hasResultBody, resultCounts, type ResultCounts } from "./ResultView.js"
 import { ApprovalCardBody, ApprovalCardHeader } from "./ApprovalCard.js";
 import { MemoryProposalCardBody } from "../memory/MemoryProposalCard.js";
 import { useApproval, useWaitingWords } from "./ApprovalContext.js";
+import { useThreadPresentation } from "./ThreadPresentationContext.js";
 import { BackgroundCommandStatusWords, BackgroundCommandStop, BackgroundStopError } from "./BackgroundCommandStatus.js";
 import { useBackgroundStop } from "./BackgroundCommandContext.js";
 import { useFileReviewRowState } from "@stigmer/react-core";
@@ -165,15 +166,19 @@ export const ToolCallItem = memo(function ToolCallItem({
 
   // The decision for this exact call when it waits for a person (parent or
   // nested subagent), or null. Drives the inline approval panel and forces
-  // the row open.
-  const approval = useApproval(toolUse);
-  // A step waiting on a person this viewer is not: drawn running, its line
+  // the row open. None where the thread answers the ask in its own card:
+  // the decision is drawn once, there.
+  const offered = useApproval(toolUse);
+  const carded = useThreadPresentation().cardedAsks?.has(toolUse.id) === true;
+  const approval = carded ? null : offered;
+  // A step waiting with no decision on its row (one on a person this viewer
+  // is not, or one answered in its own card): drawn running, its line
   // saying whom it waits on.
   const waitingWords = useWaitingWords();
-  const waitsOnSomeoneElse = status === "waiting" && approval == null;
+  const waitsWithoutDecision = status === "waiting" && approval == null;
   // A step at work now: a call running or waiting on someone else, or a
   // helper still working (its mark follows the helper, so its band does).
-  const live = isSubagent ? thread.state === "running" : isRunning || waitsOnSomeoneElse;
+  const live = isSubagent ? thread.state === "running" : isRunning || waitsWithoutDecision;
 
   // A failed command stays open: its output is the content the person needs
   // next.
@@ -283,7 +288,7 @@ export const ToolCallItem = memo(function ToolCallItem({
     if (phrase.folder !== "") parts.push(phrase.folder);
     if (category === "read" && result.type === "file" && result.range?.total !== undefined) parts.push(`${result.range.total} lines`);
     if (created) parts.push("new file");
-    if (waitsOnSomeoneElse) parts.push(waitingWords);
+    if (waitsWithoutDecision) parts.push(waitingWords);
     return joinParts(parts);
   }
   // A host's registered summary (`registerToolPresenter({ summary })`) is

@@ -96,8 +96,9 @@ describe("buildThreadItems key generation", () => {
       [],
     );
 
-    expect(keys(items)).toEqual([`${R}-spec`, m(R, 0), `${R}-how`]);
-    expect(keys(how(items)!.items)).toEqual([`${toolId(R, "c1")}-tc`, `sa-${toolId(R, "task1")}`]);
+    // It ended on a step: its message was narration, kept in time order.
+    expect(keys(items)).toEqual([`${R}-spec`, `${R}-how`, `${R}-scores`]);
+    expect(keys(how(items)!.items)).toEqual([m(R, 0), `${toolId(R, "c1")}-tc`, `sa-${toolId(R, "task1")}`]);
     const group = flat(items).find((i) => i.kind === "tool-group");
     expect(group?.kind === "tool-group" && group.toolUses.map((tu) => tu.id)).toEqual([toolId(R, "c1"), toolId(R, "c2")]);
   });

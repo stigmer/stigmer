@@ -6,9 +6,13 @@
 // the foot. While the turn works, the item in progress is open to what is
 // running right now; a finished item opens on a click to the steps it took.
 //
-// A step that waits for a person is never drawn here: a closed item would
-// bury its decision, so the thread draws its ask as its own card after the
-// plan, and the item it belongs to says it waits.
+// Where a step waits for a person, the thread decides where its ask is
+// answered (`cardedAsks`, ThreadPresentationContext): for a viewer who
+// answers, in its own card after the plan, since a closed item would bury
+// the decision, and the plan leaves that step out. For a viewer who cannot
+// answer nothing is carded, and the step stays in its item, saying whom it
+// waits on. Either way the item says it waits, whether the step waiting is
+// its own or one of a helper it holds.
 //
 // Quiet, as the session page draws it (S33, S46): every item on the step's
 // own layout, a finished item's tick in the ready hue and its words muted,
@@ -19,11 +23,13 @@
 
 import { useId } from "react";
 import { isBackgroundRunning, stepTense, type PlanItem, type ToolUse, type TurnEndingTone, type TurnSteps } from "@stigmer/client";
+import { isInternalTool } from "@stigmer/react-core/internal";
 import { cn } from "@stigmer/design-tokens";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
 import { DoneTick, FailedGlyph, SpinnerIcon, ThreadCardStep } from "../internal/thread-card/index.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
 import { useWaitingWords } from "./ApprovalContext.js";
+import { useThreadPresentation } from "./ThreadPresentationContext.js";
 import { SettledStepsRow } from "./SettledStepsRow.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 
@@ -59,16 +65,23 @@ function folds(tool: ToolUse): boolean {
   return tool.result !== undefined && !isBackgroundRunning(tool) && stepTense(tool) !== "failed";
 }
 
-/** Whether a step waits for a person (its ask is drawn as its own card). */
-function waits(tool: ToolUse): boolean {
-  return tool.state === "waiting";
+/** Whether a step waits for a person, or a helper it started has a step that does, at any depth. */
+function waitsWithin(tool: ToolUse): boolean {
+  if (tool.state === "waiting") return true;
+  return tool.thread?.items.some((item) => item.kind === "tool_use" && !isInternalTool(item.name) && waitsWithin(item)) === true;
+}
+
+/** The steps a plan draws: all but those whose ask the thread draws as its own card. */
+function uncarded(tools: readonly ToolUse[], carded: ReadonlySet<string> | undefined): readonly ToolUse[] {
+  return carded === undefined || carded.size === 0 ? tools : tools.filter((tool) => !carded.has(tool.id));
 }
 
 /** A turn's plan card (module header). */
 export function PlanSteps({ steps, working, stoppedNote = "Stopped here", stoppedTone = "stopped", className }: PlanStepsProps) {
   const counted = steps.plan.filter((item) => item.todo.status !== "cancelled");
   const done = counted.filter((item) => item.todo.status === "completed").length;
-  const loose = steps.loose.filter((tool) => !waits(tool));
+  const { cardedAsks } = useThreadPresentation();
+  const loose = uncarded(steps.loose, cardedAsks);
   // Only a quiet stretch of two or more folds: a step still running (a
   // background command runs on past its call) or one that failed stays in
   // view, and a single step stays its own row.
@@ -115,8 +128,9 @@ function PlanItemRow({
   readonly stoppedTone: PlanStoppedTone;
 }) {
   const regionId = useId();
-  const calls = item.calls.filter((tool) => !waits(tool));
-  const waiting = item.calls.some(waits);
+  const { cardedAsks } = useThreadPresentation();
+  const calls = uncarded(item.calls, cardedAsks);
+  const waiting = item.calls.some(waitsWithin);
   const waitingWords = useWaitingWords();
   const status = item.todo.status;
   const live = status === "in_progress" && working;
