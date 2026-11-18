@@ -524,7 +524,8 @@ export interface BackgroundStopChannel {
  *    outputs collector returns it as Files (`shared/outputs.ts`).
  *  - Rows may be AMENDED by identity, never created, by the modules that own
  *    a fact the builder cannot know, and this is the whole list: the runtime's
- *    `harness/approval-decisions.ts` (a SKIP or REJECT settles its row),
+ *    `harness/approval-decisions.ts` (a SKIP or REJECT settles its row, and
+ *    an approved call still waiting when the run ends settles FAILED),
  *    `harness/capture.ts` (the change-set stamp on a flowed edit row),
  *    `shared/subagent-rows.ts` (a stopped turn's
  *    sub-agents CANCELLED); the Stigmer settle (`execute-deep-agent/hitl.ts`: the
