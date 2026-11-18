@@ -21,6 +21,7 @@ interface PreviewStub {
 
 const state = vi.hoisted(() => ({
   preview: null as PreviewStub | null,
+  isLoading: false,
   error: null as Error | null,
   refetch: vi.fn(),
 }));
@@ -28,7 +29,7 @@ const state = vi.hoisted(() => ({
 vi.mock("../useInvitationPreview.js", () => ({
   useInvitationPreview: () => ({
     preview: state.preview,
-    isLoading: false,
+    isLoading: state.isLoading,
     error: state.error,
     refetch: state.refetch,
   }),
@@ -52,11 +53,20 @@ function invalidPreview(invalidReason: string): PreviewStub {
 afterEach(() => {
   cleanup();
   state.preview = null;
+  state.isLoading = false;
   state.error = null;
   state.refetch.mockReset();
 });
 
 describe("InvitationRedemption", () => {
+  it("says it is opening the invitation while the preview loads", () => {
+    state.isLoading = true;
+    render(<InvitationRedemption token="tok_1" isAuthenticated />);
+
+    expect(screen.getByRole("status").textContent).toBe("Opening your invitation…");
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
   it("shows a failed preview fetch and fetches again on Try again", () => {
     state.error = new Error("invitation service unreachable");
     render(<InvitationRedemption token="tok_1" isAuthenticated />);
@@ -69,7 +79,7 @@ describe("InvitationRedemption", () => {
   it("says the invitation could not be found when no preview comes back", () => {
     render(<InvitationRedemption token="tok_missing" isAuthenticated />);
 
-    expect(screen.getByText("This invitation could not be found.")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "This invitation isn't here" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /accept invitation/i })).toBeNull();
   });
 
@@ -77,8 +87,8 @@ describe("InvitationRedemption", () => {
     state.preview = invalidPreview("This invitation has expired.");
     render(<InvitationRedemption token="tok_1" isAuthenticated />);
 
-    expect(screen.getByText("Join Acme Robotics")).toBeTruthy();
-    expect(screen.getByText("This invitation has expired.")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "This invitation has expired" })).toBeTruthy();
+    expect(screen.getByText("Ask whoever sent it for a new link.")).toBeTruthy();
     expect(screen.queryByRole("button", { name: /accept invitation/i })).toBeNull();
   });
 
@@ -86,7 +96,7 @@ describe("InvitationRedemption", () => {
     state.preview = invalidPreview("");
     render(<InvitationRedemption token="tok_1" isAuthenticated />);
 
-    expect(screen.getByText("This invitation is no longer valid.")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "This invitation is no longer valid" })).toBeTruthy();
     expect(screen.getByText("Ask whoever sent it for a new link.")).toBeTruthy();
   });
 });

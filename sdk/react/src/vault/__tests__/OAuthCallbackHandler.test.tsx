@@ -3,8 +3,8 @@
  * started the sign-in is told at once, on the broadcast channel and through
  * its opener, with the refusal and the state it belongs to, and the page
  * shows the refusal; a refusal with no state tells no one. A sign-in that
- * reaches no page to tell says it succeeded, its tick in the ready colour the
- * theme contract measures as text on the page.
+ * reaches no page to tell says it is connected, and to go back to the app the
+ * host names.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -40,7 +40,8 @@ describe("OAuthCallbackHandler when the login page refused", () => {
     render(<OAuthCallbackHandler />);
 
     const message = { type: OAUTH_CALLBACK_MESSAGE_TYPE, code: "", state: "st-1", error: "The user denied access" };
-    expect(await screen.findByText("Authentication failed: The user denied access")).toBeTruthy();
+    expect(await screen.findByText("The connection didn't finish.")).toBeTruthy();
+    expect(screen.getByText("the sign-in page said: The user denied access")).toBeTruthy();
     expect(posted).toEqual([{ channel: OAUTH_BROADCAST_CHANNEL, data: message }]);
     expect(opener.postMessage).toHaveBeenCalledWith(message, window.location.origin);
   });
@@ -50,14 +51,14 @@ describe("OAuthCallbackHandler when the login page refused", () => {
     at("?error=server_error", opener);
     render(<OAuthCallbackHandler />);
 
-    expect(await screen.findByText("Authentication failed: server_error")).toBeTruthy();
+    expect(await screen.findByText("the sign-in page said: server_error")).toBeTruthy();
     expect(posted).toEqual([]);
     expect(opener.postMessage).not.toHaveBeenCalled();
   });
 });
 
 describe("OAuthCallbackHandler when no page can be told", () => {
-  it("says the sign-in succeeded, with its tick in the measured ready colour", async () => {
+  it("says it is connected, and to go back to the app the host names", async () => {
     vi.stubGlobal("location", { ...window.location, search: "?code=c-1&state=st-1" });
     vi.stubGlobal("opener", null);
     vi.stubGlobal(
@@ -68,10 +69,9 @@ describe("OAuthCallbackHandler when no page can be told", () => {
         }
       },
     );
-    render(<OAuthCallbackHandler />);
+    render(<OAuthCallbackHandler appName="Stigmer" />);
 
-    const heading = await screen.findByText("Authentication successful");
-    const tick = heading.parentElement?.querySelector("svg");
-    expect(tick?.getAttribute("class")?.split(" ")).toContain("stg:text-status-ready");
+    expect(await screen.findByRole("heading", { name: "Connected" })).toBeTruthy();
+    expect(screen.getByText("Close this tab and go back to Stigmer to carry on.")).toBeTruthy();
   });
 });

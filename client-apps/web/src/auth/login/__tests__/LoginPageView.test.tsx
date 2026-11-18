@@ -10,7 +10,7 @@
 // free". It goes straight on to the issuer's create-account screen with the
 // manager's sign-up arguments, replacing its own history entry; a signed-in
 // person or a console without sign-in goes home; a failed redirect leaves
-// the ordinary page so Sign in still works.
+// the failure, said in plain words, with Try again.
 // ---------------------------------------------------------------------------
 
 import { StrictMode } from "react";
@@ -48,11 +48,6 @@ vi.mock("@stigmer/react-sdk", async () => {
     StigmerProvider: ({ children }: { children: React.ReactNode }) => children,
   };
 });
-// The help line reads the server's answer; here it stands in, so the test
-// holds where the page places it.
-vi.mock("@stigmer/react-sdk/console", () => ({
-  HelpLink: () => <p>Stuck? Talk to us</p>,
-}));
 vi.mock("@/config/env", () => ({
   getApiBaseUrl: () => "https://stigmer.example.com",
 }));
@@ -94,11 +89,23 @@ describe("LoginPageView", () => {
     expect(screen.queryByRole("textbox")).toBeNull();
   });
 
-  it("CON-13 places the server's help line under Sign in", () => {
+  it("draws the kit's sign-in screen, titled for Stigmer, whose help line the kit holds (CON-13)", () => {
     render(<LoginPageView />);
-    const help = screen.getByText("Stuck? Talk to us");
-    const signIn = screen.getByRole("button", { name: "Sign in" });
-    expect(signIn.compareDocumentPosition(help) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "Sign in to Stigmer" })).toBeTruthy();
+  });
+
+  it("says a sign-in that couldn't start, and tries again", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    mocks.createUserManager.mockReturnValue({ signinRedirect: mocks.signinRedirect });
+    mocks.signinRedirect.mockRejectedValueOnce(new Error("issuer unreachable"));
+    render(<LoginPageView />);
+    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+    expect(await screen.findByText("Stigmer couldn't start the sign-in.")).toBeTruthy();
+    expect(screen.getByText("Nothing changed in your account.")).toBeTruthy();
+    mocks.signinRedirect.mockResolvedValueOnce(undefined);
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(mocks.signinRedirect).toHaveBeenCalledTimes(2);
   });
 
   it("starts the configured issuer's flow and returns home after it", () => {
@@ -189,12 +196,13 @@ describe("LoginPageView: the sign-up arrival, /login?signup=1", () => {
     expect(mocks.createUserManager).not.toHaveBeenCalled();
   });
 
-  it("renders the ordinary page when the redirect fails, so Sign in still works", async () => {
+  it("says a sign-up hand-off that couldn't start, so Try again still signs in", async () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     mocks.signinRedirect.mockRejectedValueOnce(new Error("issuer unreachable"));
     render(<LoginPageView />);
 
-    expect(await screen.findByRole("button", { name: "Sign in" })).toBeTruthy();
+    expect(await screen.findByText("Stigmer couldn't start the sign-in.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
     expect(screen.queryByText("Taking you to create your account\u2026")).toBeNull();
   });
 

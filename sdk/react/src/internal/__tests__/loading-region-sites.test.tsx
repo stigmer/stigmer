@@ -29,7 +29,6 @@ import { ChannelAppListPanel } from "../../channel-app/ChannelAppListPanel.js";
 import { VaultListPanel } from "../../vault/VaultListPanel.js";
 import { OrgMembersPanel } from "../../grant/OrgMembersPanel.js";
 import { FederationIssuerListPanel } from "../../federation-issuer/FederationIssuerListPanel.js";
-import { InvitationRedemption } from "../../invitation/InvitationRedemption.js";
 import { OAuthAppListPanel } from "../../oauth-app/OAuthAppListPanel.js";
 import { VaultsSection } from "../../settings/VaultsSection.js";
 import { SkillDetailView } from "../../skill/SkillDetailView.js";
@@ -118,12 +117,6 @@ const SITES: readonly Site[] = [
     label: "Loading federation issuers",
     client: { federationIssuer: { list: pending } },
     ui: <FederationIssuerListPanel org="acme" />,
-  },
-  {
-    name: "InvitationRedemption",
-    label: "Loading invitation",
-    client: { invitation: { getByToken: pending } },
-    ui: <InvitationRedemption token="inv_token" />,
   },
   {
     name: "OAuthAppListPanel",

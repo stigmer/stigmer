@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useTheme } from "next-themes";
 import { Stigmer } from "@stigmer/client";
 import { ConnectLinkView, StigmerProvider } from "@stigmer/react-sdk";
+import { StandaloneScreen } from "@stigmer/react-sdk/console";
 import type { ResolvedColorMode } from "@stigmer/react-sdk";
 import { getApiBaseUrl } from "@/config/env";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
@@ -27,14 +28,9 @@ export default function ConnectPageClient() {
 
   return (
     <StigmerProvider client={client} colorMode={colorMode}>
-      <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-        <div className="w-full max-w-sm space-y-6">
-          <div className="text-center">
-            <StigmerLogo />
-          </div>
-          <ConnectLinkView token={token ?? ""} />
-        </div>
-      </div>
+      <StandaloneScreen mark={<StigmerLogo size={40} />} help>
+        <ConnectLinkView token={token ?? ""} />
+      </StandaloneScreen>
     </StigmerProvider>
   );
 }

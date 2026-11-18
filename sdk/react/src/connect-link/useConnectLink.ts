@@ -42,6 +42,20 @@ export const DEAD_CONNECT_LINK_MESSAGE =
   "This link has expired or was already used: ask the app that sent it for a new one.";
 
 /**
+ * The same, as the kit's link pages draw it: a title and its line.
+ *
+ * @internal Not part of the public API.
+ */
+export const DEAD_LINK_TITLE = "This link has expired or was already used";
+
+/**
+ * The line under {@link DEAD_LINK_TITLE}.
+ *
+ * @internal Not part of the public API.
+ */
+export const DEAD_LINK_LEAD = "Ask the app that sent it for a new one.";
+
+/**
  * The secret of the Connect link this tab started whose sign-in returned
  * with `state`, or `null`: the callback page's test for whether a return is
  * the link's.

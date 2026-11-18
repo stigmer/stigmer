@@ -2,7 +2,9 @@
 
 import { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { AppHandoffView } from "@stigmer/react-sdk/console";
 import { desktopBillingDeepLink, desktopBillingOutcome } from "@/auth/desktop/billing-return";
+import { StigmerLogo } from "@/auth/StigmerLogo";
 
 /**
  * Where Stripe returns a Stigmer Desktop user after a card or the billing
@@ -35,19 +37,12 @@ function DesktopBillingBridge() {
   }, [deepLink]);
 
   return (
-    <main className="flex h-screen items-center justify-center p-6">
-      <div className="max-w-sm space-y-3 text-center">
-        <h1 className="text-base font-medium">{outcome}</h1>
-        <p className="text-muted-foreground text-sm">
-          Return to Stigmer Desktop to continue. You can close this tab.
-        </p>
-        <a
-          href={deepLink}
-          className="text-primary inline-block text-sm font-medium hover:underline"
-        >
-          Open Stigmer Desktop
-        </a>
-      </div>
-    </main>
+    <AppHandoffView
+      mark={<StigmerLogo size={40} />}
+      title={outcome}
+      lead="Go back to Stigmer Desktop to carry on. You can close this tab."
+      href={deepLink}
+      actLabel="Open Stigmer Desktop"
+    />
   );
 }

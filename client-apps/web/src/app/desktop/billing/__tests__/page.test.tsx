@@ -29,7 +29,7 @@ describe("the desktop billing bridge", () => {
     vi.stubGlobal("location", location);
     render(<DesktopBillingReturnPage />);
     expect(
-      screen.getByRole("heading", { name: "Your card is saved." }),
+      screen.getByRole("heading", { name: "Your card is saved" }),
     ).toBeDefined();
     await waitFor(() =>
       expect(location.href).toBe(
@@ -43,7 +43,7 @@ describe("the desktop billing bridge", () => {
     vi.stubGlobal("location", location);
     render(<DesktopBillingReturnPage />);
     expect(
-      screen.getByRole("heading", { name: "Nothing was changed." }),
+      screen.getByRole("heading", { name: "Nothing was changed" }),
     ).toBeDefined();
     await waitFor(() => expect(location.href).toBe("stigmer://billing/return"));
   });

@@ -9,13 +9,14 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { cn } from "@stigmer/design-tokens";
 import {
   OAUTH_CALLBACK_MESSAGE_TYPE,
   OAUTH_BROADCAST_CHANNEL,
 } from "../internal/oauthPopup.js";
 import type { OAuthCallbackMessage } from "../internal/oauthPopup.js";
-import { Notice } from "../internal/surface/Notice.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
+import { ScreenColumn } from "../internal/ScreenColumn.js";
+import { ScreenWait } from "../standalone-screen/StandaloneScreen.js";
 
 /** Parameters extracted from the OAuth callback URL. */
 export interface OAuthCallbackParams {
@@ -39,6 +40,13 @@ export interface OAuthCallbackHandlerProps {
    * renders an instructional message asking the user to close the tab.
    */
   readonly onFallback?: (params: OAuthCallbackParams) => void;
+  /**
+   * The app the person goes back to, as they know it ("Stigmer"), in the
+   * page's lines: "Close this tab and go back to Stigmer to carry on."
+   *
+   * @default "the app"
+   */
+  readonly appName?: string;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -93,6 +101,7 @@ function announce(message: OAuthCallbackMessage): void {
  */
 export function OAuthCallbackHandler({
   onFallback,
+  appName = "the app",
   className,
 }: OAuthCallbackHandlerProps) {
   const [status, setStatus] = useState<"processing" | "done" | "no-opener" | "error">("processing");
@@ -115,15 +124,14 @@ export function OAuthCallbackHandler({
       if (state) {
         announce({ type: OAUTH_CALLBACK_MESSAGE_TYPE, code: "", state, error: description });
       }
-      setErrorMessage(`Authentication failed: ${description}`);
+      setErrorMessage(`the sign-in page said: ${description}`);
       setStatus("error");
       return;
     }
 
     if (!code || !state) {
       setErrorMessage(
-        "Missing authorization code or state parameter. " +
-          "This page should only be reached via an OAuth redirect.",
+        "this page was opened without the sign-in's code; it only finishes a sign-in that sent you here",
       );
       setStatus("error");
       return;
@@ -159,8 +167,7 @@ export function OAuthCallbackHandler({
           window.close();
         } else {
           setErrorMessage(
-            "Could not communicate with the parent window. " +
-              "Please close this tab and try again.",
+            "the window that started the sign-in couldn't be reached",
           );
           setStatus("error");
         }
@@ -184,89 +191,33 @@ export function OAuthCallbackHandler({
     setStatus("no-opener");
   }, [onFallback]);
 
+  if (status === "processing") {
+    return (
+      <ScreenColumn className={className}>
+        <ScreenWait>Finishing the connection…</ScreenWait>
+      </ScreenColumn>
+    );
+  }
+  if (status === "done") {
+    return <ScreenColumn className={className} headingLevel={1} title="Connected" lead="You can close this window." />;
+  }
+  if (status === "no-opener") {
+    return (
+      <ScreenColumn
+        className={className}
+        headingLevel={1}
+        title="Connected"
+        lead={`Close this tab and go back to ${appName} to carry on.`}
+      />
+    );
+  }
   return (
-    <div
-      className={cn(
-        "stg:flex stg:min-h-[200px] stg:items-center stg:justify-center stg:p-8",
-        className,
-      )}
-    >
-      <div className="stg:max-w-sm stg:text-center">
-        {status === "processing" && (
-          <>
-            <Spinner />
-            <p className="stg:mt-3 stg:text-sm stg:text-muted-foreground">
-              Completing authentication...
-            </p>
-          </>
-        )}
-
-        {status === "done" && (
-          <p className="stg:text-sm stg:text-muted-foreground">
-            Authentication complete. You can close this window.
-          </p>
-        )}
-
-        {status === "no-opener" && (
-          <>
-            <CheckIcon />
-            <p className="stg:mt-3 stg:text-sm stg:font-medium stg:text-foreground">
-              Authentication successful
-            </p>
-            <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">
-              Please close this tab and return to the application to continue.
-            </p>
-          </>
-        )}
-
-        {status === "error" && (
-          <Notice tone="failed" headline="Authentication failed" className="stg:text-left">
-            {errorMessage && <p className="stg:m-0 stg:break-words">{errorMessage}</p>}
-          </Notice>
-        )}
-      </div>
-    </div>
+    <ScreenColumn className={className}>
+      <ErrorMessage
+        error={new Error(errorMessage ?? "the sign-in didn't finish")}
+        title="The connection didn't finish."
+        comfort={`Nothing was saved. Close this window and try again from ${appName}.`}
+      />
+    </ScreenColumn>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Icons -- inline SVGs (no external icon dependency, matches SDK pattern)
-// ---------------------------------------------------------------------------
-
-function Spinner() {
-  return (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="stg:mx-auto stg:animate-spin stg:text-muted-foreground"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="stg:mx-auto stg:text-status-ready"
-      aria-hidden="true"
-    >
-      <path d="m3 8.5 3.5 3.5 6.5-8" />
-    </svg>
-  );
-}
-

@@ -120,7 +120,7 @@ describe("ConnectLinkView", () => {
     render(<ConnectLinkView token={TOKEN} />, { wrapper: providers(world) });
     expect(await screen.findByText("Connect Slack for Acme Helpdesk")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue to Slack" }));
     await waitFor(() => expect(assign).toHaveBeenCalledWith("https://slack.com/oauth/authorize?x=1"));
     expect(JSON.parse(sessionStorage.getItem(CONNECT_LINK_PENDING_KEY) ?? "null")).toEqual({ token: TOKEN, state: "st" });
     expect(pendingConnectLinkToken("st")).toBe(TOKEN);
@@ -131,7 +131,7 @@ describe("ConnectLinkView", () => {
   it("never visits a login page that is not an https address, and keeps no link", async () => {
     const world: World = { dead: false, loginPage: "javascript:alert(document.domain)//", completed: [] };
     render(<ConnectLinkView token={TOKEN} />, { wrapper: providers(world) });
-    fireEvent.click(await screen.findByRole("button", { name: "Continue" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Continue to Slack" }));
     expect(await screen.findByText(/The login page's address is not an https address/)).toBeTruthy();
     expect(assign).not.toHaveBeenCalled();
     expect(sessionStorage.getItem(CONNECT_LINK_PENDING_KEY)).toBeNull();
@@ -139,7 +139,7 @@ describe("ConnectLinkView", () => {
 
   it("offers Continue again when Back from the login page restores the page from the back-forward cache", async () => {
     render(<ConnectLinkView token={TOKEN} />, { wrapper: providers({ dead: false, completed: [] }) });
-    const button = await screen.findByRole("button", { name: "Continue" });
+    const button = await screen.findByRole("button", { name: "Continue to Slack" });
     fireEvent.click(button);
     await waitFor(() => expect(assign).toHaveBeenCalled());
     expect((button as HTMLButtonElement).disabled).toBe(true);
@@ -149,14 +149,15 @@ describe("ConnectLinkView", () => {
     act(() => {
       window.dispatchEvent(restored);
     });
-    expect((screen.getByRole("button", { name: "Continue" }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole("button", { name: "Continue to Slack" }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it("says a dead link has expired or was used, and offers nothing to click", async () => {
     render(<ConnectLinkView token={TOKEN} />, { wrapper: providers({ dead: true, completed: [] }) });
     expect(
-      await screen.findByText("This link has expired or was already used: ask the app that sent it for a new one."),
+      await screen.findByRole("heading", { name: "This link has expired or was already used" }),
     ).toBeTruthy();
+    expect(screen.getByText("Ask the app that sent it for a new one.")).toBeTruthy();
     expect(screen.queryByRole("button")).toBeNull();
   });
 });
@@ -238,7 +239,7 @@ describe("ConnectLinkCallback", () => {
     keepPendingLink();
     render(<ConnectLinkCallback token={TOKEN} />, { wrapper: providers({ dead: true, completed: [] }) });
     expect(
-      await screen.findByText("This link has expired or was already used: ask the app that sent it for a new one."),
+      await screen.findByRole("heading", { name: "This link has expired or was already used" }),
     ).toBeTruthy();
     expect(replace).not.toHaveBeenCalled();
     expect(pendingConnectLinkToken("st")).toBeNull();
@@ -259,7 +260,8 @@ describe("ConnectLinkCallback", () => {
     render(<ConnectLinkCallback token={TOKEN} />, {
       wrapper: providers({ dead: false, returnUrl: "javascript:alert(document.domain)//", completed: [] }),
     });
-    expect(await screen.findByText(/the app's return address is not an https address/)).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Your login is saved" })).toBeTruthy();
+    expect(screen.getByText(/The app's return address isn't a secure one, so you weren't sent back/)).toBeTruthy();
     expect(replace).not.toHaveBeenCalled();
     expect(pendingConnectLinkToken("st")).toBeNull();
   });

@@ -2,7 +2,8 @@
 // The shared sign-in callback page routes each return to its finisher:
 //
 //   - `source=desktop`: the code and state go on to Stigmer Desktop's deep
-//     link, the login page's error with them;
+//     link, the login page's error with them, and after a moment the page
+//     keeps Open Stigmer Desktop in case the app didn't open;
 //   - a return whose state is the one a Connect link this tab started
 //     with: the link's completion, whether or not the window has an opener
 //     (an integrator may open the link in a window of its own);
@@ -14,7 +15,7 @@
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 
 const search = vi.hoisted(() => ({ value: "" }));
@@ -62,7 +63,26 @@ describe("the sign-in callback page", () => {
     await waitFor(() =>
       expect(location.href).toBe("stigmer://oauth/callback?code=c-1&state=st&error=access_denied"),
     );
-    expect(screen.getByText("Returning to Stigmer Desktop...")).toBeTruthy();
+    expect(screen.getByText("Going back to Stigmer Desktop\u2026")).toBeTruthy();
+  });
+
+  it("keeps the way back to Stigmer Desktop when the app didn't open", async () => {
+    vi.useFakeTimers();
+    try {
+      search.value = "?source=desktop&code=c-1&state=st";
+      vi.stubGlobal("location", { href: "https://console.example/auth/oauth/callback" });
+      render(<OAuthCallbackPage />);
+      expect(screen.getByText("Going back to Stigmer Desktop\u2026")).toBeTruthy();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(3000);
+      });
+      expect(screen.getByRole("heading", { name: "You're signed in" })).toBeTruthy();
+      expect(screen.getByRole("link", { name: "Open Stigmer Desktop" }).getAttribute("href")).toBe(
+        "stigmer://oauth/callback?code=c-1&state=st",
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("finishes a Connect link this tab started", async () => {

@@ -2,18 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { cn } from "@stigmer/design-tokens";
-import { getUserMessage, isNotFound, isTransientStreamError } from "@stigmer/client";
+import { isNotFound, isTransientStreamError } from "@stigmer/client";
 import { CompleteConnectLinkInputSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/connect_link_pb";
 import { useStigmer } from "@stigmer/react-core";
 import { isBrowserDestination } from "../internal/loginPageUrl.js";
-import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
+import { ScreenColumn } from "../internal/ScreenColumn.js";
+import { ScreenWait } from "../standalone-screen/StandaloneScreen.js";
 import { toError } from "@stigmer/react-core/internal";
-import { DEAD_CONNECT_LINK_MESSAGE, clearPendingConnectLinkToken } from "./useConnectLink.js";
+import { DEAD_LINK_LEAD, DEAD_LINK_TITLE, clearPendingConnectLinkToken } from "./useConnectLink.js";
 
-/** What the customer reads when the app's return address fails the browser check. */
-const UNSAFE_RETURN_MESSAGE =
-  "The sign-in is over, but the app's return address is not an https address, so you were not sent back. Return to the app yourself.";
 
 /** Props for {@link ConnectLinkCallback}. */
 export interface ConnectLinkCallbackProps {
@@ -44,6 +42,8 @@ export interface ConnectLinkCallbackProps {
 export function ConnectLinkCallback({ token, className }: ConnectLinkCallbackProps) {
   const stigmer = useStigmer();
   const [failure, setFailure] = useState<Error | null>(null);
+  // The login is saved, but the app's return address failed the browser check.
+  const [unsafeReturn, setUnsafeReturn] = useState(false);
   const didRun = useRef(false);
 
   useEffect(() => {
@@ -65,7 +65,7 @@ export function ConnectLinkCallback({ token, className }: ConnectLinkCallbackPro
           if (isBrowserDestination(answer.returnUrl)) {
             window.location.replace(answer.returnUrl);
           } else {
-            setFailure(new Error(UNSAFE_RETURN_MESSAGE));
+            setUnsafeReturn(true);
           }
         })
         .catch((err: unknown) => {
@@ -79,20 +79,34 @@ export function ConnectLinkCallback({ token, className }: ConnectLinkCallbackPro
     }
   }, [stigmer, token]);
 
+  if (unsafeReturn) {
+    return (
+      <ScreenColumn
+        className={className}
+        headingLevel={1}
+        title="Your login is saved"
+        lead="The app's return address isn't a secure one, so you weren't sent back. Go back to the app yourself."
+      />
+    );
+  }
+  if (failure === null) {
+    return (
+      <ScreenColumn className={className}>
+        <ScreenWait>Finishing the connection…</ScreenWait>
+      </ScreenColumn>
+    );
+  }
+  if (isNotFound(failure)) {
+    return <ScreenColumn className={className} headingLevel={1} title={DEAD_LINK_TITLE} lead={DEAD_LINK_LEAD} />;
+  }
   return (
-    <div className={cn("stg:flex stg:min-h-[200px] stg:items-center stg:justify-center stg:p-8", className)}>
-      <div className="stg:max-w-sm stg:text-center">
-        {failure === null ? (
-          <>
-            <SpinnerIcon className="stg:mx-auto stg:size-5 stg:text-muted-foreground" />
-            <p className="stg:mt-3 stg:text-sm stg:text-muted-foreground">Finishing the connection...</p>
-          </>
-        ) : (
-          <p role="alert" className="stg:text-sm stg:text-foreground">
-            {isNotFound(failure) ? DEAD_CONNECT_LINK_MESSAGE : getUserMessage(failure)}
-          </p>
-        )}
-      </div>
-    </div>
+    <ScreenColumn className={className}>
+      <ErrorMessage
+        error={failure}
+        title="The connection didn't finish."
+        comfort="Your login wasn't saved. Try again, or start from the app's link."
+        retry={isTransientStreamError(failure) ? () => window.location.reload() : undefined}
+      />
+    </ScreenColumn>
   );
 }

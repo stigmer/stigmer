@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useSyncExternalStore } from "react";
+import { Suspense, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Stigmer } from "@stigmer/client";
@@ -11,10 +11,15 @@ import {
   pendingConnectLinkToken,
 } from "@stigmer/react-sdk";
 import type { ResolvedColorMode } from "@stigmer/react-sdk";
+import { AppHandoffView, StandaloneScreen } from "@stigmer/react-sdk/console";
+import { StigmerLogo } from "@/auth/StigmerLogo";
 import { getApiBaseUrl } from "@/config/env";
 
 /** The deep link Stigmer Desktop registers for a sign-in that returns through this page. */
 const DESKTOP_SIGN_IN_DEEP_LINK = "stigmer://oauth/callback";
+
+/** How long the desktop bridge waits on the operating system before it offers the way back. */
+const BRIDGE_FALLBACK_MS = 3000;
 
 /**
  * The one page every sign-in's login page returns to
@@ -69,7 +74,13 @@ function CallbackRouter() {
 
   if (mode === null) return null;
   if (mode === "desktop") return <DesktopSignInBridge />;
-  if (mode === "popup") return <OAuthCallbackHandler className="min-h-screen" />;
+  if (mode === "popup") {
+    return (
+      <StandaloneScreen mark={<StigmerLogo size={40} />}>
+        <OAuthCallbackHandler appName="Stigmer" />
+      </StandaloneScreen>
+    );
+  }
   return <ConnectLinkCompletion token={mode.slice(CONNECT_LINK_MODE.length)} />;
 }
 
@@ -90,14 +101,29 @@ function DesktopSignInBridge() {
     return `${DESKTOP_SIGN_IN_DEEP_LINK}?${forwarded.toString()}`;
   }, [query]);
 
+  const failed = new URLSearchParams(query).has("error");
+  // The operating system may not open the app: after a moment the page
+  // says what happened and keeps one way back.
+  const [settled, setSettled] = useState(false);
   useEffect(() => {
     window.location.href = deepLink;
+    const timer = window.setTimeout(() => setSettled(true), BRIDGE_FALLBACK_MS);
+    return () => window.clearTimeout(timer);
   }, [deepLink]);
 
+  if (!settled) return <AppHandoffView mark={<StigmerLogo size={40} />} wait="Going back to Stigmer Desktop…" />;
   return (
-    <div className="flex h-screen items-center justify-center">
-      <p className="text-sm text-muted-foreground">Returning to Stigmer Desktop...</p>
-    </div>
+    <AppHandoffView
+      mark={<StigmerLogo size={40} />}
+      title={failed ? "Go back to Stigmer Desktop" : "You're signed in"}
+      lead={
+        failed
+          ? "The sign-in didn't finish. Open Stigmer Desktop to see why and try again."
+          : "If Stigmer Desktop didn't open, open it here. You can close this tab after."
+      }
+      href={deepLink}
+      actLabel="Open Stigmer Desktop"
+    />
   );
 }
 
@@ -108,7 +134,9 @@ function ConnectLinkCompletion({ token }: { readonly token: string }) {
   const client = useMemo(() => new Stigmer({ baseUrl: getApiBaseUrl(), getAccessToken: () => null }), []);
   return (
     <StigmerProvider client={client} colorMode={colorMode}>
-      <ConnectLinkCallback token={token} className="min-h-screen" />
+      <StandaloneScreen mark={<StigmerLogo size={40} />} help>
+        <ConnectLinkCallback token={token} />
+      </StandaloneScreen>
     </StigmerProvider>
   );
 }

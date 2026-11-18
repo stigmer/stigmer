@@ -374,6 +374,7 @@ this component:
 
 <TypeTable
   type={{
+    appName: { type: "string", description: "The app the person goes back to, as they know it (\"Stigmer\"), in the page's lines: \"Close this tab and go back to Stigmer to carry on.\"" },
     className: { type: "string", description: "Additional CSS classes for the root container." },
     onFallback: { type: "(params: OAuthCallbackParams) => void", description: "Fallback callback invoked when the page was opened as a regular navigation (no `window.opener`), meaning the popup `postMessage` path cannot be used.  Receives the extracted `code` and `state` so the host application can complete the OAuth flow via its own routing logic.  When omitted and `window.opener` is unavailable, the component renders an instructional message asking the user to close the tab." },
   }}

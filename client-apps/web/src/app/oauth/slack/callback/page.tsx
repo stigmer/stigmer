@@ -1,6 +1,8 @@
 "use client";
 
 import { OAuthCallbackHandler } from "@stigmer/react-sdk";
+import { StandaloneScreen } from "@stigmer/react-sdk/console";
+import { StigmerLogo } from "@/auth/StigmerLogo";
 
 /**
  * OAuth callback page for Slack channel installs.
@@ -19,5 +21,9 @@ import { OAuthCallbackHandler } from "@stigmer/react-sdk";
  * `oauth_config.redirect_urls` ({{CONSOLE_ORIGIN}}/oauth/slack/callback).
  */
 export default function SlackOAuthCallbackPage() {
-  return <OAuthCallbackHandler className="min-h-screen" />;
+  return (
+    <StandaloneScreen mark={<StigmerLogo size={40} />}>
+      <OAuthCallbackHandler appName="Stigmer" />
+    </StandaloneScreen>
+  );
 }

@@ -141,8 +141,15 @@ vi.mock("@stigmer/react-sdk", () => ({
   },
 }));
 
+// The frame draws the server's help line when the page asks for it; here it
+// stands in, so the test holds that the page asks.
 vi.mock("@stigmer/react-sdk/console", () => ({
-  HelpLink: () => <p>Stuck? Talk to us</p>,
+  StandaloneScreen: ({ help, children }: { help?: boolean; children?: React.ReactNode }) => (
+    <>
+      {children}
+      {help === true && <p>Stuck? Talk to us</p>}
+    </>
+  ),
 }));
 
 import InvitePageClient from "../InvitePageClient";

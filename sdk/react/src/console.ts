@@ -132,6 +132,18 @@ export type {
 export { StandaloneScreen } from "./standalone-screen/index.js";
 export type { StandaloneScreenProps } from "./standalone-screen/index.js";
 
+// Signing in — the sign-in screen in both apps, the return from the
+// sign-in page, and the page that hands the browser back to the desktop
+// app. Hosts keep their sign-in wiring and pass the state.
+export { SignInView, SignInReturnView, AppHandoffView } from "./sign-in/index.js";
+export type {
+  SignInViewProps,
+  SignInState,
+  SignInElsewhere,
+  SignInReturnViewProps,
+  AppHandoffViewProps,
+} from "./sign-in/index.js";
+
 // Gates — what a console shows between signing in and the app: the
 // identity account checked or set up, then the person's organizations.
 // The hooks (`useIdentityAccountGate`, `useOrgGate`) make the state; hosts
