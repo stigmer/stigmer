@@ -40,7 +40,7 @@ import {
   tracePlan,
   tryReading,
 } from "./coding-agent-bank.mjs";
-import { listedSlugs } from "./bank-fixture.mjs";
+import { FIXTURE_DIR, listedSlugs, PROJECT_MANIFESTS, writeProjectManifests } from "./bank-fixture.mjs";
 import { SANDBOX_HOME, stageShim } from "./hermetic-stage.mjs";
 import { connectRequest, isLoopback, proxyFromEnv } from "./loopback-through-proxy.mjs";
 
@@ -68,7 +68,7 @@ test("the flags default to three tries on the pinned model under the ceiling, an
   assert.throws(() => parseBankArgs(["--deep"]), /unknown flag "--deep"/);
 });
 
-test("the eval command grants the shell, the web, the plugin's tools and the fixture's loopback, and passes the filters", () => {
+test("the eval command grants the shell, the web, the plugin's tools, the fixture's loopback and the docs, and passes the filters", () => {
   const args = parseBankArgs(["--tag=admin", "--case=delete-*", "--runs=2"]);
   const argv = evalArgs(args, { pluginDir: "/s/plugin", resultPath: "/o/result.json", outputDir: "/o", reportPath: "/o/report.html" });
   assert.deepEqual(argv.slice(0, 3), ["plugin", "eval", "/s/plugin"]);
@@ -76,6 +76,8 @@ test("the eval command grants the shell, the web, the plugin's tools and the fix
   const grants = argv.slice(argv.indexOf("--allow-tools") + 1, argv.indexOf("--model"));
   assert.deepEqual(grants, TOOL_GRANTS);
   assert.ok(grants.includes("WebFetch(domain:127.0.0.1)"), "without the loopback grant the sandbox's proxy refuses the CLI");
+  assert.ok(grants.includes("WebFetch(domain:localhost)"), "without it the proxy refuses a download from the stage's file server, whose links name localhost");
+  assert.ok(grants.includes("WebFetch(domain:stigmer.ai)"), "without it the proxy refuses a shell read of the docs' pages");
   assert.ok(grants.includes("mcp__plugin_stigmer_stigmer__*"));
   const after = (flag) => argv[argv.indexOf(flag) + 1];
   assert.equal(after("--judge-model"), DEFAULT_MODEL);
@@ -254,6 +256,20 @@ test("the fixture's restore reads a list's slugs, whichever shape the answer has
   assert.deepEqual(listedSlugs('{"entries":[{"metadata":{"name":"ci-runner"}}]}'), ["ci-runner"]);
   assert.deepEqual(listedSlugs('{"items":[{"name":"x"},{}]}'), ["x"]);
   assert.deepEqual(listedSlugs("No service accounts"), []);
+});
+
+test("an acting try's folder holds the fixture agents' manifests where a person who set up keeps them", () => {
+  const dir = mkdtempSync(join(tmpdir(), "bank-project-"));
+  try {
+    const written = writeProjectManifests(dir);
+    assert.deepEqual(written, [join(PROJECT_MANIFESTS, "invoice-checker.yaml"), join(PROJECT_MANIFESTS, "reconciler.yaml")]);
+    for (const path of written) {
+      assert.equal(readFileSync(join(dir, path), "utf8"), readFileSync(join(FIXTURE_DIR, "agents", path.slice(PROJECT_MANIFESTS.length + 1)), "utf8"));
+    }
+    assert.deepEqual(writeProjectManifests(dir), written, "a second try in the same folder writes them again");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test("two with-plugin readings are compared per job, and a spread of more than one case is noisy", () => {

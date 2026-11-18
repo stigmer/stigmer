@@ -297,6 +297,7 @@ All visual properties flow through `--stgm-*` design tokens.
     className: { type: "string", description: "Additional CSS class names for the root container." },
     federationIssuer: { type: "FederationIssuer", description: "The federation issuer resource to display and edit.", required: true, typeDescriptionLink: "/docs/sdk/resources/federation-issuer" },
     onBack: { type: "() => void", description: "Fired when the user clicks the back button." },
+    onDeleted: { type: "() => void", description: "Fired once the issuer is deleted from the panel's own \"Delete this issuer\" card. The card shows only when this is given, for a caller the server lets delete the issuer (`can_delete`)." },
     onUpdated: { type: "(issuer: FederationIssuer) => void", description: "Fired with the updated resource after a successful save." },
     showName: { type: "boolean", description: "Draw the issuer's name and handle as the panel's heading. `true` (the default) where the panel stands alone; `false` where the page's own title already names the issuer (the settings page while one is open)." },
   }}

@@ -202,7 +202,7 @@ function standingOf(
         timeState,
         renewedBy: undefined,
         phase: "degraded",
-        label: "Expiring",
+        label: "Renew soon",
         reason: `Covered through ${through}; renew before it lapses`,
       };
     case LicenseState.grace: {

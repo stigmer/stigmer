@@ -51,7 +51,7 @@ describe("Plan surfaces a11y", () => {
       ...CANVAS,
       client: client(true),
     });
-    await screen.findByText("Estimated invoice on Feb 28, 2027");
+    await screen.findByText("Estimated invoice");
     await auditA11y(container, `plan section active · ${mode}`);
   });
 

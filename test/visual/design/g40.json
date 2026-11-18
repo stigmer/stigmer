@@ -132,7 +132,7 @@
       "caption": "API keys: New API key: 90 days chosen for you",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings Built look's fixes build it.",
+      "unbuilt": "No scene draws this state yet; the page's parts are built, this state has no scene.",
       "words": [
         {
           "text": "API keys",
@@ -285,7 +285,7 @@
       "caption": "API keys: New API key, no name",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings Built look's fixes build it.",
+      "unbuilt": "No scene draws this state yet; the page's parts are built, this state has no scene.",
       "words": [
         {
           "text": "API keys",
@@ -430,7 +430,7 @@
       "caption": "API keys: Made: its value shown once",
       "narrow": false,
       "built": [],
-      "unbuilt": "When its page is redesigned: the settings Built look's fixes build it.",
+      "unbuilt": "No scene draws this state yet; the page's parts are built, this state has no scene.",
       "words": [
         {
           "text": "API keys",
@@ -635,7 +635,7 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "word Revoke laptop-cli?": "When its page is redesigned: the settings Built look's fixes puts this page's words as drawn (descriptions, headings, empty states and confirm lines)"
+        "word Revoke laptop-cli?": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
       }
     },
     {

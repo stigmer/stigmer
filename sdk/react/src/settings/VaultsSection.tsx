@@ -33,7 +33,12 @@ import { CreateVaultForm } from "../vault/CreateVaultForm.js";
 import { useMyVault } from "../vault/useMyVault.js";
 import { VaultEntriesEditor } from "../vault/VaultEntriesEditor.js";
 import { VaultListPanel } from "../vault/VaultListPanel.js";
+import { ManageAccessButton } from "../access/ManageAccessButton.js";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { NoOrganization } from "./NoOrganization.js";
+import { useOrgDisplayName } from "../organization/useOrgDisplayName.js";
 import { SettingsPage } from "./SettingsPage.js";
 import { SettingsSkeleton } from "./SettingsSkeleton.js";
 
@@ -57,23 +62,47 @@ export function VaultsSection() {
   // empty list's.
   const createCheck = useCheckPermission(org ? { kind: "organization", id: org } : null, "can_create_shared_vault", { fail: "closed" });
   const canCreate = !createCheck.isLoading && createCheck.allowed;
+  // The server's no (not a check that failed) names who makes shared vaults.
+  const deniedCreate = !createCheck.isLoading && !createCheck.allowed && createCheck.error === null;
+  const where = useOrgDisplayName();
+  // A shared vault opens in place: it names the page, with the way back above it.
+  const [open, setOpen] = useState<Vault | null>(null);
+  const openVault = useCallback((vault: Vault) => setOpen(vault), []);
+  const backToList = useCallback(() => setOpen(null), []);
+  const openId = open?.metadata?.id ?? "";
+  const openVisibility = open?.metadata?.visibility ?? ApiResourceVisibility.visibility_private;
 
   return (
     <SettingsPage
-      title="Vaults"
-      description="The logins and secrets your agents use: your own, in My vault, and your organization's, in shared vaults."
+      title={open ? open.metadata?.name || "Vault" : "Vaults"}
+      back={open ? { label: "Vaults", onBack: backToList } : undefined}
+      description={
+        open
+          ? open.spec?.description || undefined
+          : "The logins and secrets your agents use: your own, in My vault, and your organization's, in shared vaults."
+      }
       actions={
-        !showCreate &&
-        org &&
-        canCreate && (
-          <Button size="sm" onClick={startCreate}>
-            New shared vault
-          </Button>
+        open && openId !== "" ? (
+          <ManageAccessButton
+            resource={{ kind: ApiResourceKind.vault, kindString: "vault", id: openId, org }}
+            visibility={{ kind: "vault", current: openVisibility, onChanged: () => listRefetchRef.current?.() }}
+            label="Who can use"
+          />
+        ) : (
+          !showCreate &&
+          org &&
+          canCreate && (
+            <Button size="sm" onClick={startCreate}>
+              New shared vault
+            </Button>
+          )
         )
       }
     >
       {!org ? (
         <NoOrganization what="its vaults" />
+      ) : open ? (
+        <VaultListPanel org={org} onRefetchRef={handleRefetchRef} onOpen={openVault} openId={openId} onClose={backToList} />
       ) : (
         <div className="stg:flex stg:flex-col stg:gap-8">
           <MyVaultCard org={org} />
@@ -84,6 +113,8 @@ export function VaultsSection() {
             onCancelCreate={() => setShowCreate(false)}
             onRefetchRef={handleRefetchRef}
             emptyAction={canCreate && !showCreate ? { label: "New shared vault", onClick: startCreate } : undefined}
+            onOpen={openVault}
+            emptyDescription={deniedCreate ? `Admins of ${where} create shared vaults and choose who may use them.` : undefined}
           />
         </div>
       )}
@@ -163,6 +194,8 @@ function SharedVaultsCard({
   onCancelCreate,
   onRefetchRef,
   emptyAction,
+  onOpen,
+  emptyDescription,
 }: {
   readonly org: string;
   readonly showCreate: boolean;
@@ -170,6 +203,8 @@ function SharedVaultsCard({
   readonly onCancelCreate: () => void;
   readonly onRefetchRef: (refetch: () => void) => void;
   readonly emptyAction: EmptyStateAction | undefined;
+  readonly onOpen: (vault: Vault) => void;
+  readonly emptyDescription: string | undefined;
 }) {
   const headingId = useId();
 
@@ -191,7 +226,7 @@ function SharedVaultsCard({
         </Card>
       )}
 
-      <VaultListPanel org={org} onRefetchRef={onRefetchRef} emptyAction={emptyAction} />
+      <VaultListPanel org={org} onRefetchRef={onRefetchRef} emptyAction={emptyAction} onOpen={onOpen} emptyDescription={emptyDescription} />
     </section>
   );
 }

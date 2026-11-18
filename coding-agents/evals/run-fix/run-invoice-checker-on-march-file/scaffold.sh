@@ -1,50 +1,53 @@
 #!/bin/sh
 set -e
 # The bank's runner puts stigmer-bank-fixture on PATH: before every try it puts back
-# whatever an earlier try deleted or changed in the fixture this case reads.
+# whatever an earlier try deleted or changed in the fixture this case reads, and puts
+# the fixture agents' manifests in this folder as stigmer/<agent>.yaml, as a person
+# who set up holds them.
 if command -v stigmer-bank-fixture >/dev/null 2>&1; then stigmer-bank-fixture; fi
 mkdir -p samples
 cat > samples/march.csv <<'EOF'
-invoice,vendor,purchase_order,amount
-INV-3101,Northwind Traders,PO-1201,3295.27
-INV-3102,Contoso Supplies,PO-1202,1631.17
-INV-3103,Fabrikam,PO-1203,6441.99
-INV-3104,Harbor Office Supply,PO-1204,876.84
-INV-3105,Atlas Freight,PO-1205,5335.18
-INV-3106,Pinecrest Janitorial,PO-1206,3697.93
-INV-3107,Summit IT Services,PO-1207,737.95
-INV-3108,Riverbend Printing,PO-1208,5061.53
-INV-3109,Northwind Traders,PO-1209,540.71
-INV-3110,Contoso Supplies,PO-1210,4351.67
-INV-3111,Fabrikam,PO-1211,852.01
-INV-3112,Harbor Office Supply,PO-1212,1052.66
-INV-3113,Atlas Freight,PO-1213,4263.87
-INV-3114,Pinecrest Janitorial,PO-1214,8134.32
-INV-3115,Summit IT Services,PO-1215,1370.97
-INV-3116,Riverbend Printing,PO-1216,2327.56
-INV-3117,Northwind Traders,PO-1217,6215.91
-INV-3118,Contoso Supplies,PO-1218,9296.96
-INV-3119,Fabrikam,PO-1219,5731.73
-INV-3120,Harbor Office Supply,PO-1220,3996.07
-INV-3121,Atlas Freight,PO-1221,9571.57
-INV-3122,Pinecrest Janitorial,PO-1222,628.13
-INV-3123,Summit IT Services,PO-1223,8438.47
-INV-3124,Riverbend Printing,PO-1224,2966.04
-INV-3125,Northwind Traders,PO-1225,1567.73
-INV-3126,Contoso Supplies,PO-1226,1313.16
-INV-3127,Fabrikam,PO-1227,3147.60
-INV-3128,Harbor Office Supply,PO-1228,8031.14
-INV-3129,Atlas Freight,PO-1229,1918.59
-INV-3130,Pinecrest Janitorial,PO-1230,5774.99
-INV-3131,Summit IT Services,PO-1231,6326.35
-INV-3132,Riverbend Printing,PO-1232,3762.46
-INV-3133,Northwind Traders,PO-1233,5449.30
-INV-3134,Contoso Supplies,PO-1234,784.03
-INV-3135,Fabrikam,PO-1235,753.36
-INV-3136,Harbor Office Supply,PO-1236,2161.32
-INV-3137,Atlas Freight,PO-1237,6725.45
-INV-3138,Pinecrest Janitorial,PO-1238,4293.44
-INV-3139,Summit IT Services,PO-1239,3202.10
-INV-3140,Riverbend Printing,PO-1240,5813.11
-INV-3141,Northwind Traders,PO-1241,4539.63
+invoice,vendor,purchase_order,po_amount,amount
+INV-2280,Northwind Traders,PO-1101,9061.46,9011.46
+INV-2281,Contoso Supplies,PO-1102,1006.69,1006.69
+INV-2282,Fabrikam,PO-1103,1677.62,1377.62
+INV-2283,Harbor Office Supply,PO-1105,5495.15,5369.65
+INV-2284,Atlas Freight,PO-1106,845.37,845.37
+INV-2285,Pinecrest Janitorial,PO-1107,9302.14,9302.14
+INV-2286,Summit IT Services,PO-1108,5441.96,5141.96
+INV-2287,Riverbend Printing,PO-1109,6982.92,6932.92
+INV-2288,Northwind Traders,PO-1111,6579.73,6579.73
+INV-2289,Contoso Supplies,PO-1112,555.78,430.28
+INV-2290,Fabrikam,PO-1113,4854.94,4804.94
+INV-2291,Contoso Supplies,PO-1104,880.00,880.00
+INV-2291,Contoso Supply Ltd,PO-1104,880.00,880.00
+INV-2292,Atlas Freight,PO-1114,487.53,487.53
+INV-2293,Pinecrest Janitorial,PO-1115,5313.87,5188.37
+INV-2294,Summit IT Services,PO-1116,7990.81,7940.81
+INV-2295,Riverbend Printing,PO-1117,2631.21,2631.21
+INV-2296,Northwind Traders,PO-1118,7734.91,7684.91
+INV-2297,Contoso Supplies,PO-1119,3739.37,3613.87
+INV-2298,Fabrikam,PO-1120,8616.75,8566.75
+INV-2299,Harbor Office Supply,PO-1121,6665.62,6365.62
+INV-2300,Atlas Freight,PO-1122,5675.87,5675.87
+INV-2301,Pinecrest Janitorial,PO-1123,9689.25,9563.75
+INV-2302,Summit IT Services,PO-1124,8863.38,8863.38
+INV-2303,Riverbend Printing,PO-1125,2994.37,2868.87
+INV-2304,Northwind Traders,PO-1126,535.83,410.33
+INV-2305,Contoso Supplies,PO-1127,6244.49,6194.49
+INV-2306,Fabrikam,PO-1128,9014.92,8714.92
+INV-2307,Fabrikam,PO-1110,2000.00,2412.50
+INV-2308,Atlas Freight,PO-1129,4545.55,4245.55
+INV-2309,Pinecrest Janitorial,PO-1130,1852.44,1802.44
+INV-2310,Summit IT Services,PO-1131,848.95,848.95
+INV-2311,Riverbend Printing,PO-1132,560.33,510.33
+INV-2312,Northwind Traders,PO-1133,8224.92,8224.92
+INV-2313,Contoso Supplies,PO-1134,9433.18,9433.18
+INV-2314,Fabrikam,PO-1135,2185.34,2135.34
+INV-2315,Harbor Office Supply,PO-1136,6165.74,6165.74
+INV-2316,Atlas Freight,PO-1137,9039.09,9039.09
+INV-2317,Pinecrest Janitorial,PO-1138,3560.94,3560.94
+INV-2318,Northwind,,,640.00
+INV-2319,Riverbend Printing,PO-1139,3976.45,3976.45
+INV-2320,Northwind Traders,PO-1140,2411.10,2411.10
 EOF

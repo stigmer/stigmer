@@ -58,14 +58,20 @@
  * this file.
  */
 
+import { createHash } from "node:crypto";
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { create } from "@bufbuild/protobuf";
 import { FileMountSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/run_files_pb";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { HookConfigSchema, HookFormat, HookGroupSchema, HookHandlerSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import { PluginArtifactDownloadUrlSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { buildZip } from "@stigmer/zip-structure/testing";
 import { createServer, connect, type AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { InteractionMode, RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { InteractionMode, RunControlSignal, RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { isPlanFileName, PLAN_STAGING_FILE, planFileName } from "../../shared/plan-file.js";
 import { getPlatformDir } from "../../shared/workspace/platform-dir.js";
 import { acquireWorkspaceLock } from "../../shared/workspace/workspace-lock.js";
@@ -87,13 +93,17 @@ import {
   type InvocationControls,
 } from "../../__test-utils__/hermetic-activity.js";
 import { HERMETIC_UPLOAD_ORIGIN, hermeticUploads, stubRegistryFetch } from "../../__test-utils__/model-registry-fixture.js";
+import { mintedDownload } from "../../__test-utils__/minted-download.js";
 import { scriptedSubject } from "../../__test-utils__/harness-contract/scripted-adapter.js";
 import { initGitWorkspace, localPathEntry } from "../../__test-utils__/git-workspace-fixture.js";
 import { scenario } from "../../__test-utils__/harness-contract/types.js";
 import { WriteBackCoordinator } from "../../shared/workspace/writeback-coordinator.js";
 import {
+  COST_CAP_BUDGET_USD,
   COST_CAP_FAKE_PRICE_USD,
+  COST_CAP_INPUT_TOKENS,
   FAILURE_MESSAGES,
+  NEVER_SEEN,
   RUNTIME_SETUP_LABELS,
   aiMessages,
   assertApprovalRoundTrip,
@@ -106,6 +116,8 @@ import {
   RuntimeExecutionDriver,
   slimOf,
   systemMessages,
+  turnPastTheOperationLimit,
+  turnThatStalls,
   type RuntimeContractHarness,
 } from "../../__test-utils__/harness-contract/runtime-contract.js";
 import { captureTimingLines } from "../../__test-utils__/timing-lines.js";
@@ -114,7 +126,7 @@ import { environmentInstalled, resetEnvironmentInstallForTests, startEnvironment
 import { TURN_PHASES_EVENT } from "../turn-timeline.js";
 import type { HarnessAdapter } from "../types.js";
 import { ApprovalAction, ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
-import { APPROVED_NOT_RUN_ERROR } from "../approval-decisions.js";
+import { APPROVED_NOT_RUN_ERROR, REJECTED_BY_USER_ERROR } from "../approval-decisions.js";
 
 const TASK_QUEUE = "runtime-test-queue";
 
@@ -255,6 +267,246 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       const lines = errorLines.filter((line) => line.includes("approved calls did not run"));
       expect(lines, "one line names the execution and the call").toEqual([expect.stringContaining(`calls=${id}`)]);
       expect(lines[0]).toContain("execution=");
+    });
+
+    describe("an approved call on a run that ends any other way settles FAILED too; one the run picks up again keeps waiting (stigmer#3277)", () => {
+      // Turn 1 proposes the call and waits; the person approves; turn 2
+      // ends the run before the engine runs it. Every ending whose arm
+      // completes the run settles the row; a pause, a drain and a restart
+      // leave it for the invocation that resumes that very call.
+
+      /** Turn 1 proposes `id` and waits; the person approves. Returns the driver for turn 2. */
+      async function approvedAndWaiting(label: string, recordOptions: ConstructorParameters<typeof RuntimeExecutionDriver>[2] = {}): Promise<{ driver: RuntimeExecutionDriver; id: string }> {
+        clock.reset();
+        const driver = new RuntimeExecutionDriver(harness, label, recordOptions);
+        const id = `${label}-shell`;
+        const first = await driver.turn([scenario.propose(id, { kind: "shell", resource: "npm run release" })]);
+        expect(slimOf(subject, first).phase).toBe("RUN_WAITING_FOR_APPROVAL");
+        expect(driver.decide(ApprovalAction.APPROVE)).toBe(1);
+        return { driver, id };
+      }
+
+      /** Run turn 2 with `console.error` captured; returns the invocation and the error lines. */
+      async function capturingErrors<T>(run: () => Promise<T>): Promise<{ result: T; errorLines: string[] }> {
+        const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+        try {
+          const result = await run();
+          return { result, errorLines: errors.mock.calls.map((call) => String(call[0])) };
+        } finally {
+          errors.mockRestore();
+        }
+      }
+
+      /** The approved row as the run's last write left it. */
+      function approvedRow(driver: RuntimeExecutionDriver, id: string) {
+        return driver.record.lastFullRows!.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id);
+      }
+
+      /** What a run that ended with the approved call unrun owes the person: a failed row, one failed result on the log, nothing waiting, one line naming the cause. */
+      function expectSettledNotRun(driver: RuntimeExecutionDriver, id: string, errorLines: readonly string[], cause: string): void {
+        expect(subject.executionCount(id), "the engine never ran it").toBe(0);
+        const row = approvedRow(driver, id);
+        expect([row?.status, row?.approvalAction, row?.error]).toEqual([ToolCallStatus.TOOL_CALL_FAILED, ApprovalAction.APPROVE, APPROVED_NOT_RUN_ERROR]);
+        expect(driver.record.waitingToolCalls(), "nothing waits on an ended run").toHaveLength(0);
+        const results = driver.record.sessionEvents.flatMap((e) => (e.event.case === "agentToolResult" && e.event.value.toolUseId.endsWith(id) ? [e.event.value] : []));
+        expect(results.map((r) => [r.isError, r.content.map((c) => c.text)]), "the card resolves through the log").toEqual([[true, [APPROVED_NOT_RUN_ERROR]]]);
+        const lines = errorLines.filter((line) => line.includes("approved calls did not run"));
+        expect(lines, "one line names the cause, the execution and the call").toEqual([expect.stringContaining(`(${cause}): execution=`)]);
+        expect(lines[0]).toContain(`calls=${id}`);
+      }
+
+      it("a stall", async () => {
+        const { driver, id } = await approvedAndWaiting("fake-approved-stall");
+        const { result, errorLines } = await capturingErrors(() => turnThatStalls(harness, driver, [scenario.hang(), scenario.say(NEVER_SEEN)]));
+        expect(slimOf(subject, result).phase).toBe("RUN_FAILED");
+        expectSettledNotRun(driver, id, errorLines, "timeout");
+      });
+
+      it("the operation limit", async () => {
+        const { driver, id } = await approvedAndWaiting("fake-approved-operation-limit");
+        const open = "fake-approved-operation-limit-build";
+        const { result, errorLines } = await capturingErrors(() =>
+          turnPastTheOperationLimit(harness, driver, [scenario.say("Building."), scenario.open(open), scenario.say(NEVER_SEEN)], open),
+        );
+        expect(slimOf(subject, result).phase).toBe("RUN_FAILED");
+        expect(driver.record.lastFullStatus?.error).toMatch(/^\[OperationLimitError\] /);
+        expectSettledNotRun(driver, id, errorLines, "timeout");
+      });
+
+      it("the cost cap", async () => {
+        const { driver, id } = await approvedAndWaiting("fake-approved-cost-cap", { maxCostUsd: COST_CAP_BUDGET_USD });
+        const { result, errorLines } = await capturingErrors(() =>
+          driver.turn([
+            scenario.usage({ inputTokens: COST_CAP_INPUT_TOKENS, outputTokens: 0, estimatedCostUsd: COST_CAP_FAKE_PRICE_USD, model: "fixture-model" }),
+            scenario.say(NEVER_SEEN),
+          ]),
+        );
+        expect(slimOf(subject, result).phase).toBe("RUN_TERMINATED");
+        expectSettledNotRun(driver, id, errorLines, "budget_reached");
+      });
+
+      it("a platform stop", async () => {
+        const read = "fake-approved-platform-stop-read";
+        const { driver, id } = await approvedAndWaiting("fake-approved-platform-stop", {
+          controlSignal: (_status, rows) => (rows.messages.some((m) => m.toolCalls.some((tc) => tc.id === read && tc.status === ToolCallStatus.TOOL_CALL_COMPLETED)) ? RunControlSignal.STOP : RunControlSignal.UNSPECIFIED),
+        });
+        const { result, errorLines } = await capturingErrors(() => driver.turn([scenario.say("Starting the suite."), scenario.read(read, "package.json"), scenario.say(NEVER_SEEN)]));
+        expect(slimOf(subject, result).phase).toBe("RUN_COMPLETED");
+        expect(systemMessages(driver.record.lastFullRows!)).toEqual([TERMINAL_COPY.platformStop.row]);
+        expectSettledNotRun(driver, id, errorLines, "platform_stop");
+      });
+
+      // A plugin's hooks, as installed at one version and served at another:
+      // a mount is cached by digest, so the resume fails only on a new
+      // version (upgraded between the turns) whose archive cannot be had.
+      const hooks = create(HookConfigSchema, {
+        format: HookFormat.CLAUDE_CODE,
+        groups: [create(HookGroupSchema, { event: "PreToolUse", matcher: "Bash", handlers: [create(HookHandlerSchema, { command: '"${CLAUDE_PLUGIN_ROOT}"/hooks/guard' })] })],
+      });
+      const archiveOf = (version: string) =>
+        buildZip([
+          { name: ".claude-plugin/plugin.json", content: `{"name":"safety","version":"${version}"}` },
+          { name: "hooks/guard", content: "#!/usr/bin/env bash\nexit 0\n" },
+        ]);
+      const pluginServed = (installed: Uint8Array, download: () => Promise<Uint8Array>) => ({
+        getPluginByReference: vi.fn(async () =>
+          create(PluginSchema, {
+            metadata: { id: "plg_safety", org: "kit-org", slug: "safety", name: "safety" },
+            status: { digest: createHash("sha256").update(installed).digest("hex"), artifactStorageKey: "plugins/safety.zip", hooks },
+          }),
+        ),
+        getPluginArtifactDownloadUrl: vi.fn(async () => create(PluginArtifactDownloadUrlSchema, mintedDownload(await download()))),
+      });
+
+      it.each([
+        [
+          "a refusal after the answers are copied: the upgraded plugin's hooks cannot be prepared",
+          "fake-approved-hooks-refused",
+          async () => buildZip([{ name: "hooks/guard", content: "#!/usr/bin/env bash\nexit 0\n" }]),
+          "The hooks of plugin 'safety' could not be prepared",
+        ],
+        [
+          "a fault after the answers are copied: the upgraded plugin's download throws",
+          "fake-approved-hooks-fault",
+          async (): Promise<Uint8Array> => {
+            throw new Error("artifact store unreachable");
+          },
+          "artifact store unreachable",
+        ],
+      ] as const)("%s, before any engine turn began the log", async (_name, label, download, error) => {
+        const v1 = archiveOf("1.0.0");
+        clock.reset();
+        const driver = new RuntimeExecutionDriver(harness, label);
+        driver.record.agent!.spec!.plugins.push(create(ApiResourceReferenceSchema, { kind: 58, org: "kit-org", slug: "safety" }));
+        const id = `${label}-shell`;
+        const first = await driver.turn([scenario.propose(id, { kind: "shell", resource: "npm run release" })], { clientOverrides: pluginServed(v1, async () => v1) });
+        expect(slimOf(subject, first).phase).toBe("RUN_WAITING_FOR_APPROVAL");
+        expect(driver.decide(ApprovalAction.APPROVE)).toBe(1);
+
+        const { result, errorLines } = await capturingErrors(() => driver.turn([scenario.say(NEVER_SEEN)], { clientOverrides: pluginServed(archiveOf("2.0.0"), download) }));
+        expect(slimOf(subject, result).phase).toBe("RUN_FAILED");
+        expect(driver.record.lastFullStatus?.error).toContain(error);
+        expectSettledNotRun(driver, id, errorLines, "failed");
+      });
+
+      describe("a rejected or skipped call on a run that ends during setup settles SKIPPED; one the run picks up again keeps waiting (stigmer#3289)", () => {
+        // Turn 1 proposes the call with the plugin installed and waits; the
+        // person rejects or skips it; turn 2 ends during setup, after the
+        // answers are copied and before any engine turn began the log. A
+        // person's skip and reject are one deny on the log
+        // (`approval-answers.ts`), and its reason goes to the model, never to
+        // the row, so each reads on the card as the normal path's REJECT
+        // does. The thrown-fault ending reaches the same completing settle as
+        // the refusal (the approved cases above pin both), so the refusal
+        // stands for it here.
+
+        /** Turn 1 proposes `id` with the plugin at 1.0.0 and waits; the person decides. */
+        async function decidedAndWaiting(label: string, action: ApprovalAction, denyMessage = ""): Promise<{ driver: RuntimeExecutionDriver; id: string }> {
+          const v1 = archiveOf("1.0.0");
+          clock.reset();
+          const driver = new RuntimeExecutionDriver(harness, label);
+          driver.record.agent!.spec!.plugins.push(create(ApiResourceReferenceSchema, { kind: 58, org: "kit-org", slug: "safety" }));
+          const id = `${label}-shell`;
+          const first = await driver.turn([scenario.propose(id, { kind: "shell", resource: "rm -rf build" })], { clientOverrides: pluginServed(v1, async () => v1) });
+          expect(slimOf(subject, first).phase).toBe("RUN_WAITING_FOR_APPROVAL");
+          expect(driver.decide(action, denyMessage)).toBe(1);
+          return { driver, id };
+        }
+
+        /** The results the session's log holds for `id`, as the card reads them. */
+        function resultsOf(driver: RuntimeExecutionDriver, id: string): [boolean, string[]][] {
+          return driver.record.sessionEvents.flatMap((e) => (e.event.case === "agentToolResult" && e.event.value.toolUseId.endsWith(id) ? [[e.event.value.isError, e.event.value.content.map((c) => c.text)] as [boolean, string[]]] : []));
+        }
+
+        it.each([
+          ["a rejected call", "fake-rejected-hooks-refused", ApprovalAction.REJECT, ""],
+          ["a rejected call with a reason", "fake-rejected-reason-hooks-refused", ApprovalAction.REJECT, "Not on main."],
+          ["a skipped call", "fake-skipped-hooks-refused", ApprovalAction.SKIP, ""],
+        ] as const)("%s, then the upgraded plugin's hooks cannot be prepared: the row settles SKIPPED and its result reaches the log", async (_name, label, action, denyMessage) => {
+          const { driver, id } = await decidedAndWaiting(label, action, denyMessage);
+          const forged = async () => buildZip([{ name: "hooks/guard", content: "#!/usr/bin/env bash\nexit 0\n" }]);
+          const { result, errorLines } = await capturingErrors(() => driver.turn([scenario.say(NEVER_SEEN)], { clientOverrides: pluginServed(archiveOf("2.0.0"), forged) }));
+          expect(slimOf(subject, result).phase).toBe("RUN_FAILED");
+          expect(driver.record.lastFullStatus?.error).toContain("The hooks of plugin 'safety' could not be prepared");
+          expect(subject.executionCount(id), "the engine never ran it").toBe(0);
+          const row = approvedRow(driver, id);
+          expect([row?.status, row?.approvalAction, row?.error]).toEqual([ToolCallStatus.TOOL_CALL_SKIPPED, ApprovalAction.REJECT, REJECTED_BY_USER_ERROR]);
+          expect(driver.record.waitingToolCalls(), "nothing waits on an ended run").toHaveLength(0);
+          expect(resultsOf(driver, id), "the card resolves through the log").toEqual([[true, [REJECTED_BY_USER_ERROR]]]);
+          expect(errorLines.filter((line) => line.includes("approved calls did not run")), "the person's decision is not an anomaly").toEqual([]);
+        });
+
+        it("a rejected call on a run paused during setup keeps waiting, and the resume settles it once", async () => {
+          // The pause lands while the upgraded plugin downloads; the
+          // download's plain error is rethrown (not refused), so the turn
+          // settles the stop, which does not complete the run. The resume
+          // replays the proposal the engine answers with the decision.
+          const { driver, id } = await decidedAndWaiting("fake-rejected-paused-in-setup", ApprovalAction.REJECT);
+          let controls: InvocationControls | undefined;
+          const cutOff = async (): Promise<Uint8Array> => {
+            controls!.cancel();
+            throw new Error("download cut off by the pause");
+          };
+          const second = await driver.turn([scenario.say(NEVER_SEEN)], { onControls: (c) => (controls = c), clientOverrides: pluginServed(archiveOf("2.0.0"), cutOff) });
+          expect(threwCancelledFailure(second.outcome)).toBe(true);
+          // The stop's write sets no phase, so the latest write's rows are read, not the last full one's.
+          const waiting = driver.record.rows!.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id);
+          expect([waiting?.status, waiting?.approvalAction]).toEqual([ToolCallStatus.TOOL_CALL_WAITING_APPROVAL, ApprovalAction.REJECT]);
+          expect(driver.record.waitingToolCalls().map((tc) => tc.id)).toEqual([id]);
+          expect(resultsOf(driver, id), "the paused run settled nothing").toEqual([]);
+
+          const v2 = archiveOf("2.0.0");
+          const third = await driver.turn([scenario.propose(id, { kind: "shell", resource: "rm -rf build" }), scenario.say("Moving on.")], { clientOverrides: pluginServed(v2, async () => v2) });
+          expect(slimOf(subject, third).phase).toBe("RUN_COMPLETED");
+          expect(subject.executionCount(id), "a rejected call never runs").toBe(0);
+          const row = approvedRow(driver, id);
+          expect([row?.status, row?.approvalAction, row?.error]).toEqual([ToolCallStatus.TOOL_CALL_SKIPPED, ApprovalAction.REJECT, REJECTED_BY_USER_ERROR]);
+          expect(driver.record.waitingToolCalls()).toHaveLength(0);
+          expect(resultsOf(driver, id), "one result, written once the engine answered the decision").toEqual([[true, [REJECTED_BY_USER_ERROR]]]);
+        });
+      });
+
+      it.each([
+        ["an orchestrator stop (a pause)", "fake-approved-kept-paused", (c: InvocationControls) => c.cancel()],
+        [
+          "a worker shutdown",
+          "fake-approved-kept-shutdown",
+          (c: InvocationControls) => {
+            c.signalWorkerShutdown();
+            c.cancel();
+          },
+        ],
+      ] as const)("%s throws, and the approved call keeps waiting for the invocation that resumes it", async (_name, label, stop) => {
+        const { driver, id } = await approvedAndWaiting(label);
+        let controls: InvocationControls | undefined;
+        void subject.whenHanging().then(() => stop(controls!));
+        const { result, errorLines } = await capturingErrors(() => driver.turn([scenario.say("Starting."), scenario.hang(), scenario.say(NEVER_SEEN)], { onControls: (c) => (controls = c) }));
+        expect(threwCancelledFailure(result.outcome)).toBe(true);
+        const row = approvedRow(driver, id);
+        expect([row?.status, row?.approvalAction]).toEqual([ToolCallStatus.TOOL_CALL_WAITING_APPROVAL, ApprovalAction.APPROVE]);
+        expect(driver.record.waitingToolCalls().map((tc) => tc.id)).toEqual([id]);
+        expect(errorLines.filter((line) => line.includes("approved calls did not run"))).toEqual([]);
+      });
     });
 
     it("a resumed invocation that writes no message still reports the run's answer: its newest answer in the log", async () => {

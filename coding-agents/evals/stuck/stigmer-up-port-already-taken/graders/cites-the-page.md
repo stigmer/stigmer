@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: docs/cli/commands/up
+pattern: stigmer\.ai/docs/cli/commands/up
 flags: i
 ---

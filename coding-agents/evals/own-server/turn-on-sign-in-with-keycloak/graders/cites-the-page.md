@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: docs/(guides/self-hosting/authentication|guides/authentication/service-accounts|guides/self-hosting/docker-compose|cli/commands/auth)
+pattern: stigmer\.ai/docs/(guides/self-hosting/authentication|guides/authentication/service-accounts|guides/self-hosting/docker-compose|cli/commands/auth)
 flags: i
 ---

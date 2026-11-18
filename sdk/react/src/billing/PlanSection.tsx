@@ -226,6 +226,7 @@ export function PlanSection({
         onRetryAgentHours={agentHours.refetch}
         billedToParent={billedToParent}
       />
+      {!child && <h3 className="stg:m-0 stg:pt-2 stg:text-sm stg:font-semibold stg:text-foreground">Plans</h3>}
       {!child && (
         <PlanPicker
           plans={buyable}

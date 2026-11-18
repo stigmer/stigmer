@@ -35,6 +35,8 @@ export interface TeamListPanelProps {
    * create one, or a create is already open.
    */
   readonly emptyAction?: EmptyStateAction;
+  /** The empty list's line, for a caller who may not make a team (who does, and what reaches them). */
+  readonly emptyDescription?: string;
 }
 
 /**
@@ -59,6 +61,7 @@ export function TeamListPanel({
   onOpen,
   onRetry,
   emptyAction,
+  emptyDescription,
   className,
 }: TeamListPanelProps) {
   if (isLoading) {
@@ -74,7 +77,7 @@ export function TeamListPanel({
       <EmptyState
         variant="first-use"
         title="No teams yet"
-        description="A team is a group of people you share agents, vaults and other resources with at once."
+        description={emptyDescription ?? "A team is a group of people you share agents, vaults and other resources with at once."}
         action={emptyAction}
         className={className}
       />

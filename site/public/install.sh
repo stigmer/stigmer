@@ -10,11 +10,11 @@
 #
 # Design notes:
 #   - The CLI ships as the @stigmer/cli npm package (pure JS, engines
-#     node >= 22.13). There is no standalone binary, so this installer
-#     provides the runtime: it always vendors a pinned Node under
-#     $STIGMER_HOME/node rather than detecting a system Node. One code path,
-#     byte-identical installs, and the CLI keeps working if the user later
-#     upgrades or removes their own Node. Homebrew works the same way: the
+#     node >=22.19.0 <23 || >=24, the server's range). There is no
+#     standalone binary, so this installer provides the runtime: it always
+#     vendors a pinned Node under $STIGMER_HOME/node rather than detecting a
+#     system Node. One code path, byte-identical installs, and the CLI keeps
+#     working if the user later upgrades or removes their own Node. Homebrew works the same way: the
 #     formula declares `depends_on "node"` and never uses the user's Node.
 #   - Nothing global is touched: everything lands under $STIGMER_HOME plus a
 #     single launcher in $STIGMER_BIN_DIR. No sudo required.

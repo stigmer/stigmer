@@ -125,11 +125,7 @@ export function TeamDetailPanel({
         />
       )}
 
-      <Section title="Members">
-        <div className="stg:p-4">
-          <TeamMembersPanel teamId={teamId} org={org} showHeading={false} />
-        </div>
-      </Section>
+      <TeamMembersPanel teamId={teamId} org={org} asSection />
 
       <PermissionGate fail="closed" resource={gate} relation="can_delete">
         <DeleteTeam teamId={teamId} name={name} onDeleted={onDeleted} />

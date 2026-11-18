@@ -85,6 +85,12 @@ export interface TableProps<Row> {
   readonly rowAction?: (row: Row) => ReactNode;
   /** No card around the table, for a table already inside one. */
   readonly bare?: boolean;
+  /**
+   * The width under which the table draws as list rows, 640px by default.
+   * A short table in a narrow place (a dialog's three columns) keeps its
+   * columns down to a smaller width.
+   */
+  readonly narrowBelow?: number;
   readonly className?: string;
 }
 
@@ -99,7 +105,7 @@ const STRETCH =
 /** A table in a card, drawn as list rows when it is narrower than 640px. */
 export function Table<Row>(props: TableProps<Row>) {
   const ref = useRef<HTMLDivElement>(null);
-  const narrow = useIsNarrowerThan(ref, TABLE_NARROW_BELOW_PX);
+  const narrow = useIsNarrowerThan(ref, props.narrowBelow ?? TABLE_NARROW_BELOW_PX);
   return (
     <div ref={ref} className={cn("stg:min-w-0", props.className)}>
       {narrow ? <TableAsRows {...props} /> : <WideTable {...props} />}
