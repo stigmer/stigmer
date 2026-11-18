@@ -606,6 +606,15 @@ spec:
             - -c
             - |
               set -u
+              # Temporal turns a space in the password into "+" when it builds its connection
+              # URL (temporalio/temporal#12235), so a spaced password could never sign in.
+              # Refuse it here, by name; this goes once the Temporal image carries that fix.
+              case "$SQL_PASSWORD" in
+                *" "*)
+                  echo "temporal-schema: the database password (POSTGRES_PASSWORD) contains a space, which Temporal cannot use: it would fail as \"password authentication failed\". Choose a password without a space, for example one made by: openssl rand -hex 24" >&2
+                  exit 1
+                  ;;
+              esac
               schema=/etc/temporal/schema/postgresql/v12
               setup() {
                 for pair in temporal:temporal temporal_visibility:visibility; do
