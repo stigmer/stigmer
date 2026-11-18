@@ -1660,7 +1660,7 @@ metrics:
     disposition: ported
     alerts: [telemetry-heartbeat-lost, grpc-error-rate-spike]
     note: >-
-      Emitted by the OSS server itself (pipeline/interceptors/request-metrics.ts), not by the composition: one record per RPC on the serving chain, labels rpc.service, rpc.method and rpc.grpc.status_code as the gRPC status NAME (OK, NOT_FOUND, CANCELLED). Born attribute-less at zero before the port binds, so the heartbeat's ten-minute absence window measures the export pipeline rather than a post-restart lull; the error-rate rule is the share of status_code != OK. Recorded inside the identity source, so an identity refusal is never a counted error. Health is not measured; is_public methods are.
+      Emitted by the OSS server itself (pipeline/interceptors/request-metrics.ts), not by the composition: one record per RPC on the serving chain, labels rpc.service, rpc.method and rpc.grpc.status_code as the gRPC status NAME (OK, NOT_FOUND, CANCELLED). Born attribute-less at zero before the port binds, so the heartbeat's ten-minute absence window measures the export pipeline rather than a post-restart lull; the error-rate rule is the share of the server's own failure codes (INTERNAL, UNKNOWN, UNAVAILABLE, DEADLINE_EXCEEDED, DATA_LOSS), and a caller that left is CANCELLED, by the rule the log reads too (pipeline/interceptors/rpc-end.ts). Recorded inside the identity source, so an identity refusal is never a counted error. Health is not measured; is_public methods are.
   - name: stigmer.grpc.request.duration
     surface: platform
     disposition: ported

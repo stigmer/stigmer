@@ -38,7 +38,10 @@ function abortedWith(reason?: unknown): AbortSignal {
   return controller.signal;
 }
 
-const DEADLINE = new ConnectError("the operation timed out", Code.DeadlineExceeded);
+const DEADLINE = new ConnectError(
+  "the operation timed out",
+  Code.DeadlineExceeded,
+);
 const RESET = new ConnectError("socket hang up", Code.Aborted);
 
 const UNARY_SUCCESS: Outcome = { ended: "completed", stream: false };
@@ -92,9 +95,9 @@ describe("classifyRpcEnd after the caller left", () => {
 
   it("reads Unknown when the failed write itself aborted the signal", () => {
     const error = new Error("write EPIPE");
-    expect(classifyRpcEnd(abortedWith(error), { ended: "threw", error })).toEqual(
-      { end: "departed", code: Code.Unknown, thrown: { error } },
-    );
+    expect(
+      classifyRpcEnd(abortedWith(error), { ended: "threw", error }),
+    ).toEqual({ end: "departed", code: Code.Unknown, thrown: { error } });
   });
 
   it("keeps a unary success completed: it did its whole job", () => {
@@ -120,7 +123,10 @@ describe("classifyRpcEnd under a deadline", () => {
   });
 
   it("is a failure carrying the thrown error, not the reason, for a throw under it", () => {
-    const error = new ConnectError("store read timed out", Code.DeadlineExceeded);
+    const error = new ConnectError(
+      "store read timed out",
+      Code.DeadlineExceeded,
+    );
     expect(
       classifyRpcEnd(abortedWith(DEADLINE), { ended: "threw", error }),
     ).toEqual({ end: "failed", error });

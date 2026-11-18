@@ -12,7 +12,14 @@
  *      leak-by-default class for direct handlers the way
  *      pipeline.ts closes it for chains (stigmer#478's sibling). The
  *      guidelines' self-sanitize discipline still applies — a handler's
- *      own "failed to <do thing>" copy beats this generic net.
+ *      own "failed to <do thing>" copy beats this generic net. The line
+ *      naming the conversion is error level, except when the caller had
+ *      already left (rpc-end.ts's departure: a write that failed on a
+ *      closed tab's connection), where it drops to debug with the abort's
+ *      code: the logging interceptor inside records that call as
+ *      "rpc cancelled" with the error and its cause, and a closed tab is
+ *      not a server fault (stigmer/stigmer#2890). The wire conversion is
+ *      the same either way.
  *
  *   2. VISITOR SANITIZATION (policy-driven, empty by default): when a
  *      composition registers a VisitorErrorPolicy, descriptions of the
@@ -54,6 +61,7 @@ import type { CallerIdentity } from "../../extensions/identity.js";
 import { internalError } from "../errors.js";
 import { INTERNAL_FALLBACK_MESSAGE } from "../pipeline.js";
 import { callerIdentityKey } from "./auth.js";
+import { departureCode } from "./rpc-end.js";
 
 /**
  * The codes whose descriptions may carry internals — the deny-leaky
@@ -168,15 +176,26 @@ async function boundaryError(
   // Arm 1: the structural raw-error conversion. The logging
   // interceptor inside already recorded unary and mid-stream failures;
   // this line is the only record for identity-chassis raws, and it names
-  // the conversion the operator would otherwise not know happened.
+  // the conversion the operator would otherwise not know happened. After
+  // a departure it drops to debug (the header).
   let connectError: ConnectError;
   if (error instanceof ConnectError) {
     connectError = error;
   } else {
-    logger.error("unhandled non-ConnectError at the transport boundary", {
-      procedure,
-      error: error instanceof Error ? error.message : String(error),
-    });
+    const message = error instanceof Error ? error.message : String(error);
+    const departed = departureCode(request.signal);
+    if (departed === undefined) {
+      logger.error("unhandled non-ConnectError at the transport boundary", {
+        procedure,
+        error: message,
+      });
+    } else {
+      logger.debug("unhandled non-ConnectError at the transport boundary", {
+        procedure,
+        code: Code[departed],
+        error: message,
+      });
+    }
     connectError = internalError(error, INTERNAL_FALLBACK_MESSAGE);
   }
 

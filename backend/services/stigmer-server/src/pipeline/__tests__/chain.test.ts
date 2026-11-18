@@ -21,7 +21,9 @@
  *     "completed" line at the handler's return (stigmer/stigmer#2691). An
  *     error is tiered by its code whatever the service; only health
  *     successes and departures drop to debug. The departure rule and the
- *     real-server proof are ../interceptors/__tests__/logging.test.ts.
+ *     real-server proof are ../interceptors/__tests__/logging.test.ts;
+ *     the rule's table, which the request metrics read too, is
+ *     ../interceptors/__tests__/rpc-end.test.ts.
  */
 import {
   Code,
