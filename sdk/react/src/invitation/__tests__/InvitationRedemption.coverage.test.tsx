@@ -102,11 +102,11 @@ describe("InvitationRedemption", () => {
   });
 
   it.each([
-    [IamRole.owner, "As an owner you can do everything, including deleting the organization and choosing its owners."],
-    [IamRole.admin, "As an admin you can manage the organization's people, settings, billing, agents and tools."],
-    [IamRole.member, "As a member you can use the organization's agents and start your own conversations."],
-    [IamRole.viewer, "As a viewer you can see what's shared with the organization, but not start conversations."],
-  ])("tells the invited person what role %i lets them do, in their words", (role, line) => {
+    ["owner", IamRole.owner, "As an owner you can do everything, including deleting the organization and choosing its owners."],
+    ["admin", IamRole.admin, "As an admin you can manage the organization's people, settings, billing, agents and tools."],
+    ["member", IamRole.member, "As a member you can use the organization's agents and start your own conversations."],
+    ["viewer", IamRole.viewer, "As a viewer you can see what's shared with the organization, but not start conversations."],
+  ])("tells an invited %s what the role lets them do, in their words", (_name, role, line) => {
     state.preview = { isValid: true, invalidReason: "", orgName: "Acme Robotics", orgLogoUrl: "", role };
     render(<InvitationRedemption token="tok_1" isAuthenticated />);
 

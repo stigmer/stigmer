@@ -16,7 +16,7 @@ import { ScreenWait } from "../standalone-screen/StandaloneScreen.js";
 import { ScreenColumn, type ScreenColumnProps } from "../internal/ScreenColumn.js";
 
 // ---------------------------------------------------------------------------
-// Public API
+// The invited person's line
 // ---------------------------------------------------------------------------
 
 /**
@@ -36,6 +36,10 @@ const INVITED_ROLE_LINES: Partial<Record<IamRole, string>> = {
 function invitedRoleLine(role: IamRole): string {
   return INVITED_ROLE_LINES[role] ?? grantableRoleDescription(ApiResourceKind.organization, role);
 }
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
 
 /** Props for {@link InvitationRedemption}. */
 export interface InvitationRedemptionProps {
