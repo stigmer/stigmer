@@ -1,0 +1,379 @@
+{
+  "screen": "G79",
+  "title": "Your organizations",
+  "source": "Sign-in and failures, version 2",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Your organizations: Loading",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "gate-org-loading",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "AL Ada Lovelace",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Loading your organizations…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {
+        "word AL Ada Lovelace": "His look, 2026-11-18, all as recommended: the gates' corner is the account menu as the sidebar's foot draws it (one initial, the name over the email); the drawing abbreviates it"
+      },
+      "pending": {}
+    },
+    {
+      "caption": "Your organizations: Couldn't load",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "gate-org-failed",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "AL Ada Lovelace",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer couldn't load your organizations.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "You're signed in, and nothing was lost.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
+      "ruled": {
+        "word AL Ada Lovelace": "His look, 2026-11-18, all as recommended: the gates' corner is the account menu as the sidebar's foot draws it (one initial, the name over the email); the drawing abbreviates it"
+      },
+      "pending": {}
+    },
+    {
+      "caption": "Your organizations: In no organization",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "gate-org-none",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "AL Ada Lovelace",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "You're not in an organization yet",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Make one to start, or ask an admin of an existing one to invite you.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "e.g. Acme Corp",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Address",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "e.g. acme-corp",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Its short name in links: acme-corp.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Description (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What is this organization for?",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Create organization",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Create organization",
+          "height": 32
+        }
+      ],
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
+      "ruled": {
+        "word AL Ada Lovelace": "His look, 2026-11-18, all as recommended: the gates' corner is the account menu as the sidebar's foot draws it (one initial, the name over the email); the drawing abbreviates it"
+      },
+      "pending": {
+        "word Address": "When its page is redesigned: the create-organization form moves onto the kit's field parts (Address with its one-line hint), with the organization switcher's own create form",
+        "word Its short name in links: acme-corp.": "When its page is redesigned: the create-organization form moves onto the kit's field parts (Address with its one-line hint), with the organization switcher's own create form"
+      }
+    },
+    {
+      "caption": "Your organizations: In no organization, at 390",
+      "narrow": true,
+      "built": [
+        {
+          "scene": "gate-org-none",
+          "width": "narrow"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "AL Ada Lovelace",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "You're not in an organization yet",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Make one to start, or ask an admin of an existing one to invite you.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Name",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "e.g. Acme Corp",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Address",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "e.g. acme-corp",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Its short name in links: acme-corp.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Description (optional)",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "What is this organization for?",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Create organization",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Create organization",
+          "height": 32
+        }
+      ],
+      "sample": {
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
+      "ruled": {
+        "word AL Ada Lovelace": "His look, 2026-11-18, all as recommended: the gates' corner is the account menu as the sidebar's foot draws it (one initial, the name over the email); the drawing abbreviates it"
+      },
+      "pending": {
+        "word Address": "When its page is redesigned: the create-organization form moves onto the kit's field parts (Address with its one-line hint), with the organization switcher's own create form",
+        "word Its short name in links: acme-corp.": "When its page is redesigned: the create-organization form moves onto the kit's field parts (Address with its one-line hint), with the organization switcher's own create form"
+      }
+    }
+  ]
+}

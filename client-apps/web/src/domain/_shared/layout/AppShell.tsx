@@ -155,7 +155,7 @@ function RunZoneContent({ runId }: { runId: string }) {
     <RunResolveView
       runId={runId}
       onResolved={navigateToSession}
-      dashboardHref="/"
+      conversationsHref="/conversations"
       renderLink={renderJourneyLink}
     />
   );

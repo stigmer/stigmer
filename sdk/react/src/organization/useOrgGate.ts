@@ -44,6 +44,8 @@ export type OrgGateState =
       readonly status: "error";
       /** Human-readable failure message suitable for UI display. */
       readonly message: string;
+      /** The caught error itself, so a view can say the failure from its kind. */
+      readonly error: Error;
     }
   | {
       /** No organizations are available for the current user. */
@@ -110,7 +112,7 @@ export interface UseOrgGateReturn {
  */
 export function useOrgGate(options: UseOrgGateOptions): UseOrgGateReturn {
   const { isBypassed } = options;
-  const { orgs, isLoading, error, retry, refresh } = useOrg();
+  const { orgs, isLoading, error, errorCause, retry, refresh } = useOrg();
 
   let state: OrgGateState;
   if (isBypassed) {
@@ -118,7 +120,7 @@ export function useOrgGate(options: UseOrgGateOptions): UseOrgGateReturn {
   } else if (isLoading) {
     state = { status: "loading" };
   } else if (error) {
-    state = { status: "error", message: error };
+    state = { status: "error", message: error, error: errorCause ?? new Error(error) };
   } else if (orgs.length === 0) {
     state = { status: "no-orgs" };
   } else {

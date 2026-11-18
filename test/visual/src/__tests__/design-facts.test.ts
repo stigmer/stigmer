@@ -54,9 +54,10 @@ describe("the drawings' facts", () => {
     // The Console parts page's P01 to P12 and the console's pages G01 to G54
     // (G07, G08 and G11 to G28 are the Library page's; G01 to G03, G09 and
     // G29 to G54 the Settings page's), and the Workspace pages page's G04 to
-    // G06 (moved there with their ids) and G70 to G72.
+    // G06 (moved there with their ids) and G70 to G72, and the Sign-in and
+    // failures page's G73 to G89.
     expect(FILES.filter((name) => name.startsWith("p")).length).toBe(12);
-    expect(FILES.filter((name) => name.startsWith("g")).length).toBe(57);
+    expect(FILES.filter((name) => name.startsWith("g")).length).toBe(74);
   });
 
   it.each(FILES)("%s builds each drawing from scenes the catalogue draws, or says why none does", (name) => {

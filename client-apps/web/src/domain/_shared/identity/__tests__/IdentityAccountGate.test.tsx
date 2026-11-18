@@ -50,7 +50,17 @@ vi.mock("@stigmer/react-sdk/console", () => ({
       </div>
     );
   },
+  // The corner is the kit's account menu; here a stand-in shows who it
+  // names and offers its Sign out.
+  UserMenu: ({ user, onSignOut }: { user: { name?: string; email?: string } | null; onSignOut?: () => void }) => (
+    <div>
+      <span>account: {user?.name ?? user?.email}</span>
+      {onSignOut && <button onClick={onSignOut}>Sign out</button>}
+    </div>
+  ),
 }));
+
+vi.mock("next-themes", () => ({ useTheme: () => ({ theme: "system", setTheme: vi.fn() }) }));
 
 vi.mock("@stigmer/react-sdk", async () => {
   const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
@@ -75,7 +85,7 @@ const auth = vi.hoisted(() => ({
   logout: vi.fn(),
 }));
 vi.mock("@/auth", () => ({
-  useAuth: () => ({ user: auth.user, logout: auth.logout }),
+  useAuth: () => ({ user: auth.user, logout: auth.logout, login: vi.fn() }),
 }));
 
 import { IdentityAccountGate } from "../IdentityAccountGate";
@@ -146,7 +156,7 @@ describe("IdentityAccountGate", () => {
   });
 
   it("shows the failure, retries on request, and offers sign-out", async () => {
-    gate.state = { status: "error", message: "whoAmI failed" };
+    gate.state = { status: "error", message: "whoAmI failed", error: new Error("whoAmI failed") };
     auth.user = { email: "ada@example.com" };
     renderGate();
 

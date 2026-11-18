@@ -2,7 +2,7 @@
 // AuthGuard — nothing behind the guard renders for a signed-out visitor
 //
 // The guard is the one place the authenticated chain turns a visitor away:
-// while the stored session resolves it shows a spinner, once it knows the
+// while the stored session resolves it says it is opening Stigmer, once it knows the
 // visitor is signed out it starts the sign-in redirect (once) and says so,
 // and only a signed-in visitor sees the children. Disabled-auth mode reaches
 // the last branch at once, because its provider always reports signed in.
@@ -55,12 +55,12 @@ describe("AuthGuard", () => {
     expect(auth.state.login).not.toHaveBeenCalled();
   });
 
-  it("shows the loading wait, not the children, while the session resolves", () => {
+  it("says it is opening Stigmer, not the children, while the session resolves", () => {
     auth.state = authState({ isLoading: true });
     renderGuard();
 
     expect(screen.queryByText("protected content")).toBeNull();
-    expect(screen.getByText("Loading...")).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toBe("Opening Stigmer…");
     expect(auth.state.login).not.toHaveBeenCalled();
   });
 
@@ -69,7 +69,7 @@ describe("AuthGuard", () => {
     const { rerender } = renderGuard();
 
     expect(screen.queryByText("protected content")).toBeNull();
-    expect(screen.getByText("Redirecting you to sign in…")).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toBe("Taking you to sign in…");
 
     // A re-render with the same state must not start a second redirect.
     rerender(

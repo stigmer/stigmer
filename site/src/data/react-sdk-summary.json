@@ -372,6 +372,13 @@
       "components": 6
     },
     {
+      "slug": "standalone-screen",
+      "title": "standalone-screen",
+      "description": "",
+      "hooks": 0,
+      "components": 1
+    },
+    {
       "slug": "status",
       "title": "status",
       "description": "",

@@ -1,0 +1,523 @@
+{
+  "screen": "G73",
+  "title": "Signing in",
+  "source": "Sign-in and failures, version 2",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Signing in: Ready (the console)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Sign in to Stigmer",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "You'll continue on your sign-in page, then come straight back here.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Sign in",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Sign in",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Signing in: Ready, at 390",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Sign in to Stigmer",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "You'll continue on your sign-in page, then come straight back here.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Sign in",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Sign in",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Signing in: Creating an account: the hand-off from the website's Start free",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Taking you to create your account…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Signing in: The sign-in couldn't start (new: today nothing happens)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Sign in to Stigmer",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "You'll continue on your sign-in page, then come straight back here.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer couldn't start the sign-in.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the sign-in page didn't answer",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Nothing changed in your account.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Signing in: Ready (the desktop app)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Sign in to Acme",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "stigmer.acme.example",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Sign in",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Use another server",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Sign in",
+          "height": 32
+        },
+        {
+          "name": "Use another server",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Signing in: The sign-in page is on another site (the desktop app)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Sign in to Acme",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "stigmer.acme.example",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "stigmer.acme.example signs people in at login.othercorp.example, on another site.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Go on only if you trust stigmer.acme.example with your login.othercorp.example account.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Sign in at login.othercorp.example",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Use another server",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Sign in at login.othercorp.example",
+          "height": 32
+        },
+        {
+          "name": "Use another server",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Signing in: Waiting for the browser (the desktop app)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Finish signing in in your browser",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Your browser opened Acme's sign-in page. Come back here when it's done.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Reopen the browser",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Reopen the browser",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Signing in: The sign-in didn't finish (the desktop app)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Sign in to Acme",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "stigmer.acme.example",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The sign-in didn't finish.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the browser closed before the sign-in page answered",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Nothing changed in your account.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Use another server",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Use another server",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

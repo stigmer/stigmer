@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { StandaloneScreen } from "@stigmer/react-sdk/console";
+import { StigmerLogo } from "./StigmerLogo";
 import { useAuth } from "./use-auth";
 
 /**
  * Blocks rendering until auth state is resolved.
  *
- * - While `isLoading`, shows a centered spinner.
- * - When `!isAuthenticated`, triggers `login()` and shows a spinner
- *   (the OIDC provider will redirect to the identity provider).
+ * - While `isLoading`, says it is opening Stigmer, on the kit's standalone frame.
+ * - When `!isAuthenticated`, triggers `login()` and says it is taking the
+ *   person to sign in (the OIDC provider will redirect to the identity provider).
  * - When authenticated, renders children.
  *
  * In disabled mode this is effectively a passthrough: `isLoading` is
@@ -31,12 +32,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     // person oriented while the browser leaves (visibility of status).
     const redirecting = !isLoading && !isAuthenticated;
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3">
-        <Loader2 className="text-muted-foreground size-8 animate-spin" />
-        <p className="text-muted-foreground text-sm">
-          {redirecting ? "Redirecting you to sign in\u2026" : "Loading..."}
-        </p>
-      </div>
+      <StandaloneScreen
+        mark={<StigmerLogo size={40} />}
+        wait={redirecting ? "Taking you to sign in\u2026" : "Opening Stigmer\u2026"}
+      />
     );
   }
 

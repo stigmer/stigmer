@@ -2,11 +2,11 @@
 // The Settings error boundary page: a section that throws keeps the person
 // inside Settings
 //
-// The page names the failure by its category (a missing section reads
-// "Section not found", anything unrecognised "Something went wrong"), shows
-// the error's own message and its reference digest, and offers two ways
-// out that stay in Settings: a "Try again" that calls the boundary's reset
-// and a "Go to Members" link to the members section.
+// The page says the failure from its kind in the kit's own sentence, keeps
+// the error's own line, says the settings are as the person left them,
+// keeps the reference digest in Copy details rather than on the screen, and
+// offers two ways on that stay in Settings: a "Try again" that calls the
+// boundary's reset, and "Back to Settings" to the settings landing.
 // ---------------------------------------------------------------------------
 
 import { StigmerError } from "@stigmer/client";
@@ -32,25 +32,24 @@ afterEach(() => {
 });
 
 describe("settings error page", () => {
-  it("names an unrecognised failure, shows its message and digest, and resets on Try again", () => {
+  it("says an unrecognised failure, keeps its digest off the screen, and resets on Try again", () => {
     const reset = vi.fn();
-    const error = Object.assign(new Error("The members could not be read."), { digest: "def456" });
-
+    const error = Object.assign(new Error("The members list could not be read."), { digest: "abc123" });
     render(<SettingsError error={error} reset={reset} />);
 
-    expect(screen.getByRole("heading", { level: 2, name: "Something went wrong" })).toBeTruthy();
-    expect(screen.getByText("The members could not be read.")).toBeTruthy();
-    expect(screen.getByText("Reference: def456")).toBeTruthy();
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toContain("Something went wrong.");
+    expect(alert.textContent).toContain("The members list could not be read.");
+    expect(alert.textContent).toContain("Your settings are as you left them; only this page didn't load.");
+    expect(alert.textContent).not.toContain("abc123");
 
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(reset).toHaveBeenCalledTimes(1);
   });
 
-  it("titles a missing section as not found and links to the members section", () => {
+  it("offers the way back to the settings landing, never one section", () => {
     render(<SettingsError error={new StigmerError("not-found", "No such section.", 5)} reset={vi.fn()} />);
-
-    expect(screen.getByRole("heading", { level: 2, name: "Section not found" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Go to Members" }).getAttribute("href")).toBe("/settings/members");
-    expect(screen.queryByText(/Reference:/)).toBeNull();
+    expect(screen.getByRole("link", { name: "Back to Settings" }).getAttribute("href")).toBe("/settings");
+    expect(screen.queryByRole("link", { name: "Go to Members" })).toBeNull();
   });
 });

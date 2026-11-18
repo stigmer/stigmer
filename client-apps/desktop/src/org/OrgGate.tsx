@@ -3,7 +3,8 @@ import { useLocation } from "react-router-dom";
 import { useOrgGate } from "@stigmer/react-sdk";
 import { OrgGateView } from "@stigmer/react-sdk/console";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
-import { GateHeader } from "../shell/GateHeader";
+import { useAuth } from "../auth/AuthProvider";
+import { GateHeader, GateMark } from "../shell/GateHeader";
 
 /** Routes that bypass the org gate (user may not have an org yet). */
 const ORG_GATE_BYPASS_PREFIXES = ["/invite/"] as const;
@@ -21,6 +22,7 @@ export function OrgGate({ children }: { children: ReactNode }) {
     location.pathname.startsWith(p),
   );
 
+  const { login } = useAuth();
   const { state, retry, refresh } = useOrgGate({ isBypassed });
   const handleCreated = useCallback(
     (org: Organization) => {
@@ -30,7 +32,14 @@ export function OrgGate({ children }: { children: ReactNode }) {
   );
 
   return (
-    <OrgGateView state={state} retry={retry} onCreated={handleCreated} corner={<GateHeader />}>
+    <OrgGateView
+      state={state}
+      retry={retry}
+      signIn={() => void login().catch(() => {})}
+      onCreated={handleCreated}
+      mark={<GateMark />}
+      corner={<GateHeader />}
+    >
       {children}
     </OrgGateView>
   );

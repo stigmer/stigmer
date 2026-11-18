@@ -56,7 +56,16 @@ vi.mock("@stigmer/react-sdk/console", () => ({
       </div>
     );
   },
+  // The corner is the kit's account menu; here a stand-in offers its Sign out.
+  UserMenu: ({ user, onSignOut }: { user: { name?: string; email?: string } | null; onSignOut?: () => void }) => (
+    <div>
+      <span>account: {user?.name ?? user?.email}</span>
+      {onSignOut && <button onClick={onSignOut}>Sign out</button>}
+    </div>
+  ),
 }));
+
+vi.mock("next-themes", () => ({ useTheme: () => ({ theme: "system", setTheme: vi.fn() }) }));
 
 vi.mock("@stigmer/react-sdk", async () => {
   const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
@@ -74,7 +83,7 @@ const auth = vi.hoisted(() => ({
   logout: vi.fn(),
 }));
 vi.mock("@/auth", () => ({
-  useAuth: () => ({ user: auth.user, logout: auth.logout }),
+  useAuth: () => ({ user: auth.user, logout: auth.logout, login: vi.fn() }),
 }));
 
 import { OrgGate } from "../OrgGate";
@@ -114,7 +123,7 @@ describe("OrgGate", () => {
   });
 
   it("shows the failure with its message and retries on request, never the app", async () => {
-    gate.state = { status: "error", message: "organizations unavailable" };
+    gate.state = { status: "error", message: "organizations unavailable", error: new Error("organizations unavailable") };
     renderGate();
 
     expect(screen.queryByText("the app")).toBeNull();
@@ -140,7 +149,7 @@ describe("OrgGate", () => {
     auth.user = { email: "ada@example.com", name: "Ada" };
     renderGate();
 
-    expect(screen.getByText("ada@example.com")).toBeTruthy();
+    expect(screen.getByText("account: Ada")).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Sign out" }));
     expect(auth.logout).toHaveBeenCalledTimes(1);
   });

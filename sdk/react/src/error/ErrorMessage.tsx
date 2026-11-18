@@ -32,6 +32,11 @@ export interface ErrorMessageProps {
   readonly retry?: () => void;
   /** Signs the person in again. Shows "Sign in again" when the error is that they're signed out. */
   readonly signIn?: () => void;
+  /**
+   * The failure's reference for whoever fixes it (Next.js's `digest`):
+   * added to Copy details, never read aloud on the screen.
+   */
+  readonly reference?: string;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -89,6 +94,7 @@ export function ErrorMessage({
   comfort,
   retry,
   signIn,
+  reference,
   className,
 }: ErrorMessageProps) {
   if (!error) return null;
@@ -101,6 +107,7 @@ export function ErrorMessage({
     `Category: ${category}`,
     metadata ? `Method: ${metadata.method}` : "",
     metadata ? `Path: ${metadata.path}` : "",
+    reference ? `Reference: ${reference}` : "",
   ]
     .filter((line) => line !== "")
     .join("\n");

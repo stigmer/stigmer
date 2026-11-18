@@ -157,6 +157,7 @@ export type SceneId =
   | "gate-account-checking"
   | "gate-account-provisioning"
   | "gate-account-failed"
+  | "gate-account-signed-out"
   | "gate-org-loading"
   | "gate-org-failed"
   | "gate-org-none"
@@ -164,9 +165,15 @@ export type SceneId =
   | "page-failure-unavailable"
   | "page-failure-permission"
   | "page-failure-unknown"
+  | "page-failure-signed-out"
   | "page-failure-section"
+  | "run-resolve-opening"
   | "run-resolve-not-found"
   | "run-resolve-failed"
+  | "console-opening"
+  | "console-to-sign-in"
+  | "console-config-failed"
+  | "console-stopped"
   | "invite-ready"
   | "invite-signed-out"
   | "invite-sign-in-only"
@@ -1611,16 +1618,23 @@ const LISTED: readonly Scene[] = [
   { id: "gate-account-checking", title: "Gate, your account: checked after signing in", widths: ["desktop"] },
   { id: "gate-account-provisioning", title: "Gate, your account: set up on a first sign-in", widths: ["desktop"] },
   { id: "gate-account-failed", title: "Gate, your account: it could not be set up", widths: ["desktop", "narrow"] },
+  { id: "gate-account-signed-out", title: "Gate, your account: signed out on the way", widths: ["desktop"] },
   { id: "gate-org-loading", title: "Gate, your organizations: loading", widths: ["desktop"] },
   { id: "gate-org-failed", title: "Gate, your organizations: they could not be loaded", widths: ["desktop"] },
   { id: "gate-org-none", title: "Gate, your organizations: in none yet, make the first", widths: ["desktop", "narrow"] },
   { id: "page-not-found", title: "Console page: nothing at this address", widths: ["desktop", "narrow"] },
   { id: "page-failure-unavailable", title: "Console page: it broke, the server did not answer", widths: ["desktop", "narrow"] },
   { id: "page-failure-permission", title: "Console page: it broke, no access", widths: ["desktop"] },
-  { id: "page-failure-unknown", title: "Console page: it broke, with the failure's reference", widths: ["desktop"] },
+  { id: "page-failure-unknown", title: "Console page: it broke on the server's side, with the failure's reference", widths: ["desktop", "narrow"] },
+  { id: "page-failure-signed-out", title: "Console page: it broke, signed out", widths: ["desktop"] },
   { id: "page-failure-section", title: "Settings: a section broke, inside the settings frame", widths: ["desktop"] },
+  { id: "run-resolve-opening", title: "A run's address: opening its conversation", widths: ["desktop"] },
   { id: "run-resolve-not-found", title: "A run's address: no run there", widths: ["desktop", "narrow"] },
   { id: "run-resolve-failed", title: "A run's address: the run could not be read", widths: ["desktop"] },
+  { id: "console-opening", title: "Console: opening, before the session resolves", widths: ["desktop"] },
+  { id: "console-to-sign-in", title: "Console: taking a signed-out visitor to sign in", widths: ["desktop"] },
+  { id: "console-config-failed", title: "Console: its setup could not be loaded", widths: ["desktop", "narrow"] },
+  { id: "console-stopped", title: "Console: the whole console stopped working", widths: ["desktop", "narrow"] },
   { id: "invite-ready", title: "Invitation: signed in, ready to accept", widths: ["desktop", "narrow"] },
   { id: "invite-signed-out", title: "Invitation: signed out, make an account or sign in", widths: ["desktop"] },
   { id: "invite-sign-in-only", title: "Invitation: signed out, on a server that only signs in", widths: ["desktop"] },

@@ -1,0 +1,335 @@
+{
+  "screen": "G81",
+  "title": "Nothing at this address",
+  "source": "Sign-in and failures, version 2",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Nothing at this address: Not found",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "page-not-found",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "Acme Corp",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "New Session",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Dashboard",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Conversations",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Library",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Marketplace",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Models & providers",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Settings",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "AL",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "There's nothing at this address",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "It may have been mistyped, or the page has moved.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Go to the dashboard",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Go to the dashboard",
+          "height": 32
+        }
+      ],
+      "sample": {
+        "word Acme Corp": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word New Session": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Dashboard": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Conversations": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Library": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Marketplace": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Models & providers": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Settings": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word AL": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Ada Lovelace": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone"
+      },
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Nothing at this address: Not found, at 390",
+      "narrow": true,
+      "built": [
+        {
+          "scene": "page-not-found",
+          "width": "narrow"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "Acme Corp",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "There's nothing at this address",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "It may have been mistyped, or the page has moved.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Go to the dashboard",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Open the sidebar",
+          "height": 32
+        },
+        {
+          "name": "Go to the dashboard",
+          "height": 32
+        }
+      ],
+      "sample": {
+        "word Acme Corp": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "button Open the sidebar": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone"
+      },
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Nothing at this address: The desktop app (new: today the router's developer page)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the desktop app's router draws its unknown address and a page that broke inside its frame, with the next change to the desktop app's own screens",
+      "words": [
+        {
+          "text": "Acme Corp",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "New Session",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Dashboard",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Conversations",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Library",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Marketplace",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Models & providers",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agents ready",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Settings",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "AL",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "There's nothing at this address",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "It may have been mistyped, or the page has moved.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Go to the dashboard",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Go to the dashboard",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

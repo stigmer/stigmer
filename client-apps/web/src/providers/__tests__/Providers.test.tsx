@@ -62,6 +62,13 @@ vi.mock("@/domain/_shared/ui/sonner", () => ({ Toaster: () => null }));
 vi.mock("@stigmer/react-sdk", () => ({
   FetchCacheProvider: marker("fetch-cache"),
   OrgProvider: marker("org"),
+  // The kit's failure note (pinned in @stigmer/react-sdk): here a stand-in
+  // shows the headline, the loader's own line and the comfort it is given.
+  ErrorMessage: ({ error, title, comfort }: { error: Error; title?: string; comfort?: React.ReactNode }) => (
+    <div role="alert">
+      {title} {error.message} {comfort}
+    </div>
+  ),
 }));
 
 import { Providers } from "../Providers";
@@ -205,7 +212,7 @@ describe("the config gate", () => {
     expect(await screen.findByText("page")).toBeTruthy();
   });
 
-  it("shows the configuration error and never the app when the config fails to load", async () => {
+  it("says the setup didn't load, with the loader's line, and never the app when the config fails to load", async () => {
     config.load = () =>
       Promise.reject(
         new Error(
@@ -219,13 +226,16 @@ describe("the config gate", () => {
     );
 
     await waitFor(() =>
-      expect(screen.getByText("Configuration Error")).toBeTruthy(),
-    );
-    expect(
-      screen.getByText(
-        "This server requires sign-in, but no OIDC client is configured",
+      expect(screen.getByRole("alert").textContent).toContain(
+        "Stigmer couldn't load its setup.",
       ),
-    ).toBeTruthy();
+    );
+    expect(screen.getByRole("alert").textContent).toContain(
+      "This server requires sign-in, but no OIDC client is configured",
+    );
+    expect(screen.getByRole("alert").textContent).toContain(
+      "This is the server's setup, not your account: nothing was lost.",
+    );
     expect(screen.queryByText("page")).toBeNull();
   });
 });

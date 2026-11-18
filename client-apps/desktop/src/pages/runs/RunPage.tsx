@@ -24,7 +24,7 @@ export default function RunPage() {
       key={id}
       runId={id ?? ""}
       onResolved={openSession}
-      dashboardHref="/dashboard"
+      conversationsHref="/conversations"
       renderLink={renderJourneyLink}
     />
   );

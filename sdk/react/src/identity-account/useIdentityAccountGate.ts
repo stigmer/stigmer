@@ -42,6 +42,11 @@ export type IdentityAccountGateState =
       readonly status: "error";
       /** Human-readable failure message suitable for UI display. */
       readonly message: string;
+      /**
+       * The caught error itself, so a view can say the failure from its kind
+       * (signed out, the server didn't answer) rather than from its words.
+       */
+      readonly error: Error;
     };
 
 /**
@@ -131,7 +136,8 @@ export function useIdentityAccountGate(options: {
       setState({ status: "ready", account });
     } catch (err: unknown) {
       if (attempt !== attemptRef.current) return;
-      setState({ status: "error", message: toError(err).message });
+      const error = toError(err);
+      setState({ status: "error", message: error.message, error });
     }
   }, [stigmer]);
 

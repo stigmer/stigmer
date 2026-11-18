@@ -1,0 +1,413 @@
+{
+  "screen": "G86",
+  "title": "Choosing a server",
+  "source": "Sign-in and failures, version 2",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Choosing a server: As a screen",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "words": [
+        {
+          "text": "Use another server",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Stigmer Desktop works with any Stigmer server.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Server address",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "https://stigmer.example.com",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The address your team uses for Stigmer.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Connect",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Back",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Connect",
+          "height": 32
+        },
+        {
+          "name": "Back",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Choosing a server: An address the app refuses",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "words": [
+        {
+          "text": "Use another server",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Stigmer Desktop works with any Stigmer server.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Server address",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "http://stigmer.globex.example",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Use an https address, or http only on this computer.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Connect",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Back",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Connect",
+          "height": 32
+        },
+        {
+          "name": "Back",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Choosing a server: Connecting",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "words": [
+        {
+          "text": "Use another server",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Stigmer Desktop works with any Stigmer server.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Server address",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "https://stigmer.globex.example",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The address your team uses for Stigmer.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Connect",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Back",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Connect",
+          "height": 32
+        },
+        {
+          "name": "Back",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Choosing a server: When the current server can't be used",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "words": [
+        {
+          "text": "Use another server",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "stigmer.acme.example can't be used.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "it signs people in at an address the app may not open",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Server address",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "https://stigmer.example.com",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The address your team uses for Stigmer.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Connect",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Connect",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "Choosing a server: As a dialog over the app",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "words": [
+        {
+          "text": "Use another server",
+          "type": [
+            16,
+            24,
+            600
+          ]
+        },
+        {
+          "text": "Stigmer Desktop works with any Stigmer server. Your conversations here stay as they are.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Server address",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "https://stigmer.globex.example",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "The address your team uses for Stigmer.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Back",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Connect",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Close",
+          "height": 28
+        },
+        {
+          "name": "Back",
+          "height": 32
+        },
+        {
+          "name": "Connect",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

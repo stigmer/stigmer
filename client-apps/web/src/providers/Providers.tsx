@@ -4,9 +4,10 @@ import { Suspense, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
 import { isRetryableError } from "@stigmer/client";
-import { FetchCacheProvider, OrgProvider } from "@stigmer/react-sdk";
+import { ErrorMessage, FetchCacheProvider, OrgProvider } from "@stigmer/react-sdk";
+import { StandaloneScreen } from "@stigmer/react-sdk/console";
+import { StigmerLogo } from "@/auth/StigmerLogo";
 import { AuthProvider, AuthGuard } from "@/auth";
 import { StigmerTransportBridge } from "@/providers/StigmerTransportBridge";
 import { Toaster } from "@/domain/_shared/ui/sonner";
@@ -156,28 +157,28 @@ function ProvidersInner({ children }: { children: React.ReactNode }) {
  */
 function ConfigGate({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     loadRuntimeConfig()
       .then(() => setReady(true))
       .catch((err: unknown) => {
-        const message =
-          err instanceof Error ? err.message : "Failed to load configuration";
-        setError(message);
+        setError(err instanceof Error ? err : new Error("Failed to load configuration"));
       });
   }, []);
 
   if (error) {
+    // The server's setup, not the person's account: said so, with the
+    // loader's own line one step down and the details for whoever runs it.
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-8">
-        <p className="text-destructive text-sm font-medium">
-          Configuration Error
-        </p>
-        <p className="text-muted-foreground max-w-md text-center text-sm">
-          {error}
-        </p>
-      </div>
+      <StandaloneScreen mark={<StigmerLogo size={40} />}>
+        <ErrorMessage
+          error={error}
+          title="Stigmer couldn't load its setup."
+          comfort="This is the server's setup, not your account: nothing was lost. If it keeps happening, tell whoever runs Stigmer for you."
+          retry={() => window.location.reload()}
+        />
+      </StandaloneScreen>
     );
   }
 
@@ -189,9 +190,5 @@ function ConfigGate({ children }: { children: React.ReactNode }) {
 }
 
 function SuspenseFallback() {
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-3">
-      <Loader2 className="text-muted-foreground size-8 animate-spin" />
-    </div>
-  );
+  return <StandaloneScreen mark={<StigmerLogo size={40} />} wait="Opening Stigmer…" />;
 }

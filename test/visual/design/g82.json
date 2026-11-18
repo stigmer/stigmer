@@ -1,0 +1,914 @@
+{
+  "screen": "G82",
+  "title": "A page that broke",
+  "source": "Sign-in and failures, version 2",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "A page that broke: Stigmer didn't answer",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "page-failure-unavailable",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "Acme Corp",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "New Session",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Dashboard",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Conversations",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Library",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Marketplace",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Models & providers",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Settings",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "AL",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer didn't answer.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Nothing was lost; only this page didn't load.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {
+        "word Acme Corp": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word New Session": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Dashboard": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Conversations": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Library": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Marketplace": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Models & providers": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Settings": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word AL": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Ada Lovelace": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A page that broke: Something went wrong on Stigmer's side, at 390",
+      "narrow": true,
+      "built": [
+        {
+          "scene": "page-failure-unknown",
+          "width": "narrow"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "Acme Corp",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Something went wrong on Stigmer's side.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "internal error",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Nothing was lost; only this page didn't load.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Open the sidebar",
+          "height": 32
+        },
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {
+        "word Acme Corp": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words",
+        "button Open the sidebar": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone"
+      },
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A page that broke: No access",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "page-failure-permission",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "Acme Corp",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "New Session",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Dashboard",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Conversations",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Library",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Marketplace",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Models & providers",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Settings",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "AL",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "You don't have access to this.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "permission denied",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Go to the dashboard",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Go to the dashboard",
+          "height": 32
+        }
+      ],
+      "sample": {
+        "word Acme Corp": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word New Session": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Dashboard": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Conversations": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Library": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Marketplace": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Models & providers": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Settings": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word AL": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Ada Lovelace": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A page that broke: Signed out",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "page-failure-signed-out",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "Acme Corp",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "New Session",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Dashboard",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Conversations",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Library",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Marketplace",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Models & providers",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Settings",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "AL",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "You're signed out.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "your session ended",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Sign in again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Sign in again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {
+        "word Acme Corp": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word New Session": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Dashboard": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Conversations": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Library": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Marketplace": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Models & providers": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Settings": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word AL": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Ada Lovelace": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A page that broke: Settings broke: back to Settings",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "page-failure-section",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "Acme Corp",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "New Session",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Dashboard",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Conversations",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Library",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Marketplace",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Models & providers",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Settings",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "AL",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Something went wrong on Stigmer's side.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "internal error",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Your settings are as you left them; only this page didn't load.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Back to Settings",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Back to Settings",
+          "height": 32
+        }
+      ],
+      "sample": {
+        "word Acme Corp": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word New Session": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Dashboard": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Conversations": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Library": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Marketplace": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Models & providers": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word AL": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Ada Lovelace": "The drawing draws the console's frame around the page (its sidebar and the phone's top bar); the scene draws the page alone",
+        "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
+      },
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A page that broke: The desktop app (new)",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the desktop app's router draws its unknown address and a page that broke inside its frame, with the next change to the desktop app's own screens",
+      "words": [
+        {
+          "text": "Acme Corp",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "New Session",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Dashboard",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Conversations",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Library",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Marketplace",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Models & providers",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agents ready",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Settings",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "AL",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Ada Lovelace",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Something went wrong in this page.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "a part of the page failed to draw",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Nothing was lost; only this page didn't load.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

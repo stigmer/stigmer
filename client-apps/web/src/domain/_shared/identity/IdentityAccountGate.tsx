@@ -4,6 +4,7 @@ import { useIdentityAccountGate } from "@stigmer/react-sdk";
 import { IdentityAccountGateView } from "@stigmer/react-sdk/console";
 import { useAuth } from "@/auth";
 import { getRuntimeConfig } from "@/config/runtime-config";
+import { StigmerLogo } from "@/auth/StigmerLogo";
 import { GateAccount } from "./GateAccount";
 
 /**
@@ -23,7 +24,7 @@ import { GateAccount } from "./GateAccount";
  * before `listMine()` is called.
  */
 export function IdentityAccountGate({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, login } = useAuth();
   const { state, retry } = useIdentityAccountGate({
     isEnabled: getRuntimeConfig().authMode === "oidc",
   });
@@ -32,7 +33,9 @@ export function IdentityAccountGate({ children }: { children: React.ReactNode })
     <IdentityAccountGateView
       state={state}
       retry={retry}
+      signIn={login}
       displayName={user ? (user.name ?? user.email) : undefined}
+      mark={<StigmerLogo size={40} />}
       corner={<GateAccount />}
     >
       {children}

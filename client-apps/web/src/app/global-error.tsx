@@ -1,6 +1,18 @@
 "use client";
 
+// The last resort, when the console itself can't draw: Next.js replaces the
+// root layout with this page, so it brings its own document and the global
+// styles, and stands on the same frame as signing in so even this page looks
+// like Stigmer. The failure's reference goes into Copy details, never on the
+// screen. It renders outside every provider, so the help line draws nothing.
+
+import "./globals.css";
+import { ErrorMessage } from "@stigmer/react-sdk";
+import { StandaloneScreen } from "@stigmer/react-sdk/console";
+import { StigmerLogo } from "@/auth/StigmerLogo";
+
 export default function GlobalError({
+  error,
   reset,
 }: {
   error: Error & { digest?: string };
@@ -8,38 +20,16 @@ export default function GlobalError({
 }) {
   return (
     <html lang="en">
-      <body style={{ margin: 0, fontFamily: "system-ui, sans-serif" }}>
-        <div
-          style={{
-            display: "flex",
-            minHeight: "100vh",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <div style={{ textAlign: "center", maxWidth: 400 }}>
-            <h1 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>
-              Something went wrong
-            </h1>
-            <p style={{ color: "#666", fontSize: 14, marginBottom: 24 }}>
-              An unexpected error occurred.
-            </p>
-            <button
-              onClick={reset}
-              style={{
-                padding: "8px 16px",
-                borderRadius: 8,
-                border: "none",
-                background: "#111",
-                color: "#fff",
-                fontSize: 14,
-                cursor: "pointer",
-              }}
-            >
-              Try again
-            </button>
-          </div>
-        </div>
+      <body>
+        <StandaloneScreen mark={<StigmerLogo size={40} />}>
+          <ErrorMessage
+            error={error}
+            title="The console stopped working."
+            comfort="Your agents and conversations are safe on the server; trying again usually brings it back."
+            retry={reset}
+            reference={error.digest}
+          />
+        </StandaloneScreen>
       </body>
     </html>
   );

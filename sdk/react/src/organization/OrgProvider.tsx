@@ -42,6 +42,8 @@ export interface OrgContextValue {
   readonly isLoading: boolean;
   /** Non-null when the fetch failed. */
   readonly error: string | null;
+  /** The caught error when the fetch failed (its kind says why), beside {@link error}'s words. */
+  readonly errorCause: Error | null;
   /** Re-attempt the organization fetch after a failure. */
   readonly retry: () => void;
   /**
@@ -176,6 +178,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   const [activeOrg, setActiveOrgState] = useState<Organization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorCause, setErrorCause] = useState<Error | null>(null);
 
   const fetchIdRef = useRef(0);
 
@@ -199,6 +202,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
       const fetchId = ++fetchIdRef.current;
       setIsLoading(true);
       setError(null);
+      setErrorCause(null);
 
       try {
         // The switcher offers every organization the caller is in, so the
@@ -242,6 +246,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
         const message =
           err instanceof Error ? err.message : "Failed to load organizations";
         setError(message);
+        setErrorCause(err instanceof Error ? err : new Error(message));
         setOrgs([]);
         setActiveOrgState(null);
       } finally {
@@ -288,10 +293,11 @@ export function OrgProvider({ children }: { children: ReactNode }) {
       setActiveOrg,
       isLoading,
       error,
+      errorCause,
       retry: load,
       refresh: load,
     }),
-    [orgs, activeOrg, setActiveOrg, isLoading, error, load],
+    [orgs, activeOrg, setActiveOrg, isLoading, error, errorCause, load],
   );
 
   return <OrgContext.Provider value={value}>{children}</OrgContext.Provider>;

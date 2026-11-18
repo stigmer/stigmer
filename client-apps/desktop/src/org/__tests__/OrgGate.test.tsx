@@ -16,6 +16,11 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OrgGate } from "../OrgGate";
 
+// The gate offers Sign in again through the app's sign-in; here it stands in.
+vi.mock("../../auth/AuthProvider", () => ({
+  useAuth: () => ({ user: null, login: vi.fn(async () => {}), logout: vi.fn() }),
+}));
+
 const gate = vi.hoisted(() => ({
   status: "no-orgs" as string,
   message: "",
@@ -59,7 +64,7 @@ vi.mock("@stigmer/react-sdk", () => ({
   }),
 }));
 
-vi.mock("../../shell/GateHeader", () => ({ GateHeader: () => null }));
+vi.mock("../../shell/GateHeader", () => ({ GateHeader: () => null, GateMark: () => null }));
 
 function renderGate(): void {
   render(

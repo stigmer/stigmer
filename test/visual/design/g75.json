@@ -1,0 +1,429 @@
+{
+  "screen": "G75",
+  "title": "A connect link",
+  "source": "Sign-in and failures, version 2",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "A connect link: Ready",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Connect GitHub for Acme Corp",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "You'll sign in on GitHub's own page. Your login is saved for Acme Corp, and you come back here.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Continue to GitHub",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Continue to GitHub",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A connect link: Ready, at 390",
+      "narrow": true,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Connect GitHub for Acme Corp",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "You'll sign in on GitHub's own page. Your login is saved for Acme Corp, and you come back here.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Continue to GitHub",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Continue to GitHub",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A connect link: Opening GitHub",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Connect GitHub for Acme Corp",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "You'll sign in on GitHub's own page. Your login is saved for Acme Corp, and you come back here.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Continue to GitHub",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Continue to GitHub",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A connect link: Couldn't open GitHub's sign-in",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Connect GitHub for Acme Corp",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "You'll sign in on GitHub's own page. Your login is saved for Acme Corp, and you come back here.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer couldn't open GitHub's sign-in.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Nothing was saved yet.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Continue to GitHub",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Copy details",
+          "height": 28
+        },
+        {
+          "name": "Continue to GitHub",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A connect link: Expired or used",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "This link has expired or was already used",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Ask the app that sent it for a new one.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A connect link: Loading",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Opening the link…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A connect link: The return: finishing",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Finishing the connection…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A connect link: The return: didn't finish",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "The connection didn't finish.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "the server did not answer in time",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Your GitHub login wasn't saved. Try again, or start from the app's link.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "A connect link: The return: saved, but not sent back",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: sign-in, the invitation, the connect link and the hand-offs are built on the standalone frame in the next change",
+      "words": [
+        {
+          "text": "Your GitHub login is saved",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "The app's return address isn't a secure one, so you weren't sent back. Go back to the app yourself.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

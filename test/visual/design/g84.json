@@ -1,0 +1,160 @@
+{
+  "screen": "G84",
+  "title": "The whole console failing",
+  "source": "Sign-in and failures, version 2",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "The whole console failing: The console stopped",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "console-stopped",
+          "width": "desktop"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "The console stopped working.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "an unexpected error",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Your agents and conversations are safe on the server; trying again usually brings it back.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {
+        "word Stuck? Talk to Suresh": "His look, 2026-11-18, all as recommended: a screen drawn before the server's client exists (the console's setup, the whole console failing) has no help line to show; the drawing draws one"
+      },
+      "pending": {}
+    },
+    {
+      "caption": "The whole console failing: The console stopped, at 390",
+      "narrow": true,
+      "built": [
+        {
+          "scene": "console-stopped",
+          "width": "narrow"
+        }
+      ],
+      "unbuilt": "",
+      "words": [
+        {
+          "text": "The console stopped working.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "an unexpected error",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Your agents and conversations are safe on the server; trying again usually brings it back.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stuck? Talk to Suresh",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {
+        "word Stuck? Talk to Suresh": "His look, 2026-11-18, all as recommended: a screen drawn before the server's client exists (the console's setup, the whole console failing) has no help line to show; the drawing draws one"
+      },
+      "pending": {}
+    }
+  ]
+}

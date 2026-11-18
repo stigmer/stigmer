@@ -89,6 +89,7 @@ export const PAGE_PRELUDES = [
   { page: "docs/sdk/react/page-state.mdx", typescript: "react-console" },
   { page: "docs/sdk/react/settings.mdx", typescript: "react-console" },
   { page: "docs/sdk/react/sidebar.mdx", typescript: "react-console" },
+  { page: "docs/sdk/react/standalone-screen.mdx", typescript: "react-console" },
   { page: "docs/sdk/react/user.mdx", typescript: "react-console" },
   { prefix: "docs/sdk/react-core/", typescript: "react-core" },
   { prefix: "docs/sdk/react/", typescript: "react" },

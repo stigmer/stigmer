@@ -77,6 +77,8 @@ function GateProbe({ isEnabled }: { isEnabled: boolean }) {
         state.status === "ready" ? (state.account?.metadata?.id ?? "") : ""
       }
       data-message={state.status === "error" ? state.message : ""}
+      data-error-name={state.status === "error" ? state.error.name : ""}
+      data-error-category={state.status === "error" && state.error instanceof StigmerError ? state.error.code : ""}
       onClick={retry}
     />
   );
@@ -138,6 +140,28 @@ describe("useIdentityAccountGate", () => {
     await waitFor(() => expect(status()).toBe("error"));
     expect(probe().getAttribute("data-message")).toBe("token expired");
     expect(provisionMyAccount).not.toHaveBeenCalled();
+  });
+
+  it("the error state keeps the caught error beside its message, so a view can say it from its kind", async () => {
+    const whoAmI = vi.fn(async () => {
+      throw new StigmerError("unauthenticated", "token expired", Code.Unauthenticated);
+    });
+    withClient({ identityAccount: { whoAmI, provisionMyAccount: vi.fn() } });
+
+    await waitFor(() => expect(status()).toBe("error"));
+    expect(probe().getAttribute("data-error-category")).toBe("unauthenticated");
+    expect(probe().getAttribute("data-message")).toBe("token expired");
+  });
+
+  it("a thrown non-error still reaches the error state as an Error", async () => {
+    const whoAmI = vi.fn(async () => {
+      throw "connection reset";
+    });
+    withClient({ identityAccount: { whoAmI, provisionMyAccount: vi.fn() } });
+
+    await waitFor(() => expect(status()).toBe("error"));
+    expect(probe().getAttribute("data-error-name")).toBe("Error");
+    expect(probe().getAttribute("data-message")).toBe("connection reset");
   });
 
   it("a provisioning failure is the error state with the provisioner's message", async () => {

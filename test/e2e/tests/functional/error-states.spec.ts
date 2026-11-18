@@ -5,8 +5,9 @@ import { test, expect } from "@playwright/test";
  * inside the app shell, never a blank page or the global error boundary.
  *
  * Error handling in Stigmer is layered:
- * - Unmatched routes → Next.js not-found.tsx (h1 "Page not found")
- * - Invalid run IDs → inline "Run not found"
+ * - Unmatched routes → Next.js not-found.tsx ("There's nothing at this
+ *   address", with the way to the dashboard)
+ * - Invalid run IDs → inline "This run isn't here"
  * - Invalid session IDs → SessionError ("This session didn’t open", naming
  *   the id, with a retry)
  * - Invalid library slugs → inline not-found state ("This agent isn't here")
@@ -27,17 +28,17 @@ test.describe("Error state resilience", () => {
   }) => {
     await page.goto("/this-route-does-not-exist-e2e");
 
-    await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible({
+    await expect(page.getByText("There's nothing at this address")).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByRole("link", { name: "Go to Dashboard" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Go to the dashboard" })).toBeVisible();
     await expectNoCrash(page);
   });
 
   test("an invalid execution id says the execution was not found", async ({ page }) => {
     await page.goto("/runs/nonexistent-e2e-test-id");
 
-    await expect(page.getByText("Run not found")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("This run isn't here")).toBeVisible({ timeout: 15_000 });
     await expectNoCrash(page);
   });
 

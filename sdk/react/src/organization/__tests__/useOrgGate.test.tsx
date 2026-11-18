@@ -30,6 +30,7 @@ function orgContext(overrides: Partial<OrgContextValue>): OrgContextValue {
     orgs: [],
     isLoading: false,
     error: null,
+    errorCause: null,
     retry: vi.fn(),
     refresh: vi.fn(),
     ...overrides,
@@ -56,7 +57,14 @@ describe("useOrgGate is a derivation, not a state machine", () => {
   it("a failed fetch is error with its message", () => {
     mocks.org = orgContext({ error: "boom" });
     const { result } = renderHook(() => useOrgGate({ isBypassed: false }));
-    expect(result.current.state).toEqual({ status: "error", message: "boom" });
+    expect(result.current.state).toEqual({ status: "error", message: "boom", error: new Error("boom") });
+  });
+
+  it("a failed fetch hands on the provider's caught error, so a view can say it from its kind", () => {
+    const cause = new Error("the server did not answer");
+    mocks.org = orgContext({ error: "the server did not answer", errorCause: cause });
+    const { result } = renderHook(() => useOrgGate({ isBypassed: false }));
+    expect(result.current.state.status === "error" && result.current.state.error).toBe(cause);
   });
 
   it("at least one organization is ready", () => {

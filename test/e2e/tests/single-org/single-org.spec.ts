@@ -42,7 +42,7 @@ test.describe("the console on a server that holds one organization", () => {
     for (const job of ["Variance report", "Ticket replies", "Contract check", "Invoice match"]) {
       await expect(page.getByRole("button", { name: job })).toBeVisible();
     }
-    await expect(page.getByText("Welcome to Stigmer")).toHaveCount(0);
+    await expect(page.getByText("You're not in an organization yet")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Organization menu" })).toHaveCount(0);
   });
 
@@ -98,7 +98,7 @@ test.describe("the console on a server that holds one organization", () => {
     await expect(page.getByRole("heading", { name: "Agents" })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByText("Welcome to Stigmer")).toHaveCount(0);
+    await expect(page.getByText("You're not in an organization yet")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Organization menu" })).toHaveCount(0);
   });
 

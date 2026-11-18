@@ -100,9 +100,10 @@ describe("IdentityAccountGate", () => {
   it("tells a first-time person their account is being set up, and holds the app back", () => {
     gateIn({ status: "provisioning" });
     renderGate();
-    expect(screen.getByText("Welcome, Ada!")).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "Welcome, Ada" })).toBeTruthy();
     expect(screen.getByText("Setting up your account…")).toBeTruthy();
-    expect(screen.getByText("Sign out")).toBeTruthy();
+    // The corner is the account menu, as the sidebar's foot draws it.
+    expect(screen.getByText("Ada")).toBeTruthy();
     expect(screen.queryByText("the app")).toBeNull();
   });
 
@@ -112,12 +113,14 @@ describe("IdentityAccountGate", () => {
     expect(screen.getByText("the app")).toBeTruthy();
   });
 
-  it("shows why setup failed, retries on request, and keeps sign-out reachable", () => {
-    gateIn({ status: "error", message: "the server is unavailable" });
+  it("says setup failed in plain words, retries on request, and keeps the account menu reachable", () => {
+    gateIn({ status: "error", message: "the server is unavailable", error: new Error("the server is unavailable") });
     renderGate();
-    expect(screen.getByText("Failed to set up your account")).toBeTruthy();
-    expect(screen.getByText("the server is unavailable")).toBeTruthy();
-    expect(screen.getByText("Sign out")).toBeTruthy();
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toContain("Stigmer couldn't set up your account.");
+    expect(alert.textContent).toContain("the server is unavailable");
+    expect(alert.textContent).toContain("You're signed in, and nothing was lost.");
+    expect(screen.getByText("Ada")).toBeTruthy();
     expect(screen.queryByText("the app")).toBeNull();
 
     fireEvent.click(screen.getByText("Try again"));

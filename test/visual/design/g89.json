@@ -1,0 +1,73 @@
+{
+  "screen": "G89",
+  "title": "Update notices",
+  "source": "Sign-in and failures, version 2",
+  "reader": "bf8cb5c94919",
+  "drawings": [
+    {
+      "caption": "Update notices: The five notices",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "When its page is redesigned: the desktop app's own screens (the server, starting, its status row and update notices) are built in the change after",
+      "words": [
+        {
+          "text": "You're on the latest version.",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Update available: version 0.3.2",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Restart to update",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Downloading the update…",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Couldn't check for updates. Try again later.",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The update didn't install. Try again later.",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Restart to update",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}
