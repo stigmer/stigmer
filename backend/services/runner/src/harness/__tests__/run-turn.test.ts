@@ -412,13 +412,16 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       describe("a rejected or skipped call on a run that ends during setup settles SKIPPED; one the run picks up again keeps waiting (stigmer#3289)", () => {
         // Turn 1 proposes the call with the plugin installed and waits; the
         // person rejects or skips it; turn 2 ends during setup, after the
-        // answers are copied and before any engine turn began the log. The
-        // thrown-fault ending reaches the same completing settle as the
-        // refusal (the approved cases above pin both), so the refusal stands
-        // for it here.
+        // answers are copied and before any engine turn began the log. A
+        // person's skip and reject are one deny on the log
+        // (`approval-answers.ts`), and its reason goes to the model, never to
+        // the row, so each reads on the card as the normal path's REJECT
+        // does. The thrown-fault ending reaches the same completing settle as
+        // the refusal (the approved cases above pin both), so the refusal
+        // stands for it here.
 
         /** Turn 1 proposes `id` with the plugin at 1.0.0 and waits; the person decides. */
-        async function decidedAndWaiting(label: string, action: ApprovalAction): Promise<{ driver: RuntimeExecutionDriver; id: string }> {
+        async function decidedAndWaiting(label: string, action: ApprovalAction, denyMessage = ""): Promise<{ driver: RuntimeExecutionDriver; id: string }> {
           const v1 = archiveOf("1.0.0");
           clock.reset();
           const driver = new RuntimeExecutionDriver(harness, label);
@@ -426,7 +429,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
           const id = `${label}-shell`;
           const first = await driver.turn([scenario.propose(id, { kind: "shell", resource: "rm -rf build" })], { clientOverrides: pluginServed(v1, async () => v1) });
           expect(slimOf(subject, first).phase).toBe("RUN_WAITING_FOR_APPROVAL");
-          expect(driver.decide(action)).toBe(1);
+          expect(driver.decide(action, denyMessage)).toBe(1);
           return { driver, id };
         }
 
@@ -436,19 +439,20 @@ describe("run-turn: the fake adapter through the real runtime", () => {
         }
 
         it.each([
-          ["a rejected call", "fake-rejected-hooks-refused", ApprovalAction.REJECT, REJECTED_BY_USER_ERROR, [REJECTED_BY_USER_ERROR]],
-          ["a skipped call", "fake-skipped-hooks-refused", ApprovalAction.SKIP, "", []],
-        ] as const)("%s, then the upgraded plugin's hooks cannot be prepared: the row settles SKIPPED and its result reaches the log", async (_name, label, action, rowError, resultText) => {
-          const { driver, id } = await decidedAndWaiting(label, action);
+          ["a rejected call", "fake-rejected-hooks-refused", ApprovalAction.REJECT, ""],
+          ["a rejected call with a reason", "fake-rejected-reason-hooks-refused", ApprovalAction.REJECT, "Not on main."],
+          ["a skipped call", "fake-skipped-hooks-refused", ApprovalAction.SKIP, ""],
+        ] as const)("%s, then the upgraded plugin's hooks cannot be prepared: the row settles SKIPPED and its result reaches the log", async (_name, label, action, denyMessage) => {
+          const { driver, id } = await decidedAndWaiting(label, action, denyMessage);
           const forged = async () => buildZip([{ name: "hooks/guard", content: "#!/usr/bin/env bash\nexit 0\n" }]);
           const { result, errorLines } = await capturingErrors(() => driver.turn([scenario.say(NEVER_SEEN)], { clientOverrides: pluginServed(archiveOf("2.0.0"), forged) }));
           expect(slimOf(subject, result).phase).toBe("RUN_FAILED");
           expect(driver.record.lastFullStatus?.error).toContain("The hooks of plugin 'safety' could not be prepared");
           expect(subject.executionCount(id), "the engine never ran it").toBe(0);
           const row = approvedRow(driver, id);
-          expect([row?.status, row?.approvalAction, row?.error]).toEqual([ToolCallStatus.TOOL_CALL_SKIPPED, action, rowError]);
+          expect([row?.status, row?.approvalAction, row?.error]).toEqual([ToolCallStatus.TOOL_CALL_SKIPPED, ApprovalAction.REJECT, REJECTED_BY_USER_ERROR]);
           expect(driver.record.waitingToolCalls(), "nothing waits on an ended run").toHaveLength(0);
-          expect(resultsOf(driver, id), "the card resolves through the log").toEqual([[true, [...resultText]]]);
+          expect(resultsOf(driver, id), "the card resolves through the log").toEqual([[true, [REJECTED_BY_USER_ERROR]]]);
           expect(errorLines.filter((line) => line.includes("approved calls did not run")), "the person's decision is not an anomaly").toEqual([]);
         });
 
