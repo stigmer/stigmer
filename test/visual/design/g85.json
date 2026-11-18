@@ -254,10 +254,10 @@
       "sample": {
         "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
       },
-      "ruled": {},
-      "pending": {
-        "type How an operator sets it up": "When its page is redesigned: the notice's link is the kit's 14/20, as every notice's link is; the drawing draws it at 12/16; for the Built look"
-      }
+      "ruled": {
+        "type How an operator sets it up": "2026-11-18, his Built look: kept as built: the guide link is the notice's link at 14/20, as every notice draws its link"
+      },
+      "pending": {}
     }
   ]
 }

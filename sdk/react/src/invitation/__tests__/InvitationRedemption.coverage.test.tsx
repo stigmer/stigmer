@@ -10,6 +10,7 @@ import { create } from "@bufbuild/protobuf";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { InvitationSchema } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 interface PreviewStub {
   isValid: boolean;
@@ -98,5 +99,17 @@ describe("InvitationRedemption", () => {
 
     expect(screen.getByRole("heading", { name: "This invitation is no longer valid" })).toBeTruthy();
     expect(screen.getByText("Ask whoever sent it for a new link.")).toBeTruthy();
+  });
+
+  it.each([
+    [IamRole.owner, "As an owner you can do everything, including deleting the organization and choosing its owners."],
+    [IamRole.admin, "As an admin you can manage the organization's people, settings, billing, agents and tools."],
+    [IamRole.member, "As a member you can use the organization's agents and start your own conversations."],
+    [IamRole.viewer, "As a viewer you can see what's shared with the organization, but not start conversations."],
+  ])("tells the invited person what role %i lets them do, in their words", (role, line) => {
+    state.preview = { isValid: true, invalidReason: "", orgName: "Acme Robotics", orgLogoUrl: "", role };
+    render(<InvitationRedemption token="tok_1" isAuthenticated />);
+
+    expect(screen.getByText(line)).toBeTruthy();
   });
 });

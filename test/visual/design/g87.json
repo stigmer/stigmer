@@ -102,10 +102,10 @@
       "sample": {
         "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
       },
-      "ruled": {},
-      "pending": {
-        "word Your conversations are safe on stigmer.acme.example.": "When its page is redesigned: the boot failure comes before the app knows its server, so the build says 'your server', not its address; for the Built look"
-      }
+      "ruled": {
+        "word Your conversations are safe on stigmer.acme.example.": "2026-11-18, his Built look: kept as built: the app fails before it knows the server's address, so the comfort says \"your server\""
+      },
+      "pending": {}
     }
   ]
 }

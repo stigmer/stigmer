@@ -65,7 +65,9 @@ export function StandaloneScreen({ mark, title, lead, wait, acts, help, corner, 
   return (
     <div
       className={cn(
-        "stg:relative stg:flex stg:min-h-screen stg:items-center stg:justify-center stg:bg-background stg:px-4 stg:py-16 stg:text-foreground",
+        // On a phone the column starts near the top, where a thumb and the eye
+        // are; from the small breakpoint up it sits in the middle of the window.
+        "stg:relative stg:flex stg:min-h-screen stg:items-start stg:justify-center stg:bg-background stg:px-4 stg:pt-18 stg:pb-12 stg:text-foreground stg:sm:items-center stg:sm:py-16",
         className,
       )}
     >
