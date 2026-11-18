@@ -154,6 +154,9 @@ describe("LicensesConsole detail", () => {
 
     await user.click(await screen.findByRole("button", { name: "Acme Corp" }));
     expect(client.license.get).toHaveBeenCalledWith("lic_paid");
+    // The record is one section of label and value pairs.
+    const record = screen.getByRole("heading", { name: "The license" }).closest("section")!;
+    expect(within(record).getByText("Signing key").tagName).toBe("DT");
     expect(screen.getByText("Paid")).toBeTruthy();
     expect(screen.getByText("PO 4411")).toBeTruthy();
     // No server reads a license's features, so the detail names none of the
