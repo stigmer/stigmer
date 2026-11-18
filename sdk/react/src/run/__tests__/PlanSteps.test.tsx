@@ -314,6 +314,22 @@ describe("PlanSteps", () => {
     expect(screen.getAllByRole("group", { name: "2 tool calls" })).toHaveLength(1);
   });
 
+  it("keeps a waiting step outside any item as a row for a viewer who cannot answer", () => {
+    render(
+      <PlanSteps
+        working
+        steps={stepsOf(
+          use(R, "c2", "delete_file", { path: "b.ts" }, { ask: true }),
+          asked(R, "c2"),
+          todos("t", [{ content: "Test it", status: "pending" }]),
+        )}
+      />,
+    );
+
+    expect(screen.getByText(/b\.ts/)).toBeTruthy();
+    expect(screen.queryByLabelText("Allow")).toBeNull();
+  });
+
   it("keeps a single settled step outside any item as its own row, not a fold", () => {
     render(<PlanSteps working steps={stepsOf(call("c0", "edit_file", { path: "a.ts" }), todos("t", [{ content: "Test it", status: "pending" }]))} />);
     expect(screen.queryByRole("button", { name: /^Steps so far/ })).toBeNull();

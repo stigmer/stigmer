@@ -5,8 +5,8 @@
  * below the plan, the item and the helper's row saying it waits, and the
  * decision is offered nowhere else; a viewer who cannot answer sees the
  * waiting step inside its item, with no decision anywhere. The presentation
- * the rows read keeps its identity across streamed frames that bring no new
- * ask, and changes when one arrives.
+ * the rows read keeps its identity across streamed frames that change no
+ * ask, one open or none, and changes when an ask arrives.
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup, within } from "@testing-library/react";
@@ -102,5 +102,20 @@ describe("MessageThread carded asks", () => {
 
     expect(new Set(seen).size).toBe(2);
     expect([...(seen.at(-1)!.cardedAsks ?? [])]).toEqual([toolId(B, "c3")]);
+
+    // Another call streams in while the ask stays open: the same asks, the same presentation.
+    const fourth = frame([
+      use(B, "c1", "read_file", { path: "a.ts" }),
+      result(B, "c1", "ok"),
+      use(B, "c2", "read_file", { path: "b.ts" }),
+      result(B, "c2", "ok"),
+      use(B, "c3", "execute", { command: "git push" }, { ask: true }),
+      asked(B, "c3"),
+      use(B, "c4", "read_file", { path: "c.ts" }),
+      result(B, "c4", "ok"),
+    ]);
+    rerender(draw(fourth));
+
+    expect(new Set(seen).size).toBe(2);
   });
 });
