@@ -27,6 +27,7 @@ import {
   evalArgs,
   fixtureScript,
   frontmatterTags,
+  isWithOnlyGrader,
   globMatches,
   jobOf,
   parseBankArgs,
@@ -37,6 +38,7 @@ import {
   spreadBetween,
   summarizeResult,
   tracePlan,
+  tryReading,
 } from "./coding-agent-bank.mjs";
 import { listedSlugs } from "./bank-fixture.mjs";
 import { SANDBOX_HOME, stageShim } from "./hermetic-stage.mjs";
@@ -94,12 +96,14 @@ test("cases are read from <job>/<case>/prompt.md with their tags, the fixture le
     };
     write("run-fix/why-reconciler-failed/prompt.md", "---\ntags: [run-fix, acts]\nmax_turns: 30\n---\n\nWhy?\n");
     write("deciding/who-pays/prompt.md", "---\ntags: [deciding]\n---\n\nWho pays?\n");
+    write("deciding/who-pays/graders/criteria.md", "---\ntype: llm\n---\nPASS if it says who.\n");
+    write("deciding/who-pays/graders/skill-fired.md", "---\ntype: tool_used\ntool: Skill\narm: with-only\n---\n");
     write("_fixture/agents/a.yaml", "kind: Agent\n");
     write("deciding/notes.md", "not a case\n");
     const cases = readBankCases(dir);
     assert.deepEqual(cases, [
-      { name: "who-pays", job: "deciding", dir: "deciding/who-pays", tags: ["deciding"] },
-      { name: "why-reconciler-failed", job: "run-fix", dir: "run-fix/why-reconciler-failed", tags: ["run-fix", "acts"] },
+      { name: "who-pays", job: "deciding", dir: "deciding/who-pays", tags: ["deciding"], indicators: ["skill-fired"] },
+      { name: "why-reconciler-failed", job: "run-fix", dir: "run-fix/why-reconciler-failed", tags: ["run-fix", "acts"], indicators: [] },
     ]);
     assert.deepEqual(selectCases(cases, { tags: [ACTS_TAG] }).map((c) => c.name), ["why-reconciler-failed"]);
     assert.deepEqual(selectCases(cases, { caseGlob: "who-*" }).map((c) => c.name), ["who-pays"]);
@@ -109,6 +113,8 @@ test("cases are read from <job>/<case>/prompt.md with their tags, the fixture le
   }
   assert.deepEqual(frontmatterTags("---\ntags: ['admin', \"acts\"]\n---\nbody"), ["admin", "acts"]);
   assert.deepEqual(frontmatterTags("no frontmatter"), []);
+  assert.ok(isWithOnlyGrader("---\ntype: tool_used\narm: \"with-only\"\n---\n"));
+  assert.ok(!isWithOnlyGrader("---\ntype: llm\n---\narm: with-only is not frontmatter\n"));
   assert.ok(globMatches("*key*", "ci-key-least-privilege"));
   assert.ok(!globMatches("key", "ci-key"));
   assert.ok(globMatches("a.b", "a.b") && !globMatches("a.b", "axb"), "a dot is a dot");
@@ -177,6 +183,54 @@ test("the summary counts a case passed only when every try passed, per job in th
   assert.match(table, /\| \*\*all\*\* \| 4 \| 2\/4 \| 1\/4 \|/);
   assert.match(table, /\$1\.23 API-equivalent, 10 min/);
   assert.ok(JOBS.length === 10 && JOBS.includes("own-server"));
+});
+
+test("a try that never ran is left out of every score, counted with its most common error, and makes the reading invalid", () => {
+  const limit = "exit 1: You've hit your 5-hour limit · resets 11:30pm";
+  const clean = (passed) => ({ passed, score: passed ? 1 : 0, error: null, graders: [] });
+  const refused = () => ({ passed: false, score: 0, error: limit, graders: [] });
+  const summary = summarizeResult({
+    cases: [
+      { name: "who-pays", dir: "evals/deciding/who-pays", arms: { with: [clean(true), clean(true)], without: [clean(false), clean(true)] } },
+      { name: "open-source", dir: "evals/deciding/open-source", arms: { with: [clean(true), refused()], without: [refused(), refused()] } },
+      { name: "slack", dir: "evals/reach/slack", arms: { with: [refused(), refused()], without: [{ ...clean(false), error: "trace unreadable" }, clean(false)] } },
+    ],
+  });
+  assert.equal(summary.valid, false);
+  assert.equal(summary.erroredTries, 6);
+  assert.deepEqual(summary.commonError, { error: limit, tries: 5 });
+  const [deciding, reach] = summary.jobs;
+  assert.deepEqual(deciding.with, { passed: 1, read: 1, mean: 1 }, "the errored case is no failure and no pass");
+  assert.deepEqual(deciding.without, { passed: 0, read: 1, mean: 0.5 });
+  assert.equal(deciding.erroredTries, 3);
+  assert.deepEqual(deciding.failingWith, []);
+  assert.deepEqual(reach.with, { passed: 0, read: 0, mean: undefined });
+  const table = renderSummary(summary);
+  assert.match(table, /\| deciding \| 2 \| 1\/1 \(1\.00, 1 of 2 read\) \| 0\/1 \(0\.50, 1 of 2 read\) \| – \| 3 \|/);
+  assert.match(table, /\| reach \| 1 \| no reading \(0 of 1 read\) \| no reading \(0 of 1 read\) \|/);
+  assert.match(table, /\| \*\*all\*\* \| 3 \| 1\/1 \(1 of 3 read\) \| 0\/1 \(1 of 3 read\) \| \| 6 \|/);
+  assert.match(table, /NOT A VALID READING: 6 tries errored .* Most common error \(5 tries\): exit 1: You've hit your 5-hour limit/);
+  assert.equal(spreadBetween(summary, summary)[0].spread, undefined, "a job not read whole has no spread");
+  assert.doesNotMatch(renderSummary(summarizeResult(result())), /NOT A VALID READING/);
+  assert.equal(summarizeResult(result()).valid, true);
+});
+
+test("the skill-fired indicator stays out of the score in every ablation mode, read from the bank when the result does not mark it", () => {
+  // Under --ablation none, Claude Code reports a with-only grader as scored and not with-only.
+  const grader = (name, passed, extra = {}) => ({ name, passed, weight: 1, withOnly: false, scored: true, ...extra });
+  const run = { passed: false, score: 1 / 3, error: null, graders: [grader("cites-the-page", false), grader("criteria", false), grader("skill-fired", true)] };
+  const cases = [{ name: "who-pays", dir: "evals/deciding/who-pays", arms: { with: [run] } }];
+  assert.equal(summarizeResult({ cases }).jobs[0].with.mean, 1 / 3, "unmarked, it counts");
+  const read = summarizeResult({ cases }, { indicators: new Map([["deciding/who-pays", ["skill-fired"]]]) }).jobs[0];
+  assert.equal(read.with.mean, 0);
+  assert.equal(read.skillFired, 1);
+  assert.deepEqual(tryReading(run, new Set(["skill-fired"])), { score: 0, passed: false });
+  const allClean = { ...run, graders: [grader("cites-the-page", true), grader("criteria", true, { weight: 3 }), grader("skill-fired", false)] };
+  assert.deepEqual(tryReading(allClean, new Set(["skill-fired"])), { score: 1, passed: true }, "a miss of the indicator alone never fails a try");
+  assert.deepEqual(tryReading({ ...run, graders: [grader("criteria", true, { weight: 3 }), grader("cites-the-page", false)] }), { score: 0.75, passed: false });
+  // Under --ablation with-without the result marks it; the bank's list is not needed.
+  const marked = { ...run, graders: [grader("criteria", true), grader("skill-fired", false, { withOnly: true, scored: false })] };
+  assert.deepEqual(tryReading(marked), { score: 1, passed: true });
 });
 
 test("every try's trace is planned into traces/<job>/<case>/<arm>-<n>.jsonl, its kept folder beside it", () => {
