@@ -642,6 +642,20 @@ Sessions move to it when they next wake, an awake one at its next message, and
 the server deletes old templates nothing uses any more. A first wake after an
 upgrade waits for the new template to be prepared.
 
+**How many Sessions a worker holds.** Each sandbox books
+`STIGMER_SANDBOX_SUBSTRATE_CPU_MILLICORES` of CPU (2000, two cores, by default)
+and `STIGMER_SANDBOX_SUBSTRATE_MEMORY_MIB` of memory (2048 by default), and
+Substrate places it only on a worker with that much left: a worker offers its
+own pod's CPU and memory limits, so it holds its CPU divided by the CPU setting,
+or its memory divided by the memory setting plus a small runtime overhead,
+whichever is fewer. A worker of 6 CPU holds 3 awake Sessions at the defaults and
+6 at 1000. Under gVisor each setting is also the sandbox's ceiling, so a smaller
+CPU value fits more Sessions on a worker and slows each busy turn, and the
+runner's own start, to that share of a core. Substrate requires both limits, so
+the CPU setting can't be 0. Changing either makes a new template: an awake
+Session on the old one sleeps as soon as it isn't busy, and wakes on the new one
+at its next message.
+
 What the driver needs:
 
 - **Agent Substrate v1.0.0, exactly.** Substrate refuses fields it doesn't know,

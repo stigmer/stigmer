@@ -92,6 +92,8 @@ const settings: SubstrateDriverSettings = {
   platformHttpsHosts: [],
   suspendAfterSeconds: 300,
   sweepIntervalSeconds: 60,
+  cpuMillicores: 2000,
+  memoryMib: 2048,
 };
 
 const MIN = 60_000;
