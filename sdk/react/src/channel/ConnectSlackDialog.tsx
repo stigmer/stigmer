@@ -532,7 +532,7 @@ function FlowProgress({
                   ? "stg:text-foreground"
                   : isDone
                     ? "stg:text-muted-foreground"
-                    : "stg:text-muted-foreground-subtle",
+                    : "stg:text-muted-foreground",
               )}
             >
               {isDone ? (

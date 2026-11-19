@@ -389,7 +389,7 @@ function LineRow({
         !isFocused && !isOpen && "stg:hover:bg-muted",
       )}
     >
-      <span className="stg:w-8 stg:shrink-0 stg:text-right stg:font-mono stg:text-2xs stg:tabular-nums stg:text-muted-foreground-subtle">
+      <span className="stg:w-8 stg:shrink-0 stg:text-right stg:font-mono stg:text-2xs stg:tabular-nums stg:text-muted-foreground">
         {match.line}
       </span>
       <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:font-mono stg:text-muted-foreground">

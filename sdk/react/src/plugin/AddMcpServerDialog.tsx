@@ -153,7 +153,7 @@ function AddMcpServerForm({
 
       <div className="stg:space-y-1">
         <label htmlFor={`${baseId}-description`} className={FIELD_LABEL_CLASSES}>
-          Description <span className="stg:text-muted-foreground-subtle">(optional)</span>
+          Description <span className="stg:text-muted-foreground">(optional)</span>
         </label>
         <TextInput
           id={`${baseId}-description`}

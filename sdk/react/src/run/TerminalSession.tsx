@@ -117,7 +117,7 @@ function LiveOutput({ content }: { content: string }) {
   return (
     <CodeBlock frame="bare" wrap data-cursor-target="terminal-live-output">
       {hidden > 0 && (
-        <span className="stg:block stg:select-none stg:text-muted-foreground-subtle">
+        <span className="stg:block stg:select-none stg:text-muted-foreground">
           … +{hidden} {hidden === 1 ? "line" : "lines"}
         </span>
       )}
