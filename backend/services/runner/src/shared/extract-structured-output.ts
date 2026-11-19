@@ -8,8 +8,13 @@
  *
  * When tier-1 text extraction (shared/extract-json.ts) cannot find JSON in
  * the agent's free-text response, this tier asks an economy-tier LLM to
- * extract it via withStructuredOutput (function-calling), which guarantees
- * schema-conformant output through the API's tool-use mechanism.
+ * extract it by calling one tool whose input is the person's schema, whole
+ * (`answer-form.ts`, the same form the graph's tool strategy binds). The
+ * method is named, function calling, on both providers: left unnamed,
+ * @langchain/openai would pick OpenAI's strict native output, which refuses
+ * a schema with an optional field. The answer is then checked against the
+ * schema with JSON Schema validation, so a tool call that does not fill the
+ * form is a refusal here, never structured output.
  *
  * Lives in its own module so the LangChain construction path stays out of
  * the runtime's module graph until a run actually needs tier 2 — the
@@ -22,11 +27,11 @@ import { getEconomyModel } from "./model-registry.js";
 import { buildChatModel } from "./model-client.js";
 import { checkDirectCredentials } from "./llm-backend.js";
 import { tryInferProvider } from "./llm-proxy.js";
-import { jsonSchemaToZod } from "./json-schema-to-zod.js";
+import { ANSWER_TOOL_NAME, answerFormErrors, answerFormOf } from "./answer-form.js";
 
 /**
  * Extract structured data from an agent's free-text response using an
- * economy-tier LLM with withStructuredOutput (function-calling).
+ * economy-tier LLM that calls the answer form's tool.
  *
  * Construction (registry-id resolution, provider inference, proxy wiring) is
  * delegated to the shared buildChatModel so the economy model's registry id
@@ -38,9 +43,10 @@ import { jsonSchemaToZod } from "./json-schema-to-zod.js";
  * (stigmer#2060).
  *
  * Throws when no LLM is reachable (no proxy and no credential path for the
- * extraction model's provider) — the caller treats any throw here as "tier 2
- * unavailable", logs it, and returns the agent's text without structured
- * output, so the failure mode is a diagnosable log line, never a lost run.
+ * extraction model's provider), or when the model's answer does not fill the
+ * form — the caller treats any throw here as "tier 2 unavailable", logs it,
+ * and returns the agent's text without structured output, so the failure
+ * mode is a diagnosable log line, never a lost run.
  */
 export async function extractStructuredOutput(
   agentResponse: string,
@@ -71,13 +77,18 @@ export async function extractStructuredOutput(
     maxTokens: 4096,
   });
 
-  const zodSchema = jsonSchemaToZod(schema);
-  const structured = llm.withStructuredOutput(zodSchema);
+  const form = answerFormOf(schema);
+  const structured = llm.withStructuredOutput(form, { name: ANSWER_TOOL_NAME, method: "functionCalling" });
 
   const result = await structured.invoke([
     { role: "system", content: "Extract the structured data from the agent's response. Return only the data that matches the schema." },
     { role: "user", content: agentResponse },
   ]);
 
-  return result ?? null;
+  if (result == null) return null;
+  const errors = answerFormErrors(form, result);
+  if (errors.length > 0) {
+    throw new Error(`Structured-output extraction answered outside the schema: ${errors.slice(0, 5).join("; ")}`);
+  }
+  return result;
 }

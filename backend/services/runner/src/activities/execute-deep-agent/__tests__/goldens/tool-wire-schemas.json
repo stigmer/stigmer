@@ -1,0 +1,100 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "execute",
+      "description": "Execute a shell command in the workspace.",
+      "parameters": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "The shell command to execute"
+          },
+          "timeout": {
+            "description": "How long the command may run, in seconds (default 120). Raise it for a build, a full test suite or an install that takes minutes; a command still running at its timeout is stopped and returns what it printed.",
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "background": {
+            "description": "Run the command in the background: the call returns at once with the command's id and the file its output goes to, and you are told when it ends, how it ended and the last of its output, so do not poll it or sleep waiting for it. Use it for a slow build or test suite while you keep working, or for a dev server you then call. Its timeout defaults to this runner's limit. If you end your reply while one still runs, the turn waits for it, so first stop the ones you no longer need with stop_background_command. A pause for the person's approval stops every background command, and you are told.",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "description": "A short present-tense phrase describing what this command does and why, shown to the user as the title of this action (5-10 words, e.g. 'Run unit tests for the parser'). Do not restate the command syntax."
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "stop_background_command",
+      "description": "Stop a command you started with execute in the background, by the id its start returned, and get what it printed. Stop the ones you no longer need before you end your reply: the turn waits for those still running.",
+      "parameters": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The id the command's background start returned."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "web_fetch",
+      "description": "Fetch the contents of a URL over http(s). HTML pages are converted to Markdown; plain text, Markdown, JSON, and other text formats are returned as-is. Binary content is not supported.\n\nLarge pages are windowed: at most max_length characters are returned per call (default 20000). If the result ends with a truncation notice, call web_fetch again with the same url and the start_index the notice gives you to continue reading.",
+      "parameters": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The http(s) URL to fetch."
+          },
+          "max_length": {
+            "description": "Maximum characters to return (default 20000).",
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 100000
+          },
+          "start_index": {
+            "description": "Character offset to start from, for paginating large pages (default 0).",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+]

@@ -56,7 +56,7 @@ export function registerConversationTools(server: McpServer, target: BackendTarg
     "escalate_to_human",
     {
       description: ESCALATE_DESCRIPTION,
-      inputSchema: {
+      inputSchema: z.strictObject({
         // Bounds mirror the protovalidate constraints on
         // EscalateConversationInput.reason (conversation_io.proto:
         // min_len 1, max_len 1024) so the model gets corrective feedback
@@ -70,7 +70,7 @@ export function registerConversationTools(server: McpServer, target: BackendTarg
               "the conversation. Staff see it as the conversation's attention " +
               "reason. 1-1024 characters.",
           ),
-      },
+      }),
     },
     (args, extra) =>
       conversationResult("escalation", async () => {

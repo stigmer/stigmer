@@ -76,7 +76,7 @@ function countingTool(slug: string, bare: string, runs: string[]) {
       runs.push(bare);
       return `${bare} ran`;
     },
-    { name, description: `test tool ${bare}`, schema: z.object({}).passthrough() },
+    { name, description: `test tool ${bare}`, schema: z.looseObject({}) },
   );
 }
 

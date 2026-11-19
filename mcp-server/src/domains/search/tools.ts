@@ -51,7 +51,7 @@ export function registerSearchTools(server: McpServer, target: BackendTarget): s
         "Set 'kinds' to filter by resource type. Set 'query' for full-text search. " +
         "Set 'org' to scope to an organization. Omit 'query' to list all accessible resources. " +
         "A result carrying next_page_token has more: pass it as 'page_token' to continue.",
-      inputSchema: {
+      inputSchema: z.strictObject({
         kinds: z
           .array(z.string())
           .optional()
@@ -72,7 +72,7 @@ export function registerSearchTools(server: McpServer, target: BackendTarget): s
           .max(1024)
           .optional()
           .describe("The previous result's next_page_token, to continue the same search."),
-      },
+      }),
     },
     (args, extra) =>
       textOrError(async () =>

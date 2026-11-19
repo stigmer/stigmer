@@ -959,9 +959,10 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
 
   /**
    * Tier 1 + 1.5: JSON.parse, code-fence extraction, heuristic brace match.
-   * Tier 2: LLM extraction with withStructuredOutput — deterministic,
-   * function-calling guarantees schema-conformant output. Each tier logs
-   * its verdict; a failed LLM extraction is logged and yields nothing.
+   * Tier 2: LLM extraction through one tool whose input is the person's
+   * schema, its answer checked against that schema
+   * (`shared/extract-structured-output.ts`). Each tier logs its verdict; a
+   * failed LLM extraction is logged and yields nothing.
    */
   async function extractStructuredOutputFromText(turn: TurnInput, finalText: string): Promise<unknown> {
     const { extractJsonFromText } = await import("../shared/extract-json.js");
