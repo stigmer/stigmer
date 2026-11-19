@@ -181,6 +181,7 @@ export function ProviderCard({
       confirmLabel: "Remove key",
       variant: "destructive",
       failureTitle: "Couldn't remove the key.",
+      failureComfort: "The key is still connected.",
       action: () => actions.removeKey(org, provider).then(() => undefined),
     });
     if (removed) onChanged?.();

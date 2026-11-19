@@ -2,7 +2,8 @@
  * Pins the confirm dialog that does its act. Given an `action`, confirming
  * keeps the dialog open while the act runs (the confirm button waits with
  * a spinner; Cancel and the close button are held), a failure is said in
- * the dialog with the confirm button reading "Try again", trying again
+ * the dialog (with what did not change under it, when the page says) and
+ * the confirm button reading "Try again", trying again
  * runs the act again, and the dialog closes, resolving `confirm()` true,
  * only once the act succeeds. Without an `action` the dialog behaves as it
  * always has: it closes on confirm and resolves true before anything runs.
@@ -101,6 +102,21 @@ describe("ConfirmDialog with an action", () => {
     await waitFor(() => expect(screen.queryByText("Remove Grace Hopper from acme?")).toBeNull());
     expect(action).toHaveBeenCalledTimes(2);
     expect(answers).toEqual([true]);
+  });
+
+  it("says what did not change under the failure when the page gives it", async () => {
+    const action = vi.fn<() => Promise<void>>().mockRejectedValue(new Error("the server did not answer in time"));
+    render(
+      <Page
+        options={{ ...BASE, action, failureTitle: "Couldn't remove the key.", failureComfort: "The key is still connected." }}
+        answers={[]}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Remove Grace" }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove" }));
+
+    expect(await screen.findByText("Couldn't remove the key.")).toBeTruthy();
+    expect(screen.getByText("The key is still connected.")).toBeTruthy();
   });
 
   it("keeps the act's own word, not Try again, on a refusal trying again cannot change", async () => {

@@ -357,7 +357,8 @@ describe("AccountPreferencesPanel", () => {
       // One harness of a few: a select, not a list of radio rows.
       const harness = screen.getByRole("combobox", { name: "Harness a new conversation starts on" });
       expect(within(harness).getAllByRole("option").map((o) => o.textContent)).toEqual([
-        "Platform default",
+        // The first option names the harness the platform picks.
+        "Platform default (Stigmer)",
         "Stigmer",
         "Claude Agent",
       ]);

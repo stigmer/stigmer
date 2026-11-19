@@ -13,6 +13,7 @@ import { Figure, Figures } from "../internal/surface/Figure.js";
 import { Section } from "../resource-detail/Section.js";
 import { Table, type TableColumn } from "../internal/surface/Table.js";
 import { StatusBadge } from "../status/StatusBadge.js";
+import { useOrgDisplayName } from "../organization/useOrgDisplayName.js";
 import { agentHoursFigure } from "./AgentHoursStanding.js";
 import { formatUsd } from "./format.js";
 import { formatAgentHours, formatDay, formatPeriodDay } from "./plan-features.js";
@@ -168,6 +169,8 @@ interface EstimateRow {
   readonly key: string;
   readonly label: string;
   readonly amount: string;
+  /** The plan's own line, named at weight 500 as the drawn line names are. */
+  readonly plan?: boolean;
   readonly total?: boolean;
 }
 
@@ -175,7 +178,9 @@ const ESTIMATE_COLUMNS: readonly TableColumn<EstimateRow>[] = [
   {
     id: "line",
     header: "Line",
-    cell: (row) => <span className={row.total ? "stg:font-semibold" : "stg:font-normal"}>{row.label}</span>,
+    cell: (row) => (
+      <span className={row.total ? "stg:font-semibold" : row.plan ? "stg:font-medium" : "stg:font-normal"}>{row.label}</span>
+    ),
   },
   {
     id: "amount",
@@ -186,11 +191,13 @@ const ESTIMATE_COLUMNS: readonly TableColumn<EstimateRow>[] = [
 ];
 
 function EstimateLines({ planName, estimate }: { planName: string; estimate: PeriodEstimate }) {
+  const orgName = useOrgDisplayName();
   const rows: EstimateRow[] = [
     ...estimate.lines.map((line) => ({
       key: String(line.kind),
       label: lineLabel(line, planName, estimate),
       amount: formatUsd(line.amountMicros),
+      plan: line.kind === PeriodEstimateLineKind.plan,
     })),
     { key: "total", label: "Total so far", amount: formatUsd(estimate.totalMicros), total: true },
   ];
@@ -198,10 +205,7 @@ function EstimateLines({ planName, estimate }: { planName: string; estimate: Per
     <Section title="This period's invoice, so far">
       <Table aria-label="This period's invoice, so far" columns={ESTIMATE_COLUMNS} rows={rows} rowKey={(row) => row.key} bare />
       <p className="stg:m-0 stg:px-4 stg:py-3 stg:text-xs stg:text-muted-foreground">
-        The plan&apos;s fee for the whole period, with the child organizations and the agent hours past those
-        included counted so far. Agent hours are counted while agents work in Stigmer&apos;s sandboxes, for this
-        organization and its child organizations; automatic grading is never counted. Model usage runs on your
-        organization&apos;s own provider keys and is not on the invoice.
+        {`Agent hours are counted while agents work in Stigmer's sandboxes, for ${orgName} and its child organizations; automatic grading is never counted. Model usage runs on your own provider keys and is not on this invoice.`}
       </p>
     </Section>
   );

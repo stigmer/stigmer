@@ -21,6 +21,7 @@ import { ReadOnlyField, ReadOnlyFields } from "../internal/form/ReadOnlyField.js
 import type { ModelCatalogRow } from "./useModelCatalogView.js";
 import { ZERO, formatRate, formatTokens } from "./pricing-format.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import { providerName } from "../models/provider-name.js";
 
 /** The four rates of a block or a step, micro-USD per million tokens. */
 interface FourRates {
@@ -66,14 +67,32 @@ function LongPromptStep({ step, label }: { readonly step: LongContextPricing | u
   );
 }
 
-/** Where a block's rates came from, in one quiet line. */
+/** A source that is a provider's list price ("anthropic list price"), its provider's id the first word. */
+const LIST_PRICE_SOURCE = /^(\S+)[ _]list[ _]price$/i;
+
+/**
+ * Where a block's rates came from, in one quiet line: a provider's list
+ * price as a sentence naming the provider ("List prices from Anthropic,
+ * Apr 21, 2026."), any other source as it was written ("Source:
+ * anthropic.com/pricing · Jan 2, 2026").
+ */
 function provenance(pricing: PricingBlock | undefined): string | null {
+  const date = pricing?.effectiveAt
+    ? new Date(Number(pricing.effectiveAt.seconds) * 1000).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        timeZone: "UTC",
+      })
+    : null;
+  const listPrice = pricing?.source ? LIST_PRICE_SOURCE.exec(pricing.source.trim()) : null;
+  if (listPrice?.[1]) {
+    const from = `List prices from ${providerName(listPrice[1].toLowerCase())}`;
+    return date ? `${from}, ${date}.` : `${from}.`;
+  }
   const parts: string[] = [];
   if (pricing?.source) parts.push(`Source: ${pricing.source}`);
-  if (pricing?.effectiveAt) {
-    const date = new Date(Number(pricing.effectiveAt.seconds) * 1000);
-    parts.push(date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }));
-  }
+  if (date) parts.push(date);
   return parts.length > 0 ? parts.join(" · ") : null;
 }
 

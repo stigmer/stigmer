@@ -3,6 +3,7 @@
 import { cn } from "@stigmer/design-tokens";
 import type { Plan } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
 import { Button } from "../button/index.js";
+import { LinkButton, type RenderLink } from "../button/LinkButton.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { cardClasses } from "../internal/surface/Card.js";
 import { FEATURE_COPY } from "../internal/features.js";
@@ -99,18 +100,23 @@ export function PlanPicker({
             <li key={line}>{line}</li>
           ))}
         </ul>
-        <a
-          href={enterpriseHref}
-          target="_blank"
-          rel="noreferrer"
-          className="stg:mt-3 stg:self-start stg:text-xs stg:font-medium stg:text-primary stg:hover:underline"
-        >
-          Talk to us
-        </a>
+        <div className="stg:mt-auto stg:pt-3">
+          {/* A button like the other plans' acts, still a link that opens the enquiry in a new tab. */}
+          <LinkButton href={enterpriseHref} size="xs" variant="outline" renderLink={newTabLink}>
+            Talk to us
+          </LinkButton>
+        </div>
       </li>
     </ul>
   );
 }
+
+/** The enquiry page opens in a new tab, so the plan comparison stays where it was. */
+const newTabLink: RenderLink = ({ href, className, children }) => (
+  <a href={href} target="_blank" rel="noreferrer" className={className}>
+    {children}
+  </a>
+);
 
 function PlanOption({
   name,
