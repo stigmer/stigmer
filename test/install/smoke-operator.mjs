@@ -137,12 +137,26 @@ function prepareNamespace(namespace, modelBaseUrl) {
   ]);
 }
 
-/** Every container of every pod in the namespace has restarted zero times. */
+/**
+ * Every container of every long-running pod in the namespace has restarted
+ * zero times. A Job's pod is held to its Job instead: retrying is a Job's
+ * contract (Temporal's namespace step retries until the frontend accepts
+ * it), so its restarts are logged and the Job must have completed.
+ */
 function assertZeroRestarts(namespace) {
   const pods = cluster.kubectlJson(["-n", namespace, "get", "pods"]).items;
   if (pods.length === 0) throw new Error(`no pods in ${namespace}`);
+  for (const job of cluster.kubectlJson(["-n", namespace, "get", "jobs"]).items) {
+    const complete = (job.status?.conditions ?? []).some((c) => c.type === "Complete" && c.status === "True");
+    if (!complete) throw new Error(`Job ${job.metadata.name} has not completed`);
+  }
   for (const pod of pods) {
+    const ownedByJob = (pod.metadata.ownerReferences ?? []).some((o) => o.kind === "Job");
     for (const status of [...(pod.status.initContainerStatuses ?? []), ...(pod.status.containerStatuses ?? [])]) {
+      if (status.restartCount !== 0 && ownedByJob) {
+        log(`${pod.metadata.name}/${status.name} retried ${status.restartCount} time(s); its Job completed`);
+        continue;
+      }
       if (status.restartCount !== 0) {
         throw new Error(`${pod.metadata.name}/${status.name} restarted ${status.restartCount} time(s): the operator's ordering should make first boot deterministic`);
       }
@@ -364,8 +378,10 @@ async function runEnterprise(modelBaseUrl) {
   if (images.runner !== undefined) throw new Error("the shared runner runs under sign-in with no key");
   const deployment = cluster.kubectlJson(["-n", namespace, "get", "deployment", "stigmer"]);
   if ((deployment.status?.readyReplicas ?? 0) !== 0) throw new Error("the Deployment reports a ready replica with a key no image trusts");
+  // The runner waits for the server before it says anything of its own;
+  // the server never becomes ready here, so it is Pending on it.
   const runner = stigmer.component("runner");
-  if (runner?.reason !== "RunnerKeyPending") throw new Error(`the runner component reads ${runner?.reason}: ${runner?.message}`);
+  if (runner?.phase !== "Pending") throw new Error(`the runner component reads ${runner?.phase} ${runner?.reason}: ${runner?.message}`);
   if (stigmer.read().status.edition !== "enterprise") throw new Error(`the edition reads ${stigmer.read().status.edition}`);
   log(`the Enterprise image at the server's tag, never ready; the runner: ${runner.message}`);
   assertOperatorLogClean();
