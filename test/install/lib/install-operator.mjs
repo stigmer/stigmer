@@ -206,6 +206,18 @@ export function createStigmer(cluster, { namespace, name = "stigmer", log }) {
         "--- the operator's log ---",
         cluster.kubectlQuiet(["-n", OPERATOR_NAMESPACE, "logs", `deployment/${OPERATOR_RELEASE}`, "--tail=200"]).stdout ?? "",
       ];
+      // Any container that restarted, with the log of the run before: a
+      // restart elsewhere (Temporal's services) says why only there.
+      const pods = cluster.kubectlQuiet(["-n", namespace, "get", "pods", "-o", "json"]);
+      if (pods.status === 0) {
+        for (const pod of JSON.parse(pods.stdout).items) {
+          for (const status of pod.status?.containerStatuses ?? []) {
+            if ((status.restartCount ?? 0) === 0) continue;
+            const previous = cluster.kubectlQuiet(["-n", namespace, "logs", pod.metadata.name, "-c", status.name, "--previous", "--tail=80"]);
+            out.push(`--- logs ${pod.metadata.name}/${status.name} (previous container, ${status.restartCount} restart(s)) ---`, previous.stdout ?? "", previous.stderr ?? "");
+          }
+        }
+      }
       for (const container of ["server", "runner"]) {
         for (const previous of [false, true]) {
           const args = ["-n", namespace, "logs", `deployment/${name}`, "-c", container, "--tail=120"];
