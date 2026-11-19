@@ -442,6 +442,7 @@ Lists the organization's shared vaults with their entries and access.
     onClose: { type: "() => void", description: "Called when the open vault is gone (deleted here or elsewhere)." },
     onOpen: { type: "(vault: Vault) => void", description: "Open a vault in place instead of expanding its row: rows become links to the vault, and the panel draws the open one (`openId`) as its own sections. Called with the vault on a row's press, and again with the fresh copy whenever the list re-reads it, so a host can name its page." },
     onRefetchRef: { type: "(refetch: () => void) => void", description: "Re-expose refetch so parents can refresh the list after a create." },
+    onSharedCountChange: { type: "(count: number | null) => void", description: "Told how many shared vaults the list holds once it reads them, and `null` while it reads or after a read failed, so a host heading can carry the count (\"Shared vaults 4\")." },
     openId: { type: "string | null", description: "The id of the vault open in place, with `onOpen`." },
     org: { type: "string", description: "Organization to list shared vaults for (id or slug).", required: true },
     readOnly: { type: "boolean", description: "Show every vault without write controls." },

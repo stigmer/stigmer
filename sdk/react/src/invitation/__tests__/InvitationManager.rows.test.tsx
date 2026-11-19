@@ -132,6 +132,16 @@ describe("InvitationManager rows", () => {
     expect(within(rowOf("Next year")).getByText(`Expires Aug 1, ${THIS_YEAR + 1}`)).toBeTruthy();
     expect(screen.queryByText(/Expires in/)).toBeNull();
   });
+
+  it("says an active link whose day has passed is expired, before the server marks it so", async () => {
+    renderManager(async () => ({
+      entries: [link("inv_late", "Late", { role: IamRole.member, maxRedemptions: 0, redemptionCount: 0, expiresAt: new Date(Date.now() - 60_000) })],
+      nextPageToken: "",
+    }));
+
+    await screen.findByText("Late");
+    expect(within(rowOf("Late")).getByText("Expired")).toBeTruthy();
+  });
 });
 
 describe("InvitationManager revoke dialog", () => {
