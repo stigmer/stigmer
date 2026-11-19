@@ -108,7 +108,7 @@ export function createDocsReader(options: DocsReaderOptions = {}): DocsReader {
     },
     async readDocPage(page) {
       const url = docPageUrl(page);
-      return { url, markdown: await fetchText(doFetch, `${url}.md`, env) };
+      return { url, markdown: await fetchText(doFetch, docExportUrl(url), env) };
     },
   };
 }
@@ -234,6 +234,15 @@ export function docPageUrl(page: string): string {
     refuse();
   }
   return `${DOCS_ORIGIN}${path}`;
+}
+
+/**
+ * Where a docs page's Markdown export is: its URL plus `.md`, except the
+ * docs' own front page, whose export is `/docs/index.md` (`/docs.md` is no
+ * page). Takes {@link docPageUrl}'s answer. Pure.
+ */
+export function docExportUrl(url: string): string {
+  return url === `${DOCS_ORIGIN}/docs` ? `${url}/index.md` : `${url}.md`;
 }
 
 /** Whether a fetched address is one the reader may read from. Pure. */

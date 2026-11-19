@@ -39,8 +39,8 @@ stigmer docs read https://stigmer.ai/docs/concepts/runners -o json
 [stigmer.ai/llms.txt](https://stigmer.ai/llms.txt), the index of this
 documentation, by the words you give, and prints the best matches with their
 addresses. `read` takes a page's path after `/docs/` or its full address and
-prints its Markdown export, the page's address plus `.md`. Only pages under
-`https://stigmer.ai/docs` are read.
+prints its Markdown export, the page's address plus `.md` (`/docs/index.md` for
+the docs' front page). Only pages under `https://stigmer.ai/docs` are read.
 
 Behind a proxy, set `NODE_USE_ENV_PROXY=1` beside `HTTPS_PROXY`: Node's own
 fetch, which the CLI uses, ignores the proxy without it.

@@ -197,6 +197,11 @@ describe("createDocsReader", () => {
     expect(doFetch.mock.calls[0]?.[1]).toMatchObject({ redirect: "manual" });
   });
 
+  it.each(["docs", "/docs", "https://stigmer.ai/docs", "https://stigmer.ai/docs/"])("reads the docs' front page %s from its index.md export", async (root) => {
+    const doFetch = fakeFetch({ "https://stigmer.ai/docs/index.md": () => respond(PAGE) });
+    expect(await createDocsReader({ fetch: doFetch }).readDocPage(root)).toEqual({ url: "https://stigmer.ai/docs", markdown: PAGE });
+  });
+
   it("follows a redirect that stays in the docs", async () => {
     const doFetch = fakeFetch({
       "https://stigmer.ai/docs/old.md": () => respond("", { status: 308, headers: { location: "/docs/concepts/runners.md" } }),
