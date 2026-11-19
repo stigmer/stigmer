@@ -14,7 +14,10 @@
  *   - someone without can_edit reads the settings and cannot change them,
  *     and is not sent to manage service accounts;
  *   - a refused save shows the server's words; a failed read offers a
- *     retry; the service-account link appears only when given.
+ *     retry; the service-account link appears only when given;
+ *   - the settings sit in three cards (sign-in, allowed web pages, vaults),
+ *     and the lines name the organization by its slug on a server that
+ *     holds several, and as "this organization" on one that holds one.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
@@ -52,8 +55,11 @@ function orgWith(embedding?: typeof STORED): Organization {
 }
 
 
-function createMockStigmer(org: Organization, canEdit = true, refusal?: Error) {
+function createMockStigmer(org: Organization, canEdit = true, refusal?: Error, singleOrg = false) {
   return {
+    platform: {
+      getServerInfo: vi.fn(async () => ({ singleOrg })),
+    },
     organization: {
       get: vi.fn(async () => org),
       update: vi.fn(async () => org),
@@ -131,7 +137,7 @@ describe("OrgEmbeddingPanel", () => {
     fireEvent.change(input, { target: { value: "https://portal.acme.example" } });
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
     fireEvent.change(screen.getByLabelText("Sign-in role"), { target: { value: String(IamRole.viewer) } });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(client.organization.updateEmbedding).toHaveBeenCalledTimes(1));
     const sent = client.organization.updateEmbedding.mock.calls[0]![0];
@@ -154,7 +160,7 @@ describe("OrgEmbeddingPanel", () => {
     });
     renderPanel(client);
     fireEvent.change(await screen.findByLabelText("Sign-in role"), { target: { value: String(IamRole.viewer) } });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(client.organization.get).toHaveBeenCalledTimes(2));
     expect((await screen.findByRole("status")).textContent).toContain("Saved");
@@ -166,7 +172,7 @@ describe("OrgEmbeddingPanel", () => {
     renderPanel(client);
     fireEvent.click(await screen.findByRole("switch"));
     expect((screen.getByLabelText("Sign-in role") as HTMLInputElement).disabled).toBe(true);
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(client.organization.updateEmbedding).toHaveBeenCalledTimes(1));
     const sent = client.organization.updateEmbedding.mock.calls[0]![0];
@@ -188,7 +194,7 @@ describe("OrgEmbeddingPanel", () => {
     const client = createMockStigmer(orgWith(STORED));
     renderPanel(client);
     fireEvent.click(await screen.findByRole("button", { name: "Remove product-keys" }));
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
     await waitFor(() => expect(client.organization.updateEmbedding).toHaveBeenCalledTimes(1));
     expect(client.organization.updateEmbedding.mock.calls[0]![0].embedding?.vaults).toEqual([]);
   });
@@ -197,7 +203,7 @@ describe("OrgEmbeddingPanel", () => {
     const client = createMockStigmer(orgWith(STORED));
     renderPanel(client);
     fireEvent.click(await screen.findByRole("button", { name: "Remove https://app.acme.example" }));
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
     await waitFor(() => expect(client.organization.updateEmbedding).toHaveBeenCalledTimes(1));
     expect(client.organization.updateEmbedding.mock.calls[0]![0].embedding?.allowedOrigins).toEqual([]);
   });
@@ -206,7 +212,7 @@ describe("OrgEmbeddingPanel", () => {
     renderPanel(createMockStigmer(orgWith(STORED), false));
     expect(await screen.findByText("Only organization admins can change these settings.")).toBeTruthy();
     expect(screen.getByText("https://app.acme.example")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Save changes" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Remove https://app.acme.example" })).toBeNull();
     expect((screen.getByRole("switch") as HTMLInputElement).disabled).toBe(true);
     expect((screen.getByLabelText("Sign-in role") as HTMLInputElement).disabled).toBe(true);
@@ -228,6 +234,49 @@ describe("OrgEmbeddingPanel", () => {
   });
 });
 
+describe("OrgEmbeddingPanel — the page's cards and words", () => {
+  it("draws sign-in, allowed web pages and vaults as three titled cards", async () => {
+    renderPanel(createMockStigmer(orgWith(STORED)));
+    await screen.findByLabelText("Sign-in role");
+    expect(screen.getAllByRole("heading").map((heading) => heading.textContent)).toEqual([
+      "Sign-in from your product",
+      "Allowed web pages",
+      "Vaults for these conversations",
+    ]);
+    expect(screen.getByRole("switch", { name: "Create accounts on sign-in" })).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Allowed origins" })).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Shared vaults" })).toBeTruthy();
+    expect(screen.getByText("Make a person's Stigmer account the first time a token is minted for them.")).toBeTruthy();
+    expect(screen.getByText("Web pages at these origins may use the tokens. Leave empty to allow every origin.")).toBeTruthy();
+    expect(screen.getByText("The keys conversations of people signed in from your product use, in this order.")).toBeTruthy();
+  });
+
+  it("names the organization by its slug on a server that holds several", async () => {
+    renderPanel(createMockStigmer(orgWith(STORED)));
+    expect(
+      await screen.findByText(/Your product's backend signs its users in to acme by minting a token for each one/),
+    ).toBeTruthy();
+    expect(
+      await screen.findByText(
+        "Granted on acme when a sign-in creates an account; None grants nothing. Accounts that already exist keep their roles.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("says this organization on a server that holds one", async () => {
+    const client = createMockStigmer(orgWith(STORED), true, undefined, true);
+    renderPanel(client);
+    await screen.findByLabelText("Sign-in role");
+    // Before the server answers the line already says "this organization": wait for the answer.
+    await waitFor(() => expect(client.platform.getServerInfo).toHaveBeenCalled());
+    await act(async () => {
+      await client.platform.getServerInfo.mock.results[0]!.value;
+    });
+    expect(screen.getByText(/Your product's backend signs its users in to this organization by minting a token/)).toBeTruthy();
+    expect(screen.getByText(/^Granted on this organization when a sign-in creates an account/)).toBeTruthy();
+  });
+});
+
 describe("OrgEmbeddingPanel — failures and absence", () => {
   it("shows a refused save in the server's words", async () => {
     const client = createMockStigmer(
@@ -236,7 +285,7 @@ describe("OrgEmbeddingPanel — failures and absence", () => {
       new ConnectError("a My vault cannot be attached", Code.FailedPrecondition),
     );
     renderPanel(client);
-    fireEvent.click(await screen.findByRole("button", { name: "Save" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Save changes" }));
     expect((await screen.findByRole("alert")).textContent).toContain("a My vault cannot be attached");
     expect(screen.queryByRole("status")).toBeNull();
   });
@@ -304,20 +353,20 @@ describe("CON-01 the embedding settings offer no edit before the server says yes
     expect(await screen.findByText("https://app.acme.example")).toBeTruthy();
     expect((screen.getByRole("switch") as HTMLInputElement).disabled).toBe(true);
     expect((screen.getByLabelText("Sign-in role") as HTMLInputElement).disabled).toBe(true);
-    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Save changes" })).toBeNull();
     expect(screen.queryByText("Only organization admins can change these settings.")).toBeNull();
   });
 
   it("says who can change them once the server says no", async () => {
     renderPanel(clientAnswering("refused"));
     expect(await screen.findByText("Only organization admins can change these settings.")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Save changes" })).toBeNull();
   });
 
   it("keeps the settings locked, with no Save, and says it could not check when the check fails", async () => {
     renderPanel(clientAnswering("fails"));
     expect(await screen.findByText(/Could not check whether you may change these settings\./)).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Save changes" })).toBeNull();
     expect((screen.getByRole("switch") as HTMLInputElement).disabled).toBe(true);
     expect(screen.queryByText("Only organization admins can change these settings.")).toBeNull();
   });

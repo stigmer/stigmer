@@ -43,7 +43,10 @@ import { TeamCommandController } from "@stigmer/apis/ai/stigmer/iam/team/v1/comm
 import { TeamQueryController } from "@stigmer/apis/ai/stigmer/iam/team/v1/query_pb";
 import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { LicenseTerm } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
+import { OrganizationSchema, type Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
+import { OrganizationEmbeddingSchema, OrganizationSpecSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/spec_pb";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { EnvironmentQueryController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/query_pb";
 import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/query_pb";
 import { GetEntitlementsOutputSchema } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
@@ -427,18 +430,49 @@ const CHILD_ORGS = [
   samples.organization({ id: "org_00000000000000000000000022", name: "Contoso", slug: "contoso" }),
 ];
 
-function orgScene(page: () => ReactNode, allowed = true, children = false): Drawing {
+/** What an organization page's reads answer past the defaults: the organization itself, and the shared vaults listed. */
+interface OrgAnswers {
+  readonly organization?: Organization;
+  readonly vaults?: readonly Vault[];
+}
+
+function orgScene(page: () => ReactNode, allowed = true, children = false, answers: OrgAnswers = {}): Drawing {
+  const organization = answers.organization ?? ORGANIZATION;
   return settingsScene(page, (router) => {
     checks(allowed)(router);
     router.service(OrganizationQueryController, {
-      listMine: () => samples.organizationList([ORGANIZATION]),
-      get: () => ORGANIZATION,
+      listMine: () => samples.organizationList([organization]),
+      get: () => organization,
       listChildOrgs: () => ({ entries: children ? [...CHILD_ORGS] : [] }),
     });
     router.service(FederationIssuerQueryController, { list: () => ({ entries: [] }) });
     router.service(EnvironmentQueryController, { list: () => ({ entries: [DATA_SCIENCE] }), get: () => DATA_SCIENCE });
-    router.service(VaultQueryController, { list: () => ({ entries: [] }), getMine: () => samples.vault({ id: "vlt_00000000000000000000000002", name: "My vault", slug: "my-vault", org: ORG_ID }) });
+    router.service(VaultQueryController, { list: () => ({ entries: [...(answers.vaults ?? [])] }), getMine: () => samples.vault({ id: "vlt_00000000000000000000000002", name: "My vault", slug: "my-vault", org: ORG_ID }) });
   });
+}
+
+/** The shared vaults the embedding settings name, in order. */
+const EMBEDDING_VAULTS: readonly Vault[] = [
+  samples.vault({ id: "vlt_00000000000000000000000003", name: "Production", slug: "production", org: ORG_ID }),
+  samples.vault({ id: "vlt_00000000000000000000000005", name: "Support desk", slug: "support-desk", org: ORG_ID }),
+];
+
+/** The organization with its embedding set up: accounts made as members, two web pages allowed, both vaults chosen. */
+function embeddedOrganization(): Organization {
+  const organization = clone(OrganizationSchema, ORGANIZATION);
+  organization.spec ??= create(OrganizationSpecSchema);
+  organization.spec.embedding = create(OrganizationEmbeddingSchema, {
+    allowedOrigins: ["https://app.acme.example", "https://staging.acme.example"],
+    createAccountsOnSignIn: true,
+    signInRole: IamRole.member,
+    vaults: EMBEDDING_VAULTS.map((vault) => ({
+      kind: ApiResourceKind.vault,
+      org: ORG_SLUG,
+      slug: vault.metadata?.slug ?? "",
+      id: vault.metadata?.id ?? "",
+    })),
+  });
+  return organization;
 }
 
 function notificationsScene(unsupported = false): Drawing {
@@ -635,7 +669,8 @@ export const SETTINGS_ROUTE_DRAWINGS = {
   "settings-org-profile": () => orgScene(() => <OrgProfileSection />, true, true),
   "settings-org-preferences": () => orgScene(() => <OrgPreferencesSection />),
   "settings-org-policies": () => orgScene(() => <OrgPoliciesSection />),
-  "settings-org-embedding": () => orgScene(() => <OrgEmbeddingSection />),
+  "settings-org-embedding": () =>
+    orgScene(() => <OrgEmbeddingSection />, true, false, { organization: embeddedOrganization(), vaults: EMBEDDING_VAULTS }),
   "settings-notifications": () => notificationsScene(),
   "settings-notifications-unsupported": () => notificationsScene(true),
   "settings-channel-apps-detail": () => channelAppsScene("rows"),
