@@ -830,6 +830,11 @@ export const LANES = {
       "backend/services/runner/src/shared/model-client.ts",
       "backend/services/runner/src/shared/llm-backend.ts",
       "backend/services/runner/src/shared/llm-proxy.ts",
+      // The bucket profile proves the server's artifact lane and the
+      // runner's side of it end to end, through a real bucket.
+      "backend/services/stigmer-server/src/artifactstorage/**",
+      "backend/services/runner/src/shared/artifact-storage.ts",
+      "backend/services/runner/src/shared/run-credential-store.ts",
       "Makefile",
       ".nvmrc",
       "package.json",

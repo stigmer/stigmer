@@ -21,8 +21,11 @@ it names are the truth.
 - `internal/render/env.go` and `internal/render/parity_test.go`: the server's
   and the runner's settings and the Compose parity contract that holds them to
   `docker-compose.yml`.
-- `internal/manifests/README.md`: the embedded CloudNativePG release and
-  Temporal chart, and how to move them.
+- `internal/manifests/README.md`: the embedded CloudNativePG release, its Barman
+  Cloud backup plugin and the Temporal chart, and how to move them.
+- `internal/render/backup.go`, `internal/component/backup.go` and
+  `internal/component/upgrade.go`: backups to the bucket, restores, and the
+  backup an upgrade waits for.
 
 ## Laws
 
@@ -44,6 +47,11 @@ it names are the truth.
 - A server or runner setting a self-hoster sets reaches the `Stigmer` resource
   (or `extraEnv`). `docker-compose.yml` is the canonical topology: a setting
   added there and not rendered here fails `internal/render/parity_test.go`.
+- A declared bucket means backups. The backup plugin needs cert-manager, which
+  the operator detects and never installs: without it the database is refused in
+  words naming the command. A new database never names the plugin before it
+  serves, and a failing backup never takes the install out of Ready (the
+  `BackupHealthy` condition says so instead).
 - The operator never caches Secrets it did not label; an adopter's Secret is
   read by name through `Env.Reader`.
 - Nothing private in this public repository: no internal tracker ids, no private
@@ -52,4 +60,6 @@ it names are the truth.
 ## Verification
 
 `make lint-operator test-operator` from the repository root; a behaviour change
-also runs `make smoke-operator PROFILE=bundled` (the install test on kind).
+also runs `make smoke-operator PROFILE=bundled` (the install test on kind), and
+a change to the bucket, backups or upgrades `PROFILE=bucket` and
+`PROFILE=upgrade`.

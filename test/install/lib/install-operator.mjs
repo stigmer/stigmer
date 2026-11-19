@@ -7,8 +7,9 @@
  * Two levels, as in install-helm.mjs:
  *   - the operator ({@link createOperator}): its image built from
  *     deploy/operator for this machine's architecture, loaded into kind,
- *     installed with `helm install` into its own namespace; its log, read
- *     for ERROR lines (a healthy install logs none);
+ *     installed with `helm upgrade --install` into its own namespace (the
+ *     upgrade test moves it between two builds stamped as consecutive
+ *     versions); its log, read for ERROR lines (a healthy install logs none);
  *   - a Stigmer in a namespace ({@link createStigmer}): `kubectl apply` of
  *     the resource, waits on its Ready condition or on one component's
  *     standing, a port-forward to the server's Service, diagnostics.
@@ -44,26 +45,36 @@ export const ARTIFACT_PORT = 7235;
 /** The operator: built, loaded and installed on `cluster`. */
 export function createOperator(cluster, { log }) {
   return {
-    /** Build the operator's image from source, stamped compose-dev, and load it into the node. */
-    buildAndLoad() {
-      log(`docker build ${OPERATOR_IMAGE} from deploy/operator`);
-      execFileSync("docker", ["build", "--build-arg", `STIGMER_VERSION=${SOURCE_TAG}`, "-t", OPERATOR_IMAGE, OPERATOR_MODULE], {
+    /**
+     * Build the operator's image from source, stamped `version` (compose-dev
+     * unless the upgrade test stamps two versions of one build), and load it
+     * into the node.
+     */
+    buildAndLoad({ version = SOURCE_TAG } = {}) {
+      const image = `${IMAGE_REGISTRY}/stigmer-operator:${version}`;
+      log(`docker build ${image} from deploy/operator`);
+      execFileSync("docker", ["build", "--build-arg", `STIGMER_VERSION=${version}`, "-t", image, OPERATOR_MODULE], {
         stdio: "inherit",
       });
-      cluster.loadImage(OPERATOR_IMAGE);
+      cluster.loadImage(image);
     },
-    /** `helm install` the operator chart and wait for the operator to be ready. */
-    install() {
+    /**
+     * `helm upgrade --install` the operator chart at the image stamped `tag`
+     * and wait for the operator to be ready: a first install, or the upgrade
+     * a platform engineer runs to move to the next release.
+     */
+    install({ tag = SOURCE_TAG } = {}) {
       cluster.helm(
         [
-          "install",
+          "upgrade",
+          "--install",
           OPERATOR_RELEASE,
           OPERATOR_CHART,
           "-n",
           OPERATOR_NAMESPACE,
           "--create-namespace",
           "--set",
-          `image.tag=${SOURCE_TAG}`,
+          `image.tag=${tag}`,
           "--set",
           "image.pullPolicy=Never",
           "--wait",

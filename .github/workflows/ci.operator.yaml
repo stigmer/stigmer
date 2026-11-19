@@ -10,10 +10,12 @@
 #     docker-compose.yml). No cluster.
 #   - kind-gate: the server and runner images built from source through
 #     docker-compose.dev.yml, the operator built from its Dockerfile, all
-#     loaded into kind; the operator installed with its chart; the bundled
-#     and bring-your-own profiles of test/install/smoke-operator.mjs, one
-#     cluster each, in parallel: Ready with zero restarts, an agent run end
-#     to end, the arms.
+#     loaded into kind; the operator installed with its chart; the bundled,
+#     bring-your-own, bucket and upgrade profiles of
+#     test/install/smoke-operator.mjs, one cluster each, in parallel: Ready
+#     with zero restarts, an agent run end to end, the arms (the bucket's
+#     artifact lane, backups and a restore to a point; an upgrade that
+#     takes a backup before the server rolls).
 #     The enterprise profile builds the Enterprise image and runs on
 #     request (make smoke-operator PROFILE=enterprise), as the chart's does.
 #
@@ -77,7 +79,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        profile: [bundled, byo]
+        profile: [bundled, byo, bucket, upgrade]
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0

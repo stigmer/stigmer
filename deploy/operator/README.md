@@ -30,8 +30,9 @@ binary), and a cluster holds one operator and one `Stigmer`.
 ## What it needs
 
 The operator holds cluster-wide rights: it installs definitions, cluster roles
-and webhooks for the prerequisites it runs (CloudNativePG today). Its role is
-generated from the controller's markers into `config/rbac/role.yaml`.
+and webhooks for the prerequisites it runs (CloudNativePG and, with a bucket
+declared, its Barman Cloud backup plugin). Its role is generated from the
+controller's markers into `config/rbac/role.yaml`.
 
 ## Working on it
 

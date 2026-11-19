@@ -5,7 +5,7 @@
  * installed with its chart on a kind cluster this script creates, and one
  * Stigmer resource per profile brought up and proven end to end.
  *
- *   make smoke-operator PROFILE=bundled      (or byo, enterprise)
+ *   make smoke-operator PROFILE=bundled      (or byo, enterprise, bucket, upgrade)
  *
  * What one pass proves, per profile:
  *
@@ -36,6 +36,28 @@
  *   image, refuses the key and never becomes ready, and the Stigmer's status
  *   relays the server's own refusal line.
  *
+ * bucket: the bucket stack a platform engineer brings (cert-manager, and an
+ *   S3-compatible bucket: SeaweedFS, test/install/lib/object-store.mjs),
+ *   then one declaration with spec.objectStore. Ready with zero restarts and
+ *   no artifacts volume; the agent run; the runner's artifact lane from
+ *   inside the runner's container with the run's own credential (an upload
+ *   and a download through short-lived URLs, the object then in the bucket;
+ *   another run's key refused 403, no credential 401); a Skill pushed with
+ *   the CLI lands under skills/; the database archives (BackupHealthy) with
+ *   its schedule; a backup, a moment recorded, a second run, a second
+ *   backup; the Stigmer deleted and declared again restoring to that
+ *   moment: the first run is there, the second is not, the restored
+ *   database archives under a name of its own, and the files are in the
+ *   bucket.
+ *
+ * upgrade: two builds of this checkout's operator stamped as consecutive
+ *   versions (smoke-1, smoke-2), with the source images tagged at both. A
+ *   bucket-backed Stigmer under smoke-1 runs an agent; `helm upgrade` moves
+ *   the operator to smoke-2; the backup named for smoke-2 completes before
+ *   the new server pod starts, status.version reads smoke-2, the server
+ *   says what the upgrade did, and the run is still there. It runs last:
+ *   it leaves the operator at smoke-2.
+ *
  * Every profile ends with zero ERROR lines in the operator's log.
  *
  * Usage:
@@ -49,13 +71,14 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { generateKeyPairSync, randomBytes, randomUUID, sign } from "node:crypto";
+import { createHmac, generateKeyPairSync, randomBytes, randomUUID, sign } from "node:crypto";
 import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { LAYER_ENGINES, assertClaudeReady } from "./lib/claude-engine.mjs";
 import { FAKE_MODEL_API_KEY, fakeModelEnv, parseFakeModelArg, startFakeModel } from "./lib/fake-model.mjs";
-import { SOURCE_TAG, createKindCluster } from "./lib/kind-cluster.mjs";
+import { IMAGE_REGISTRY, SOURCE_TAG, createKindCluster } from "./lib/kind-cluster.mjs";
+import { createObjectStore } from "./lib/object-store.mjs";
 import { ARTIFACT_PORT, SERVER_PORT, createOperator, createStigmer } from "./lib/install-operator.mjs";
 import {
   assertArtifactLane,
@@ -64,11 +87,13 @@ import {
   pollUntil,
   readAgentExecution,
   runAgentToReply,
+  sleep,
   waitForServing,
 } from "./lib/stigmer-smoke.mjs";
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
-const PROFILES = ["bundled", "byo", "enterprise"];
+/** In the order they run: upgrade last, since it leaves the operator at its second build. */
+const PROFILES = ["bundled", "byo", "enterprise", "bucket", "upgrade"];
 // A first install pulls CloudNativePG and Temporal, creates the database and
 // its schema, and waits through the server's startup probe; generous on a
 // shared CI host.
@@ -76,6 +101,8 @@ const READY_TIMEOUT_MS = 15 * 60_000;
 const SERVER_HEALTHY_TIMEOUT_MS = 180_000;
 const RUN_COMPLETED_TIMEOUT_MS = 240_000;
 const GONE_TIMEOUT_MS = 3 * 60_000;
+/** A full backup of a small database to an in-cluster bucket, with margin for a shared CI host. */
+const BACKUP_TIMEOUT_MS = 10 * 60_000;
 const MODEL_SECRET = "anthropic";
 /** The line the Enterprise server prints when it refuses a key (ee/server/scripts/smoke-image.mjs checks the same). */
 const LICENSE_REFUSAL = "boot failed: The Stigmer Enterprise license key";
@@ -108,6 +135,7 @@ function log(step) {
 
 let cluster;
 let operator;
+let objectStore;
 /** The Stigmer being exercised, so a failure can print its diagnostics. */
 let current;
 
@@ -170,8 +198,12 @@ function assertOperatorLogClean() {
   log("the operator's log: no ERROR lines");
 }
 
-/** The shared probes: SERVING, the console contract, the artifact lane, an agent run. Resolves the run's execution id. */
-async function probeStack(stigmer, fake) {
+/**
+ * The shared probes: SERVING, the console contract, the artifact file server
+ * (on a volume; a bucket install has none), an agent run. Resolves the
+ * run's execution id.
+ */
+async function probeStack(stigmer, fake, { bucket = false } = {}) {
   const forward = await stigmer.portForward();
   const { baseUrl } = forward;
   try {
@@ -179,8 +211,12 @@ async function probeStack(stigmer, fake) {
     log("health service: SERVING");
     await assertConsoleServed(baseUrl);
     log("console lane: /config.json contract + / html both answer");
-    await assertArtifactLane(forward.artifactUrl);
-    log("artifact file server: answering through the port-forward");
+    if (bucket) {
+      log("files live in the bucket: no artifact file server to probe");
+    } else {
+      await assertArtifactLane(forward.artifactUrl);
+      log("artifact file server: answering through the port-forward");
+    }
     const run = await runAgentToReply(baseUrl, RUN_COMPLETED_TIMEOUT_MS, { expectText: fake.replyText, log });
     log(`agent run: execution ${run.executionId} COMPLETED through the runner with the model's reply (${fake.requests()} model calls)`);
     const runnerLogs = kubectl(["-n", stigmer.namespace, "logs", `deployment/${stigmer.name}`, "-c", "runner", "--tail=-1"]);
@@ -347,6 +383,246 @@ async function runByo(fake, modelBaseUrl) {
   kubectl(["delete", "namespace", "byo-infra", "--wait=false"]);
 }
 
+/**
+ * A run credential for `executionId`, signed with the install's own runner
+ * token key exactly as the server signs the one every dispatch carries
+ * (runnerauth.ts): what the runner presents to the artifact lane.
+ */
+function runCredential(namespace, executionId) {
+  const secret = cluster.kubectlJson(["-n", namespace, "get", "secret", "stigmer-keys"]);
+  const key = Buffer.from(Buffer.from(secret.data.STIGMER_RUNNER_TOKEN_KEY, "base64").toString("utf8").trim(), "base64");
+  const header = Buffer.from('{"alg":"HS256","typ":"JWT"}').toString("base64url");
+  const claims = { token_type: "execution_scoped", execution_id: executionId, iat: Math.floor(Date.now() / 1000) };
+  const input = `${header}.${Buffer.from(JSON.stringify(claims)).toString("base64url")}`;
+  return `${input}.${createHmac("sha256", key).update(input).digest("base64url")}`;
+}
+
+/**
+ * Run in the runner's container, where a runner calls the lane from: an
+ * upload and a download of one key under the run through short-lived URLs,
+ * then another run's key and a call with no credential. Prints one JSON line.
+ */
+const LANE_SCRIPT = `
+const [token, run] = process.argv.slice(1);
+const base = "http://localhost:7234/v1/proxy/artifacts";
+const post = (path, body, bearer = token) => fetch(base + path, {
+  method: "POST",
+  headers: { "content-type": "application/json", ...(bearer ? { authorization: "Bearer " + bearer } : {}) },
+  body: JSON.stringify(body),
+});
+(async () => {
+  const key = "artifacts/" + run + "/smoke/lane.txt";
+  const up = await post("/presigned-upload-url", { key, content_type: "text/plain" });
+  if (up.status !== 200) throw new Error("upload URL refused: " + up.status);
+  const upload = await up.json();
+  const put = await fetch(upload.url, { method: "PUT", headers: upload.headers, body: "through the lane" });
+  if (!put.ok) throw new Error("the signed PUT failed: " + put.status + " " + (await put.text()));
+  const down = await post("/presigned-download-url", { key });
+  if (down.status !== 200) throw new Error("download URL refused: " + down.status);
+  const got = await (await fetch((await down.json()).url)).text();
+  const foreign = await post("/presigned-upload-url", { key: "artifacts/run_notmine/x", content_type: "text/plain" });
+  const anonymous = await post("/presigned-download-url", { key }, "");
+  console.log(JSON.stringify({ key, got, foreign: foreign.status, anonymous: anonymous.status }));
+})().catch((e) => { console.error(e.message); process.exit(1); });
+`;
+
+function assertArtifactLaneThroughBucket(namespace, executionId) {
+  const out = kubectl(["-n", namespace, "exec", "deployment/stigmer", "-c", "runner", "--", "node", "-e", LANE_SCRIPT, runCredential(namespace, executionId), executionId]);
+  const lane = JSON.parse(out.trim().split("\n").pop());
+  if (lane.got !== "through the lane") throw new Error(`the download through the lane read ${JSON.stringify(lane.got)}`);
+  if (lane.foreign !== 403) throw new Error(`a key under another run answered ${lane.foreign}, want 403`);
+  if (lane.anonymous !== 401) throw new Error(`a call with no credential answered ${lane.anonymous}, want 401`);
+  const keys = objectStore.listKeys(`artifacts/${executionId}/`);
+  if (!keys.includes(lane.key)) throw new Error(`the bucket does not hold ${lane.key}: ${keys.join(", ")}`);
+  log(`artifact lane: the runner wrote and read ${lane.key} through short-lived URLs; another run's key 403, no credential 401; the run's folder holds ${keys.length} object(s)`);
+}
+
+/** A Skill pushed with the CLI the runner's image carries; its archive must land under skills/. */
+function assertSkillInBucket(namespace) {
+  const before = objectStore.listKeys("skills/").length;
+  const skill = ["---", "name: smoke-skill", "description: A Skill the install test pushes to see it land in the bucket.", "---", "# Smoke"]
+    .map((line) => `'${line}'`)
+    .join(" ");
+  kubectl(["-n", namespace, "exec", "deployment/stigmer", "-c", "runner", "--", "sh", "-c",
+    `mkdir -p /tmp/smoke-skill && printf '%s\\n' ${skill} > /tmp/smoke-skill/SKILL.md && stigmer push skill /tmp/smoke-skill`], { stdio: "inherit" });
+  const skills = objectStore.listKeys("skills/");
+  if (skills.length <= before) throw new Error(`no Skill archive landed under skills/ (${skills.join(", ") || "none"})`);
+  log(`skills: the pushed Skill's archive is in the bucket (${skills.length} under skills/)`);
+}
+
+/** Wait for BackupHealthy=True: archiving, with a full backup done. Resolves its message. */
+async function waitBackupHealthy(stigmer) {
+  let last = "";
+  return pollUntil("the database's first full backup", BACKUP_TIMEOUT_MS, () => {
+    const cond = stigmer.read()?.status?.conditions?.find((c) => c.type === "BackupHealthy");
+    const line = cond === undefined ? "no BackupHealthy yet" : `${cond.status} ${cond.reason}: ${cond.message}`;
+    if (line !== last) {
+      log(`BackupHealthy: ${line}`);
+      last = line;
+    }
+    return cond?.status === "True" ? cond.message : false;
+  }, { intervalMs: 5000 });
+}
+
+/** Take an on-demand backup of the bundled database and wait for it. Resolves the Backup. */
+async function takeBackup(namespace, name) {
+  kubectl(["apply", "-f", "-"], {
+    input: JSON.stringify({
+      apiVersion: "postgresql.cnpg.io/v1",
+      kind: "Backup",
+      metadata: { name, namespace },
+      spec: { cluster: { name: "stigmer-postgres" }, method: "plugin", pluginConfiguration: { name: "barman-cloud.cloudnative-pg.io" } },
+    }),
+  });
+  return waitBackup(namespace, name);
+}
+
+async function waitBackup(namespace, name) {
+  const backup = await pollUntil(`Backup ${name} to complete`, BACKUP_TIMEOUT_MS, () => {
+    const got = cluster.kubectlQuiet(["-n", namespace, "get", "backups.postgresql.cnpg.io", name, "-o", "json"]);
+    if (got.status !== 0) return false;
+    const b = JSON.parse(got.stdout);
+    return b.status?.phase === "completed" || b.status?.phase === "failed" ? b : false;
+  }, { intervalMs: 5000 });
+  if (backup.status.phase !== "completed") throw new Error(`Backup ${name} failed: ${backup.status.error ?? "no reason given"}`);
+  log(`Backup ${name}: completed at ${backup.status.stoppedAt}`);
+  return backup;
+}
+
+/** A second agent run, through a port-forward. Resolves its execution id. */
+async function runAgain(stigmer, fake) {
+  const forward = await stigmer.portForward();
+  try {
+    await waitForServing(forward.baseUrl, SERVER_HEALTHY_TIMEOUT_MS);
+    return (await runAgentToReply(forward.baseUrl, RUN_COMPLETED_TIMEOUT_MS, { expectText: fake.replyText, log })).executionId;
+  } finally {
+    forward.stop();
+  }
+}
+
+async function runBucket(fake, modelBaseUrl) {
+  const namespace = "smoke-bucket";
+  log(`=== profile bucket (namespace ${namespace}) ===`);
+  objectStore.install();
+  prepareNamespace(namespace, modelBaseUrl);
+  objectStore.writeCredentials(namespace);
+  const stigmer = createStigmer(cluster, { namespace, log });
+  current = stigmer;
+  const declaration = { owner: { email: "owner@example.com" }, runner: { llm: { secretName: MODEL_SECRET } }, objectStore: objectStore.spec() };
+  stigmer.apply(declaration);
+  await stigmer.waitReady(READY_TIMEOUT_MS);
+  assertZeroRestarts(namespace);
+  const claims = cluster.kubectlJson(["-n", namespace, "get", "pvc"]).items.map((c) => c.metadata.name);
+  if (claims.includes("stigmer-artifacts")) throw new Error("an install with a bucket has an artifacts volume");
+  log(`Ready, every container with zero restarts; claims: ${claims.join(", ")}`);
+
+  const executionId = await probeStack(stigmer, fake, { bucket: true });
+  assertArtifactLaneThroughBucket(namespace, executionId);
+  assertSkillInBucket(namespace);
+
+  log(`backups: ${await waitBackupHealthy(stigmer)}`);
+  const serverName = stigmer.read().status.backup.serverName;
+  cluster.kubectl(["-n", namespace, "get", "scheduledbackups.postgresql.cnpg.io", "stigmer-postgres-daily"]);
+  const archive = objectStore.listKeys(`postgres/${serverName}/`);
+  if (archive.length === 0) throw new Error(`nothing under postgres/${serverName}/ in the bucket`);
+  log(`the archive: ${archive.length} object(s) under postgres/${serverName}/; the schedule stigmer-postgres-daily exists`);
+
+  await takeBackup(namespace, "smoke-base");
+  await sleep(3000);
+  const target = new Date().toISOString();
+  log(`the moment to restore to: ${target}`);
+  await sleep(3000);
+  const second = await runAgain(stigmer, fake);
+  log(`a second run after that moment: ${second}`);
+  await takeBackup(namespace, "smoke-after");
+
+  log("arm: the Stigmer deleted, then declared again restoring to that moment");
+  stigmer.delete();
+  const allowed = ["Secret/anthropic", "Secret/bucket", "Secret/stigmer-keys"];
+  await pollUntil("everything the Stigmer owned to be removed", GONE_TIMEOUT_MS, () => leftovers(namespace).every((n) => allowed.includes(n)));
+  stigmer.apply({ ...declaration, database: { postgresql: { bundled: { recoverFrom: { serverName, targetTime: target } } } } });
+  await stigmer.waitReady(READY_TIMEOUT_MS);
+  const restored = stigmer.read().status.backup;
+  if (restored?.restoredFrom !== serverName) throw new Error(`status.backup.restoredFrom reads ${restored?.restoredFrom}, want ${serverName}`);
+  if (restored.serverName === serverName) throw new Error("the restored database archives into the archive it was restored from");
+  log(`restored from ${serverName}; now archiving as ${restored.serverName}`);
+
+  const forward = await stigmer.portForward();
+  try {
+    await waitForServing(forward.baseUrl, SERVER_HEALTHY_TIMEOUT_MS);
+    const phase = (await readAgentExecution(forward.baseUrl, executionId)).status?.phase;
+    if (phase !== "RUN_COMPLETED") throw new Error(`after the restore, run ${executionId} reads ${phase}, want RUN_COMPLETED`);
+    const after = await readAgentExecution(forward.baseUrl, second).then(
+      () => "present",
+      () => "absent",
+    );
+    if (after !== "absent") throw new Error(`run ${second}, made after the moment restored to, is present`);
+  } finally {
+    forward.stop();
+  }
+  if (!objectStore.listKeys(`artifacts/${executionId}/`).some((k) => k.endsWith("smoke/lane.txt"))) throw new Error("the run's files are gone from the bucket");
+  log(`after the restore: run ${executionId} COMPLETED, run ${second} absent, the run's files in the bucket`);
+  assertOperatorLogClean();
+  stigmer.delete();
+  log("=== profile bucket: PASS ===");
+  kubectl(["delete", "namespace", namespace, "--wait=false"]);
+}
+
+/** The source images tagged as `version` and loaded, as a release of that version would publish them. */
+function tagSourceImages(version) {
+  for (const image of ["stigmer-server", "stigmer-runner"]) {
+    const tagged = `${IMAGE_REGISTRY}/${image}:${version}`;
+    spawnSync("docker", ["tag", `${IMAGE_REGISTRY}/${image}:${SOURCE_TAG}`, tagged], { stdio: "inherit" });
+    cluster.loadImage(tagged);
+  }
+}
+
+async function runUpgrade(fake, modelBaseUrl) {
+  const namespace = "smoke-upgrade";
+  log(`=== profile upgrade (namespace ${namespace}) ===`);
+  objectStore.install();
+  for (const version of ["smoke-1", "smoke-2"]) {
+    tagSourceImages(version);
+    operator.buildAndLoad({ version });
+  }
+  operator.install({ tag: "smoke-1" });
+  log("the operator runs smoke-1");
+  prepareNamespace(namespace, modelBaseUrl);
+  objectStore.writeCredentials(namespace);
+  const stigmer = createStigmer(cluster, { namespace, log });
+  current = stigmer;
+  stigmer.apply({ owner: { email: "owner@example.com" }, runner: { llm: { secretName: MODEL_SECRET } }, objectStore: objectStore.spec() });
+  await stigmer.waitReady(READY_TIMEOUT_MS);
+  await pollUntil("status.version to read smoke-1", 60_000, () => stigmer.read()?.status?.version === "smoke-1");
+  const executionId = await probeStack(stigmer, fake, { bucket: true });
+  log(`backups: ${await waitBackupHealthy(stigmer)}`);
+
+  log("helm upgrade: the operator to smoke-2");
+  operator.install({ tag: "smoke-2" });
+  const backup = await waitBackup(namespace, "stigmer-before-smoke-2");
+  await pollUntil("the server to roll to smoke-2", READY_TIMEOUT_MS, () => stigmer.images().server.endsWith(":smoke-2"));
+  await stigmer.waitReady(READY_TIMEOUT_MS);
+  await pollUntil("status.version to read smoke-2", 120_000, () => stigmer.read()?.status?.version === "smoke-2");
+  const pods = cluster.kubectlJson(["-n", namespace, "get", "pods", "-l", "app.kubernetes.io/component=server,app.kubernetes.io/instance=stigmer"]).items;
+  const started = new Date(pods[0].metadata.creationTimestamp);
+  if (started < new Date(backup.status.stoppedAt)) {
+    throw new Error(`the server at smoke-2 started at ${started.toISOString()}, before its backup finished at ${backup.status.stoppedAt}`);
+  }
+  const annotations = cluster.kubectlJson(["-n", namespace, "get", "deployment", "stigmer"]).metadata.annotations ?? {};
+  if (annotations["stigmer.ai/upgraded-from"] !== "smoke-1" || annotations["stigmer.ai/upgrade-backup"] !== "stigmer-before-smoke-2") {
+    throw new Error(`the server's Deployment does not record the upgrade: ${JSON.stringify(annotations)}`);
+  }
+  const server = stigmer.component("server");
+  if (!server.message.includes("upgraded from smoke-1 after backup stigmer-before-smoke-2")) throw new Error(`the server does not say what the upgrade did: ${server.message}`);
+  log(`the server rolled after its backup (backup done ${backup.status.stoppedAt}, pod ${started.toISOString()}): ${server.message}`);
+  await assertExecutionSurvived(stigmer, executionId, "the upgrade");
+  assertZeroRestarts(namespace);
+  assertOperatorLogClean();
+  stigmer.delete();
+  log("=== profile upgrade: PASS ===");
+  kubectl(["delete", "namespace", namespace, "--wait=false"]);
+}
+
 /** A key in the license verifier's form, signed by a key pair made here: one no image trusts. */
 function untrustedLicenseKey() {
   const { privateKey } = generateKeyPairSync("ed25519");
@@ -401,6 +677,7 @@ async function main() {
   await assertPortFree(ARTIFACT_PORT);
   cluster = createKindCluster({ existing: args.cluster, prefix: "stigmer-operator-smoke", log });
   operator = createOperator(cluster, { log });
+  objectStore = createObjectStore(cluster, { log });
   let failed = false;
   const fake = await startFakeModel({ host: "0.0.0.0", mode: args.fakeModel });
   try {
@@ -412,10 +689,12 @@ async function main() {
     log("the operator is installed and ready");
     const modelBaseUrl = fakeModelEnv(fake, cluster.hostAddress()).ANTHROPIC_BASE_URL;
     log(`the model: the fake at ${modelBaseUrl}, mode ${args.fakeModel}`);
-    for (const profile of args.profiles) {
+    for (const profile of PROFILES.filter((p) => args.profiles.includes(p))) {
       if (profile === "bundled") await runBundled(fake, modelBaseUrl);
       else if (profile === "byo") await runByo(fake, modelBaseUrl);
-      else await runEnterprise(modelBaseUrl);
+      else if (profile === "enterprise") await runEnterprise(modelBaseUrl);
+      else if (profile === "bucket") await runBucket(fake, modelBaseUrl);
+      else await runUpgrade(fake, modelBaseUrl);
     }
     log("PASS");
   } catch (error) {
