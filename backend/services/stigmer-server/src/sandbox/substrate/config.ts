@@ -104,8 +104,9 @@ export interface SubstrateDriverSettings {
   /**
    * Each sandbox's memory in MiB: what Substrate books against its worker's
    * memory, beside the runtime's overhead, and the sandbox's ceiling. A
-   * sandbox that stays at the ceiling is stopped whole, not one command in
-   * it; its session's next message brings it back from its last snapshot.
+   * sandbox that reaches the ceiling is stopped whole by Substrate, not one
+   * command in it, and reverted to its last snapshot; the turn's recovery
+   * then resumes the same command (#3347).
    */
   readonly memoryMib: number;
 }
