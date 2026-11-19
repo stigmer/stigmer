@@ -141,9 +141,9 @@ function MyVaultCard({ org }: { org: string }) {
     <section aria-labelledby={headingId} className="stg:flex stg:flex-col stg:gap-3">
       <div className="stg:flex stg:flex-col stg:gap-1">
         {/* The tag is part of the heading, so the heading reads "My vault You" as it is drawn. */}
-        <h3 id={headingId} className="stg:m-0 stg:flex stg:items-center stg:gap-2 stg:text-foreground stg:text-sm stg:font-semibold">
+        <h3 id={headingId} className="stg:m-0 stg:text-foreground stg:text-sm stg:font-semibold">
           My vault{" "}
-          <Tag>You</Tag>
+          <Tag className="stg:ml-1 stg:align-middle">You</Tag>
         </h3>
         <p className="stg:m-0 stg:text-muted-foreground stg:text-xs">
           Your own logins and secrets. A chat that includes My vault uses them for the messages you send, never a
@@ -213,10 +213,10 @@ function SharedVaultsCard({
   return (
     <section aria-labelledby={headingId} className="stg:flex stg:flex-col stg:gap-3">
       <div className="stg:flex stg:flex-col stg:gap-1">
-        <h3 id={headingId} className="stg:m-0 stg:flex stg:items-center stg:gap-2 stg:text-foreground stg:text-sm stg:font-semibold">
+        <h3 id={headingId} className="stg:m-0 stg:text-foreground stg:text-sm stg:font-semibold">
           Shared vaults
           {count != null && count > 0 && " "}
-          {count != null && count > 0 && <Tag>{count}</Tag>}
+          {count != null && count > 0 && <Tag className="stg:ml-1 stg:align-middle">{count}</Tag>}
         </h3>
         <p className="stg:m-0 stg:text-muted-foreground stg:text-xs">
           Your organization&apos;s team keys. Admins create them and choose who may use them; a conversation, a routine

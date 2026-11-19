@@ -165,10 +165,11 @@ function DefaultRow({
         <>
           <span id={descriptionId}>{HARNESS_META[harness].description}</span>
           {/* On a phone the trailing slot has no room for the status, so it reads
-              under the harness's line instead; the trailing copy stays its
-              accessible description at every width. */}
+              under the harness's line instead (the trailing copy is hidden
+              there); the trailing copy stays the select's description at
+              every width. */}
           {statusText !== "" && (
-            <span aria-hidden="true" className={cn("stg:block stg:truncate stg:sm:hidden", statusTone)}>
+            <span className={cn("stg:block stg:truncate stg:sm:hidden", statusTone)}>
               {statusText}
             </span>
           )}

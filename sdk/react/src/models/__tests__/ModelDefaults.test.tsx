@@ -72,9 +72,8 @@ describe("ModelDefaults", () => {
     const copies = screen.getAllByText("Needs an Anthropic key");
     // Two engines, each with its trailing status and its narrow copy.
     expect(copies).toHaveLength(4);
-    const narrow = copies.filter((copy) => copy.getAttribute("aria-hidden") === "true");
+    const narrow = copies.filter((copy) => copy.className.includes("stg:sm:hidden"));
     expect(narrow).toHaveLength(2);
-    for (const copy of narrow) expect(copy.className).toContain("stg:sm:hidden");
     const ids = (stigmer.getAttribute("aria-describedby") ?? "").split(" ");
     expect(narrow.some((copy) => ids.includes(copy.id))).toBe(false);
   });
