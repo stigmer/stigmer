@@ -41,8 +41,6 @@ import type { BaseCheckpointSaver } from "@langchain/langgraph-checkpoint";
 import type { DynamicStructuredTool } from "@langchain/core/tools";
 import type { Command } from "@langchain/langgraph";
 import { createDeepAgent } from "deepagents";
-import { providerStrategy } from "langchain";
-import { transformJSONSchema } from "@anthropic-ai/sdk/lib/transform-json-schema";
 import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { Config } from "../../config.js";
@@ -85,7 +83,7 @@ import type { RecalledMemoriesContent } from "../../shared/recalled-memories.js"
 import { toLangChainImageRefs } from "../../shared/attachment-vision.js";
 import { workspaceResourcesOf } from "../../shared/workspace/provisioner.js";
 import { backstopRecursionLimit, resolveToolRoundLimit } from "../../shared/tool-rounds.js";
-import { jsonSchemaToZod } from "../../shared/json-schema-to-zod.js";
+import { structuredOutputFormat } from "./structured-output-format.js";
 import { skillContentReadCheck } from "../../shared/skill-mount.js";
 import { CasCaptureObserver } from "../../shared/filereview/cas-capture-observer.js";
 import { CasCaptureShellBackend, createCasCaptureBackend } from "./cas-capture-backend.js";
@@ -120,14 +118,6 @@ export type DeepAgentAdapterConfig = Pick<
   Config,
   "checkpointerType" | "checkpointerProxyEndpoint" | "stigmerTokenRef" | "proxyEndpoint" | "mode" | "cursorStreamStallTimeoutMs" | "shellTimeoutMaxSeconds" | "shellBackgroundEnabled"
 >;
-
-/**
- * A JSON object schema, the shape langchain's provider strategy takes for a
- * plain schema (its own type for it is not exported). An execution's
- * structured output schema is an object schema; the SDK's transform keeps
- * its root `type`.
- */
-type ObjectJsonSchema = { type: "object"; [key: string]: unknown };
 
 /** The deepagents graph as this module holds it; deepagents exports no stable type for the compiled agent. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -767,20 +757,8 @@ export async function buildEngine(
     parentReadsWorkspace ? repositoryInstructions.section : "",
   );
 
-  // Structured output takes one of langchain's two strategies, chosen here
-  // explicitly. A graph that thinks uses the provider strategy: Anthropic's
-  // own JSON output (`output_config.format`), which forces no tool, because
-  // forced tool use and thinking do not combine on every platform and
-  // model. Its schema goes through the SDK's own transform (the one
-  // @langchain/anthropic's withStructuredOutput applies): Anthropic accepts
-  // only closed objects, and the runner's zod keeps them open. A graph that
-  // does not think keeps the tool strategy, the raw zod, unchanged.
-  const outputSchema = input.structuredOutputSchema;
-  const responseFormat = outputSchema === undefined
-    ? undefined
-    : parentThinks
-      ? providerStrategy({ schema: transformJSONSchema(outputSchema) as ObjectJsonSchema })
-      : jsonSchemaToZod(outputSchema);
+  // The strategy and its reasons: `structured-output-format.ts`.
+  const responseFormat = structuredOutputFormat(input.structuredOutputSchema, parentThinks);
 
   const graph = await createDeepAgent({
     model,
@@ -855,7 +833,7 @@ export async function buildEngine(
     modelName,
     pricing,
     gate,
-    hasStructuredOutput: !!outputSchema,
+    hasStructuredOutput: input.structuredOutputSchema !== undefined,
     inputBarriers,
   };
 }

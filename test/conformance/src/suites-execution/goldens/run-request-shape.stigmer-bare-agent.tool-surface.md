@@ -8,6 +8,7 @@ input_schema:
 
 ```json
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
     "url": {
@@ -15,22 +16,22 @@ input_schema:
       "description": "The http(s) URL to fetch."
     },
     "max_length": {
+      "description": "Maximum characters to return (default 20000).",
       "type": "integer",
       "exclusiveMinimum": 0,
-      "maximum": 100000,
-      "description": "Maximum characters to return (default 20000)."
+      "maximum": 100000
     },
     "start_index": {
+      "description": "Character offset to start from, for paginating large pages (default 0).",
       "type": "integer",
       "minimum": 0,
-      "description": "Character offset to start from, for paginating large pages (default 0)."
+      "maximum": 9007199254740991
     }
   },
   "required": [
     "url"
   ],
-  "additionalProperties": false,
-  "$schema": "http://json-schema.org/draft-07/schema#"
+  "additionalProperties": false
 }
 ```
 
@@ -50,6 +51,7 @@ input_schema:
   "properties": {
     "path": {
       "default": "/",
+      "description": "Directory path to list (default: /)",
       "type": "string"
     }
   },
@@ -82,14 +84,17 @@ input_schema:
   "type": "object",
   "properties": {
     "file_path": {
-      "type": "string"
+      "type": "string",
+      "description": "Absolute path to the file to read"
     },
     "offset": {
       "default": 0,
+      "description": "Line offset to start reading from (0-indexed)",
       "type": "number"
     },
     "limit": {
       "default": 100,
+      "description": "Maximum number of lines to read",
       "type": "number"
     }
   },
@@ -118,10 +123,12 @@ input_schema:
   "type": "object",
   "properties": {
     "file_path": {
-      "type": "string"
+      "type": "string",
+      "description": "Absolute path where the file should be written. Must be absolute, not relative."
     },
     "content": {
-      "type": "string"
+      "type": "string",
+      "description": "The text content to write to the file. This parameter is required."
     }
   },
   "required": [
@@ -150,16 +157,20 @@ input_schema:
   "type": "object",
   "properties": {
     "file_path": {
-      "type": "string"
+      "type": "string",
+      "description": "Absolute path to the file to edit"
     },
     "old_string": {
-      "type": "string"
+      "type": "string",
+      "description": "String to be replaced (must match exactly)"
     },
     "new_string": {
-      "type": "string"
+      "type": "string",
+      "description": "String to replace with"
     },
     "replace_all": {
       "default": false,
+      "description": "Whether to replace all occurrences",
       "type": "boolean"
     }
   },
@@ -187,9 +198,11 @@ input_schema:
   "type": "object",
   "properties": {
     "pattern": {
-      "type": "string"
+      "type": "string",
+      "description": "Glob pattern to match files (e.g., '**/*.py', '*.txt', '/subdir/**/*.md')"
     },
     "path": {
+      "description": "Base directory to search from. Defaults to the backend's default root.",
       "type": "string"
     }
   },
@@ -217,28 +230,30 @@ input_schema:
   "type": "object",
   "properties": {
     "pattern": {
-      "type": "string"
+      "type": "string",
+      "description": "Literal text pattern to search for (not regex)"
     },
     "path": {
       "default": "/",
+      "description": "Base path to search from (default: /)",
       "type": "string"
     },
     "glob": {
       "default": null,
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
+      "description": "Optional glob pattern to filter files (e.g., '*.py')",
+      "type": [
+        "string",
+        "null"
       ]
     },
     "max_count": {
       "default": null,
+      "description": "Optional cap on the total number of matches returned across all files. Leave unset to use the configured default. When the cap is hit, results are truncated and a note says so; narrow the pattern or path to see the rest.",
       "anyOf": [
         {
-          "type": "number"
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
         },
         {
           "type": "null"
@@ -247,6 +262,7 @@ input_schema:
     },
     "output_mode": {
       "default": "content",
+      "description": "Output format: 'files_with_matches' lists matching file paths, 'content' shows matching lines (default), 'count' shows match counts per file",
       "type": "string",
       "enum": [
         "files_with_matches",
@@ -288,7 +304,8 @@ input_schema:
   "type": "object",
   "properties": {
     "command": {
-      "type": "string"
+      "type": "string",
+      "description": "The shell command to execute"
     },
     "timeout": {
       "type": "number",
@@ -336,10 +353,12 @@ input_schema:
   "type": "object",
   "properties": {
     "description": {
-      "type": "string"
+      "type": "string",
+      "description": "The task to execute with the selected agent"
     },
     "subagent_type": {
-      "type": "string"
+      "type": "string",
+      "description": "Name of the agent to use. Available: explore, shell, general-purpose"
     }
   },
   "required": [
@@ -407,6 +426,7 @@ input_schema:
 
 ```json
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
     "id": {
@@ -417,7 +437,6 @@ input_schema:
   "required": [
     "id"
   ],
-  "additionalProperties": false,
-  "$schema": "http://json-schema.org/draft-07/schema#"
+  "additionalProperties": false
 }
 ```

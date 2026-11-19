@@ -2,12 +2,13 @@
  * The bound a request's JSON collections are held to before any schema
  * validates them (stigmer#2951).
  *
- * The tool input schemas are checked by a schema library that records one
- * issue per failing element of an array or record (zod 3, which has no
- * release patched for it; #2871 moves to zod 4). So a body at the handler's
- * byte cap holding millions of wrong-typed elements costs memory in
- * proportion to the element count, about 1.4 GiB at 10 MiB, before any tool
- * runs. The cost follows the total number of elements, wherever they sit:
+ * The tool input schemas are checked by zod, which records one issue per
+ * failing element of an array or record. The bound was set while the tree
+ * ran zod 3, whose issue list had no limit at all (GHSA-mrhx-c7xc-m3w5:
+ * about 1.4 GiB for a 10 MiB body); it stays on zod 4 (#2871), because a
+ * per-element issue still costs memory in proportion to the element count,
+ * and the bound keeps that count small before any schema runs. The cost
+ * follows the total number of elements, wherever they sit:
  * one long array, collections nested in collections, or a JSON-RPC batch
  * of calls. So two bounds hold together:
  *

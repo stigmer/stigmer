@@ -73,20 +73,18 @@ export const OBSERVABILITY = ["launcher", "composition-only", "none"] as const;
 
 export const CALLERS = ["primary", "operator", "outsider", "anonymous", "runner-token", "none"] as const;
 
-const rowSchema = z
-  .object({
-    id: z.string().regex(ROW_ID_PATTERN, "row id must be <surface>.<lane>.<behavior> in lowercase kebab segments"),
-    surface: z.enum(SURFACES),
-    lane: z.string().min(1),
-    behavior: z.string().min(1),
-    class: z.enum(ROW_CLASSES),
-    disposition: z.enum(DISPOSITIONS),
-    observability: z.enum(OBSERVABILITY),
-    caller: z.enum(CALLERS),
-    needs: z.array(z.string().min(1)),
-    note: z.string().optional(),
-  })
-  .strict()
+const rowSchema = z.strictObject({
+  id: z.string().regex(ROW_ID_PATTERN, "row id must be <surface>.<lane>.<behavior> in lowercase kebab segments"),
+  surface: z.enum(SURFACES),
+  lane: z.string().min(1),
+  behavior: z.string().min(1),
+  class: z.enum(ROW_CLASSES),
+  disposition: z.enum(DISPOSITIONS),
+  observability: z.enum(OBSERVABILITY),
+  caller: z.enum(CALLERS),
+  needs: z.array(z.string().min(1)),
+  note: z.string().optional(),
+})
   .refine((row) => row.id.startsWith(`${row.surface}.`), {
     message: "row id's first segment must equal its surface",
     path: ["id"],
@@ -103,15 +101,13 @@ export type InventoryRow = z.infer<typeof rowSchema>;
 // `platform` is the surface for metrics that belong to no lane — the HTTP
 // edge, the gRPC edge, the secret-cleanup counter — whose alert rules read
 // them all the same.
-const metricRowSchema = z
-  .object({
-    name: z.string().regex(/^stigmer\.[a-z0-9_.]+$/, "a stigmer.* metric name, byte-exact"),
-    surface: z.enum(["billing", "proxy", "platform"]),
-    disposition: z.enum(["ported", "dropped"]),
-    alerts: z.array(z.string().min(1)).optional(),
-    note: z.string().optional(),
-  })
-  .strict()
+const metricRowSchema = z.strictObject({
+  name: z.string().regex(/^stigmer\.[a-z0-9_.]+$/, "a stigmer.* metric name, byte-exact"),
+  surface: z.enum(["billing", "proxy", "platform"]),
+  disposition: z.enum(["ported", "dropped"]),
+  alerts: z.array(z.string().min(1)).optional(),
+  note: z.string().optional(),
+})
   .refine((row) => row.disposition !== "dropped" || (row.note ?? "") !== "", {
     message: "a dropped metric must say why it is not emitted",
     path: ["note"],
@@ -119,12 +115,10 @@ const metricRowSchema = z
 
 export type MetricRow = z.infer<typeof metricRowSchema>;
 
-const inventorySchema = z
-  .object({
-    rows: z.array(rowSchema),
-    metrics: z.array(metricRowSchema).default([]),
-  })
-  .strict();
+const inventorySchema = z.strictObject({
+  rows: z.array(rowSchema),
+  metrics: z.array(metricRowSchema).default([]),
+});
 
 export interface Inventory {
   readonly rows: readonly InventoryRow[];
