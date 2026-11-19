@@ -46,7 +46,7 @@ export function CollapsibleCode({ label, content, className }: CollapsibleCodePr
   return (
     <div className={cn("stg:space-y-1", className)}>
       <span className="stg:font-medium stg:text-muted-foreground">{label}</span>
-      <CodeBlock wrap maxHeight="80">
+      <CodeBlock box wrap className="stg:max-h-80 stg:overflow-y-auto">
         {displayContent}
       </CodeBlock>
       {needsTruncation && (
@@ -93,7 +93,7 @@ export function CollapsiblePre({ content, className }: CollapsiblePreProps) {
 
   return (
     <>
-      <CodeBlock frame="bare" wrap className={className}>
+      <CodeBlock wrap className={className}>
         {displayContent}
       </CodeBlock>
       {needsTruncation && (
@@ -164,7 +164,7 @@ export function CollapsibleJsonBlock({ label, content }: CollapsibleJsonBlockPro
         )}
       </button>
       {isExpanded && (
-        <CodeBlock id={contentId} wrap maxHeight="80">
+        <CodeBlock id={contentId} box wrap className="stg:max-h-80 stg:overflow-y-auto">
           {content}
         </CodeBlock>
       )}

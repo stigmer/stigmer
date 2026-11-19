@@ -114,7 +114,7 @@ export function InlineEditTextarea({
           <div className="stg:flex stg:items-start stg:justify-between stg:gap-2">
             <CodeBlock
               size="sm"
-              frame="bare"
+             
               wrap
               className={cn("stg:min-w-0", !value && "stg:text-muted-foreground stg:italic stg:font-sans")}
             >

@@ -1075,7 +1075,7 @@ function InstructionsContent({ text }: { readonly text: string }) {
         id={contentId}
         ref={contentRef}
         size="sm"
-        frame="bare"
+       
         wrap
         className={cn("stg:overflow-y-auto stg:transition-[max-height] stg:duration-200", !expanded && "stg:overflow-hidden")}
         style={{ maxHeight: expanded ? "none" : INSTRUCTIONS_COLLAPSED_HEIGHT }}

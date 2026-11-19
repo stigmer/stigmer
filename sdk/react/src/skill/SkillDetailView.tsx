@@ -497,7 +497,7 @@ function SkillContentSection({ content }: { readonly content: string }) {
           </Markdown>
         </div>
       ) : (
-        <CodeBlock size="sm" frame="bare" className="stg:p-4">
+        <CodeBlock size="sm" className="stg:p-4">
           {content}
         </CodeBlock>
       )}

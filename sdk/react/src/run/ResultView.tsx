@@ -657,7 +657,10 @@ function ErrorResultView({ message, className }: { message: string; className?: 
   return (
     <div className={cn("stg:space-y-1", className)}>
       <span className="stg:font-medium stg:text-destructive">Error</span>
-      <CodeBlock frame="alert" wrap>
+      <CodeBlock
+        wrap
+        className="stg:rounded-md stg:border stg:border-destructive/20 stg:bg-destructive-subtle stg:p-2 stg:text-destructive"
+      >
         {message}
       </CodeBlock>
     </div>

@@ -207,7 +207,7 @@ export function PlanEditor({
 
       {activeView === "rendered" && <RenderedPlan body={parsed.body} />}
       {activeView === "source" && (
-        <CodeBlock wrap>{effectiveText}</CodeBlock>
+        <CodeBlock box wrap>{effectiveText}</CodeBlock>
       )}
       {activeView === "edit" && activeDraft !== undefined && (
         <TextArea

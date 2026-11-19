@@ -330,7 +330,7 @@ function ScalarRow({ label, value }: { label: string; value: string }) {
       <dt className="stg:whitespace-nowrap stg:text-muted-foreground">{label}</dt>
       {isMultiline ? (
         <dd className="stg:min-w-0">
-          <CodeBlock wrap>{value}</CodeBlock>
+          <CodeBlock box wrap>{value}</CodeBlock>
         </dd>
       ) : (
         <dd className="stg:min-w-0">

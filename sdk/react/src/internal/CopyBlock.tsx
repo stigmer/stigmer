@@ -42,7 +42,7 @@ export function CopyBlock({
         </p>
         <CopyButton copied={copied} onCopy={copy} copyTargetId={copyTargetId} />
       </div>
-      <CodeBlock size="2xs" label={label} maxHeight={tall ? "96" : "40"}>
+      <CodeBlock size="2xs" box label={label} className={tall ? "stg:max-h-96 stg:overflow-y-auto" : "stg:max-h-40 stg:overflow-y-auto"}>
         {value}
       </CodeBlock>
     </div>

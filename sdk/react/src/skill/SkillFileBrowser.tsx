@@ -229,7 +229,7 @@ function FileContentViewer({
             {stripFrontmatter(content)}
           </Markdown>
         ) : (
-          <CodeBlock frame="bare">{content}</CodeBlock>
+          <CodeBlock>{content}</CodeBlock>
         )}
       </div>
     </>

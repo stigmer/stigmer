@@ -1508,7 +1508,7 @@ function CopyField({
       <h3 className="stg:text-xs stg:font-medium stg:text-muted-foreground">{label}</h3>
       <div className="stg:mt-1.5 stg:flex stg:items-start stg:gap-1.5">
         {multiline ? (
-          <CodeBlock label={label} className="stg:min-w-0 stg:flex-1">
+          <CodeBlock box label={label} className="stg:min-w-0 stg:flex-1">
             {value}
           </CodeBlock>
         ) : (

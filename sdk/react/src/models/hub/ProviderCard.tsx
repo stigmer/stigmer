@@ -376,7 +376,7 @@ export function SetupCommand({ provider }: SetupCommandProps) {
     <div className="stg:space-y-1.5">
       <p className="stg:text-sm stg:text-foreground">{setup.lead}</p>
       <div className="stg:flex stg:items-start stg:gap-2 stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:px-3 stg:py-2">
-        <CodeBlock frame="bare" className="stg:min-w-0 stg:flex-1">
+        <CodeBlock className="stg:min-w-0 stg:flex-1">
           {commands}
         </CodeBlock>
         <CopyButton copied={copied} onCopy={copy} />

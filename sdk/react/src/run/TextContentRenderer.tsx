@@ -283,7 +283,7 @@ function YamlView({
   const lines = content.split("\n");
 
   return (
-    <CodeBlock frame="bare" className="stg:p-4">
+    <CodeBlock className="stg:p-4">
       <code ref={containerRef}>
         {lines.map((line, i) => (
           <span
@@ -382,7 +382,7 @@ function highlightJsonValue(value: string): ReactNode {
 
 function JsonView({ content }: { readonly content: string }) {
   return (
-    <CodeBlock frame="bare" className="stg:p-4">
+    <CodeBlock className="stg:p-4">
       <code>{highlightJson(content)}</code>
     </CodeBlock>
   );
@@ -420,7 +420,7 @@ function LineNumberedPre({
   const gutterWidth = String(lines.length).length;
 
   return (
-    <CodeBlock frame="bare">
+    <CodeBlock>
       <code ref={containerRef}>
         {lines.map((line, i) => (
           <span

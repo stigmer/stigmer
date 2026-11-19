@@ -102,7 +102,7 @@ export function ReviewStep({
           YAML Preview
         </h3>
         <div className="stg:max-h-80 stg:overflow-auto stg:rounded-lg stg:border stg:border-border stg:bg-muted-faint">
-          <CodeBlock frame="bare" className="stg:p-4">
+          <CodeBlock className="stg:p-4">
             {yamlPreview}
           </CodeBlock>
         </div>
