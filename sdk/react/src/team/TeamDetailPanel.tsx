@@ -14,7 +14,10 @@
  * was loaded at: everything else keeps its stored value, and a team
  * changed since it was loaded refuses the save. Deleting a team takes
  * every membership and every grant made to the team with it, and the
- * confirmation says exactly that, so no one reads it as deleting people.
+ * confirmation says exactly that, so no one reads it as deleting people:
+ * how many people lose what was shared with the team (the member list's
+ * own count, read once for the list and the line), and that nothing they
+ * made goes.
  */
 import { ArrowLeft } from "lucide-react";
 import { useCallback, useState, type FormEvent } from "react";
@@ -25,7 +28,8 @@ import { maskedEdit, saveErrorMessage } from "@stigmer/react-core/internal";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { PermissionGate } from "../grant/PermissionGate.js";
 import { TEAM_DESCRIPTION_MAX_LENGTH } from "./CreateTeamForm.js";
-import { TeamMembersPanel } from "./TeamMembersPanel.js";
+import { TeamMembersView, useTeamMembers } from "./TeamMembersPanel.js";
+import { countWord } from "../internal/count-words.js";
 import { useDeleteTeam, useUpdateTeam } from "./useTeamMutations.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { Button } from "../button/Button.js";
@@ -74,6 +78,8 @@ export function TeamDetailPanel({
   const gate = { kind: "team", id: teamId };
 
   const [editing, setEditing] = useState(false);
+  const members = useTeamMembers(teamId);
+  const peopleCount = members.isLoading || members.fetchError ? undefined : members.accessList.length;
 
   return (
     <div className={cn("stg:space-y-4", className)}>
@@ -125,10 +131,10 @@ export function TeamDetailPanel({
         />
       )}
 
-      <TeamMembersPanel teamId={teamId} org={org} asSection />
+      <TeamMembersView teamId={teamId} org={org} asSection members={members} />
 
       <PermissionGate fail="closed" resource={gate} relation="can_delete">
-        <DeleteTeam teamId={teamId} name={name} onDeleted={onDeleted} />
+        <DeleteTeam teamId={teamId} name={name} peopleCount={peopleCount} onDeleted={onDeleted} />
       </PermissionGate>
     </div>
   );
@@ -209,22 +215,42 @@ function EditTeamForm({
   );
 }
 
+/**
+ * What deleting the team takes, in one sentence for the card and the
+ * dialog: its people by count ("Its four people lose what was shared with
+ * Finance."), and that nothing they made goes. Before the list has loaded
+ * the count is left out rather than guessed.
+ */
+function deleteTeamLine(name: string, peopleCount: number | undefined): string {
+  if (peopleCount === 0) return `No one is in ${name}, so no one loses anything. Nothing anyone made is deleted.`;
+  const who =
+    peopleCount === undefined
+      ? "Its people lose"
+      : peopleCount === 1
+        ? "Its one person loses"
+        : `Its ${countWord(peopleCount)} people lose`;
+  return `${who} what was shared with ${name}. Nothing they made is deleted.`;
+}
+
 function DeleteTeam({
   teamId,
   name,
+  peopleCount,
   onDeleted,
 }: {
   readonly teamId: string;
   readonly name: string;
+  readonly peopleCount: number | undefined;
   readonly onDeleted?: () => void;
 }) {
+  const line = deleteTeamLine(name, peopleCount);
   const { deleteTeam } = useDeleteTeam();
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
 
   const askToDelete = useCallback(async () => {
     const deleted = await confirm({
       title: `Delete the team ${name}?`,
-      description: `Everyone in ${name} loses what was shared with the team. Access granted to them directly stays, and nothing they made is deleted.`,
+      description: line,
       confirmLabel: "Delete team",
       variant: "destructive",
       action: async () => {
@@ -233,14 +259,12 @@ function DeleteTeam({
       failureTitle: `Couldn't delete ${name}.`,
     });
     if (deleted) onDeleted?.();
-  }, [confirm, deleteTeam, teamId, name, onDeleted]);
+  }, [confirm, deleteTeam, teamId, name, line, onDeleted]);
 
   return (
     <Section title="Delete this team">
       <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-3 stg:p-4">
-        <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
-          Everyone in {name} loses what was shared with the team. Nothing they made is deleted.
-        </p>
+        <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">{line}</p>
         <Button variant="outline" size="sm" onClick={() => void askToDelete()}>
           Delete team
         </Button>

@@ -60,6 +60,8 @@ export function Section({
         {/* The count is part of the heading, so the heading reads "Members 4" as it is drawn. */}
         <Heading className="stg:m-0 stg:flex stg:min-w-0 stg:items-center stg:gap-2 stg:text-sm stg:font-semibold stg:text-foreground">
           {title}
+          {/* A space between the title and its count, so the heading's name reads "Members 4". */}
+          {count != null && count > 0 && " "}
           {count != null && count > 0 && <Tag>{countIsLowerBound ? `${count}+` : count}</Tag>}
         </Heading>
         {(headerActions || onEdit) && (

@@ -99,7 +99,7 @@ function sentServers(update: Parameters<typeof sentUpdate>[0]) {
 }
 
 async function section() {
-  const heading = await screen.findByRole("heading", { name: "MCP servers" });
+  const heading = await screen.findByRole("heading", { name: /^MCP servers( \d+)?$/ });
   return heading.closest("section") as HTMLElement;
 }
 

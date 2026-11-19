@@ -142,7 +142,7 @@ function MyVaultCard({ org }: { org: string }) {
       <div className="stg:flex stg:flex-col stg:gap-1">
         {/* The tag is part of the heading, so the heading reads "My vault You" as it is drawn. */}
         <h3 id={headingId} className="stg:m-0 stg:flex stg:items-center stg:gap-2 stg:text-foreground stg:text-sm stg:font-semibold">
-          My vault
+          My vault{" "}
           <Tag>You</Tag>
         </h3>
         <p className="stg:m-0 stg:text-muted-foreground stg:text-xs">
@@ -215,6 +215,7 @@ function SharedVaultsCard({
       <div className="stg:flex stg:flex-col stg:gap-1">
         <h3 id={headingId} className="stg:m-0 stg:flex stg:items-center stg:gap-2 stg:text-foreground stg:text-sm stg:font-semibold">
           Shared vaults
+          {count != null && count > 0 && " "}
           {count != null && count > 0 && <Tag>{count}</Tag>}
         </h3>
         <p className="stg:m-0 stg:text-muted-foreground stg:text-xs">

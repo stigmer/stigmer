@@ -17,6 +17,10 @@
  * member list is an organization viewer, which the model requires of every
  * member, so the server has nothing to refuse about the people offered
  * here.
+ *
+ * `useTeamMembers` and `TeamMembersView` are the panel in two halves for a
+ * team's page, which reads the list once for the rows and for the count
+ * its delete line says; neither is on the kit's barrel.
  */
 import { FieldError } from "../internal/form/index.js";
 import { useMemo, useState } from "react";
@@ -31,7 +35,7 @@ import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { AccessRow, accessEntryKey } from "../grant/AccessRow.js";
 import { PermissionGate } from "../grant/PermissionGate.js";
 import { PrincipalPicker, type SelectedGrantee } from "../grant/PrincipalPicker.js";
-import { useShareFlow } from "../grant/useShareFlow.js";
+import { useShareFlow, type UseShareFlowReturn } from "../grant/useShareFlow.js";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
@@ -66,11 +70,36 @@ export interface TeamMembersPanelProps {
  *
  * All visual properties flow through `--stgm-*` design tokens.
  */
-export function TeamMembersPanel({ teamId, org, showHeading = true, asSection = false, className }: TeamMembersPanelProps) {
+export function TeamMembersPanel(props: TeamMembersPanelProps) {
+  const members = useTeamMembers(props.teamId);
+  return <TeamMembersView {...props} members={members} />;
+}
+
+/**
+ * The share flow on a team: its people and adding or removing them. A team's
+ * page reads it once and hands it to {@link TeamMembersView} and to the
+ * delete card, so the count the delete line says is the list's own.
+ */
+export function useTeamMembers(teamId: string): UseShareFlowReturn {
   const team = useMemo(
     () => ({ kind: "team", id: teamId, resourceKind: ApiResourceKind.team }),
     [teamId],
   );
+  return useShareFlow(team);
+}
+
+/**
+ * {@link TeamMembersPanel} drawn from a share flow its caller holds
+ * ({@link useTeamMembers}).
+ */
+export function TeamMembersView({
+  teamId,
+  org,
+  showHeading = true,
+  asSection = false,
+  className,
+  members: flow,
+}: TeamMembersPanelProps & { readonly members: UseShareFlowReturn }) {
   const {
     accessList,
     isLoading,
@@ -82,7 +111,7 @@ export function TeamMembersPanel({ teamId, org, showHeading = true, asSection = 
     revoke,
     isRevoking,
     revokeError,
-  } = useShareFlow(team);
+  } = flow;
 
   const [adding, setAdding] = useState<SelectedGrantee | null>(null);
   // As a section, the picker waits for "Add a person"; standing alone it is always there.
@@ -141,6 +170,7 @@ export function TeamMembersPanel({ teamId, org, showHeading = true, asSection = 
               onRemove={revoke}
               isRemoving={isRevoking}
               showRoles={false}
+              listName={asSection}
             />
           ))}
         </ul>
