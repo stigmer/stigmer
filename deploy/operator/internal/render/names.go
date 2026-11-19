@@ -165,3 +165,13 @@ func ServerImage(st *stigmerv1.Stigmer) string {
 func RunnerImage(st *stigmerv1.Stigmer) string {
 	return fmt.Sprintf("%s/stigmer-runner:%s", registry(st), version.Stigmer)
 }
+
+// PortForwardPorts are the ports a port-forward to the server needs: the API,
+// and the artifact file server when files live on its volume (a bucket
+// install serves none).
+func PortForwardPorts(st *stigmerv1.Stigmer) string {
+	if ObjectStore(st) != nil {
+		return fmt.Sprintf("%d", GRPCPort)
+	}
+	return fmt.Sprintf("%d %d", GRPCPort, ArtifactsPort)
+}

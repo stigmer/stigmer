@@ -129,9 +129,10 @@ path and the runner reads the same path, so the two must see one disk: the
 compose stack gives them one volume, and the chart puts them in one pod. Name an
 S3-compatible bucket instead (AWS S3, Cloudflare R2, MinIO, or Google Cloud
 Storage through its S3 API) and the runner can run anywhere: it asks the
-server's artifact lane for a short-lived URL for each file it reads or writes,
-and the server answers only for the run the runner is serving. A conversation's
-Files and Skills use the same bucket. The server's settings:
+server's file lane (`/v1/proxy/artifacts`) for a short-lived URL for each file
+it reads or writes, and the server answers only for the run the runner is
+serving. A conversation's Files and Skills use the same bucket. The server's
+settings:
 
 | Setting                       | What it holds                                                              |
 | ----------------------------- | -------------------------------------------------------------------------- |
@@ -362,10 +363,10 @@ SANDBOX_PROVISIONER_TYPE='docker' requires per-session routing — set STIGMER_A
   names an origin the container reaches; the server warns at boot when it is
   left on loopback. What a run stores beside its record (its offloaded tool
   output and file-review content) reaches the per-Session runner through the
-  server's artifact lane once the server stores files in a bucket (**File
-  storage**, above); on the local store it needs a shared path. This section
-  describes the mechanism so the settings you meet in the server's configuration
-  make sense; it isn't a procedure.
+  server's file lane once the server stores files in a bucket (**File storage**,
+  above); on the local store it needs a shared path. This section describes the
+  mechanism so the settings you meet in the server's configuration make sense;
+  it isn't a procedure.
 </Callout>
 
 ### Bring your own base image

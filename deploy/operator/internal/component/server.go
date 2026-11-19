@@ -90,8 +90,8 @@ func (Server) Reconcile(ctx context.Context, env *Env) (Result, error) {
 	if ready {
 		// The newest pod is the declared one, so it runs this version.
 		st.Status.Version = version.Stigmer
-		return Ready(fmt.Sprintf("serving Stigmer %s%s; reach it with: kubectl -n %s port-forward svc/%s %d %d",
-			version.Stigmer, upgradeSentence(gate.annotations), st.Namespace, render.ServerService(st), render.GRPCPort, render.ArtifactsPort)), nil
+		return Ready(fmt.Sprintf("serving Stigmer %s%s; reach it with: kubectl -n %s port-forward svc/%s %s",
+			version.Stigmer, upgradeSentence(gate.annotations), st.Namespace, render.ServerService(st), render.PortForwardPorts(st))), nil
 	}
 	return Explain(ctx, env, render.SelectorLabels(st, render.ComponentServer), []string{render.ServerContainer},
 		Deploying(stigmerv1.ReasonDeploying, Ref("Deployment", st.Namespace, render.ServerDeployment(st)), "waiting for the server's pod"))

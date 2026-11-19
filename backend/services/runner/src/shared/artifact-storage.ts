@@ -410,7 +410,7 @@ export function createArtifactStorage(cfg: ArtifactStorageConfig): ArtifactStora
     if (!cfg.proxyAuthToken?.current && currentRunCredential() === undefined) {
       throw new Error("Proxy artifact storage requires STIGMER_TOKEN or a run credential");
     }
-    return new ProxyArtifactStorage(cfg.proxyEndpoint, cfg.proxyAuthToken);
+    return new ProxyArtifactStorage(cfg.proxyEndpoint, cfg.proxyAuthToken ?? { current: null });
   }
 
   return new LocalArtifactStorage(cfg.localPath);

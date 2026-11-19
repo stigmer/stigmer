@@ -135,8 +135,8 @@ func (r *StigmerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 	status.Keep(&st.Status, names)
-	status.Summarize(&st, fmt.Sprintf("Ready; reach it with: kubectl -n %s port-forward svc/%s %d %d",
-		st.Namespace, render.ServerService(&st), render.GRPCPort, render.ArtifactsPort))
+	status.Summarize(&st, fmt.Sprintf("Ready; reach it with: kubectl -n %s port-forward svc/%s %s",
+		st.Namespace, render.ServerService(&st), render.PortForwardPorts(&st)))
 	return r.finish(ctx, orig, &st)
 }
 
