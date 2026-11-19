@@ -1,8 +1,7 @@
 // License standing: the time state in the contract's words, the
-// term-relative Expiring window, the renewal fact, the calendar's order
-// and the customer-counting summary. Pins that a 30-day trial is not
-// Expiring on its first day, that a renewed license needs no action, and
-// that a renewed customer counts once.
+// term-relative Expiring window, the renewal fact and the calendar's order.
+// Pins that a 30-day trial is not Expiring on its first day and that a
+// renewed license needs no action.
 
 import { describe, it, expect } from "vitest";
 import { LicenseState, LicenseTerm } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
@@ -10,7 +9,6 @@ import {
   deriveLicenseStandings,
   deriveTimeState,
   sortForCalendar,
-  summarizeCalendar,
 } from "../license-standing";
 import { license } from "./fixtures";
 
@@ -119,8 +117,4 @@ describe("deriveLicenseStandings", () => {
     ]);
   });
 
-  it("counts customers by their current license", () => {
-    const standings = deriveLicenseStandings([first, renewal, other], now);
-    expect(summarizeCalendar(standings)).toEqual({ active: 1, expiring: 1, grace: 0 });
-  });
 });

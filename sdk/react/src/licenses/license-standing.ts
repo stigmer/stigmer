@@ -52,13 +52,6 @@ export interface LicenseStanding {
   readonly reason: string;
 }
 
-/** Counts of the customers whose current license is in each live state. */
-export interface LicenseCalendarSummary {
-  readonly active: number;
-  readonly expiring: number;
-  readonly grace: number;
-}
-
 /**
  * The time state of one license at `now`.
  *
@@ -145,26 +138,6 @@ export function sortForCalendar(
     const byExpiry = expiryMs(a) - expiryMs(b);
     return rank(a) >= 3 ? -byExpiry : byExpiry;
   });
-}
-
-/**
- * Counts customers, not licenses: each customer is counted once, by the
- * license no other license of theirs renews. A renewed customer has two
- * licenses and one standing.
- */
-export function summarizeCalendar(
-  standings: ReadonlyMap<string, LicenseStanding>,
-): LicenseCalendarSummary {
-  let active = 0;
-  let expiring = 0;
-  let grace = 0;
-  for (const standing of standings.values()) {
-    if (standing.renewedBy) continue;
-    if (standing.timeState === LicenseState.valid) active += 1;
-    else if (standing.timeState === LicenseState.expiring) expiring += 1;
-    else if (standing.timeState === LicenseState.grace) grace += 1;
-  }
-  return { active, expiring, grace };
 }
 
 function standingOf(
