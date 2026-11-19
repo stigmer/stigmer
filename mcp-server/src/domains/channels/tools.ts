@@ -26,7 +26,7 @@ import { channelResult } from "./errors.js";
 import { errorResult } from "../toolresult.js";
 import { WRITE_OPEN_WORLD } from "../toolmarks.js";
 
-const templateShape = z.object({
+const templateShape = z.strictObject({
   name: z.string().describe("Approved template name on the channel's provider registry."),
   language: z
     .string()
@@ -35,7 +35,7 @@ const templateShape = z.object({
       "Template language code (e.g. en, en_US). Omit when the template exists in exactly one language.",
     ),
   parameters: z
-    .record(z.string())
+    .record(z.string(), z.string())
     .optional()
     .describe(
       'Placeholder values. Positional templates key by position ("1", "2", …); ' +
@@ -63,7 +63,7 @@ export function registerChannelTools(server: McpServer, target: BackendTarget): 
         "<available_channel_templates>. The result carries a typed outcome: accepted (sent), " +
         "queued (the platform retries in the background — do not resend), or refused " +
         "(terminal; detail says why — adapt, never retry the same send).",
-      inputSchema: {
+      inputSchema: z.strictObject({
         recipient: z
           .string()
           .describe(
@@ -87,7 +87,7 @@ export function registerChannelTools(server: McpServer, target: BackendTarget): 
             "Channel slug. Only needed when this agent serves more than one " +
               "proactive-messaging channel (a refusal will list them).",
           ),
-      },
+      }),
     },
     (args, extra) => {
       // Exactly-one, checked here with corrective copy the model can act

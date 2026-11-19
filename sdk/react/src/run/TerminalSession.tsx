@@ -8,6 +8,7 @@
 
 import { cn } from "@stigmer/design-tokens";
 import { StatusBadge } from "../status/StatusBadge.js";
+import { CodeBlock } from "../internal/CodeBlock.js";
 import { CollapsiblePre, TRUNCATION_LINE_LIMIT } from "./tool-rendering-primitives.js";
 import { useSandboxNormalize } from "./SandboxContext.js";
 
@@ -114,14 +115,14 @@ function LiveOutput({ content }: { content: string }) {
   const shown = lines.slice(-TRUNCATION_LINE_LIMIT);
   const hidden = lines.length - shown.length;
   return (
-    <pre data-cursor-target="terminal-live-output" className="stg:whitespace-pre-wrap stg:break-words stg:font-mono stg:text-foreground">
+    <CodeBlock wrap data-cursor-target="terminal-live-output">
       {hidden > 0 && (
-        <span className="stg:block stg:select-none stg:text-muted-foreground-subtle">
+        <span className="stg:block stg:select-none stg:text-muted-foreground">
           … +{hidden} {hidden === 1 ? "line" : "lines"}
         </span>
       )}
       {shown.join("\n")}
-    </pre>
+    </CodeBlock>
   );
 }
 

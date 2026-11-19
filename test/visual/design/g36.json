@@ -7,7 +7,12 @@
     {
       "caption": "Organization profile: As an admin: the profile, then the child organizations on the table part",
       "narrow": false,
-      "built": [],
+      "built": [
+        {
+          "scene": "settings-org-profile",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Organization profile",
@@ -248,10 +253,27 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Acme Corp": "The drawing writes the field's value as text; the built field holds the scene's organization as its value, which is not a text block",
+        "word Finance and operations for Acme's subsidiaries.": "The drawing writes the field's value as text; the built field holds the scene's organization as its value, which is not a text block",
+        "word https://acme.example/logo.svg": "The drawing writes the field's value as text; the built field holds the scene's organization as its value, which is not a text block",
+        "word acme": "The drawing writes the field's value as text; the built field holds the scene's organization as its value, which is not a text block",
+        "word org_01J8Z4Q2…7KD": "The drawing's example data; the scene's organization has its own id",
+        "word Child organizations 3": "The drawing's example data; the scene's organization has two children, Northwind Traders and Contoso (the count sits in the heading)",
+        "word Acme Europe": "The drawing's example data; the scene's organization has two children, Northwind Traders and Contoso",
+        "word Acme Labs": "The drawing's example data; the scene's organization has two children, Northwind Traders and Contoso",
+        "word Northwind for Acme": "The drawing's example data; the scene's organization has two children, Northwind Traders and Contoso",
+        "word acme-eu": "The drawing's example data; the scene's organization has two children, Northwind Traders and Contoso",
+        "word crm-4471": "The drawing's example data; the scene's organization has two children, Northwind Traders and Contoso",
+        "word acme-labs": "The drawing's example data; the scene's organization has two children, Northwind Traders and Contoso",
+        "word northwind-acme": "The drawing's example data; the scene's organization has two children, Northwind Traders and Contoso",
+        "word nw-0193": "The drawing's example data; the scene's organization has two children, Northwind Traders and Contoso"
+      },
       "ruled": {},
-      "pending": {},
-      "unbuilt": "The form is built as drawn (a Profile section on the kit's fields, settings-org-profile); the drawing's organization has a description, a logo and three child organizations, and no scene's organization does yet"
+      "pending": {
+        "type Slug": "A call for the last look: the slug is the rename field every settings page shares (a label at 14/20 500 with Rename), where the drawing shows it as a read-only pair",
+        "word Organizations under this one. acme's admins are admins in each of them; each person's conversations, My vault and memories stay private to them.": "A call for the last look: the build says the parent's admins are admins in each child \"as their own admins are\" and names no organization; the drawing names it and leaves that out"
+      }
     },
     {
       "caption": "Organization profile: As a member: the same, read only",
@@ -553,7 +575,12 @@
     {
       "caption": "Organization profile: At 390 wide: the table's rows become list rows",
       "narrow": true,
-      "built": [],
+      "built": [
+        {
+          "scene": "settings-org-profile",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Organization profile",
@@ -754,10 +781,25 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Acme Corp": "The drawing writes the field's value as text; the built field holds the scene's organization as its value, which is not a text block",
+        "word Finance and operations for Acme's subsidiaries.": "The drawing writes the field's value as text; the built field holds the scene's organization as its value, which is not a text block",
+        "word https://acme.example/logo.svg": "The drawing writes the field's value as text; the built field holds the scene's organization as its value, which is not a text block",
+        "word acme": "The drawing writes the field's value as text; the built field holds the scene's organization as its value, which is not a text block",
+        "word org_01J8Z4Q2…7KD": "The drawing's example data; the scene's organization has its own id",
+        "word Child organizations 3": "The drawing's example data; the scene's organization has two children, Northwind Traders and Contoso (the count sits in the heading)",
+        "word Acme Europe": "The drawing's example data; the scene's organization has two children, Northwind Traders and Contoso",
+        "word Acme Labs": "The drawing's example data; the scene's organization has two children, Northwind Traders and Contoso",
+        "word Northwind for Acme": "The drawing's example data; the scene's organization has two children, Northwind Traders and Contoso",
+        "word acme-eu · crm-4471": "The drawing's example data; the scene's organization has two children, Northwind Traders and Contoso",
+        "word acme-labs · —": "The drawing's example data; the scene's organization has two children, Northwind Traders and Contoso",
+        "word northwind-acme · nw-0193": "The drawing's example data; the scene's organization has two children, Northwind Traders and Contoso"
+      },
       "ruled": {},
-      "pending": {},
-      "unbuilt": "The form is built as drawn (a Profile section on the kit's fields, settings-org-profile); the drawing's organization has a description, a logo and three child organizations, and no scene's organization does yet"
+      "pending": {
+        "type Slug": "A call for the last look: the slug is the rename field every settings page shares (a label at 14/20 500 with Rename), where the drawing shows it as a read-only pair",
+        "word Organizations under this one. acme's admins are admins in each of them; each person's conversations, My vault and memories stay private to them.": "A call for the last look: the build says the parent's admins are admins in each child \"as their own admins are\" and names no organization; the drawing names it and leaves that out"
+      }
     }
   ]
 }

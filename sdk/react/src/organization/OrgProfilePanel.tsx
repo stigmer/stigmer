@@ -479,13 +479,11 @@ function ReadOnlyField({
 
   return (
     <div className="stg:space-y-0.5">
-      <p className="stg:text-2xs stg:font-medium stg:text-muted-foreground stg:uppercase stg:tracking-wider">
-        {label}
-      </p>
+      <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">{label}</p>
       <div className="stg:flex stg:items-center stg:gap-2">
         <span
           className={cn(
-            "stg:text-xs stg:text-foreground stg:select-all",
+            "stg:text-sm stg:text-foreground stg:select-all",
             mono && "stg:font-mono",
           )}
         >

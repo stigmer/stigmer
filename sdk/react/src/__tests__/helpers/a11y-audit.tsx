@@ -36,23 +36,13 @@ import { StigmerContext } from "@stigmer/react-core";
 export const COLOR_MODES = ["light", "dark"] as const;
 export type ColorMode = (typeof COLOR_MODES)[number];
 
-/**
- * Rules that are audited but reported as advisory (logged, non-blocking) rather
- * than failing the suite — mirroring the e2e audit's graduated rollout, which
- * ships fixing only some severities first.
- *
- * `color-contrast`: readable lines set in `--stgm-muted-foreground-subtle`
- * fall below WCAG AA 4.5:1 in dark mode (about 4.1:1 on the page, 3.7:1 on a
- * card). That tone is contracted as a 3:1 supporting tone for marks, not for
- * text (`sdk/theme/src/contract/pairs.ts`); `--stgm-muted-foreground`, the
- * readable secondary tone, holds 4.5:1 on every surface the contract
- * registers. The faint tone's readable lines moved to muted in
- * stigmer/stigmer#2898; the subtle tone's move is stigmer/stigmer#3064.
- * Kept advisory so the audits guard the STRUCTURAL accessibility (roles,
- * names, relationships, nesting) now. Promote back to blocking when
- * stigmer/stigmer#3064 lands.
- */
-const ADVISORY_RULE_IDS = new Set<string>(["color-contrast"]);
+// Every critical or serious violation blocks, `color-contrast` included.
+// Readable text holds WCAG AA 4.5:1 in both modes: secondary lines use
+// `--stgm-muted-foreground`, which the theme's contract holds at 4.5:1 on
+// every surface it registers; the faint and subtle tones are 3:1 supporting
+// tones for marks (icons, separators, dots), never for words
+// (`sdk/theme/src/contract/pairs.ts`; the faint tone's words moved in
+// stigmer/stigmer#2898, the subtle tone's in stigmer/stigmer#3064).
 
 /**
  * Presentational surfaces never call the client, but `useStigmer` throws
@@ -79,6 +69,7 @@ export function renderAudited(
   mode: ColorMode,
   options: RenderAuditedOptions = {},
 ): HTMLElement {
+  freezeMotion();
   const container = document.createElement("div");
   container.className = "stgm";
   container.setAttribute("data-stgm-color-mode", mode);
@@ -102,6 +93,19 @@ export function renderAudited(
   return container;
 }
 
+/**
+ * Settle every transition and animation at once, as the gallery's pictures
+ * do (`animations: "disabled"`): `color-contrast` blocks, and a row caught
+ * mid-fade after a click is measured at a colour it never rests at.
+ */
+function freezeMotion(): void {
+  if (document.getElementById("a11y-audit-freeze-motion") !== null) return;
+  const style = document.createElement("style");
+  style.id = "a11y-audit-freeze-motion";
+  style.textContent = ".stgm *, .stgm *::before, .stgm *::after { transition: none !important; animation: none !important; }";
+  document.head.appendChild(style);
+}
+
 function summarize(violations: axe.Result[]): string {
   return violations
     .map((v) => {
@@ -123,20 +127,10 @@ export async function auditA11y(container: HTMLElement, label: string): Promise<
     runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] },
   });
 
-  // Blocking: critical/serious violations that are NOT on the advisory list.
-  const serious = results.violations.filter(
-    (v) =>
-      (v.impact === "critical" || v.impact === "serious") &&
-      !ADVISORY_RULE_IDS.has(v.id),
-  );
-  // Advisory: everything else worth logging — the deferred rules plus any
-  // moderate/minor findings.
-  const advisory = results.violations.filter(
-    (v) =>
-      ADVISORY_RULE_IDS.has(v.id) ||
-      v.impact === "moderate" ||
-      v.impact === "minor",
-  );
+  // Blocking: every critical/serious violation.
+  const serious = results.violations.filter((v) => v.impact === "critical" || v.impact === "serious");
+  // Advisory: the moderate/minor findings, logged.
+  const advisory = results.violations.filter((v) => v.impact === "moderate" || v.impact === "minor");
 
   if (advisory.length > 0) {
     // Non-blocking a11y signal (mirrors the e2e audit's moderate/minor logging).

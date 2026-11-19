@@ -23,7 +23,7 @@ export function registerSkillTools(server: McpServer, target: BackendTarget): st
       description:
         "Get full details of a Stigmer skill by org and slug, optionally at a specific version. " +
         "Omit 'version' for the latest.",
-      inputSchema: {
+      inputSchema: z.strictObject({
         org: z
           .string()
           .default("")
@@ -35,7 +35,7 @@ export function registerSkillTools(server: McpServer, target: BackendTarget): st
           .string()
           .optional()
           .describe("Version to retrieve: tag name (e.g. stable) or SHA-256 hash. Omit for latest."),
-      },
+      }),
     },
     (args, extra) =>
       textOrError(async () =>
@@ -56,7 +56,7 @@ export function registerSkillTools(server: McpServer, target: BackendTarget): st
       annotations: DESTRUCTIVE,
       description:
         "Delete a Stigmer skill and all its versions by org and slug. To create or update skills, use the 'stigmer skill push' CLI command. Returns the deleted skill.",
-      inputSchema: {
+      inputSchema: z.strictObject({
         org: z
           .string()
           .default("")
@@ -68,7 +68,7 @@ export function registerSkillTools(server: McpServer, target: BackendTarget): st
           .describe(
             "Skill slug — the unique identifier within the org (e.g. variance-report). Deletes the skill and all its versions.",
           ),
-      },
+      }),
     },
     (args, extra) =>
       textOrError(async () =>
@@ -84,7 +84,7 @@ export function registerSkillTools(server: McpServer, target: BackendTarget): st
         "List a skill's version history (newest first): version hash, tag, who pushed it and " +
         "when, and which version is current. Fetch one version's full content with get_skill and " +
         "its hash or tag.",
-      inputSchema: {
+      inputSchema: z.strictObject({
         org: z
           .string()
           .default("")
@@ -101,7 +101,7 @@ export function registerSkillTools(server: McpServer, target: BackendTarget): st
           .string()
           .optional()
           .describe("Pagination token from a previous response's next_page_token."),
-      },
+      }),
     },
     (args, extra) =>
       textOrError(async () =>

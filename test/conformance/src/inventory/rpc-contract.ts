@@ -144,32 +144,28 @@ export async function collectRpcTags(suiteRoots: readonly string[], cwd: string)
 const rpcKeySchema = z.string().regex(RPC_KEY_PATTERN, "rpc must be <Service>.<method>, as the descriptors spell it");
 const reasonSchema = z.string().trim().min(1, "a waiver says why in its reason");
 
-const gapWaiverSchema = z
-  .object({
-    rpc: rpcKeySchema,
-    kind: z.literal("gap"),
-    // The open issue that owns the missing test.
-    issue: z.number().int().positive(),
-    reason: reasonSchema,
-  })
-  .strict();
+const gapWaiverSchema = z.strictObject({
+  rpc: rpcKeySchema,
+  kind: z.literal("gap"),
+  // The open issue that owns the missing test.
+  issue: z.number().int().positive(),
+  reason: reasonSchema,
+});
 
-const provenElsewhereWaiverSchema = z
-  .object({
-    rpc: rpcKeySchema,
-    kind: z.literal("proven-elsewhere"),
-    // Repository-relative path of a test file in another layer; it must exist
-    // and carry the same `[rpc:...]` tag.
-    proven_by: z
-      .string()
-      .regex(/^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$)).+\.test\.tsx?$/, "proven_by is a repository-relative *.test.ts path"),
-    reason: reasonSchema,
-  })
-  .strict();
+const provenElsewhereWaiverSchema = z.strictObject({
+  rpc: rpcKeySchema,
+  kind: z.literal("proven-elsewhere"),
+  // Repository-relative path of a test file in another layer; it must exist
+  // and carry the same `[rpc:...]` tag.
+  proven_by: z
+    .string()
+    .regex(/^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$)).+\.test\.tsx?$/, "proven_by is a repository-relative *.test.ts path"),
+  reason: reasonSchema,
+});
 
 const waiverSchema = z.discriminatedUnion("kind", [gapWaiverSchema, provenElsewhereWaiverSchema]);
 
-const waiverFileSchema = z.object({ waivers: z.array(waiverSchema) }).strict();
+const waiverFileSchema = z.strictObject({ waivers: z.array(waiverSchema) });
 
 export type RpcWaiver = z.infer<typeof waiverSchema>;
 type GapWaiver = z.infer<typeof gapWaiverSchema>;

@@ -4,8 +4,9 @@
 // The composition root wraps every route in the authenticated chain
 // (AuthProvider → AuthGuard → transport → identity gate → org provider →
 // org gate) except two prefix lists: public routes (sign-in, invitations,
-// the desktop hand-back pages, a Connect link's page and the sign-in
-// callback every login page returns to) get none of it, and auth-optional routes (the
+// the desktop hand-back pages, a Connect link's page, the sign-in
+// callback every login page returns to and the Slack install's pop-up
+// return) get none of it, and auth-optional routes (the
 // hosted chat) get the session without the guard. A prefix match is loose by
 // nature, so a new page whose path happens to start with a public prefix
 // would silently skip sign-in. This suite walks every page file under
@@ -141,7 +142,7 @@ function samplePath(route: string): string {
 }
 
 // The reviewed exceptions. A route joins either list only by editing it here.
-const PUBLIC = ["/auth/oauth/callback", "/connect/[token]", "/desktop/billing", "/invite/[token]", "/login"];
+const PUBLIC = ["/auth/oauth/callback", "/connect/[token]", "/desktop/billing", "/invite/[token]", "/login", "/oauth/slack/callback"];
 const AUTH_OPTIONAL = ["/chat/[channel]"];
 
 describe("the route chain", () => {

@@ -1,7 +1,7 @@
 /**
- * HarnessSplitCard sizes each harness by tokens and labels it with its
- * tokens, calls and share; nothing renders for no rows or no tokens, and
- * nothing on it is money.
+ * HarnessSplitCard draws "By harness": each harness sized by tokens and
+ * named in one line with its tokens, calls and share; nothing renders for
+ * no rows or no tokens, and nothing on it is money.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -22,10 +22,15 @@ describe("HarnessSplitCard", () => {
         ]}
       />,
     );
+    expect(screen.getByRole("heading", { name: "By harness" })).toBeTruthy();
     expect(screen.getByRole("img", { name: "Token distribution by harness" })).toBeTruthy();
-    expect(screen.getByText("Stigmer").parentElement?.textContent).toBe("Stigmer12.0k tokens40 calls (60%)");
-    expect(screen.getByText("Claude Agent").parentElement?.textContent).toBe("Claude Agent8.0k tokens0 calls (40%)");
-    expect(screen.getByText("later-engine"), "a word this build does not name keeps its own").toBeTruthy();
+    // Each harness reads as one line: name · tokens · calls · share.
+    expect(screen.getByText("Stigmer · 12.0k tokens · 40 calls · 60%")).toBeTruthy();
+    expect(screen.getByText("Claude Agent · 8.0k tokens · 0 calls · 40%")).toBeTruthy();
+    expect(
+      screen.getByText("later-engine · 0 tokens · 0 calls · 0%"),
+      "a word this build does not name keeps its own",
+    ).toBeTruthy();
     expect(container.textContent).not.toContain("$");
   });
 

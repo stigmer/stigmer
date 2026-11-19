@@ -278,7 +278,7 @@ describe("ModelsHub", () => {
     expect(calls.deleteKey.mock.calls[0][0]).toMatchObject({ org: ORG_ID, provider: "anthropic" });
   });
 
-  it("says a refused removal in the dialog and keeps the key", async () => {
+  it("says a refused removal in the dialog, that the key is still connected, and keeps it", async () => {
     const calls = renderHub(server({ readiness: ANTHROPIC_CONNECTED, keys: [storedKey("anthropic")] }));
     calls.deleteKey.mockRejectedValueOnce(new Error("the billing service did not answer in time"));
     const anthropic = await card("Anthropic");
@@ -290,6 +290,7 @@ describe("ModelsHub", () => {
 
     expect(await within(dialog).findByText("Couldn't remove the key.")).toBeTruthy();
     expect(within(dialog).getByText(/did not answer in time/)).toBeTruthy();
+    expect(within(dialog).getByText("The key is still connected.")).toBeTruthy();
     expect(within(anthropic).getByText("Connected")).toBeTruthy();
   });
 

@@ -8,7 +8,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
-import { AgentInputShape } from "../../gen/agent.js";
+import { AgentInputSchema } from "../../gen/agent.js";
 import { resolveToken, type BackendTarget } from "../client.js";
 import { textOrError } from "../toolresult.js";
 import { applyAgent } from "./apply.js";
@@ -24,7 +24,7 @@ export function registerAgentTools(server: McpServer, target: BackendTarget): st
       annotations: READ,
       description:
         "Get full details of a Stigmer agent by its org and slug (e.g. org=stigmer slug=variance-reporter).",
-      inputSchema: {
+      inputSchema: z.strictObject({
         org: z
           .string()
           .default("")
@@ -34,7 +34,7 @@ export function registerAgentTools(server: McpServer, target: BackendTarget): st
         slug: z
           .string()
           .describe("Agent slug — the unique identifier within the org (e.g. variance-reporter)."),
-      },
+      }),
     },
     (args, extra) =>
       textOrError(async () =>
@@ -48,7 +48,7 @@ export function registerAgentTools(server: McpServer, target: BackendTarget): st
       annotations: WRITE_IDEMPOTENT,
       description:
         "Create or update a Stigmer agent (idempotent). Provide identity fields (name, org) and agent configuration (instructions, skills, plugins, etc.).",
-      inputSchema: AgentInputShape,
+      inputSchema: AgentInputSchema,
     },
     (args, extra) =>
       textOrError(async () => applyAgent(target.serverAddress, await resolveToken(extra, target), args)),
@@ -60,7 +60,7 @@ export function registerAgentTools(server: McpServer, target: BackendTarget): st
       annotations: DESTRUCTIVE,
       description:
         "Delete a Stigmer agent and every version of it, by its org and slug. It can't be undone. Returns the deleted agent.",
-      inputSchema: {
+      inputSchema: z.strictObject({
         org: z
           .string()
           .default("")
@@ -70,7 +70,7 @@ export function registerAgentTools(server: McpServer, target: BackendTarget): st
         slug: z
           .string()
           .describe("Agent slug — the unique identifier within the org (e.g. variance-reporter)."),
-      },
+      }),
     },
     (args, extra) =>
       textOrError(async () =>

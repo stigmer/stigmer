@@ -52,7 +52,7 @@ export function registerMemoryTools(
         "user reviews the exact text and decides — tell them you have suggested it, " +
         "never that you have remembered it. Keep each fact self-contained and under " +
         "500 characters; call once per fact.",
-      inputSchema: {
+      inputSchema: z.strictObject({
         fact: z
           .string()
           .describe(
@@ -60,7 +60,7 @@ export function registerMemoryTools(
               '(e.g. "Works primarily in Go and prefers table-driven tests"). ' +
               "1–500 characters; stored and shown to the user verbatim.",
           ),
-      },
+      }),
     },
     (args, extra) =>
       memoryResult("memory proposal", async () =>

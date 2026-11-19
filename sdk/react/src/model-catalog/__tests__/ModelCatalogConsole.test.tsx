@@ -2,7 +2,8 @@
 // renders the catalog's own rates, search narrows it, a row opens the
 // read-only record, and edit, retire and create run from there through
 // the baseline RPCs. A permission-denied catalog read renders the
-// operator access notice; any other failure renders its message.
+// operator access notice; any other failure renders its message, with
+// Add model still offered in the page's header.
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
@@ -293,5 +294,19 @@ describe("ModelCatalogConsole — access", () => {
     expect(
       await screen.findByText(/billing service is unavailable/i),
     ).toBeTruthy();
+  });
+
+  it("still offers Add model when the catalog fails to load, and opens the add-model editor from it", async () => {
+    const user = userEvent.setup();
+    const client = createMockStigmer({
+      listModelPricingBaselines: vi.fn().mockRejectedValue(new Error("the server did not answer in time")),
+    });
+
+    render(<ModelCatalogConsole />, { wrapper: wrapper(client) });
+
+    expect(await screen.findByText("Couldn't load the model catalog.")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Add model" }));
+    expect(screen.getByRole("heading", { name: "Add model" })).toBeTruthy();
+    expect(screen.getByLabelText("Model id")).toBeTruthy();
   });
 });

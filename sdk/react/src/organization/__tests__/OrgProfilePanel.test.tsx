@@ -613,6 +613,11 @@ describe("OrgProfilePanel identity fields", () => {
 
     const copyId = await screen.findByRole("button", { name: "Copy Organization ID" });
     expect(copyId.textContent).toBe("Copy");
+    // The id reads as a label and its value at the body's size, as drawn.
+    const label = screen.getByText("Organization ID");
+    expect(label.className).toContain("stg:text-sm");
+    expect(label.className).not.toContain("stg:uppercase");
+    expect(screen.getByText(ACME_ID).className).toContain("stg:text-sm");
     fireEvent.click(copyId);
 
     await waitFor(() => expect(writeText).toHaveBeenCalledWith(ACME_ID));

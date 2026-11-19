@@ -427,11 +427,7 @@
         "word Visa ending 4242": "The drawing's example data (a name, an amount, a date, a plan's own lines); the scene shows its own fixture's"
       },
       "ruled": {},
-      "pending": {
-        "type Team plan": "After the settings Built look's fix the kit keeps its own size or weight here: built 14/20 weight 400, drawn 14/20 weight 500; the next look decides",
-        "button Talk to us": "After the settings Built look's fix: no built button has this name; the next look decides",
-        "word Agent hours are counted while agents work in Stigmer's sandboxes, for acme and its child organizations; automatic grading is never counted. Model usage runs on your own provider keys and is not on this invoice.": "The build words the counting rule and the invoice's scope its own way under the invoice (\"your organization's own provider keys … not on the invoice\"), beside the plan's fee line the drawing leaves out; the next look decides"
-      }
+      "pending": {}
     },
     {
       "caption": "Billing: Switch to Business, asked first (the dialog's body is the plan's own lines)",
@@ -1579,11 +1575,7 @@
         "word Visa ending 4242": "The drawing's example data (a name, an amount, a date, a plan's own lines); the scene shows its own fixture's"
       },
       "ruled": {},
-      "pending": {
-        "type Team plan": "After the settings Built look's fix the kit keeps its own size or weight here: built 14/20 weight 400, drawn 14/20 weight 500; the next look decides",
-        "button Talk to us": "After the settings Built look's fix: no built button has this name; the next look decides",
-        "word Agent hours are counted while agents work in Stigmer's sandboxes, for acme and its child organizations; automatic grading is never counted. Model usage runs on your own provider keys and is not on this invoice.": "The build words the counting rule and the invoice's scope its own way under the invoice (\"your organization's own provider keys … not on the invoice\"), beside the plan's fee line the drawing leaves out; the next look decides"
-      }
+      "pending": {}
     }
   ]
 }

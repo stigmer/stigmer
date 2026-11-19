@@ -7,6 +7,7 @@
  * ordinary key delete, which the organization's admins may make on a
  * service account's key.
  */
+import { useEffect } from "react";
 import { ApiKeyListView } from "../api-key/ApiKeyListPanel.js";
 import { useServiceAccountKeyList } from "./useServiceAccountKeyList.js";
 
@@ -22,6 +23,12 @@ export interface ServiceAccountKeyListPanelProps {
    * (documentation embeds) pass a frozen instant.
    */
   readonly now?: Date;
+  /**
+   * Told how many keys the account has once the whole list has loaded, and
+   * `null` while it loads, when it failed or while more pages remain: a
+   * host's heading carries the count ("API keys 2").
+   */
+  readonly onCountChange?: (count: number | null) => void;
 }
 
 /**
@@ -39,10 +46,15 @@ export function ServiceAccountKeyListPanel({
   onRefetchRef,
   className,
   now,
+  onCountChange,
 }: ServiceAccountKeyListPanelProps) {
   const { apiKeys, isLoading, error, refetch, ...pager } = useServiceAccountKeyList(
     serviceAccountId || null,
   );
+  const count = isLoading || error !== null || pager.hasMore ? null : apiKeys.length;
+  useEffect(() => {
+    onCountChange?.(count);
+  }, [count, onCountChange]);
 
   if (onRefetchRef) {
     onRefetchRef(refetch);

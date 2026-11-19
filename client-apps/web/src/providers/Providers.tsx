@@ -28,10 +28,13 @@ import { loadRuntimeConfig } from "@/config/runtime-config";
  * `/desktop/` holds the pages that hand a Stigmer Desktop user back to the
  * app from the system browser, whose web session is not the app's.
  * `/connect/` is a Connect link's page, for someone with no Stigmer account,
- * and `/auth/oauth/callback` is where every sign-in's login page returns: a
+ * `/auth/oauth/callback` is where every sign-in's login page returns: a
  * popup needs no session there, and a Connect link's customer has none.
+ * `/oauth/slack/callback` is the Slack install's popup return, pinned by the
+ * Slack app manifest's redirect URL; it only hands the result back to its
+ * opener, so it needs no session and must never draw the console around it.
  */
-const PUBLIC_ROUTES = ["/login", "/invite/", "/desktop/", "/connect/", "/auth/oauth/callback"] as const;
+const PUBLIC_ROUTES = ["/login", "/invite/", "/desktop/", "/connect/", "/auth/oauth/callback", "/oauth/slack/callback"] as const;
 
 /**
  * Routes rendered with AuthProvider but WITHOUT AuthGuard — auth is

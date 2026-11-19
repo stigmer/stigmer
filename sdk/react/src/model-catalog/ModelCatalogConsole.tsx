@@ -4,8 +4,10 @@
 // ModelCatalogConsole — the platform-operator console over the model
 // registry baseline: a searchable list of the catalog's models at the
 // prices the catalog holds, a read-only record per model, and the
-// deliberate edit, add and retire steps from there. State lives in
-// useModelCatalogView; this file is the rendering and the RPC wiring.
+// deliberate edit, add and retire steps from there. A catalog that failed
+// to load still offers Add model: adding one does not need the list. State
+// lives in useModelCatalogView; this file is the rendering and the RPC
+// wiring.
 // ---------------------------------------------------------------------------
 
 import { useCallback } from "react";
@@ -147,7 +149,9 @@ export function ModelCatalogConsole({ className }: ModelCatalogConsoleProps) {
       back={back}
       description={description}
       actions={
-        listing && !view.isLoading && view.error === null ? (
+        // A failed read still offers Add model; an edition without the
+        // catalog or a refused person never sees it (the frame hides acts).
+        listing && !view.isLoading ? (
           <Button size="sm" onClick={view.openCreate}>
             Add model
           </Button>
@@ -171,7 +175,7 @@ export function ModelCatalogConsole({ className }: ModelCatalogConsoleProps) {
     >
       {view.isLoading ? (
         <SettingsSkeleton label="Loading the model catalog" rows={4} />
-      ) : view.error ? (
+      ) : view.error && flow.phase !== "create" ? (
         <ErrorMessage error={view.error} title="Couldn't load the model catalog." retry={view.refetch} />
       ) : (
         <ModelCatalogBody

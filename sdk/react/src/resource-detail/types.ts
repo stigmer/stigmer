@@ -172,6 +172,12 @@ export interface ConfirmOptions {
    * the failure's kind.
    */
   readonly failureTitle?: string;
+  /**
+   * What did not change when `action` fails, said under the failure
+   * ("The key is still connected."), as `ErrorMessage`'s `comfort` says it.
+   * When omitted, the failure says only what went wrong.
+   */
+  readonly failureComfort?: string;
 }
 
 /** Internal state of a pending confirmation. */

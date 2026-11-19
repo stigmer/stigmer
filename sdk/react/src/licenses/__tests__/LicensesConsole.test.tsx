@@ -1,6 +1,8 @@
 // The licenses console end to end over a mock client: every state (the
 // edition notice by provider and by server answer, the access notice, the
-// empty calendar), the calendar's order and summary, the detail's ticket
+// empty calendar, a failed read that still offers Issue license), the
+// calendar's order under the page's purpose line, the detail titled by its
+// customer as every settings detail is, the detail's ticket
 // (read on open, copied without being shown) and issuer line (a name and
 // an address, or an address once), the issue path (the SDK input
 // sent, landing on the detail with the created ticket and no second read),
@@ -116,6 +118,15 @@ describe("LicensesConsole states", () => {
     await waitFor(() => expect(screen.getByText("Platform operator access required")).toBeTruthy());
   });
 
+  it("still offers Issue license when the licenses fail to load, and opens the issue form from it", async () => {
+    const user = userEvent.setup();
+    renderConsole(mockClient({ list: vi.fn().mockRejectedValue(new Error("the server did not answer in time")) }));
+    expect(await screen.findByText("Couldn't load the licenses.")).toBeTruthy();
+    expect(screen.getByText("Every Stigmer license issued, ordered by when it needs renewing.")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: /Issue license/ }));
+    expect(screen.getByRole("heading", { name: "Issue license" })).toBeTruthy();
+  });
+
   it("invites the first issue when nothing has been issued", async () => {
     const user = userEvent.setup();
     renderConsole(mockClient());
@@ -126,11 +137,14 @@ describe("LicensesConsole states", () => {
 });
 
 describe("LicensesConsole calendar", () => {
-  it("summarizes customers and lists what needs action first, renewed licenses last", async () => {
+  it("says what the page is for under its title and lists what needs action first, renewed licenses last", async () => {
     renderConsole(mockClient({ list: vi.fn().mockResolvedValue({ entries: [trialFirst, paidRenewal, globexExpiring], nextPageToken: "" }) }));
     await waitFor(() => expect(screen.getByRole("table", { name: "Licenses" })).toBeTruthy());
 
-    expect(screen.getByText("1 active · 1 expiring · 0 in grace")).toBeTruthy();
+    const header = screen.getByRole("heading", { name: "Licenses" }).closest("header")!;
+    const purpose = within(header).getByText("Every Stigmer license issued, ordered by when it needs renewing.");
+    expect(purpose.className).toContain("stg:text-sm");
+    expect(within(header).getByRole("button", { name: /Issue license/ })).toBeTruthy();
     expect(rowNames()).toEqual(["Globex", "Acme Corp", "Acme Corp"]);
     const rows = within(screen.getByRole("table", { name: "Licenses" })).getAllByRole("row");
     expect(within(rows[1]!).getByText("Renew soon")).toBeTruthy();
@@ -154,6 +168,12 @@ describe("LicensesConsole detail", () => {
 
     await user.click(await screen.findByRole("button", { name: "Acme Corp" }));
     expect(client.license.get).toHaveBeenCalledWith("lic_paid");
+    // The customer is the page's title, drawn as every settings detail's
+    // title, with the way back to the list above it.
+    const title = screen.getByRole("heading", { level: 2, name: "Acme Corp" });
+    expect(title.className).toContain("stg:text-xl");
+    expect(title.className).toContain("stg:font-semibold");
+    expect(screen.getByRole("button", { name: "Licenses" })).toBeTruthy();
     // The record is one section of label and value pairs.
     const record = screen.getByRole("heading", { name: "The license" }).closest("section")!;
     expect(within(record).getByText("Signing key").tagName).toBe("DT");

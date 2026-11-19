@@ -3,8 +3,10 @@
  * description alone, on the team's id, so the fields the form does not
  * show (the slug, the labels) keep their stored values; and a delete the
  * server refuses stays on the confirmation with the refusal's message, while
- * Cancel leaves the confirmation and deletes nothing. The
- * members panel and the permission gate are stubbed; they are proven
+ * Cancel leaves the confirmation and deletes nothing. The delete card and
+ * its dialog say the same sentence, naming the team's people by count (a
+ * word up to ten, digits above, one person and no one in their own words).
+ * The members panel and the permission gate are stubbed; they are proven
  * elsewhere.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -14,8 +16,15 @@ import { clone, create } from "@bufbuild/protobuf";
 import { TeamSchema, type Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 import { StigmerContext } from "@stigmer/react-core";
 
+const people = vi.hoisted(() => ({ count: 4, isLoading: false }));
+
 vi.mock("../TeamMembersPanel.js", () => ({
-  TeamMembersPanel: () => <div data-testid="members" />,
+  TeamMembersView: () => <div data-testid="members" />,
+  useTeamMembers: () => ({
+    accessList: Array.from({ length: people.count }, () => ({})),
+    isLoading: people.isLoading,
+    fetchError: null,
+  }),
 }));
 vi.mock("../../grant/PermissionGate.js", () => ({
   PermissionGate: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -34,7 +43,21 @@ const TEAM: Team = create(TeamSchema, {
   spec: { description: "On call" },
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  people.count = 4;
+  people.isLoading = false;
+});
+
+function renderToDelete() {
+  render(
+    <StigmerContext.Provider
+      value={{ team: { delete: vi.fn() }, grant: { checkMyPermission: async () => ({ isAuthorized: false }) } } as never}
+    >
+      <TeamDetailPanel team={TEAM} org="org_acme" onDeleted={vi.fn()} />
+    </StigmerContext.Provider>,
+  );
+}
 
 describe("TeamDetailPanel save payload", () => {
   it("names the name and description alone, on the team's id, when only the description is edited", async () => {
@@ -127,7 +150,7 @@ describe("TeamDetailPanel delete refusal", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Delete team" }));
-    expect(within(screen.getByRole("dialog")).getByText(/loses what was shared with the team/)).toBeTruthy();
+    expect(within(screen.getByRole("dialog")).getByText(/lose what was shared with Site Reliability/)).toBeTruthy();
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" }));
 
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -150,5 +173,44 @@ describe("TeamDetailPanel delete refusal", () => {
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete team" }));
     await waitFor(() => expect(onDeleted).toHaveBeenCalledTimes(1));
     expect(del).toHaveBeenCalledWith({ resourceId: "tm_sre" });
+  });
+});
+
+describe("TeamDetailPanel delete line", () => {
+  const FOUR = "Its four people lose what was shared with Site Reliability. Nothing they made is deleted.";
+
+  it("names the team's people by count, as a word, on the card and in the dialog alike", () => {
+    renderToDelete();
+    expect(screen.getByText(FOUR)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Delete team" }));
+    expect(within(screen.getByRole("dialog")).getByText(FOUR)).toBeTruthy();
+  });
+
+  it("says one person in the singular", () => {
+    people.count = 1;
+    renderToDelete();
+    expect(
+      screen.getByText("Its one person loses what was shared with Site Reliability. Nothing they made is deleted."),
+    ).toBeTruthy();
+  });
+
+  it("writes a count above ten in digits", () => {
+    people.count = 12;
+    renderToDelete();
+    expect(screen.getByText("Its 12 people lose what was shared with Site Reliability. Nothing they made is deleted.")).toBeTruthy();
+  });
+
+  it("says no one loses anything when the team is empty", () => {
+    people.count = 0;
+    renderToDelete();
+    expect(
+      screen.getByText("No one is in Site Reliability, so no one loses anything. Nothing anyone made is deleted."),
+    ).toBeTruthy();
+  });
+
+  it("leaves the count out while the people are still loading", () => {
+    people.isLoading = true;
+    renderToDelete();
+    expect(screen.getByText("Its people lose what was shared with Site Reliability. Nothing they made is deleted.")).toBeTruthy();
   });
 });

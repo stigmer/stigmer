@@ -527,12 +527,11 @@
         "word Added the long-prompt step": "The drawing's example data; the scene shows its own fixture's",
         "word Ada Lovelace · Jul 1, 2026": "The drawing's example data; the scene shows its own fixture's",
         "word First entry": "The drawing's example data; the scene shows its own fixture's",
-        "word Seeded · Jun 12, 2026": "The drawing's example data; the scene shows its own fixture's"
+        "word Seeded · Jun 12, 2026": "The drawing's example data; the scene shows its own fixture's",
+        "word List prices from Anthropic, Jul 1, 2026.": "The drawing's example data; the scene's prices are from Apr 21, 2026"
       },
       "ruled": {},
-      "pending": {
-        "word List prices from Anthropic, Jul 1, 2026.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "pending": {}
     },
     {
       "caption": "A model's record: A model without one: nothing extra",
@@ -821,12 +820,11 @@
         "word Added the long-prompt step": "The drawing's example data; the scene shows its own fixture's",
         "word Ada Lovelace · Jul 1, 2026": "The drawing's example data; the scene shows its own fixture's",
         "word First entry": "The drawing's example data; the scene shows its own fixture's",
-        "word Seeded · Jun 12, 2026": "The drawing's example data; the scene shows its own fixture's"
+        "word Seeded · Jun 12, 2026": "The drawing's example data; the scene shows its own fixture's",
+        "word List prices from Anthropic, Jul 1, 2026.": "The drawing's example data; the scene's prices are from Apr 21, 2026"
       },
       "ruled": {},
-      "pending": {
-        "word List prices from Anthropic, Jul 1, 2026.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "pending": {}
     },
     {
       "caption": "A model's record: At 390 wide",

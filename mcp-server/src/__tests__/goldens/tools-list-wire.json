@@ -1,0 +1,926 @@
+{
+  "full": [
+    {
+      "name": "search",
+      "description": "Search and list Stigmer resources (agents, skills). Set 'kinds' to filter by resource type. Set 'query' for full-text search. Set 'org' to scope to an organization. Omit 'query' to list all accessible resources. A result carrying next_page_token has more: pass it as 'page_token' to continue.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "kinds": {
+            "description": "Resource kinds to search. Valid: agent, skill. Empty searches all.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "query": {
+            "description": "Full-text search query. Empty lists all accessible resources.",
+            "type": "string"
+          },
+          "org": {
+            "description": "Organization slug to scope the search. Empty searches all accessible orgs.",
+            "type": "string"
+          },
+          "page_size": {
+            "description": "Results per page (default 50, max 100).",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "page_token": {
+            "description": "The previous result's next_page_token, to continue the same search.",
+            "type": "string",
+            "maxLength": 1024
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "get_agent",
+      "description": "Get full details of a Stigmer agent by its org and slug (e.g. org=stigmer slug=variance-reporter).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "org": {
+            "default": "",
+            "description": "Organization slug that owns the agent (e.g. acme). Leave empty on a server that holds one organization.",
+            "type": "string"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Agent slug — the unique identifier within the org (e.g. variance-reporter)."
+          }
+        },
+        "required": [
+          "slug"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "apply_agent",
+      "description": "Create or update a Stigmer agent (idempotent). Provide identity fields (name, org) and agent configuration (instructions, skills, plugins, etc.).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Human-readable name of the resource."
+          },
+          "slug": {
+            "description": "URL-friendly identifier (lowercase alphanumeric with hyphens). Auto-generated from name if omitted.",
+            "type": "string"
+          },
+          "org": {
+            "type": "string",
+            "description": "Organization that owns this resource (e.g. acme)."
+          },
+          "visibility": {
+            "description": "Resource visibility, by enum name. Applied at create; on updates a changed value is landed through the guarded UpdateVisibility RPC. Omit to leave unchanged. Allowed values: visibility_private, visibility_org, visibility_child_orgs.",
+            "type": "string"
+          },
+          "labels": {
+            "description": "Key-value labels for organization and filtering.",
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "tags": {
+            "description": "Tags for categorization and discovery.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": {
+            "description": "Human-readable description for UI and marketplace display.",
+            "type": "string"
+          },
+          "icon_url": {
+            "description": "Icon URL for marketplace and UI display. Must be a publicly accessible URL to an image (SVG, PNG, or JPEG).",
+            "type": "string"
+          },
+          "instructions": {
+            "description": "System prompt defining the agent's behavior and personality.",
+            "type": "string"
+          },
+          "skill_refs": {
+            "description": "Skill resources providing additional knowledge to the agent.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "org": {
+                  "description": "Organization that owns the referenced resource, by slug or id. When non-empty: an organization slug (lowercase alphanumeric with hyphens, starts with a letter, 2-63 characters; e.g. 'stigmer', 'acme-corp') or an organization id (org_<ulid>). The server stores the id, so a stored reference keeps pointing at its organization across a rename. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form, the id). Use empty org for same-org references (the common case). An explicit other org is accepted only when that organization is your organization's parent and shares the resource with its children (visibility_child_orgs).",
+                  "type": "string"
+                },
+                "slug": {
+                  "description": "Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter and end with a letter or digit (e.g., 'web-search', 'variance-reporter'). Length: 2-63 characters. Written to name the resource; never stored; returned filled with the resource's current name, empty when the resource was deleted.",
+                  "type": "string"
+                },
+                "version": {
+                  "description": "The version of a skill, a plugin or a subagent the reference asks for; every other kind ignores it. Formats: - empty or 'latest': the latest version; - a tag (e.g. 'stable', 'v1.0'): the version the tag names; - a 64-character hash: that exact version, which never changes. When it is read: a skill or plugin reference is resolved at the start of each turn, so a reference without a hash follows each new push, and the run records the version it loaded (RunStatus.loaded_versions). A subagent reference is resolved once, when the agent that lists it is saved, and the saved reference carries the hash it resolved to.",
+                  "type": "string"
+                },
+                "id": {
+                  "description": "The referenced resource's id: what a stored reference holds. Optional on write, where the slug may name the resource instead; an id no resource of the kind holds answers as a missing resource. At most 64 characters.",
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "env": {
+            "description": "Environment variable declarations for this agent. Keys are variable names; values describe their metadata and optionality. A secret is found by its name in a vault when a run starts; a plain setting may carry its value in the declaration.",
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "is_secret": {
+                  "description": "Whether the value is a secret, found in a vault when a run starts.",
+                  "type": "boolean"
+                },
+                "description": {
+                  "description": "Human-readable description shown where the value is asked for. Should explain what the variable is used for and where to obtain it.",
+                  "type": "string"
+                },
+                "optional": {
+                  "description": "Whether this variable is optional.",
+                  "type": "boolean"
+                },
+                "value": {
+                  "description": "The fixed value of a setting that is not a secret and is the same wherever the blueprint runs, such as a log level or a response format. A value that differs per deployment, team or person (a workspace name, a host) belongs in a vault secret of the same name instead, which takes this value's place when a run starts.",
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "tools": {
+            "description": "Tools this agent may use; empty means every tool it has. Entries use Claude Code's names: a built-in such as Read, Grep, Bash, Write, Edit, Glob, Agent or WebFetch; mcp__<server> for every tool of one MCP server, mcp__<server>__<tool> for one tool, and mcp__* for every MCP tool. A plugin's server is named plugin_<plugin>_<server>, as Claude Code names it, with every character outside letters, digits, _ and - written as _. A specifier in parentheses, as in Bash(git push *), is accepted and governs the whole tool. Agent(explore, bank-reconciler) also limits which subagents this agent may start. The lists hold on every harness, and under 'approve everything' too. Skill is a name here too, for the agent's skills: a list without Skill keeps them, and a list holding only Skill names them, so it does not refuse the turn, also under an outer list that omits Skill (a plugin subagent's under its turn's, a turn's under the agent's). Denying Skill in disallowed_tools removes them, and then a list of Skill alone in a narrower layer refuses the turn.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "disallowed_tools": {
+            "description": "Tools this agent may never use, in the same names as tools. Applied before tools, so a tool named in both is excluded. Disallowing Skill hides every skill from this agent: no skill is listed or mounted for its turns, and the Read tool refuses reads of skill and plugin-tree files. Grep, Glob and a shell the agent is granted are not refused, so they can still reach those files.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hooks": {
+            "description": "Hooks written in this agent itself, run around its tool calls and its subagents' calls, after the hooks of the plugins it lists. A hook can refuse a call, ask a person first, or let it run without the approval it would otherwise need. Every harness runs hooks in Claude Code's format and in Cursor's.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "inline": {
+                  "description": "A hooks block in Claude Code's hooks.json shape, written in the agent.",
+                  "type": "object",
+                  "properties": {
+                    "format": {
+                      "description": "The format the hooks are written in, which decides their input and answer. An agent's own block may leave it unset; Claude Code's format is assumed. A block in Cursor's format names it. Allowed values: HOOK_FORMAT_CLAUDE_CODE, HOOK_FORMAT_CURSOR.",
+                      "type": "string"
+                    },
+                    "groups": {
+                      "description": "Hook groups, in the order they are declared.",
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "event": {
+                            "description": "The event the handlers run on, spelled as the format spells it. In Claude Code's format: 'PreToolUse' before a call, which can refuse it, ask first or allow it, or 'PostToolUse' after a call succeeds, which can add to what the agent reads. In Cursor's: 'preToolUse', 'beforeShellExecution' (shell commands) and 'beforeMCPExecution' (MCP tools) before a call, and 'postToolUse' and 'afterMCPExecution' (MCP tools) after one.",
+                            "type": "string"
+                          },
+                          "matcher": {
+                            "description": "Which tools the handlers run for, in the format's own names. In Claude Code's format: a name such as 'Bash', a list such as 'Write|Edit', or a regular expression such as 'mcp__github__.*'; a plugin's own MCP server's tools are named mcp__plugin_<plugin>_<server>__<tool>, as in Claude Code. In Cursor's: a regular expression tested against the tool's name ('Shell', 'Write', 'MCP:<tool>'), or, on 'beforeShellExecution', against the command itself. Empty or '*' matches every tool.",
+                            "type": "string"
+                          },
+                          "handlers": {
+                            "description": "The handlers to run, in order.",
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "command": {
+                                  "description": "The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT} names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace, and in Cursor's format ${CURSOR_PLUGIN_ROOT} and ${CURSOR_PROJECT_DIR} do too.",
+                                  "type": "string"
+                                },
+                                "args": {
+                                  "description": "Arguments for the command's exec form; when set, the command runs without a shell. Claude Code's format only.",
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "timeout_seconds": {
+                                  "description": "Seconds the command may run before it is stopped; zero means the format's default, 600 seconds for Claude Code and 60 for Cursor. A command that is stopped makes no decision, unless fail_closed is set.",
+                                  "type": "number"
+                                },
+                                "condition": {
+                                  "description": "A permission rule that narrows when the handler runs, e.g. 'Bash(git push *)'; empty means whenever the group matches. Claude Code's format only.",
+                                  "type": "string"
+                                },
+                                "fail_closed": {
+                                  "description": "Whether a crash, timeout or missing answer blocks the call instead of letting it through. Cursor's format only.",
+                                  "type": "boolean"
+                                }
+                              },
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "run_config": {
+            "description": "The author's run defaults: the model, speed tier, thinking and run bounds a turn on this agent uses unless the message, or the routine or channel it came through, sets its own (RunConfig has the rule). Versioned with the agent, so a conversation pinned to a version keeps that version's defaults. A choice here (model_name, service_tier, thinking_mode) applies only on the harness named in harness; on a conversation running another harness only the bounds apply. A bound here is a cap: a message, a routine or a channel can lower it, never raise it. A model must be named together with harness, and must be one that harness lists; service_tier FAST and thinking_mode ENABLED need a model that harness prices or marks capable. Checked when the agent is saved.",
+            "type": "object",
+            "properties": {
+              "model_name": {
+                "description": "The model each run uses. Example: 'claude-sonnet-4-6'.",
+                "type": "string"
+              },
+              "max_cost_usd": {
+                "description": "Maximum estimated cost in USD per run. When the run's estimated spend reaches this limit, the run stops with a 'send another message to continue' prompt and ends TERMINATED; the work done so far is kept. The limit is checked each time the harness reports its spend, so a run can end somewhat above it. Stigmer's own harness reports after every model call, counts a subagent's spend toward the limit, and advises the agent to wrap up at about 80% of the budget. 0 = not set at this layer. The budget is per message: a follow-up message, or a run resuming after an approval, starts a fresh count; a run continuing after a restart, a lost runner or a stall keeps its count. The spend is the runner's estimate, reported on RunStatus.streaming_usage.estimated_cost_usd, not the billed amount.",
+                "type": "number"
+              },
+              "max_tool_rounds": {
+                "description": "Maximum model-to-tools reasoning cycles per message. A round is one model response that proposes one or more tool calls, followed by their execution; parallel tool calls in one response are one round. When the limit is reached the run stops with a 'send another message to continue' prompt, and the work done so far is kept. The agent is advised to wrap up at about 80% of the budget. 0 = not set at this layer; with no layer setting it the agent runs until the task completes or loop detection stops a repetitive pattern. When set, the valid range is 10–1000; values outside it are clamped to the nearest bound. The budget is per message: a follow-up message, or a run resuming after an approval, starts a fresh count. Subagent rounds are not counted.",
+                "type": "number"
+              },
+              "service_tier": {
+                "description": "Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one. UNSPECIFIED is not set at this layer; with no layer setting it the run uses STANDARD, never the provider account default. FAST is valid only for a model whose registry entry declares a fast pricing variant on the harness that runs it; validated fail-closed on the resolved settings at create. Allowed values: SERVICE_TIER_STANDARD, SERVICE_TIER_FAST.",
+                "type": "string"
+              },
+              "thinking_mode": {
+                "description": "Thinking mode for each run's model calls: disabled (the default) or enabled, where enabled selects the model's extended-reasoning variant (billed at base per-token rates — reasoning tokens bill as output). UNSPECIFIED is not set at this layer; with no layer setting it the run uses DISABLED, never the provider account default. ENABLED is valid only for a model whose registry entry declares the thinking capability on the harness that runs it; validated fail-closed on the resolved settings at create. Combines freely with service_tier. Allowed values: THINKING_MODE_DISABLED, THINKING_MODE_ENABLED.",
+                "type": "string"
+              },
+              "max_tool_result_chars": {
+                "description": "Maximum number of characters for a single tool result before truncation. A longer result reaches the agent as its start and its end, with a line between them saying how much was left out. The whole result is kept for the session, outside the workspace, and the line says where, so the agent reads the rest back instead of running the tool again; a tool that pages itself (reading a file, searching, listing, fetching a page) keeps no copy, and the line says how to narrow the call instead. A value above 80,000 raises the bound only for the file tools (reading, searching, listing and editing files); every other tool's result is cut at 80,000 at most. 0 = not set at this layer; with no layer setting it the platform default applies (30,000 chars, about 7,500 tokens). Applies to every tool result, a subagent's included.",
+                "type": "number"
+              }
+            },
+            "additionalProperties": false
+          },
+          "harness": {
+            "description": "The harness this agent's run defaults were chosen for, and the harness a new conversation on this agent starts on when the person, routine or channel starting it names neither a harness nor a model (a turn that names a model but no harness starts on Stigmer, the harness its name was checked against). Unspecified: the platform's default harness, Stigmer. Model names belong to a harness (each lists its own), so run_config's model, tier and thinking count only on this harness. A conversation keeps the harness it started on; a later version naming another harness changes only new conversations. Allowed values: HARNESS_STIGMER, HARNESS_CLAUDE.",
+            "type": "string"
+          },
+          "plugins": {
+            "description": "Plugins this agent uses, each whole: its skills, agents, hooks and MCP servers. A server written in the agent itself goes in mcp_servers.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "org": {
+                  "description": "Organization that owns the referenced resource, by slug or id. When non-empty: an organization slug (lowercase alphanumeric with hyphens, starts with a letter, 2-63 characters; e.g. 'stigmer', 'acme-corp') or an organization id (org_<ulid>). The server stores the id, so a stored reference keeps pointing at its organization across a rename. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form, the id). Use empty org for same-org references (the common case). An explicit other org is accepted only when that organization is your organization's parent and shares the resource with its children (visibility_child_orgs).",
+                  "type": "string"
+                },
+                "slug": {
+                  "description": "Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter and end with a letter or digit (e.g., 'web-search', 'variance-reporter'). Length: 2-63 characters. Written to name the resource; never stored; returned filled with the resource's current name, empty when the resource was deleted.",
+                  "type": "string"
+                },
+                "version": {
+                  "description": "The version of a skill, a plugin or a subagent the reference asks for; every other kind ignores it. Formats: - empty or 'latest': the latest version; - a tag (e.g. 'stable', 'v1.0'): the version the tag names; - a 64-character hash: that exact version, which never changes. When it is read: a skill or plugin reference is resolved at the start of each turn, so a reference without a hash follows each new push, and the run records the version it loaded (RunStatus.loaded_versions). A subagent reference is resolved once, when the agent that lists it is saved, and the saved reference carries the hash it resolved to.",
+                  "type": "string"
+                },
+                "id": {
+                  "description": "The referenced resource's id: what a stored reference holds. Optional on write, where the slug may name the resource instead; an id no resource of the kind holds answers as a missing resource. At most 64 characters.",
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "subagents": {
+            "description": "Saved agents this agent may hand work to, each running its own instructions, model, tools, plugins, skills, hooks and values. A subagent runs as the conversation's person and on its budget, under the conversation's hooks, and cannot hand work on to another agent: an agent that lists subagents of its own is refused here. Each reference is pinned when this agent is saved: a reference without a version takes the listed agent's latest version, and one naming a tag or a version keeps that version until a later save sends the list again. At most 20.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "org": {
+                  "description": "Organization that owns the referenced resource, by slug or id. When non-empty: an organization slug (lowercase alphanumeric with hyphens, starts with a letter, 2-63 characters; e.g. 'stigmer', 'acme-corp') or an organization id (org_<ulid>). The server stores the id, so a stored reference keeps pointing at its organization across a rename. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form, the id). Use empty org for same-org references (the common case). An explicit other org is accepted only when that organization is your organization's parent and shares the resource with its children (visibility_child_orgs).",
+                  "type": "string"
+                },
+                "slug": {
+                  "description": "Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter and end with a letter or digit (e.g., 'web-search', 'variance-reporter'). Length: 2-63 characters. Written to name the resource; never stored; returned filled with the resource's current name, empty when the resource was deleted.",
+                  "type": "string"
+                },
+                "version": {
+                  "description": "The version of a skill, a plugin or a subagent the reference asks for; every other kind ignores it. Formats: - empty or 'latest': the latest version; - a tag (e.g. 'stable', 'v1.0'): the version the tag names; - a 64-character hash: that exact version, which never changes. When it is read: a skill or plugin reference is resolved at the start of each turn, so a reference without a hash follows each new push, and the run records the version it loaded (RunStatus.loaded_versions). A subagent reference is resolved once, when the agent that lists it is saved, and the saved reference carries the hash it resolved to.",
+                  "type": "string"
+                },
+                "id": {
+                  "description": "The referenced resource's id: what a stored reference holds. Optional on write, where the slug may name the resource instead; an id no resource of the kind holds answers as a missing resource. At most 64 characters.",
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "mcp_servers": {
+            "description": "MCP servers written in this agent itself, reached over HTTP, beside the servers of the plugins it lists. At most 20. Only an organization's admins may add a server or change one's address or headers; anyone who may edit the agent may keep or remove them. A server's tools are named mcp__<name>__<tool> in tools and disallowed_tools. A run logs in with the vault connection saved at the server's address, else a vault secret named <NAME>_ACCESS_TOKEN (the server's name upper-cased, each other character written as _), which is sent to this server, or calls it with no login when there is neither; a header that names Authorization itself takes that login from its ${NAME} instead, and the run then needs it. Each ${NAME} in a header value is filled from the run's values and sent to this server only, never to the agent's shell. Header values are stored in the agent, so a secret goes in a vault and the header names it.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "description": "The server's name in this agent, which names its tools mcp__<name>__<tool>: 2 to 63 lowercase letters, digits and hyphens, starting with a letter and not ending with a hyphen.",
+                  "type": "string"
+                },
+                "url": {
+                  "description": "The server's address: an https URL, or http on this machine.",
+                  "type": "string"
+                },
+                "headers": {
+                  "description": "Headers sent with every request to this server. A value may name a run value as ${NAME}, filled when the run starts.",
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "environment_ref": {
+            "description": "The Environment a new conversation on this agent runs in when neither the conversation nor its routine names one: the packages its sandboxes get and the websites they may reach. Unset: the organization's default Environment, if any. A conversation keeps the Environment it started with; changing this changes only new conversations. A conversation on the person's own machine (the desktop app, the CLI) ignores it.",
+            "type": "object",
+            "properties": {
+              "org": {
+                "description": "Organization that owns the referenced resource, by slug or id. When non-empty: an organization slug (lowercase alphanumeric with hyphens, starts with a letter, 2-63 characters; e.g. 'stigmer', 'acme-corp') or an organization id (org_<ulid>). The server stores the id, so a stored reference keeps pointing at its organization across a rename. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form, the id). Use empty org for same-org references (the common case). An explicit other org is accepted only when that organization is your organization's parent and shares the resource with its children (visibility_child_orgs).",
+                "type": "string"
+              },
+              "slug": {
+                "description": "Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter and end with a letter or digit (e.g., 'web-search', 'variance-reporter'). Length: 2-63 characters. Written to name the resource; never stored; returned filled with the resource's current name, empty when the resource was deleted.",
+                "type": "string"
+              },
+              "id": {
+                "description": "The referenced resource's id: what a stored reference holds. Optional on write, where the slug may name the resource instead; an id no resource of the kind holds answers as a missing resource. At most 64 characters.",
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "name",
+          "org"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "delete_agent",
+      "description": "Delete a Stigmer agent and every version of it, by its org and slug. It can't be undone. Returns the deleted agent.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "org": {
+            "default": "",
+            "description": "Organization slug that owns the agent (e.g. acme). Leave empty on a server that holds one organization.",
+            "type": "string"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Agent slug — the unique identifier within the org (e.g. variance-reporter)."
+          }
+        },
+        "required": [
+          "slug"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "run_agent",
+      "description": "Start a run (asynchronous). Returns immediately with the created run (run_* ID) while the run continues in the background — poll get_run to observe progress, the tool uses it waits on, and the final answer. Omit session_id to start a fresh conversation on the agent; pass one to send a follow-up message into an existing session, which runs the agent the session started on.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "org": {
+            "default": "",
+            "description": "Organization slug that owns the agent (e.g. acme). Leave empty on a server that holds one organization.",
+            "type": "string"
+          },
+          "agent": {
+            "type": "string",
+            "description": "Agent slug — the unique identifier within the org (e.g. variance-reporter)."
+          },
+          "message": {
+            "type": "string",
+            "description": "The instruction or message for the agent to act on."
+          },
+          "session_id": {
+            "description": "Existing session ID to continue a conversation (from a previous run's spec.session_id). Omit to start a new session. A turn in a session runs the agent the session started on and belongs to that session's organization, which the server applies. `agent` (and `org`, when given) must name the session's agent, or the call is refused; neither is sent with the turn.",
+            "type": "string"
+          },
+          "vaults": {
+            "description": "Shared vaults a new conversation uses, in order, after the caller's My vault: each a vault slug in `org`, or `org/slug`. Only when starting a new conversation (no session_id); a conversation keeps the vaults it was started with. The server refuses a vault that does not exist or that the caller may not use.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "plugins": {
+            "description": "Installed plugins a new conversation uses beside its agent's, each whole (its skills, agents, hooks and MCP servers): each a plugin slug in `org`, or `org/slug`. Only when starting a new conversation (no session_id); a conversation keeps the plugins it was started with.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "include_my_vault": {
+            "description": "Whether each turn of a new conversation uses the caller's own My vault first (default true). Pass false to run on the listed vaults only. Only when starting a new conversation (no session_id).",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "agent",
+          "message"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "get_run",
+      "description": "Get a run and what its agent did: the run's lifecycle (phase, timing, error, stop_cause) and the run's events from its session's event log. Poll this tool to track a run started with run_agent (terminal phases: completed, failed, cancelled, terminated). The default compact view summarizes the turn: its phase, its answer, asks (the tool uses waiting for your answer, each with the tool_use_id submit_run_approval takes), its to-do list, its changed files and the last few items (messages, thinking, tool uses with their results); total_items tells you when the tail is a window. run.status.credentials.sources names the vault and entry each key the run uses came from, never a value. Use view=full for every event of the run as Claude Managed Agents JSON.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "description": "Run ID (run_*)."
+          },
+          "view": {
+            "description": "Response shape: compact (default, the turn summarized with a bounded item tail) or full (every event).",
+            "type": "string",
+            "enum": [
+              "compact",
+              "full"
+            ]
+          },
+          "item_limit": {
+            "description": "Compact view only: number of trailing items of the turn to return (default 5).",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "run_id"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "submit_run_approval",
+      "description": "Answer a tool use a run is waiting on (get_run's turn.phase is waiting). Find the waiting tool uses in get_run's turn.asks — tool_use_id must match exactly. The run continues once every waiting tool use of its turn is answered. deny refuses the one call and feeds your reason back to the agent, which then continues; to stop the conversation use cancel_run instead. An approval is the person's to give: send allow or allow_all only when the person you are working for said so, in this conversation, for this call.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "description": "Run ID (run_*)."
+          },
+          "tool_use_id": {
+            "type": "string",
+            "description": "The waiting tool use to answer (get_run's turn.asks[].tool_use_id)."
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "allow",
+              "deny",
+              "allow_all"
+            ],
+            "description": "allow: run this call. deny: refuse it; the agent is told why (see reason) and adapts. allow_all: run this call and every call of its class (its built-in category, MCP server or asking hook) for the rest of the turn, including the class's other waiting calls."
+          },
+          "reason": {
+            "description": "With deny only: why the call is refused, fed back to the agent.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "tool_use_id",
+          "decision"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "get_skill",
+      "description": "Get full details of a Stigmer skill by org and slug, optionally at a specific version. Omit 'version' for the latest.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "org": {
+            "default": "",
+            "description": "Organization slug that owns the skill. Leave empty on a server that holds one organization.",
+            "type": "string"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Skill slug — unique identifier within the org."
+          },
+          "version": {
+            "description": "Version to retrieve: tag name (e.g. stable) or SHA-256 hash. Omit for latest.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "delete_skill",
+      "description": "Delete a Stigmer skill and all its versions by org and slug. To create or update skills, use the 'stigmer skill push' CLI command. Returns the deleted skill.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "org": {
+            "default": "",
+            "description": "Organization slug that owns the skill (e.g. acme). Leave empty on a server that holds one organization.",
+            "type": "string"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Skill slug — the unique identifier within the org (e.g. variance-report). Deletes the skill and all its versions."
+          }
+        },
+        "required": [
+          "slug"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "list_skill_versions",
+      "description": "List a skill's version history (newest first): version hash, tag, who pushed it and when, and which version is current. Fetch one version's full content with get_skill and its hash or tag.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "org": {
+            "default": "",
+            "description": "Organization slug that owns the skill. Leave empty on a server that holds one organization.",
+            "type": "string"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Skill slug — unique identifier within the org."
+          },
+          "page_size": {
+            "description": "Maximum versions per page (default 50).",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "page_token": {
+            "description": "Pagination token from a previous response's next_page_token.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "cancel_run",
+      "description": "Cancel a run in progress (run_*) by interrupting its conversation: every unfinished turn of the conversation stops (queued, working, waiting for an answer or paused), not this run alone, and each ends cancelled. Cancellation is terminal: a stopped turn cannot be resumed. The response names the runs stopped (stopped_run_ids). A run already in a terminal phase is returned with already_terminal=true and nothing is stopped.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "description": "Run ID to cancel (run_*)."
+          }
+        },
+        "required": [
+          "run_id"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "search_docs",
+      "description": "Search Stigmer's documentation at stigmer.ai/docs for the pages that answer a question: what Stigmer is, its editions and billing, how a concept works, a CLI command or SDK call, or why something fails. Returns the best-matching pages with their URLs. Then read the page with read_doc, whole, and answer from what it says.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A few words naming what the question is about (e.g. 'runner port', 'editions billing')."
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "read_doc",
+      "description": "Read one page of Stigmer's documentation whole, as Markdown, exactly as published today. The text opens with the page's Source URL: cite it in the answer. Pass the page's path (e.g. concepts/tools) or its full https://stigmer.ai/docs/... URL. Only stigmer.ai/docs is read.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The page's path after /docs/ (e.g. concepts/tools), or its full URL."
+          }
+        },
+        "required": [
+          "page"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    }
+  ],
+  "channels": [
+    {
+      "name": "send_channel_message",
+      "description": "Send a business-initiated message to a recipient on this agent's messaging channel (e.g. WhatsApp). Exactly one of text | template. Outside a 24-hour customer-service window the provider only accepts a pre-approved template, so prefer a template from <available_channel_templates>. The result carries a typed outcome: accepted (sent), queued (the platform retries in the background — do not resend), or refused (terminal; detail says why — adapt, never retry the same send).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "recipient": {
+            "type": "string",
+            "description": "Recipient's key on the channel's provider, passed to the provider verbatim. WhatsApp: the wa_id — digits only INCLUDING the country code, no \"+\" or separators (e.g. \"919912850490\"). Never reformat a wa_id another tool returned."
+          },
+          "text": {
+            "description": "Plain text body. Only deliverable inside an open 24-hour customer-service window.",
+            "type": "string"
+          },
+          "template": {
+            "description": "Pre-approved template send — required outside a 24-hour window.",
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Approved template name on the channel's provider registry."
+              },
+              "language": {
+                "description": "Template language code (e.g. en, en_US). Omit when the template exists in exactly one language.",
+                "type": "string"
+              },
+              "parameters": {
+                "description": "Placeholder values. Positional templates key by position (\"1\", \"2\", …); named templates key by parameter name (\"member_name\").",
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "header_image_link": {
+                "description": "Public HTTPS URL for the image header. Required exactly when the template declares an image header.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "channel": {
+            "description": "Channel slug. Only needed when this agent serves more than one proactive-messaging channel (a refusal will list them).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "recipient"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    }
+  ],
+  "conversation": [
+    {
+      "name": "escalate_to_human",
+      "description": "Flag this conversation for a human teammate to look at. Use this when you cannot resolve the customer's request yourself: you lack the information, the request needs a decision you are not authorized to make, or the customer has asked for a person.\n\nYou keep serving the conversation after calling this. Nothing is handed off automatically and no one is paged. Do not tell the customer a human will reply, and never promise a response time.\n\nWrite the reason for a teammate who has not read the conversation. Calling this again with a new reason is safe; the latest reason is what they see.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "description": "Why you are escalating, written for a teammate who has not read the conversation. Staff see it as the conversation's attention reason. 1-1024 characters."
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    }
+  ],
+  "memory": [
+    {
+      "name": "remember",
+      "description": "Propose one durable fact about the person you are assisting, to be recalled in their future sessions — a stable preference, situation, or way of working (e.g. \"Prefers concise answers with code examples\"). Not task state, not secrets or credentials, not one-off details. The fact is only PROPOSED: the user reviews the exact text and decides — tell them you have suggested it, never that you have remembered it. Keep each fact self-contained and under 500 characters; call once per fact.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "fact": {
+            "type": "string",
+            "description": "The fact to remember, stated in the third person and self-contained (e.g. \"Works primarily in Go and prefers table-driven tests\"). 1–500 characters; stored and shown to the user verbatim."
+          }
+        },
+        "required": [
+          "fact"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    }
+  ]
+}

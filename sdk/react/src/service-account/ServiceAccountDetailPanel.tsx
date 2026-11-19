@@ -348,6 +348,8 @@ function KeysSection({
   readonly now?: Date;
 }) {
   const [flow, setFlow] = useState<KeysFlow>({ phase: "idle" });
+  // How many keys it has, once the list has read them all: the heading carries it.
+  const [count, setCount] = useState<number | null>(null);
   const refetchRef = useRef<(() => void) | null>(null);
   const handleRefetchRef = useCallback((refetch: () => void) => {
     refetchRef.current = refetch;
@@ -356,6 +358,7 @@ function KeysSection({
   return (
     <Section
       title="API keys"
+      {...(count === null ? {} : { count })}
       headerActions={
         flow.phase === "idle" && (
           <Button variant="outline" size="xs" onClick={() => setFlow({ phase: "creating" })}>
@@ -395,6 +398,7 @@ function KeysSection({
           serviceAccountId={accountId}
           onRefetchRef={handleRefetchRef}
           now={now}
+          onCountChange={setCount}
         />
       </div>
     </Section>

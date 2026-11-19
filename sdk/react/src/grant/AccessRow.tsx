@@ -14,6 +14,7 @@
 import { useCallback } from "react";
 import type { PrincipalAccess } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 import { granteeFromView, type Grantee } from "@stigmer/client";
+import { cn } from "@stigmer/design-tokens";
 import { IconButton } from "../button/IconButton.js";
 import { GranteeAvatar } from "./GranteeAvatar.js";
 import { PermissionGate } from "./PermissionGate.js";
@@ -30,6 +31,12 @@ export interface AccessRowProps {
    * same one role (a team's members) leaves it off.
    */
   readonly showRoles?: boolean;
+  /**
+   * Draw the name as the kit's list row draws one (14/20, medium) with its
+   * second line at 12/16: a team's people, where the rows are the page's
+   * list. Off, the compact share dialog's 12/16 name.
+   */
+  readonly listName?: boolean;
 }
 
 /** A stable React key for an access-list entry: kind, id and relation. */
@@ -44,6 +51,7 @@ export function AccessRow({
   onRemove,
   isRemoving,
   showRoles = true,
+  listName = false,
 }: AccessRowProps) {
   const principal = entry.principal;
   const grantee = principal ? granteeFromView(principal) : undefined;
@@ -71,9 +79,9 @@ export function AccessRow({
           name={principal?.name || principal?.email || "?"}
         />
         <div className="stg:min-w-0">
-          <p className="stg:text-xs stg:text-foreground stg:truncate">{displayName}</p>
+          <p className={cn("stg:text-foreground stg:truncate", listName ? "stg:text-sm stg:font-medium" : "stg:text-xs")}>{displayName}</p>
           {subline && (
-            <p className="stg:text-2xs stg:text-muted-foreground stg:truncate">{subline}</p>
+            <p className={cn("stg:text-muted-foreground stg:truncate", listName ? "stg:text-xs" : "stg:text-2xs")}>{subline}</p>
           )}
         </div>
       </div>

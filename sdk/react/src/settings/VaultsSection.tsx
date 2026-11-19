@@ -87,6 +87,7 @@ export function VaultsSection() {
             resource={{ kind: ApiResourceKind.vault, kindString: "vault", id: openId, org }}
             visibility={{ kind: "vault", current: openVisibility, onChanged: () => listRefetchRef.current?.() }}
             label="Who can use"
+            size="sm"
           />
         ) : (
           !showCreate &&
@@ -139,12 +140,11 @@ function MyVaultCard({ org }: { org: string }) {
   return (
     <section aria-labelledby={headingId} className="stg:flex stg:flex-col stg:gap-3">
       <div className="stg:flex stg:flex-col stg:gap-1">
-        <div className="stg:flex stg:items-center stg:gap-2">
-          <h3 id={headingId} className="stg:m-0 stg:text-foreground stg:text-sm stg:font-semibold">
-            My vault
-          </h3>
-          <Tag>You</Tag>
-        </div>
+        {/* The tag is part of the heading, so the heading reads "My vault You" as it is drawn. */}
+        <h3 id={headingId} className="stg:m-0 stg:text-foreground stg:text-sm stg:font-semibold">
+          My vault{" "}
+          <Tag className="stg:ml-1 stg:align-middle">You</Tag>
+        </h3>
         <p className="stg:m-0 stg:text-muted-foreground stg:text-xs">
           Your own logins and secrets. A chat that includes My vault uses them for the messages you send, never a
           teammate&apos;s, and a chat with an agent of another organization never does. Saved values can be replaced but
@@ -207,12 +207,16 @@ function SharedVaultsCard({
   readonly emptyDescription: string | undefined;
 }) {
   const headingId = useId();
+  // How many the list holds, once it has read them: the heading carries it.
+  const [count, setCount] = useState<number | null>(null);
 
   return (
     <section aria-labelledby={headingId} className="stg:flex stg:flex-col stg:gap-3">
       <div className="stg:flex stg:flex-col stg:gap-1">
         <h3 id={headingId} className="stg:m-0 stg:text-foreground stg:text-sm stg:font-semibold">
           Shared vaults
+          {count != null && count > 0 && " "}
+          {count != null && count > 0 && <Tag className="stg:ml-1 stg:align-middle">{count}</Tag>}
         </h3>
         <p className="stg:m-0 stg:text-muted-foreground stg:text-xs">
           Your organization&apos;s team keys. Admins create them and choose who may use them; a conversation, a routine
@@ -226,7 +230,14 @@ function SharedVaultsCard({
         </Card>
       )}
 
-      <VaultListPanel org={org} onRefetchRef={onRefetchRef} emptyAction={emptyAction} onOpen={onOpen} emptyDescription={emptyDescription} />
+      <VaultListPanel
+        org={org}
+        onRefetchRef={onRefetchRef}
+        emptyAction={emptyAction}
+        onOpen={onOpen}
+        emptyDescription={emptyDescription}
+        onSharedCountChange={setCount}
+      />
     </section>
   );
 }

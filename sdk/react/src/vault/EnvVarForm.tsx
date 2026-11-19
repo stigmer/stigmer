@@ -238,7 +238,7 @@ export function EnvVarForm({
                 >
                   <span className="stg:font-mono">{variable.key}</span>
                   {variable.isSecret && (
-                    <span className="stg:text-2xs stg:uppercase stg:tracking-wider stg:text-muted-foreground-subtle">
+                    <span className="stg:text-2xs stg:uppercase stg:tracking-wider stg:text-muted-foreground">
                       secret
                     </span>
                   )}
@@ -285,7 +285,7 @@ export function EnvVarForm({
                 {variable.description && (
                   <p
                     id={descId}
-                    className="stg:text-2xs stg:leading-relaxed stg:text-muted-foreground-subtle"
+                    className="stg:text-2xs stg:text-muted-foreground"
                   >
                     {variable.description}
                   </p>

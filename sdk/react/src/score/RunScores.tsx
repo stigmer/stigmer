@@ -201,7 +201,7 @@ function HealthChip({ view }: { readonly view: RunHealthView }) {
   if (view.kind === "pending" || view.kind === "healthy") return null;
   if (view.kind === "not-graded") {
     return (
-      <span className="stg:ml-1 stg:text-xs stg:text-muted-foreground-subtle">
+      <span className="stg:ml-1 stg:text-xs stg:text-muted-foreground">
         Not graded{view.reason !== "" ? `: ${view.reason}` : ""}
       </span>
     );
@@ -261,7 +261,7 @@ function JudgeChip({ view }: { readonly view: JudgeView }) {
     return (
       <span
         role="status"
-        className="stg:ml-1 stg:text-xs stg:text-muted-foreground-subtle"
+        className="stg:ml-1 stg:text-xs stg:text-muted-foreground"
       >
         Judge: grading…
       </span>
@@ -269,7 +269,7 @@ function JudgeChip({ view }: { readonly view: JudgeView }) {
   }
   if (view.kind === "not-graded") {
     return (
-      <span className="stg:ml-1 stg:text-xs stg:text-muted-foreground-subtle">
+      <span className="stg:ml-1 stg:text-xs stg:text-muted-foreground">
         Judge: not graded{view.reason !== "" ? `: ${view.reason}` : ""}
       </span>
     );
@@ -307,7 +307,7 @@ function JudgeChip({ view }: { readonly view: JudgeView }) {
             </li>
           ))}
           {view.model !== "" && (
-            <li className="stg:text-muted-foreground-subtle">
+            <li className="stg:text-muted-foreground">
               Graded by {view.model}
             </li>
           )}
@@ -322,7 +322,7 @@ function EvalChip({ view }: { readonly view: EvalView }) {
   if (view.kind === "none") return null;
   if (view.kind === "not-graded") {
     return (
-      <span className="stg:ml-1 stg:text-xs stg:text-muted-foreground-subtle">
+      <span className="stg:ml-1 stg:text-xs stg:text-muted-foreground">
         Eval: not graded{view.reason !== "" ? `: ${view.reason}` : ""}
       </span>
     );

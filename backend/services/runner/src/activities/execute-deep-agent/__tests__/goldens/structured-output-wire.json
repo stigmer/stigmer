@@ -1,0 +1,386 @@
+{
+  "anthropic, not thinking": {
+    "model": "claude-sonnet-4-5",
+    "tools": [
+      {
+        "name": "StructuredOutput",
+        "description": "A reviewed candidate.",
+        "input_schema": {
+          "type": "object",
+          "description": "A reviewed candidate.",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The candidate's full name."
+            },
+            "score": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 10,
+              "description": "0 to 10; 10 is a perfect fit."
+            },
+            "level": {
+              "type": "string",
+              "enum": [
+                "junior",
+                "senior",
+                "staff"
+              ]
+            },
+            "contact": {
+              "type": "object",
+              "description": "How to reach them.",
+              "properties": {
+                "email": {
+                  "type": "string",
+                  "format": "email"
+                },
+                "phone": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "email"
+              ]
+            },
+            "skills": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "skill": {
+                    "type": "string"
+                  },
+                  "years": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "skill"
+                ]
+              }
+            },
+            "decision": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "const": "hire"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reject": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reject"
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "name",
+            "level",
+            "contact",
+            "skills",
+            "decision"
+          ],
+          "title": "StructuredOutput"
+        }
+      }
+    ],
+    "tool_choice": {
+      "type": "any"
+    }
+  },
+  "anthropic, thinking": {
+    "model": "claude-sonnet-4-5",
+    "tools": [],
+    "output_config": {
+      "format": {
+        "type": "json_schema",
+        "schema": {
+          "type": "object",
+          "description": "A reviewed candidate.",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The candidate's full name."
+            },
+            "score": {
+              "type": "number",
+              "description": "0 to 10; 10 is a perfect fit.\n\n{minimum: 0, maximum: 10}"
+            },
+            "level": {
+              "type": "string",
+              "description": "{enum: [\"junior\",\"senior\",\"staff\"]}"
+            },
+            "contact": {
+              "type": "object",
+              "description": "How to reach them.",
+              "properties": {
+                "email": {
+                  "type": "string",
+                  "format": "email"
+                },
+                "phone": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "email"
+              ]
+            },
+            "skills": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "skill": {
+                    "type": "string"
+                  },
+                  "years": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "skill"
+                ]
+              },
+              "minItems": 1
+            },
+            "decision": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "description": "{const: \"hire\"}"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "reject": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "required": [
+                    "reject"
+                  ]
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "level",
+            "contact",
+            "skills",
+            "decision"
+          ]
+        }
+      }
+    }
+  },
+  "openai, not thinking": {
+    "model": "gpt-4.1",
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "StructuredOutput",
+          "description": "A reviewed candidate.",
+          "parameters": {
+            "type": "object",
+            "description": "A reviewed candidate.",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The candidate's full name."
+              },
+              "score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 10,
+                "description": "0 to 10; 10 is a perfect fit."
+              },
+              "level": {
+                "type": "string",
+                "enum": [
+                  "junior",
+                  "senior",
+                  "staff"
+                ]
+              },
+              "contact": {
+                "type": "object",
+                "description": "How to reach them.",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "phone": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              },
+              "skills": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "skill": {
+                      "type": "string"
+                    },
+                    "years": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "skill"
+                  ]
+                }
+              },
+              "decision": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "const": "hire"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "reject": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reject"
+                    ]
+                  }
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "level",
+              "contact",
+              "skills",
+              "decision"
+            ],
+            "title": "StructuredOutput"
+          }
+        }
+      }
+    ],
+    "tool_choice": "required"
+  },
+  "gemini on an openai-compatible endpoint, not thinking": {
+    "model": "gemini-2.5-flash",
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "StructuredOutput",
+          "description": "A reviewed candidate.",
+          "parameters": {
+            "type": "object",
+            "description": "A reviewed candidate.",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The candidate's full name."
+              },
+              "score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 10,
+                "description": "0 to 10; 10 is a perfect fit."
+              },
+              "level": {
+                "type": "string",
+                "enum": [
+                  "junior",
+                  "senior",
+                  "staff"
+                ]
+              },
+              "contact": {
+                "type": "object",
+                "description": "How to reach them.",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "phone": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              },
+              "skills": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "skill": {
+                      "type": "string"
+                    },
+                    "years": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "skill"
+                  ]
+                }
+              },
+              "decision": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "const": "hire"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "reject": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reject"
+                    ]
+                  }
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "level",
+              "contact",
+              "skills",
+              "decision"
+            ],
+            "title": "StructuredOutput"
+          }
+        }
+      }
+    ],
+    "tool_choice": "required"
+  }
+}

@@ -7,8 +7,11 @@
  * tokens, whether a first sign-in creates the person's account and with
  * which role, and which shared vaults their runs use.
  *
- * The settings are one message, saved whole through `updateEmbedding`, so
- * the panel is a form with a Save button. Editing needs `can_edit` on the
+ * The page draws three cards: sign-in from the product (account creation
+ * and its role), the web pages allowed to use the tokens, and the vaults
+ * their conversations use. The settings are one message, saved whole
+ * through `updateEmbedding`, so the cards sit in one form with one Save
+ * changes button under them. Editing needs `can_edit` on the
  * organization (its admins); everyone who reads the organization reads the
  * settings, none of which is secret.
  */
@@ -25,16 +28,17 @@ import {
 } from "./useUpdateOrganizationEmbedding.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { EditCheckFailed } from "./EditCheckFailed.js";
-import { Switch } from "../switch/Switch.js";
 import { VaultPicker } from "../vault/VaultPicker.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { Button } from "../button/Button.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
-import { UNSTYLED_FIELDSET, UNSTYLED_LIST } from "../internal/element-resets.js";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { keptReference } from "../internal/kept-reference.js";
 import { tagClasses } from "../internal/surface/Tag.js";
-import { FieldError, Select, TextInput } from "../internal/form/index.js";
+import { Field, FieldError, FieldHint, FieldLegend, Select, SwitchField, TextInput } from "../internal/form/index.js";
+import { Section } from "../resource-detail/Section.js";
+import { useOrgDisplayName } from "./useOrgDisplayName.js";
 
 /** The roles a first sign-in may grant; owner is never offered, since ownership is assigned explicitly. */
 const SIGN_IN_ROLE_OPTIONS: readonly { readonly value: IamRole; readonly label: string }[] = [
@@ -75,6 +79,8 @@ export interface OrgEmbeddingPanelProps {
  */
 export function OrgEmbeddingPanel({ org, serviceAccountsHref, onUpdated, className }: OrgEmbeddingPanelProps) {
   const { organization, isLoading, error: fetchError, refetch } = useOrganization(org || null);
+  // The sentences name the organization by its slug where the server holds several.
+  const orgName = useOrgDisplayName(organization?.metadata?.slug);
   // Held here, not in the form: a save is read back as a new stored
   // version, which starts a fresh form, and it must still say Saved.
   const [saved, setSaved] = useState(false);
@@ -105,6 +111,7 @@ export function OrgEmbeddingPanel({ org, serviceAccountsHref, onUpdated, classNa
       key={JSON.stringify(organizationEmbeddingOf(organization))}
       org={org}
       stored={organizationEmbeddingOf(organization)}
+      orgName={orgName}
       canEdit={canEdit}
       editDenied={editDenied}
       checkFailed={checkFailed}
@@ -122,6 +129,8 @@ export function OrgEmbeddingPanel({ org, serviceAccountsHref, onUpdated, classNa
 interface EmbeddingFormProps {
   readonly org: string;
   readonly stored: OrganizationEmbeddingValue;
+  /** How the sentences name the organization: its slug, or "this organization". */
+  readonly orgName: string;
   readonly canEdit: boolean;
   /** The server said no: the form says who can change it. */
   readonly editDenied: boolean;
@@ -142,6 +151,7 @@ interface EmbeddingFormProps {
 function EmbeddingForm({
   org,
   stored,
+  orgName,
   canEdit,
   editDenied,
   checkFailed,
@@ -154,8 +164,9 @@ function EmbeddingForm({
   className,
 }: EmbeddingFormProps) {
   const baseId = useId();
-  const createId = `${baseId}-create-accounts`;
   const roleId = `${baseId}-role`;
+  const originsId = `${baseId}-origins`;
+  const vaultsId = `${baseId}-vaults`;
   const { updateEmbedding, isUpdating, error, clearError } = useUpdateOrganizationEmbedding();
   const [draft, setDraft] = useState<OrganizationEmbeddingValue>(stored);
   const [originInput, setOriginInput] = useState("");
@@ -217,145 +228,123 @@ function EmbeddingForm({
   const locked = isUpdating || !canEdit;
 
   return (
-    <form className={cn("stg:flex stg:flex-col stg:gap-5", className)} onSubmit={(event) => void handleSubmit(event)}>
-      <p className="stg:text-2xs stg:leading-snug stg:text-muted-foreground">
-        Your product&apos;s backend signs its users in to this organization by minting a token for
-        each, with the API key of a service account that is an admin here.
-        {canEdit && serviceAccountsHref !== undefined && (
-          <>
-            {" "}
-            <a href={serviceAccountsHref} className="stg:text-primary stg:underline stg:underline-offset-2 stg:hover:text-primary-hover">
-              Manage service accounts
-            </a>
-            .
-          </>
-        )}
-      </p>
-
-      <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2.5")} disabled={locked}>
-        <legend className="stg:text-xs stg:font-medium stg:text-foreground">Sign-in</legend>
-        <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
-          <div className="stg:min-w-0 stg:flex-1">
-            <span id={`${createId}-title`} className="stg:block stg:text-xs stg:text-foreground">
-              Create accounts on sign-in
-            </span>
-            <p id={`${createId}-description`} className="stg:text-2xs stg:leading-snug stg:text-muted-foreground">
-              Create a person&apos;s Stigmer account the first time a token is minted for them. When
-              off, the account must already exist.
-            </p>
-          </div>
-          <Switch
-            id={createId}
+    <form className={cn("stg:flex stg:flex-col stg:gap-6", className)} onSubmit={(event) => void handleSubmit(event)}>
+      <Section title="Sign-in from your product">
+        <div className="stg:flex stg:flex-col stg:gap-4 stg:p-4">
+          <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
+            Your product&apos;s backend signs its users in to {orgName} by minting a token for each
+            one with a service account&apos;s key.
+            {canEdit && serviceAccountsHref !== undefined && (
+              <>
+                {" "}
+                <a href={serviceAccountsHref} className="stg:text-primary stg:underline stg:underline-offset-2 stg:hover:text-primary-hover">
+                  Manage service accounts
+                </a>
+              </>
+            )}
+          </p>
+          <SwitchField
+            label="Create accounts on sign-in"
+            hint="Make a person's Stigmer account the first time a token is minted for them."
             checked={draft.createAccountsOnSignIn}
             onCheckedChange={toggleCreateAccounts}
             disabled={locked}
-            aria-labelledby={`${createId}-title`}
-            aria-describedby={`${createId}-description`}
           />
-        </div>
-        <div className="stg:space-y-1">
-          <label htmlFor={roleId} className="stg:text-xs stg:text-foreground">
-            Sign-in role
-          </label>
-          <Select
+          <Field
             id={roleId}
-            value={String(draft.signInRole)}
-            onChange={(event) => edit({ signInRole: Number(event.target.value) as IamRole })}
-            disabled={locked || !draft.createAccountsOnSignIn}
-            aria-describedby={`${roleId}-hint`}
-            className="stg:w-full"
+            label="Sign-in role"
+            hint={`Granted on ${orgName} when a sign-in creates an account; None grants nothing. Accounts that already exist keep their roles.`}
           >
-            {SIGN_IN_ROLE_OPTIONS.map((option) => (
-              <option key={option.value} value={String(option.value)}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
-          <p id={`${roleId}-hint`} className="stg:text-2xs stg:text-muted-foreground">
-            Granted on this organization when a sign-in creates an account; None grants nothing.
-            Accounts that already exist keep the roles they hold.
-          </p>
+            <Select
+              value={String(draft.signInRole)}
+              onChange={(event) => edit({ signInRole: Number(event.target.value) as IamRole })}
+              disabled={locked || !draft.createAccountsOnSignIn}
+            >
+              {SIGN_IN_ROLE_OPTIONS.map((option) => (
+                <option key={option.value} value={String(option.value)}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
         </div>
-      </fieldset>
+      </Section>
 
-      <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2")} disabled={locked}>
-        <legend className="stg:text-xs stg:font-medium stg:text-foreground">Allowed origins</legend>
-        <p className="stg:text-2xs stg:text-muted-foreground">
-          Web pages whose origin is listed here may use the tokens. Leave empty to allow every
-          origin.
-        </p>
-        <div className="stg:flex stg:items-center stg:gap-2">
-          <TextInput className="stg:flex-1"
-            type="text"
-            value={originInput}
-            onChange={(event) => setOriginInput(event.target.value)}
-            onKeyDown={handleOriginKeyDown}
-            placeholder="https://app.example.com"
-            aria-label="Add an allowed origin"
+      <Section title="Allowed web pages">
+        <div className="stg:flex stg:flex-col stg:gap-2 stg:p-4" role="group" aria-labelledby={`${originsId}-label`}>
+          <FieldLegend id={`${originsId}-label`}>Allowed origins</FieldLegend>
+          {draft.allowedOrigins.length > 0 && (
+            <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-wrap stg:gap-1.5")} aria-label="Allowed origins">
+              {draft.allowedOrigins.map((origin) => (
+                <li key={origin} className={tagClasses({ mono: true })}>
+                  {origin}
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => edit({ allowedOrigins: draft.allowedOrigins.filter((o) => o !== origin) })}
+                      disabled={isUpdating}
+                      aria-label={`Remove ${origin}`}
+                      className="stg:text-muted-foreground stg:hover:text-destructive stg:transition-colors"
+                    >
+                      ×
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="stg:flex stg:items-center stg:gap-2">
+            <TextInput
+              className="stg:flex-1"
+              type="text"
+              value={originInput}
+              onChange={(event) => setOriginInput(event.target.value)}
+              onKeyDown={handleOriginKeyDown}
+              placeholder="https://"
+              aria-label="Add an allowed origin"
+              aria-describedby={`${originsId}-hint`}
+              disabled={locked}
+            />
+            <Button variant="outline" onClick={addOrigin} disabled={locked || originInput.trim() === ""}>
+              Add
+            </Button>
+          </div>
+          <FieldHint id={`${originsId}-hint`}>
+            Web pages at these origins may use the tokens. Leave empty to allow every origin.
+          </FieldHint>
+        </div>
+      </Section>
+
+      <Section title="Vaults for these conversations">
+        <div className="stg:flex stg:flex-col stg:gap-2 stg:p-4" role="group" aria-labelledby={`${vaultsId}-label`} aria-describedby={`${vaultsId}-hint`}>
+          <FieldLegend id={`${vaultsId}-label`}>Shared vaults</FieldLegend>
+          <VaultPicker
+            org={org}
+            value={draft.vaults}
+            onChange={(vaults: ResourceRef[]) => edit({ vaults })}
             disabled={locked}
           />
-          <Button variant="ghost" size="xs" onClick={addOrigin} disabled={locked || originInput.trim() === ""}>
-            Add
-          </Button>
+          <FieldHint id={`${vaultsId}-hint`}>
+            The keys conversations of people signed in from your product use, in this order.
+          </FieldHint>
         </div>
-        {draft.allowedOrigins.length > 0 && (
-          <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-wrap stg:gap-1.5")} aria-label="Allowed origins">
-            {draft.allowedOrigins.map((origin) => (
-              <li
-                key={origin}
-                className={tagClasses({ mono: true })}
-              >
-                {origin}
-                {canEdit && (
-                  <button
-                    type="button"
-                    onClick={() => edit({ allowedOrigins: draft.allowedOrigins.filter((o) => o !== origin) })}
-                    disabled={isUpdating}
-                    aria-label={`Remove ${origin}`}
-                    className="stg:text-muted-foreground stg:hover:text-destructive stg:transition-colors"
-                  >
-                    ×
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </fieldset>
+      </Section>
 
-      <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2")} disabled={locked}>
-        <legend className="stg:text-xs stg:font-medium stg:text-foreground">Vaults</legend>
-        <p className="stg:text-2xs stg:text-muted-foreground">
-          Shared vaults whose keys the conversations of people signed in from your product use, in
-          order.
-        </p>
-        <VaultPicker
-          org={org}
-          value={draft.vaults}
-          onChange={(vaults: ResourceRef[]) => edit({ vaults })}
-          disabled={locked}
-        />
-      </fieldset>
-
-      {error && (
-        <FieldError>
-          {getUserMessage(error)}
-        </FieldError>
-      )}
+      {error && <FieldError>{getUserMessage(error)}</FieldError>}
 
       {canEdit ? (
         <div className="stg:flex stg:items-center stg:gap-2">
-          <Button type="submit" disabled={isUpdating} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>
-            Save
+          <Button type="submit" disabled={isUpdating} icon={isUpdating ? <SpinnerIcon size={14} /> : undefined}>
+            Save changes
           </Button>
           {saved && !isUpdating && (
-            <span className="stg:text-2xs stg:text-muted-foreground" role="status">
+            <span className="stg:text-xs stg:text-muted-foreground" role="status">
               Saved
             </span>
           )}
         </div>
       ) : editDenied ? (
-        <p className="stg:text-2xs stg:text-muted-foreground">
+        <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">
           Only organization admins can change these settings.
         </p>
       ) : checkFailed ? (

@@ -31,14 +31,12 @@ export interface RpcLedgerLine {
   readonly rpc: string;
 }
 
-const ledgerLineSchema = z
-  .object({
-    target: z.string().min(1),
-    file: z.string(),
-    test: z.string().nullable(),
-    rpc: z.string().min(1),
-  })
-  .strict();
+const ledgerLineSchema = z.strictObject({
+  target: z.string().min(1),
+  file: z.string(),
+  test: z.string().nullable(),
+  rpc: z.string().min(1),
+});
 
 export function parseLedger(text: string, source: string): { lines: RpcLedgerLine[]; problems: string[] } {
   const lines: RpcLedgerLine[] = [];

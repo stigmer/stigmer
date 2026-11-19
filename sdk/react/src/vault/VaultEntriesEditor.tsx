@@ -283,11 +283,12 @@ function EntryRow({
     <li className="stg:rounded-md stg:border stg:border-border-muted stg:px-3 stg:py-2">
       <div className="stg:flex stg:items-center stg:gap-2">
         <div className="stg:min-w-0 stg:flex-1">
-          <span className={cn("stg:block stg:truncate stg:text-xs stg:font-medium stg:text-foreground", mono && "stg:font-mono")}>
+          {/* The kit's list row's type: the name 14/20 medium, the line under it 12/16. */}
+          <span className={cn("stg:block stg:truncate stg:text-sm stg:font-medium stg:text-foreground", mono && "stg:font-mono")}>
             {title}
           </span>
           {detail && (
-            <span className="stg:block stg:truncate stg:text-2xs stg:text-muted-foreground">{detail}</span>
+            <span className="stg:block stg:truncate stg:text-xs stg:text-muted-foreground">{detail}</span>
           )}
         </div>
         {extra}
@@ -322,6 +323,7 @@ function EntryRow({
       {replacing && (
         <form id={replaceFormId} onSubmit={submit} className="stg:mt-2 stg:flex stg:items-center stg:gap-2">
           <TextInput
+            size="xs"
             type="password"
             aria-label={replaceLabel}
             value={value}
@@ -367,6 +369,7 @@ function AddSecretForm({
   return (
     <form onSubmit={submit} aria-label="Add a secret" className="stg:grid stg:grid-cols-1 stg:gap-2 stg:sm:grid-cols-[1fr_1fr_1fr_auto]">
       <TextInput
+        size="xs"
         id={`${id}-name`}
         aria-label="Secret name"
         placeholder="NAME"
@@ -377,6 +380,7 @@ function AddSecretForm({
         aria-invalid={!nameValid}
       />
       <TextInput
+        size="xs"
         type="password"
         aria-label="Secret value"
         placeholder="Value"
@@ -386,6 +390,7 @@ function AddSecretForm({
         disabled={disabled}
       />
       <TextInput
+        size="xs"
         aria-label="Secret description"
         placeholder="What it is for (optional)"
         value={description}
@@ -431,6 +436,7 @@ function AddConnectionForm({
   return (
     <form onSubmit={submit} aria-label="Add a login" className="stg:grid stg:grid-cols-1 stg:gap-2 stg:sm:grid-cols-[1fr_1fr_1fr_auto]">
       <TextInput
+        size="xs"
         aria-label="Login address"
         placeholder="https://mcp.example.com/mcp or github.com"
         value={address}
@@ -439,6 +445,7 @@ function AddConnectionForm({
         aria-invalid={!addressValid}
       />
       <TextInput
+        size="xs"
         type="password"
         aria-label="Login token"
         placeholder="Token"
@@ -448,6 +455,7 @@ function AddConnectionForm({
         disabled={disabled}
       />
       <TextInput
+        size="xs"
         aria-label="Login description"
         placeholder="What it is for (optional)"
         value={description}

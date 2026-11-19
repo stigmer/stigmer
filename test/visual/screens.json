@@ -1,0 +1,540 @@
+{
+  "console": {
+    "/": {
+      "scenes": [
+        "launcher-key-missing",
+        "launcher-hours-used"
+      ]
+    },
+    "/_not-found": {
+      "scenes": [
+        "page-not-found"
+      ]
+    },
+    "/auth/callback": {
+      "scenes": [
+        "sign-in-return-finishing",
+        "sign-in-return-failed"
+      ]
+    },
+    "/auth/oauth/callback": {
+      "scenes": [
+        "oauth-popup-done",
+        "oauth-popup-declined"
+      ]
+    },
+    "/chat/[channel]": {
+      "scenes": [
+        "session-guest"
+      ]
+    },
+    "/connect/[token]": {
+      "scenes": [
+        "connect-link-ready",
+        "connect-link-dead",
+        "connect-link-failed"
+      ]
+    },
+    "/conversations": {
+      "scenes": [
+        "conversations-empty",
+        "conversations-none-selected",
+        "conversations-failed"
+      ]
+    },
+    "/conversations/[channelId]/[key]": {
+      "scenes": [
+        "conversations-open",
+        "conversations-taken-over"
+      ]
+    },
+    "/dashboard": {
+      "scenes": [
+        "dashboard-busy",
+        "dashboard-new-org",
+        "dashboard-journey-mid"
+      ]
+    },
+    "/desktop/billing": {
+      "scenes": [
+        "handoff-card-saved",
+        "handoff-nothing-changed",
+        "handoff-going-back"
+      ]
+    },
+    "/invite/[token]": {
+      "scenes": [
+        "invite-ready",
+        "invite-signed-out",
+        "invite-expired",
+        "invite-accepted"
+      ]
+    },
+    "/library": {
+      "scenes": [
+        "library-landing",
+        "library-landing-member",
+        "library-landing-failed"
+      ]
+    },
+    "/library/agents": {
+      "scenes": [
+        "library-agents",
+        "library-agents-empty",
+        "library-agents-failed"
+      ]
+    },
+    "/library/agents/[org]/[slug]": {
+      "scenes": [
+        "agent-profile-owner",
+        "agent-profile-viewer",
+        "agent-page-not-found"
+      ]
+    },
+    "/library/agents/new": {
+      "scenes": [
+        "agent-new-picker",
+        "agent-new-wizard",
+        "agent-new-refused"
+      ]
+    },
+    "/library/environments": {
+      "scenes": [
+        "library-environments",
+        "library-environments-empty",
+        "library-environments-failed"
+      ]
+    },
+    "/library/environments/[org]/[slug]": {
+      "scenes": [
+        "environment-detail",
+        "environment-detail-member"
+      ]
+    },
+    "/library/environments/new": {
+      "scenes": [
+        "environment-new",
+        "environment-new-taken"
+      ]
+    },
+    "/library/files": {
+      "scenes": [
+        "library-files",
+        "library-files-empty",
+        "library-files-failed"
+      ]
+    },
+    "/library/plugins": {
+      "scenes": [
+        "library-plugins",
+        "library-plugins-empty",
+        "library-plugins-failed"
+      ]
+    },
+    "/library/plugins/[org]/[slug]": {
+      "scenes": [
+        "plugin-detail",
+        "plugin-detail-evals"
+      ]
+    },
+    "/library/plugins/upload": {
+      "scenes": [
+        "plugin-upload-first",
+        "plugin-upload-chosen",
+        "plugin-upload-refused"
+      ]
+    },
+    "/library/routines": {
+      "scenes": [
+        "library-routines",
+        "library-routines-empty",
+        "library-routines-failed"
+      ]
+    },
+    "/library/routines/[org]/[slug]": {
+      "scenes": [
+        "routine-disabled",
+        "routine-history",
+        "routine-api"
+      ]
+    },
+    "/library/routines/new": {
+      "scenes": [
+        "routine-new",
+        "routine-new-agent-refused"
+      ]
+    },
+    "/library/skills": {
+      "scenes": [
+        "library-skills",
+        "library-skills-empty",
+        "library-skills-failed"
+      ]
+    },
+    "/library/skills/[org]/[slug]": {
+      "scenes": [
+        "skill-files",
+        "skill-files-versions",
+        "skill-files-failed"
+      ]
+    },
+    "/library/skills/new": {
+      "scenes": [
+        "skill-upload-first",
+        "skill-upload-chosen",
+        "skill-upload-refused"
+      ]
+    },
+    "/login": {
+      "scenes": [
+        "sign-in-ready",
+        "sign-in-failed"
+      ]
+    },
+    "/marketplace": {
+      "scenes": [
+        "marketplace-admin",
+        "marketplace-member",
+        "marketplace-no-match"
+      ]
+    },
+    "/models": {
+      "scenes": [
+        "models-hub-none",
+        "models-hub-connected",
+        "models-hub-member"
+      ]
+    },
+    "/oauth/slack/callback": {
+      "scenes": [
+        "oauth-popup-done",
+        "oauth-popup-declined"
+      ]
+    },
+    "/runs/[id]": {
+      "scenes": [
+        "run-resolve-opening",
+        "run-resolve-not-found",
+        "run-resolve-failed"
+      ]
+    },
+    "/sessions/[id]": {
+      "scenes": [
+        "session-busy",
+        "session-approval",
+        "session-finished",
+        "session-failed"
+      ]
+    },
+    "/settings": {
+      "scenes": [
+        "settings-landing"
+      ]
+    },
+    "/settings/access-history": {
+      "scenes": [
+        "settings-access-history",
+        "settings-access-history-empty",
+        "settings-access-history-failed"
+      ]
+    },
+    "/settings/account-preferences": {
+      "scenes": [
+        "settings-account-preferences",
+        "settings-account-preferences-blocked"
+      ]
+    },
+    "/settings/api-keys": {
+      "scenes": [
+        "settings-api-keys",
+        "settings-api-keys-full",
+        "settings-api-keys-failed"
+      ]
+    },
+    "/settings/billing": {
+      "scenes": [
+        "settings-billing",
+        "settings-billing-failed",
+        "settings-billing-oss"
+      ]
+    },
+    "/settings/bring-others-in": {
+      "scenes": [
+        "bring-others-in",
+        "bring-others-in-link",
+        "bring-others-in-joined"
+      ],
+      "pending": "stigmer#3331"
+    },
+    "/settings/channel-apps": {
+      "scenes": [
+        "settings-channel-apps",
+        "settings-channel-apps-detail",
+        "settings-channel-apps-failed"
+      ]
+    },
+    "/settings/federation-issuers": {
+      "scenes": [
+        "settings-federation-issuers",
+        "settings-federation-issuers-detail",
+        "settings-federation-issuers-failed"
+      ]
+    },
+    "/settings/invitations": {
+      "scenes": [
+        "settings-invitations",
+        "settings-invitations-empty",
+        "settings-invitations-failed"
+      ]
+    },
+    "/settings/licenses": {
+      "scenes": [
+        "settings-licenses",
+        "settings-licenses-detail",
+        "settings-licenses-failed"
+      ]
+    },
+    "/settings/members": {
+      "scenes": [
+        "settings-members",
+        "settings-members-member",
+        "settings-members-failed"
+      ]
+    },
+    "/settings/memory": {
+      "scenes": [
+        "settings-memory",
+        "settings-memory-empty",
+        "settings-memory-failed"
+      ]
+    },
+    "/settings/model-catalog": {
+      "scenes": [
+        "settings-model-catalog",
+        "settings-model-catalog-detail",
+        "settings-model-catalog-failed"
+      ]
+    },
+    "/settings/notifications": {
+      "none": "Moves to Account preferences, where notifications are a section",
+      "same": "/settings/account-preferences"
+    },
+    "/settings/oauth-apps": {
+      "scenes": [
+        "settings-oauth-apps",
+        "settings-oauth-apps-detail",
+        "settings-oauth-apps-failed"
+      ]
+    },
+    "/settings/org-embedding": {
+      "scenes": [
+        "settings-org-embedding"
+      ]
+    },
+    "/settings/org-policies": {
+      "none": "Moves to Organization preferences, where policies are a section",
+      "same": "/settings/org-preferences"
+    },
+    "/settings/org-preferences": {
+      "scenes": [
+        "settings-org-preferences"
+      ]
+    },
+    "/settings/org-profile": {
+      "scenes": [
+        "settings-org-profile"
+      ]
+    },
+    "/settings/plans": {
+      "scenes": [
+        "settings-plans",
+        "settings-plans-retire",
+        "settings-plans-failed"
+      ]
+    },
+    "/settings/service-accounts": {
+      "scenes": [
+        "settings-service-accounts",
+        "access-service-account-detail",
+        "settings-service-accounts-empty"
+      ]
+    },
+    "/settings/teams": {
+      "scenes": [
+        "settings-teams",
+        "settings-teams-detail",
+        "settings-teams-failed"
+      ]
+    },
+    "/settings/usage": {
+      "scenes": [
+        "settings-usage",
+        "settings-usage-empty",
+        "settings-usage-failed"
+      ]
+    },
+    "/settings/vaults": {
+      "scenes": [
+        "settings-vaults",
+        "settings-vaults-open",
+        "settings-vaults-failed"
+      ]
+    }
+  },
+  "desktop": {
+    "/": {
+      "same": "/"
+    },
+    "/*": {
+      "scenes": [
+        "page-not-found"
+      ]
+    },
+    "/conversations": {
+      "same": "/conversations"
+    },
+    "/conversations/:channelId/:key": {
+      "same": "/conversations/[channelId]/[key]"
+    },
+    "/dashboard": {
+      "same": "/dashboard"
+    },
+    "/library": {
+      "same": "/library"
+    },
+    "/library/agents": {
+      "same": "/library/agents"
+    },
+    "/library/agents/:org/:slug": {
+      "same": "/library/agents/[org]/[slug]"
+    },
+    "/library/agents/new": {
+      "same": "/library/agents/new"
+    },
+    "/library/environments": {
+      "same": "/library/environments"
+    },
+    "/library/environments/:org/:slug": {
+      "same": "/library/environments/[org]/[slug]"
+    },
+    "/library/environments/new": {
+      "same": "/library/environments/new"
+    },
+    "/library/files": {
+      "same": "/library/files"
+    },
+    "/library/plugins": {
+      "same": "/library/plugins"
+    },
+    "/library/plugins/:org/:slug": {
+      "same": "/library/plugins/[org]/[slug]"
+    },
+    "/library/plugins/upload": {
+      "same": "/library/plugins/upload"
+    },
+    "/library/routines": {
+      "same": "/library/routines"
+    },
+    "/library/routines/:org/:slug": {
+      "same": "/library/routines/[org]/[slug]"
+    },
+    "/library/routines/new": {
+      "same": "/library/routines/new"
+    },
+    "/library/skills": {
+      "same": "/library/skills"
+    },
+    "/library/skills/:org/:slug": {
+      "same": "/library/skills/[org]/[slug]"
+    },
+    "/library/skills/new": {
+      "same": "/library/skills/new"
+    },
+    "/marketplace": {
+      "same": "/marketplace"
+    },
+    "/models": {
+      "same": "/models"
+    },
+    "/runs/:id": {
+      "same": "/runs/[id]"
+    },
+    "/sessions/:id": {
+      "same": "/sessions/[id]"
+    },
+    "/settings": {
+      "same": "/settings"
+    },
+    "/settings/access-history": {
+      "same": "/settings/access-history"
+    },
+    "/settings/account-preferences": {
+      "same": "/settings/account-preferences"
+    },
+    "/settings/api-keys": {
+      "same": "/settings/api-keys"
+    },
+    "/settings/billing": {
+      "same": "/settings/billing"
+    },
+    "/settings/bring-others-in": {
+      "same": "/settings/bring-others-in"
+    },
+    "/settings/channel-apps": {
+      "same": "/settings/channel-apps"
+    },
+    "/settings/federation-issuers": {
+      "same": "/settings/federation-issuers"
+    },
+    "/settings/invitations": {
+      "same": "/settings/invitations"
+    },
+    "/settings/licenses": {
+      "same": "/settings/licenses"
+    },
+    "/settings/members": {
+      "same": "/settings/members"
+    },
+    "/settings/memory": {
+      "same": "/settings/memory"
+    },
+    "/settings/model-catalog": {
+      "same": "/settings/model-catalog"
+    },
+    "/settings/notifications": {
+      "none": "Moves to Account preferences, where notifications are a section",
+      "same": "/settings/account-preferences"
+    },
+    "/settings/oauth-apps": {
+      "same": "/settings/oauth-apps"
+    },
+    "/settings/org-embedding": {
+      "same": "/settings/org-embedding"
+    },
+    "/settings/org-policies": {
+      "none": "Moves to Organization preferences, where policies are a section",
+      "same": "/settings/org-preferences"
+    },
+    "/settings/org-preferences": {
+      "same": "/settings/org-preferences"
+    },
+    "/settings/org-profile": {
+      "same": "/settings/org-profile"
+    },
+    "/settings/plans": {
+      "same": "/settings/plans"
+    },
+    "/settings/service-accounts": {
+      "same": "/settings/service-accounts"
+    },
+    "/settings/teams": {
+      "same": "/settings/teams"
+    },
+    "/settings/usage": {
+      "same": "/settings/usage"
+    },
+    "/settings/vaults": {
+      "same": "/settings/vaults"
+    }
+  }
+}

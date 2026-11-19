@@ -115,9 +115,17 @@
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/brand/**"],
       "outputs": []
     },
+    // The console's and the desktop app's screen tests read the screen list
+    // the gallery keeps (test/visual/screens.json), so an edit to it alone
+    // re-runs them.
     "web#test": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/brand/**"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/brand/**", "$TURBO_ROOT$/test/visual/screens.json"],
+      "outputs": []
+    },
+    "desktop#test": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/test/visual/screens.json"],
       "outputs": []
     },
     "@stigmer/marketing#typecheck": {

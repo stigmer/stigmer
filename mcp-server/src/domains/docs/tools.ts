@@ -23,9 +23,9 @@ export function registerDocsTools(server: McpServer, reader: DocsReader = shared
         "what Stigmer is, its editions and billing, how a concept works, a CLI command or SDK call, " +
         "or why something fails. Returns the best-matching pages with their URLs. Then read the " +
         "page with read_doc, whole, and answer from what it says.",
-      inputSchema: {
+      inputSchema: z.strictObject({
         query: z.string().min(1).describe("A few words naming what the question is about (e.g. 'runner port', 'editions billing')."),
-      },
+      }),
     },
     (args) => textOrError(async () => formatHits(args.query, await reader.searchDocs(args.query))),
   );
@@ -38,9 +38,9 @@ export function registerDocsTools(server: McpServer, reader: DocsReader = shared
         "Read one page of Stigmer's documentation whole, as Markdown, exactly as published today. " +
         "The text opens with the page's Source URL: cite it in the answer. Pass the page's path " +
         "(e.g. concepts/tools) or its full https://stigmer.ai/docs/... URL. Only stigmer.ai/docs is read.",
-      inputSchema: {
+      inputSchema: z.strictObject({
         page: z.string().min(1).describe("The page's path after /docs/ (e.g. concepts/tools), or its full URL."),
-      },
+      }),
     },
     (args) => textOrError(async () => (await reader.readDocPage(args.page)).markdown),
   );

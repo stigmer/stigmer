@@ -146,4 +146,28 @@ describe("extractStructuredOutput", () => {
 
     expect(result).toBeNull();
   });
+
+  it("binds the person's schema whole as the answer tool, by function calling on every provider", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "sk-direct");
+    const { extractStructuredOutput } = await import("../extract-structured-output.js");
+    const { ANSWER_TOOL_NAME } = await import("../answer-form.js");
+    mockInvoke.mockResolvedValueOnce({ answer: "42" });
+
+    await extractStructuredOutput("the answer is 42", SCHEMA, makeConfig(), "gpt-4.1", "run_1");
+
+    expect(mockWithStructuredOutput).toHaveBeenCalledWith(
+      { ...SCHEMA, title: ANSWER_TOOL_NAME, description: expect.any(String) },
+      { name: ANSWER_TOOL_NAME, method: "functionCalling" },
+    );
+  });
+
+  it("refuses an answer outside the schema instead of recording it", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "sk-direct");
+    const { extractStructuredOutput } = await import("../extract-structured-output.js");
+    mockInvoke.mockResolvedValueOnce({ answer: 42 });
+
+    await expect(
+      extractStructuredOutput("the answer is 42", SCHEMA, makeConfig(), "gpt-4.1", "run_1"),
+    ).rejects.toThrow(/outside the schema.*answer/);
+  });
 });

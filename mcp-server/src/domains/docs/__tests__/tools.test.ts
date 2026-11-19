@@ -1,6 +1,9 @@
 // The docs tools through an in-memory MCP client, over a fake reader: the
 // search answers with numbered pages, a read answers with the page whole, and
-// a reader's refusal comes back as an isError result carrying its words.
+// a reader's refusal comes back as an isError result carrying its words, and
+// an argument a tool doesn't declare is refused by name, as on every other
+// tool (src/domains/__tests__/unknown-arguments.test.ts, which can't hold
+// these: their valid call would read the live site).
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
@@ -45,6 +48,16 @@ describe("the docs tools", () => {
       text: "Source: https://stigmer.ai/docs/concepts/runners\n\nWhole page.\n",
       isError: false,
     });
+  });
+
+  it.each([
+    ["search_docs", { query: "runner" }],
+    ["read_doc", { page: "concepts/runners" }],
+  ])("%s refuses an undeclared argument and names it", async (name, args) => {
+    const refused = await call(name, { ...args, sluggg: "typo" });
+    expect(refused.isError).toBe(true);
+    expect(refused.text).toMatch(/-32602: Input validation error/);
+    expect(refused.text).toContain("sluggg");
   });
 
   it("read_doc returns a refusal as an error result", async () => {

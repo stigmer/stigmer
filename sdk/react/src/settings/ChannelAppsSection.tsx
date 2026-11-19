@@ -13,7 +13,7 @@ import {
   type ChannelAppCreateHandoff,
 } from "../channel-app/CreateChannelAppForm.js";
 import { ChannelAppDetailPanel } from "../channel-app/ChannelAppDetailPanel.js";
-import { CHANNEL_APPS_MANAGED_BY_ADMINS } from "../channel-app/copy.js";
+import { CHANNEL_APPS_MANAGED_BY_ADMINS, channelAppLead } from "../channel-app/copy.js";
 import { useDeploymentMode } from "@stigmer/react-core";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { Button } from "../button/Button.js";
@@ -102,12 +102,15 @@ export function ChannelAppsSection() {
 
   // An open detail names the page, with a way back to the list above it.
   const detailName = flow.phase === "editing" ? flow.channelApp.metadata?.name || "Channel app" : null;
+  // Under an open app's name, what it is for, as the other settings details lead.
+  const detailLead =
+    flow.phase === "editing" ? channelAppLead(flow.channelApp.spec?.providerConfig?.case, orgName) : null;
 
   return (
     <SettingsPage
       title={detailName ?? "Channel apps"}
       back={detailName !== null ? { label: "Channel apps", onBack: () => setFlow({ phase: "idle" }) } : undefined}
-      description={detailName !== null ? undefined : "Your own Slack and Meta apps for your agents' channels. A Slack app gives the bot your name and icon and lets several agents serve one workspace, one per app; every WhatsApp channel connects through a Meta app."}
+      description={detailName !== null ? (detailLead ?? undefined) : "Your own Slack and Meta apps for your agents' channels. A Slack app gives the bot your name and icon and lets several agents serve one workspace, one per app; every WhatsApp channel connects through a Meta app."}
       actions={
         org &&
         canCreate &&

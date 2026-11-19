@@ -300,6 +300,10 @@
       "promise": "Every dialog is the kit's: one title, body and footer, its acts at its end."
     },
     {
+      "id": "CON-16",
+      "promise": "Every console screen is drawn in the gallery and held to a drawing the maintainer passed, or says why it has none."
+    },
+    {
       "id": "DSK-01",
       "promise": "Clicking the Dock icon reopens a closed window.",
       "pending": [
@@ -332,6 +336,10 @@
     {
       "id": "DSK-07",
       "promise": "A server the app cannot reach, or one that offers no desktop sign-in, says so and how to choose another."
+    },
+    {
+      "id": "DSK-08",
+      "promise": "Every desktop screen is drawn in the gallery and held to a drawing the maintainer passed, or says why it has none."
     },
     {
       "id": "SDK-01",

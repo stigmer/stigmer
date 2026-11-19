@@ -26,8 +26,9 @@ export interface ConfirmDialogProps {
  * `confirm()` → Promise pattern. A confirmation given its `action` does
  * the act from the dialog: while it runs, the confirm button waits with a
  * spinner and Cancel, the close button and Escape are held; a failure is
- * said in the dialog (the kit's `ErrorMessage`) with the confirm button
- * reading "Try again"; the dialog closes once the act succeeds.
+ * said in the dialog (the kit's `ErrorMessage`, with `failureComfort`
+ * under it when given) with the confirm button reading "Try again"; the
+ * dialog closes once the act succeeds.
  *
  * @example
  * ```tsx
@@ -78,7 +79,7 @@ export function ConfirmDialog({
       <DialogHeader title={state.title} description={state.description} onClose={onCancel} closeDisabled={busy} />
       {failure && (
         <DialogBody>
-          <ErrorMessage error={failure} title={state.failureTitle} />
+          <ErrorMessage error={failure} title={state.failureTitle} comfort={state.failureComfort} />
         </DialogBody>
       )}
       <DialogFooter>

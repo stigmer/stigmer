@@ -1696,9 +1696,7 @@
         "button Try again": "The drawing's failure is a timeout, which offers Try again; the scene's server refuses in its own words, and a refusal keeps the act's word"
       },
       "ruled": {},
-      "pending": {
-        "word The key is still connected.": "The kit's confirm dialog says a failure with no comfort line beside it; the drawing adds one. For the next look at the dialog parts"
-      }
+      "pending": {}
     },
     {
       "caption": "A provider's key: the one card before a run (the launcher's key step): no Unlocks",

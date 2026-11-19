@@ -37,6 +37,7 @@ import type { StatusPhase } from "../resource-workbench/types.js";
 import { List, ListRow } from "../internal/surface/List.js";
 import { FIELD_LABEL_CLASSES, FieldError, Radio, TextInput } from "../internal/form/index.js";
 import { useOrgDisplayName } from "../organization/useOrgDisplayName.js";
+import { countWord } from "../internal/count-words.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -85,6 +86,12 @@ type FlowState =
  * - {@link useOrgInvitations} for listing
  * - {@link useCreateInvitation} for creation
  * - {@link useRevokeInvitation} for revocation
+ *
+ * Each link's row says its role, who it admits and how often it was used
+ * ("Member · Anyone with the link · 3 joined") and the day it expires;
+ * revoking one says how many people already joined with it and that they
+ * stay. A list that failed to load still offers "New invite link", since
+ * making one does not need the list.
  *
  * The server serves an organization's invitations only to callers who
  * hold `can_grant_access` on it, so gate the mount on that permission,
@@ -145,10 +152,10 @@ export function InvitationManager({
   );
 
   const askToRevoke = useCallback(
-    async (invitationId: string, label: string) => {
+    async (invitationId: string, label: string, joined: number) => {
       const done = await confirm({
         title: `Revoke ${label}?`,
-        description: "The link stops working at once. People who already joined with it stay in the organization.",
+        description: revokeLine(joined, orgName),
         confirmLabel: "Revoke link",
         variant: "destructive",
         action: async () => {
@@ -159,15 +166,11 @@ export function InvitationManager({
       });
       if (done) refetch();
     },
-    [confirm, revoke, refetch],
+    [confirm, revoke, refetch, orgName],
   );
 
   if (isLoading) {
     return <SettingsSkeleton label="Loading invitations" rows={3} className={className} />;
-  }
-
-  if (error) {
-    return <ErrorMessage error={error} title="Couldn't load the invite links." retry={refetch} className={className} />;
   }
 
   return (
@@ -211,8 +214,11 @@ export function InvitationManager({
         </Card>
       )}
 
-      {/* Invitation list */}
-      {invitations.length === 0 ? (
+      {/* Invitation list: one that failed to load is said in its place,
+          and New invite link above still makes a link. */}
+      {error ? (
+        <ErrorMessage error={error} title="Couldn't load the invite links." retry={refetch} />
+      ) : invitations.length === 0 ? (
         <EmptyState
           variant="first-use"
           title="No invite links yet"
@@ -238,7 +244,7 @@ export function InvitationManager({
           })}
         </List>
       )}
-      <LoadMoreFooter hasMore={hasMore} loadMore={loadMore} isLoadingMore={isLoadingMore} loadMoreError={loadMoreError} />
+      {!error && <LoadMoreFooter hasMore={hasMore} loadMore={loadMore} isLoadingMore={isLoadingMore} loadMoreError={loadMoreError} />}
       <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
@@ -415,7 +421,7 @@ function InvitationRow({
 }: {
   invitation: Invitation;
   buildInviteUrl: (token: string) => string;
-  onRevoke: (invitationId: string, label: string) => void;
+  onRevoke: (invitationId: string, label: string, joined: number) => void;
 }) {
   const { copy, copied } = useCopyFeedback();
 
@@ -437,16 +443,13 @@ function InvitationRow({
     <ListRow
       leading={<LinkIcon active={isActive} />}
       name={<span className={isActive ? undefined : "stg:text-muted-foreground"}>{label}</span>}
-      description={formatRedemptions(redemptionCount, maxRedemptions)}
+      description={`${iamRoleDisplayName(role)} · ${formatAudience(maxRedemptions)} · ${formatUse(redemptionCount)}`}
       trailing={
         <>
           {/* Metadata columns */}
           <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-3">
-            {/* Role */}
-            <Tag>{iamRoleDisplayName(role)}</Tag>
-
-            {/* State */}
-            <StateBadge state={state} />
+            {/* State: a live link needs no pill; one that no longer lets anyone in says why. */}
+            {!isActive && <StateBadge state={state} />}
 
             {/* Expiry */}
             {expiresAt && (
@@ -460,7 +463,7 @@ function InvitationRow({
                   }
                 >
                   {isActive
-                    ? formatRelativeExpiry(timestampDate(expiresAt))
+                    ? formatExpiry(timestampDate(expiresAt))
                     : formatShortDate(timestampDate(expiresAt))}
                 </TooltipTrigger>
                 <TooltipContent side="top">
@@ -486,7 +489,7 @@ function InvitationRow({
                 size="xs"
                 label={`Revoke ${label}`}
                 icon={<RevokeIcon />}
-                onClick={() => onRevoke(id, label)}
+                onClick={() => onRevoke(id, label, redemptionCount)}
                 className="stg:hover:text-destructive stg:hover:bg-destructive-subtle"
               />
             )}
@@ -610,23 +613,44 @@ function daysFromNow(days: number): Date {
   return date;
 }
 
-function formatRedemptions(count: number, max: number): string {
-  if (max === 0) {
-    return count === 0 ? "No redemptions yet" : `${count} redeemed`;
-  }
-  return `${count} / ${max} redeemed`;
+/** Who a link admits, by its use limit: one person, anyone, or up to a number. */
+function formatAudience(maxRedemptions: number): string {
+  if (maxRedemptions === 0) return "Anyone with the link";
+  if (maxRedemptions === 1) return "One person only";
+  return `Up to ${maxRedemptions} people`;
 }
 
-function formatRelativeExpiry(date: Date): string {
-  const now = Date.now();
-  const diffMs = date.getTime() - now;
+/** How often a link was used: "not used yet" or how many joined with it. */
+function formatUse(redemptionCount: number): string {
+  return redemptionCount === 0 ? "not used yet" : `${redemptionCount} joined`;
+}
 
-  if (diffMs <= 0) return "Expired";
+/**
+ * An active link's expiry as a day: "Expires Aug 1", the year only when it
+ * is not this year's; "Expired" once the day has passed.
+ */
+function formatExpiry(date: Date): string {
+  if (date.getTime() <= Date.now()) return "Expired";
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+  const day = date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+  });
+  return `Expires ${day}`;
+}
 
-  const days = Math.ceil(diffMs / 86_400_000);
-  if (days === 1) return "Expires tomorrow";
-  if (days <= 30) return `Expires in ${days} days`;
-  return `Expires ${formatShortDate(date)}`;
+/**
+ * What revoking a link does to the people who joined with it, counted (a
+ * word up to ten) and named in the organization they stay in.
+ */
+function revokeLine(joined: number, orgName: string): string {
+  if (joined === 0) return "The link stops working at once. No one has joined with it yet.";
+  const stay =
+    joined === 1
+      ? `The one person who joined with it stays in ${orgName}.`
+      : `The ${countWord(joined)} people who joined with it stay in ${orgName}.`;
+  return `The link stops working at once. ${stay}`;
 }
 
 function formatShortDate(date: Date): string {

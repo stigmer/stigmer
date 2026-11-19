@@ -25,6 +25,7 @@ export default defineConfig([
       // at zero.
       "stigmer/no-handrolled-button": "error",
       "stigmer/no-handrolled-field": "error",
+      "stigmer/no-handrolled-code-block": "error",
       "stigmer/no-literal-dom-ids": "error",
       "stigmer/no-token-opacity-modifiers": "warn",
       // Every text size comes from the type scale (--stgm-text-* tokens, 11px floor).

@@ -157,7 +157,7 @@ async function runProbe(
     {
       name,
       description: `contract probe tool ${name}`,
-      schema: z.object({}).passthrough(),
+      schema: z.looseObject({}),
     },
   );
 
@@ -169,7 +169,7 @@ async function runProbe(
   // A same-name probe's other server: its tool of the same name is bound first, and never counts.
   const twinName = action.kind === "mcp" && action.mcpTwin !== undefined ? engineToolName(action.mcpTwin.slug, action.mcpToolName ?? "mcp_tool") : undefined;
   const twin = twinName !== undefined
-    ? [tool(async () => "twin ran", { name: twinName, description: `contract twin tool ${twinName}`, schema: z.object({}).passthrough() })]
+    ? [tool(async () => "twin ran", { name: twinName, description: `contract twin tool ${twinName}`, schema: z.looseObject({}) })]
     : [];
 
   const agent = await createDeepAgent({
@@ -279,7 +279,7 @@ async function runListsProbe(
                 mcpCount += 1;
                 return "ok";
               },
-              { name, description: `contract MCP tool ${name}`, schema: z.object({}).passthrough() },
+              { name, description: `contract MCP tool ${name}`, schema: z.looseObject({}) },
             ),
           ]
         : [];
@@ -388,7 +388,7 @@ async function runHooksProbe(
                 if (!options.failTool) return "found three issues";
                 return new ToolMessage({ content: "the server failed", tool_call_id: config?.toolCall?.id ?? "call_1", name, status: "error" });
               },
-              { name, description: `contract MCP tool ${name}`, schema: z.object({}).passthrough() },
+              { name, description: `contract MCP tool ${name}`, schema: z.looseObject({}) },
             ),
           ]
         : [];

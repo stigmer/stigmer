@@ -25,6 +25,7 @@ import { useArtifactDownloadUrl } from "@stigmer/react-core";
 import { useArtifactDownload } from "./useArtifactDownload.js";
 import { useToolOutputContent } from "./useToolOutputContent.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { CodeBlock } from "../internal/CodeBlock.js";
 
 /** Props for {@link ResultView}. */
 export interface ResultViewProps {
@@ -656,9 +657,12 @@ function ErrorResultView({ message, className }: { message: string; className?: 
   return (
     <div className={cn("stg:space-y-1", className)}>
       <span className="stg:font-medium stg:text-destructive">Error</span>
-      <pre className="stg:whitespace-pre-wrap stg:break-words stg:rounded-md stg:border stg:border-destructive/20 stg:bg-destructive-subtle stg:p-2 stg:font-mono stg:text-destructive">
+      <CodeBlock
+        wrap
+        className="stg:rounded-md stg:border stg:border-destructive/20 stg:bg-destructive-subtle stg:p-2 stg:text-destructive"
+      >
         {message}
-      </pre>
+      </CodeBlock>
     </div>
   );
 }

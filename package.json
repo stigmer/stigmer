@@ -70,7 +70,16 @@
     "yaml": "2.9.0"
   },
   "overrides": {
-    "zod": "^3.25.0",
+    "zod": "^4.6.7",
+    "shadcn": {
+      "zod": "^3.25.0",
+      "@modelcontextprotocol/sdk": {
+        "zod": "^4.6.7"
+      },
+      "zod-to-json-schema": {
+        "zod": "^4.6.7"
+      }
+    },
     "@bufbuild/protobuf": "2.12.0"
   },
   "packageManager": "npm@10.9.4"
