@@ -24,6 +24,7 @@ import { resolveToken, type BackendTarget } from "../client.js";
 import { sendChannelMessage, type TemplateArg } from "./calls.js";
 import { channelResult } from "./errors.js";
 import { errorResult } from "../toolresult.js";
+import { WRITE_OPEN_WORLD } from "../toolmarks.js";
 
 const templateShape = z.strictObject({
   name: z.string().describe("Approved template name on the channel's provider registry."),
@@ -54,6 +55,7 @@ export function registerChannelTools(server: McpServer, target: BackendTarget): 
   server.registerTool(
     "send_channel_message",
     {
+      annotations: WRITE_OPEN_WORLD,
       description:
         "Send a business-initiated message to a recipient on this agent's messaging channel " +
         "(e.g. WhatsApp). Exactly one of text | template. Outside a 24-hour customer-service " +

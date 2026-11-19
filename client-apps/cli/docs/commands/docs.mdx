@@ -1,0 +1,48 @@
+Search and read this documentation from your terminal.
+
+`stigmer docs` finds the pages that answer a question and prints a page whole,
+as Markdown, exactly as it is published today. It needs no server and no
+sign-in, so it works before you set anything up. Stigmer's plugin for coding
+agents reads the docs through it, so your coding agent answers from these
+pages and links the one it read.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# Find the pages about moving the local server's port
+stigmer docs search port stigmer up
+
+# Print a page whole, opening with its Source URL
+stigmer docs read concepts/runners
+
+# The same page, by its full address, as JSON
+stigmer docs read https://stigmer.ai/docs/concepts/runners -o json
+```
+
+{/* AUTO_FLAGS */}
+
+### How it finds and reads pages
+
+`search` scores every page listed in
+[stigmer.ai/llms.txt](https://stigmer.ai/llms.txt), the index of this
+documentation, by the words you give, and prints the best matches with their
+addresses. `read` takes a page's path after `/docs/` or its full address and
+prints its Markdown export, the page's address plus `.md` (`/docs/index.md`
+for the docs' front page). Only pages under
+`https://stigmer.ai/docs` are read.
+
+Behind a proxy, set `NODE_USE_ENV_PROXY=1` beside `HTTPS_PROXY`: Node's own
+fetch, which the CLI uses, ignores the proxy without it.
+
+{/* AUTO_SUBCOMMANDS */}
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command                                  | Description                                  |
+| ---------------------------------------- | -------------------------------------------- |
+| [`stigmer coding-agent`](./coding-agent) | The guide a coding agent follows to set up   |
+| [`stigmer version`](./version)           | The version of the CLI the docs are read for |

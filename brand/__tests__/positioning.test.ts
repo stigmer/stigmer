@@ -97,13 +97,17 @@ test("What is Stigmer? opens with the one sentence and where it runs", () => {
   assert.ok(carries(opening, POSITIONING.whereItRuns), `${path}: opening paragraph, where it runs`);
 });
 
-test("the docs assistant's Skill says what Stigmer is in the same words", () => {
-  const path = "docs-agent/skills/stigmer-docs/SKILL.md";
-  const section = /^## What Stigmer is\n([\s\S]*?)(?=^## |$(?![\s\S]))/m.exec(read(path))?.[1];
-  assert.ok(section !== undefined, `${path}: a "## What Stigmer is" section`);
-  assert.ok(carries(section, POSITIONING.oneSentence), `${path}: "What Stigmer is", the one sentence`);
-  assert.ok(carries(section, POSITIONING.whereItRuns), `${path}: "What Stigmer is", where it runs`);
-});
+/** The Skills that tell an agent what Stigmer is: the docs assistant's, and the coding-agent plugin's front door. */
+const SKILL_HOMES = ["docs-agent/skills/stigmer-docs/SKILL.md", "coding-agents/plugin/skills/stigmer/SKILL.md"];
+
+for (const path of SKILL_HOMES) {
+  test(`${path} says what Stigmer is in the same words`, () => {
+    const section = /^## What Stigmer is\n([\s\S]*?)(?=^## |$(?![\s\S]))/m.exec(read(path))?.[1];
+    assert.ok(section !== undefined, `${path}: a "## What Stigmer is" section`);
+    assert.ok(carries(section, POSITIONING.oneSentence), `${path}: "What Stigmer is", the one sentence`);
+    assert.ok(carries(section, POSITIONING.whereItRuns), `${path}: "What Stigmer is", where it runs`);
+  });
+}
 
 /** The README's banner alt text, and its first paragraph under `# Stigmer`. */
 function readmeLead(markdown: string): { alt?: string; opening: string } {
@@ -148,6 +152,7 @@ const AGENT_HAS_HOMES: ReadonlyArray<readonly [path: string, list: (text: string
     (text) => /^## What each customer's agent has\n([\s\S]*?)(?=^## |$(?![\s\S]))/m.exec(text)?.[1],
   ],
   ["docs-agent/skills/stigmer-docs/SKILL.md", (text) => boldLabelledBlock(text, "What each customer's agent has")],
+  ["coding-agents/plugin/skills/stigmer/SKILL.md", (text) => boldLabelledBlock(text, "What each customer's agent has")],
   ["README.md", (text) => readmeLead(text).opening],
 ];
 

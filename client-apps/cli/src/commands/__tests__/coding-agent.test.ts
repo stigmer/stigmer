@@ -7,11 +7,21 @@
 // names it. The suite's title holds CLI-18 on the UX bar (test/ux-bar.json),
 // with the commands' own suites and the scripted door
 // (test/install/coding-agent-door.mjs).
+//
+// The plugin's front door (skills/stigmer/SKILL.md) is held the same way, and
+// so is its Claude Code guard (plugin/hooks/decide.mjs): its list of commands
+// whose force flag skips a question or overwrites is exactly every command
+// here with a `--force` option, each with the flags that mean force on it, and
+// the approval command it asks before is this CLI's, answering allow unless
+// told otherwise.
 
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import type { Command, Option } from "commander";
 import { GUIDE } from "@stigmer/coding-agent-plugin";
 import { describe, expect, it } from "vitest";
 import { buildProgram } from "../../program.js";
+import { commandPath, runnableCommands } from "../../command-tree.js";
 import { codingAgentGuide } from "../coding-agent.js";
 
 /** Every `stigmer …` command line the guide names, from code spans and code blocks. */
@@ -62,19 +72,7 @@ describe("CLI-18 the guide stigmer coding-agent prints names only commands and f
     expect(lines).toContain("stigmer version");
   });
 
-  it.each(commandLines(GUIDE))("%s is a command this CLI has, with flags it declares", (line) => {
-    const resolved = resolveLine(program, line);
-    expect(resolved.unknownWord, `"${line}" names no stigmer command`).toBeUndefined();
-    const command = resolved.command as Command;
-    expect(command, line).not.toBe(program);
-    const known = new Set([...optionNames(command), ...optionNames(program)]);
-    for (let parent = command.parent; parent !== null; parent = parent.parent) {
-      for (const name of optionNames(parent)) known.add(name);
-    }
-    for (const flag of resolved.flags) {
-      expect(known.has(flag), `"${line}": ${flag} is not a flag of stigmer ${command.name()}`).toBe(true);
-    }
-  });
+  it.each(commandLines(GUIDE))("%s is a command this CLI has, with flags it declares", (line) => checkLine(program, line));
 });
 
 describe("codingAgentGuide", () => {
@@ -84,5 +82,67 @@ describe("codingAgentGuide", () => {
       "Stigmer CLI 0.2.0: the guide for a coding agent. Follow it step by step, asking the person where it says to.\n\n" +
         "# Set up Stigmer for this project\n\nStep one.\n",
     );
+  });
+});
+
+const pluginRoot = new URL("../../../../../coding-agents/plugin/", import.meta.url);
+const FRONT_DOOR = readFileSync(fileURLToPath(new URL("skills/stigmer/SKILL.md", pluginRoot)), "utf8");
+
+/** Assert a guide's command line resolves to a command this CLI has, passing only flags it declares. */
+function checkLine(program: Command, line: string): void {
+  const resolved = resolveLine(program, line);
+  expect(resolved.unknownWord, `"${line}" names no stigmer command`).toBeUndefined();
+  const command = resolved.command as Command;
+  expect(command, line).not.toBe(program);
+  const known = new Set([...optionNames(command), ...optionNames(program)]);
+  for (let parent = command.parent; parent !== null; parent = parent.parent) {
+    for (const name of optionNames(parent)) known.add(name);
+  }
+  for (const flag of resolved.flags) {
+    expect(known.has(flag), `"${line}": ${flag} is not a flag of stigmer ${command.name()}`).toBe(true);
+  }
+}
+
+describe("the plugin's front door names only commands and flags this CLI has", () => {
+  const program = buildProgram();
+  const lines = commandLines(FRONT_DOOR);
+
+  it("names commands at all", () => {
+    expect(lines).toContain("stigmer docs search <words>");
+    expect(lines).toContain("stigmer auth whoami");
+  });
+
+  it.each(lines)("%s", (line) => checkLine(program, line));
+});
+
+interface Guard {
+  FORCE_COMMANDS: Array<{ path: string[]; flags: string[] }>;
+  APPROVE_COMMAND: { path: string[]; flag: string };
+}
+
+describe("the plugin's guard knows every command a force flag pushes past its question", () => {
+  const program = buildProgram();
+
+  it("lists exactly the commands with a --force option, with the flags that mean force", async () => {
+    const guard = (await import(new URL("hooks/decide.mjs", pluginRoot).href)) as Guard;
+    const forced = runnableCommands(program)
+      .map((command) => ({ command, force: command.options.find((option) => option.long === "--force") }))
+      .filter((entry) => entry.force !== undefined)
+      .map(({ command, force }) => ({
+        path: commandPath(command).split(" ").slice(1),
+        flags: [force?.short, force?.long].filter((flag): flag is string => flag !== undefined),
+      }));
+    const key = (entry: { path: string[] }) => entry.path.join(" ");
+    expect(forced.length).toBeGreaterThan(5);
+    expect([...guard.FORCE_COMMANDS].sort((a, b) => key(a).localeCompare(key(b)))).toEqual(
+      forced.sort((a, b) => key(a).localeCompare(key(b))),
+    );
+  });
+
+  it("asks before the approval command this CLI has, which answers allow by default", async () => {
+    const guard = (await import(new URL("hooks/decide.mjs", pluginRoot).href)) as Guard;
+    const approve = runnableCommands(program).find((command) => commandPath(command) === `stigmer ${guard.APPROVE_COMMAND.path.join(" ")}`);
+    const action = approve?.options.find((option) => option.long === guard.APPROVE_COMMAND.flag);
+    expect(action?.defaultValue).toBe("allow");
   });
 });

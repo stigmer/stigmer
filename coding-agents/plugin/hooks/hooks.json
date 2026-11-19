@@ -1,0 +1,15 @@
+{
+  "description": "Stigmer asks the person before an act that can't be undone or is theirs to give: deleting an agent or skill, cancelling a run, answering a run's approval, or a stigmer command forced past its own question.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^mcp__plugin_stigmer_stigmer__(delete_agent|delete_skill|cancel_run|submit_run_approval)$",
+        "hooks": [{ "type": "command", "command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/guard.mjs"] }]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [{ "type": "command", "if": "Bash(stigmer *)", "command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/guard.mjs"] }]
+      }
+    ]
+  }
+}

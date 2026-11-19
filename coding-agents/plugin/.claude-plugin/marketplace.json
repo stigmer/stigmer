@@ -6,7 +6,7 @@
     {
       "name": "stigmer",
       "source": "./",
-      "description": "Stigmer for your coding agent: set Stigmer up for your project, from signing in to your agent's chat in your own app, then make, run and read agents."
+      "description": "Stigmer for your coding agent: answers questions about Stigmer from its live docs, and sets Stigmer up for your project, from signing in to your agent's chat in your own app, then makes, runs and reads agents."
     }
   ]
 }

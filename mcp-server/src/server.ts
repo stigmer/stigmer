@@ -23,6 +23,7 @@ import { registerAgentTools } from "./domains/agents/tools.js";
 import { registerChannelTools } from "./domains/channels/tools.js";
 import type { BackendTarget } from "./domains/client.js";
 import { registerConversationTools } from "./domains/conversation/tools.js";
+import { registerDocsTools } from "./domains/docs/tools.js";
 import {
   loadCaptureContextFromEnv,
   type CaptureContext,
@@ -32,6 +33,7 @@ import { registerRunControlTools, registerRunTools } from "./domains/runs/tools.
 import { registerSearchTools } from "./domains/search/tools.js";
 import { registerSkillResources } from "./domains/skills/resources.js";
 import { registerSkillTools } from "./domains/skills/tools.js";
+import { SERVER_INSTRUCTIONS } from "./instructions.js";
 import { log } from "./logger.js";
 
 /**
@@ -122,7 +124,12 @@ interface BuiltRoster {
 }
 
 function buildFullRoster(target: BackendTarget): BuiltRoster {
-  const server = new McpServer({ name: "mcp-server-stigmer", version: SERVER_VERSION });
+  // The full roster alone carries instructions: the rules and the docs
+  // method for an agent acting for a person (instructions.ts).
+  const server = new McpServer(
+    { name: "mcp-server-stigmer", version: SERVER_VERSION },
+    { instructions: SERVER_INSTRUCTIONS },
+  );
   return {
     server,
     label: "",
@@ -165,6 +172,7 @@ function registerTools(server: McpServer, target: BackendTarget): string[] {
     ...registerRunTools(server, target),
     ...registerSkillTools(server, target),
     ...registerRunControlTools(server, target),
+    ...registerDocsTools(server),
   ];
 }
 

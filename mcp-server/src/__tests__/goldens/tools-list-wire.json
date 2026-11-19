@@ -36,6 +36,12 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
       "execution": {
         "taskSupport": "forbidden"
       }
@@ -61,6 +67,12 @@
         ],
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
       },
       "execution": {
         "taskSupport": "forbidden"
@@ -400,13 +412,19 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
       "execution": {
         "taskSupport": "forbidden"
       }
     },
     {
       "name": "delete_agent",
-      "description": "Delete a Stigmer agent by its org and slug. Returns the deleted agent.",
+      "description": "Delete a Stigmer agent and every version of it, by its org and slug. It can't be undone. Returns the deleted agent.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -425,6 +443,12 @@
         ],
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
       },
       "execution": {
         "taskSupport": "forbidden"
@@ -479,6 +503,12 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
       "execution": {
         "taskSupport": "forbidden"
       }
@@ -514,13 +544,19 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
       "execution": {
         "taskSupport": "forbidden"
       }
     },
     {
       "name": "submit_run_approval",
-      "description": "Answer a tool use a run is waiting on (get_run's turn.phase is waiting). Find the waiting tool uses in get_run's turn.asks — tool_use_id must match exactly. The run continues once every waiting tool use of its turn is answered. deny refuses the one call and feeds your reason back to the agent, which then continues; to stop the conversation use cancel_run instead.",
+      "description": "Answer a tool use a run is waiting on (get_run's turn.phase is waiting). Find the waiting tool uses in get_run's turn.asks — tool_use_id must match exactly. The run continues once every waiting tool use of its turn is answered. deny refuses the one call and feeds your reason back to the agent, which then continues; to stop the conversation use cancel_run instead. An approval is the person's to give: send allow or allow_all only when the person you are working for said so, in this conversation, for this call.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -554,6 +590,12 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
       "execution": {
         "taskSupport": "forbidden"
       }
@@ -584,6 +626,12 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
       "execution": {
         "taskSupport": "forbidden"
       }
@@ -609,6 +657,12 @@
         ],
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
       },
       "execution": {
         "taskSupport": "forbidden"
@@ -646,6 +700,12 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
       "execution": {
         "taskSupport": "forbidden"
       }
@@ -666,6 +726,68 @@
         ],
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "search_docs",
+      "description": "Search Stigmer's documentation at stigmer.ai/docs for the pages that answer a question: what Stigmer is, its editions and billing, how a concept works, a CLI command or SDK call, or why something fails. Returns the best-matching pages with their URLs. Then read the page with read_doc, whole, and answer from what it says.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A few words naming what the question is about (e.g. 'runner port', 'editions billing')."
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "read_doc",
+      "description": "Read one page of Stigmer's documentation whole, as Markdown, exactly as published today. The text opens with the page's Source URL: cite it in the answer. Pass the page's path (e.g. concepts/tools) or its full https://stigmer.ai/docs/... URL. Only stigmer.ai/docs is read.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The page's path after /docs/ (e.g. concepts/tools), or its full URL."
+          }
+        },
+        "required": [
+          "page"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
       },
       "execution": {
         "taskSupport": "forbidden"
@@ -730,6 +852,12 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
       "execution": {
         "taskSupport": "forbidden"
       }
@@ -755,6 +883,12 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
       "execution": {
         "taskSupport": "forbidden"
       }
@@ -777,6 +911,12 @@
         ],
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
       },
       "execution": {
         "taskSupport": "forbidden"

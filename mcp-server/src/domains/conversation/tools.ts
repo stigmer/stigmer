@@ -23,6 +23,7 @@ import { z } from "zod";
 import { resolveToken, type BackendTarget } from "../client.js";
 import { escalateConversation } from "./calls.js";
 import { conversationResult } from "./errors.js";
+import { WRITE_IDEMPOTENT } from "../toolmarks.js";
 
 const ESCALATE_DESCRIPTION = [
   "Flag this conversation for a human teammate to look at. Use this when you " +
@@ -55,6 +56,7 @@ export function registerConversationTools(server: McpServer, target: BackendTarg
   server.registerTool(
     "escalate_to_human",
     {
+      annotations: WRITE_IDEMPOTENT,
       description: ESCALATE_DESCRIPTION,
       inputSchema: z.strictObject({
         // Bounds mirror the protovalidate constraints on

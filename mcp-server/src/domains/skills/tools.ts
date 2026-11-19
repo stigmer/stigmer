@@ -12,12 +12,14 @@ import { textOrError } from "../toolresult.js";
 import { deleteSkill } from "./delete.js";
 import { fetchSkill } from "./fetch.js";
 import { listSkillVersions } from "./versions.js";
+import { DESTRUCTIVE, READ } from "../toolmarks.js";
 
 /** Register every Skill-domain tool; returns the registered tool names. */
 export function registerSkillTools(server: McpServer, target: BackendTarget): string[] {
   server.registerTool(
     "get_skill",
     {
+      annotations: READ,
       description:
         "Get full details of a Stigmer skill by org and slug, optionally at a specific version. " +
         "Omit 'version' for the latest.",
@@ -51,6 +53,7 @@ export function registerSkillTools(server: McpServer, target: BackendTarget): st
   server.registerTool(
     "delete_skill",
     {
+      annotations: DESTRUCTIVE,
       description:
         "Delete a Stigmer skill and all its versions by org and slug. To create or update skills, use the 'stigmer skill push' CLI command. Returns the deleted skill.",
       inputSchema: z.strictObject({
@@ -76,6 +79,7 @@ export function registerSkillTools(server: McpServer, target: BackendTarget): st
   server.registerTool(
     "list_skill_versions",
     {
+      annotations: READ,
       description:
         "List a skill's version history (newest first): version hash, tag, who pushed it and " +
         "when, and which version is current. Fetch one version's full content with get_skill and " +

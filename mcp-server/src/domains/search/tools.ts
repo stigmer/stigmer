@@ -21,6 +21,7 @@ import { toProtoJson } from "../marshal.js";
 import { buildResourceURI } from "../resourceuri.js";
 import { rpcError } from "../rpcerr.js";
 import { textOrError } from "../toolresult.js";
+import { READ } from "../toolmarks.js";
 
 /**
  * The searchable kinds and their proto enum values. Deliberately a curated
@@ -46,6 +47,7 @@ export function registerSearchTools(server: McpServer, target: BackendTarget): s
   server.registerTool(
     "search",
     {
+      annotations: READ,
       description:
         "Search and list Stigmer resources (agents, skills). " +
         "Set 'kinds' to filter by resource type. Set 'query' for full-text search. " +

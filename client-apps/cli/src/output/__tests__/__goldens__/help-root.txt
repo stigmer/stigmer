@@ -85,6 +85,7 @@ Configuration:
   completion       generate a shell completion script (bash, zsh, fish,
                    powershell)
   version          print the CLI version
+  docs             search and read Stigmer's documentation at stigmer.ai/docs
   help             display help for command
 
 Examples:
