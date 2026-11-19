@@ -26,10 +26,12 @@ Every job below names the command line first, the path every edition and
 every shell has, then the Stigmer tool that does the same where there is
 one (the plugin's tools, when they are connected). Use either. Before a
 flag you have not used in this session, check it with `stigmer <command>
---help`: the installed CLI wins for syntax. For anything the command line
-and this skill don't settle, read the page named with the job
-(`stigmer docs read <page>`) and cite it as a full
-`https://stigmer.ai/docs/...` URL.
+--help`: the installed CLI wins for syntax.
+
+Every job ends with its docs pages. When your answer tells the person how
+to do something (rather than handing back what a run did), read the job's
+page first (`stigmer docs read <page>`, or `read_doc`) and cite it as a
+full URL, as the job's Docs line gives it.
 
 ## The rules that hold for every job
 
@@ -73,7 +75,7 @@ tool server runs on this machine (`stigmer mcp-server`) and the file is
 inside a folder you have open; when `run_agent` refuses a file, use the
 command line above.
 
-Docs: `cli/commands/run`, `concepts/files`.
+Docs: https://stigmer.ai/docs/cli/commands/run, https://stigmer.ai/docs/concepts/files.
 
 ## Find an agent's last run
 
@@ -91,7 +93,7 @@ each run's id, phase and start. The first finished one is "the last run".
 With the Stigmer tools: `list_runs` with `agent` (each run with its phase and
 its error in one line), then `get_run` for one of them.
 
-Docs: `cli/commands/list`, `concepts/sessions`.
+Docs: https://stigmer.ai/docs/cli/commands/list, https://stigmer.ai/docs/concepts/sessions.
 
 ## Read what a run made, and save it
 
@@ -104,8 +106,9 @@ stigmer download run <run-id> --output-dir reports
 
 It saves every file the run made into `reports/`, each at its place in the
 outputs folder, and prints the paths. Then read the file you saved and quote
-what the person asked for (its first line, the flagged rows). Say where the
-file now is.
+what the person asked for (its first line, the flagged rows) word for word,
+as the file has it: don't offer a shorter or reworded version unless they
+ask for one. Say where the file now is.
 
 With the Stigmer tools: `get_run_outputs` with `run_id` returns each output's
 path and, for text, its content (at most 512 KB a file). It never writes to
@@ -114,7 +117,7 @@ disk: to save the files, run the download command above.
 The run's answer in the chat (what the agent said, not a file) is in
 `stigmer runs logs <run-id>`, or `get_run`'s `turn.answer`.
 
-Docs: `cli/commands/download`, `concepts/files`.
+Docs: https://stigmer.ai/docs/cli/commands/download, https://stigmer.ai/docs/concepts/files.
 
 ## Why a run failed
 
@@ -148,7 +151,7 @@ The failures people meet most:
   budget): the error says which; a follow-up in the same conversation
   carries on.
 
-Docs: `cli/commands/runs`, `cli/commands/logs`, `concepts/scores`.
+Docs: https://stigmer.ai/docs/cli/commands/runs, https://stigmer.ai/docs/cli/commands/logs, https://stigmer.ai/docs/concepts/scores.
 
 ## A run waiting for approval
 
@@ -173,7 +176,7 @@ for a person's answer, as long as it takes.
   tool call before it asks. Say what either skips: the agent will act
   without asking anyone.
 
-Docs: `concepts/approval-flows`, `cli/commands/runs`, `cli/commands/run`.
+Docs: https://stigmer.ai/docs/concepts/approval-flows, https://stigmer.ai/docs/cli/commands/runs, https://stigmer.ai/docs/cli/commands/run.
 
 ## A follow-up in the same conversation
 
@@ -194,7 +197,7 @@ nothing starts fresh. `stigmer run <agent>` again starts a new conversation.
 - `stigmer runs resume <run-id>` is something else: it continues a paused
   run.
 
-Docs: `cli/commands/resume`, `concepts/sessions`.
+Docs: https://stigmer.ai/docs/cli/commands/resume, https://stigmer.ai/docs/concepts/sessions.
 
 ## How a run was graded
 
@@ -206,7 +209,9 @@ It lists every score the run carries: the platform's run-health check, a
 person's thumbs, an AI judge's verdict, and an eval's checks on one of its
 tries, each with its verdict and reason. With the tools: `get_run_scores`.
 
-- Report what the scores say and where you read them. When there is no
+- Report what the scores say, and name where you read them: the command
+  (`stigmer runs scores <run-id>`) or the tool (`get_run_scores`), and the
+  run's id. When there is no
   judge score, say plainly the run was **not graded** by an AI judge (AI
   grading is off until someone turns it on for the agent), and give the
   reason the read gives; never grade it yourself in its place.
@@ -216,7 +221,7 @@ tries, each with its verdict and reason. With the tools: `get_run_scores`.
 - Never switch AI grading on, create a scoring rule or rate a run for the
   person unless they asked: grading spends their model tokens.
 
-Docs: `concepts/scores`, `cli/commands/runs`, `cli/commands/agent`.
+Docs: https://stigmer.ai/docs/concepts/scores, https://stigmer.ai/docs/cli/commands/runs, https://stigmer.ai/docs/cli/commands/agent.
 
 ## Turn a bad conversation into a test
 
@@ -232,7 +237,7 @@ line: only they know what a right reply holds. `--eval <eval>` adds the case
 to an eval instead. Then run it on the agent:
 `stigmer eval run --agent <agent> --eval <eval>`.
 
-Docs: `guides/evals/test-with-evals`, `cli/commands/runs`.
+Docs: https://stigmer.ai/docs/guides/evals/test-with-evals, https://stigmer.ai/docs/cli/commands/runs.
 
 ## Check a change before shipping it
 
@@ -250,4 +255,4 @@ skill) is not worse than the one customers use now.
 
 Eval tries are runs: they spend model tokens. Say so before running one.
 
-Docs: `guides/evals/test-with-evals`, `cli/commands/eval`.
+Docs: https://stigmer.ai/docs/guides/evals/test-with-evals, https://stigmer.ai/docs/cli/commands/eval.
