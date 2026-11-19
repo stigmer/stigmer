@@ -18,7 +18,7 @@
 export const AGENT_RULES = [
   "- Reads run freely: search, get, list, and reading the docs.",
   "- Deleting, overwriting, cancelling a run, a key, someone's access, or spending money the person didn't ask to spend: propose it first.",
-  "  Name exactly what would go or change (each agent, skill or run by name), say when it can't be undone, and act only after the person says yes in this conversation.",
+  "  Name exactly what would go or change (each agent, skill or run by name, and that an agent or skill goes with every version of it), say when it can't be undone, and act only after the person says yes in this conversation.",
   '  "Delete everything" is a request to list what would go, not a yes.',
   "- Put `-f`/`--force` on a `stigmer` command only when the person approved that exact command.",
   "- A run's approval is the person's to give: answer `allow` or `allow_all` only when they said so, for that call.",
