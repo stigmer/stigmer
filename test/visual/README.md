@@ -26,6 +26,22 @@ In CI the `visual` job of `ci.ts-workspace.yaml` runs inside the same image, on 
 
 A new state in the scenario catalogue needs its thread scene, or a line in `THREAD_DRAWN_ELSEWHERE` saying what draws it: the scene sweep (`src/__tests__/catalog.test.ts`) fails until it has one.
 
+## Adding a screen
+
+A screen is a route a person can open: a page file under `client-apps/web/src/app`, or a route in the desktop app's `client-apps/desktop/src/routes.tsx`. `screens.json` lists every one, so none ships below the page: each names the gallery scenes that draw it, and at least one of them must be built to a drawing the maintainer passed (a design facts file names it in `built`; `design/README.md`). Three tests hold it, each failing on the route it names:
+
+- `client-apps/web/src/__tests__/screens-listed.test.ts`: every console route has an entry under `console`, and every entry is a route (`CON-16`).
+- `client-apps/desktop/src/__tests__/screens-listed.test.tsx`: the same over the desktop router's tree, under `desktop` (`DSK-08`).
+- `src/__tests__/screens.test.ts`: every named scene is in the catalogue, and each screen's scenes include one inside a passed drawing.
+
+To add a screen, draw its states as scenes (Add a scene, above), take its design page through the maintainer's look and import its facts with the scenes in `built`, then add the route:
+
+- `{ "scenes": ["settings-audit", "settings-audit-empty"] }` for a screen the gallery draws;
+- `{ "same": "/settings/audit" }` for a desktop route that draws the same kit view as a console route, held by that route's scenes;
+- `{ "none": "<why>" }` for a route with no screen of its own: a redirect (with `"same"` naming where it sends a person) or a route that draws nothing.
+
+A screen whose passed drawing is not yet in the design facts names the open issue that tracks it, `"pending": "stigmer#N"`, beside its scenes; the test fails once a scene is held, so the line comes out with the fix. `screens.json` is a gate file (`test/README.md`, rule 5): a `none` or a `pending` is read in review like a change to the bar.
+
 ## Shown pictures
 
 The site and the docs show some scenes as pictures: `<Screen name="approval" alt="…" />` on a page, never a captured screenshot. `src/shown.ts` lists them as plain data, each with a name pages use, its scene, the CSS size it is drawn at and an optional `clip` for one card. The `shown` project in `playwright.config.ts` draws each one as its scene's screenshot is drawn (`tests/draw.ts`), in dark, the site's one mode, at the device scale the site serves (`SHOWN_SCALE`), and compares it with `tests/__shown__/<name>.png`. `make test-visual UPDATE=1` mints them with the rest, so a change that moves a shown scene fails both its screenshot and its shown picture until both are minted again.
