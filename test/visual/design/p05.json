@@ -189,12 +189,12 @@
       ],
       "buttons": [],
       "sample": {},
-      "ruled": {},
+      "ruled": {
+        "type daily-variance-report": "Settled by the page's own redesign: a routine's page (G20) passed his Built look on 2026-11-17 with the name as the page's title",
+        "type Fix invoice rounding": "Settled by the session page's own drawings (S01 to S57), which passed his looks with the conversation's name as the page's title"
+      },
       "pending": {
-        "word Cancelled": "When its page is redesigned: a cancelled and a queued run's pills, which no scene draws yet",
-        "word Queued": "When its page is redesigned: a cancelled and a queued run's pills, which no scene draws yet",
-        "type daily-variance-report": "When its page is redesigned: a run's and a routine's name drawn as a list row's, where the scenes show it as the page's title",
-        "type Fix invoice rounding": "When its page is redesigned: a run's and a routine's name drawn as a list row's, where the scenes show it as the page's title"
+        "word Queued": "A call for the last look: a run has no queued state on the wire; a run that waits reads Pending"
       }
     }
   ]

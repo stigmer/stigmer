@@ -616,13 +616,13 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Retire Claude Opus 4.8?": "The drawing's example data; the scene retires Claude Sonnet 4.6",
+        "word claude-opus-4.8": "The drawing's example data; the scene retires Claude Sonnet 4.6",
+        "word Replaced by Claude Opus 5": "The drawing's example data; the scene names no replacement"
+      },
       "ruled": {},
-      "pending": {
-        "word Retire Claude Opus 4.8?": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word claude-opus-4.8": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word Replaced by Claude Opus 5": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "pending": {}
     }
   ]
 }

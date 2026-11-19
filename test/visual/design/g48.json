@@ -265,15 +265,14 @@
         "word Reports go to the CFO on Fridays": "The drawing's example data; the scene shows its own fixture's",
         "word Confirmed Jul 2": "The drawing's example data; the scene shows its own fixture's",
         "word Lives in Berlin": "The drawing's example data; the scene shows its own fixture's",
-        "word Rejected Jul 9": "The drawing's example data; the scene shows its own fixture's"
+        "word Rejected Jul 9": "The drawing's example data; the scene shows its own fixture's",
+        "word Waiting for you 2": "The drawing's example data; the scene has one proposal (the count sits in the heading)",
+        "word Remembered 3": "The drawing's example data; the scene has two remembered facts (the count sits in the heading)",
+        "word Rejected 1": "The drawing's example data; the scene has no rejected fact, so the group is not drawn",
+        "word Kept so an agent doesn't propose them again. Delete one to clear it.": "The drawing's example data; the scene has no rejected fact, so the group is not drawn"
       },
       "ruled": {},
-      "pending": {
-        "word Waiting for you 2": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word Remembered 3": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word Rejected 1": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word Kept so an agent doesn't propose them again. Delete one to clear it.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "pending": {}
     },
     {
       "caption": "Memory: Editing a memory in place",
@@ -589,11 +588,11 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word “Works in finance at Acme” stops being shared with agents. It can't be brought back.": "The drawing's example data; the scene deletes another fact"
+      },
       "ruled": {},
-      "pending": {
-        "word “Works in finance at Acme” stops being shared with agents. It can't be brought back.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "pending": {}
     },
     {
       "caption": "Memory: Delete, working: the act busy, Cancel held",
@@ -1403,15 +1402,14 @@
         "word Reports go to the CFO on Fridays": "The drawing's example data; the scene shows its own fixture's",
         "word Confirmed Jul 2": "The drawing's example data; the scene shows its own fixture's",
         "word Lives in Berlin": "The drawing's example data; the scene shows its own fixture's",
-        "word Rejected Jul 9": "The drawing's example data; the scene shows its own fixture's"
+        "word Rejected Jul 9": "The drawing's example data; the scene shows its own fixture's",
+        "word Waiting for you 2": "The drawing's example data; the scene has one proposal (the count sits in the heading)",
+        "word Remembered 3": "The drawing's example data; the scene has two remembered facts (the count sits in the heading)",
+        "word Rejected 1": "The drawing's example data; the scene has no rejected fact, so the group is not drawn",
+        "word Kept so an agent doesn't propose them again. Delete one to clear it.": "The drawing's example data; the scene has no rejected fact, so the group is not drawn"
       },
       "ruled": {},
-      "pending": {
-        "word Waiting for you 2": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word Remembered 3": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word Rejected 1": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word Kept so an agent doesn't propose them again. Delete one to clear it.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "pending": {}
     }
   ]
 }

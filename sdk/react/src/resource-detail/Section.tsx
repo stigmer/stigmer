@@ -35,9 +35,9 @@ export interface SectionProps {
  *
  * A card whose header bar holds the section's title (14/20, semibold, one
  * heading level under the detail page's title: `h2` under an `h1`, `h3`
- * under the default `h2` and wherever no detail page sets it), its count and its
- * acts (the edit icon button among them); the content sits under the bar
- * and draws its own inner spacing.
+ * under the default `h2` and wherever no detail page sets it) with its count
+ * inside the heading, and its acts (the edit icon button among them); the
+ * content sits under the bar and draws its own inner spacing.
  *
  * Used uniformly by AgentDetailView, PluginDetailView, SkillDetailView and
  * the other detail views.
@@ -57,10 +57,11 @@ export function Section({
   return (
     <section className={cn(cardClasses({ flush: true }), className)} data-scroll-target={scrollTarget}>
       <div className={cardHeaderClasses()}>
-        <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-2">
-          <Heading className="stg:m-0 stg:text-sm stg:font-semibold stg:text-foreground">{title}</Heading>
+        {/* The count is part of the heading, so the heading reads "Members 4" as it is drawn. */}
+        <Heading className="stg:m-0 stg:flex stg:min-w-0 stg:items-center stg:gap-2 stg:text-sm stg:font-semibold stg:text-foreground">
+          {title}
           {count != null && count > 0 && <Tag>{countIsLowerBound ? `${count}+` : count}</Tag>}
-        </div>
+        </Heading>
         {(headerActions || onEdit) && (
           <div className="stg:flex stg:items-center stg:gap-1">
             {headerActions}

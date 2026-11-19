@@ -271,13 +271,12 @@
         "word Customer id claim": "The drawing's example data; the scene shows its own fixture's",
         "word sub": "The drawing's example data; the scene shows its own fixture's",
         "word On": "The drawing's example data; the scene shows its own fixture's",
-        "word Member": "The drawing's example data; the scene shows its own fixture's"
+        "word Member": "The drawing's example data; the scene shows its own fixture's",
+        "word acme accepts sign-in tokens Northwind's platform issues.": "The drawing's example data; the scene's issuer is Acme Okta",
+        "word Tokens from Northwind stop working at once. People who joined through it keep their accounts and roles.": "The drawing's example data; the scene's issuer is Acme Okta"
       },
       "ruled": {},
-      "pending": {
-        "word acme accepts sign-in tokens Northwind's platform issues.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word Tokens from Northwind stop working at once. People who joined through it keep their accounts and roles.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "pending": {}
     },
     {
       "caption": "Federation issuers: New issuer, an address the server refuses",
@@ -505,12 +504,12 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Delete Northwind platform?": "The drawing's example data; the scene's issuer is Acme Okta",
+        "word Tokens from Northwind stop working at once. People who joined through it keep their accounts and roles.": "The drawing's example data; the scene's issuer is Acme Okta"
+      },
       "ruled": {},
-      "pending": {
-        "word Delete Northwind platform?": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word Tokens from Northwind stop working at once. People who joined through it keep their accounts and roles.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "pending": {}
     },
     {
       "caption": "Federation issuers: Delete, working: the act busy, Cancel held",

@@ -169,10 +169,10 @@
         "word We close the books on the 3rd business day. Our ledger is in NetSuite; amounts are in USD unless an account says otherwise.": "The drawing's example data; the scene shows its own fixture's",
         "word data-science": "The drawing's example data; the scene shows its own fixture's"
       },
-      "ruled": {},
-      "pending": {
-        "word The sandbox a run gets when its agent doesn't name one.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "ruled": {
+        "word The sandbox a run gets when its agent doesn't name one.": "Kept as built at the settings Built look, 2026-11-18: the drawing's line would be less exact (the default environment's line)"
+      },
+      "pending": {}
     },
     {
       "caption": "Organization preferences: Kept separate: the three controls as today, on sections",
@@ -870,10 +870,10 @@
         "word We close the books on the 3rd business day. Our ledger is in NetSuite; amounts are in USD unless an account says otherwise.": "The drawing's example data; the scene shows its own fixture's",
         "word data-science": "The drawing's example data; the scene shows its own fixture's"
       },
-      "ruled": {},
-      "pending": {
-        "word The sandbox a run gets when its agent doesn't name one.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "ruled": {
+        "word The sandbox a run gets when its agent doesn't name one.": "Kept as built at the settings Built look, 2026-11-18: the drawing's line would be less exact (the default environment's line)"
+      },
+      "pending": {}
     }
   ]
 }

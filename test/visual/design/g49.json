@@ -515,10 +515,7 @@
         "word Stuck? Ask IT on Slack": "The drawing's example server line and help line; the scene's server sends its own"
       },
       "ruled": {},
-      "pending": {
-        "word Add model": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "button Add model": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "pending": {}
     },
     {
       "caption": "Model catalog: At 390 wide",

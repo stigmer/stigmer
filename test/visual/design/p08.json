@@ -168,13 +168,8 @@
       "sample": {},
       "ruled": {},
       "pending": {
-        "button Compare editions": "When its page is redesigned: the settings notices' words and acts (Compare editions needs its destination)",
-        "button See plans": "When its page is redesigned: the settings notices' words and acts (Compare editions needs its destination)",
-        "word Agent hours are used up for this month.": "When its page is redesigned: the settings notices' words and acts (Compare editions needs its destination)",
-        "word Compare editions": "When its page is redesigned: the settings notices' words and acts (Compare editions needs its destination)",
-        "word Runs wait until the hours reset on Aug 1, or until an admin moves the organization to a larger plan.": "When its page is redesigned: the settings notices' words and acts (Compare editions needs its destination)",
-        "word See plans": "When its page is redesigned: the settings notices' words and acts (Compare editions needs its destination)",
-        "word Your vaults and their secrets are safe; only this page's read failed.": "When its page is redesigned: the settings notices' words and acts (Compare editions needs its destination)"
+        "button Compare editions": "A call for the last look: \"Compare editions\" needs a page that compares the editions, which the console does not have; the notice says what the edition does instead",
+        "word Compare editions": "A call for the last look: \"Compare editions\" needs a page that compares the editions, which the console does not have; the notice says what the edition does instead"
       }
     }
   ]

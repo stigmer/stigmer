@@ -250,18 +250,14 @@
         "word Support desk": "The drawing's example data; the scene shows its own fixture's",
         "word The helpdesk's API · 1 entry": "The drawing's example data; the scene shows its own fixture's",
         "word Staging": "The drawing's example data; the scene shows its own fixture's",
-        "word Keys for the staging agents · 2 entries": "The drawing's example data; the scene shows its own fixture's"
+        "word Keys for the staging agents · 2 entries": "The drawing's example data; the scene shows its own fixture's",
+        "button Replace": "The scene's own vault holds no secret; the shared vault's rows show Replace and Remove",
+        "button Remove OPENAI_API_KEY": "The scene's own vault holds no secret; the shared vault's rows show Replace and Remove",
+        "word Shared vaults 4": "The drawing's example data; the scene has two shared vaults"
       },
       "ruled": {},
       "pending": {
-        "word My vault You": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word Your own logins and secrets. A chat that includes My vault uses them for the messages you send, never a teammate's. Saved values can be replaced but are never shown again.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "type NAME": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "type Value": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "type What it is for (optional)": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word Shared vaults 4": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "button Replace": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "button Remove OPENAI_API_KEY": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
+        "word Your own logins and secrets. A chat that includes My vault uses them for the messages you send, never a teammate's. Saved values can be replaced but are never shown again.": "A call for the last look: the build adds that a chat with an agent of another organization never uses My vault, a rule that came after the drawing"
       }
     },
     {
@@ -614,26 +610,11 @@
         }
       ],
       "sample": {
-        "word The keys the production agents run with.": "The drawing's example data; the scene shows its own fixture's"
+        "word The keys the production agents run with.": "The drawing's example data; the scene shows its own fixture's",
+        "type Production": "The drawing writes the Name field's value as text at 14/20; the built field holds \"Production\" as its value, which is not a text block. The title's 20/28 holds"
       },
       "ruled": {},
-      "pending": {
-        "type Production": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "type Who can use": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word Secrets 3": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "type LEDGER_TOKEN": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "type Reads the general ledger": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "type SLACK_BOT_TOKEN": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "type Posts the daily report": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "type STRIPE_KEY": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "type Charges and refunds": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "type NAME": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "type Value": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "type What it is for (optional)": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "type https://mcp.example.com/mcp or github.com": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "type Token": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "button Who can use": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "pending": {}
     },
     {
       "caption": "Vaults: New shared vault, its name taken",
@@ -1086,19 +1067,13 @@
       ],
       "sample": {
         "word My own key for experiments": "The drawing's example data; the scene shows its own fixture's",
-        "word Replace": "The drawing's example data; the scene shows its own fixture's"
+        "word Replace": "The drawing's example data; the scene shows its own fixture's",
+        "button Replace": "The scene's own vault holds no secret; the shared vault's rows show Replace and Remove",
+        "button Remove OPENAI_API_KEY": "The scene's own vault holds no secret; the shared vault's rows show Replace and Remove"
       },
       "ruled": {},
       "pending": {
-        "word My vault You": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word Your own logins and secrets. A chat that includes My vault uses them for the messages you send, never a teammate's. Saved values can be replaced but are never shown again.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "type NAME": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "type Value": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "type What it is for (optional)": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word No shared vaults yet": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word Admins of acme create shared vaults and choose who may use them.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "button Replace": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "button Remove OPENAI_API_KEY": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
+        "word Your own logins and secrets. A chat that includes My vault uses them for the messages you send, never a teammate's. Saved values can be replaced but are never shown again.": "A call for the last look: the build adds that a chat with an agent of another organization never uses My vault, a rule that came after the drawing"
       }
     },
     {
