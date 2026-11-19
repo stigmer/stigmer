@@ -20,11 +20,15 @@
 // conversation for a follow-up; every refusal (no shared disk, no roots,
 // outside every root, a link out, a folder, more than 20) starts nothing and
 // uploads nothing; a run the backend refuses deletes what was uploaded; the
-// HTTP handler drops the shared-disk flag whatever it is given.
+// HTTP handler drops the shared-disk flag whatever it is given. Every
+// backend refusal names what it was reading, and the text rules (a type
+// read from the extension when none is recorded, a cut that splits a
+// character, bytes that are not UTF-8) are pinned on their own.
 
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Session } from "node:http2";
 import type { AddressInfo } from "node:net";
@@ -57,6 +61,9 @@ import { withoutLocalFiles } from "../../http-handler";
 import { configureLogger } from "../../logger";
 import { createServer } from "../../server";
 import { READ } from "../toolmarks";
+import { isTextType } from "../runs/history";
+import { resolveLocalFiles, rootPath } from "../runs/local-files";
+import { NO_LOCAL_FILES } from "../runs/run";
 
 configureLogger({ level: "error", format: "text" });
 
@@ -86,6 +93,12 @@ const encoder = new TextEncoder();
 const contents = new Map<string, { data: Uint8Array; truncated: boolean }>([
   ["fil_report_new", { data: encoder.encode("# March\n\nThree invoices over budget."), truncated: false }],
   ["fil_long", { data: encoder.encode("row,amount\n1,2\n"), truncated: true }],
+  ["fil_notes", { data: encoder.encode("notes"), truncated: false }],
+  ["fil_latin1", { data: new Uint8Array([0x63, 0x61, 0x66, 0xe9]), truncated: false }],
+  // "a€" cut after the euro sign's second byte: the cut drops the partial character.
+  ["fil_cut", { data: new Uint8Array([0x61, 0xe2, 0x82]), truncated: true }],
+  // Nothing but a continuation byte: no whole character to keep, so not text.
+  ["fil_tail", { data: new Uint8Array([0x82]), truncated: true }],
 ]);
 
 let backend: Http2Server;
@@ -156,6 +169,7 @@ beforeAll(async () => {
   const routes = (router: ConnectRouter) => {
     router.service(AgentQueryController, {
       getByReference: (req) => {
+        if (req.slug === "flaky-agent") return create(AgentSchema, { metadata: { id: "agt_flaky", slug: "flaky-agent" } });
         if (req.slug !== "invoice-checker") throw new ConnectError(`agent ${req.slug} not found`, Code.NotFound);
         return agent;
       },
@@ -166,6 +180,7 @@ beforeAll(async () => {
         return run(req.value, RunPhase.RUN_COMPLETED);
       },
       listByAgent: (req) => {
+        if (req.agentId === "agt_flaky") throw new ConnectError("runs hidden", Code.PermissionDenied);
         listByAgentRequests.push(req);
         return { entries: agentRuns, nextPageToken: "" };
       },
@@ -179,6 +194,7 @@ beforeAll(async () => {
     });
     router.service(FileQueryController, {
       list: (req) => {
+        if (req.runId === "run_nolist") throw new ConnectError("files hidden", Code.PermissionDenied);
         fileListRequests.push(req);
         return { entries: runFiles, nextPageToken: "" };
       },
@@ -190,6 +206,7 @@ beforeAll(async () => {
     });
     router.service(FileCommandController, {
       upload: (req) => {
+        if (req.filename === "april.csv" && uploads.length > 0) throw new ConnectError("quota", Code.ResourceExhausted);
         uploads.push(req);
         return create(FileSchema, { metadata: { id: `fil_up_${uploads.length}`, org: req.org } });
       },
@@ -199,7 +216,10 @@ beforeAll(async () => {
       },
     });
     router.service(ScoreQueryController, {
-      listByRun: () => ({ entries: scores, nextPageToken: "" }),
+      listByRun: (req) => {
+        if (req.runId === "run_noscores") throw new ConnectError("scores hidden", Code.PermissionDenied);
+        return { entries: scores, nextPageToken: "" };
+      },
     });
     router.service(RunCommandController, {
       create: (req) => {
@@ -339,6 +359,57 @@ describe("get_run_outputs", () => {
   });
 });
 
+describe("the reads' refusals and text rules", () => {
+  it("names what it was reading when the backend refuses", async () => {
+    const runs = await call(withRoots, "list_runs", { agent: "flaky-agent" });
+    expect(runs.isError).toBe(true);
+    expect(runs.content[0]?.text).toContain("runs of agent");
+
+    const files = await call(withRoots, "get_run_outputs", { run_id: "run_nolist" });
+    expect(files.isError).toBe(true);
+    expect(files.content[0]?.text).toContain("outputs of run");
+
+    runFiles = [output("fil_gone", "gone.txt", "text/plain", 3)];
+    const content = await call(withRoots, "get_run_outputs", { run_id: "run_new" });
+    expect(content.isError).toBe(true);
+    expect(content.content[0]?.text).toContain('output "gone.txt"');
+
+    const graded = await call(withRoots, "get_run_scores", { run_id: "run_noscores" });
+    expect(graded.isError).toBe(true);
+    expect(graded.content[0]?.text).toContain("scores of run");
+  });
+
+  it.each(["get_run_outputs", "get_run_scores"])("%s refuses an empty run id without calling the backend", async (tool) => {
+    const result = await call(withRoots, tool, { run_id: "" });
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toBe("run_id is required");
+  });
+
+  it("reads text by its extension when no type is recorded, drops a cut character, and names bytes that are not UTF-8", async () => {
+    runFiles = [
+      output("fil_notes", "notes.md", "", 5),
+      output("fil_blob", "blob.bin", "", 9),
+      output("fil_latin1", "cafe.txt", "text/plain", 4),
+      output("fil_cut", "euro.txt", "text/plain", 9),
+      output("fil_tail", "tail.txt", "text/plain", 9),
+    ];
+    const read = body(await call(withRoots, "get_run_outputs", { run_id: "run_new" }));
+    const byPath = new Map((read.outputs as Array<Record<string, unknown>>).map((o) => [o.path, o]));
+    expect(byPath.get("notes.md")?.content).toBe("notes");
+    expect(byPath.get("blob.bin")?.content).toBeUndefined();
+    expect(String(byPath.get("cafe.txt")?.note)).toContain("Not valid UTF-8");
+    expect(byPath.get("euro.txt")?.content).toBe("a");
+    expect(String(byPath.get("tail.txt")?.note)).toContain("Not valid UTF-8");
+  });
+
+  it("knows text media types", () => {
+    expect(isTextType("application/json; charset=utf-8", "x")).toBe(true);
+    expect(isTextType("application/vnd.api+json", "x")).toBe(true);
+    expect(isTextType("image/svg+xml", "x")).toBe(true);
+    expect(isTextType("application/pdf", "report.md")).toBe(false);
+  });
+});
+
 describe("get_run_scores", () => {
   it("reads each score with its source, state, verdict and criteria, and says no judge graded it", async () => {
     scores = [
@@ -364,6 +435,48 @@ describe("get_run_scores", () => {
       }),
     ]);
     expect(read.judge).toBe("No AI judge graded this run.");
+  });
+
+  it("names every state and criterion result, and keeps a judge's model and comment", async () => {
+    const at = { seconds: 1_763_510_400n, nanos: 0 };
+    scores = [
+      create(ScoreSchema, {
+        spec: {
+          metric: "quality",
+          source: ScoreSource.judge,
+          judgeModel: "claude-opus-5-5",
+          comment: "missed one invoice",
+          criteria: [
+            { name: "complete", result: CriterionResult.failed, reason: "INV-2318 not named" },
+            { name: "tone", result: CriterionResult.not_applicable },
+            { name: "other", result: CriterionResult.unspecified },
+          ],
+        },
+        status: { state: ScoreState.not_graded, notGradedReason: "over the monthly limit", audit: { specAudit: { createdAt: at } } },
+      }),
+      create(ScoreSchema, { spec: { metric: "feedback", source: ScoreSource.human }, status: { state: ScoreState.pending } }),
+      create(ScoreSchema, { spec: { metric: "x" }, status: { state: ScoreState.unspecified } }),
+    ];
+    const read = body(await call(withRoots, "get_run_scores", { run_id: "run_new" }));
+    expect(read.scores).toEqual([
+      {
+        metric: "quality",
+        source: "judge (an AI judge)",
+        state: "not graded",
+        not_graded_reason: "over the monthly limit",
+        judge_model: "claude-opus-5-5",
+        comment: "missed one invoice",
+        criteria: [
+          { name: "complete", result: "failed", reason: "INV-2318 not named" },
+          { name: "tone", result: "not applicable" },
+          { name: "other", result: "unspecified" },
+        ],
+        created_at: "2025-11-19T00:00:00.000Z",
+      },
+      expect.objectContaining({ source: "person", state: "pending" }),
+      expect.objectContaining({ source: "unspecified", state: "unspecified" }),
+    ]);
+    expect(read.judge).toBeUndefined();
   });
 
   it("says plainly that a run nobody graded was not graded", async () => {
@@ -439,6 +552,37 @@ describe("run_agent files", () => {
     expect(result.isError).toBe(true);
     expect(uploads).toEqual([]);
     expect(createdRun).toBeUndefined();
+  });
+
+  it("deletes the files already uploaded when a later upload fails, and starts nothing", async () => {
+    const result = await call(withRoots, "run_agent", {
+      agent: "invoice-checker",
+      message: "check",
+      files: ["samples/march.csv", "data/april.csv"],
+    });
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('failed to upload "');
+    expect(deletes).toEqual(["fil_up_1"]);
+    expect(createdRun).toBeUndefined();
+  });
+
+  it("resolveLocalFiles refuses an empty entry, more than 20 files and what is not a regular file", async () => {
+    const access = { localFiles: true, listRoots: () => Promise.resolve([project, join(project, "gone")]) };
+    await expect(resolveLocalFiles([" "], access)).rejects.toThrow("an entry is empty");
+    await expect(resolveLocalFiles(Array.from({ length: 21 }, () => "samples/march.csv"), access)).rejects.toThrow(
+      "at most 20 files; 21 were named",
+    );
+    execFileSync("mkfifo", [join(project, "samples", "pipe")]);
+    await expect(resolveLocalFiles(["samples/pipe"], access)).rejects.toThrow("is not a regular file");
+    expect(await resolveLocalFiles([], access)).toEqual([]);
+  });
+
+  it("reads only file:// roots, and shares no disk by default", async () => {
+    expect(rootPath("https://example.com/project")).toBeUndefined();
+    expect(rootPath("file://elsewhere/project")).toBeUndefined();
+    expect(rootPath(pathToFileURL(project).href)).toBe(project);
+    expect(NO_LOCAL_FILES.localFiles).toBe(false);
+    expect(await NO_LOCAL_FILES.listRoots()).toBeUndefined();
   });
 
   it("the HTTP handler drops the shared-disk flag whatever it is given", () => {

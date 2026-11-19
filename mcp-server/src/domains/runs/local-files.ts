@@ -174,7 +174,5 @@ export async function uploadLocalFiles(
 /** Delete Files this call uploaded, best effort: a failure here hides no other. */
 export async function deleteUploaded(transport: Transport, ids: readonly string[]): Promise<void> {
   const client = new RoutedFileClient(transport);
-  await Promise.all(
-    ids.filter((id) => id !== "").map((id) => client.delete(id).catch(() => undefined)),
-  );
+  await Promise.allSettled(ids.filter((id) => id !== "").map((id) => client.delete(id)));
 }
