@@ -78,9 +78,34 @@ rules:
   - update
   - watch
 - apiGroups:
+  - barmancloud.cnpg.io
+  resources:
+  - objectstores
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - batch
   resources:
   - jobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
+  - issuers
   verbs:
   - create
   - delete
@@ -123,8 +148,10 @@ rules:
 - apiGroups:
   - postgresql.cnpg.io
   resources:
+  - backups
   - clusters
   - databases
+  - scheduledbackups
   verbs:
   - create
   - delete

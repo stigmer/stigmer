@@ -63,6 +63,18 @@ const (
 	ReasonModelKeyMissing ComponentReason = "ModelKeyMissing"
 	// ReasonRunnerKeyPending: under sign-in the shared runner waits for its key.
 	ReasonRunnerKeyPending ComponentReason = "RunnerKeyPending"
+	// ReasonPrerequisiteMissing: a cluster-level piece the declaration needs
+	// is not installed, and the operator never installs it (cert-manager).
+	ReasonPrerequisiteMissing ComponentReason = "PrerequisiteMissing"
+	// ReasonWaitingForBackupPlugin: a new database waits for the backup
+	// plugin so it is born archiving.
+	ReasonWaitingForBackupPlugin ComponentReason = "WaitingForBackupPlugin"
+	// ReasonBackingUpBeforeUpgrade: an upgrade waits for a backup of the
+	// database it is about to migrate.
+	ReasonBackingUpBeforeUpgrade ComponentReason = "BackingUpBeforeUpgrade"
+	// ReasonUpgradeBackupFailed: the backup an upgrade waits for failed, so
+	// the upgrade is held.
+	ReasonUpgradeBackupFailed ComponentReason = "UpgradeBackupFailed"
 	// ReasonReconcileFailed: the operator hit an error it retries.
 	ReasonReconcileFailed ComponentReason = "ReconcileFailed"
 )
@@ -94,6 +106,10 @@ func AllComponentReasons() []ComponentReason {
 		ReasonAnotherStigmer,
 		ReasonModelKeyMissing,
 		ReasonRunnerKeyPending,
+		ReasonPrerequisiteMissing,
+		ReasonWaitingForBackupPlugin,
+		ReasonBackingUpBeforeUpgrade,
+		ReasonUpgradeBackupFailed,
 		ReasonReconcileFailed,
 	}
 }
@@ -124,6 +140,10 @@ var ReasonMessages = map[ComponentReason]string{
 	ReasonAnotherStigmer:         "this cluster already runs a Stigmer",
 	ReasonModelKeyMissing:        "agents cannot run until the runner has a model key",
 	ReasonRunnerKeyPending:       "under sign-in the shared runner needs its own key",
+	ReasonPrerequisiteMissing:    "a cluster-level piece it needs is not installed: install it",
+	ReasonWaitingForBackupPlugin: "waiting for the backup plugin, so the database is born archiving",
+	ReasonBackingUpBeforeUpgrade: "taking a backup before the server migrates its database forward",
+	ReasonUpgradeBackupFailed:    "the backup before the upgrade failed, so the upgrade is held",
 	ReasonReconcileFailed:        "the operator hit an error and will retry",
 }
 
@@ -135,7 +155,7 @@ func (r ComponentReason) IsFailure() bool {
 		ReasonOutOfMemory, ReasonCrashLooping, ReasonUnschedulable, ReasonVolumeMountFailed,
 		ReasonRolloutStalled, ReasonCreateRefused, ReasonJobFailed, ReasonSecretMissing,
 		ReasonConfigurationRefused, ReasonSizingRefused, ReasonAnotherStigmer,
-		ReasonModelKeyMissing, ReasonReconcileFailed:
+		ReasonModelKeyMissing, ReasonReconcileFailed, ReasonPrerequisiteMissing, ReasonUpgradeBackupFailed:
 		return true
 	}
 	return false

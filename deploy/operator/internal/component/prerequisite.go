@@ -1,4 +1,5 @@
-// Cluster-level operators a component needs (CloudNativePG today): detected,
+// Cluster-level operators a component needs (CloudNativePG, its backup
+// plugin): detected,
 // installed when missing, and never touched when someone else installed them.
 //
 // A prerequisite is recognised by its definition. Absent, the operator
@@ -41,6 +42,11 @@ type Prerequisite struct {
 	ModeField string
 	// Manifests is the release the operator carries.
 	Manifests func() ([]*unstructured.Unstructured, error)
+	// ReapplyUntilReady applies the release again on every pass while its
+	// controller is not ready: a release that mints its certificates through
+	// cert-manager can have an object refused while its Deployment stands,
+	// and the Deployment then waits on a Secret nobody will mint.
+	ReapplyUntilReady bool
 }
 
 var crdKind = schema.GroupVersionKind{Group: "apiextensions.k8s.io", Version: "v1", Kind: "CustomResourceDefinition"}
@@ -76,7 +82,7 @@ func EnsurePrerequisite(ctx context.Context, env *Env, p Prerequisite) (bool, Re
 	if err != nil && !apierrors.IsNotFound(err) {
 		return false, Result{}, fmt.Errorf("reading %s's controller: %w", p.Name, err)
 	}
-	if !present || apierrors.IsNotFound(err) {
+	if !present || apierrors.IsNotFound(err) || (p.ReapplyUntilReady && controller.Status.AvailableReplicas < 1) {
 		objs, merr := p.Manifests()
 		if merr != nil {
 			return false, Result{}, merr

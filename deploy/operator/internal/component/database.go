@@ -1,7 +1,11 @@
 // The database component: the bundled Postgres through CloudNativePG, or the
 // adopter's own.
 //
-// Bundled: CloudNativePG is installed if missing, then one Cluster on
+// Bundled: CloudNativePG is installed if missing; with a bucket declared,
+// its backup plugin too (backup.go), before the Cluster, so the database is
+// born archiving to the bucket and takes its first full backup at once; and
+// a database declared to recover from an archive is created from it. Then
+// one Cluster on
 // Compose's Postgres release with the server's database owned by its own
 // role, a managed temporal role whose password the operator mints, and
 // Temporal's two databases owned by it. Ready means every declared instance
@@ -17,8 +21,11 @@ package component
 import (
 	"context"
 	"fmt"
+	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	stigmerv1 "github.com/stigmer/stigmer/deploy/operator/api/v1"
@@ -32,8 +39,9 @@ type Database struct{}
 // Name implements Component.
 func (Database) Name() string { return render.ComponentDatabase }
 
-// Dependencies implements Component.
-func (Database) Dependencies() []string { return nil }
+// Dependencies implements Component: the bucket's credentials are checked
+// before the backups that read them.
+func (Database) Dependencies() []string { return []string{render.ComponentObjectStore} }
 
 // CloudNativePG is the bundled database's prerequisite.
 func CloudNativePG(st *stigmerv1.Stigmer) Prerequisite {
@@ -70,7 +78,44 @@ func (Database) Reconcile(ctx context.Context, env *Env) (Result, error) {
 	if err := EnsureBasicAuthSecret(ctx, env, render.PostgresTemporalSecret(st), render.TemporalUser, render.ComponentDatabase); err != nil {
 		return Result{}, err
 	}
-	cluster := render.PostgresClusterObject(st)
+	name := render.PostgresCluster(st)
+	ref := Ref("Cluster", st.Namespace, name)
+	existing, err := readCluster(ctx, env, name)
+	if err != nil {
+		return Result{}, err
+	}
+	backup := render.ClusterBackup{}
+	if render.BackupsOn(st) {
+		served, res, err := ensureBackupPlugin(ctx, env)
+		if err != nil {
+			return Result{}, err
+		}
+		if !served {
+			if existing == nil && res.Phase != stigmerv1.PhaseRefused {
+				return Pending(stigmerv1.ReasonWaitingForBackupPlugin, res.Object,
+					res.Message+"; the database is created once the plugin serves, so it archives from its first minute"), nil
+			}
+			recordBackupStatus(ctx, env, existing)
+			return res, nil
+		}
+		if err := Apply(ctx, env, render.BackupSettingsSecretObject(st), render.BackupObjectStoreObject(st)); err != nil {
+			return Result{}, err
+		}
+		server := ""
+		if existing != nil {
+			server = render.LiveArchiveServerName(existing)
+		}
+		if server == "" {
+			server = render.ArchiveServerName(st, time.Now())
+		}
+		backup = render.ClusterBackup{Archive: true, ServerName: server, Recover: existing == nil}
+	}
+	cluster := render.PostgresClusterObject(st, backup)
+	attaching := false
+	if existing != nil {
+		keepLiveBootstrap(cluster, existing)
+		attaching = backup.Archive && render.LiveArchiveServerName(existing) == ""
+	}
 	if err := Apply(ctx, env, cluster); err != nil {
 		return Result{}, err
 	}
@@ -81,13 +126,14 @@ func (Database) Reconcile(ctx context.Context, env *Env) (Result, error) {
 		}
 	}
 
-	name := render.PostgresCluster(st)
-	ref := Ref("Cluster", st.Namespace, name)
-	live := &unstructured.Unstructured{}
-	live.SetGroupVersionKind(cluster.GroupVersionKind())
-	if err := env.Reader.Get(ctx, client.ObjectKey{Namespace: st.Namespace, Name: name}, live); err != nil {
-		return Result{}, fmt.Errorf("reading Cluster %s: %w", name, err)
+	live, err := readCluster(ctx, env, name)
+	if err != nil {
+		return Result{}, err
 	}
+	if live == nil {
+		return Deploying(stigmerv1.ReasonDeploying, ref, fmt.Sprintf("creating Postgres %s", name)), nil
+	}
+	recordBackupStatus(ctx, env, live)
 	instances := render.BundledDatabase(st).Instances
 	if instances == 0 {
 		instances = 1
@@ -97,6 +143,12 @@ func (Database) Reconcile(ctx context.Context, env *Env) (Result, error) {
 		phase, _, _ := unstructured.NestedString(live.Object, "status", "phase")
 		why, _, _ := unstructured.NestedString(live.Object, "status", "phaseReason")
 		msg := fmt.Sprintf("Postgres %s: %d of %d instances ready", name, readyInstances, instances)
+		if attaching {
+			msg += "; attaching the backup plugin, so CloudNativePG restarts each instance"
+		}
+		if from := render.LiveRestoredFrom(live); from != "" && readyInstances == 0 {
+			msg += fmt.Sprintf("; restoring from archive %s", from)
+		}
 		if phase != "" {
 			msg += "; CloudNativePG says: " + phase
 			if why != "" {
@@ -133,8 +185,42 @@ func (Database) Reconcile(ctx context.Context, env *Env) (Result, error) {
 		// something the adopter must fix.
 		return Deploying(stigmerv1.ReasonDeploying, res.Object, "waiting for CloudNativePG to create the server's database password"), nil
 	}
-	return Ready(fmt.Sprintf("Postgres 16.15, %d instance(s), records in database %s", instances, render.PostgresAppDatabase)), nil
+	sentence := fmt.Sprintf("Postgres 16.15, %d instance(s), records in database %s", instances, render.PostgresAppDatabase)
+	if render.BackupsOn(st) {
+		if clusterReportsPlugin(live) {
+			if err := Apply(ctx, env, render.ScheduledBackupObject(st)); err != nil {
+				return Result{}, err
+			}
+		}
+		sentence += fmt.Sprintf("; archiving to the bucket as %s", render.LiveArchiveServerName(live))
+		from := render.BundledDatabase(st).RecoverFrom
+		switch restored := render.LiveRestoredFrom(live); {
+		case restored != "":
+			sentence += fmt.Sprintf("; restored from archive %s", restored)
+		case from != nil:
+			sentence += fmt.Sprintf("; spec.database.postgresql.bundled.recoverFrom is honoured only when the database is created, and this one already existed, so it was not restored from %s", from.ServerName)
+		}
+	} else {
+		sentence += "; not backed up: declare spec.objectStore to archive it to a bucket"
+	}
+	return Ready(sentence), nil
 }
+
+// readCluster reads the live Cluster, nil when it does not exist yet.
+func readCluster(ctx context.Context, env *Env, name string) (*unstructured.Unstructured, error) {
+	live := &unstructured.Unstructured{}
+	live.SetGroupVersionKind(clusterKind)
+	err := env.Reader.Get(ctx, client.ObjectKey{Namespace: env.Stigmer.Namespace, Name: name}, live)
+	if apierrors.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("reading Cluster %s: %w", name, err)
+	}
+	return live, nil
+}
+
+var clusterKind = schema.GroupVersionKind{Group: "postgresql.cnpg.io", Version: "v1", Kind: "Cluster"}
 
 func conditionTrue(u *unstructured.Unstructured, condition string) bool {
 	conds, _, _ := unstructured.NestedSlice(u.Object, "status", "conditions")

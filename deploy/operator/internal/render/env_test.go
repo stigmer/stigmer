@@ -128,7 +128,7 @@ func TestEveryObjectIsLabelledAsTheOperators(t *testing.T) {
 	for _, c := range ServerClaims(st) {
 		check("claim "+c.Name, c.Labels)
 	}
-	check("Cluster", PostgresClusterObject(st).GetLabels())
+	check("Cluster", PostgresClusterObject(st, ClusterBackup{}).GetLabels())
 }
 
 func TestABucketReplacesTheArtifactsVolume(t *testing.T) {

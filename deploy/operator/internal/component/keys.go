@@ -164,5 +164,9 @@ func (Keys) Reconcile(ctx context.Context, env *Env) (Result, error) {
 }
 
 func keepSentence(st *stigmerv1.Stigmer) string {
-	return fmt.Sprintf("keys in Secret %s; keep a copy outside the cluster: what Stigmer stores is readable only with it", render.KeysSecret(st))
+	keep := fmt.Sprintf("keys in Secret %s; keep a copy outside the cluster: what Stigmer stores is readable only with it", render.KeysSecret(st))
+	if render.BackupsOn(st) {
+		keep += "; a complete backup is the database's archive and the bucket's files, plus this Secret"
+	}
+	return keep
 }

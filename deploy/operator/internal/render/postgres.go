@@ -53,8 +53,9 @@ func ResourcesValue(r corev1.ResourceRequirements) map[string]any {
 	return out
 }
 
-// PostgresClusterObject is the bundled Postgres.
-func PostgresClusterObject(st *stigmerv1.Stigmer) *unstructured.Unstructured {
+// PostgresClusterObject is the bundled Postgres, carrying what its backups
+// need (backup.go).
+func PostgresClusterObject(st *stigmerv1.Stigmer, backup ClusterBackup) *unstructured.Unstructured {
 	bundled := BundledDatabase(st)
 	instances := bundled.Instances
 	if instances == 0 {
@@ -91,6 +92,7 @@ func PostgresClusterObject(st *stigmerv1.Stigmer) *unstructured.Unstructured {
 			}},
 		},
 	}
+	withBackup(st, spec, backup)
 	if len(st.Spec.Image.PullSecrets) > 0 {
 		var secrets []any
 		for _, s := range st.Spec.Image.PullSecrets {

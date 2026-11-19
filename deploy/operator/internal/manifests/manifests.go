@@ -1,5 +1,6 @@
 // Third-party pieces embedded in the operator binary at the versions it is
-// tested against: CloudNativePG's release manifest and Temporal's Helm chart.
+// tested against: CloudNativePG's release manifest, its Barman Cloud backup
+// plugin's release manifest, and Temporal's Helm chart.
 //
 // Embedding them means an install needs no network path to GitHub or a
 // chart repository, and an operator version always installs the same
@@ -22,6 +23,9 @@ import (
 //go:embed cloudnative-pg/release.yaml
 var cloudNativePGRelease []byte
 
+//go:embed barman-cloud/manifest.yaml
+var barmanCloudPluginRelease []byte
+
 //go:embed temporal
 var temporalChart embed.FS
 
@@ -33,6 +37,18 @@ func CloudNativePG() ([]*unstructured.Unstructured, error) {
 	objs, err := helmrender.Parse(cloudNativePGRelease)
 	if err != nil {
 		return nil, fmt.Errorf("parsing the embedded CloudNativePG release: %w", err)
+	}
+	return objs, nil
+}
+
+// BarmanCloudPlugin parses the Barman Cloud plugin's release into objects:
+// its definition, its controller in CloudNativePG's namespace (the only
+// namespace CloudNativePG discovers plugins in), and the cert-manager
+// Issuer and Certificates its TLS rides on.
+func BarmanCloudPlugin() ([]*unstructured.Unstructured, error) {
+	objs, err := helmrender.Parse(barmanCloudPluginRelease)
+	if err != nil {
+		return nil, fmt.Errorf("parsing the embedded Barman Cloud plugin release: %w", err)
 	}
 	return objs, nil
 }

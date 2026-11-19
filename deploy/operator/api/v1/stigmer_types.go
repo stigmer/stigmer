@@ -26,6 +26,7 @@ import (
 // +kubebuilder:validation:XValidation:rule="!(has(self.database) && has(self.database.postgresql) && has(self.database.postgresql.external)) || (has(self.temporal) && has(self.temporal.external))",message="spec.database.postgresql.external names your own Postgres, and the operator does not create Temporal's databases on a Postgres it does not run: bring your own Temporal too (spec.temporal.external), or let the operator run the database"
 // +kubebuilder:validation:XValidation:rule="!has(self.enterprise) || (has(self.identity) && has(self.identity.oidc))",message="Stigmer Enterprise signs every caller in, and a licensed server refuses to boot without sign-in: set spec.identity.oidc"
 // +kubebuilder:validation:XValidation:rule="!has(self.enterprise) || !has(self.temporal) || !has(self.temporal.external) || has(self.temporal.external.tls) || has(self.temporal.external.apiKey)",message="under a Stigmer Enterprise license, spec.temporal.external must authenticate: whoever reaches a plaintext Temporal can start work on the runner's queue, and a licensed install serves many organizations. Set spec.temporal.external.tls or spec.temporal.external.apiKey"
+// +kubebuilder:validation:XValidation:rule="has(self.objectStore) || !has(self.database) || !has(self.database.postgresql) || !has(self.database.postgresql.bundled) || (!has(self.database.postgresql.bundled.backup) && !has(self.database.postgresql.bundled.recoverFrom))",message="the database's backups and restores live in the bucket: declare spec.objectStore to use spec.database.postgresql.bundled.backup or recoverFrom"
 // +kubebuilder:validation:XValidation:rule="!has(self.objectStore) || !has(self.server) || !has(self.server.artifacts)",message="spec.server.artifacts sizes the artifacts volume, and an install with spec.objectStore keeps its artifacts in the bucket instead: remove spec.server.artifacts"
 type StigmerSpec struct {
 	// Image says where Stigmer's images are pulled from. The tag is always
@@ -275,6 +276,49 @@ type BundledPostgreSQLSpec struct {
 	// Resources overrides each instance's requests and limits.
 	// +optional
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+
+	// Backup tunes the database's backups. With spec.objectStore declared the
+	// database archives every change to the bucket from its first minute and
+	// takes a full backup on this schedule; these are the defaults otherwise.
+	// +optional
+	Backup *PostgreSQLBackupSpec `json:"backup,omitempty"`
+
+	// RecoverFrom creates the database from an archive in the bucket instead
+	// of empty: the install it names, to the moment it names. Honoured only
+	// when the database is created; on a running install it changes nothing,
+	// and the status says so.
+	// +optional
+	RecoverFrom *RecoverFromSpec `json:"recoverFrom,omitempty"`
+}
+
+// PostgreSQLBackupSpec tunes the bundled database's backups.
+type PostgreSQLBackupSpec struct {
+	// Schedule is when a full backup is taken, as a six-field cron with
+	// seconds first, in UTC. Defaults to daily at 02:00.
+	// +kubebuilder:default="0 0 2 * * *"
+	// +optional
+	Schedule string `json:"schedule,omitempty"`
+
+	// Retention is how long backups and the archive are kept, as a number and
+	// d, w or m. Defaults to 30d.
+	// +kubebuilder:validation:Pattern=`^[1-9][0-9]*[dwm]$`
+	// +kubebuilder:default="30d"
+	// +optional
+	Retention string `json:"retention,omitempty"`
+}
+
+// RecoverFromSpec names an archive to restore the database from.
+type RecoverFromSpec struct {
+	// ServerName is the archive's name in the bucket: the source install's
+	// status.backup.serverName.
+	// +kubebuilder:validation:MinLength=1
+	ServerName string `json:"serverName"`
+
+	// TargetTime is the moment to restore to, in RFC 3339. Absent restores
+	// to the newest moment the archive holds.
+	// +kubebuilder:validation:Format=date-time
+	// +optional
+	TargetTime string `json:"targetTime,omitempty"`
 }
 
 // ExternalPostgreSQLSpec names a Postgres you run.
@@ -471,6 +515,13 @@ type PrerequisitesSpec struct {
 	// +kubebuilder:default=auto
 	// +optional
 	PostgresOperator PrerequisiteMode `json:"postgresOperator,omitempty"`
+
+	// PostgresBackupPlugin is CloudNativePG's Barman Cloud plugin, which backs
+	// the bundled Postgres up to the bucket. It needs cert-manager, which the
+	// operator never installs.
+	// +kubebuilder:default=auto
+	// +optional
+	PostgresBackupPlugin PrerequisiteMode `json:"postgresBackupPlugin,omitempty"`
 }
 
 // Phase is where the install, or one component of it, stands.
@@ -494,6 +545,11 @@ const (
 
 // ConditionReady is true when every component is Ready.
 const ConditionReady = "Ready"
+
+// ConditionBackupHealthy is true while the database archives to the bucket
+// and its last full backup succeeded. It is never an input to Ready: an
+// install whose backups fail still serves, and this condition says so.
+const ConditionBackupHealthy = "BackupHealthy"
 
 // ObjectReference names the Kubernetes object a component's status is about.
 type ObjectReference struct {
@@ -527,6 +583,30 @@ type ComponentStatus struct {
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 }
 
+// BackupStatus is where the database's backups stand, in the backup
+// plugin's own words.
+type BackupStatus struct {
+	// ServerName is this install's archive in the bucket: the name a restore
+	// gives as spec.database.postgresql.bundled.recoverFrom.serverName.
+	// +optional
+	ServerName string `json:"serverName,omitempty"`
+	// FirstRecoverabilityPoint is the earliest moment the archive can
+	// restore to.
+	// +optional
+	FirstRecoverabilityPoint *metav1.Time `json:"firstRecoverabilityPoint,omitempty"`
+	// LastSuccessfulBackup is when the last full backup finished.
+	// +optional
+	LastSuccessfulBackup *metav1.Time `json:"lastSuccessfulBackup,omitempty"`
+	// LastFailure says why the last backup or archive attempt failed, when
+	// the latest one did.
+	// +optional
+	LastFailure string `json:"lastFailure,omitempty"`
+	// RestoredFrom names the archive this database was created from, when it
+	// was restored.
+	// +optional
+	RestoredFrom string `json:"restoredFrom,omitempty"`
+}
+
 // StigmerStatus is the operator's account of the install.
 type StigmerStatus struct {
 	// ObservedGeneration is the spec generation this status describes.
@@ -541,6 +621,9 @@ type StigmerStatus struct {
 	// Edition is "open source" or "enterprise".
 	// +optional
 	Edition string `json:"edition,omitempty"`
+	// Backup is where the database's backups stand, when it has any.
+	// +optional
+	Backup *BackupStatus `json:"backup,omitempty"`
 	// Components lists each component's standing, in the order they are
 	// brought up.
 	// +listType=map
@@ -562,6 +645,7 @@ type StigmerStatus struct {
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.version`
 // +kubebuilder:printcolumn:name="Edition",type=string,JSONPath=`.status.edition`
+// +kubebuilder:printcolumn:name="Backup",type=date,JSONPath=`.status.backup.lastSuccessfulBackup`
 // +kubebuilder:printcolumn:name="Message",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].message`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 type Stigmer struct {

@@ -26,6 +26,9 @@ spec:
     - jsonPath: .status.edition
       name: Edition
       type: string
+    - jsonPath: .status.backup.lastSuccessfulBackup
+      name: Backup
+      type: date
     - jsonPath: .status.conditions[?(@.type=="Ready")].message
       name: Message
       type: string
@@ -70,6 +73,26 @@ spec:
                         description: Bundled is the Postgres the operator runs, through
                           CloudNativePG.
                         properties:
+                          backup:
+                            description: |-
+                              Backup tunes the database's backups. With spec.objectStore declared the
+                              database archives every change to the bucket from its first minute and
+                              takes a full backup on this schedule; these are the defaults otherwise.
+                            properties:
+                              retention:
+                                default: 30d
+                                description: |-
+                                  Retention is how long backups and the archive are kept, as a number and
+                                  d, w or m. Defaults to 30d.
+                                pattern: ^[1-9][0-9]*[dwm]$
+                                type: string
+                              schedule:
+                                default: 0 0 2 * * *
+                                description: |-
+                                  Schedule is when a full backup is taken, as a six-field cron with
+                                  seconds first, in UTC. Defaults to daily at 02:00.
+                                type: string
+                            type: object
                           instances:
                             default: 1
                             description: |-
@@ -79,6 +102,28 @@ spec:
                             maximum: 5
                             minimum: 1
                             type: integer
+                          recoverFrom:
+                            description: |-
+                              RecoverFrom creates the database from an archive in the bucket instead
+                              of empty: the install it names, to the moment it names. Honoured only
+                              when the database is created; on a running install it changes nothing,
+                              and the status says so.
+                            properties:
+                              serverName:
+                                description: |-
+                                  ServerName is the archive's name in the bucket: the source install's
+                                  status.backup.serverName.
+                                minLength: 1
+                                type: string
+                              targetTime:
+                                description: |-
+                                  TargetTime is the moment to restore to, in RFC 3339. Absent restores
+                                  to the newest moment the archive holds.
+                                format: date-time
+                                type: string
+                            required:
+                            - serverName
+                            type: object
                           resources:
                             description: Resources overrides each instance's requests
                               and limits.
@@ -434,6 +479,16 @@ spec:
                   Prerequisites says which cluster-level operators this operator may
                   install when they are missing.
                 properties:
+                  postgresBackupPlugin:
+                    default: auto
+                    description: |-
+                      PostgresBackupPlugin is CloudNativePG's Barman Cloud plugin, which backs
+                      the bundled Postgres up to the bucket. It needs cert-manager, which the
+                      operator never installs.
+                    enum:
+                    - auto
+                    - skip
+                    type: string
                   postgresOperator:
                     default: auto
                     description: PostgresOperator is CloudNativePG, which runs the
@@ -1147,6 +1202,12 @@ spec:
                 Set spec.temporal.external.tls or spec.temporal.external.apiKey'
               rule: '!has(self.enterprise) || !has(self.temporal) || !has(self.temporal.external)
                 || has(self.temporal.external.tls) || has(self.temporal.external.apiKey)'
+            - message: 'the database''s backups and restores live in the bucket: declare
+                spec.objectStore to use spec.database.postgresql.bundled.backup or
+                recoverFrom'
+              rule: has(self.objectStore) || !has(self.database) || !has(self.database.postgresql)
+                || !has(self.database.postgresql.bundled) || (!has(self.database.postgresql.bundled.backup)
+                && !has(self.database.postgresql.bundled.recoverFrom))
             - message: 'spec.server.artifacts sizes the artifacts volume, and an install
                 with spec.objectStore keeps its artifacts in the bucket instead: remove
                 spec.server.artifacts'
@@ -1154,6 +1215,37 @@ spec:
           status:
             description: StigmerStatus is the operator's account of the install.
             properties:
+              backup:
+                description: Backup is where the database's backups stand, when it
+                  has any.
+                properties:
+                  firstRecoverabilityPoint:
+                    description: |-
+                      FirstRecoverabilityPoint is the earliest moment the archive can
+                      restore to.
+                    format: date-time
+                    type: string
+                  lastFailure:
+                    description: |-
+                      LastFailure says why the last backup or archive attempt failed, when
+                      the latest one did.
+                    type: string
+                  lastSuccessfulBackup:
+                    description: LastSuccessfulBackup is when the last full backup
+                      finished.
+                    format: date-time
+                    type: string
+                  restoredFrom:
+                    description: |-
+                      RestoredFrom names the archive this database was created from, when it
+                      was restored.
+                    type: string
+                  serverName:
+                    description: |-
+                      ServerName is this install's archive in the bucket: the name a restore
+                      gives as spec.database.postgresql.bundled.recoverFrom.serverName.
+                    type: string
+                type: object
               components:
                 description: |-
                   Components lists each component's standing, in the order they are

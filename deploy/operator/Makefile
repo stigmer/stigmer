@@ -20,8 +20,10 @@ IMG ?= ghcr.io/stigmer/stigmer-operator:compose-dev
 STIGMER_VERSION ?= compose-dev
 
 # Third-party pieces embedded in the binary, at the versions it is tested
-# against. Bump with `make vendor-cloudnative-pg vendor-temporal-chart`.
+# against. Bump with `make vendor-cloudnative-pg vendor-barman-cloud-plugin
+# vendor-temporal-chart`.
 CLOUDNATIVE_PG_VERSION := 1.30.2
+BARMAN_CLOUD_PLUGIN_VERSION := 0.16.0
 TEMPORAL_CHART_VERSION := 1.8.0
 
 OPERATOR_CHART := ../helm/stigmer-operator
@@ -82,6 +84,11 @@ docker-build: ## Build the operator image for this machine's architecture
 vendor-cloudnative-pg: ## Fetch CloudNativePG's release manifest at the pinned version
 	curl -fsSL -o internal/manifests/cloudnative-pg/release.yaml \
 		https://github.com/cloudnative-pg/cloudnative-pg/releases/download/v$(CLOUDNATIVE_PG_VERSION)/cnpg-$(CLOUDNATIVE_PG_VERSION).yaml
+
+.PHONY: vendor-barman-cloud-plugin
+vendor-barman-cloud-plugin: ## Fetch the Barman Cloud backup plugin's release manifest at the pinned version
+	curl -fsSL -o internal/manifests/barman-cloud/manifest.yaml \
+		https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v$(BARMAN_CLOUD_PLUGIN_VERSION)/manifest.yaml
 
 .PHONY: vendor-temporal-chart
 vendor-temporal-chart: ## Fetch Temporal's Helm chart at the pinned version
