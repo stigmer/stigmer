@@ -106,7 +106,18 @@ export type McpHttpHandler = (req: IncomingMessage, res: ServerResponse) => Prom
  * host answers its own probes; every other request may be handed here.
  */
 export function createMcpHttpHandler(options: McpHttpHandlerOptions): McpHttpHandler {
-  return createRoutedHandler(routedServerFactory(options.target), options);
+  return createRoutedHandler(routedServerFactory(withoutLocalFiles(options.target)), options);
+}
+
+/**
+ * The target with `localFiles` dropped: a request over HTTP may come from
+ * anywhere, so no HTTP roster reads a path on this machine's disk, whatever
+ * the embedder passed (domains/runs/local-files.ts).
+ */
+export function withoutLocalFiles(target: BackendTarget): BackendTarget {
+  if (target.localFiles === undefined) return target;
+  const { localFiles: _dropped, ...rest } = target;
+  return rest;
 }
 
 /**

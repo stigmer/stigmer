@@ -23,6 +23,12 @@ one is for the coding agent on a person's laptop.
   coding-agent` prints it without its frontmatter
   (`client-apps/cli/src/commands/coding-agent.ts`), so a person who pastes the
   prompt gets the guide released with the CLI they installed.
+- `plugin/skills/stigmer-run/SKILL.md`: running the person's agents and
+  reading their runs: an agent on a file in their project, the last run,
+  its output files, why it failed, approvals, follow-ups, scores and evals.
+  Command line first, each job's Stigmer tool beside it. Every `stigmer`
+  command any plugin skill names is held to the CLI's command tree by the
+  CLI's own suite (`client-apps/cli/src/commands/__tests__/coding-agent.test.ts`).
 - `plugin/.mcp.json`: the bundled `stigmer mcp-server`, for making, running and
   reading agents once setup is done.
 - `plugin/hooks/`: the guard. `hooks.json` is Claude Code's: a `PreToolUse`

@@ -1,7 +1,8 @@
 // Unit tests for the run helpers behind `get run`, `list runs` and the `runs`
 // group: the run-ID check (reference.ts, over the run kind's prefix), the
 // single-run read, the cursor-paged list read
-// with the organization it scopes to, the list table (friendly phase label, a
+// with the organization it scopes to, one agent's runs read by the agent's
+// id once its reference resolves, the list table (friendly phase label, a
 // dash for an unset field), and the human phase labels. Reads run against a
 // client double that records what it was asked.
 
@@ -9,7 +10,8 @@ import { create, isMessage, type Message } from "@bufbuild/protobuf";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunListSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
-import type { ListRunsRequest } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import type { ListRunsByAgentRequest, ListRunsRequest } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Stigmer } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 import { isRunId } from "../reference.js";
@@ -18,7 +20,8 @@ import {
   getRun,
   isRunAlias,
   isTerminalAgentPhase,
-  listAgentRuns,
+  listOrgRuns,
+  listRunsOfAgent,
   renderRunList,
 } from "../runs.js";
 
@@ -123,10 +126,10 @@ describe("getRun", () => {
   });
 });
 
-describe("listAgentRuns", () => {
+describe("listOrgRuns", () => {
   it("reads run pages until the limit, scoped to the organization", async () => {
     const { client, agentRequests } = listingClient();
-    const result = await listAgentRuns(client, 2, "acme");
+    const result = await listOrgRuns(client, 2, "acme");
     expect(result.schema).toBe(RunListSchema);
     expect(runIds(result.message)).toEqual(["run_1", "run_2"]);
     expect(agentRequests.map((r) => [r.pageSize, r.pageToken, r.org])).toEqual([
@@ -137,9 +140,40 @@ describe("listAgentRuns", () => {
 
   it("stops at the limit and names no organization by default", async () => {
     const { client, agentRequests } = listingClient();
-    const result = await listAgentRuns(client, 1);
+    const result = await listOrgRuns(client, 1);
     expect(runIds(result.message)).toEqual(["run_1"]);
     expect(agentRequests.map((r) => r.org)).toEqual([""]);
+  });
+});
+
+describe("listRunsOfAgent", () => {
+  it("resolves the agent in the organization and pages its runs by its id, with the labels", async () => {
+    const lookups: Array<{ org: string; slug: string }> = [];
+    const requests: ListRunsByAgentRequest[] = [];
+    const client = {
+      agent: {
+        getByReference: async (ref: { org: string; slug: string }) => {
+          lookups.push(ref);
+          return create(AgentSchema, { metadata: { id: "agt_inv", org: "org_acme", slug: ref.slug } });
+        },
+      },
+      run: {
+        listByAgent: async (req: ListRunsByAgentRequest) => {
+          requests.push(req);
+          return req.pageToken === ""
+            ? { entries: [create(RunSchema, { metadata: { id: "run_new" } })], nextPageToken: "p2" }
+            : { entries: [create(RunSchema, { metadata: { id: "run_old" } })], nextPageToken: "" };
+        },
+      },
+    } as unknown as Stigmer;
+
+    const result = await listRunsOfAgent(client, 5, "invoice-checker", "acme", { team: "ops" });
+    expect(lookups).toEqual([{ org: "acme", slug: "invoice-checker" }]);
+    expect(requests.map((r) => [r.agentId, r.pageSize, r.pageToken, r.labels])).toEqual([
+      ["agt_inv", 5, "", { team: "ops" }],
+      ["agt_inv", 4, "p2", { team: "ops" }],
+    ]);
+    expect(runIds(result.message)).toEqual(["run_new", "run_old"]);
   });
 });
 

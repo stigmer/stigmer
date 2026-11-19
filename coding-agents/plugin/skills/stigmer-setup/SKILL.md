@@ -212,7 +212,7 @@ needs Stigmer Cloud or a server that signs people in.
 ## After setup
 
 The same tools keep working: make agents with manifests and `stigmer apply`,
-run them with `stigmer run`, and read runs with `stigmer runs list` and
+run them with `stigmer run`, and read runs with `stigmer list runs --agent <agent>` and
 `stigmer get session <id>`.
 
 Once setup is done, and only then, offer once to keep Stigmer in their coding

@@ -1,14 +1,18 @@
 /**
- * Run domain steps — the list-side chains of list and listBySession.
+ * Run domain steps — the list-side chains of list, listBySession and
+ * listByAgent.
  *
- * Both lists read through the list index (list-index.ts beside this file;
+ * Every list reads through the list index (list-index.ts beside this file;
  * the store's contract in store/interface.ts), newest first by spec-audit
  * created_at, one page at a time (pipeline/steps/list-page.ts). `list`:
  * the store narrows by the request's org, the phase filter and then the
  * read scope run on each batch — the scope last, so a composed driver is
  * asked about the rows the request keeps. `listBySession`: the store
  * narrows by the session's key, then the read scope; a reader that needs a
- * conversation whole walks its tokens.
+ * conversation whole walks its tokens. `listByAgent`: the store narrows by
+ * the agent's key (status.agent_id), an eval run's tries left out as the
+ * session lane leaves out their conversations, then the read scope; the
+ * agent's last run is the first entry, whichever conversation took it.
  */
 import { create, fromBinary } from "@bufbuild/protobuf";
 
@@ -42,6 +46,7 @@ export const EXECUTION_LIST_KEY = "execution_list";
 type ListDesc = typeof RunQueryController.method.list.input;
 type ListBySessionDesc =
   typeof RunQueryController.method.listBySession.input;
+type ListByAgentDesc = typeof RunQueryController.method.listByAgent.input;
 
 /** ValidateListRequest — no required fields (a no-op). */
 export function newValidateListRequestStep(): PipelineStep<ListDesc> {
@@ -158,11 +163,70 @@ export function newQueryExecutionsBySessionStep(
 }
 
 /**
- * BuildExecutionListResponse — both list files: wraps the page into
+ * ValidateListByAgentRequest — agent_id required.
+ */
+export function newValidateListByAgentRequestStep(): PipelineStep<ListByAgentDesc> {
+  return {
+    name: "ValidateListByAgentRequest",
+    execute(ctx) {
+      if (ctx.input.agentId === "") {
+        throw invalidArgumentError("agent_id is required");
+      }
+    },
+  };
+}
+
+/**
+ * QueryExecutionsByAgent — one page of the agent's executions through the
+ * index's agent key, newest first, an eval run's tries left out, then the
+ * read scope (bounded by the agent id, org never consulted).
+ */
+export function newQueryExecutionsByAgentStep(
+  store: Store,
+  logger: Logger,
+  listReadScope: ListReadScope | undefined,
+): PipelineStep<ListByAgentDesc> {
+  return {
+    name: "QueryExecutionsByAgent",
+    async execute(ctx) {
+      const agentId = ctx.input.agentId;
+      const page = await readListPage({
+        store,
+        declaration: agentExecutionListIndex,
+        query: {
+          anyKey: [{ name: "agent", value: agentId }],
+          withoutKeys: ["eval_run"],
+        },
+        request: ctx.input,
+        fingerprint: listPageFingerprint({
+          lane: "agentExecution.listByAgent",
+          agentId,
+          labels: sortedLabels(ctx.input.labels),
+        }),
+        decode: (data) => decodeExecution(data, logger),
+        keep: (execution) =>
+          matchesAllLabels(execution.metadata?.labels ?? {}, ctx.input.labels),
+        scope: (executions) =>
+          restrictListByReadScope(
+            listReadScope,
+            ctx.callerIdentity,
+            ApiResourceKind.run,
+            executions,
+            "",
+          ),
+        failure: "failed to list agent executions",
+      });
+      ctx.set(EXECUTION_LIST_KEY, page);
+    },
+  };
+}
+
+/**
+ * BuildExecutionListResponse — every list lane: wraps the page into
  * RunList.
  */
 export function newBuildExecutionListResponseStep<
-  Desc extends ListDesc | ListBySessionDesc,
+  Desc extends ListDesc | ListBySessionDesc | ListByAgentDesc,
 >(): PipelineStep<Desc> {
   return {
     name: "BuildExecutionListResponse",

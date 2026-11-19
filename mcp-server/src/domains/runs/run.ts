@@ -35,6 +35,16 @@
 // one whole (its skills, agents, hooks and MCP servers). Like the vaults, they
 // are chosen when the conversation starts, so a follow-up refuses them.
 //
+// A message may carry files from the person's project (`files`): each is
+// uploaded as a File and named in the run's file_ids, the CLI's `--attach`
+// rule for files, under the bound local-files.ts holds (the tool server on
+// the person's machine, a path inside a folder their coding agent has open).
+// Every path is checked before anything is uploaded or started. Into an
+// existing conversation the Files are the conversation's at once; for a new
+// one they are uploaded as the caller's own, the server copies each into the
+// conversation the run creates, and the originals are deleted, as the CLI
+// does. A run that is never created deletes what was uploaded for it.
+//
 // The tool is deliberately asynchronous: it returns the created run (with
 // its run_* ID) immediately and the run continues in the background.
 // Observation happens through get_run polling — MCP tools are
@@ -66,6 +76,12 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 import { withTransport } from "../client.js";
 import { toProtoJson } from "../marshal.js";
 import { rpcError } from "../rpcerr.js";
+import {
+  deleteUploaded,
+  type LocalFileAccess,
+  resolveLocalFiles,
+  uploadLocalFiles,
+} from "./local-files.js";
 
 /** apiVersion stamped on created runs; mirrors the CLI's run stack. */
 const API_VERSION = "agentic.stigmer.ai/v1";
@@ -81,12 +97,22 @@ export interface RunAgentArgs {
   readonly includeMyVault?: boolean;
   /** Installed plugins a new conversation uses beside its agent's: a slug in `org`, or `org/slug`. */
   readonly plugins?: readonly string[];
+  /** Paths of files in the person's project the message carries (local-files.ts). */
+  readonly files?: readonly string[];
 }
+
+/** No disk shared: what every caller that never hands a run a file passes. */
+export const NO_LOCAL_FILES: LocalFileAccess = Object.freeze({
+  localFiles: false,
+  listRoots: () => Promise.resolve(undefined),
+});
 
 /**
  * Start a run: a follow-up in an existing session sends the
  * session id alone, once the session is shown to run the named agent; a new
- * conversation resolves org/slug and names the agent by reference. Returns
+ * conversation resolves org/slug and names the agent by reference. Files the
+ * message carries are checked against `fileAccess` before anything else,
+ * then uploaded once the target is known. Returns
  * the created run as protojson (small at creation time — status is
  * empty until the runner picks it up).
  */
@@ -94,8 +120,10 @@ export async function runAgent(
   serverAddress: string,
   token: string,
   args: RunAgentArgs,
+  fileAccess: LocalFileAccess = NO_LOCAL_FILES,
 ): Promise<string> {
   const desc = `agent "${args.agent}" in org "${args.org}"`;
+  const localFiles = await resolveLocalFiles(args.files ?? [], fileAccess);
   return withTransport(serverAddress, token, async (transport, callOptions) => {
     const sessionId = args.sessionId ?? "";
     let target: RunSpec["target"];
@@ -115,8 +143,12 @@ export async function runAgent(
     const plugins = (args.plugins ?? []).map((ref) =>
       namedReference(ApiResourceKind.plugin, "plugins", "plugin", ref, args.org),
     );
+    // The organization the message's Files are uploaded into: the
+    // conversation's for a follow-up, the agent's for a new conversation.
+    let fileOrg: string;
     if (sessionId !== "") {
-      await assertSessionRunsAgent(transport, callOptions, sessionId, args);
+      const session = await assertSessionRunsAgent(transport, callOptions, sessionId, args);
+      fileOrg = session.metadata?.org ?? "";
       target = { case: "sessionId", value: sessionId };
     } else {
       const query = createClient(AgentQueryController, transport);
@@ -125,6 +157,7 @@ export async function runAgent(
           { org: args.org, kind: ApiResourceKind.agent, slug: args.agent },
           callOptions,
         );
+        fileOrg = agent.metadata?.org ?? "";
         target = {
           case: "sessionSpec",
           value: createMessage(SessionSpecSchema, {
@@ -143,6 +176,8 @@ export async function runAgent(
       }
     }
 
+    const fileIds = await uploadLocalFiles(transport, localFiles, { org: fileOrg, sessionId });
+
     const run = createMessage(RunSchema, {
       apiVersion: API_VERSION,
       kind: "Run",
@@ -158,16 +193,23 @@ export async function runAgent(
         // Empty message means "just run" — the CLI applies the same default.
         message: args.message === "" ? "execute" : args.message,
         target,
+        fileIds,
       }),
     });
 
     const command = createClient(RunCommandController, transport);
+    let created;
     try {
-      const created = await command.create(run, callOptions);
-      return toProtoJson(RunSchema, created);
+      created = await command.create(run, callOptions);
     } catch (err) {
+      await deleteUploaded(transport, fileIds);
       throw rpcError(err, `run of ${desc}`);
     }
+    // A new conversation holds its own copies now; the caller's originals go.
+    if (sessionId === "") {
+      await deleteUploaded(transport, fileIds);
+    }
+    return toProtoJson(RunSchema, created);
   });
 }
 
@@ -211,7 +253,7 @@ async function assertSessionRunsAgent(
   callOptions: CallOptions,
   sessionId: string,
   args: RunAgentArgs,
-): Promise<void> {
+): Promise<Session> {
   let session: Session;
   try {
     session = await createClient(SessionQueryController, transport).get(
@@ -236,7 +278,7 @@ async function assertSessionRunsAgent(
     throw mismatch();
   }
   if (ref === undefined || args.org === "" || args.org === ref.org) {
-    return;
+    return session;
   }
   let agentOrg: string;
   try {
@@ -254,6 +296,7 @@ async function assertSessionRunsAgent(
   if (agentOrg !== ref.org) {
     throw mismatch();
   }
+  return session;
 }
 
 /**

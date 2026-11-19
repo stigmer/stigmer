@@ -128,6 +128,24 @@ class RunClient:
                 return
             request.page_token = page.next_page_token
 
+    def list_by_agent(self, input: io_pb2.ListRunsByAgentRequest) -> io_pb2.RunList:
+        try:
+            return self._query.listByAgent(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def list_by_agent_all(self, input: io_pb2.ListRunsByAgentRequest) -> Iterator[api_pb2.Run]:
+        """Every entry of ``list_by_agent``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListRunsByAgentRequest()
+        request.CopyFrom(input)
+        while True:
+            page = self.list_by_agent(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
+
     def get_artifact_download_url(self, input: io_pb2.GetArtifactDownloadUrlRequest) -> io_pb2.GetArtifactDownloadUrlResponse:
         try:
             return self._query.getArtifactDownloadUrl(input)

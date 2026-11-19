@@ -294,6 +294,25 @@ Each Session maintains its own thread of messages. The Agent sees the complete
 history when processing a new message, so context accumulates over the
 conversation.
 
+### Finding a run, and sending a follow-up
+
+Every run belongs to its Session, and one Agent's runs span all its Sessions.
+`stigmer list runs --agent <agent>` lists them newest first, whichever Session
+each ran in, so the first is the Agent's last run; the SDK's `run.listByAgent`
+reads the same list. `stigmer list sessions` lists the Sessions themselves.
+
+A follow-up goes into the Session its run belongs to, never a new run of the
+Agent, which would start a new Session:
+
+- **From a terminal**, `stigmer resume <session-id>` opens the Session, shows
+  the conversation so far and takes the next message. A run's Session is its
+  `spec.session_id` (`stigmer get run <run-id>`); a bare `stigmer resume` opens
+  a picker of your recent Sessions. `stigmer resume` is interactive: it takes no
+  message argument.
+- **From a script or your backend**, send the message with the SDK's
+  `run.sendMessage` naming the Session's id, or with the `run_agent` tool of
+  Stigmer's [MCP server](/docs/cli/commands/mcp-server) and its `session_id`.
+
 ## What's next
 
 A Session is where the work happens, but your customer's work arrives as a file:

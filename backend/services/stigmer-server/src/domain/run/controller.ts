@@ -11,7 +11,7 @@
  * on the agent the turn runs); create and delete run the shared
  * tuple-lifecycle steps against the composed lifecycle. The direct
  * handlers — the two artifact reads — evaluate their annotation through
- * authorizeDirect. list, listBySession, getRunSummary
+ * authorizeDirect. list, listBySession, listByAgent, getRunSummary
  * and the session, agent and organization usage reports narrow through the
  * composed list read scope; the usage reports count metered runs through
  * the composed meter (usage.ts). What a turn says is read from its
@@ -27,6 +27,7 @@ import type { RunConfig } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocati
 import type {
   RunId,
   RunList,
+  ListRunsByAgentRequest,
   ListRunsBySessionRequest,
   ListRunsRequest,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
@@ -179,7 +180,9 @@ import {
   EXECUTION_LIST_KEY,
   newBuildExecutionListResponseStep,
   newQueryExecutionPageStep,
+  newQueryExecutionsByAgentStep,
   newQueryExecutionsBySessionStep,
+  newValidateListByAgentRequestStep,
   newValidateListBySessionRequestStep,
   newValidateListRequestStep,
 } from "./steps.js";
@@ -354,6 +357,7 @@ export function registerAgentExecutionServices(
     get: (id, ctx) => get(deps, id, ctx),
     list: (req, ctx) => list(deps, req, ctx),
     listBySession: (req, ctx) => listBySession(deps, req, ctx),
+    listByAgent: (req, ctx) => listByAgent(deps, req, ctx),
     getArtifactDownloadUrl: (req, ctx) =>
       getArtifactDownloadUrl(artifactDeps, req, callerIdentityOf(ctx)),
     getArtifactContent: (req, ctx) =>
@@ -814,6 +818,39 @@ async function listBySession(
     .addStep(newValidateListBySessionRequestStep())
     .addStep(
       newQueryExecutionsBySessionStep(
+        deps.store,
+        deps.logger,
+        deps.listReadScope,
+      ),
+    )
+    .addStep(newBuildExecutionListResponseStep())
+    .build()
+    .execute(reqCtx);
+  return requireListResult(reqCtx.get(EXECUTION_LIST_KEY));
+}
+
+/** ListByAgent — one page of the agent's executions, newest first. */
+async function listByAgent(
+  deps: AgentExecutionControllerDeps,
+  req: ListRunsByAgentRequest,
+  ctx: HandlerContext,
+): Promise<RunList> {
+  const reqCtx = new RequestContext(
+    RunQueryController.method.listByAgent.input,
+    req,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<typeof RunQueryController.method.listByAgent.input>(
+    "agent-execution-list-by-agent",
+    deps.logger,
+  )
+    .addStep(
+      newAuthorizeStep(RunQueryController.method.listByAgent, deps.authorizer),
+    )
+    .addStep(newValidateListByAgentRequestStep())
+    .addStep(
+      newQueryExecutionsByAgentStep(
         deps.store,
         deps.logger,
         deps.listReadScope,

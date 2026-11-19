@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetAgentUsageReportInput, GetAgentUsageReportOutput, GetArtifactContentRequest, GetArtifactContentResponse, GetArtifactDownloadUrlRequest, GetArtifactDownloadUrlResponse, GetOrgUsageReportInput, GetOrgUsageReportOutput, GetRunSummaryRequest, GetRunUsageReportInput, GetRunUsageReportOutput, GetSessionUsageReportInput, GetSessionUsageReportOutput, ListRunsBySessionRequest, ListRunsRequest, RunId, RunList, RunSummary } from "./io_pbjs";
+import { GetAgentUsageReportInput, GetAgentUsageReportOutput, GetArtifactContentRequest, GetArtifactContentResponse, GetArtifactDownloadUrlRequest, GetArtifactDownloadUrlResponse, GetOrgUsageReportInput, GetOrgUsageReportOutput, GetRunSummaryRequest, GetRunUsageReportInput, GetRunUsageReportOutput, GetSessionUsageReportInput, GetSessionUsageReportOutput, ListRunsByAgentRequest, ListRunsBySessionRequest, ListRunsRequest, RunId, RunList, RunSummary } from "./io_pbjs";
 import { Run } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -45,6 +45,21 @@ export const RunQueryController = {
     listBySession: {
       name: "listBySession",
       I: ListRunsBySessionRequest,
+      O: RunList,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List the runs of one agent, newest first, across its conversations.
+     *
+     * Results are filtered to the runs the caller can view. An eval run's
+     * tries are left out, as SessionQueryController.listByAgent leaves out
+     * their conversations.
+     *
+     * @generated from rpc ai.stigmer.agentic.run.v1.RunQueryController.listByAgent
+     */
+    listByAgent: {
+      name: "listByAgent",
+      I: ListRunsByAgentRequest,
       O: RunList,
       kind: MethodKind.Unary,
     },

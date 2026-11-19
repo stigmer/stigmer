@@ -83,6 +83,7 @@ import ai.stigmer.agentic.run.v1.GetRunUsageReportOutput;
 import ai.stigmer.agentic.run.v1.GetSessionUsageReportInput;
 import ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput;
 import ai.stigmer.agentic.run.v1.InteractionMode;
+import ai.stigmer.agentic.run.v1.ListRunsByAgentRequest;
 import ai.stigmer.agentic.run.v1.ListRunsBySessionRequest;
 import ai.stigmer.agentic.run.v1.ListRunsRequest;
 import ai.stigmer.agentic.run.v1.PauseRunInput;
@@ -121,6 +122,7 @@ Run run = client.run.get("run_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`getRunUsageReport`](#getrunusagereport) | Get a usage report for a single run. |
 | [`getSessionUsageReport`](#getsessionusagereport) | Get a usage report for a session. |
 | [`list`](#list) | List all runs with pagination and optional filtering. |
+| [`listByAgent`](#listbyagent) | List the runs of one agent, newest first, across its conversations. |
 | [`listBySession`](#listbysession) | List all runs in a specific session. |
 | [`create`](#create) | Create and trigger a new run: a turn in an existing session, or the first turn of a new one created from session_spec. |
 | [`update`](#update) | Update a run: the fields update_mask names change, every other field keeps its stored value. |
@@ -552,6 +554,57 @@ RunList result = client.run.list(ListRunsRequest.newBuilder()
 **Returns**: [`RunList`](#runlist)
 
 **Every page**: `listAll` (Go `ListAll`, Python `list_all`, Java `listAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
+
+### listByAgent
+
+List the runs of one agent, newest first, across its conversations.
+
+Results are filtered to the runs the caller can view. An eval run's tries are left out, as SessionQueryController.listByAgent leaves out their conversations.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const result = await stigmer.run.listByAgent({
+  agentId: "...",
+  pageSize: 0,
+  labels: {},
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.Run.ListByAgent(ctx, &runv1.ListRunsByAgentRequest{
+  AgentId:  "...",
+  PageSize: 0,
+  Labels:   map[string]string{},
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+result = client.runs.list_by_agent(io_pb2.ListRunsByAgentRequest(
+    agent_id="...",
+    page_size=0,
+    labels={},
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+RunList result = client.run.listByAgent(ListRunsByAgentRequest.newBuilder()
+    .setAgentId("...")
+    .setPageSize(0)
+    .putAllLabels(Map.of())
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListRunsByAgentRequest`](#listrunsbyagentrequest)
+
+**Returns**: [`RunList`](#runlist)
+
+**Every page**: `listByAgentAll` (Go `ListByAgentAll`, Python `list_by_agent_all`, Java `listByAgentAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
 
 ### listBySession
 
@@ -1494,6 +1547,19 @@ ListRunsBySessionRequest lists the runs of a session, newest first, one page at 
 <TypeTable
   type={{
     sessionId: { type: "string", description: "Session ID to filter by.", required: true },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
+    labels: { type: "Record<string, string>", description: "Only resources carrying every label given, each matched exactly (AND)." },
+  }}
+/>
+
+### ListRunsByAgentRequest
+
+ListRunsByAgentRequest lists the runs of one agent, newest first, one page at a time.
+
+<TypeTable
+  type={{
+    agentId: { type: "string", description: "ID of the agent whose runs to list: the runs whose status.agent_id names it, whichever version and conversation each ran in.", required: true },
     pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
     pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
     labels: { type: "Record<string, string>", description: "Only resources carrying every label given, each matched exactly (AND)." },
