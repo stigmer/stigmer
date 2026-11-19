@@ -150,7 +150,7 @@ describe("LicensesConsole calendar", () => {
     expect(within(rows[1]!).getByText("Renew soon")).toBeTruthy();
     expect(within(rows[2]!).getByText("Active")).toBeTruthy();
     expect(within(rows[3]!).getByText("Renewed")).toBeTruthy();
-    expect(within(rows[2]!).getByText("2027-09-30")).toBeTruthy();
+    expect(within(rows[2]!).getByText("Sep 30, 2027")).toBeTruthy();
     expect(within(rows[3]!).getAllByRole("cell")[2]!.textContent).toBe("5 users · 1 organization");
   });
 });

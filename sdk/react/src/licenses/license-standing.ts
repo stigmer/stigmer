@@ -21,7 +21,8 @@
 import { LicenseState } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 import type { License } from "@stigmer/apis/ai/stigmer/billing/license/v1/api_pb";
 import type { StatusPhase } from "../resource-workbench/types.js";
-import { coveredThroughDay, toDate } from "./license-format.js";
+import {
+  formatDay, coveredThroughDay, toDate } from "./license-format.js";
 
 /** The longest "expiring" window before a license's expiry, in days. */
 export const EXPIRING_WINDOW_MAX_DAYS = 30;
@@ -168,7 +169,7 @@ function standingOf(
         renewedBy: undefined,
         phase: "ready",
         label: "Active",
-        reason: `Covered through ${through}`,
+        reason: `Covered through ${formatDay(through)}`,
       };
     case LicenseState.expiring:
       return {
@@ -176,7 +177,7 @@ function standingOf(
         renewedBy: undefined,
         phase: "degraded",
         label: "Renew soon",
-        reason: `Covered through ${through}; renew before it lapses`,
+        reason: `Covered through ${formatDay(through)}; renew before it lapses`,
       };
     case LicenseState.grace: {
       const graceUntil = toDate(license.spec?.graceUntil);
@@ -186,8 +187,8 @@ function standingOf(
         phase: "failed",
         label: "In grace",
         reason: graceUntil
-          ? `Coverage ended after ${through}; grace runs through ${coveredThroughDay(graceUntil)}`
-          : `Coverage ended after ${through}`,
+          ? `Coverage ended after ${formatDay(through)}; grace runs through ${formatDay(coveredThroughDay(graceUntil))}`
+          : `Coverage ended after ${formatDay(through)}`,
       };
     }
     case LicenseState.expired:
@@ -196,7 +197,7 @@ function standingOf(
         renewedBy: undefined,
         phase: "disabled",
         label: "Expired",
-        reason: `Coverage ended after ${through}`,
+        reason: `Coverage ended after ${formatDay(through)}`,
       };
     default: {
       const unreachable: never = timeState;

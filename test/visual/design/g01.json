@@ -485,10 +485,10 @@
         "word alan@acme.example": "The drawing's example data; the scene shows its own fixture's",
         "word Viewer": "The drawing's example data; the scene shows its own fixture's"
       },
-      "ruled": {},
-      "pending": {
-        "word Service accounts hold roles too; they're listed under Service accounts.": "A call for the last look: the build shows this line only to someone who may open Service accounts, so a member is not sent to a page they can't open"
-      }
+      "ruled": {
+        "word Service accounts hold roles too; they're listed under Service accounts.": "His last look, 2026-11-19, as recommended: kept as built (the line shows to whoever may open Service accounts)"
+      },
+      "pending": {}
     },
     {
       "caption": "Members: With a federation issuer that grants a sign-in role (today's bordered note, as a Notice)",
@@ -739,10 +739,10 @@
       "sample": {
         "word Remove Grace Hopper from acme?": "The drawing's example data; the scene shows its own fixture's"
       },
-      "ruled": {},
-      "pending": {
-        "word Grace Hopper loses the Admin role and everything shared through acme. The conversations Grace started stay Grace's. You can invite Grace again.": "A call for the last look: the drawing says the removed person keeps their conversations; the build says what they created stays with the organization, which is what the server does"
-      }
+      "ruled": {
+        "word Grace Hopper loses the Admin role and everything shared through acme. The conversations Grace started stay Grace's. You can invite Grace again.": "His last look, 2026-11-19, as recommended: kept as built (it says what the server does with what a removed person made)"
+      },
+      "pending": {}
     },
     {
       "caption": "Members: Remove, working: the act busy, Cancel held",

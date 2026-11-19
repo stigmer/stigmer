@@ -73,7 +73,9 @@
       "sample": {
         "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
       },
-      "ruled": {},
+      "ruled": {
+        "word As a member you can use the organization's agents and start your own conversations.": "His ruling at the last look's plan, 2026-11-19: the line says what the permissions give, \"As a member you can start conversations with the agents shared with you.\""
+      },
       "pending": {}
     },
     {
@@ -145,7 +147,9 @@
       "sample": {
         "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
       },
-      "ruled": {},
+      "ruled": {
+        "word As a member you can use the organization's agents and start your own conversations.": "His ruling at the last look's plan, 2026-11-19: the line says what the permissions give, \"As a member you can start conversations with the agents shared with you.\""
+      },
       "pending": {}
     },
     {
@@ -229,7 +233,9 @@
       "sample": {
         "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
       },
-      "ruled": {},
+      "ruled": {
+        "word As a member you can use the organization's agents and start your own conversations.": "His ruling at the last look's plan, 2026-11-19: the line says what the permissions give, \"As a member you can start conversations with the agents shared with you.\""
+      },
       "pending": {}
     },
     {
@@ -301,7 +307,9 @@
       "sample": {
         "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
       },
-      "ruled": {},
+      "ruled": {
+        "word As a member you can use the organization's agents and start your own conversations.": "His ruling at the last look's plan, 2026-11-19: the line says what the permissions give, \"As a member you can start conversations with the agents shared with you.\""
+      },
       "pending": {}
     },
     {
@@ -418,7 +426,9 @@
         "word the server did not answer in time": "The drawing's server line; the scene's fake server answers in its own words",
         "word Stuck? Talk to Suresh": "The drawing shows Stigmer Cloud's own help line; the scene's server announces its own words"
       },
-      "ruled": {},
+      "ruled": {
+        "word As a member you can use the organization's agents and start your own conversations.": "His ruling at the last look's plan, 2026-11-19: the line says what the permissions give, \"As a member you can start conversations with the agents shared with you.\""
+      },
       "pending": {}
     },
     {

@@ -269,11 +269,11 @@
         "word northwind-acme": "The drawing's example data; the scene's organization has two children, Northwind Traders and Contoso",
         "word nw-0193": "The drawing's example data; the scene's organization has two children, Northwind Traders and Contoso"
       },
-      "ruled": {},
-      "pending": {
-        "type Slug": "A call for the last look: the slug is the rename field every settings page shares (a label at 14/20 500 with Rename), where the drawing shows it as a read-only pair",
-        "word Organizations under this one. acme's admins are admins in each of them; each person's conversations, My vault and memories stay private to them.": "A call for the last look: the build says the parent's admins are admins in each child \"as their own admins are\" and names no organization; the drawing names it and leaves that out"
-      }
+      "ruled": {
+        "type Slug": "His last look, 2026-11-19, as recommended: kept as built (the slug is the rename field every settings page shares)",
+        "word Organizations under this one. acme's admins are admins in each of them; each person's conversations, My vault and memories stay private to them.": "His last look, 2026-11-19, as recommended: the drawing's words naming the organization, keeping \"as their own admins are\", which is true"
+      },
+      "pending": {}
     },
     {
       "caption": "Organization profile: As a member: the same, read only",
@@ -795,11 +795,11 @@
         "word acme-labs · —": "The drawing's example data; the scene's organization has two children, Northwind Traders and Contoso",
         "word northwind-acme · nw-0193": "The drawing's example data; the scene's organization has two children, Northwind Traders and Contoso"
       },
-      "ruled": {},
-      "pending": {
-        "type Slug": "A call for the last look: the slug is the rename field every settings page shares (a label at 14/20 500 with Rename), where the drawing shows it as a read-only pair",
-        "word Organizations under this one. acme's admins are admins in each of them; each person's conversations, My vault and memories stay private to them.": "A call for the last look: the build says the parent's admins are admins in each child \"as their own admins are\" and names no organization; the drawing names it and leaves that out"
-      }
+      "ruled": {
+        "type Slug": "His last look, 2026-11-19, as recommended: kept as built (the slug is the rename field every settings page shares)",
+        "word Organizations under this one. acme's admins are admins in each of them; each person's conversations, My vault and memories stay private to them.": "His last look, 2026-11-19, as recommended: the drawing's words naming the organization, keeping \"as their own admins are\", which is true"
+      },
+      "pending": {}
     }
   ]
 }

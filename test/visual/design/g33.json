@@ -291,11 +291,11 @@
       "sample": {
         "word …a1b2 · Only in acme · made Jul 18, 2026 · expires Oct 16, 2026 · used 1h ago": "The drawing's example data; the scene shows its own fixture's"
       },
-      "ruled": {},
-      "pending": {
-        "word Manage people, settings, billing, and the organization's agents and tools; can't read private conversations, delete the organization or change its owners": "A call for the last look: the roles' lines are the authorization model's own words (\"cannot\"), shown wherever a role is described",
-        "word See what is shared with the organization; can't start conversations": "A call for the last look: the roles' lines are the authorization model's own words (\"cannot\"), shown wherever a role is described"
-      }
+      "ruled": {
+        "word Manage people, settings, billing, and the organization's agents and tools; can't read private conversations, delete the organization or change its owners": "His last look, 2026-11-19, as recommended: kept as built (the roles' lines are the permission model's own words)",
+        "word See what is shared with the organization; can't start conversations": "His last look, 2026-11-19, as recommended: kept as built (the roles' lines are the permission model's own words)"
+      },
+      "pending": {}
     },
     {
       "caption": "Service accounts: New service account, a name the server refuses",

@@ -13,6 +13,7 @@ import { Button } from "../button/Button.js";
 import { Table } from "../internal/surface/Table.js";
 import { FieldError } from "../internal/form/Field.js";
 import { Tag } from "../internal/surface/Tag.js";
+import { UNNAMED_ORGANIZATION, useOrgDisplayName } from "./useOrgDisplayName.js";
 
 /** Props for {@link ChildOrganizationsList}. */
 export interface ChildOrganizationsListProps {
@@ -72,6 +73,9 @@ export function ChildOrganizationsList({
   const allowed = singleOrg === false && !check.isLoading && check.allowed;
   const { children, hasMore, loadMore, isLoadingMore, loadMoreError, error, refetch } =
     useChildOrganizations(allowed ? org : null);
+  // The parent named as a sentence names it ("acme's admins"), as the drawing passed at the last look.
+  const orgName = useOrgDisplayName();
+  const whose = orgName === UNNAMED_ORGANIZATION ? "This organization's" : `${orgName}'s`;
 
   if (!allowed || (children.length === 0 && error === null)) {
     return null;
@@ -91,8 +95,8 @@ export function ChildOrganizationsList({
         {!hasMore && children.length > 0 && <Tag className="stg:ml-1 stg:align-middle">{children.length}</Tag>}
       </h3>
       <p className="stg:m-0 stg:mb-3 stg:text-xs stg:text-muted-foreground">
-        Organizations under this one. This organization&apos;s admins are admins in each of them, as their own
-        admins are; each person&apos;s conversations, My vault and memories stay private to them.
+        Organizations under this one. {whose} admins are admins in each of them, as their own admins are; each
+        person&apos;s conversations, My vault and memories stay private to them.
         {setActiveOrg && " Open one to work in it as its admin."}
       </p>
       {error !== null ? (

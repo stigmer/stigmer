@@ -10,8 +10,10 @@ import { StatusBadge } from "../status/StatusBadge.js";
 import { Notice } from "../internal/surface/Notice.js";
 import {
   coveredThroughDay,
+  formatDay,
   formatDayFromToday,
   formatInstantUtc,
+  utcDay,
   termLabel,
   toDate,
 } from "./license-format.js";
@@ -85,14 +87,14 @@ export function LicenseDetail({
         <Row label="Term">{spec ? termLabel(spec.term) : "Unknown"}</Row>
         <Row label="Covered through">
           {expiresAt && through ? (
-            <Instant date={expiresAt}>{`${through} (${formatDayFromToday(through, now)})`}</Instant>
+            <Instant date={expiresAt}>{`${formatDay(through)} (${formatDayFromToday(through, now)})`}</Instant>
           ) : (
             "Unknown"
           )}
         </Row>
         <Row label="Grace">
           {graceEnd ? (
-            <Instant date={graceEnd}>{`Through ${coveredThroughDay(graceEnd)}`}</Instant>
+            <Instant date={graceEnd}>{`Through ${formatDay(coveredThroughDay(graceEnd))}`}</Instant>
           ) : (
             "None"
           )}
@@ -108,7 +110,7 @@ export function LicenseDetail({
           </span>
         </Row>
         <Row label="Issued">
-          {issuedAt ? <Instant date={issuedAt}>{formatInstantUtc(issuedAt)}</Instant> : "Unknown"}
+          {issuedAt ? <Instant date={issuedAt}>{formatDay(utcDay(issuedAt))}</Instant> : "Unknown"}
           {/* The audit names the account, not only its role-like display name:
               with several operators, "who issued this contract" needs the address.
               An account with no name of its own is called by its email, so
@@ -161,7 +163,7 @@ export function LicenseStandingLine({
     <span className="stg:inline-flex stg:flex-wrap stg:items-center stg:gap-x-2 stg:gap-y-1">
       {standing && <StatusBadge phase={standing.phase} label={standing.label} tooltip={standing.reason} />}
       <span>
-        {`${spec ? termLabel(spec.term) : "Unknown term"} · covered through ${through ?? "an unknown day"}`}
+        {`${spec ? termLabel(spec.term) : "Unknown term"} · covered through ${through ? formatDay(through) : "an unknown day"}`}
         {through && ` (${formatDayFromToday(through, now)})`}
       </span>
     </span>

@@ -255,10 +255,10 @@
         "button Remove OPENAI_API_KEY": "The scene's own vault holds no secret; the shared vault's rows show Replace and Remove",
         "word Shared vaults 4": "The drawing's example data; the scene has two shared vaults"
       },
-      "ruled": {},
-      "pending": {
-        "word Your own logins and secrets. A chat that includes My vault uses them for the messages you send, never a teammate's. Saved values can be replaced but are never shown again.": "A call for the last look: the build adds that a chat with an agent of another organization never uses My vault, a rule that came after the drawing"
-      }
+      "ruled": {
+        "word Your own logins and secrets. A chat that includes My vault uses them for the messages you send, never a teammate's. Saved values can be replaced but are never shown again.": "His last look, 2026-11-19, as recommended: kept as built (the added clause states a rule that came after the drawing)"
+      },
+      "pending": {}
     },
     {
       "caption": "Vaults: A shared vault open: its secrets, logins, details",
@@ -1071,10 +1071,10 @@
         "button Replace": "The scene's own vault holds no secret; the shared vault's rows show Replace and Remove",
         "button Remove OPENAI_API_KEY": "The scene's own vault holds no secret; the shared vault's rows show Replace and Remove"
       },
-      "ruled": {},
-      "pending": {
-        "word Your own logins and secrets. A chat that includes My vault uses them for the messages you send, never a teammate's. Saved values can be replaced but are never shown again.": "A call for the last look: the build adds that a chat with an agent of another organization never uses My vault, a rule that came after the drawing"
-      }
+      "ruled": {
+        "word Your own logins and secrets. A chat that includes My vault uses them for the messages you send, never a teammate's. Saved values can be replaced but are never shown again.": "His last look, 2026-11-19, as recommended: kept as built (the added clause states a rule that came after the drawing)"
+      },
+      "pending": {}
     },
     {
       "caption": "Vaults: At 390 wide, a vault open",

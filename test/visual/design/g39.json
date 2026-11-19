@@ -202,11 +202,11 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "type Production": "A call for the last look: the vault picker is shared with a chat link's and a channel's tools, where its rows are 14/20; the drawing draws them here at 12/16",
-        "type Support desk": "A call for the last look: the vault picker is shared with a chat link's and a channel's tools, where its rows are 14/20; the drawing draws them here at 12/16"
-      }
+      "ruled": {
+        "type Production": "His last look, 2026-11-19, as recommended: kept as built (the vault picker reads the same here as on a chat link and a channel)",
+        "type Support desk": "His last look, 2026-11-19, as recommended: kept as built (the vault picker reads the same here as on a chat link and a channel)"
+      },
+      "pending": {}
     },
     {
       "caption": "Embedding: An origin the form refuses, said under the field",
@@ -680,11 +680,11 @@
         }
       ],
       "sample": {},
-      "ruled": {},
-      "pending": {
-        "type Production": "A call for the last look: the vault picker is shared with a chat link's and a channel's tools, where its rows are 14/20; the drawing draws them here at 12/16",
-        "type Support desk": "A call for the last look: the vault picker is shared with a chat link's and a channel's tools, where its rows are 14/20; the drawing draws them here at 12/16"
-      }
+      "ruled": {
+        "type Production": "His last look, 2026-11-19, as recommended: kept as built (the vault picker reads the same here as on a chat link and a channel)",
+        "type Support desk": "His last look, 2026-11-19, as recommended: kept as built (the vault picker reads the same here as on a chat link and a channel)"
+      },
+      "pending": {}
     }
   ]
 }
