@@ -12,6 +12,7 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Button } from "../button/Button.js";
 import { Table } from "../internal/surface/Table.js";
 import { FieldError } from "../internal/form/Field.js";
+import { Tag } from "../internal/surface/Tag.js";
 
 /** Props for {@link ChildOrganizationsList}. */
 export interface ChildOrganizationsListProps {
@@ -85,6 +86,9 @@ export function ChildOrganizationsList({
     <section aria-labelledby={headingId} className={cn("stg:mt-8", className)}>
       <h3 id={headingId} className="stg:m-0 stg:mb-1 stg:text-sm stg:font-semibold stg:text-foreground">
         Child organizations
+        {/* How many there are, part of the heading as it is drawn ("Child organizations 3"), once all are loaded. */}
+        {!hasMore && children.length > 0 && " "}
+        {!hasMore && children.length > 0 && <Tag className="stg:ml-1 stg:align-middle">{children.length}</Tag>}
       </h3>
       <p className="stg:m-0 stg:mb-3 stg:text-xs stg:text-muted-foreground">
         Organizations under this one. This organization&apos;s admins are admins in each of them, as their own

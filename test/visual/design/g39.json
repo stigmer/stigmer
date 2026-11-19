@@ -7,8 +7,12 @@
     {
       "caption": "Embedding: As an admin",
       "narrow": false,
-      "built": [],
-      "unbuilt": "No scene draws this state yet; the page's parts are built, this state has no scene.",
+      "built": [
+        {
+          "scene": "settings-org-embedding",
+          "width": "desktop"
+        }
+      ],
       "words": [
         {
           "text": "Embedding",
@@ -478,8 +482,12 @@
     {
       "caption": "Embedding: At 390 wide",
       "narrow": true,
-      "built": [],
-      "unbuilt": "No scene draws this state yet; the page's parts are built, this state has no scene.",
+      "built": [
+        {
+          "scene": "settings-org-embedding",
+          "width": "narrow"
+        }
+      ],
       "words": [
         {
           "text": "Embedding",

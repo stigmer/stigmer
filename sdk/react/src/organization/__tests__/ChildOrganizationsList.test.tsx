@@ -116,9 +116,13 @@ describe("ChildOrganizationsList", () => {
       ],
     });
     renderList(client);
+    // While more pages remain, the heading carries no count it cannot know.
+    expect(await screen.findByRole("heading", { name: "Child organizations" })).toBeTruthy();
     fireEvent.click(await screen.findByRole("button", { name: "Load more" }));
     expect(await screen.findByText("Beta Ltd")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
+    // Once all are loaded, the count is part of the heading, as it is drawn.
+    expect(screen.getByRole("heading", { name: "Child organizations 2" })).toBeTruthy();
   });
 
   it("is never asked for, and shows nothing, for a caller who may not manage children", async () => {
