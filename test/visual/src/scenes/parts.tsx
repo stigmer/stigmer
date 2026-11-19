@@ -1,7 +1,8 @@
 // The console's shared parts, each in every variant and state it has, on
 // one page: the button in each variant and size, a page header with its
-// act, the status pill in each phase, the empty state in each variant, the
-// error message as a failed read draws it, and the form parts (fields,
+// act, the status pill in each phase (and a cancelled run's), the empty
+// state in each variant, the error message as a failed read draws it (with
+// what did not change), and the form parts (fields,
 // choices, the file drop, a form's foot and the inline editor). Every page in the console
 // and the desktop app is built from these, so a change to one of them shows
 // here part by part before it shows on the pages that use it.
@@ -10,7 +11,8 @@
 // kit's tokens), so they never move when a part does.
 import type { ComponentProps, ReactNode } from "react";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { ActionMenu, Button, EmptyState, ErrorMessage, LinkButton, PageHeader, StatusBadge } from "@stigmer/react-sdk";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { ActionMenu, Button, EmptyState, ErrorMessage, LinkButton, PageHeader, RunPhaseBadge, StatusBadge } from "@stigmer/react-sdk";
 import type { Drawing } from "./drawing.ts";
 import { DialogParts, FieldParts, FooterParts, InlineEditorParts } from "./form-parts.tsx";
 
@@ -125,6 +127,8 @@ function Parts() {
           {PHASES.map((phase) => (
             <StatusBadge key={phase} phase={phase} />
           ))}
+          {/* A cancelled run's pill, as a run's page draws it: "Cancelled". */}
+          <RunPhaseBadge phase={RunPhase.RUN_CANCELLED} />
         </Row>
       </Group>
       <Group label="Empty state">
@@ -138,7 +142,12 @@ function Parts() {
         <EmptyState variant="permission" resourceLabel="service accounts" />
       </Group>
       <Group label="Error message">
-        <ErrorMessage error={UNAVAILABLE} title="Couldn't load the shared vaults." retry={() => {}} />
+        <ErrorMessage
+          error={UNAVAILABLE}
+          title="Couldn't load the shared vaults."
+          comfort="Your vaults and their secrets are safe; only this page's read failed."
+          retry={() => {}}
+        />
         <ErrorMessage error={UNAVAILABLE} />
       </Group>
       <FieldParts Group={Group} />

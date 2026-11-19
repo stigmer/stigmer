@@ -1,10 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { ArrowLeft, RefreshCw } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import type { License } from "@stigmer/apis/ai/stigmer/billing/license/v1/api_pb";
-import { Button } from "../button/index.js";
 import { ReadOnlyField, ReadOnlyFields } from "../internal/form/ReadOnlyField.js";
 import { Section } from "../resource-detail/Section.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
@@ -21,12 +19,12 @@ import type { LicenseStanding } from "./license-standing.js";
 import { LicenseTicketPanel } from "./LicenseTicketPanel.js";
 import { useLicense } from "./useLicense.js";
 
-const ICON = "stg:size-3.5";
-
 /**
  * One issued license: who it is for, what it permits, its dates and the
- * key that signed it, with the ticket panel and, on the customer's current
- * license, Renew.
+ * key that signed it, with the ticket panel. The page around it names the
+ * license: the customer as the settings page's title, {@link LicenseStandingLine}
+ * as its description, and Renew among its acts on the customer's current
+ * license, as every settings detail is titled.
  *
  * Everything but the ticket renders from the list entry the parent already
  * holds. The ticket comes from `issued` when the license was just issued
@@ -36,21 +34,14 @@ const ICON = "stg:size-3.5";
 export function LicenseDetail({
   license,
   issued,
-  standing,
   now,
-  onBack,
-  onRenew,
   className,
 }: {
   /** The license as the list holds it (no ticket). */
   readonly license: License;
   /** The license as `create` returned it, when it was just issued. */
   readonly issued?: License;
-  readonly standing: LicenseStanding | undefined;
   readonly now: Date;
-  readonly onBack: () => void;
-  /** Present only when this is the customer's current license. */
-  readonly onRenew?: () => void;
   readonly className?: string;
 }) {
   const id = license.metadata?.id ?? "";
@@ -72,34 +63,6 @@ export function LicenseDetail({
 
   return (
     <div className={cn("stg:space-y-4", className)}>
-      <div className="stg:space-y-2">
-        <Button variant="ghost" size="xs" icon={<ArrowLeft className={ICON} aria-hidden="true" />} onClick={onBack}>
-          Licenses
-        </Button>
-        <div className="stg:flex stg:flex-wrap stg:items-start stg:justify-between stg:gap-2">
-          <div className="stg:min-w-0">
-            <h3 className="stg:m-0 stg:truncate stg:text-base stg:font-semibold stg:text-foreground">
-              {customer?.displayName ?? "Unknown customer"}
-            </h3>
-            {/* "Until when" answered beside the name: the date sales asks for first. */}
-            <p className="stg:m-0 stg:mt-1 stg:flex stg:flex-wrap stg:items-center stg:gap-x-2 stg:gap-y-1 stg:text-sm stg:text-muted-foreground">
-              {standing && (
-                <StatusBadge phase={standing.phase} label={standing.label} tooltip={standing.reason} />
-              )}
-              <span>
-                {`${spec ? termLabel(spec.term) : "Unknown term"} · covered through ${through ?? "an unknown day"}`}
-                {through && ` (${formatDayFromToday(through, now)})`}
-              </span>
-            </p>
-          </div>
-          {onRenew && (
-            <Button variant="outline" icon={<RefreshCw className={ICON} aria-hidden="true" />} onClick={onRenew}>
-              Renew
-            </Button>
-          )}
-        </div>
-      </div>
-
       {issued && (
         <Notice tone="plain" headline="License issued and signed.">
           <p className="stg:m-0">
@@ -175,6 +138,33 @@ export function LicenseDetail({
         </ReadOnlyFields>
       </Section>
     </div>
+  );
+}
+
+/**
+ * "Until when", answered under the customer's name: the license's standing
+ * and the day it is covered through, the date sales asks for first.
+ */
+export function LicenseStandingLine({
+  license,
+  standing,
+  now,
+}: {
+  readonly license: License;
+  readonly standing: LicenseStanding | undefined;
+  readonly now: Date;
+}) {
+  const spec = license.spec;
+  const expiresAt = toDate(spec?.expiresAt);
+  const through = expiresAt ? coveredThroughDay(expiresAt) : undefined;
+  return (
+    <span className="stg:inline-flex stg:flex-wrap stg:items-center stg:gap-x-2 stg:gap-y-1">
+      {standing && <StatusBadge phase={standing.phase} label={standing.label} tooltip={standing.reason} />}
+      <span>
+        {`${spec ? termLabel(spec.term) : "Unknown term"} · covered through ${through ?? "an unknown day"}`}
+        {through && ` (${formatDayFromToday(through, now)})`}
+      </span>
+    </span>
   );
 }
 

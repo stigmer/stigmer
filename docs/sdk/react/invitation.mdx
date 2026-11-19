@@ -304,6 +304,12 @@ The component composes three invitation hooks internally:
 - [`useCreateInvitation`](#usecreateinvitation) for creation
 - [`useRevokeInvitation`](#userevokeinvitation) for revocation
 
+Each link's row says its role, who it admits and how often it was used
+("Member · Anyone with the link · 3 joined") and the day it expires;
+revoking one says how many people already joined with it and that they
+stay. A list that failed to load still offers "New invite link", since
+making one does not need the list.
+
 The server serves an organization's invitations only to callers who
 hold `can_grant_access` on it, so gate the mount on that permission,
 as the console's `InvitationsSection` (`@stigmer/react-sdk/console`)

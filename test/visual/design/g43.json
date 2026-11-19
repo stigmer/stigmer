@@ -322,15 +322,15 @@
         "word App ID": "The drawing's example data; the scene shows its own fixture's",
         "word App secret": "The drawing's example data; the scene shows its own fixture's",
         "word Saved; paste a new one to replace it": "The drawing's example data; the scene shows its own fixture's",
-        "word Access token": "The drawing's example data; the scene shows its own fixture's"
+        "word Access token": "The drawing's example data; the scene shows its own fixture's",
+        "word A Meta app for acme's WhatsApp channels.": "The scene's app is a Slack app: its line reads \"A Slack app for acme's Slack channels.\"",
+        "word Finish setup in Meta": "The scene's app is a Slack app; its setup names Slack",
+        "word Paste these two into your app's WhatsApp settings at developers.facebook.com.": "The scene's app is a Slack app; its setup says Slack's steps"
       },
-      "ruled": {},
-      "pending": {
-        "word A Meta app for acme's WhatsApp channels.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word Finish setup in Meta": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word Paste these two into your app's WhatsApp settings at developers.facebook.com.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word WhatsApp channels that use it stop answering.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "ruled": {
+        "word WhatsApp channels that use it stop answering.": "Kept as built at the settings Built look, 2026-11-18: the drawing's line would be less exact (a channel app's delete line: the server refuses while a channel uses the app)"
+      },
+      "pending": {}
     },
     {
       "caption": "Channel apps: New channel app, a field missing",
@@ -542,12 +542,13 @@
           "height": 32
         }
       ],
-      "sample": {},
-      "ruled": {},
-      "pending": {
-        "word Delete Acme support?": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word WhatsApp channels that use it stop answering.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "sample": {
+        "word Delete Acme support?": "The drawing's example data; the scene's app is Acme Slack"
+      },
+      "ruled": {
+        "word WhatsApp channels that use it stop answering.": "Kept as built at the settings Built look, 2026-11-18: the drawing's line would be less exact (a channel app's delete line: the server refuses while a channel uses the app)"
+      },
+      "pending": {}
     },
     {
       "caption": "Channel apps: Delete, working: the act busy, Cancel held",

@@ -632,11 +632,11 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Revoke laptop-cli?": "The drawing's example data; the scene's key is Laptop CLI"
+      },
       "ruled": {},
-      "pending": {
-        "word Revoke laptop-cli?": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "pending": {}
     },
     {
       "caption": "API keys: Revoke, working: the act busy, Cancel held",

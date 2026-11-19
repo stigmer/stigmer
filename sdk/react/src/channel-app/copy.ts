@@ -14,3 +14,20 @@
 /** Shown in place of the empty state to a caller who may not create channel apps. */
 export const CHANNEL_APPS_MANAGED_BY_ADMINS =
   "Channel apps are managed by your organization's admins.";
+
+/**
+ * What a channel app is for, the line under its name: "A Slack app for
+ * acme's Slack channels." or "A Meta app for acme's WhatsApp channels.",
+ * `orgName` being the organization as a sentence names it. `null` for a
+ * kind this build does not know.
+ */
+export function channelAppLead(providerCase: string | undefined, orgName: string): string | null {
+  switch (providerCase) {
+    case "slack":
+      return `A Slack app for ${orgName}'s Slack channels.`;
+    case "whatsapp":
+      return `A Meta app for ${orgName}'s WhatsApp channels.`;
+    default:
+      return null;
+  }
+}

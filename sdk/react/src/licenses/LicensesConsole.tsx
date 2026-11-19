@@ -6,7 +6,7 @@
 // is not a platform operator, in words rather than the transport's error.
 
 import { useCallback, useState, type ReactNode } from "react";
-import { FileBadge, Plus } from "lucide-react";
+import { FileBadge, Plus, RefreshCw } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import { isPermissionDenied, isUnimplemented, type LicenseInput } from "@stigmer/client";
 import type { License } from "@stigmer/apis/ai/stigmer/billing/license/v1/api_pb";
@@ -17,7 +17,7 @@ import { ApiResourceKind } from "@stigmer/react-core/internal";
 import { EmptyState } from "../empty-state/index.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Table, type TableColumn } from "../internal/surface/Table.js";
-import { SettingsPage } from "../settings/SettingsPage.js";
+import { SettingsPage, type SettingsPageBack } from "../settings/SettingsPage.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { StatusBadge } from "../status/StatusBadge.js";
 import { deriveLicenseCustomers } from "./license-customers.js";
@@ -31,10 +31,9 @@ import {
 import {
   deriveLicenseStandings,
   sortForCalendar,
-  summarizeCalendar,
   type LicenseStanding,
 } from "./license-standing.js";
-import { LicenseDetail } from "./LicenseDetail.js";
+import { LicenseDetail, LicenseStandingLine } from "./LicenseDetail.js";
 import { LicenseIssueForm } from "./LicenseIssueForm.js";
 import { LICENSES_DENIAL } from "./LicensesAccessNotice.js";
 import { useIssueLicense } from "./useIssueLicense.js";
@@ -53,7 +52,7 @@ export interface LicensesConsoleProps {
 
 const ICON = "stg:size-3.5";
 
-/** What the console is for, under its title when there is no calendar summary to show. */
+/** What the console is for, under its title on the list, the issue form and a failed read. */
 const LICENSES_PURPOSE = "Every Stigmer license issued, ordered by when it needs renewing.";
 
 type Flow =
@@ -66,14 +65,15 @@ type Flow =
  * of every license issued, the form that issues one, and each license's
  * detail with its signed ticket.
  *
- * - **Calendar**: one line saying how many customers are active, expiring
- *   and in grace, then every license with what needs action first. A
- *   license renewed by a later one is muted: it needs nothing.
+ * - **Calendar**: every license with what needs action first. A license
+ *   renewed by a later one is muted: it needs nothing. A calendar that
+ *   failed to load still offers Issue license: issuing needs no list.
  * - **Issue**: from scratch, or as a renewal pre-filled from the customer's
  *   current license. An issue lands on the new license's detail, its ticket
  *   ready to copy.
- * - **Detail**: the license's terms, the ticket on demand, and Renew on the
- *   customer's current license.
+ * - **Detail**: the customer's name as the page's title, as every settings
+ *   detail is titled, its standing under it, the license's terms, the
+ *   ticket on demand, and Renew on the customer's current license.
  *
  * Requires `can_issue_license` on `platform:stigmer`; anyone else sees the
  * designed access notice. On an edition that does not issue licenses the
@@ -103,11 +103,25 @@ export function LicensesConsole({ className, now }: LicensesConsoleProps) {
 
   const unavailable = !available || (list.error !== null && isUnimplemented(list.error));
   const denied = !unavailable && list.error !== null && isPermissionDenied(list.error);
-  const frame = (body: ReactNode, extra?: { readonly description?: string; readonly actions?: ReactNode }) => (
+  const issueAction = (
+    <Button icon={<Plus className={ICON} aria-hidden="true" />} onClick={() => startIssue()}>
+      Issue license
+    </Button>
+  );
+  const frame = (
+    body: ReactNode,
+    extra?: {
+      readonly title?: string;
+      readonly description?: ReactNode;
+      readonly actions?: ReactNode;
+      readonly back?: SettingsPageBack;
+    },
+  ) => (
     <SettingsPage
-      title="Licenses"
+      title={extra?.title ?? "Licenses"}
       description={extra?.description ?? LICENSES_PURPOSE}
       actions={extra?.actions}
+      back={extra?.back}
       unavailable={
         unavailable &&
         "Licenses come with Stigmer Cloud, which issues them. On this edition no license is issued; sign in to Stigmer Cloud to issue or renew one."
@@ -127,8 +141,12 @@ export function LicensesConsole({ className, now }: LicensesConsoleProps) {
     return frame(<SettingsSkeleton label="Loading licenses" rows={3} />);
   }
 
-  if (list.error) {
-    return frame(<ErrorMessage error={list.error} title="Couldn't load the licenses." retry={list.refetch} />);
+  // A failed read still offers Issue license, and the issue form opens
+  // from it: issuing needs no list.
+  if (list.error && flow.phase !== "issue") {
+    return frame(<ErrorMessage error={list.error} title="Couldn't load the licenses." retry={list.refetch} />, {
+      actions: issueAction,
+    });
   }
 
   // A just-issued license is shown before the list's refetch returns it.
@@ -171,21 +189,25 @@ export function LicensesConsole({ className, now }: LicensesConsoleProps) {
   const detail = flow.phase === "detail" ? findLicense(flow.licenseId) : undefined;
   if (flow.phase === "detail" && detail) {
     const standing = standings.get(flow.licenseId);
+    const licenseId = flow.licenseId;
     return frame(
-      <LicenseDetail
-        key={flow.licenseId}
-        license={detail}
-        issued={flow.issued}
-        standing={standing}
-        now={renderNow}
-        onBack={backToList}
-        onRenew={standing && !standing.renewedBy ? () => startIssue(flow.licenseId) : undefined}
-      />,
+      <LicenseDetail key={licenseId} license={detail} issued={flow.issued} now={renderNow} />,
+      {
+        title: detail.spec?.customer?.displayName ?? "Unknown customer",
+        back: { label: "Licenses", onBack: backToList },
+        description: <LicenseStandingLine license={detail} standing={standing} now={renderNow} />,
+        // Renew only on the customer's current license.
+        actions:
+          standing && !standing.renewedBy ? (
+            <Button variant="outline" icon={<RefreshCw className={ICON} aria-hidden="true" />} onClick={() => startIssue(licenseId)}>
+              Renew
+            </Button>
+          ) : undefined,
+      },
     );
   }
 
   const sorted = sortForCalendar(licenses, standings);
-  const summary = summarizeCalendar(standings);
 
   return frame(
     licenses.length === 0 ? (
@@ -209,16 +231,7 @@ export function LicensesConsole({ className, now }: LicensesConsoleProps) {
         onRowClick={(license) => setFlow({ phase: "detail", licenseId: license.metadata?.id ?? "" })}
       />
     ),
-    licenses.length > 0
-      ? {
-          description: `${summary.active} active · ${summary.expiring} expiring · ${summary.grace} in grace`,
-          actions: (
-            <Button icon={<Plus className={ICON} aria-hidden="true" />} onClick={() => startIssue()}>
-              Issue license
-            </Button>
-          ),
-        }
-      : undefined,
+    licenses.length > 0 ? { actions: issueAction } : undefined,
   );
 }
 

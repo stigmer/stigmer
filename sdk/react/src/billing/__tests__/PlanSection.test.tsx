@@ -1,9 +1,10 @@
 // The plan section end to end over a mock client: Free with the comparison
 // (only what Cloud offers today, Free's own terms from the SDK's description
-// of it, Enterprise Cloud as "Talk to us"), a viewer's
+// of it, Enterprise Cloud as a "Talk to us" link drawn as a button), a viewer's
 // read-only view, the card door (leaving through the host's openUrl with
 // the plan to come back to), a subscribe that names the plan's fee and its
-// hourly price, an active plan's estimate and
+// hourly price, an active plan's estimate (the plan's line at weight 500,
+// the footnote saying what is counted) and
 // its switch and cancel copy (child organizations beyond those included
 // among its lines), the agent hours used of those the plan includes on
 // every plan (pausing, priced, unlimited, past the allowance, and left out
@@ -53,6 +54,8 @@ function mockClient(options: { admin?: boolean; checkFails?: boolean; subscribed
     billing: {
       createPaymentMethodSetupSession: vi.fn().mockResolvedValue({ setupUrl: "https://checkout.stripe.com/c/setup_1" }),
     },
+    // The invoice's footnote names the organization only where the server holds several.
+    platform: { getServerInfo: vi.fn().mockResolvedValue({ singleOrg: false }) },
     grant: {
       checkMyPermission: options.checkFails
         ? vi.fn().mockRejectedValue(new Error("the self-check did not answer"))
@@ -94,9 +97,11 @@ describe("PlanSection", () => {
     // Provider keys are on every plan, so no plan sells them.
     expect(within(plans).queryByText("Bring your own provider keys")).toBeNull();
     expect(within(plans).queryByText("Team 2026")).toBeNull();
-    expect(within(plans).getByRole("link", { name: "Talk to us" }).getAttribute("href")).toBe(
-      "https://stigmer.ai/contact-sales",
-    );
+    const talk = within(plans).getByRole("link", { name: "Talk to us" });
+    expect(talk.getAttribute("href")).toBe("https://stigmer.ai/contact-sales");
+    // Drawn as a button the size of the other plans' acts, and opened in a new tab.
+    expect(talk.className).toContain("stg:h-7");
+    expect([talk.getAttribute("target"), talk.getAttribute("rel")]).toEqual(["_blank", "noreferrer"]);
     // The quoted plan lists what the contract tiers to it, and promises nothing undefined.
     const enterpriseCloud = await planOption("Enterprise Cloud");
     expect(Array.from(enterpriseCloud.querySelectorAll("li"), (line) => line.textContent)).toEqual([
@@ -214,8 +219,15 @@ describe("PlanSection", () => {
     expect(await screen.findByText("Estimated invoice")).toBeTruthy();
     // The figure's label draws before the estimate lands; its line comes with the estimate.
     expect(await screen.findByText(/^On Feb 28, 2027, for /)).toBeTruthy();
-    expect(screen.getByText("Team plan")).toBeTruthy();
-    // The plan line and the total: the fee is the whole invoice.
+    // The plan's line is named at weight 500, as the drawn line names are.
+    expect(screen.getByText("Team plan").className).toBe("stg:font-medium");
+    // The footnote says what is counted and what is not, and nothing about the fee.
+    expect(
+      screen.getByText(
+        "Agent hours are counted while agents work in Stigmer's sandboxes, for this organization and its child organizations; automatic grading is never counted. Model usage runs on your own provider keys and is not on this invoice.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText(/The plan's fee for the whole period/)).toBeNull();
     // The figure, the plan line and the total: the fee is the whole invoice.
     expect(screen.getAllByText("$99.00")).toHaveLength(3);
     expect(screen.getByRole("button", { name: "Switch to Business" })).toBeTruthy();

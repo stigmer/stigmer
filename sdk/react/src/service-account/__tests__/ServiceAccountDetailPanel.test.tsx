@@ -138,7 +138,7 @@ describe("ServiceAccountDetailPanel", () => {
     cleanup();
     renderPanel({ showName: false });
     expect(screen.queryByRole("heading", { level: 3, name: "ci-deploy" })).toBeNull();
-    for (const part of ["Organization role", "API keys", "Delete this service account"]) {
+    for (const part of ["Organization role", /^API keys( \d+)?$/, "Delete this service account"]) {
       expect(screen.getByRole("heading", { level: 3, name: part })).toBeTruthy();
     }
   });
@@ -192,6 +192,8 @@ describe("ServiceAccountDetailPanel", () => {
     const keys = await screen.findByRole("list", { name: "API keys" });
     expect(within(keys).getByText("github-actions")).toBeTruthy();
     expect(calls.log).toContain("list keys of ida_sa_ci");
+    // Once the whole list has loaded, its heading says how many keys there are.
+    expect(await screen.findByRole("heading", { level: 3, name: "API keys 1" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "+ New key" }));
     fireEvent.change(screen.getByLabelText("Key name"), { target: { value: "nightly" } });

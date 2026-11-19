@@ -330,15 +330,13 @@
         "button Take Ada Lovelace out of Finance": "The drawing's example data; the scene shows its own fixture's",
         "button Take Grace Hopper out of Finance": "The drawing's example data; the scene shows its own fixture's",
         "button Take Katherine Johnson out of Finance": "The drawing's example data; the scene shows its own fixture's",
-        "button Take Alan Turing out of Finance": "The drawing's example data; the scene shows its own fixture's"
+        "button Take Alan Turing out of Finance": "The drawing's example data; the scene shows its own fixture's",
+        "word Members 4": "The drawing's example data; the scene's team has two people",
+        "word Its four people lose what was shared with Finance. Nothing they made is deleted.": "The drawing's example data; the scene's team has two people"
       },
       "ruled": {},
       "pending": {
-        "word Members 4": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "type Grace Hopper": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "type Katherine Johnson": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word Shared with Finance": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word Its four people lose what was shared with Finance. Nothing they made is deleted.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
+        "word Shared with Finance": "A call for the last look: what is shared with a team needs a server read the kit does not have; the page shows the team's people only"
       }
     },
     {
@@ -503,11 +501,11 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Its four people lose what was shared with Finance. Nothing they made is deleted.": "The drawing's example data; the scene's team has two people"
+      },
       "ruled": {},
-      "pending": {
-        "word Its four people lose what was shared with Finance. Nothing they made is deleted.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "pending": {}
     },
     {
       "caption": "Teams: Delete, working: the act busy, Cancel held",

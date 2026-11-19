@@ -489,6 +489,7 @@ function membersScene(answer: "rows" | "failed", allowed = true): Drawing {
   );
 }
 
+/** Vaults as an admin sees them (two shared vaults), or as a member who has none shared with them. */
 function vaultsScene(allowed: boolean): Drawing {
   return settingsScene(
     () => <VaultsSection />,
@@ -497,10 +498,12 @@ function vaultsScene(allowed: boolean): Drawing {
       router.service(VaultQueryController, {
         getMine: () => samples.vault({ id: "vlt_00000000000000000000000002", name: "My vault", slug: "my-vault", org: ORG_ID }),
         list: () => ({
-          entries: [
-            samples.vault({ id: "vlt_00000000000000000000000003", name: "Production", slug: "production", org: ORG_ID }),
-            samples.vault({ id: "vlt_00000000000000000000000004", name: "Ledger service", slug: "ledger-service", org: ORG_ID }),
-          ],
+          entries: allowed
+            ? [
+                samples.vault({ id: "vlt_00000000000000000000000003", name: "Production", slug: "production", org: ORG_ID }),
+                samples.vault({ id: "vlt_00000000000000000000000004", name: "Ledger service", slug: "ledger-service", org: ORG_ID }),
+              ]
+            : [],
         }),
       });
     },

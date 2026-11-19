@@ -9,6 +9,7 @@ import {
   unwrapEnclosingMarkdownFence,
 } from "../internal/markdown-components.js";
 import { useRevealLine, type RevealTarget } from "../internal/useRevealLine.js";
+import { CodeBlock } from "../internal/CodeBlock.js";
 import {
   getTextRenderMode,
   type TextRenderMode,
@@ -282,7 +283,7 @@ function YamlView({
   const lines = content.split("\n");
 
   return (
-    <pre className="stg:overflow-x-auto stg:p-4 stg:font-mono stg:text-xs stg:leading-relaxed stg:text-foreground">
+    <CodeBlock className="stg:p-4">
       <code ref={containerRef}>
         {lines.map((line, i) => (
           <span
@@ -303,7 +304,7 @@ function YamlView({
           </span>
         ))}
       </code>
-    </pre>
+    </CodeBlock>
   );
 }
 
@@ -381,9 +382,9 @@ function highlightJsonValue(value: string): ReactNode {
 
 function JsonView({ content }: { readonly content: string }) {
   return (
-    <pre className="stg:overflow-x-auto stg:p-4 stg:font-mono stg:text-xs stg:leading-relaxed stg:text-foreground">
+    <CodeBlock className="stg:p-4">
       <code>{highlightJson(content)}</code>
-    </pre>
+    </CodeBlock>
   );
 }
 
@@ -419,7 +420,7 @@ function LineNumberedPre({
   const gutterWidth = String(lines.length).length;
 
   return (
-    <pre className="stg:overflow-x-auto stg:font-mono stg:text-xs stg:leading-relaxed stg:text-foreground">
+    <CodeBlock>
       <code ref={containerRef}>
         {lines.map((line, i) => (
           <span
@@ -443,7 +444,7 @@ function LineNumberedPre({
           </span>
         ))}
       </code>
-    </pre>
+    </CodeBlock>
   );
 }
 

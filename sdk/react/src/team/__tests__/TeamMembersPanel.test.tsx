@@ -3,7 +3,9 @@
  * picker is given the organization as `org`, and leaves out the accounts an
  * integrator's product created for its own users (`includeAppUsers` false)
  * and the organization's service accounts (`includeServiceAccounts` false),
- * because a team is a group of the organization's people.
+ * because a team is a group of the organization's people. As a team's
+ * section it says how many people are in the team and draws each one's
+ * name as the kit's list row does (14/20, medium).
  * The share flow, the permission gate and the picker are stubbed.
  */
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -19,9 +21,11 @@ const picked = vi.hoisted(
     }[],
 );
 
+const flow = vi.hoisted(() => ({ accessList: [] as unknown[] }));
+
 vi.mock("../../grant/useShareFlow.js", () => ({
   useShareFlow: () => ({
-    accessList: [],
+    accessList: flow.accessList,
     isLoading: false,
     fetchError: null,
     grant: async () => {},
@@ -64,7 +68,12 @@ import { TeamMembersPanel } from "../TeamMembersPanel";
 afterEach(() => {
   cleanup();
   picked.length = 0;
+  flow.accessList = [];
 });
+
+function person(id: string, name: string) {
+  return { principal: { kind: "identity_account", id, name, email: `${id}@acme.test`, relation: "" }, roles: [] };
+}
 
 describe("TeamMembersPanel", () => {
   it("offers people from the team's organization", () => {
@@ -103,5 +112,16 @@ describe("TeamMembersPanel", () => {
     });
     expect(screen.getByRole("button", { name: "Add a person" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Pick Grace" })).toBeNull();
+  });
+
+  it("as a team's section, says how many people are in it and draws each name as a list row's name", () => {
+    flow.accessList = [person("ida_ada", "Ada Lovelace"), person("ida_alan", "Alan Turing")];
+    render(<TeamMembersPanel teamId="team_1" org="acme" asSection />);
+    const section = screen.getByRole("heading", { name: /Members/ }).closest("section");
+    expect(section?.textContent).toMatch(/Members\s*2/);
+    const name = screen.getByText("Ada Lovelace");
+    expect(name.className).toContain("stg:text-sm");
+    expect(name.className).toContain("stg:font-medium");
+    expect(name.className).not.toContain("stg:text-xs");
   });
 });

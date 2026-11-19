@@ -13,7 +13,9 @@
  *   - an empty list reads "No channel apps yet" to a caller who
  *     may create one, and names the organization's admins to a caller the
  *     server has refused;
- *   - in local mode the section asks nothing and shows the cloud notice.
+ *   - in local mode the section asks nothing and shows the cloud notice;
+ *   - an open app's page says under its name what the app is for, naming
+ *     the organization ("A Slack app for acme's Slack channels.").
  *
  * The data hook and the permission check are stubbed; the list panel is
  * real. The detail panel's credentials and delete gates are pinned beside
@@ -87,6 +89,16 @@ const SLACK = create(ChannelAppSchema, {
     providerConfig: {
       case: "slack",
       value: { clientId: "1234.5678" },
+    },
+  },
+});
+
+const WHATSAPP = create(ChannelAppSchema, {
+  metadata: { id: "chapp_meta", name: "Acme support", slug: "acme-support", org: "acme" },
+  spec: {
+    providerConfig: {
+      case: "whatsapp",
+      value: { appId: "1234" },
     },
   },
 });
@@ -187,6 +199,7 @@ describe("ChannelAppsSection", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: /Edit Acme Slack/ }));
     expect(screen.getByRole("heading", { level: 2, name: "Acme Slack" })).toBeTruthy();
+    expect(screen.getByText("A Slack app for acme's Slack channels.")).toBeTruthy();
     // The panel draws no second name under the page's title.
     expect(screen.queryByRole("heading", { level: 3, name: "Acme Slack" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Channel apps" }));
@@ -221,5 +234,18 @@ describe("ChannelAppsSection", () => {
     expect(screen.queryByRole("heading", { level: 3, name: "Acme Slack" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Channel apps" }));
     expect(screen.getByRole("heading", { level: 2, name: "Channel apps" })).toBeTruthy();
+  });
+
+  it("says under an open Meta app's name that it serves the organization's WhatsApp channels", () => {
+    stubs.apps = [WHATSAPP];
+    render(
+      <StigmerContext.Provider value={CLIENT}>
+        <DeploymentModeContext.Provider value={"cloud"}>
+          <ChannelAppsSection />
+        </DeploymentModeContext.Provider>
+      </StigmerContext.Provider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Edit Acme support/ }));
+    expect(screen.getByText("A Meta app for acme's WhatsApp channels.")).toBeTruthy();
   });
 });

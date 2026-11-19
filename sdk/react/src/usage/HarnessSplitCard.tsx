@@ -1,9 +1,10 @@
 "use client";
 
 /**
- * Harness split: the organization's tokens and calls per run harness
- * (Stigmer, Claude) as a segmented bar with labelled shares, each
- * engine named as the pickers name it (`HARNESS_META`).
+ * By harness: the organization's tokens and calls per run harness
+ * (Stigmer, Claude) as a segmented bar over one line per harness
+ * ("Stigmer · 18.4M tokens · 3.0k calls · 100%"), each engine named as the
+ * pickers name it (`HARNESS_META`), in a section beside "By model".
  *
  * Segments are sized by tokens, the one measure every run has (a run
  * counted from its runner's own report has tokens and no metered calls).
@@ -16,7 +17,7 @@ import { cn } from "@stigmer/design-tokens";
 import type { HarnessUsage } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { type HarnessOption } from "@stigmer/react-core";
 import { HARNESS_META, isNamedHarness } from "@stigmer/react-core/internal";
-import { Card } from "../internal/surface/Card.js";
+import { Section } from "../resource-detail/Section.js";
 import { formatCalls, formatTokens, sharePercent } from "./format.js";
 
 /** Props for {@link HarnessSplitCard}. */
@@ -40,8 +41,8 @@ function engineOf(harness: string): { readonly label: string; readonly color: st
 /**
  * Displays the token split between run harnesses as a segmented bar.
  *
- * Renders a horizontal bar with labels showing tokens, calls and share per
- * harness, for an at-a-glance read of each harness's usage.
+ * Renders a horizontal bar over one line per harness naming its tokens,
+ * calls and share, for an at-a-glance read of each harness's usage.
  */
 export function HarnessSplitCard({
   breakdown,
@@ -57,11 +58,8 @@ export function HarnessSplitCard({
   if (totalTokens <= 0) return null;
 
   return (
-    <div className={className}>
-      <h3 className="stg:mb-2 stg:text-xs stg:font-semibold stg:text-foreground">
-        Harness Split
-      </h3>
-      <Card>
+    <Section title="By harness" className={className}>
+      <div className="stg:p-4">
         {/* Segmented bar */}
         <div
           className="stg:flex stg:h-3 stg:w-full stg:overflow-hidden stg:rounded-full"
@@ -74,42 +72,29 @@ export function HarnessSplitCard({
             return (
               <div
                 key={entry.harness}
-                className={cn(
-                  "stg:transition-all",
-                  engineOf(entry.harness).color,
-                )}
+                className={cn("stg:transition-all", engineOf(entry.harness).color)}
                 style={{ width: `${pct}%` }}
               />
             );
           })}
         </div>
 
-        {/* Labels */}
+        {/* One line per harness: name · tokens · calls · share. */}
         <div className="stg:mt-2.5 stg:flex stg:flex-wrap stg:gap-x-5 stg:gap-y-1">
           {breakdown.map((entry) => {
+            const engine = engineOf(entry.harness);
             const pct = sharePercent(entry.totalTokens, totalTokens);
             return (
-              <div key={entry.harness} className="stg:flex stg:items-center stg:gap-1.5">
-                <div
-                  className={cn(
-                    "stg:size-2 stg:rounded-full",
-                    engineOf(entry.harness).color,
-                  )}
-                />
-                <span className="stg:text-xs stg:text-muted-foreground">
-                  {engineOf(entry.harness).label}
-                </span>
-                <span className="stg:text-xs stg:tabular-nums stg:font-medium stg:text-foreground">
-                  {formatTokens(entry.totalTokens)}
-                </span>
-                <span className="stg:text-2xs stg:tabular-nums stg:text-muted-foreground">
-                  {formatCalls(entry.callCount)} ({pct}%)
+              <div key={entry.harness} className="stg:flex stg:min-w-0 stg:items-center stg:gap-1.5">
+                <div className={cn("stg:size-2 stg:shrink-0 stg:rounded-full", engine.color)} />
+                <span className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
+                  {`${engine.label} · ${formatTokens(entry.totalTokens)} · ${formatCalls(entry.callCount)} · ${pct}%`}
                 </span>
               </div>
             );
           })}
         </div>
-      </Card>
-    </div>
+      </div>
+    </Section>
   );
 }

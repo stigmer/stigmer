@@ -54,7 +54,7 @@ export function HeaderRowsEditor({ rows, onChange, disabled = false, className }
   return (
     <fieldset className={cn("stg:space-y-1.5", className)}>
       <legend className="stg:text-xs stg:font-medium stg:text-muted-foreground">
-        Headers <span className="stg:text-muted-foreground-subtle">(optional)</span>
+        Headers <span className="stg:text-muted-foreground">(optional)</span>
       </legend>
       {rows.map((row) => (
         <div key={row.id} className="stg:flex stg:items-center stg:gap-2">

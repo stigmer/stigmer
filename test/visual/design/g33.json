@@ -97,12 +97,11 @@
         "word Member · 1 key": "The drawing's example data; the scene shows its own fixture's",
         "word ledger-sync": "The drawing's example data; the scene shows its own fixture's",
         "word Viewer · 2 keys": "The drawing's example data; the scene shows its own fixture's",
-        "word support-bot": "The drawing's example data; the scene shows its own fixture's"
+        "word support-bot": "The drawing's example data; the scene shows its own fixture's",
+        "word Member · no keys": "The drawing's third account; the scene has one"
       },
       "ruled": {},
-      "pending": {
-        "word Member · no keys": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "pending": {}
     },
     {
       "caption": "Service accounts: One open: its role, its keys, Delete (today's hand-drawn inline confirm goes)",
@@ -294,9 +293,8 @@
       },
       "ruled": {},
       "pending": {
-        "word Manage people, settings, billing, and the organization's agents and tools; can't read private conversations, delete the organization or change its owners": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word See what is shared with the organization; can't start conversations": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word API keys 1": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
+        "word Manage people, settings, billing, and the organization's agents and tools; can't read private conversations, delete the organization or change its owners": "A call for the last look: the roles' lines are the authorization model's own words (\"cannot\"), shown wherever a role is described",
+        "word See what is shared with the organization; can't start conversations": "A call for the last look: the roles' lines are the authorization model's own words (\"cannot\"), shown wherever a role is described"
       }
     },
     {

@@ -91,10 +91,11 @@ describe("MemoryListPanel", () => {
     );
 
     const headings = screen.getAllByRole("heading", { level: 3 });
+    // Each group's count is part of its heading, as it is drawn.
     expect(headings.map((h) => h.textContent)).toEqual([
-      "Waiting for you",
-      "Remembered",
-      "Rejected",
+      "Waiting for you 1",
+      "Remembered 1",
+      "Rejected 1",
     ]);
   });
 

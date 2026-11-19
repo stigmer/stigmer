@@ -259,13 +259,13 @@ function OrgLabel({
 
   return (
     <span className="stg:min-w-0 stg:flex-1">
-      <span className="stg:block stg:truncate stg:text-sm stg:font-medium stg:leading-tight">
+      <span className="stg:block stg:truncate stg:text-sm stg:font-medium">
         {name}
       </span>
       {slug && (
         <span
           className={cn(
-            "stg:block stg:truncate stg:text-xs stg:leading-tight",
+            "stg:block stg:truncate stg:text-xs",
             // eslint-disable-next-line stigmer/no-main-tokens-in-sidebar -- OrgLabel renders inside portaled dropdown content (popover context)
             slugClassName ?? "stg:text-muted-foreground",
           )}

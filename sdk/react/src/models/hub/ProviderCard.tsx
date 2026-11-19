@@ -19,6 +19,7 @@ import { Button } from "../../button/index.js";
 import { ConfirmDialog } from "../../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../../resource-detail/useConfirmAction.js";
 import { CopyButton, useCopy } from "../../internal/CopyBlock.js";
+import { CodeBlock } from "../../internal/CodeBlock.js";
 import { UNSTYLED_LIST } from "../../internal/element-resets.js";
 import { cardClasses } from "../../internal/surface/Card.js";
 import { tagClasses } from "../../internal/surface/Tag.js";
@@ -180,6 +181,7 @@ export function ProviderCard({
       confirmLabel: "Remove key",
       variant: "destructive",
       failureTitle: "Couldn't remove the key.",
+      failureComfort: "The key is still connected.",
       action: () => actions.removeKey(org, provider).then(() => undefined),
     });
     if (removed) onChanged?.();
@@ -374,9 +376,9 @@ export function SetupCommand({ provider }: SetupCommandProps) {
     <div className="stg:space-y-1.5">
       <p className="stg:text-sm stg:text-foreground">{setup.lead}</p>
       <div className="stg:flex stg:items-start stg:gap-2 stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:px-3 stg:py-2">
-        <pre className="stg:m-0 stg:min-w-0 stg:flex-1 stg:overflow-x-auto stg:font-mono stg:text-xs stg:text-foreground">
+        <CodeBlock className="stg:min-w-0 stg:flex-1">
           {commands}
-        </pre>
+        </CodeBlock>
         <CopyButton copied={copied} onCopy={copy} />
       </div>
     </div>

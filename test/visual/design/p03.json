@@ -177,11 +177,11 @@
           "height": 28
         }
       ],
-      "sample": {},
+      "sample": {
+        "button Install again": "Each card's act is named for its plugin (\"Install linear\") for assistive technology; the drawing names it by its visible words"
+      },
       "ruled": {},
-      "pending": {
-        "button Install again": "When its page is redesigned: an installed source offers Install again"
-      }
+      "pending": {}
     }
   ]
 }

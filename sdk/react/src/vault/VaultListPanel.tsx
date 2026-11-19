@@ -66,6 +66,12 @@ export interface VaultListPanelProps {
   readonly openId?: string | null;
   /** Called when the open vault is gone (deleted here or elsewhere). */
   readonly onClose?: () => void;
+  /**
+   * Told how many shared vaults the list holds once it reads them, and
+   * `null` while it reads or after a read failed, so a host heading can
+   * carry the count ("Shared vaults 4").
+   */
+  readonly onSharedCountChange?: (count: number | null) => void;
 }
 
 /**
@@ -85,6 +91,7 @@ export function VaultListPanel({
   onOpen,
   openId,
   onClose,
+  onSharedCountChange,
   className,
 }: VaultListPanelProps) {
   const { vaults, isLoading, error, refetch } = useVaultList(org);
@@ -98,6 +105,11 @@ export function VaultListPanel({
   useEffect(() => {
     if (open) onOpen?.(open);
   }, [open, onOpen]);
+  // The host's heading counts what the list holds, and nothing while it reads.
+  const sharedCount = isLoading || error ? null : shared.length;
+  useEffect(() => {
+    onSharedCountChange?.(sharedCount);
+  }, [sharedCount, onSharedCountChange]);
   // An open vault the list no longer holds is gone: back to the list.
   useEffect(() => {
     if (openId && !isLoading && !error && !open) onClose?.();
@@ -273,6 +285,7 @@ function VaultDetail({
 }) {
   const id = vault.metadata?.id ?? "";
   const secretCount = Object.keys(vault.spec?.secrets ?? {}).length;
+  const loginCount = Object.keys(vault.spec?.connections ?? {}).length;
   return (
     <div className={cn("stg:flex stg:flex-col stg:gap-4", className)}>
       <Section title="Secrets" count={secretCount}>
@@ -280,7 +293,7 @@ function VaultDetail({
           <SharedVaultEntries vault={vault} org={org} readOnly={readOnly} onChanged={onChanged} only="secrets" />
         </div>
       </Section>
-      <Section title="Logins">
+      <Section title="Logins" count={loginCount}>
         <div className="stg:p-4">
           <SharedVaultEntries vault={vault} org={org} readOnly={readOnly} onChanged={onChanged} only="logins" />
         </div>

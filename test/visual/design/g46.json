@@ -168,11 +168,10 @@
       "sample": {
         "word I work in finance at Acme. Write amounts in USD with two decimals. Prefer short answers.": "The drawing's example data; the scene shows its own fixture's"
       },
-      "ruled": {},
-      "pending": {
-        "word Platform default (Stigmer)": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word Agents may propose facts to remember; only facts you confirm are kept, under Memory. Saves as you switch it.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "ruled": {
+        "word Agents may propose facts to remember; only facts you confirm are kept, under Memory. Saves as you switch it.": "Kept as built at the settings Built look, 2026-11-18: the drawing's line would be less exact (the account memory switch's line)"
+      },
+      "pending": {}
     },
     {
       "caption": "Account preferences: Kept separate: as today, on sections",
@@ -483,11 +482,10 @@
       "sample": {
         "word I work in finance at Acme. Write amounts in USD with two decimals. Prefer short answers.": "The drawing's example data; the scene shows its own fixture's"
       },
-      "ruled": {},
-      "pending": {
-        "word Platform default (Stigmer)": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word Agents may propose facts to remember; only facts you confirm are kept, under Memory. Saves as you switch it.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "ruled": {
+        "word Agents may propose facts to remember; only facts you confirm are kept, under Memory. Saves as you switch it.": "Kept as built at the settings Built look, 2026-11-18: the drawing's line would be less exact (the account memory switch's line)"
+      },
+      "pending": {}
     },
     {
       "caption": "Account preferences: Didn't load",
@@ -730,11 +728,10 @@
       "sample": {
         "word I work in finance at Acme. Write amounts in USD with two decimals. Prefer short answers.": "The drawing's example data; the scene shows its own fixture's"
       },
-      "ruled": {},
-      "pending": {
-        "word Platform default (Stigmer)": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word Agents may propose facts to remember; only facts you confirm are kept, under Memory. Saves as you switch it.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "ruled": {
+        "word Agents may propose facts to remember; only facts you confirm are kept, under Memory. Saves as you switch it.": "Kept as built at the settings Built look, 2026-11-18: the drawing's line would be less exact (the account memory switch's line)"
+      },
+      "pending": {}
     }
   ]
 }

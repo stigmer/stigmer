@@ -16,7 +16,7 @@ import { useMyIdentityAccount } from "./useMyIdentityAccount.js";
 import { useUpdateIdentityAccount } from "./useUpdateIdentityAccount.js";
 import { DEFAULT_MODELS_HUB_HREF } from "../billing/refusals.js";
 import { useServerInfo } from "../server-info.js";
-import { type HarnessOption } from "@stigmer/react-core";
+import { DEFAULT_HARNESS, type HarnessOption } from "@stigmer/react-core";
 import { HARNESS_META, HARNESS_OPTIONS, isHarnessOption } from "@stigmer/react-core/internal";
 import { MemoryEnabledRow } from "../internal/MemoryEnabledRow.js";
 import { StandingContextField } from "../internal/StandingContextField.js";
@@ -296,7 +296,8 @@ export function AccountPreferencesPanel({
             }
           >
             <Select value={defaultHarness} onChange={(e) => setDefaultHarness(e.target.value)} disabled={isUpdating}>
-              <option value="">Platform default</option>
+              {/* Names the harness "Platform default" means, as the platform picks it today. */}
+              <option value="">{`Platform default (${HARNESS_META[DEFAULT_HARNESS].label})`}</option>
               {HARNESS_OPTIONS.map((harness) => (
                 <option key={harness} value={harness}>
                   {HARNESS_META[harness].label}

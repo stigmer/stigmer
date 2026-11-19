@@ -94,7 +94,7 @@ export function CreateVaultForm({
       </div>
       <div className="stg:space-y-1">
         <label htmlFor={`${baseId}-description`} className={FIELD_LABEL_CLASSES}>
-          Description <span className="stg:text-muted-foreground-subtle">(optional)</span>
+          Description <span className="stg:text-muted-foreground">(optional)</span>
         </label>
         <TextInput
           id={`${baseId}-description`}
@@ -106,7 +106,7 @@ export function CreateVaultForm({
       </div>
       <div className="stg:space-y-1">
         <label htmlFor={`${baseId}-external`} className={FIELD_LABEL_CLASSES}>
-          External id <span className="stg:text-muted-foreground-subtle">(optional, your own id for it)</span>
+          External id <span className="stg:text-muted-foreground">(optional, your own id for it)</span>
         </label>
         <TextInput
           id={`${baseId}-external`}

@@ -44,7 +44,7 @@ import {
 } from "./webChannelDraft.js";
 import { useRotateChannelLink } from "./useRotateChannelLink.js";
 import { useChatLinkToolReadiness } from "./useChatLinkToolReadiness.js";
-import { SCROLL_REGION_FOCUS, scrollRegion } from "../internal/scroll-region.js";
+import { CodeBlock } from "../internal/CodeBlock.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { useToolCredentialsDisclosure } from "../vault/useToolCredentialsDisclosure.js";
 import { ChoiceGroup, FIELD_LABEL_CLASSES, FieldError, TextArea, TextInput } from "../internal/form/index.js";
@@ -1508,16 +1508,9 @@ function CopyField({
       <h3 className="stg:text-xs stg:font-medium stg:text-muted-foreground">{label}</h3>
       <div className="stg:mt-1.5 stg:flex stg:items-start stg:gap-1.5">
         {multiline ? (
-          <pre
-            {...scrollRegion(label)}
-            className={cn(
-              "stg:min-w-0 stg:flex-1 stg:overflow-x-auto stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:px-2.5 stg:py-2",
-              "stg:font-mono stg:text-xs stg:leading-relaxed stg:text-foreground",
-              SCROLL_REGION_FOCUS,
-            )}
-          >
+          <CodeBlock box label={label} className="stg:min-w-0 stg:flex-1">
             {value}
-          </pre>
+          </CodeBlock>
         ) : (
           <TruncatedText
             text={value}

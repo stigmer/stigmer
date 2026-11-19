@@ -1,6 +1,7 @@
 "use client";
 
 import { ChoiceGroup } from "../internal/form/index.js";
+import { CodeBlock } from "../internal/CodeBlock.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import { Upload } from "lucide-react";
@@ -496,9 +497,9 @@ function SkillContentSection({ content }: { readonly content: string }) {
           </Markdown>
         </div>
       ) : (
-        <pre className="stg:overflow-x-auto stg:p-4 stg:font-mono stg:text-sm stg:leading-relaxed stg:text-foreground">
+        <CodeBlock size="sm" className="stg:p-4">
           {content}
-        </pre>
+        </CodeBlock>
       )}
     </SkillSection>
   );

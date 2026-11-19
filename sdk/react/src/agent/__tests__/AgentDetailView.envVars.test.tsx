@@ -48,7 +48,7 @@ describe("AgentDetailView environment variables (read-only)", () => {
       }),
     );
 
-    const heading = await screen.findByRole("heading", { name: "Environment Variables" });
+    const heading = await screen.findByRole("heading", { name: /^Environment Variables( \d+)?$/ });
     const section = heading.closest("section") as HTMLElement;
 
     const names = within(section)

@@ -218,7 +218,7 @@ function EmbeddingForm({
 
   return (
     <form className={cn("stg:flex stg:flex-col stg:gap-5", className)} onSubmit={(event) => void handleSubmit(event)}>
-      <p className="stg:text-2xs stg:leading-snug stg:text-muted-foreground">
+      <p className="stg:text-2xs stg:text-muted-foreground">
         Your product&apos;s backend signs its users in to this organization by minting a token for
         each, with the API key of a service account that is an admin here.
         {canEdit && serviceAccountsHref !== undefined && (
@@ -239,7 +239,7 @@ function EmbeddingForm({
             <span id={`${createId}-title`} className="stg:block stg:text-xs stg:text-foreground">
               Create accounts on sign-in
             </span>
-            <p id={`${createId}-description`} className="stg:text-2xs stg:leading-snug stg:text-muted-foreground">
+            <p id={`${createId}-description`} className="stg:text-2xs stg:text-muted-foreground">
               Create a person&apos;s Stigmer account the first time a token is minted for them. When
               off, the account must already exist.
             </p>

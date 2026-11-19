@@ -5,7 +5,8 @@
  * long-prompt step (stigmer#3138): a model priced by prompt length shows the
  * higher rates under its own, headed by the threshold grouped by thousands,
  * on the base block and on each variant; a model without one shows nothing
- * more.
+ * more. And where the rates came from: a provider's list price as a sentence
+ * naming the provider, any other source as written.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
@@ -135,5 +136,29 @@ describe("ModelCatalogDetail provenance", () => {
     };
     render(<ModelCatalogDetail row={sourced} />);
     expect(screen.getByText("Source: anthropic.com/pricing · Jan 2, 2026")).toBeTruthy();
+  });
+
+  it("says a provider's list price as a sentence naming the provider", () => {
+    const listed = (source: string, effectiveAt?: Date): ModelCatalogRow => ({
+      ...ROW,
+      history: [],
+      baseline: create(ModelPricingBaselineSchema, {
+        ...ROW.baseline,
+        pricing: create(PricingBlockSchema, {
+          inputPriceMicrosPerMillion: 3_000_000n,
+          outputPriceMicrosPerMillion: 15_000_000n,
+          source,
+          effectiveAt: effectiveAt ? timestampFromDate(effectiveAt) : undefined,
+        }),
+      }),
+    });
+    render(<ModelCatalogDetail row={listed("anthropic list price", new Date(Date.UTC(2026, 3, 21)))} />);
+    expect(screen.getByText("List prices from Anthropic, Apr 21, 2026.")).toBeTruthy();
+    expect(screen.queryByText(/^Source:/)).toBeNull();
+    cleanup();
+
+    // The provider is named as the console names it elsewhere, and a list price without a date ends there.
+    render(<ModelCatalogDetail row={listed("openai list price")} />);
+    expect(screen.getByText("List prices from OpenAI.")).toBeTruthy();
   });
 });

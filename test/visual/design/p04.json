@@ -71,7 +71,7 @@
           ]
         },
         {
-          "text": "vlt_00000000000000000000000003 \u00b7 4 secrets",
+          "text": "vlt_00000000000000000000000003 · 4 secrets",
           "type": [
             12,
             16,
@@ -306,27 +306,26 @@
         "word Origin": "His look at the Library page (2026-11-16) passed G07's history, which replaces this table's columns: Started by (the person, else how it started), When, Took, Session",
         "word Fired": "His look at the Library page (2026-11-16) passed G07's history, which replaces this table's columns: Started by (the person, else how it started), When, Took, Session",
         "word Duration": "His look at the Library page (2026-11-16) passed G07's history, which replaces this table's columns: Started by (the person, else how it started), When, Took, Session",
-        "word Manual": "His look at the Library page (2026-11-16) passed G07's history, which replaces this table's columns: Started by (the person, else how it started), When, Took, Session"
+        "word Manual": "His look at the Library page (2026-11-16) passed G07's history, which replaces this table's columns: Started by (the person, else how it started), When, Took, Session",
+        "button More actions": "Settled by the page's own redesign: the routines list (G14), a routine's history (G07) and page (G20), and a shared vault (G41) passed his Built looks on 2026-11-17 and 2026-11-18, and their facts files hold those pages",
+        "type daily-variance-report": "Settled by the page's own redesign: the routines list (G14), a routine's history (G07) and page (G20), and a shared vault (G41) passed his Built looks on 2026-11-17 and 2026-11-18, and their facts files hold those pages",
+        "word 1d ago": "Settled by the page's own redesign: the routines list (G14), a routine's history (G07) and page (G20), and a shared vault (G41) passed his Built looks on 2026-11-17 and 2026-11-18, and their facts files hold those pages",
+        "word 1m 14s": "Settled by the page's own redesign: the routines list (G14), a routine's history (G07) and page (G20), and a shared vault (G41) passed his Built looks on 2026-11-17 and 2026-11-18, and their facts files hold those pages",
+        "word 2 keys": "Settled by the page's own redesign: the routines list (G14), a routine's history (G07) and page (G20), and a shared vault (G41) passed his Built looks on 2026-11-17 and 2026-11-18, and their facts files hold those pages",
+        "word Completed": "Settled by the page's own redesign: the routines list (G14), a routine's history (G07) and page (G20), and a shared vault (G41) passed his Built looks on 2026-11-17 and 2026-11-18, and their facts files hold those pages",
+        "word Every weekday at 07:00": "Settled by the page's own redesign: the routines list (G14), a routine's history (G07) and page (G20), and a shared vault (G41) passed his Built looks on 2026-11-17 and 2026-11-18, and their facts files hold those pages",
+        "word Jul 20, 2026 by Ada Lovelace": "Settled by the page's own redesign: the routines list (G14), a routine's history (G07) and page (G20), and a shared vault (G41) passed his Built looks on 2026-11-17 and 2026-11-18, and their facts files hold those pages",
+        "word No fires yet. The routine's first fire shows here.": "Settled by the page's own redesign: the routines list (G14), a routine's history (G07) and page (G20), and a shared vault (G41) passed his Built looks on 2026-11-17 and 2026-11-18, and their facts files hold those pages",
+        "word Ready": "Settled by the page's own redesign: the routines list (G14), a routine's history (G07) and page (G20), and a shared vault (G41) passed his Built looks on 2026-11-17 and 2026-11-18, and their facts files hold those pages",
+        "word Running": "Settled by the page's own redesign: the routines list (G14), a routine's history (G07) and page (G20), and a shared vault (G41) passed his Built looks on 2026-11-17 and 2026-11-18, and their facts files hold those pages",
+        "word Schedule": "Settled by the page's own redesign: the routines list (G14), a routine's history (G07) and page (G20), and a shared vault (G41) passed his Built looks on 2026-11-17 and 2026-11-18, and their facts files hold those pages",
+        "word Shared with the Finance team": "Settled by the page's own redesign: the routines list (G14), a routine's history (G07) and page (G20), and a shared vault (G41) passed his Built looks on 2026-11-17 and 2026-11-18, and their facts files hold those pages",
+        "word Used by": "Settled by the page's own redesign: the routines list (G14), a routine's history (G07) and page (G20), and a shared vault (G41) passed his Built looks on 2026-11-17 and 2026-11-18, and their facts files hold those pages",
+        "word the routine": "Settled by the page's own redesign: the routines list (G14), a routine's history (G07) and page (G20), and a shared vault (G41) passed his Built looks on 2026-11-17 and 2026-11-18, and their facts files hold those pages",
+        "word variance-reporter, payroll-reconciler": "Settled by the page's own redesign: the routines list (G14), a routine's history (G07) and page (G20), and a shared vault (G41) passed his Built looks on 2026-11-17 and 2026-11-18, and their facts files hold those pages",
+        "word vlt_00000000000000000000000003 · 4 secrets": "Settled by the page's own redesign: the routines list (G14), a routine's history (G07) and page (G20), and a shared vault (G41) passed his Built looks on 2026-11-17 and 2026-11-18, and their facts files hold those pages"
       },
-      "pending": {
-        "button More actions": "When its page is redesigned: a list row's overflow menu, which no list draws yet",
-        "type daily-variance-report": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
-        "word 1d ago": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
-        "word 1m 14s": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
-        "word 2 keys": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
-        "word Completed": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
-        "word Every weekday at 07:00": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
-        "word Jul 20, 2026 by Ada Lovelace": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
-        "word No fires yet. The routine's first fire shows here.": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
-        "word Ready": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
-        "word Running": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
-        "word Schedule": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
-        "word Shared with the Finance team": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
-        "word Used by": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
-        "word the routine": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
-        "word variance-reporter, payroll-reconciler": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows",
-        "word vlt_00000000000000000000000003 \u00b7 4 secrets": "When its page is redesigned: the routines list, a routine's fires and a vault's detail, drawn as list rows"
-      }
+      "pending": {}
     }
   ]
 }

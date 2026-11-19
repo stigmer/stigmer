@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "../button/Button.js";
+import { Button, type ButtonSize } from "../button/Button.js";
 import { PermissionGate } from "../grant/PermissionGate.js";
 import { ManageAccessDialog } from "./ManageAccessDialog.js";
 import type {
@@ -17,6 +17,12 @@ export interface ManageAccessButtonProps {
   readonly visibility?: AccessVisibility;
   /** Button label. @default "Manage access" */
   readonly label?: string;
+  /**
+   * The trigger's size: `xs` (28px) beside a row's other small acts, `sm`
+   * (32px) as a page header's act, beside the header's other buttons.
+   * @default "xs"
+   */
+  readonly size?: ButtonSize;
   /** Additional CSS classes for the trigger button. */
   readonly className?: string;
 }
@@ -51,6 +57,7 @@ export function ManageAccessButton({
   resource,
   visibility,
   label = "Manage access",
+  size = "xs",
   className,
 }: ManageAccessButtonProps) {
   const [open, setOpen] = useState(false);
@@ -60,7 +67,7 @@ export function ManageAccessButton({
       resource={{ kind: resource.kindString, id: resource.id }}
       relation="can_view_access"
     >
-      <Button variant="outline" size="xs" icon={<ShareIcon />} onClick={() => setOpen(true)} className={className}>
+      <Button variant="outline" size={size} icon={<ShareIcon />} onClick={() => setOpen(true)} className={className}>
         {label}
       </Button>
       <ManageAccessDialog

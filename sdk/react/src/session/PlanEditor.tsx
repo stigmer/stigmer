@@ -19,6 +19,7 @@ import type { SessionPlan } from "../library/detect-plan-file.js";
 import type { PlanDraftController } from "./usePlanDraft.js";
 import { PlanCardHeader, planSubline } from "../run/PlanCard.js";
 import { TextArea } from "../internal/form/index.js";
+import { CodeBlock } from "../internal/CodeBlock.js";
 
 /** Props for {@link PlanEditor}. */
 export interface PlanEditorProps {
@@ -206,9 +207,7 @@ export function PlanEditor({
 
       {activeView === "rendered" && <RenderedPlan body={parsed.body} />}
       {activeView === "source" && (
-        <pre className="stg:overflow-x-auto stg:rounded-md stg:bg-muted stg:p-3 stg:font-mono stg:text-xs stg:whitespace-pre-wrap stg:text-foreground">
-          {effectiveText}
-        </pre>
+        <CodeBlock box wrap>{effectiveText}</CodeBlock>
       )}
       {activeView === "edit" && activeDraft !== undefined && (
         <TextArea

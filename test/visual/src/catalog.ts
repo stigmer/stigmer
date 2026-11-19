@@ -773,7 +773,7 @@ const SETTINGS_SCENES = [
   { id: "settings-members-remove", title: "Settings, Members: Remove asked first, in Katherine Johnson's row", widths: ["desktop"], opens: "Remove Katherine Johnson" },
   { id: "settings-members-failed", title: "Settings, Members: the people could not be read", widths: ["desktop"] },
   { id: "settings-members-member", title: "Settings, Members: as a member, who may not change roles", widths: ["desktop"] },
-  { id: "settings-vaults-member", title: "Settings, Vaults: as a member, who may not make a shared vault", widths: ["desktop"] },
+  { id: "settings-vaults-member", title: "Settings, Vaults: as a member, who may not make a shared vault and has none shared with them", widths: ["desktop"] },
   { id: "settings-vaults-delete", title: "Settings, Vaults: Delete asked first, on the Production vault", widths: ["desktop"], opens: [{ press: "Production", role: "button" }, "Delete vault"] },
   { id: "settings-service-accounts", title: "Settings, Service accounts: the CI deploy account", widths: ["desktop", "narrow"] },
   { id: "settings-service-accounts-empty", title: "Settings, Service accounts: none yet", widths: ["desktop"] },

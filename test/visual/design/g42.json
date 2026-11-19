@@ -307,12 +307,11 @@
         "word Authorization URL": "The drawing's example data; the scene shows its own fixture's",
         "word https://linear.app/oauth/authorize": "The drawing's example data; the scene shows its own fixture's",
         "word Token URL": "The drawing's example data; the scene shows its own fixture's",
-        "word https://api.linear.app/oauth/token": "The drawing's example data; the scene shows its own fixture's"
+        "word https://api.linear.app/oauth/token": "The drawing's example data; the scene shows its own fixture's",
+        "word Its endpoints": "The scene's app is the GitHub preset, whose endpoints are the provider's own and not listed; the drawing's Linear app has its own"
       },
       "ruled": {},
-      "pending": {
-        "word Its endpoints": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "pending": {}
     },
     {
       "caption": "OAuth apps: New OAuth app, a field missing (Advanced stays a disclosure)",
@@ -541,12 +540,11 @@
         }
       ],
       "sample": {
-        "word Sign-ins at linear.app and mcp.linear.app go back to Stigmer's own app, if there is one.": "The drawing's example data; the scene shows its own fixture's"
+        "word Sign-ins at linear.app and mcp.linear.app go back to Stigmer's own app, if there is one.": "The drawing's example data; the scene shows its own fixture's",
+        "word Delete Linear (acme)?": "The drawing's example data; the scene's app is github"
       },
       "ruled": {},
-      "pending": {
-        "word Delete Linear (acme)?": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "pending": {}
     },
     {
       "caption": "OAuth apps: Delete, working: the act busy, Cancel held",

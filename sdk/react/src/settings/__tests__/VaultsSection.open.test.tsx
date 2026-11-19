@@ -2,15 +2,16 @@
  * The Vaults page opens a shared vault in place: pressing its row hands the
  * page the vault, the page names it with a way back to the vaults, and My
  * vault and the list give way to the open vault until the way back is
- * pressed; a change to the open vault's visibility re-reads the list. The
- * list panel, My vault and the access button are stubbed.
+ * pressed; a change to the open vault's visibility re-reads the list. Its
+ * Who can use is a page header's act (32px), like every detail header's.
+ * The list panel, My vault and the access button are stubbed.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { VaultSchema, type Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 
-const list = vi.hoisted(() => ({ refetches: 0 }));
+const list = vi.hoisted(() => ({ refetches: 0, accessSize: undefined as string | undefined }));
 
 const PRODUCTION = create(VaultSchema, {
   metadata: { id: "vlt_prod", name: "Production", org: "org_acme" },
@@ -29,14 +30,25 @@ vi.mock("../../vault/useVaultSignIn.js", () => ({
   useVaultSignIn: () => ({ signIn: async () => {}, isInProgress: false, error: null }),
 }));
 vi.mock("../../access/ManageAccessButton.js", () => ({
-  ManageAccessButton: ({ label, visibility }: { label: string; visibility?: { onChanged?: () => void } }) => (
-    <>
-      <button type="button">{label}</button>
-      <button type="button" onClick={() => visibility?.onChanged?.()}>
-        Make it shared
-      </button>
-    </>
-  ),
+  ManageAccessButton: ({
+    label,
+    visibility,
+    size,
+  }: {
+    label: string;
+    visibility?: { onChanged?: () => void };
+    size?: string;
+  }) => {
+    list.accessSize = size;
+    return (
+      <>
+        <button type="button">{label}</button>
+        <button type="button" onClick={() => visibility?.onChanged?.()}>
+          Make it shared
+        </button>
+      </>
+    );
+  },
 }));
 vi.mock("../../vault/VaultListPanel.js", () => ({
   VaultListPanel: ({
@@ -66,6 +78,7 @@ import { VaultsSection } from "../VaultsSection";
 afterEach(() => {
   cleanup();
   list.refetches = 0;
+  list.accessSize = undefined;
 });
 
 describe("VaultsSection, a vault opened in place", () => {
@@ -78,11 +91,12 @@ describe("VaultsSection, a vault opened in place", () => {
     expect(screen.getByText("The keys the production agents run with")).toBeTruthy();
     expect(screen.getByText("Production's sections")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Who can use" })).toBeTruthy();
-    expect(screen.queryByRole("heading", { name: "My vault" })).toBeNull();
+    expect(list.accessSize).toBe("sm");
+    expect(screen.queryByRole("heading", { name: "My vault You" })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Vaults" }));
     expect(screen.getByRole("heading", { name: "Vaults" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "My vault" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "My vault You" })).toBeTruthy();
   });
 
   it("re-reads the vaults once the open vault's visibility changes", () => {

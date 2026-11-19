@@ -29,6 +29,7 @@ function client(subscribed: boolean): Stigmer {
       getPeriodEstimate: async () => TEAM_ESTIMATE,
       getAgentHours: async () => FREE_HOURS,
     },
+    platform: { getServerInfo: async () => ({ singleOrg: false }) },
     grant: { checkMyPermission: async () => ({ isAuthorized: true }) },
   } as unknown as Stigmer;
 }

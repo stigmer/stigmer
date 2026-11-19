@@ -118,12 +118,11 @@
         "button Copy the link Engineering team invite": "The drawing's example data; the scene shows its own fixture's",
         "button Revoke Engineering team invite": "The drawing's example data; the scene shows its own fixture's",
         "button Copy the link For Katherine": "The drawing's example data; the scene shows its own fixture's",
-        "button Revoke For Katherine": "The drawing's example data; the scene shows its own fixture's"
+        "button Revoke For Katherine": "The drawing's example data; the scene shows its own fixture's",
+        "word Admin · One person only · not used yet": "The drawing's example data; the scene's second link is External auditors, a Viewer link for up to ten people"
       },
       "ruled": {},
-      "pending": {
-        "word Admin · One person only · not used yet": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "pending": {}
     },
     {
       "caption": "Invitations: A link just made: copy it now",
@@ -512,12 +511,12 @@
           "height": 32
         }
       ],
-      "sample": {},
+      "sample": {
+        "word Revoke Engineering team invite?": "The drawing's example data; the scene revokes the Finance team link",
+        "word The link stops working at once. The three people who joined with it stay in acme.": "The drawing's example data; two people joined with the scene's link"
+      },
       "ruled": {},
-      "pending": {
-        "word Revoke Engineering team invite?": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "word The link stops working at once. The three people who joined with it stay in acme.": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "pending": {}
     },
     {
       "caption": "Invitations: Revoke, working: the act busy, Cancel held",
@@ -884,10 +883,7 @@
         "word Stuck? Ask IT on Slack": "The drawing's example data; the scene shows its own fixture's"
       },
       "ruled": {},
-      "pending": {
-        "word New invite link": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides",
-        "button New invite link": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "pending": {}
     },
     {
       "caption": "Invitations: At 390 wide",
@@ -1003,12 +999,11 @@
         "button Copy the link Engineering team invite": "The drawing's example data; the scene shows its own fixture's",
         "button Revoke Engineering team invite": "The drawing's example data; the scene shows its own fixture's",
         "button Copy the link For Katherine": "The drawing's example data; the scene shows its own fixture's",
-        "button Revoke For Katherine": "The drawing's example data; the scene shows its own fixture's"
+        "button Revoke For Katherine": "The drawing's example data; the scene shows its own fixture's",
+        "word Admin · One person only · not used yet": "The drawing's example data; the scene's second link is External auditors, a Viewer link for up to ten people"
       },
       "ruled": {},
-      "pending": {
-        "word Admin · One person only · not used yet": "After the settings Built look's fix the build keeps its own line or size here (a count, the scene's example, or a part the fix did not redraw); the next look decides"
-      }
+      "pending": {}
     }
   ]
 }

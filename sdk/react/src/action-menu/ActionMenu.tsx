@@ -114,7 +114,7 @@ function Item({
         <span>{children}</span>
       </span>
       {shortcut && (
-        <kbd className="stg:ml-auto stg:text-2xs stg:tracking-widest stg:text-muted-foreground-subtle">
+        <kbd className="stg:ml-auto stg:text-2xs stg:tracking-widest stg:text-muted-foreground">
           {shortcut}
         </kbd>
       )}
