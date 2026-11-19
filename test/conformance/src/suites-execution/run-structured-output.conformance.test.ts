@@ -22,7 +22,7 @@
 //   the result as the final response; intermediate debug output comes first);
 // - a trailing comma is repaired, not a failure;
 // - prose with no JSON is handed to tier 2: the extractor's reply populates
-//   the field, and the mock sees that second call — a tool named `extract`,
+//   the field, and the mock sees that second call — a tool named `StructuredOutput`,
 //   no agent system prompt — and nothing more;
 // - an extraction miss never fails a run: when the extractor itself answers
 //   in prose (no tool call), the field stays absent and the run COMPLETED;
@@ -224,16 +224,17 @@ describe("Run structured output — extraction from the final message", () => {
     const final = await runWithSchema(
       "# Blue Color Analysis\n\nBlue is a primary color associated with calm and serenity.\n\n## Key Points\n\n- Often used in corporate branding\n- Score: approximately 8 out of 10 for positive associations",
       SUMMARY_SCORE_SCHEMA,
-      anthropicToolUse("toolu_extract_1", "extract", { summary: "Blue: calm, serene, corporate", score: 8 }),
+      anthropicToolUse("toolu_extract_1", "StructuredOutput", { summary: "Blue: calm, serene, corporate", score: 8 }),
     );
     expect(await structuredOutputOf(final)).toEqual({ summary: "Blue: calm, serene, corporate", score: 8 });
     expect(mock.consumed(), "the agent's turn, then exactly one extraction call").toBe(2);
 
     // The second call is the extractor's, not another agent turn: it binds the
-    // one function-calling tool `extract`, and its system prompt is the
+    // one function-calling tool `StructuredOutput` (the answer form, runner
+    // shared/answer-form.ts), and its system prompt is the
     // extractor's own sentence, not the agent's instructions.
     const extraction = mock.requests().at(-1)?.body as { tools?: Array<{ name: string }>; system?: unknown } | undefined;
-    expect(extraction?.tools?.map((t) => t.name), "the extractor binds the schema as one tool").toEqual(["extract"]);
+    expect(extraction?.tools?.map((t) => t.name), "the extractor binds the schema as one tool").toEqual(["StructuredOutput"]);
     const extractorSystem = JSON.stringify(extraction?.system ?? "");
     expect(extractorSystem).toContain("Extract the structured data");
     expect(extractorSystem, "the extractor is not the agent").not.toContain("Answer the question");
@@ -303,6 +304,9 @@ describe("Run structured output — on Claude", () => {
     const final = await awaitTerminal(clients, executionId);
     expect(final.status?.phase, `the Claude turn: ${final.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
     expect(await structuredOutputOf(final), "the engine's answer is the turn's").toEqual({ summary: "a greeting", score: 7 });
-    expect(CLAUDE_ARM.loopRequests(mock).some((request) => JSON.stringify(request.body).includes('"name":"extract"')), "no extraction call was needed").toBe(false);
+    // Tier 2 binds a tool of the same name (the answer form, runner
+    // shared/answer-form.ts), so its call is told apart by its own system
+    // sentence.
+    expect(CLAUDE_ARM.loopRequests(mock).some((request) => JSON.stringify(request.body).includes("Extract the structured data")), "no extraction call was needed").toBe(false);
   });
 });
