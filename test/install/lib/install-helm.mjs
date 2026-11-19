@@ -6,18 +6,14 @@
  * (test/install/rehearse-upgrade.mjs).
  *
  * Two levels, because the smoke runs several releases on one cluster:
- *   - the cluster ({@link createKindCluster}): created (or an existing one
- *     named), the host address a pod reaches this machine by, images loaded;
+ *   - the cluster (createKindCluster, from kind-cluster.mjs): created (or an
+ *     existing one named), the host address a pod reaches this machine by,
+ *     images loaded;
  *   - a release in a namespace ({@link createStigmerRelease}): its Secrets,
  *     `helm install` / `helm upgrade` / `helm uninstall`, a port-forward to
  *     the product's ports, the images it runs, its diagnostics.
  *
- * The caller's kubeconfig is never changed. A cluster this module creates
- * gets a kubeconfig file of its own, and every kind, kubectl and helm call
- * names --kubeconfig and the context explicitly; an existing cluster
- * (--cluster) is addressed in the caller's kubeconfig by --context alone.
- * Nothing runs `kubectl config use-context`, which would leave a developer's
- * kubectl with no current context (#1561).
+ * The caller's kubeconfig is never changed (kind-cluster.mjs says how).
  *
  * A release is configured the way the chart's README tells a user to: the
  * chart's Secret by secrets.existingSecret, the model's key by
@@ -28,17 +24,16 @@
  * Plain node and the helm, kind, kubectl and docker CLIs, no dependencies.
  */
 
-import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { mkdtempSync, rmSync } from "node:fs";
 import { connect } from "node:net";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
-import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { FAKE_MODEL_API_KEY } from "./fake-model.mjs";
-import { buildSourceImages } from "./install-compose.mjs";
+import { SOURCE_TAG } from "./kind-cluster.mjs";
 import { pollUntil } from "./stigmer-smoke.mjs";
+
+// The cluster lifecycle is shared with the operator's install test.
+export { createKindCluster } from "./kind-cluster.mjs";
 
 const repoRoot = fileURLToPath(new URL("../../..", import.meta.url));
 
@@ -52,11 +47,6 @@ export const RELEASE = "stigmer";
 export const HELM_SERVER_PORT = 7234;
 export const HELM_ARTIFACT_PORT = 7235;
 
-/** The chart's two repositories; a source build is tagged under them. */
-const IMAGE_REGISTRY = "ghcr.io/stigmer";
-const SOURCE_TAG = "compose-dev";
-/** The tag the Enterprise image smoke builds its local image under (ee/server/scripts/smoke-image.mjs, LOCAL_TAG). */
-const ENTERPRISE_LOCAL_TAG = "stigmer-server-ee:smoke-local";
 /** The Secret each release's namespace carries for runner.llm.existingSecret. */
 const LLM_SECRET = "stigmer-smoke-llm";
 // First install pulls or loads two large images, starts Postgres, lets
@@ -84,116 +74,6 @@ export function chartFor(release, { chart } = {}) {
   if (release.kind === "build") return { chart: chart ?? CHECKOUT_CHART, imageTag: SOURCE_TAG, pullNever: true };
   if (chart !== undefined) return { chart, imageTag: `v${release.version}` };
   return { chart: PUBLISHED_CHART, version: release.version };
-}
-
-/**
- * A kind cluster: `existing` names one the caller owns (left as found);
- * otherwise one is created on `start` and deleted on `stop`.
- */
-export function createKindCluster({ existing = "", log }) {
-  const own = existing === "";
-  const name = own ? `stigmer-helm-smoke-${Date.now()}` : existing;
-  const workDir = mkdtempSync(join(tmpdir(), "stigmer-kind-"));
-  const kubeconfig = own ? join(workDir, "kubeconfig") : undefined;
-  const context = `kind-${name}`;
-  const kubeconfigFlag = kubeconfig === undefined ? [] : ["--kubeconfig", kubeconfig];
-  const run = (command, args, options = {}) =>
-    execFileSync(command, args, { cwd: repoRoot, encoding: "utf8", ...options });
-
-  const cluster = {
-    name,
-    own,
-    kubeconfig,
-    context,
-    async start() {
-      if (!own) return;
-      log(`kind create cluster ${name}`);
-      run("kind", ["create", "cluster", "--name", name, ...kubeconfigFlag, "--wait", "120s"], { stdio: "inherit" });
-    },
-    kubectl: (args, options = {}) => run("kubectl", [...kubeconfigFlag, "--context", context, ...args], options),
-    kubectlJson: (args) => JSON.parse(cluster.kubectl([...args, "-o", "json"])),
-    /** A kubectl that runs in the background (a port-forward); the caller ends it. */
-    spawnKubectl: (args, options = {}) => spawn("kubectl", [...kubeconfigFlag, "--context", context, ...args], options),
-    /** kubectl without throwing, for diagnostics. */
-    kubectlQuiet: (args) => spawnSync("kubectl", [...kubeconfigFlag, "--context", context, ...args], { encoding: "utf8" }),
-    helm: (args, options = {}) => run("helm", [...kubeconfigFlag, "--kube-context", context, ...args], options),
-    /**
-     * The name a pod on this cluster reaches the host by. Docker Desktop
-     * resolves host.docker.internal inside the node (and so, through
-     * CoreDNS, in every pod) and does not route the kind network's gateway to
-     * the host; Linux Docker does the reverse. The node's own resolver decides.
-     */
-    hostAddress() {
-      const resolved = spawnSync(
-        "docker",
-        ["exec", `${name}-control-plane`, "getent", "hosts", "host.docker.internal"],
-        { encoding: "utf8" },
-      );
-      if (resolved.status === 0 && resolved.stdout.trim() !== "") return "host.docker.internal";
-      const gateways = run("docker", ["network", "inspect", "kind", "--format", "{{range .IPAM.Config}}{{.Gateway}} {{end}}"])
-        .trim()
-        .split(/\s+/)
-        .filter((gateway) => /^\d+\.\d+\.\d+\.\d+$/.test(gateway));
-      if (gateways.length === 0) {
-        throw new Error("no way to reach the host from kind: host.docker.internal does not resolve and the kind network has no IPv4 gateway");
-      }
-      return gateways[0];
-    },
-    /**
-     * The host address as a CIDR of one address, for a fenced release's
-     * egressPolicy.allowedCidrs: the fake model listens on this host, which a
-     * pod reaches on a private address (Docker Desktop's host.docker.internal,
-     * or the kind network's gateway).
-     */
-    hostCidr() {
-      const host = cluster.hostAddress();
-      let address = host;
-      if (!/^[0-9.]+$/.test(host) && !host.includes(":")) {
-        const resolved = run("docker", ["exec", `${name}-control-plane`, "getent", "ahostsv4", host]).trim();
-        address = resolved.split(/\s+/)[0];
-      }
-      return address.includes(":") ? `${address}/128` : `${address}/32`;
-    },
-    /**
-     * Both images built from source (compose's build, install-compose.mjs),
-     * tagged as the chart's repositories at `compose-dev`, and loaded into
-     * the node.
-     */
-    loadSourceImages() {
-      const built = buildSourceImages({ log });
-      for (const [local, repository] of [
-        [built.server, "stigmer-server"],
-        [built.runner, "stigmer-runner"],
-      ]) {
-        const tagged = `${IMAGE_REGISTRY}/${repository}:${SOURCE_TAG}`;
-        run("docker", ["tag", local, tagged]);
-        log(`kind load docker-image ${tagged}`);
-        run("kind", ["load", "docker-image", tagged, "--name", name], { stdio: "inherit" });
-      }
-    },
-    /**
-     * The Stigmer Enterprise image built from source by its own smoke's
-     * build (`make bundle-ee-slim` first, for ee/server/dist-slim), tagged
-     * as the chart's enterprise repository at `compose-dev`, and loaded.
-     */
-    loadEnterpriseSourceImage() {
-      log("building stigmer-server-ee through its image smoke (--build-only)");
-      run(process.execPath, [join(repoRoot, "ee", "server", "scripts", "smoke-image.mjs"), "--build-only"], { stdio: "inherit" });
-      const tagged = `${IMAGE_REGISTRY}/stigmer-server-ee:${SOURCE_TAG}`;
-      run("docker", ["tag", ENTERPRISE_LOCAL_TAG, tagged]);
-      log(`kind load docker-image ${tagged}`);
-      run("kind", ["load", "docker-image", tagged, "--name", name], { stdio: "inherit" });
-    },
-    /** Delete a cluster this module created (unless `keep`); an existing one is left. */
-    async stop({ keep = false } = {}) {
-      if (own && keep) log(`--keep: cluster ${name} left running (kubeconfig ${kubeconfig})`);
-      if (own && !keep) {
-        spawnSync("kind", ["delete", "cluster", "--name", name, ...kubeconfigFlag], { stdio: "inherit" });
-        rmSync(workDir, { recursive: true, force: true });
-      }
-    },
-  };
-  return cluster;
 }
 
 /**

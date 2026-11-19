@@ -59,7 +59,7 @@ skill" when it could be misread.
   source is named. Nothing in it is installed unasked.
 - `docs/` and `site/`: documentation content (MDX, Vale, Prettier) and the
   Fumadocs site; `docs-agent/`: the Ask AI agent.
-- `deploy/`: Helm chart and all-in-one image; `examples/`; `marketing/`;
+- `deploy/`: Helm chart, operator, all-in-one image; `examples/`; `marketing/`;
   `blog/`.
 - `scripts/`: repo-level Node scripts, each with a `*.test.mjs` sibling run by
   `npm run test:scripts`.
@@ -75,13 +75,13 @@ Root `package.json` is an npm workspace driven by Turborepo (`turbo.json`); Node
 is pinned in `.nvmrc`. Standalone packages with their own lockfiles, run from
 their directory: `backend/services/stigmer-server`, `backend/services/runner`,
 `ee/server`. `site/` uses yarn 4. `sdk/python` uses uv. Go modules are joined by
-`go.work`. Rust lives in `crates/` and `client-apps/desktop/src-tauri`. Prettier
-formats `docs/` and the guidance files with `proseWrap: always`; Vale lints
-`docs/` only.
+`go.work` except `deploy/operator`. Rust lives in `crates/` and
+`client-apps/desktop/src-tauri`. Prettier formats `docs/` and the guidance files
+with `proseWrap: always`; Vale lints `docs/` only.
 
 ## Commands
 
-- `make help` lists every target and its purpose; the Makefile orchestrates.
+- `make help` lists every target.
 - `make setup` once; `make check` is the full local CI gate (`check-prep` then
   parallel `check-go check-node check-site check-rust check-java`) and needs no
   other setup.
@@ -93,7 +93,7 @@ formats `docs/` and the guidance files with `proseWrap: always`; Vale lints
   needs the `temporal` and `stigmer` CLIs.
 - Docs:
   `make lint-docs format-docs check-docs-yaml check-docs-inventory build-site`.
-- Guidance: `make agents-sync` regenerates the Cursor shims; `make agents-check`
+- Guidance: `make agents-sync` regenerates Cursor shims; `make agents-check`
   verifies them and every cited path.
 
 ## Verification map
@@ -121,8 +121,9 @@ summary line in the final message. Never report unverified work as done.
 - `test/conformance/**`, `test/support/**`:
   `npm run typecheck -w @stigmer/conformance -w @stigmer/test-support && make check-conformance-inventory`;
   suites under `test/conformance/src/suites/` also `make test-conformance`.
-- `plugins/**`: `make test-plugins-static`. `deploy/helm/**`:
-  `make lint-helm test-helm`.
+- `plugins/**`: `make test-plugins-static`. `deploy/helm/stigmer/**`:
+  `make lint-helm test-helm`. `deploy/operator/**`,
+  `deploy/helm/stigmer-operator/**`: `make lint-operator test-operator`.
 - `docs/**`, `site/**`:
   `make lint-docs format-docs-check check-docs-yaml check-docs-inventory build-site`,
   `make -C site lint typecheck`.

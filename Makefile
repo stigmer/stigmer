@@ -848,6 +848,34 @@ smoke-helm-enterprise: build-server build-web stage-compose-runner-cli bundle-ee
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
 	node test/install/smoke-helm.mjs --build --profiles=enterprise
 
+# The Stigmer operator (deploy/operator, its own Go module outside go.work,
+# and its chart deploy/helm/stigmer-operator). build/test/lint delegate to
+# the module's Makefile, which pins its tools; smoke-operator is its install
+# test on kind (test/install/smoke-operator.mjs), one profile at a time:
+# PROFILE=bundled (the default), byo, or enterprise, which builds the
+# Enterprise image too.
+OPERATOR_DIR := deploy/operator
+OPERATOR_CHART_DIR := deploy/helm/stigmer-operator
+PROFILE ?= bundled
+
+.PHONY: build-operator test-operator lint-operator smoke-operator
+build-operator: ## Build the Stigmer operator's binary (deploy/operator)
+	$(MAKE) -C $(OPERATOR_DIR) build
+
+test-operator: ## Run the operator's unit and envtest suites, the Compose parity contract included
+	$(MAKE) -C $(OPERATOR_DIR) test
+
+lint-operator: ## gofmt, go vet, go mod tidy and generated files for the operator; helm lint of its chart (needs helm)
+	$(MAKE) -C $(OPERATOR_DIR) lint
+	@command -v helm >/dev/null 2>&1 || { echo "error: helm not found"; exit 1; }
+	helm lint --strict $(OPERATOR_CHART_DIR)
+
+smoke-operator: build-server build-web stage-compose-runner-cli ## Build the images and the operator from source and run the operator's install test on kind, PROFILE=bundled|byo|enterprise (needs Docker, kind, helm, kubectl)
+	@for tool in docker kind helm kubectl; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the operator's install test needs it"; exit 1; }; done
+	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
+	@if [ "$(PROFILE)" = "enterprise" ]; then $(MAKE) bundle-ee-slim; fi
+	node test/install/smoke-operator.mjs --profiles=$(PROFILE)
+
 # The upgrade rehearsal (test/install/rehearse-upgrade.mjs): one install moved from
 # the newest published release to THIS checkout by the procedure its guide
 # gives a user, then proven to have kept what the old release stored. Each

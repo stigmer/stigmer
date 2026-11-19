@@ -213,6 +213,11 @@ func TestTaskQueueIsOneValueOnBothSides(t *testing.T) {
 }
 
 func repository(image string) string {
+	// Compose's tag is an interpolation (${STIGMER_VERSION:-v0.2.0}) that
+	// carries a colon of its own.
+	if i := strings.Index(image, ":${"); i >= 0 {
+		return image[:i]
+	}
 	if i := strings.LastIndex(image, ":"); i > strings.LastIndex(image, "/") {
 		return image[:i]
 	}

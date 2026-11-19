@@ -104,6 +104,7 @@ jobs:
       install-script: ${{ steps.select.outputs.install-script }}
       java-sdk: ${{ steps.select.outputs.java-sdk }}
       libs-install: ${{ steps.select.outputs.libs-install }}
+      operator: ${{ steps.select.outputs.operator }}
       plugins-static: ${{ steps.select.outputs.plugins-static }}
       proto-breaking: ${{ steps.select.outputs.proto-breaking }}
       runner: ${{ steps.select.outputs.runner }}
@@ -247,6 +248,11 @@ jobs:
     if: needs.lanes.outputs.sdk-quickstarts == 'true'
     uses: ./.github/workflows/ci.sdk-quickstarts.yaml
 
+  operator:
+    needs: lanes
+    if: needs.lanes.outputs.operator == 'true'
+    uses: ./.github/workflows/ci.operator.yaml
+
   plugins-static:
     needs: lanes
     if: needs.lanes.outputs.plugins-static == 'true'
@@ -350,7 +356,7 @@ jobs:
 
   gate:
     name: Gate
-    needs: [lanes, agent-sandbox, all-in-one, authorization-model, cli-up, codegen, compose-stack, conformance, conformance-enterprise, conformance-execution, crate, docs, docs-snippets, e2e-interactive, ee, go-sdk, helm-chart, install-script, java-sdk, libs-install, plugins-static, proto-breaking, runner, sdk-quickstarts, stigmer-server, ts-workspace, upgrade-rehearsal, workflows, coverage]
+    needs: [lanes, agent-sandbox, all-in-one, authorization-model, cli-up, codegen, compose-stack, conformance, conformance-enterprise, conformance-execution, crate, docs, docs-snippets, e2e-interactive, ee, go-sdk, helm-chart, install-script, java-sdk, libs-install, operator, plugins-static, proto-breaking, runner, sdk-quickstarts, stigmer-server, ts-workspace, upgrade-rehearsal, workflows, coverage]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 10

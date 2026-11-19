@@ -60,32 +60,42 @@ func (Temporal) Reconcile(ctx context.Context, env *Env) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	applied := make([]client.Object, 0, len(objs))
-	for _, o := range objs {
-		applied = append(applied, o)
-	}
-	if err := Apply(ctx, env, applied...); err != nil {
-		return Result{}, err
-	}
 
-	var schemaJob, namespaceJob string
+	// Applied in the order Temporal comes up, so no server pod starts on a
+	// database without its schema and the namespace Job never retries
+	// against a frontend that is not there: first everything but the
+	// services and the namespace Job (configuration, Services, the schema
+	// Job), then the services once the schema is in, then the namespace Job
+	// once they are ready. Each stage is re-applied on every pass.
+	var first, services []client.Object
+	var namespaceObj *unstructured.Unstructured
+	var schemaJob string
 	var deployments []*unstructured.Unstructured
 	for _, o := range objs {
 		switch {
-		case o.GetKind() == "Job" && strings.HasPrefix(o.GetName(), render.TemporalSchemaJobPrefix(st)):
-			schemaJob = o.GetName()
 		case o.GetKind() == "Job" && strings.HasPrefix(o.GetName(), render.TemporalNamespaceJobPrefix(st)):
-			namespaceJob = o.GetName()
+			namespaceObj = o
 		case o.GetKind() == "Deployment":
 			deployments = append(deployments, o)
+			services = append(services, o)
+		default:
+			if o.GetKind() == "Job" && strings.HasPrefix(o.GetName(), render.TemporalSchemaJobPrefix(st)) {
+				schemaJob = o.GetName()
+			}
+			first = append(first, o)
 		}
 	}
-
+	if err := Apply(ctx, env, first...); err != nil {
+		return Result{}, err
+	}
 	if schemaJob != "" {
 		done, res, err := jobStanding(ctx, env, schemaJob, stigmerv1.ReasonWaitingForSchema, "setting up Temporal's database schema")
 		if err != nil || !done {
 			return res, err
 		}
+	}
+	if err := Apply(ctx, env, services...); err != nil {
+		return Result{}, err
 	}
 	for _, d := range deployments {
 		var live appsv1.Deployment
@@ -99,8 +109,11 @@ func (Temporal) Reconcile(ctx context.Context, env *Env) (Result, error) {
 		return Explain(ctx, env, selector, nil, Deploying(stigmerv1.ReasonDeploying,
 			Ref("Deployment", st.Namespace, d.GetName()), fmt.Sprintf("waiting for Temporal's %s to come up", d.GetName())))
 	}
-	if namespaceJob != "" {
-		done, res, err := jobStanding(ctx, env, namespaceJob, stigmerv1.ReasonDeploying,
+	if namespaceObj != nil {
+		if err := Apply(ctx, env, namespaceObj); err != nil {
+			return Result{}, err
+		}
+		done, res, err := jobStanding(ctx, env, namespaceObj.GetName(), stigmerv1.ReasonDeploying,
 			fmt.Sprintf("registering Temporal namespace %s", render.TemporalNamespace))
 		if err != nil || !done {
 			return res, err

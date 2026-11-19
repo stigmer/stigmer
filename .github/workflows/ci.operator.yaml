@@ -1,0 +1,114 @@
+# =============================================================================
+# Operator — the Stigmer operator's gate
+# =============================================================================
+# Proves deploy/operator (its own Go module) and its chart,
+# deploy/helm/stigmer-operator:
+#   - checks: gofmt, go vet, go mod tidy, generated files current, helm lint
+#     of the chart, then the unit and envtest suites (the definition's CEL
+#     rules on a real API server, the controller's walk, and the Compose
+#     parity contract that holds the server's and runner's settings to
+#     docker-compose.yml). No cluster.
+#   - kind-gate: the server and runner images built from source through
+#     docker-compose.dev.yml, the operator built from its Dockerfile, all
+#     loaded into kind; the operator installed with its chart; the bundled
+#     and bring-your-own profiles of test/install/smoke-operator.mjs, one
+#     cluster each, in parallel: Ready with zero restarts, an agent run end
+#     to end, the arms.
+#     The enterprise profile builds the Enterprise image and runs on
+#     request (make smoke-operator PROFILE=enterprise), as the chart's does.
+#
+# When it runs (its list in scripts/ci-lanes.mjs): the operator's surface.
+# =============================================================================
+
+name: ci.operator
+
+on:
+  # Called by ci.gate.yaml when scripts/ci-lanes.mjs finds the change needs
+  # this lane (the path list and its reasons live there); `Gate` is the
+  # required check.
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Pinned tool versions: a floating tool is a flaky gate.
+  HELM_VERSION: v3.16.2
+  KIND_VERSION: v0.31.0
+  STIGMER_TEST_GATE: "1"
+
+jobs:
+  checks:
+    name: Lint, envtest and Compose parity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      # The module's own go.mod names its toolchain; it is outside go.work.
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: deploy/operator/go.mod
+          cache-dependency-path: deploy/operator/go.sum
+
+      - name: Install helm (pinned)
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz" | tar -xz -C /tmp
+          sudo install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
+          helm version --short
+
+      - name: gofmt, vet, tidy, generated files, helm lint
+        run: make lint-operator
+
+      - name: Unit and envtest suites
+        run: make test-operator
+
+  kind-gate:
+    name: Kind Gate (${{ matrix.profile }}, build-from-source)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    # One profile per job, in parallel: each fits the merge queue's cap.
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [bundled, byo]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Restore the Turbo cache
+        uses: ./.github/actions/turbo-cache
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Install helm and kind (pinned)
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz" | tar -xz -C /tmp
+          sudo install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
+          curl -fsSL -o /tmp/kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
+          sudo install -m 0755 /tmp/kind /usr/local/bin/kind
+          helm version --short && kind version && kubectl version --client
+
+      # make smoke-operator = build-server + build-web +
+      # stage-compose-runner-cli + bundle-slim + the install test (docker
+      # compose build, the operator's docker build, kind create, kind load,
+      # helm install of the operator, the profiles). One entry point,
+      # identical to what a contributor runs locally.
+      - name: Build from source, install the operator on kind and run the profile
+        run: make smoke-operator PROFILE=${{ matrix.profile }}

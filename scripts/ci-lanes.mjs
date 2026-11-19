@@ -659,7 +659,7 @@ export const LANES = {
   },
   "ci.helm-chart.yaml": {
     paths: [
-      "deploy/helm/**",
+      "deploy/helm/stigmer/**",
       // The parity test reads the compose file: a compose-only change must
       // run it, or the drift it exists to catch merges green.
       "docker-compose.yml",
@@ -797,6 +797,44 @@ export const LANES = {
       "package.json",
       "package-lock.json",
       ".github/workflows/ci.libs-install.yaml",
+    ],
+  },
+  "ci.operator.yaml": {
+    paths: [
+      "deploy/operator/**",
+      "deploy/helm/stigmer-operator/**",
+      // The byo profile's stand-in Postgres and Temporal.
+      "deploy/helm/stigmer/ci/byo-infra.yaml",
+      // The parity test reads the compose file: a compose-only change must
+      // run it, or the drift it exists to catch merges green.
+      "docker-compose.yml",
+      "test/install/smoke-operator.mjs",
+      "scripts/lib/**",
+      // The install layer's drivers and probes, and the two test/support
+      // modules it loads (the fake model and its wire).
+      "test/install/lib/**",
+      "site/src/lib/snippet-setup.mjs",
+      "test/support/src/fake-llm-upstream.ts",
+      "test/support/src/llm-wire.ts",
+      // The kind gate builds the compose images (ci.helm-chart says why
+      // each of these is what they contain).
+      "scripts/stage-compose-runner-cli.mjs",
+      "scripts/publish-libs.mjs",
+      "backend/services/runner/Dockerfile.sandbox",
+      "backend/services/runner/layer/**",
+      "backend/services/runner/scripts/bundle-slim.mjs",
+      "backend/services/runner/scripts/claude-engine-pin.mjs",
+      "backend/services/runner/scripts/core-bridge-shim.cjs",
+      "backend/services/runner/scripts/attach-graph-rule.mjs",
+      "backend/services/stigmer-server/scripts/bundle-slim.mjs",
+      "backend/services/runner/src/shared/model-client.ts",
+      "backend/services/runner/src/shared/llm-backend.ts",
+      "backend/services/runner/src/shared/llm-proxy.ts",
+      "Makefile",
+      ".nvmrc",
+      "package.json",
+      "package-lock.json",
+      ".github/workflows/ci.operator.yaml",
     ],
   },
   "ci.plugins-static.yaml": {
@@ -959,7 +997,11 @@ export const LANES = {
       // a changed read can lose the last release's rows as surely as a
       // migration can.
       "backend/services/stigmer-server/src/store/**",
-      "deploy/**",
+      // The artifacts it rehearses; the operator has no release to
+      // rehearse from yet.
+      "deploy/helm/stigmer/**",
+      "deploy/all-in-one/**",
+      "deploy/runner-layer/**",
       "docker-compose.yml",
       ".env.example",
       // The CLI's runtime acquisition and `up`: how its upgrade happens.

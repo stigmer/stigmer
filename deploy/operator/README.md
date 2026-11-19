@@ -17,15 +17,15 @@ spec:
 ```
 
 From that, the operator mints the server's keys, runs Postgres (through
-CloudNativePG, installed if the cluster has none), runs Temporal from
-Temporal's own chart, and runs the Stigmer server with its shared runner.
+CloudNativePG, installed if the cluster has none), runs Temporal from Temporal's
+own chart, and runs the Stigmer server with its shared runner.
 `kubectl get stigmer` says in words what is ready and what it waits for.
-External Postgres and Temporal, sign-in through your own identity provider,
-and Stigmer Enterprise are declared on the same resource;
-`config/samples/` has one of each.
+External Postgres and Temporal, sign-in through your own identity provider, and
+Stigmer Enterprise are declared on the same resource; `config/samples/` has one
+of each.
 
-One operator version runs one Stigmer version (the image tag is stamped into
-the binary), and a cluster holds one operator and one `Stigmer`.
+One operator version runs one Stigmer version (the image tag is stamped into the
+binary), and a cluster holds one operator and one `Stigmer`.
 
 ## What it needs
 
@@ -35,8 +35,8 @@ generated from the controller's markers into `config/rbac/role.yaml`.
 
 ## Working on it
 
-This is its own Go module, outside the repository's root `go.work` (the
-module's `go.work` says why).
+This is its own Go module, outside the repository's root `go.work` (the module's
+`go.work` says why).
 
 ```sh
 make help              # every target
@@ -48,7 +48,7 @@ make docker-build      # ghcr.io/stigmer/stigmer-operator:compose-dev
 
 From the repository root, `make build-operator`, `make test-operator`,
 `make lint-operator`, and the install test on kind,
-`make smoke-operator PROFILE=bundled` (also `byo` and `enterprise`), which
-lives in `test/install/smoke-operator.mjs`.
+`make smoke-operator PROFILE=bundled` (also `byo` and `enterprise`), which lives
+in `test/install/smoke-operator.mjs`.
 
 The operator's chart is `deploy/helm/stigmer-operator`.

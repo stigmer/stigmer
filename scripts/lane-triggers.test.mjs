@@ -1042,6 +1042,7 @@ test("the setup rule still finds the setups and installs it exists for", () => {
     "helm-chart",
     "java-sdk",
     "libs-install",
+    "operator",
     "plugins-static",
     "runner",
     "sdk-quickstarts",
@@ -1113,6 +1114,7 @@ test("the make rule still finds the Makefiles, scripts and lanes it exists for",
     "ee",
     "helm-chart",
     "libs-install",
+    "operator",
     "plugins-static",
     "sdk-quickstarts",
     "stigmer-server",
@@ -1127,6 +1129,7 @@ test("the make rule still finds the Makefiles, scripts and lanes it exists for",
     "compose-stack",
     "ee",
     "helm-chart",
+    "operator",
     "sdk-quickstarts",
     "upgrade-rehearsal",
   ]);
@@ -1138,7 +1141,7 @@ test("the make rule still finds the Makefiles, scripts and lanes it exists for",
   );
   assert.deepEqual(
     readers("scripts/lib/source-version.mjs"),
-    ["all-in-one", "compose-stack", "helm-chart", "upgrade-rehearsal"],
+    ["all-in-one", "compose-stack", "helm-chart", "operator", "upgrade-rehearsal"],
     "named through a variable's $(CURDIR) in the rehearsals, imported by scripts/stage-all-in-one.mjs and scripts/stage-compose-runner-cli.mjs",
   );
   assert.deepEqual(readers("client-apps/cli/scripts/gen-cli-docs.ts"), ["docs"], "a script placed by its subshell's cd");

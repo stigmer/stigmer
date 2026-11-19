@@ -7,9 +7,6 @@
 # and etcd at the Kubernetes minor k8s.io/api names, so the CRD's CEL rules
 # are evaluated exactly as a cluster of that line evaluates them.
 
-SHELL := /usr/bin/env bash -o pipefail
-.SHELLFLAGS := -ec
-
 LOCALBIN := $(CURDIR)/bin
 CONTROLLER_GEN := $(LOCALBIN)/controller-gen
 SETUP_ENVTEST := $(LOCALBIN)/setup-envtest

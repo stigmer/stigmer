@@ -16,10 +16,10 @@ it names are the truth.
 - `internal/component/component.go` header: the component contract, the two
   readers (cached and direct) and when each is used; then `apply.go`,
   `prerequisite.go`, `notready.go`, `secrets.go`.
-- `internal/controller/stigmer_controller.go` header: the walk, the whole-install
-  refusals, one status write per pass.
-- `internal/render/env.go` and `internal/render/parity_test.go`: the server's and
-  the runner's settings and the Compose parity contract that holds them to
+- `internal/controller/stigmer_controller.go` header: the walk, the
+  whole-install refusals, one status write per pass.
+- `internal/render/env.go` and `internal/render/parity_test.go`: the server's
+  and the runner's settings and the Compose parity contract that holds them to
   `docker-compose.yml`.
 - `internal/manifests/README.md`: the embedded CloudNativePG release and
   Temporal chart, and how to move them.
@@ -28,8 +28,9 @@ it names are the truth.
 
 - Generated files are never edited by hand: `api/v1/zz_generated.deepcopy.go`,
   `config/crd/bases/`, `config/rbac/role.yaml`, and their copies in
-  `deploy/helm/stigmer-operator/crds/` and `deploy/helm/stigmer-operator/files/`. Run
-  `make manifests generate` here; `make generated-check` fails a stale copy.
+  `deploy/helm/stigmer-operator/crds/` and
+  `deploy/helm/stigmer-operator/files/`. Run `make manifests generate` here;
+  `make generated-check` fails a stale copy.
 - A reason is a constant in `api/v1/component_reason.go` with a sentence in
   `ReasonMessages`; never a string literal at a call site. A released reason is
   never renamed.
@@ -45,8 +46,8 @@ it names are the truth.
   added there and not rendered here fails `internal/render/parity_test.go`.
 - The operator never caches Secrets it did not label; an adopter's Secret is
   read by name through `Env.Reader`.
-- Nothing private in this public repository: no internal tracker ids, no
-  private paths, no names of other products.
+- Nothing private in this public repository: no internal tracker ids, no private
+  paths, no names of other products.
 
 ## Verification
 
