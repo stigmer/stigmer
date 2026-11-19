@@ -17,6 +17,7 @@ import { maskedEdit, saveErrorMessage } from "@stigmer/react-core/internal";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Tag } from "../internal/surface/Tag.js";
+import { CodeBlock } from "../internal/CodeBlock.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
 import { useManageAccess } from "../access/useManageAccess.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
@@ -1070,17 +1071,17 @@ function InstructionsContent({ text }: { readonly text: string }) {
 
   return (
     <div className="stg:relative stg:p-3">
-      <pre
+      <CodeBlock
         id={contentId}
         ref={contentRef}
-        className={cn(
-          "stg:whitespace-pre-wrap stg:break-words stg:font-mono stg:text-sm stg:text-foreground stg:overflow-y-auto stg:transition-[max-height] stg:duration-200",
-          !expanded && "stg:overflow-hidden",
-        )}
+        size="sm"
+        frame="bare"
+        wrap
+        className={cn("stg:overflow-y-auto stg:transition-[max-height] stg:duration-200", !expanded && "stg:overflow-hidden")}
         style={{ maxHeight: expanded ? "none" : INSTRUCTIONS_COLLAPSED_HEIGHT }}
       >
         {text}
-      </pre>
+      </CodeBlock>
       {!expanded && overflows && (
         <div className="stg:pointer-events-none stg:absolute stg:inset-x-3 stg:bottom-10 stg:h-8 stg:bg-gradient-to-t stg:from-background stg:to-transparent" />
       )}

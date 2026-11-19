@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { normalizeToolResult, redactSecretArgs, type ToolFullOutput, type ToolUse } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import { TruncatedText } from "../internal/truncated-text.js";
+import { CodeBlock } from "../internal/CodeBlock.js";
 import { humanizeToolName } from "@stigmer/react-core";
 import {
   CollapsiblePre,
@@ -329,9 +330,7 @@ function ScalarRow({ label, value }: { label: string; value: string }) {
       <dt className="stg:whitespace-nowrap stg:text-muted-foreground">{label}</dt>
       {isMultiline ? (
         <dd className="stg:min-w-0">
-          <pre className="stg:whitespace-pre-wrap stg:break-words stg:rounded stg:border stg:border-border stg:bg-muted-subtle stg:px-2 stg:py-1 stg:font-mono stg:text-foreground">
-            {value}
-          </pre>
+          <CodeBlock wrap>{value}</CodeBlock>
         </dd>
       ) : (
         <dd className="stg:min-w-0">

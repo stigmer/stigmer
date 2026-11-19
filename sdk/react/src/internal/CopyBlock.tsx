@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { cn } from "@stigmer/design-tokens";
-import { SCROLL_REGION_FOCUS, scrollRegion } from "./scroll-region.js";
+import { CodeBlock } from "./CodeBlock.js";
 import { useCopyFeedback } from "./useCopyFeedback.js";
 import { Button } from "../button/Button.js";
 
@@ -43,17 +42,9 @@ export function CopyBlock({
         </p>
         <CopyButton copied={copied} onCopy={copy} copyTargetId={copyTargetId} />
       </div>
-      <pre
-        {...scrollRegion(label)}
-        className={cn(
-          tall ? "stg:max-h-96" : "stg:max-h-40",
-          "stg:overflow-auto stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle",
-          "stg:px-2.5 stg:py-2 stg:font-mono stg:text-2xs stg:leading-relaxed stg:text-foreground",
-          SCROLL_REGION_FOCUS,
-        )}
-      >
+      <CodeBlock size="2xs" label={label} maxHeight={tall ? "96" : "40"}>
         {value}
-      </pre>
+      </CodeBlock>
     </div>
   );
 }

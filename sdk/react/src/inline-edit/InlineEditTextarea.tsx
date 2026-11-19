@@ -6,6 +6,7 @@ import type { InlineEditBaseProps } from "./types.js";
 import { useInlineDraft } from "./useInlineDraft.js";
 import { Button } from "../button/Button.js";
 import { FieldError, TextArea } from "../internal/form/index.js";
+import { CodeBlock } from "../internal/CodeBlock.js";
 
 /** Props for {@link InlineEditTextarea}. */
 export interface InlineEditTextareaProps extends InlineEditBaseProps {
@@ -111,14 +112,14 @@ export function InlineEditTextarea({
           )}
         >
           <div className="stg:flex stg:items-start stg:justify-between stg:gap-2">
-            <pre
-              className={cn(
-                "stg:min-w-0 stg:whitespace-pre-wrap stg:break-words stg:font-mono stg:text-sm stg:text-foreground",
-                !value && "stg:text-muted-foreground stg:italic stg:font-sans",
-              )}
+            <CodeBlock
+              size="sm"
+              frame="bare"
+              wrap
+              className={cn("stg:min-w-0", !value && "stg:text-muted-foreground stg:italic stg:font-sans")}
             >
               {value || placeholder}
-            </pre>
+            </CodeBlock>
             {!disabled && (
               <PencilIcon className="stg:mt-0.5 stg:size-3 stg:shrink-0 stg:text-muted-foreground stg:opacity-0 stg:transition-opacity stg:group-hover/inline-edit:opacity-100" />
             )}

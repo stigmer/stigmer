@@ -5,6 +5,7 @@ import Markdown from "react-markdown";
 import { cn } from "@stigmer/design-tokens";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { CodeBlock } from "../internal/CodeBlock.js";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components.js";
 import { buildFileTree, FileTreeNode, type TreeNode } from "../internal/file-tree/index.js";
 import { useSkillArtifact } from "./useSkillArtifact.js";
@@ -228,9 +229,7 @@ function FileContentViewer({
             {stripFrontmatter(content)}
           </Markdown>
         ) : (
-          <pre className="stg:m-0 stg:font-mono stg:text-xs stg:text-foreground stg:whitespace-pre">
-            {content}
-          </pre>
+          <CodeBlock frame="bare">{content}</CodeBlock>
         )}
       </div>
     </>

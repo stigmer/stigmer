@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { RevealToggle } from "../internal/RevealToggle.js";
+import { CodeBlock } from "../internal/CodeBlock.js";
 
 /**
  * Shared truncation threshold for all collapsible tool rendering
@@ -45,9 +46,9 @@ export function CollapsibleCode({ label, content, className }: CollapsibleCodePr
   return (
     <div className={cn("stg:space-y-1", className)}>
       <span className="stg:font-medium stg:text-muted-foreground">{label}</span>
-      <pre className="stg:max-h-80 stg:overflow-auto stg:whitespace-pre-wrap stg:break-words stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:p-2 stg:font-mono stg:text-foreground">
+      <CodeBlock wrap maxHeight="80">
         {displayContent}
-      </pre>
+      </CodeBlock>
       {needsTruncation && (
         <RevealToggle
           expanded={isExpanded}
@@ -92,9 +93,9 @@ export function CollapsiblePre({ content, className }: CollapsiblePreProps) {
 
   return (
     <>
-      <pre className={cn("stg:whitespace-pre-wrap stg:break-words stg:font-mono", className)}>
+      <CodeBlock frame="bare" wrap className={className}>
         {displayContent}
-      </pre>
+      </CodeBlock>
       {needsTruncation && (
         <RevealToggle
           expanded={isExpanded}
@@ -163,9 +164,9 @@ export function CollapsibleJsonBlock({ label, content }: CollapsibleJsonBlockPro
         )}
       </button>
       {isExpanded && (
-        <pre id={contentId} className="stg:max-h-80 stg:overflow-auto stg:whitespace-pre-wrap stg:break-words stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:p-2 stg:font-mono stg:text-foreground">
+        <CodeBlock id={contentId} wrap maxHeight="80">
           {content}
-        </pre>
+        </CodeBlock>
       )}
     </div>
   );
