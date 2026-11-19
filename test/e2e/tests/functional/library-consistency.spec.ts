@@ -22,7 +22,7 @@ test.describe("Library consistency: agents", () => {
       });
       await expect(page.getByRole("textbox", { name: "Search agents" })).toBeVisible();
       await expect(
-        page.getByRole("link", { name: "Create agent" }).first(),
+        page.getByRole("link", { name: "New agent" }).first(),
       ).toHaveAttribute("href", "/library/agents/new");
 
       await expect(page.getByRole("radiogroup", { name: "View mode" })).toHaveCount(0);

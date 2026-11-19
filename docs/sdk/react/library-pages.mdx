@@ -11,13 +11,13 @@ Import from `@stigmer/react-sdk/console`.
 ### LibraryAgentsSection
 
 The Library's Agents page: the active organization's agents as rows, with
-Apply YAML and, for someone the server lets create one, Create agent.
+Apply YAML and, for someone the server lets create one, New agent.
 
 **Props** — `LibraryAgentsSectionProps`
 
 <TypeTable
   type={{
-    createHref: { type: "string", description: "Where Create agent goes." },
+    createHref: { type: "string", description: "Where New agent goes." },
     onOpen: { type: "(resource: LibraryResourceRef) => void", description: "Opens a resource's page: a row, or a resource just made.", required: true },
     renderLink: { type: "RenderLink", description: "Draws a link to a console address with the host's router; a plain `<a>` when omitted.", typeDescriptionLink: "/docs/sdk/react/button#renderlink" },
   }}

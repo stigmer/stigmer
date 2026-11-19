@@ -24,6 +24,7 @@ import { deriveLicenseCustomers } from "./license-customers.js";
 import {
   coveredThroughDay,
   entitlementParts,
+  formatDay,
   formatDayFromToday,
   termLabel,
   toDate,
@@ -284,7 +285,7 @@ function licenseColumns(
         return (
           <span className="stg:flex stg:flex-col">
             <span className={cn("stg:whitespace-nowrap", history(license) && "stg:text-muted-foreground")}>
-              {through ?? "Unknown"}
+              {through ? formatDay(through) : "Unknown"}
             </span>
             {inGrace ? (
               <span className="stg:whitespace-nowrap stg:text-xs stg:font-medium stg:text-destructive">

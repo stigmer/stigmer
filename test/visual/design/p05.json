@@ -191,11 +191,10 @@
       "sample": {},
       "ruled": {
         "type daily-variance-report": "Settled by the page's own redesign: a routine's page (G20) passed his Built look on 2026-11-17 with the name as the page's title",
-        "type Fix invoice rounding": "Settled by the session page's own drawings (S01 to S57), which passed his looks with the conversation's name as the page's title"
+        "type Fix invoice rounding": "Settled by the session page's own drawings (S01 to S57), which passed his looks with the conversation's name as the page's title",
+        "word Queued": "His last look, 2026-11-19, as recommended: kept as built (a run has no queued state; a waiting run reads Pending)"
       },
-      "pending": {
-        "word Queued": "A call for the last look: a run has no queued state on the wire; a run that waits reads Pending"
-      }
+      "pending": {}
     }
   ]
 }

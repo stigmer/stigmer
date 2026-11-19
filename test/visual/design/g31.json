@@ -334,10 +334,10 @@
         "word Members 4": "The drawing's example data; the scene's team has two people",
         "word Its four people lose what was shared with Finance. Nothing they made is deleted.": "The drawing's example data; the scene's team has two people"
       },
-      "ruled": {},
-      "pending": {
-        "word Shared with Finance": "A call for the last look: what is shared with a team needs a server read the kit does not have; the page shows the team's people only"
-      }
+      "ruled": {
+        "word Shared with Finance": "His last look, 2026-11-19, as recommended: kept as built (no read says what is shared with a team yet)"
+      },
+      "pending": {}
     },
     {
       "caption": "Teams: New team, its name taken",

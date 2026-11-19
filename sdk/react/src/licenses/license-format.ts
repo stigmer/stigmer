@@ -67,7 +67,17 @@ export function dayStartUtc(day: string): number {
   return Date.parse(`${day}T00:00:00Z`);
 }
 
-/** An instant as `YYYY-MM-DD HH:MM UTC`, for tooltips and detail rows. */
+const DAY = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+
+/**
+ * A UTC calendar day (`YYYY-MM-DD`) as the console writes a date everywhere
+ * else: "Jun 10, 2027".
+ */
+export function formatDay(day: string): string {
+  return DAY.format(new Date(dayStartUtc(day)));
+}
+
+/** An instant as `YYYY-MM-DD HH:MM UTC`, for tooltips. */
 export function formatInstantUtc(date: Date): string {
   return `${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
 }

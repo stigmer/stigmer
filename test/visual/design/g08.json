@@ -227,7 +227,10 @@
         "button Actions for Invoice auditor": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
         "button Actions for Vendor onboarding": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
       },
-      "ruled": {},
+      "ruled": {
+        "word Create agent": "His last look, 2026-11-19, as recommended: \"New agent\", as every other list says; a form's submit says Create",
+        "button Create agent": "His last look, 2026-11-19, as recommended: \"New agent\", as every other list says; a form's submit says Create"
+      },
       "pending": {}
     },
     {
@@ -469,7 +472,10 @@
         "button Actions for Invoice auditor": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
         "button Actions for Vendor onboarding": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
       },
-      "ruled": {},
+      "ruled": {
+        "word Create agent": "His last look, 2026-11-19, as recommended: \"New agent\", as every other list says; a form's submit says Create",
+        "button Create agent": "His last look, 2026-11-19, as recommended: \"New agent\", as every other list says; a form's submit says Create"
+      },
       "pending": {}
     },
     {
@@ -546,7 +552,10 @@
         }
       ],
       "sample": {},
-      "ruled": {},
+      "ruled": {
+        "word Create agent": "His last look, 2026-11-19, as recommended: \"New agent\", as every other list says; a form's submit says Create",
+        "button Create agent": "His last look, 2026-11-19, as recommended: \"New agent\", as every other list says; a form's submit says Create"
+      },
       "pending": {}
     },
     {
@@ -676,7 +685,10 @@
         }
       ],
       "sample": {},
-      "ruled": {},
+      "ruled": {
+        "word Create agent": "His last look, 2026-11-19, as recommended: \"New agent\", as every other list says; a form's submit says Create",
+        "button Create agent": "His last look, 2026-11-19, as recommended: \"New agent\", as every other list says; a form's submit says Create"
+      },
       "pending": {}
     },
     {
@@ -776,7 +788,10 @@
         "word the server did not answer in time": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
         "word Stuck? Ask IT on Slack": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
       },
-      "ruled": {},
+      "ruled": {
+        "word Create agent": "His last look, 2026-11-19, as recommended: \"New agent\", as every other list says; a form's submit says Create",
+        "button Create agent": "His last look, 2026-11-19, as recommended: \"New agent\", as every other list says; a form's submit says Create"
+      },
       "pending": {}
     },
     {
@@ -833,7 +848,10 @@
         }
       ],
       "sample": {},
-      "ruled": {},
+      "ruled": {
+        "word Create agent": "His last look, 2026-11-19, as recommended: \"New agent\", as every other list says; a form's submit says Create",
+        "button Create agent": "His last look, 2026-11-19, as recommended: \"New agent\", as every other list says; a form's submit says Create"
+      },
       "pending": {}
     },
     {
@@ -1015,7 +1033,10 @@
         "button Actions for Invoice auditor": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)",
         "button Actions for Vendor onboarding": "the scene's own sample data stands in (its names, descriptions, times, counts, channels and reasons; its server sets no help line)"
       },
-      "ruled": {},
+      "ruled": {
+        "word Create agent": "His last look, 2026-11-19, as recommended: \"New agent\", as every other list says; a form's submit says Create",
+        "button Create agent": "His last look, 2026-11-19, as recommended: \"New agent\", as every other list says; a form's submit says Create"
+      },
       "pending": {}
     }
   ]

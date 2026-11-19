@@ -1,7 +1,7 @@
 "use client";
 
 // The Library's Agents list: the organization's agents as rows, newest first
-// until a search, with Apply YAML and Create agent in the header. Create
+// until a search, with Apply YAML and New agent in the header. Create
 // agent shows only to someone the server lets create one (admins, and
 // members while the organization lets members create agents). A row opens
 // the agent; its acts copy its reference and, only on the server's yes for
@@ -36,13 +36,13 @@ import {
 
 /** Props for {@link LibraryAgentsSection}. */
 export interface LibraryAgentsSectionProps extends LibrarySectionNavigation {
-  /** Where Create agent goes. @default "/library/agents/new" */
+  /** Where New agent goes. @default "/library/agents/new" */
   readonly createHref?: string;
 }
 
 /**
  * The Library's Agents page: the active organization's agents as rows, with
- * Apply YAML and, for someone the server lets create one, Create agent.
+ * Apply YAML and, for someone the server lets create one, New agent.
  *
  * @example
  * ```tsx
@@ -87,7 +87,7 @@ export function LibraryAgentsSection({ onOpen, renderLink, createHref = LIBRARY_
 
   const createAgent = (
     <LinkButton href={createHref} icon={<Plus className="stg:size-3.5" aria-hidden="true" />} renderLink={renderLink}>
-      Create agent
+      New agent
     </LinkButton>
   );
 

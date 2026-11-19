@@ -29,7 +29,7 @@ import { ScreenColumn, type ScreenColumnProps } from "../internal/ScreenColumn.j
 const INVITED_ROLE_LINES: Partial<Record<IamRole, string>> = {
   [IamRole.owner]: "As an owner you can do everything, including deleting the organization and choosing its owners.",
   [IamRole.admin]: "As an admin you can manage the organization's people, settings, billing, agents and tools.",
-  [IamRole.member]: "As a member you can use the organization's agents and start your own conversations.",
+  [IamRole.member]: "As a member you can start conversations with the agents shared with you.",
   [IamRole.viewer]: "As a viewer you can see what's shared with the organization, but not start conversations.",
 };
 

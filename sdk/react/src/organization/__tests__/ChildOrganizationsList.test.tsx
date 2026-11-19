@@ -101,6 +101,10 @@ describe("ChildOrganizationsList", () => {
     const { client, listChildOrgs } = clientWith({ manages: true });
     renderList(client);
     expect(await screen.findByText("Acme Corp")).toBeTruthy();
+    // The parent is named as a sentence names it, and its admins' reach is said as it is.
+    expect(
+      screen.getByText(/^Organizations under this one\. (This organization|[a-z0-9-]+)'s admins are admins in each of them, as their own admins are;/),
+    ).toBeTruthy();
     expect(screen.getByText("acme")).toBeTruthy();
     expect(screen.getByText("cust-4411")).toBeTruthy();
     expect(listChildOrgs.mock.calls[0]?.[0]).toMatchObject({ org: PARENT, pageToken: "" });

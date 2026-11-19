@@ -170,12 +170,11 @@
         "button See plans": "Settled by the billing page's own drawing of the paused notice (G44, \"Agent hours used up\"), which passed his look on 2026-11-17; the kit draws that notice on the billing page, not as a shared part a scene can show alone",
         "word See plans": "Settled by the billing page's own drawing of the paused notice (G44, \"Agent hours used up\"), which passed his look on 2026-11-17; the kit draws that notice on the billing page, not as a shared part a scene can show alone",
         "word Agent hours are used up for this month.": "Settled by the billing page's own drawing of the paused notice (G44, \"Agent hours used up\"), which passed his look on 2026-11-17; the kit draws that notice on the billing page, not as a shared part a scene can show alone",
-        "word Runs wait until the hours reset on Aug 1, or until an admin moves the organization to a larger plan.": "Settled by the billing page's own drawing of the paused notice (G44, \"Agent hours used up\"), which passed his look on 2026-11-17; the kit draws that notice on the billing page, not as a shared part a scene can show alone"
+        "word Runs wait until the hours reset on Aug 1, or until an admin moves the organization to a larger plan.": "Settled by the billing page's own drawing of the paused notice (G44, \"Agent hours used up\"), which passed his look on 2026-11-17; the kit draws that notice on the billing page, not as a shared part a scene can show alone",
+        "button Compare editions": "His last look, 2026-11-19, as recommended: kept as built (no page compares the editions yet)",
+        "word Compare editions": "His last look, 2026-11-19, as recommended: kept as built (no page compares the editions yet)"
       },
-      "pending": {
-        "button Compare editions": "A call for the last look: \"Compare editions\" needs a page that compares the editions, which the console does not have; the notice says what the edition does instead",
-        "word Compare editions": "A call for the last look: \"Compare editions\" needs a page that compares the editions, which the console does not have; the notice says what the edition does instead"
-      }
+      "pending": {}
     }
   ]
 }

@@ -10,7 +10,7 @@
  * page's words. A delete runs from its confirm dialog, which says a
  * refusal in place (the dialog's own behaviour is pinned beside it); here
  * the stand-in records the failure the dialog would show. Upload skill is offered only to someone the server lets
- * upload one. Create agent is offered only to
+ * upload one. New agent is offered only to
  * someone the server lets create one. The plugins list offers the
  * Marketplace, an upload and Add MCP server (open on arrival when the host
  * asks, CON-01 for who may install and remove), and opens a plugin once it
@@ -403,20 +403,20 @@ describe("LibraryAgentsSection: who may create agents", () => {
     return render(<>{workbench().emptyAction as ReactNode}</>);
   }
 
-  it("offers Create agent in the header and the empty list to someone the server lets create one", () => {
+  it("offers New agent in the header and the empty list to someone the server lets create one", () => {
     render(<LibraryAgentsSection onOpen={onOpen} />);
     renderEmptyAction();
 
-    const links = screen.getAllByRole("link", { name: "Create agent" });
+    const links = screen.getAllByRole("link", { name: "New agent" });
     expect(links).toHaveLength(2);
     expect(links[0]!.getAttribute("href")).toBe("/library/agents/new");
   });
 
-  it("offers no Create agent to someone the server would refuse, and keeps Apply YAML", () => {
+  it("offers no New agent to someone the server would refuse, and keeps Apply YAML", () => {
     page.canCreateAgent = { allowed: false, isLoading: false };
     render(<LibraryAgentsSection onOpen={onOpen} />);
 
-    expect(screen.queryByRole("link", { name: "Create agent" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "New agent" })).toBeNull();
     expect(workbench().emptyAction).toBeUndefined();
     expect(screen.getByRole("button", { name: "Apply YAML" })).toBeTruthy();
   });
@@ -433,7 +433,7 @@ describe("LibraryAgentsSection: who may create agents", () => {
       />,
     );
 
-    expect(screen.getByRole("link", { name: "Create agent" }).hasAttribute("data-host-link")).toBe(true);
+    expect(screen.getByRole("link", { name: "New agent" }).hasAttribute("data-host-link")).toBe(true);
   });
 });
 
