@@ -59,6 +59,7 @@ const driverConfig: SandboxDriverConfig = {
   runnerEnv: {},
   runnerSecretEnv: {},
   serverRelease: "",
+  artifactLane: false,
 };
 
 function fakeFactory(marker: {

@@ -30,7 +30,7 @@ import { ArtifactStorageNotFoundError } from "../artifactstorage/artifact-storag
 
 /**
  * Storage abstraction for content-addressed archives. The interface exists
- * because the blob backend varies (local disk, R2) behind the identical
+ * because the blob backend varies (local disk, an S3 bucket) behind the identical
  * surface, and a controller must not know which one it holds.
  */
 export interface ContentAddressedArchiveStore {

@@ -30,7 +30,7 @@
  *     and, unless the operator names one, the runner image of that same
  *     release, `latest` for a development version (stigmer#1850);
  *   - a bucket-backed plugin store signs the archive link a runner reads
- *     for R2_RUNNER_ENDPOINT when one is set, else for R2_ENDPOINT (a
+ *     for S3_RUNNER_ENDPOINT when one is set, else for S3_ENDPOINT (a
  *     local HTTP listener stands in for the bucket's HEAD; presigning is
  *     local).
  */
@@ -500,13 +500,13 @@ describe("a bucket-backed plugin store", () => {
   async function runnerLink(runnerEndpoint: string | undefined): Promise<{ readonly url: string; readonly endpoint: string }> {
     const store = await bucket();
     const server = await compose({
-      SKILL_ARTIFACT_STORAGE_TYPE: "r2",
-      R2_BUCKET: "stigmer-artifacts",
-      R2_ENDPOINT: store.endpoint,
-      R2_ACCESS_KEY_ID: "k",
-      R2_SECRET_ACCESS_KEY: "s",
-      R2_REGION: "us-east-1",
-      ...(runnerEndpoint === undefined ? {} : { R2_RUNNER_ENDPOINT: runnerEndpoint }),
+      SKILL_ARTIFACT_STORAGE_TYPE: "s3",
+      S3_BUCKET: "stigmer-artifacts",
+      S3_ENDPOINT: store.endpoint,
+      S3_ACCESS_KEY_ID: "k",
+      S3_SECRET_ACCESS_KEY: "s",
+      S3_REGION: "us-east-1",
+      ...(runnerEndpoint === undefined ? {} : { S3_RUNNER_ENDPOINT: runnerEndpoint }),
     });
     const port = await server.start();
     try {
@@ -519,12 +519,12 @@ describe("a bucket-backed plugin store", () => {
     }
   }
 
-  it("signs the archive link a runner reads for R2_RUNNER_ENDPOINT", async () => {
+  it("signs the archive link a runner reads for S3_RUNNER_ENDPOINT", async () => {
     const { url } = await runnerLink("http://host.docker.internal:9000");
     expect(url.startsWith(`http://host.docker.internal:9000/stigmer-artifacts/${KEY}?`)).toBe(true);
   });
 
-  it("signs it for R2_ENDPOINT when no runner address is set", async () => {
+  it("signs it for S3_ENDPOINT when no runner address is set", async () => {
     const { url, endpoint } = await runnerLink(undefined);
     expect(url.startsWith(`${endpoint}/stigmer-artifacts/${KEY}?`)).toBe(true);
   });

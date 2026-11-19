@@ -36,7 +36,7 @@ func (Server) Name() string { return render.ComponentServer }
 
 // Dependencies implements Component.
 func (Server) Dependencies() []string {
-	return []string{render.ComponentKeys, render.ComponentDatabase, render.ComponentTemporal}
+	return []string{render.ComponentKeys, render.ComponentObjectStore, render.ComponentDatabase, render.ComponentTemporal}
 }
 
 // Reconcile implements Component.

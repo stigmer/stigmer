@@ -343,6 +343,74 @@ spec:
                       name.
                     type: string
                 type: object
+              objectStore:
+                description: |-
+                  ObjectStore is the bucket Stigmer keeps its files in: what a run stores
+                  beside its record, Skills, and the database's archive. Declared, the
+                  server and the runner share no disk, a runner reads and writes files
+                  through short-lived URLs without ever holding the bucket's keys, and
+                  the bundled database archives to the bucket from its first minute.
+                  Absent, files live on a volume the server and the shared runner share.
+                properties:
+                  s3:
+                    description: |-
+                      S3 is any S3-compatible bucket: AWS S3, Cloudflare R2, MinIO, or Google
+                      Cloud Storage through its S3 API.
+                    properties:
+                      bucket:
+                        description: Bucket is the bucket's name.
+                        maxLength: 63
+                        minLength: 3
+                        type: string
+                      credentialsSecret:
+                        description: |-
+                          CredentialsSecret is a Secret in this namespace holding the bucket's
+                          access key as ACCESS_KEY_ID and SECRET_ACCESS_KEY. The server and the
+                          database's backups read it; no runner ever does.
+                        properties:
+                          name:
+                            default: ""
+                            description: |-
+                              Name of the referent.
+                              This field is effectively required, but due to backwards compatibility is
+                              allowed to be empty. Instances of this type with an empty value here are
+                              almost certainly wrong.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      endpoint:
+                        description: |-
+                          Endpoint is the store's URL, such as
+                          https://<account>.r2.cloudflarestorage.com or
+                          http://minio.storage.svc:9000. Absent means AWS S3 itself.
+                        type: string
+                        x-kubernetes-validations:
+                        - message: spec.objectStore.s3.endpoint must be an http or
+                            https URL
+                          rule: self.startsWith('https://') || self.startsWith('http://')
+                      region:
+                        default: us-east-1
+                        description: Region is the bucket's region; R2 also accepts
+                          us-east-1.
+                        type: string
+                      runnerEndpoint:
+                        description: |-
+                          RunnerEndpoint is the address runners reach the store at, when it is
+                          not Endpoint: the URLs handed to runners are signed for it, since a
+                          signed URL's host is part of its signature.
+                        type: string
+                        x-kubernetes-validations:
+                        - message: spec.objectStore.s3.runnerEndpoint must be an http
+                            or https URL
+                          rule: self.startsWith('https://') || self.startsWith('http://')
+                    required:
+                    - bucket
+                    - credentialsSecret
+                    type: object
+                required:
+                - s3
+                type: object
               owner:
                 description: |-
                   Owner is the person who runs this install. They own the organization
@@ -639,7 +707,8 @@ spec:
                   artifacts:
                     description: |-
                       Artifacts is the volume the server writes artifacts to and the shared
-                      runner reads them from. Defaults to 20Gi.
+                      runner reads them from, when no objectStore is declared. Defaults to
+                      20Gi.
                     properties:
                       size:
                         anyOf:
@@ -1078,6 +1147,10 @@ spec:
                 Set spec.temporal.external.tls or spec.temporal.external.apiKey'
               rule: '!has(self.enterprise) || !has(self.temporal) || !has(self.temporal.external)
                 || has(self.temporal.external.tls) || has(self.temporal.external.apiKey)'
+            - message: 'spec.server.artifacts sizes the artifacts volume, and an install
+                with spec.objectStore keeps its artifacts in the bucket instead: remove
+                spec.server.artifacts'
+              rule: '!has(self.objectStore) || !has(self.server) || !has(self.server.artifacts)'
           status:
             description: StigmerStatus is the operator's account of the install.
             properties:
@@ -1099,8 +1172,9 @@ spec:
                         next step.
                       type: string
                     name:
-                      description: 'Name is the component: keys, database, temporal,
-                        server or runner.'
+                      description: |-
+                        Name is the component: keys, objectStore, database, temporal, server
+                        or runner.
                       type: string
                     object:
                       description: Object is what the message is about.

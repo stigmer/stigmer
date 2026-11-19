@@ -90,6 +90,7 @@ const config: SandboxDriverConfig = {
   runnerEnv: { ANTHROPIC_BASE_URL: "http://fake-model.example:18555" },
   runnerSecretEnv: { ANTHROPIC_API_KEY: "sk-test" },
   serverRelease: "",
+  artifactLane: false,
 };
 
 const settings: SubstrateDriverSettings = {
@@ -158,6 +159,14 @@ describe("the template", () => {
       expect(env).not.toHaveProperty(secret);
     }
     expect(Object.keys(env)).toEqual([...Object.keys(env)].sort());
+  });
+
+  it("hands a bucket-store server's runner its artifact lane, the server's own address, and a local-store server's none", () => {
+    const lane = envOf(buildRunnerTemplate({ config: { ...config, artifactLane: true }, settings, runnerMode: "local" }));
+    expect(lane["STIGMER_ARTIFACT_PROXY_ENDPOINT"]).toBe(config.backendEndpoint);
+    const none = envOf(buildRunnerTemplate({ config, settings, runnerMode: "local" }));
+    expect(none).not.toHaveProperty("STIGMER_ARTIFACT_PROXY_ENDPOINT");
+    expect(none).not.toHaveProperty("STIGMER_PROXY_ENDPOINT");
   });
 
   it("mounts the workspace and the actor's name, and snapshots for the ladder", () => {

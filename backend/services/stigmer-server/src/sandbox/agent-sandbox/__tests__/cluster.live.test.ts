@@ -81,6 +81,7 @@ const config: SandboxDriverConfig = {
   runnerEnv: {},
   runnerSecretEnv: {},
   serverRelease: "",
+  artifactLane: false,
 };
 
 const logger = createLogger({ level: "error", pretty: false, write: () => {} });

@@ -1,8 +1,9 @@
 // Pins the settings rules parity cannot see: extraEnv may not repeat a name
 // the operator sets, in any declaration; the runner is held back under
 // sign-in; secrets are always referenced, never copied in; a database user
-// is escaped into the URL; and sizing refuses what cannot run, in words
-// naming the field.
+// is escaped into the URL; sizing refuses what cannot run, in words naming
+// the field; and a declared bucket replaces the artifacts volume, the runner
+// reaching it through the server's lane and never holding its keys.
 
 package render
 
@@ -128,4 +129,47 @@ func TestEveryObjectIsLabelledAsTheOperators(t *testing.T) {
 		check("claim "+c.Name, c.Labels)
 	}
 	check("Cluster", PostgresClusterObject(st).GetLabels())
+}
+
+func TestABucketReplacesTheArtifactsVolume(t *testing.T) {
+	st := profiles()["bucket"]
+	for _, c := range ServerClaims(st) {
+		if c.Name == ArtifactsClaim(st) {
+			t.Error("the artifacts claim is rendered with a bucket declared")
+		}
+	}
+	d := ServerDeploymentObject(st)
+	for _, v := range d.Spec.Template.Spec.Volumes {
+		if v.Name == "artifacts" {
+			t.Error("the pod mounts the artifacts volume with a bucket declared")
+		}
+	}
+	server := envMap(ServerEnv(st))
+	for name, want := range map[string]string{
+		"ARTIFACT_STORAGE_TYPE": "s3", "SKILL_ARTIFACT_STORAGE_TYPE": "s3", "S3_BUCKET": "acme-stigmer",
+		"S3_REGION": "eu-west-1", "S3_ENDPOINT": "http://minio.storage:9000", "S3_RUNNER_ENDPOINT": "http://minio.example:9000",
+	} {
+		if got := server[name].Value; got != want {
+			t.Errorf("server %s = %q, want %q", name, got, want)
+		}
+	}
+	for _, name := range []string{"S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY"} {
+		ref := server[name].ValueFrom
+		if ref == nil || ref.SecretKeyRef == nil || ref.SecretKeyRef.Name != "bucket" {
+			t.Errorf("server %s is not read from the credentials Secret", name)
+		}
+	}
+	runner := envMap(RunnerEnv(st))
+	if runner["ARTIFACT_STORAGE_TYPE"].Value != "proxy" || runner["STIGMER_ARTIFACT_PROXY_ENDPOINT"].Value != "http://localhost:7234" {
+		t.Errorf("the runner does not reach files through the server's lane: %v", runner["STIGMER_ARTIFACT_PROXY_ENDPOINT"])
+	}
+	for name := range runner {
+		if strings.HasPrefix(name, "S3_") || name == "STIGMER_PROXY_ENDPOINT" {
+			t.Errorf("the runner is handed %s", name)
+		}
+	}
+	st.Spec.ObjectStore.S3.Region = ""
+	if got := envMap(ServerEnv(st))["S3_REGION"].Value; got != "us-east-1" {
+		t.Errorf("a bucket declared without a region is signed for %q, want us-east-1", got)
+	}
 }

@@ -8,19 +8,20 @@
  *   links: the runner holds none of the server's keys, so a link it built
  *   would be unsigned and refused by the server's file server; its tools share
  *   the disk and read the path instead.
- * - Proxy: uses presigned URLs from the Stigmer Side-Channel Proxy (cloud mode).
+ * - Proxy: uses presigned URLs from the server's artifact lane
+ *   (`/v1/proxy/artifacts/*`), on any server whose artifact store is a bucket.
  *   Here `download` resolves a presigned URL and fetches it over HTTPS, and
  *   {@link ArtifactStorage.presignedDownloadUrl} hands one out.
  *
- * The runner never holds R2/S3 credentials — in cloud mode it calls the proxy
- * to obtain a presigned upload URL, then PUTs content over plain HTTPS.
+ * The runner never holds bucket credentials — it asks the server's artifact
+ * lane for a presigned upload URL, then PUTs content over plain HTTPS.
  *
  * Every proxy-backend request rides the shared bounded-backoff loop
  * (http-retry.ts) with a per-request abort timeout, so a momentary
  * stigmer-service interruption is retried and a hung connection cannot
  * stall an agent turn unboundedly (stigmer/stigmer#468).
  *
- * No direct R2 backend: local and proxy only.
+ * No direct bucket backend: local and proxy only.
  */
 
 import { mkdir, writeFile, readFile, access, rm } from "node:fs/promises";
@@ -29,6 +30,7 @@ import { homedir } from "node:os";
 import type { Config, TokenRef } from "../config.js";
 import type { RetryOptions } from "./grpc-retry.js";
 import { fetchWithRetry, type FetchRetryPolicy } from "./http-retry.js";
+import { currentRunCredential } from "./run-credential-store.js";
 
 // ── Interface ────────────────────────────────────────────────────────
 
@@ -138,7 +140,7 @@ export interface ProxyArtifactStorageOptions extends RetryOptions {
   /** Bound for proxy presign calls and the 1-byte exists probe. Default 30 s. */
   readonly requestTimeoutMs?: number;
   /**
-   * Bound for the presigned R2 PUT/GET, which move whole artifact payloads
+   * Bound for the presigned bucket PUT/GET, which move whole artifact payloads
    * (tool outputs, file-review captures — MB scale).
    * Deliberately wider than requestTimeoutMs so a legitimate slow transfer
    * is never aborted by a bound sized for JSON round-trips. Default 120 s.
@@ -166,7 +168,7 @@ export class ProxyArtifactStorage implements ArtifactStorage {
   private readonly authTokenSource: ProxyAuthTokenSource;
   /** Governs the proxy presign calls and the exists probe. */
   private readonly requestPolicy: FetchRetryPolicy;
-  /** Governs the presigned R2 transfers; same budget, wider timeout. */
+  /** Governs the presigned bucket transfers; same budget, wider timeout. */
   private readonly transferPolicy: FetchRetryPolicy;
 
   constructor(
@@ -198,9 +200,15 @@ export class ProxyArtifactStorage implements ArtifactStorage {
    * cloud sandbox's control-plane token rotates in place (see
    * sandbox-token-renewal.ts), and this storage lives for the pod's whole
    * life — a captured string would silently 401 after the first rotation.
+   *
+   * The run's own credential comes first: every key this store presigns
+   * sits under the run's folder, and the server's artifact lane admits the
+   * credential bound to that run (or to another run of its session). A
+   * dispatch that carries none (the cloud's) leaves the process token, and
+   * a shared runner on a server without sign-in has no process token at all.
    */
   private get authToken(): string {
-    return this.authTokenSource.current ?? "";
+    return currentRunCredential() ?? this.authTokenSource.current ?? "";
   }
 
   async upload(key: string, content: Buffer, contentType?: string): Promise<string> {
@@ -359,7 +367,7 @@ function defaultLocalArtifactPath(): string {
 
 export function loadArtifactStorageConfig(config: Config): ArtifactStorageConfig {
   // Storage follows transport, not execution location: if a proxy endpoint is
-  // configured, push artifacts through it (the proxy brokers R2). This holds for
+  // configured, push artifacts through it (the server brokers the bucket). This holds for
   // both cloud runners and the local desktop runner — the latter executes
   // locally (mode === "local") yet still uploads via the proxy. An explicit
   // ARTIFACT_STORAGE_TYPE always wins. Presigns target artifactProxyEndpoint —
@@ -397,8 +405,10 @@ export function createArtifactStorage(cfg: ArtifactStorageConfig): ArtifactStora
         "Proxy artifact storage requires STIGMER_ARTIFACT_PROXY_ENDPOINT or STIGMER_PROXY_ENDPOINT",
       );
     }
-    if (!cfg.proxyAuthToken?.current) {
-      throw new Error("Proxy artifact storage requires STIGMER_TOKEN");
+    // A store built inside a run may present the run's own credential; one
+    // built anywhere else needs the process token.
+    if (!cfg.proxyAuthToken?.current && currentRunCredential() === undefined) {
+      throw new Error("Proxy artifact storage requires STIGMER_TOKEN or a run credential");
     }
     return new ProxyArtifactStorage(cfg.proxyEndpoint, cfg.proxyAuthToken);
   }

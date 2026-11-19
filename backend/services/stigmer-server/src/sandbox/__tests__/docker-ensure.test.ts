@@ -44,6 +44,7 @@ const CONFIG: SandboxDriverConfig = {
   runnerEnv: { ANTHROPIC_BASE_URL: "http://model.example:18555" },
   runnerSecretEnv: { ANTHROPIC_API_KEY: "sk-ensure" },
   serverRelease: "",
+  artifactLane: false,
 };
 
 const ENV: SandboxFacts = {

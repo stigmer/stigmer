@@ -1,5 +1,7 @@
 // The server's workload: one Deployment holding the server and, when it
-// runs, the shared runner; its Service; and the three claims they mount.
+// runs, the shared runner; its Service; and the claims they mount. With a
+// bucket declared, files live in the bucket and the artifacts claim is not
+// rendered, so no claim holds anything a backup needs.
 //
 // One replica, recreated rather than rolled: the server keeps per-process
 // state (its keyed serializer, a sandbox driver's queues) besides its claims,
@@ -25,11 +27,12 @@ import (
 
 // Component names, used in labels and status.
 const (
-	ComponentKeys     = "keys"
-	ComponentDatabase = "database"
-	ComponentTemporal = "temporal"
-	ComponentServer   = "server"
-	ComponentRunner   = "runner"
+	ComponentKeys        = "keys"
+	ComponentObjectStore = "objectStore"
+	ComponentDatabase    = "database"
+	ComponentTemporal    = "temporal"
+	ComponentServer      = "server"
+	ComponentRunner      = "runner"
 )
 
 // Container names in the server's pod.
@@ -79,7 +82,9 @@ func Claim(st *stigmerv1.Stigmer, name string, declared *stigmerv1.VolumeSpec, d
 func ServerClaims(st *stigmerv1.Stigmer) []*corev1.PersistentVolumeClaim {
 	claims := []*corev1.PersistentVolumeClaim{
 		Claim(st, ServerDataClaim(st), st.Spec.Server.Storage, ServerDataSize),
-		Claim(st, ArtifactsClaim(st), st.Spec.Server.Artifacts, ArtifactsSize),
+	}
+	if ObjectStore(st) == nil {
+		claims = append(claims, Claim(st, ArtifactsClaim(st), st.Spec.Server.Artifacts, ArtifactsSize))
 	}
 	if RunnerEnabled(st) {
 		claims = append(claims, Claim(st, RunnerDataClaim(st), st.Spec.Runner.Storage, RunnerDataSize))
@@ -146,17 +151,20 @@ func ServerDeploymentObject(st *stigmerv1.Stigmer) *appsv1.Deployment {
 			Capabilities:             &corev1.Capabilities{Drop: []corev1.Capability{"ALL"}},
 			SeccompProfile:           &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeRuntimeDefault},
 		},
-		VolumeMounts: []corev1.VolumeMount{
-			{Name: "server-data", MountPath: "/data"},
-			{Name: "artifacts", MountPath: ArtifactsMount},
-		},
+		VolumeMounts: []corev1.VolumeMount{{Name: "server-data", MountPath: "/data"}},
+	}
+	volumes := []corev1.Volume{volume("server-data", ServerDataClaim(st))}
+	onVolume := ObjectStore(st) == nil
+	if onVolume {
+		server.VolumeMounts = append(server.VolumeMounts, corev1.VolumeMount{Name: "artifacts", MountPath: ArtifactsMount})
+		volumes = append(volumes, volume("artifacts", ArtifactsClaim(st)))
 	}
 	containers := []corev1.Container{server}
-	volumes := []corev1.Volume{
-		volume("server-data", ServerDataClaim(st)),
-		volume("artifacts", ArtifactsClaim(st)),
-	}
 	if RunnerEnabled(st) {
+		runnerMounts := []corev1.VolumeMount{{Name: "runner-data", MountPath: "/data"}}
+		if onVolume {
+			runnerMounts = append(runnerMounts, corev1.VolumeMount{Name: "artifacts", MountPath: ArtifactsMount})
+		}
 		containers = append(containers, corev1.Container{
 			Name:                     RunnerContainer,
 			Image:                    RunnerImage(st),
@@ -172,10 +180,7 @@ func ServerDeploymentObject(st *stigmerv1.Stigmer) *appsv1.Deployment {
 				},
 				SeccompProfile: &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeRuntimeDefault},
 			},
-			VolumeMounts: []corev1.VolumeMount{
-				{Name: "runner-data", MountPath: "/data"},
-				{Name: "artifacts", MountPath: ArtifactsMount},
-			},
+			VolumeMounts: runnerMounts,
 		})
 		volumes = append(volumes, volume("runner-data", RunnerDataClaim(st)))
 	}

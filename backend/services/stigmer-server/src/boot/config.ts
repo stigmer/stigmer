@@ -151,8 +151,8 @@ export interface ServerConfig {
   readonly runnerBootstrapMcpBridgeEndpoint: string;
   /**
    * Artifact blob storage (attachments + execution outputs). "local" is
-   * the OSS default; "r2" selects
-   * Cloudflare R2 with the settings below.
+   * the OSS default; "s3" selects an S3-compatible bucket with the S3_*
+   * settings below.
    */
   readonly artifactStorageType: string;
   /** The artifact root — shared with the runner's LOCAL_ARTIFACT_PATH (#285). */
@@ -191,19 +191,22 @@ export interface ServerConfig {
    * through the container boundary.
    */
   readonly grpcHost: string | undefined;
-  /** Cloudflare R2 settings (S3-compatible; validated when type is "r2"). */
-  readonly r2Bucket: string;
-  readonly r2Endpoint: string;
-  readonly r2AccessKeyId: string;
-  readonly r2SecretAccessKey: string;
-  readonly r2Region: string;
   /**
-   * R2_RUNNER_ENDPOINT: the address runners dial the store at, when it is
-   * not R2_ENDPOINT (a local cluster whose sandboxes reach a store on the
-   * host's loopback by another name). Links a runner downloads or uploads
-   * through are signed for it; "" signs every link for R2_ENDPOINT.
+   * The bucket's settings (any S3-compatible store; validated when either
+   * storage type is "s3"). S3_ENDPOINT empty means AWS S3 itself.
    */
-  readonly r2RunnerEndpoint: string;
+  readonly s3Bucket: string;
+  readonly s3Endpoint: string;
+  readonly s3AccessKeyId: string;
+  readonly s3SecretAccessKey: string;
+  readonly s3Region: string;
+  /**
+   * S3_RUNNER_ENDPOINT: the address runners dial the store at, when it is
+   * not S3_ENDPOINT (a local cluster whose sandboxes reach a store on the
+   * host's loopback by another name). Links a runner downloads or uploads
+   * through are signed for it; "" signs every link for S3_ENDPOINT.
+   */
+  readonly s3RunnerEndpoint: string;
   /**
    * Stigmer's own login apps switched on (domain/vault/login-providers.ts):
    * each catalog entry's STIGMER_<KEY>_CLIENT_ID and
@@ -241,8 +244,8 @@ export interface ServerConfig {
    * ARTIFACT_STORAGE_TYPE: skill artifacts stay on the local storagePath
    * root regardless of the
    * generic artifact store's backend, until a deployment opts skill in
-   * here explicitly. "" or "local" is today's local arm; "r2" shares the
-   * artifact store's R2 settings; any other name selects a
+   * here explicitly. "" or "local" is today's local arm; "s3" shares the
+   * artifact store's S3_* settings; any other name selects a
    * composition-registered driver.
    */
   readonly skillArtifactStorageType: string;
@@ -282,7 +285,7 @@ export interface ServerConfig {
    * Required whenever the issuer is set — a verifier that skipped
    * audience validation would accept any token the issuer ever minted
    * for any other service (the confused-deputy failure). Half-configured
-   * OIDC is boot-fatal, the R2/operator-identity loud-fail precedent.
+   * OIDC is boot-fatal, the S3/operator-identity loud-fail precedent.
    */
   readonly oidcAudience: string;
   /**
@@ -561,33 +564,33 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   const artifactHttpPort = envOptionalInt(env, "ARTIFACT_HTTP_PORT");
   const artifactHttpHost = envString(env, "ARTIFACT_HTTP_HOST", "127.0.0.1");
   const artifactStorageType = envString(env, "ARTIFACT_STORAGE_TYPE", "local");
-  const r2 = {
-    r2Bucket: envString(env, "R2_BUCKET", ""),
-    r2Endpoint: envString(env, "R2_ENDPOINT", ""),
-    r2AccessKeyId: envString(env, "R2_ACCESS_KEY_ID", ""),
-    r2SecretAccessKey: envString(env, "R2_SECRET_ACCESS_KEY", ""),
-    r2Region: envString(env, "R2_REGION", "auto"),
-    r2RunnerEndpoint: envString(env, "R2_RUNNER_ENDPOINT", ""),
+  const s3 = {
+    s3Bucket: envString(env, "S3_BUCKET", ""),
+    s3Endpoint: envString(env, "S3_ENDPOINT", ""),
+    s3AccessKeyId: envString(env, "S3_ACCESS_KEY_ID", ""),
+    s3SecretAccessKey: envString(env, "S3_SECRET_ACCESS_KEY", ""),
+    s3Region: envString(env, "S3_REGION", "us-east-1"),
+    s3RunnerEndpoint: envString(env, "S3_RUNNER_ENDPOINT", ""),
   };
   const skillArtifactStorageType = envString(
     env,
     "SKILL_ARTIFACT_STORAGE_TYPE",
     "",
   );
-  // validateR2Config: boot-fatal on incomplete r2 configuration — a
+  // validateS3Config: boot-fatal on incomplete s3 configuration — a
   // second deliberate exception to the lenient-loader posture (a server
-  // that silently ignored half an R2 config would write blobs nowhere).
-  // Skill's per-domain knob shares the settings, so its r2 arm gets
+  // that silently ignored half a bucket config would write blobs nowhere).
+  // Skill's per-domain knob shares the settings, so its s3 arm gets
   // the same completeness gate.
-  if (artifactStorageType === "r2" || skillArtifactStorageType === "r2") {
-    validateR2Config(r2);
+  if (artifactStorageType === "s3" || skillArtifactStorageType === "s3") {
+    validateS3Config(s3);
   }
   return {
     grpcPort,
     grpcHost: env.GRPC_HOST?.trim() || undefined,
     artifactHttpPort,
     artifactHttpHost,
-    ...r2,
+    ...s3,
     temporalHostPort: envString(env, "TEMPORAL_HOST_PORT", "localhost:7233"),
     temporalNamespace: envString(env, "TEMPORAL_NAMESPACE", "default"),
     temporalConnection: loadTemporalConnectionConfig((name) => env[name]),
@@ -704,7 +707,7 @@ const PLAINTEXT_LOOPBACK_HOSTS: ReadonlySet<string> = new Set([
 
 /**
  * OIDC issuer/audience — boot-FATAL on the certain misconfigurations,
- * joining the operator-identity and R2 exceptions to the lenient-loader
+ * joining the operator-identity and S3 exceptions to the lenient-loader
  * posture: an issuer that is not an https URL (or an http URL on loopback)
  * can never be trusted for discovery, and an issuer without an audience (or
  * the reverse) is half an auth configuration — silently serving
@@ -775,23 +778,24 @@ function loadRunnerBootstrapMcpBridgeEndpoint(env: NodeJS.ProcessEnv): string {
   return endpoint;
 }
 
-/** The four required r2 fields, each named in the boot refusal. */
-function validateR2Config(r2: {
-  r2Bucket: string;
-  r2Endpoint: string;
-  r2AccessKeyId: string;
-  r2SecretAccessKey: string;
+/**
+ * The three required s3 fields, each named in the boot refusal. The
+ * endpoint is not among them: empty is AWS S3 itself.
+ */
+function validateS3Config(s3: {
+  s3Bucket: string;
+  s3AccessKeyId: string;
+  s3SecretAccessKey: string;
 }): void {
   const requirements: Array<[string, string]> = [
-    [r2.r2Bucket, "R2_BUCKET"],
-    [r2.r2Endpoint, "R2_ENDPOINT"],
-    [r2.r2AccessKeyId, "R2_ACCESS_KEY_ID"],
-    [r2.r2SecretAccessKey, "R2_SECRET_ACCESS_KEY"],
+    [s3.s3Bucket, "S3_BUCKET"],
+    [s3.s3AccessKeyId, "S3_ACCESS_KEY_ID"],
+    [s3.s3SecretAccessKey, "S3_SECRET_ACCESS_KEY"],
   ];
   for (const [value, name] of requirements) {
     if (value === "") {
       throw new Error(
-        `invalid R2 configuration: ${name} is required when ARTIFACT_STORAGE_TYPE=r2`,
+        `invalid S3 configuration: ${name} is required when a storage type is s3`,
       );
     }
   }

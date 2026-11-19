@@ -51,3 +51,12 @@ export const OAUTH_CLIENT_DOCUMENT_PATH = "/v1/oauth/client.json";
  * `/v1/sessions/{id}/events/stream`. No other lane serves under it.
  */
 export const MANAGED_AGENTS_PATH_PREFIX = "/v1/sessions/";
+/**
+ * The runner artifact lane (artifactstorage/runner-lane/lane.ts): a runner
+ * asks for a short-lived URL on the artifact store's bucket for a key
+ * under its run. Two exact paths, the runner's wire
+ * (runner/src/shared/artifact-storage.ts); every other `/v1/proxy/*` path
+ * stays the adapter's 404.
+ */
+export const RUNNER_ARTIFACT_UPLOAD_PATH = "/v1/proxy/artifacts/presigned-upload-url";
+export const RUNNER_ARTIFACT_DOWNLOAD_PATH = "/v1/proxy/artifacts/presigned-download-url";

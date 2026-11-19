@@ -67,6 +67,11 @@ import {
   LocalArtifactStorage,
   newArtifactStorage,
 } from "../artifactstorage/artifact-storage.js";
+import {
+  createRunnerArtifactLane,
+  servesRunnerLane,
+} from "../artifactstorage/runner-lane/lane.js";
+import { newRunArtifactPurgeStage } from "../artifactstorage/runner-lane/purge.js";
 import type { ArtifactStorage } from "../artifactstorage/artifact-storage.js";
 import { downloadUrlSignerFor } from "../artifactstorage/url-signer.js";
 import { newExecutionEngineStateProvider } from "../temporal/agentexecution/engine-client.js";
@@ -1080,7 +1085,7 @@ export async function composeServer(
   // Selection is loud-fail inside newSandboxProvisioner; the routing
   // coherence check lives HERE because the temporal config does — a
   // provisioner that no routing mode can ever dispatch to is dark
-  // configuration, the validateR2Config class of boot fault.
+  // configuration, the validateS3Config class of boot fault.
   const sandboxProvisioner = newSandboxProvisioner(
     config.sandboxProvisionerType,
     {
@@ -1097,6 +1102,11 @@ export async function composeServer(
         runnerEnv: config.sandboxRunnerEnv,
         runnerSecretEnv: config.sandboxRunnerSecretEnv,
         serverRelease: isReleaseVersion(version) ? version : "",
+        // The built-in bucket store serves the runner artifact lane
+        // (artifactstorage/runner-lane/lane.ts); a composition that
+        // registers its own store and its own sandbox driver names the
+        // lane to its runners itself.
+        artifactLane: config.artifactStorageType === "s3",
       },
       logger,
     },
@@ -1413,12 +1423,12 @@ export async function composeServer(
         () => artifactLaneBoundPort,
       ),
       localUrlSigner: downloadUrlSigner,
-      r2Bucket: config.r2Bucket,
-      r2Endpoint: config.r2Endpoint,
-      r2AccessKeyId: config.r2AccessKeyId,
-      r2SecretAccessKey: config.r2SecretAccessKey,
-      r2Region: config.r2Region,
-      r2RunnerEndpoint: config.r2RunnerEndpoint,
+      s3Bucket: config.s3Bucket,
+      s3Endpoint: config.s3Endpoint,
+      s3AccessKeyId: config.s3AccessKeyId,
+      s3SecretAccessKey: config.s3SecretAccessKey,
+      s3Region: config.s3Region,
+      s3RunnerEndpoint: config.s3RunnerEndpoint,
     },
     extensions.drivers.artifactStorageDrivers,
   );
@@ -1443,7 +1453,7 @@ export async function composeServer(
   //
   // The store is the skill-domain port over a PER-DOMAIN blob
   // driver: skill keeps its own root and its own
-  // backend knob (SKILL_ARTIFACT_STORAGE_TYPE), so an r2-configured
+  // backend knob (SKILL_ARTIFACT_STORAGE_TYPE), so an s3-configured
   // deployment changes nothing for skill artifacts until it opts in
   // explicitly, and the local skills/ directory keeps serving in place
   // on the default arm.
@@ -1511,7 +1521,7 @@ export async function composeServer(
         },
       );
     }
-    // Non-local skill backends share the artifact store's R2 settings for
+    // Non-local skill backends share the artifact store's S3 settings for
     // the built-in arm and the composition's registered drivers beyond it.
     return newArtifactStorage(
       {
@@ -1519,12 +1529,12 @@ export async function composeServer(
         localBasePath: config.storagePath,
         localServeUrl: "",
         localUrlSigner: downloadUrlSigner,
-        r2Bucket: config.r2Bucket,
-        r2Endpoint: config.r2Endpoint,
-        r2AccessKeyId: config.r2AccessKeyId,
-        r2SecretAccessKey: config.r2SecretAccessKey,
-        r2Region: config.r2Region,
-        r2RunnerEndpoint: config.r2RunnerEndpoint,
+        s3Bucket: config.s3Bucket,
+        s3Endpoint: config.s3Endpoint,
+        s3AccessKeyId: config.s3AccessKeyId,
+        s3SecretAccessKey: config.s3SecretAccessKey,
+        s3Region: config.s3Region,
+        s3RunnerEndpoint: config.s3RunnerEndpoint,
       },
       extensions.drivers.artifactStorageDrivers,
     );
@@ -1814,6 +1824,13 @@ export async function composeServer(
     sandboxLane,
   });
   const purgeContent = newContentStage(corePurges.content);
+  // What runners stored under each run's folder in a bucket store, keys
+  // nothing records (artifactstorage/runner-lane/purge.ts); before the
+  // content stage, while the runs it lists are still there.
+  const purgeRunArtifacts =
+    artifactStorage.deletePrefix === undefined
+      ? undefined
+      : newRunArtifactPurgeStage({ deletePrefix: artifactStorage.deletePrefix.bind(artifactStorage) });
   const organizationPurge = new OrganizationPurgeRunner({
     store,
     logger,
@@ -1821,6 +1838,7 @@ export async function composeServer(
     stages: orderOrganizationPurgeStages({
       quiesce: purgeQuiesce,
       units: extensions.orgPurge,
+      ...(purgeRunArtifacts === undefined ? {} : { runArtifacts: purgeRunArtifacts }),
       content: purgeContent,
       shred: newShredStage(secretService),
       children: newChildrenStage(store),
@@ -1833,6 +1851,7 @@ export async function composeServer(
         sweepFirst: [
           purgeQuiesce,
           ...extensions.orgPurge.stages.map(({ stage }) => stage),
+          ...(purgeRunArtifacts === undefined ? [] : [purgeRunArtifacts]),
           purgeContent,
         ],
       }),
@@ -2571,6 +2590,22 @@ export async function composeServer(
     receiptKey: newReceiptKeySource(store.bootstrapState),
   });
 
+  // The runner artifact lane (artifactstorage/runner-lane/lane.ts): a
+  // runner on any machine asks for a short-lived URL on the bucket for a
+  // key under its run, and never holds the bucket's keys. Served only when
+  // the artifact store can presign a runner's upload; on the local store
+  // the runner shares the server's disk instead.
+  const runnerArtifactLane = servesRunnerLane(artifactStorage)
+    ? createRunnerArtifactLane({
+        logger,
+        storage: artifactStorage,
+        runnerAuth: runnerCredentials,
+        store,
+        identityVerifiers,
+        authorizer,
+      })
+    : undefined;
+
   const server = createUnifiedPortServer({
     logger,
     routes,
@@ -2583,6 +2618,7 @@ export async function composeServer(
             clientDocument(clientDocumentUrl, oauthRedirectUri),
           ),
         }),
+    ...(runnerArtifactLane === undefined ? {} : { runnerArtifactLane }),
     skillTransferLane,
     ...(fileTransferLane === undefined ? {} : { fileTransferLane }),
     managedAgentsLane,

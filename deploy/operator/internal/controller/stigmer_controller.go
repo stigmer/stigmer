@@ -49,6 +49,7 @@ const RequeueAfter = 30 * time.Second
 func Components() []component.Component {
 	return []component.Component{
 		component.Keys{},
+		component.ObjectStore{},
 		component.Database{},
 		component.Temporal{},
 		component.Server{},

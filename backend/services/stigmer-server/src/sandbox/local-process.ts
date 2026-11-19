@@ -44,6 +44,7 @@ import type {
   SandboxProvisionerFactory,
   SandboxScope,
 } from "./provisioner.js";
+import { ARTIFACT_LANE_ENDPOINT_ENV } from "./provisioner.js";
 import { temporalAddressThroughServer } from "../transport/temporal-worker-door/address.js";
 
 /** The runner's own backend default in its local mode (runner src/config.ts). */
@@ -119,6 +120,9 @@ export const newLocalProcessSandboxProvisioner: SandboxProvisionerFactory = ({
     childEnv["TEMPORAL_SERVICE_ADDRESS"] = temporalAddressThroughServer(backendEndpoint);
     if (config.mcpPublicEndpoint !== "") {
       childEnv["STIGMER_MCP_PUBLIC_ENDPOINT"] = config.mcpPublicEndpoint;
+    }
+    if (config.artifactLane) {
+      childEnv[ARTIFACT_LANE_ENDPOINT_ENV] = backendEndpoint;
     }
     if (facts.stigmerToken !== "") {
       childEnv["STIGMER_TOKEN"] = facts.stigmerToken;

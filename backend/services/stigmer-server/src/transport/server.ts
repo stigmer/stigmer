@@ -9,7 +9,13 @@
  *                                                   document; absent unless
  *                                                   the port has a public
  *                                                   https origin)
- *   2. prefix       /v1/skill-artifacts            (the skill transfer
+ *   2. exact match  /v1/proxy/artifacts/presigned-upload-url and
+ *                   /v1/proxy/artifacts/presigned-download-url
+ *                                                  (the runner artifact
+ *                                                   lane; absent unless
+ *                                                   the artifact store is
+ *                                                   a bucket)
+ *      prefix       /v1/skill-artifacts            (the skill transfer
  *                                                   lane)
  *      prefix       /v1/sessions/                  (the Claude Managed
  *                                                   Agents lane: a
@@ -32,7 +38,8 @@
  *   4. RPC adapter  gRPC + gRPC-Web + Connect      (no WebSocket lane,
  *                                                   deliberately)
  *   5. 404          (the adapter's fallback — conformance asserts unknown
- *                    /v1/proxy/* paths land here)
+ *                    /v1/proxy/* paths land here, the artifact lane's
+ *                    included on a server whose store is local)
  *
  * The demux (demux.ts) fronts the port; both protocol servers run this same
  * lane router. Shutdown order is contract: health NOT_SERVING first, drain in-flight requests up to 10s, then
@@ -54,6 +61,8 @@ import {
   MAX_MESSAGE_BYTES,
   MODEL_REGISTRY_PATH,
   OAUTH_CLIENT_DOCUMENT_PATH,
+  RUNNER_ARTIFACT_DOWNLOAD_PATH,
+  RUNNER_ARTIFACT_UPLOAD_PATH,
   SHUTDOWN_DRAIN_TIMEOUT_MS,
   SKILL_ARTIFACTS_PATH_PREFIX,
 } from "./constants.js";
@@ -110,6 +119,13 @@ export interface UnifiedPortServerOptions {
    */
   temporalWorkerDoorLane?: LaneHandler;
   /**
+   * Lane 2: the runner artifact lane (artifactstorage/runner-lane/lane.ts),
+   * its two exact paths. Present only when the artifact store can presign
+   * a runner's upload; absent, the paths fall through to the adapter's 404,
+   * as every unknown `/v1/proxy/*` path does.
+   */
+  runnerArtifactLane?: LaneHandler;
+  /**
    * Lane 3: console statics + /config.json. Present only when a
    * console export is bundled/configured — absent, every request flows
    * exactly as before the lane existed. The eligibility guard lives with
@@ -161,6 +177,13 @@ export function createUnifiedPortServer(
     }
     if (options.oauthClientDocumentLane !== undefined && path === OAUTH_CLIENT_DOCUMENT_PATH) {
       options.oauthClientDocumentLane(request, response);
+      return;
+    }
+    if (
+      options.runnerArtifactLane !== undefined &&
+      (path === RUNNER_ARTIFACT_UPLOAD_PATH || path === RUNNER_ARTIFACT_DOWNLOAD_PATH)
+    ) {
+      options.runnerArtifactLane(request, response);
       return;
     }
     if (

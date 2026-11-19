@@ -55,6 +55,7 @@ import type {
   SandboxFacts,
   SandboxScope,
 } from "../provisioner.js";
+import { ARTIFACT_LANE_ENDPOINT_ENV } from "../provisioner.js";
 import { temporalAddressThroughServer } from "../../transport/temporal-worker-door/address.js";
 import {
   SANDBOX_ID_LABEL,
@@ -176,6 +177,9 @@ function runnerEnv(
     { name: "HOME", value: RUNNER_HOME },
     { name: "STIGMER_DRAIN_GRACE_MS", value: String(RUNNER_DRAIN_GRACE_MS) },
   ];
+  if (config.artifactLane) {
+    entries.push({ name: ARTIFACT_LANE_ENDPOINT_ENV, value: config.backendEndpoint });
+  }
   if (config.mcpPublicEndpoint !== "") {
     entries.push({
       name: "STIGMER_MCP_PUBLIC_ENDPOINT",

@@ -65,6 +65,7 @@ describe.skipIf(process.platform === "win32")(
       runnerEnv: { ANTHROPIC_BASE_URL: "http://127.0.0.1:18555" },
       runnerSecretEnv: { ANTHROPIC_API_KEY: "k-model-smoke" },
       serverRelease: "",
+      artifactLane: false,
     };
     const driver = newLocalProcessSandboxProvisioner({
       config,
@@ -203,6 +204,7 @@ describe("the local-process driver and an Environment", () => {
         runnerEnv: {},
         runnerSecretEnv: {},
         serverRelease: "",
+        artifactLane: false,
       },
       logger: silentLogger,
     });
@@ -227,6 +229,7 @@ describe.skipIf(process.platform === "win32")("the local-process driver with no 
         runnerEnv: {},
         runnerSecretEnv: {},
         serverRelease: "",
+        artifactLane: false,
       },
       logger: silentLogger,
     });

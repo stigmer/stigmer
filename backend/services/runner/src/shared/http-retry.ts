@@ -21,7 +21,7 @@
  * 408/429 (infrastructure between runner and service), or as network-level
  * fetch rejections. 401/403 stay terminal deliberately: retrying cannot fix
  * an expired or rejected credential. The same classification holds for the
- * presigned R2 URLs artifact storage talks to: their deterministic failures
+ * presigned bucket URLs artifact storage talks to: their deterministic failures
  * (403 expired signature, 404 missing object) are 4xx, their transient ones
  * are 5xx/network.
  */

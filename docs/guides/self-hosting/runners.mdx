@@ -90,15 +90,15 @@ console has no runner page.
 Everything the runner needs arrives through the file your shape already uses.
 You never edit the compose file or the chart.
 
-| What                                         | Docker Compose (`.env`)                                                  | Kubernetes (values file)                       | Who sets it                                                                 |
-| -------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------- | --------------------------------------------------------------------------- |
-| Server address, Temporal address, queue name | Fixed in the compose file                                                | Fixed in the chart                             | The release. Two things named once can't drift.                             |
-| Your LLM key                                 | `ANTHROPIC_API_KEY`                                                      | `runner.llm.existingSecret`                    | You. The runner holds it; the server never does.                            |
-| File storage                                 | The `artifacts` volume                                                   | The `stigmer-artifacts` claim                  | The release. One disk the server writes and the runner reads.               |
-| The runner's own state                       | The `runner-data` volume                                                 | The `stigmer-runner-data` claim                | The release. Checkpoints and Agents' working directories, not backup state. |
-| The runner's own API key                     | `STIGMER_TOKEN`                                                          | `runner.stigmerToken.existingSecret`           | You, once [authentication is on](./authentication#give-the-runner-its-key). |
-| The address MCP servers dial back on         | `STIGMER_PUBLIC_URL`                                                     | `server.publicUrl`                             | You, when clients reach the API anywhere but this machine's port.           |
-| Which providers the runners reach            | Not yet ([stigmer#2675](https://github.com/stigmer/stigmer/issues/2675)) | `server.extraEnv` (`STIGMER_RUNNER_PROVIDERS`) | You, so the console and create know which models can run.                   |
+| What                                         | Docker Compose (`.env`)                                                  | Kubernetes (values file)                       | Who sets it                                                                  |
+| -------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------- | ---------------------------------------------------------------------------- |
+| Server address, Temporal address, queue name | Fixed in the compose file                                                | Fixed in the chart                             | The release. Two things named once can't drift.                              |
+| Your LLM key                                 | `ANTHROPIC_API_KEY`                                                      | `runner.llm.existingSecret`                    | You. The runner holds it; the server never does.                             |
+| File storage                                 | The `artifacts` volume, or a bucket (`ARTIFACT_STORAGE_TYPE=s3`)         | The `stigmer-artifacts` claim                  | The release, or you when you name a bucket. The runner never holds its keys. |
+| The runner's own state                       | The `runner-data` volume                                                 | The `stigmer-runner-data` claim                | The release. Checkpoints and Agents' working directories, not backup state.  |
+| The runner's own API key                     | `STIGMER_TOKEN`                                                          | `runner.stigmerToken.existingSecret`           | You, once [authentication is on](./authentication#give-the-runner-its-key).  |
+| The address MCP servers dial back on         | `STIGMER_PUBLIC_URL`                                                     | `server.publicUrl`                             | You, when clients reach the API anywhere but this machine's port.            |
+| Which providers the runners reach            | Not yet ([stigmer#2675](https://github.com/stigmer/stigmer/issues/2675)) | `server.extraEnv` (`STIGMER_RUNNER_PROVIDERS`) | You, so the console and create know which models can run.                    |
 
 Five of these rows carry a design decision worth knowing.
 
@@ -123,14 +123,33 @@ the runner runs and nothing is refused: the runner's own error names a missing
 key. A name that is not a provider stops the server at boot. On your own machine
 `stigmer up` sets it for you.
 
-**File storage is shared by disk, not by HTTP.** The server writes a stored file
-to a path and the runner reads the same path, so the two must see one disk. That
-is why the compose stack gives them one volume, why the chart puts them in one
-pod, and why neither shape runs the runner on another machine today. File
-storage that needs no shared disk is
-[stigmer#1099](https://github.com/stigmer/stigmer/issues/1099). A conversation's
-Files are the exception: the runner fetches them over HTTP from the server's
-transfer lane, at the origin `SKILL_TRANSFER_BASE_URL` names.
+**File storage is a shared disk or a bucket, and the runner never holds the
+bucket's keys.** On the default local store the server writes a stored file to a
+path and the runner reads the same path, so the two must see one disk: the
+compose stack gives them one volume, and the chart puts them in one pod. Name an
+S3-compatible bucket instead (AWS S3, Cloudflare R2, MinIO, or Google Cloud
+Storage through its S3 API) and the runner can run anywhere: it asks the
+server's artifact lane for a short-lived URL for each file it reads or writes,
+and the server answers only for the run the runner is serving. A conversation's
+Files and Skills use the same bucket. The server's settings:
+
+| Setting                       | What it holds                                                              |
+| ----------------------------- | -------------------------------------------------------------------------- |
+| `ARTIFACT_STORAGE_TYPE`       | `s3`, to store files in the bucket (`local` is the default)                |
+| `SKILL_ARTIFACT_STORAGE_TYPE` | `s3`, to store Skills there too                                            |
+| `S3_BUCKET`                   | The bucket's name                                                          |
+| `S3_ENDPOINT`                 | The store's URL; empty for AWS S3 itself                                   |
+| `S3_REGION`                   | The bucket's region (`us-east-1` when unset, which R2 also accepts)        |
+| `S3_ACCESS_KEY_ID`            | The server's key for the bucket                                            |
+| `S3_SECRET_ACCESS_KEY`        | Its secret                                                                 |
+| `S3_RUNNER_ENDPOINT`          | The address runners reach the store at, when it differs from `S3_ENDPOINT` |
+
+A runner on another machine is then given `ARTIFACT_STORAGE_TYPE=proxy` and
+`STIGMER_ARTIFACT_PROXY_ENDPOINT`, the server's own address; the sandbox drivers
+below set it for you. A server missing a bucket setting it needs stops at boot
+and names it. A conversation's Files on the local store reach the runner over
+HTTP from the server's transfer lane, at the origin `SKILL_TRANSFER_BASE_URL`
+names.
 
 **The runner's own API key is its credential, not the runs'.** Runs travel on
 that per-run credential, so the runner's key doesn't decide whose runs it serves
@@ -342,11 +361,11 @@ SANDBOX_PROVISIONER_TYPE='docker' requires per-session routing — set STIGMER_A
   the per-Session runner, over the transfer lane, once `SKILL_TRANSFER_BASE_URL`
   names an origin the container reaches; the server warns at boot when it is
   left on loopback. What a run stores beside its record (its offloaded tool
-  output and file-review content) still needs a shared path
-  ([stigmer#1099](https://github.com/stigmer/stigmer/issues/1099)). The chart
-  offers no sandbox values until that lands. This section describes the
-  mechanism so the settings you meet in the server's configuration make sense;
-  it isn't a procedure.
+  output and file-review content) reaches the per-Session runner through the
+  server's artifact lane once the server stores files in a bucket (**File
+  storage**, above); on the local store it needs a shared path. This section
+  describes the mechanism so the settings you meet in the server's configuration
+  make sense; it isn't a procedure.
 </Callout>
 
 ### Bring your own base image

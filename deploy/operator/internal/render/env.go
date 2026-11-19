@@ -42,6 +42,32 @@ var RunnerModelKeys = []string{
 	"AWS_BEARER_TOKEN_BEDROCK",
 }
 
+// Keys in the object store's credentials Secret.
+const (
+	ObjectStoreAccessKeyID     = "ACCESS_KEY_ID"
+	ObjectStoreSecretAccessKey = "SECRET_ACCESS_KEY"
+)
+
+// defaultObjectStoreRegion is the region a bucket declared without one is
+// signed for, the server's own default.
+const defaultObjectStoreRegion = "us-east-1"
+
+// ObjectStore is the declared bucket, or nil when files live on a volume.
+func ObjectStore(st *stigmerv1.Stigmer) *stigmerv1.S3Spec {
+	if st.Spec.ObjectStore == nil {
+		return nil
+	}
+	return &st.Spec.ObjectStore.S3
+}
+
+// ObjectStoreRegion is the bucket's region, the default when unset.
+func ObjectStoreRegion(s3 *stigmerv1.S3Spec) string {
+	if s3.Region == "" {
+		return defaultObjectStoreRegion
+	}
+	return s3.Region
+}
+
 // Keys in the keys Secret; each is the server setting of the same name.
 const (
 	EncryptionKey    = "STIGMER_ENCRYPTION_KEY"
@@ -197,9 +223,17 @@ func ServerEnv(st *stigmerv1.Stigmer) []corev1.EnvVar {
 	env = append(env, temporalConnectionEnv(t)...)
 	env = append(env,
 		value("TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE", RunnerTaskQueue),
-		value("ARTIFACT_STORAGE_TYPE", "local"),
-		value("ARTIFACT_LOCAL_BASE_PATH", ArtifactsMount),
-		value("ARTIFACT_LOCAL_SERVE_URL", localArtifactURL),
+	)
+	if s3 := ObjectStore(st); s3 != nil {
+		env = append(env, objectStoreEnv(s3)...)
+	} else {
+		env = append(env,
+			value("ARTIFACT_STORAGE_TYPE", "local"),
+			value("ARTIFACT_LOCAL_BASE_PATH", ArtifactsMount),
+			value("ARTIFACT_LOCAL_SERVE_URL", localArtifactURL),
+		)
+	}
+	env = append(env,
 		value("SKILL_TRANSFER_BASE_URL", localPublicURL),
 		fromSecret(EncryptionKey, keys, EncryptionKey, false),
 		fromSecret(RunnerTokenKey, keys, RunnerTokenKey, false),
@@ -232,6 +266,29 @@ func ServerEnv(st *stigmerv1.Stigmer) []corev1.EnvVar {
 		env = append(env, enterpriseEnv(st)...)
 	}
 	return env
+}
+
+// objectStoreEnv puts the server's files in the bucket: what a run stores
+// beside its record, Files and Skills (the server's S3_* settings), with the
+// access key referenced from its Secret. The server then serves the runner
+// artifact lane, through which a runner reads and writes without the keys.
+func objectStoreEnv(s3 *stigmerv1.S3Spec) []corev1.EnvVar {
+	env := []corev1.EnvVar{
+		value("ARTIFACT_STORAGE_TYPE", "s3"),
+		value("SKILL_ARTIFACT_STORAGE_TYPE", "s3"),
+		value("S3_BUCKET", s3.Bucket),
+		value("S3_REGION", ObjectStoreRegion(s3)),
+	}
+	if s3.Endpoint != "" {
+		env = append(env, value("S3_ENDPOINT", s3.Endpoint))
+	}
+	if s3.RunnerEndpoint != "" {
+		env = append(env, value("S3_RUNNER_ENDPOINT", s3.RunnerEndpoint))
+	}
+	return append(env,
+		fromSecret("S3_ACCESS_KEY_ID", s3.CredentialsSecret.Name, ObjectStoreAccessKeyID, false),
+		fromSecret("S3_SECRET_ACCESS_KEY", s3.CredentialsSecret.Name, ObjectStoreSecretAccessKey, false),
+	)
 }
 
 // enterpriseEnv is Stigmer Enterprise's own settings (ee/server/README.md).
@@ -281,9 +338,21 @@ func RunnerEnv(st *stigmerv1.Stigmer) []corev1.EnvVar {
 		value("STIGMER_TASK_QUEUE", RunnerTaskQueue),
 		value("WORKSPACE_ROOT_DIR", "/data/.stigmer/data/workspace"),
 		value("STIGMER_AGENT_HOME", "/data/agent"),
-		value("ARTIFACT_STORAGE_TYPE", "local"),
-		value("LOCAL_ARTIFACT_PATH", ArtifactsMount),
 	)
+	if ObjectStore(st) != nil {
+		// The server's artifact lane, on the server's own port in this pod:
+		// never STIGMER_PROXY_ENDPOINT, which would also send the runner's
+		// model calls through the server.
+		env = append(env,
+			value("ARTIFACT_STORAGE_TYPE", "proxy"),
+			value("STIGMER_ARTIFACT_PROXY_ENDPOINT", fmt.Sprintf("http://localhost:%d", GRPCPort)),
+		)
+	} else {
+		env = append(env,
+			value("ARTIFACT_STORAGE_TYPE", "local"),
+			value("LOCAL_ARTIFACT_PATH", ArtifactsMount),
+		)
+	}
 	if llm := st.Spec.Runner.LLM; llm != nil {
 		for _, key := range RunnerModelKeys {
 			env = append(env, fromSecret(key, llm.SecretName, key, true))
@@ -313,14 +382,20 @@ func OwnedEnvNames(container string) []string {
 		Runner:     stigmerv1.RunnerSpec{LLM: &stigmerv1.LLMSpec{SecretName: "x"}},
 		Enterprise: &stigmerv1.EnterpriseSpec{License: &stigmerv1.SecretKeySelector{Name: "x", Key: "x"}},
 	}}
+	// The volume arm and the bucket arm set different names; both are owned.
+	bucket := full.DeepCopy()
+	bucket.Spec.ObjectStore = &stigmerv1.ObjectStoreSpec{S3: stigmerv1.S3Spec{
+		Bucket: "x", Endpoint: "http://x", RunnerEndpoint: "http://x",
+		CredentialsSecret: corev1.LocalObjectReference{Name: "x"},
+	}}
 	var env []corev1.EnvVar
 	if container == "runner" {
-		env = RunnerEnv(full)
+		env = append(RunnerEnv(full), RunnerEnv(bucket)...)
 		// Held back under sign-in today; the runner will read its key from
 		// here, so the name is reserved now.
 		env = append(env, value("STIGMER_TOKEN", ""))
 	} else {
-		env = ServerEnv(full)
+		env = append(ServerEnv(full), ServerEnv(bucket)...)
 	}
 	names := make([]string, 0, len(env))
 	for _, e := range env {

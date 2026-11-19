@@ -26,6 +26,7 @@ import (
 // +kubebuilder:validation:XValidation:rule="!(has(self.database) && has(self.database.postgresql) && has(self.database.postgresql.external)) || (has(self.temporal) && has(self.temporal.external))",message="spec.database.postgresql.external names your own Postgres, and the operator does not create Temporal's databases on a Postgres it does not run: bring your own Temporal too (spec.temporal.external), or let the operator run the database"
 // +kubebuilder:validation:XValidation:rule="!has(self.enterprise) || (has(self.identity) && has(self.identity.oidc))",message="Stigmer Enterprise signs every caller in, and a licensed server refuses to boot without sign-in: set spec.identity.oidc"
 // +kubebuilder:validation:XValidation:rule="!has(self.enterprise) || !has(self.temporal) || !has(self.temporal.external) || has(self.temporal.external.tls) || has(self.temporal.external.apiKey)",message="under a Stigmer Enterprise license, spec.temporal.external must authenticate: whoever reaches a plaintext Temporal can start work on the runner's queue, and a licensed install serves many organizations. Set spec.temporal.external.tls or spec.temporal.external.apiKey"
+// +kubebuilder:validation:XValidation:rule="!has(self.objectStore) || !has(self.server) || !has(self.server.artifacts)",message="spec.server.artifacts sizes the artifacts volume, and an install with spec.objectStore keeps its artifacts in the bucket instead: remove spec.server.artifacts"
 type StigmerSpec struct {
 	// Image says where Stigmer's images are pulled from. The tag is always
 	// this operator's own version: operator vX runs Stigmer vX.
@@ -56,6 +57,15 @@ type StigmerSpec struct {
 	// operator runs it for you on the bundled database.
 	// +optional
 	Temporal *TemporalSpec `json:"temporal,omitempty"`
+
+	// ObjectStore is the bucket Stigmer keeps its files in: what a run stores
+	// beside its record, Skills, and the database's archive. Declared, the
+	// server and the runner share no disk, a runner reads and writes files
+	// through short-lived URLs without ever holding the bucket's keys, and
+	// the bundled database archives to the bucket from its first minute.
+	// Absent, files live on a volume the server and the shared runner share.
+	// +optional
+	ObjectStore *ObjectStoreSpec `json:"objectStore,omitempty"`
 
 	// Identity turns sign-in on. Absent, the server signs nobody in and every
 	// caller is the owner, which is safe only while the install is reachable
@@ -114,7 +124,8 @@ type ServerSpec struct {
 	Storage *VolumeSpec `json:"storage,omitempty"`
 
 	// Artifacts is the volume the server writes artifacts to and the shared
-	// runner reads them from. Defaults to 20Gi.
+	// runner reads them from, when no objectStore is declared. Defaults to
+	// 20Gi.
 	// +optional
 	Artifacts *VolumeSpec `json:"artifacts,omitempty"`
 
@@ -186,6 +197,45 @@ type VolumeSpec struct {
 	// cluster's default.
 	// +optional
 	StorageClassName *string `json:"storageClassName,omitempty"`
+}
+
+// ObjectStoreSpec is the bucket Stigmer keeps its files in.
+type ObjectStoreSpec struct {
+	// S3 is any S3-compatible bucket: AWS S3, Cloudflare R2, MinIO, or Google
+	// Cloud Storage through its S3 API.
+	S3 S3Spec `json:"s3"`
+}
+
+// S3Spec names one S3-compatible bucket.
+type S3Spec struct {
+	// Bucket is the bucket's name.
+	// +kubebuilder:validation:MinLength=3
+	// +kubebuilder:validation:MaxLength=63
+	Bucket string `json:"bucket"`
+
+	// Region is the bucket's region; R2 also accepts us-east-1.
+	// +kubebuilder:default=us-east-1
+	// +optional
+	Region string `json:"region,omitempty"`
+
+	// Endpoint is the store's URL, such as
+	// https://<account>.r2.cloudflarestorage.com or
+	// http://minio.storage.svc:9000. Absent means AWS S3 itself.
+	// +kubebuilder:validation:XValidation:rule="self.startsWith('https://') || self.startsWith('http://')",message="spec.objectStore.s3.endpoint must be an http or https URL"
+	// +optional
+	Endpoint string `json:"endpoint,omitempty"`
+
+	// CredentialsSecret is a Secret in this namespace holding the bucket's
+	// access key as ACCESS_KEY_ID and SECRET_ACCESS_KEY. The server and the
+	// database's backups read it; no runner ever does.
+	CredentialsSecret corev1.LocalObjectReference `json:"credentialsSecret"`
+
+	// RunnerEndpoint is the address runners reach the store at, when it is
+	// not Endpoint: the URLs handed to runners are signed for it, since a
+	// signed URL's host is part of its signature.
+	// +kubebuilder:validation:XValidation:rule="self.startsWith('https://') || self.startsWith('http://')",message="spec.objectStore.s3.runnerEndpoint must be an http or https URL"
+	// +optional
+	RunnerEndpoint string `json:"runnerEndpoint,omitempty"`
 }
 
 // DatabaseSpec is where Stigmer keeps its records.
@@ -458,7 +508,8 @@ type ObjectReference struct {
 
 // ComponentStatus is one component's standing.
 type ComponentStatus struct {
-	// Name is the component: keys, database, temporal, server or runner.
+	// Name is the component: keys, objectStore, database, temporal, server
+	// or runner.
 	Name string `json:"name"`
 	// Phase is where the component stands.
 	Phase Phase `json:"phase"`

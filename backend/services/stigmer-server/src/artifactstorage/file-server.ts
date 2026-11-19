@@ -22,7 +22,7 @@
  * Disposition contract (proven by __tests__/file-server.test.ts and, on
  * links the storage mints, __tests__/file-server-signing.test.ts): a
  * request carrying ?download=<name> (set by getSignedUrl) is served as a
- * browser download named by that parameter — mirroring the R2 backend,
+ * browser download named by that parameter — mirroring the S3 backend,
  * which signs Content-Disposition into the presigned URL. Requests without
  * the parameter are served INLINE with no disposition header.
  *

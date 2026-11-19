@@ -93,7 +93,12 @@ func profiles() map[string]*stigmerv1.Stigmer {
 		OrganizationCreators:       []string{"ida_01jq3v8k6m2n4p5r7s9t0v1w2x"},
 		AccessHistoryRetentionDays: &days,
 	}
-	return map[string]*stigmerv1.Stigmer{"bundled": bundled, "byo": byo, "oidc": oidc, "enterprise": enterprise}
+	bucket := base()
+	bucket.Spec.ObjectStore = &stigmerv1.ObjectStoreSpec{S3: stigmerv1.S3Spec{
+		Bucket: "acme-stigmer", Region: "eu-west-1", Endpoint: "http://minio.storage:9000",
+		RunnerEndpoint: "http://minio.example:9000", CredentialsSecret: corev1.LocalObjectReference{Name: "bucket"},
+	}}
+	return map[string]*stigmerv1.Stigmer{"bundled": bundled, "byo": byo, "oidc": oidc, "enterprise": enterprise, "bucket": bucket}
 }
 
 // operatorOnly are names the operator renders that Compose does not carry,
@@ -110,17 +115,40 @@ var operatorOnly = map[string]string{
 	"STIGMER_OUTBOUND_EGRESS":                  "Stigmer Enterprise",
 	"STIGMER_ORGANIZATION_CREATORS":            "Stigmer Enterprise",
 	"STIGMER_ACCESS_HISTORY_RETENTION_DAYS":    "Stigmer Enterprise",
+	"SKILL_ARTIFACT_STORAGE_TYPE":              "a declared bucket; Compose keeps artifacts and Skills on its volumes",
+	"S3_BUCKET":                                "as above",
+	"S3_REGION":                                "as above",
+	"S3_ENDPOINT":                              "as above",
+	"S3_RUNNER_ENDPOINT":                       "as above",
+	"S3_ACCESS_KEY_ID":                         "as above",
+	"S3_SECRET_ACCESS_KEY":                     "as above",
+	"STIGMER_ARTIFACT_PROXY_ENDPOINT":          "as above: the runner reaches the bucket through the server's artifact lane",
 	"OPENAI_API_KEY":                           "the runner's other model providers, read from the same Secret",
 	"ANTHROPIC_FOUNDRY_API_KEY":                "as above",
 	"AWS_BEARER_TOKEN_BEDROCK":                 "as above",
 }
 
+// onVolumeOnly are Compose's names for files on a shared volume, which an
+// install with a bucket does not render: the server ignores them when its
+// store is the bucket, and the runner's files go through the server.
+var onVolumeOnly = map[string]bool{
+	"ARTIFACT_LOCAL_BASE_PATH": true,
+	"ARTIFACT_LOCAL_SERVE_URL": true,
+	"LOCAL_ARTIFACT_PATH":      true,
+}
+
 var composeVar = regexp.MustCompile(`^\$\{([A-Z0-9_]+)(:\?[^}]*|:-([^}]*))?\}$`)
 
 // translate maps a Compose value to where the same thing lives for a Stigmer.
-func translate(st *stigmerv1.Stigmer, name, v string) string {
+func translate(st *stigmerv1.Stigmer, role, name, v string) string {
 	db := Database(st)
 	t := Temporal(st)
+	if name == "ARTIFACT_STORAGE_TYPE" && v == "local" && ObjectStore(st) != nil {
+		if role == "runner" {
+			return "proxy"
+		}
+		return "s3"
+	}
 	switch v {
 	case "postgres://postgres@postgres:5432":
 		return fmt.Sprintf("postgres://%s@%s:%d", userEscape(db.User), db.Host, db.Port)
@@ -158,6 +186,9 @@ func checkParity(t *testing.T, profile, role string, st *stigmerv1.Stigmer, comp
 	}
 	for name, raw := range compose {
 		e, present := got[name]
+		if !present && onVolumeOnly[name] && ObjectStore(st) != nil {
+			continue
+		}
 		m := composeVar.FindStringSubmatch(raw)
 		switch {
 		case m != nil && strings.HasPrefix(m[2], ":?"):
@@ -167,12 +198,12 @@ func checkParity(t *testing.T, profile, role string, st *stigmerv1.Stigmer, comp
 		case m != nil && m[2] == ":-":
 			// Optional: absent, a reference, or a value.
 		case m != nil:
-			want := translate(st, name, m[3])
+			want := translate(st, role, name, m[3])
 			if !present || e.Value != want {
 				t.Errorf("%s/%s: %s = %q, want Compose's default %q", profile, role, name, e.Value, want)
 			}
 		default:
-			want := translate(st, name, raw)
+			want := translate(st, role, name, raw)
 			if !present || e.Value != want {
 				t.Errorf("%s/%s: %s = %q, want %q (Compose: %q)", profile, role, name, e.Value, want, raw)
 			}

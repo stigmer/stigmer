@@ -74,6 +74,7 @@ import { createHash } from "node:crypto";
 import { create, toBinary } from "@bufbuild/protobuf";
 
 import type { SandboxDriverConfig } from "../provisioner.js";
+import { ARTIFACT_LANE_ENDPOINT_ENV } from "../provisioner.js";
 import { temporalAddressThroughServer } from "../../transport/temporal-worker-door/address.js";
 import {
   RUNNER_CAPABILITIES,
@@ -161,6 +162,9 @@ export function buildRunnerTemplate(input: RunnerTemplateInput): ActorTemplate {
   };
   if (config.mcpPublicEndpoint !== "") {
     env["STIGMER_MCP_PUBLIC_ENDPOINT"] = config.mcpPublicEndpoint;
+  }
+  if (config.artifactLane) {
+    env[ARTIFACT_LANE_ENDPOINT_ENV] = config.backendEndpoint;
   }
   // Only a release server names its release, so a re-pin between
   // development builds leaves the template's content, and its name, alone.

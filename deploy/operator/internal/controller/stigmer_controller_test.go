@@ -3,7 +3,8 @@
 // are minted once, never rewritten, carry no owner reference (so they
 // outlive the Stigmer), and a missing one is added alone; a component waits
 // naming the dependency that is not ready; a second Stigmer is refused naming
-// the first; a declared size that cannot run refuses the install; one pass
+// the first; a declared size that cannot run refuses the install; a bucket
+// waits, in words, for its credentials Secret and both keys; one pass
 // writes status once and a pass that changes nothing writes nothing; and a
 // prerequisite is installed when absent, waited on while its controller is
 // not ready, trusted when someone else installed it, and refused under skip
@@ -44,6 +45,7 @@ func TestAdmissionRefusesContradictions(t *testing.T) {
 	}}}
 	oidc := &stigmerv1.IdentitySpec{OIDC: &stigmerv1.OIDCSpec{Issuer: "https://issuer", Audience: "a"}}
 	license := &stigmerv1.SecretKeySelector{Name: "l", Key: "STIGMER_LICENSE_KEY"}
+	bucket := &stigmerv1.ObjectStoreSpec{S3: stigmerv1.S3Spec{Bucket: "acme", CredentialsSecret: corev1.LocalObjectReference{Name: "bucket"}}}
 	cases := []struct {
 		name string
 		spec stigmerv1.StigmerSpec
@@ -73,6 +75,12 @@ func TestAdmissionRefusesContradictions(t *testing.T) {
 			"must be an https URL"},
 		{"an owner that is not an email", stigmerv1.StigmerSpec{Owner: &stigmerv1.OwnerSpec{Email: "priya"}},
 			"must be an email address"},
+		{"an artifacts volume beside a bucket", stigmerv1.StigmerSpec{ObjectStore: bucket,
+			Server: stigmerv1.ServerSpec{Artifacts: &stigmerv1.VolumeSpec{}}},
+			"remove spec.server.artifacts"},
+		{"a bucket endpoint that is not a URL", stigmerv1.StigmerSpec{ObjectStore: &stigmerv1.ObjectStoreSpec{S3: stigmerv1.S3Spec{
+			Bucket: "acme", Endpoint: "minio:9000", CredentialsSecret: corev1.LocalObjectReference{Name: "bucket"}}}},
+			"must be an http or https URL"},
 	}
 	for i, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -226,6 +234,49 @@ func TestKeysAreMintedOnceAndOutliveTheStigmer(t *testing.T) {
 		t.Error("a malformed key was overwritten")
 	}
 	_ = k8s.Delete(ctx, s)
+}
+
+func TestABucketWaitsForItsCredentials(t *testing.T) {
+	deleteStigmersElsewhere(t)
+	ns := namespace(t)
+	ctx := context.Background()
+	r := &StigmerReconciler{Client: k8s, Reader: k8s, Components: []component.Component{component.ObjectStore{}}}
+
+	none := stigmer(ns, "volume")
+	if err := k8s.Create(ctx, none); err != nil {
+		t.Fatal(err)
+	}
+	if c := componentStatus(reconcileOnce(t, r, none), render.ComponentObjectStore); c == nil || c.Phase != stigmerv1.PhaseReady ||
+		!strings.Contains(c.Message, "no bucket declared") {
+		t.Fatalf("no bucket: %+v", c)
+	}
+	_ = k8s.Delete(ctx, none)
+
+	s := stigmer(ns, "bucket")
+	s.Spec.ObjectStore = &stigmerv1.ObjectStoreSpec{S3: stigmerv1.S3Spec{Bucket: "acme", CredentialsSecret: corev1.LocalObjectReference{Name: "bucket"}}}
+	if err := k8s.Create(ctx, s); err != nil {
+		t.Fatal(err)
+	}
+	c := componentStatus(reconcileOnce(t, r, s), render.ComponentObjectStore)
+	if c == nil || c.Phase != stigmerv1.PhaseRefused || c.Reason != stigmerv1.ReasonSecretMissing || !strings.Contains(c.Message, "Secret bucket does not exist") {
+		t.Fatalf("missing credentials: %+v", c)
+	}
+	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: ns, Name: "bucket"},
+		Data: map[string][]byte{render.ObjectStoreAccessKeyID: []byte("id")}}
+	if err := k8s.Create(ctx, secret); err != nil {
+		t.Fatal(err)
+	}
+	if c := componentStatus(reconcileOnce(t, r, s), render.ComponentObjectStore); c == nil || !strings.Contains(c.Message, "has no key SECRET_ACCESS_KEY") {
+		t.Fatalf("half the credentials: %+v", c)
+	}
+	secret.Data[render.ObjectStoreSecretAccessKey] = []byte("secret")
+	if err := k8s.Update(ctx, secret); err != nil {
+		t.Fatal(err)
+	}
+	if c := componentStatus(reconcileOnce(t, r, s), render.ComponentObjectStore); c == nil || c.Phase != stigmerv1.PhaseReady ||
+		!strings.Contains(c.Message, "bucket acme") {
+		t.Fatalf("credentials present: %+v", c)
+	}
 }
 
 func TestComponentsWaitNamingTheirDependency(t *testing.T) {
