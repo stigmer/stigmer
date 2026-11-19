@@ -41,6 +41,14 @@ function renderDefaults(account: IdentityAccount | null = ACCOUNT) {
   return calls;
 }
 
+/** The words a control's `aria-describedby` points at, joined. */
+function describedBy(element: HTMLElement): string {
+  return (element.getAttribute("aria-describedby") ?? "")
+    .split(" ")
+    .map((id) => document.getElementById(id)?.textContent ?? "")
+    .join(" ");
+}
+
 describe("ModelDefaults", () => {
   it("says each engine's default model can run or what it needs, judging the platform default when none is chosen", async () => {
     renderDefaults();
@@ -49,10 +57,26 @@ describe("ModelDefaults", () => {
     await waitFor(() => expect(stigmer).toHaveProperty("disabled", false));
     expect(stigmer.getAttribute("aria-describedby")).toBeTruthy();
     // Both engines' platform defaults are Anthropic models here.
-    expect(screen.getAllByText("Needs an Anthropic key")).toHaveLength(2);
+    expect(describedBy(stigmer)).toContain("Needs an Anthropic key");
+    expect(describedBy(screen.getByRole("combobox", { name: "Claude Agent" }))).toContain("Needs an Anthropic key");
 
     fireEvent.change(stigmer, { target: { value: "gpt-5" } });
-    expect(await screen.findByText("Ready")).toBeTruthy();
+    await waitFor(() => expect(describedBy(stigmer)).toContain("Ready"));
+  });
+
+  it("says the status twice, once beside the select and once under the engine's line for a phone, and describes the select with the first only", async () => {
+    renderDefaults();
+    const stigmer = await screen.findByRole("combobox", { name: "Stigmer" });
+    await waitFor(() => expect(stigmer).toHaveProperty("disabled", false));
+
+    const copies = screen.getAllByText("Needs an Anthropic key");
+    // Two engines, each with its trailing status and its narrow copy.
+    expect(copies).toHaveLength(4);
+    const narrow = copies.filter((copy) => copy.getAttribute("aria-hidden") === "true");
+    expect(narrow).toHaveLength(2);
+    for (const copy of narrow) expect(copy.className).toContain("stg:sm:hidden");
+    const ids = (stigmer.getAttribute("aria-describedby") ?? "").split(" ");
+    expect(narrow.some((copy) => ids.includes(copy.id))).toBe(false);
   });
 
   it("saves a row the moment it changes, naming only that engine's path on the account's id and etag", async () => {

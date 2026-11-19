@@ -152,6 +152,8 @@ function DefaultRow({
   const readiness = effective === "" ? undefined : readinessOf(harness, effective);
   const status =
     readiness === undefined ? "" : readiness.availability.state === "missing" ? needsKeyLabel(readiness.provider) : "Ready";
+  const statusText = saving ? "Saving…" : status;
+  const statusTone = readiness?.availability.state === "missing" ? "stg:text-foreground" : "stg:text-muted-foreground";
   return (
     <ListRow
       name={
@@ -159,7 +161,19 @@ function DefaultRow({
           {HARNESS_META[harness].label}
         </label>
       }
-      description={<span id={descriptionId}>{HARNESS_META[harness].description}</span>}
+      description={
+        <>
+          <span id={descriptionId}>{HARNESS_META[harness].description}</span>
+          {/* On a phone the trailing slot has no room for the status, so it reads
+              under the harness's line instead; the trailing copy stays its
+              accessible description at every width. */}
+          {statusText !== "" && (
+            <span aria-hidden="true" className={cn("stg:block stg:truncate stg:sm:hidden", statusTone)}>
+              {statusText}
+            </span>
+          )}
+        </>
+      }
       trailing={
         <>
           <Select
@@ -179,14 +193,8 @@ function DefaultRow({
               </option>
             ))}
           </Select>
-          <span
-            id={statusId}
-            className={cn(
-              "stg:text-xs stg:sm:w-36",
-              readiness?.availability.state === "missing" ? "stg:text-foreground" : "stg:text-muted-foreground",
-            )}
-          >
-            {saving ? "Saving…" : status}
+          <span id={statusId} className={cn("stg:hidden stg:text-xs stg:sm:inline stg:sm:w-36", statusTone)}>
+            {statusText}
           </span>
         </>
       }
