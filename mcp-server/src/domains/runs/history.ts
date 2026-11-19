@@ -124,7 +124,7 @@ export function phaseName(phase: RunPhase): string {
 
 function firstLine(text: string): string {
   const line = text.trim().split("\n")[0] ?? "";
-  return line.length > 300 ? `${line.slice(0, 297)}...` : line;
+  return line.length > 300 ? `${line.slice(0, 300)}... (cut here; get_run reads the whole error)` : line;
 }
 
 /** One output as get_run_outputs reports it. */

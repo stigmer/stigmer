@@ -295,6 +295,13 @@ describe("list_runs", () => {
     ]);
   });
 
+  it("cuts a long error at 300 characters and says where the whole of it is", async () => {
+    agentRuns = [run("run_long", RunPhase.RUN_FAILED, `${"x".repeat(320)}\nsecond line`)];
+    const listed = body(await call(withRoots, "list_runs", { agent: "invoice-checker" }));
+    const [line] = listed.runs as Array<{ error: string }>;
+    expect(line?.error).toBe(`${"x".repeat(300)}... (cut here; get_run reads the whole error)`);
+  });
+
   it("asks for ten runs by default and says when the agent has none", async () => {
     const listed = body(await call(withRoots, "list_runs", { agent: "invoice-checker" }));
     expect(listByAgentRequests[0]?.pageSize).toBe(10);
