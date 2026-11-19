@@ -75,6 +75,8 @@ const settings: SubstrateDriverSettings = {
   platformHttpsHosts: [],
   suspendAfterSeconds: 1800,
   sweepIntervalSeconds: 60,
+  cpuMillicores: 2000,
+  memoryMib: 2048,
 };
 
 function shape(rules: ReturnType<typeof buildEgressRules>) {
