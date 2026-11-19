@@ -297,12 +297,12 @@ function decodeText(data: Uint8Array, truncated: boolean): string | undefined {
 function completeUtf8Length(data: Uint8Array): number {
   let i = data.length - 1;
   let continuation = 0;
-  while (i >= 0 && continuation < 4 && (data[i] & 0xc0) === 0x80) {
+  while (i >= 0 && continuation < 4 && ((data[i] ?? 0) & 0xc0) === 0x80) {
     i -= 1;
     continuation += 1;
   }
   if (i < 0) return data.length;
-  const lead = data[i];
+  const lead = data[i] ?? 0;
   const need = lead >= 0xf0 ? 3 : lead >= 0xe0 ? 2 : lead >= 0xc0 ? 1 : 0;
   return need > continuation ? i : data.length;
 }

@@ -456,7 +456,7 @@
     },
     {
       "name": "run_agent",
-      "description": "Start a run (asynchronous). Returns immediately with the created run (run_* ID) while the run continues in the background — poll get_run to observe progress, the tool uses it waits on, and the final answer. Omit session_id to start a fresh conversation on the agent; pass one to send a follow-up message into an existing session, which runs the agent the session started on.",
+      "description": "Start a run (asynchronous). Returns immediately with the created run (run_* ID) while the run continues in the background — poll get_run to observe progress, the tool uses it waits on, and the final answer. Omit session_id to start a fresh conversation on the agent; pass one to send a follow-up message into an existing session, which runs the agent the session started on. `files` hands the run files from the person's project (\"run invoice-checker on samples/march.csv\").",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -494,6 +494,14 @@
           "include_my_vault": {
             "description": "Whether each turn of a new conversation uses the caller's own My vault first (default true). Pass false to run on the listed vaults only. Only when starting a new conversation (no session_id).",
             "type": "boolean"
+          },
+          "files": {
+            "description": "Files from the person's project the message carries, at most 20: each a path, relative to a folder their coding agent has open or absolute inside one. The agent sees each with the message and finds it under .stigmer/uploads/. Taken only by the tool server running on the person's machine (`stigmer mcp-server`) and only inside the folders their coding agent has open; anywhere else the call is refused, and the file is attached from a shell with `stigmer run <agent> --attach <path>`. A folder is refused the same way. Works on a follow-up too.",
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -514,8 +522,104 @@
       }
     },
     {
+      "name": "list_runs",
+      "description": "List one agent's runs, newest first, across all its conversations: how to find \"the last run\" of an agent, or the run a person means (\"last night's\", \"the one that failed\"). Each run has its run_id, session_id, phase, start and end, and its error in one line when it failed. Read one run with get_run (why it failed, what it said), what it saved with get_run_outputs, and how it was graded with get_run_scores.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "org": {
+            "default": "",
+            "description": "Organization slug that owns the agent (e.g. acme). Leave empty on a server that holds one organization.",
+            "type": "string"
+          },
+          "agent": {
+            "type": "string",
+            "description": "Agent slug (e.g. invoice-checker)."
+          },
+          "limit": {
+            "description": "How many of the newest runs to return (default 10, at most 50).",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "required": [
+          "agent"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "get_run_outputs",
+      "description": "Read what a run made: the files it saved in its outputs folder (a report, a CSV), newest per path. Text files come back with their content, at most 512 KB each, the cut said; other files are named with their size and type. Give the person the content itself, not a description of where it is. To save the files to a folder, the person runs `stigmer download run <run_id> --output-dir <folder>`. No download link is returned: it would open the file without a sign-in.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "description": "Run ID (run_*); find one with list_runs."
+          },
+          "path": {
+            "description": "Only this output: its path in the outputs folder (reports/march.md) or its filename.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "get_run_scores",
+      "description": "Read how a run was graded: each score with where it came from (the platform's run-health check, a person's thumbs, an AI judge, an eval), whether it was graded, its verdict, its criteria and comment. An empty list means nobody and nothing graded the run: say so plainly rather than judge it yourself.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "description": "Run ID (run_*); find one with list_runs."
+          }
+        },
+        "required": [
+          "run_id"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
       "name": "get_run",
-      "description": "Get a run and what its agent did: the run's lifecycle (phase, timing, error, stop_cause) and the run's events from its session's event log. Poll this tool to track a run started with run_agent (terminal phases: completed, failed, cancelled, terminated). The default compact view summarizes the turn: its phase, its answer, asks (the tool uses waiting for your answer, each with the tool_use_id submit_run_approval takes), its to-do list, its changed files and the last few items (messages, thinking, tool uses with their results); total_items tells you when the tail is a window. run.status.credentials.sources names the vault and entry each key the run uses came from, never a value. Use view=full for every event of the run as Claude Managed Agents JSON.",
+      "description": "Get a run and what its agent did: the run's lifecycle (phase, timing, error, stop_cause) and the run's events from its session's event log. Poll this tool to track a run started with run_agent (terminal phases: completed, failed, cancelled, terminated). The default compact view summarizes the turn: its phase, its answer, asks (the tool uses waiting for your answer, each with the tool_use_id submit_run_approval takes), its to-do list, its changed files and the last few items (messages, thinking, tool uses with their results); total_items tells you when the tail is a window. run.status.credentials.sources names the vault and entry each key the run uses came from, never a value. Use view=full for every event of the run as Claude Managed Agents JSON. Find a run you have no id for with list_runs.",
       "inputSchema": {
         "type": "object",
         "properties": {

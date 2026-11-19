@@ -9,10 +9,11 @@
 // (test/install/coding-agent-door.mjs).
 //
 // Every skill the plugin carries (skills/*/SKILL.md: the front door, the
-// setup guide, the runs skill) is held the same way, and more tightly: each
-// command line must land on a command that runs, not on a group whose next
-// word is no subcommand of it (`stigmer runs list` names the `runs` group and
-// a word it does not have). So is its Claude Code guard (plugin/hooks/decide.mjs): its list of commands
+// setup guide, the runs skill) is held the same way, and more tightly: a
+// command line that goes past a group must go on to one of its commands, so a
+// group followed by a word it does not have fails (`stigmer runs list` names
+// the `runs` group and a word it lacks); a group named alone, in prose, is
+// fine. So is its Claude Code guard (plugin/hooks/decide.mjs): its list of commands
 // whose force flag skips a question or overwrites is exactly every command
 // here with a `--force` option, each with the flags that mean force on it, and
 // the approval command it asks before is this CLI's, answering allow unless
@@ -136,7 +137,11 @@ describe("every skill the plugin carries names only commands that run, with flag
   it.each(lines)("%s: %s", (_skill, line) => {
     checkLine(program, line);
     const command = resolveLine(program, line).command as Command;
-    expect(runnable.has(command), `"${line}" lands on \`${commandPath(command)}\`, which does not run`).toBe(true);
+    const pathWords = commandPath(command).split(" ").length;
+    const words = line.split(/\s+/).filter((word) => !word.startsWith("-")).length;
+    if (words > pathWords) {
+      expect(runnable.has(command), `"${line}" goes past \`${commandPath(command)}\`, a group, with a word it has no command for`).toBe(true);
+    }
   });
 });
 
