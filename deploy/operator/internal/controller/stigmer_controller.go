@@ -39,7 +39,6 @@ import (
 	"github.com/stigmer/stigmer/deploy/operator/internal/render"
 	"github.com/stigmer/stigmer/deploy/operator/internal/singleton"
 	"github.com/stigmer/stigmer/deploy/operator/internal/status"
-	"github.com/stigmer/stigmer/deploy/operator/internal/version"
 )
 
 // RequeueAfter is how often a Stigmer is reconciled with nothing to wake it.
@@ -101,7 +100,6 @@ func (r *StigmerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 	orig := st.DeepCopy()
 	st.Status.ObservedGeneration = st.Generation
-	st.Status.Version = version.Stigmer
 	st.Status.Edition = render.Edition(&st)
 
 	if msg, err := r.refusal(ctx, &st); err != nil {

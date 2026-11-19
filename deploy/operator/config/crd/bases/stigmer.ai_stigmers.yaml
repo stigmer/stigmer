@@ -1385,7 +1385,9 @@ spec:
                 - Error
                 type: string
               version:
-                description: Version is the Stigmer version this operator runs.
+                description: |-
+                  Version is the Stigmer version the server runs: this operator's own
+                  once the server has rolled to it.
                 type: string
             type: object
         type: object

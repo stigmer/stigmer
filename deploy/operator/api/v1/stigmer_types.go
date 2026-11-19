@@ -615,7 +615,8 @@ type StigmerStatus struct {
 	// Phase is the install's standing: the worst of its components'.
 	// +optional
 	Phase Phase `json:"phase,omitempty"`
-	// Version is the Stigmer version this operator runs.
+	// Version is the Stigmer version the server runs: this operator's own
+	// once the server has rolled to it.
 	// +optional
 	Version string `json:"version,omitempty"`
 	// Edition is "open source" or "enterprise".

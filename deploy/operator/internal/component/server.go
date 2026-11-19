@@ -10,6 +10,10 @@
 // reports its last log lines as its termination message, and the NotReady
 // explanation carries the line that names the cause.
 //
+// Moving the server to a new version waits for a backup of the database
+// when it has one (upgrade.go), and status.version is the version the
+// server's newest pod runs once it serves.
+//
 // The runner has no health endpoint, so it is Ready when its container is
 // running and not restarting. Under sign-in it needs its own API key, which
 // this version cannot give it, so the container is held back and the
@@ -21,11 +25,14 @@ import (
 	"context"
 	"fmt"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	stigmerv1 "github.com/stigmer/stigmer/deploy/operator/api/v1"
 	"github.com/stigmer/stigmer/deploy/operator/internal/render"
+	"github.com/stigmer/stigmer/deploy/operator/internal/version"
 )
 
 // Server is the server component.
@@ -49,11 +56,29 @@ func (Server) Reconcile(ctx context.Context, env *Env) (Result, error) {
 			return res, err
 		}
 	}
+	var live *appsv1.Deployment
+	var current appsv1.Deployment
+	err := env.Reader.Get(ctx, client.ObjectKey{Namespace: st.Namespace, Name: render.ServerDeployment(st)}, &current)
+	switch {
+	case err == nil:
+		live = &current
+	case !apierrors.IsNotFound(err):
+		return Result{}, fmt.Errorf("reading the server's Deployment: %w", err)
+	}
+	gate, err := gateUpgrade(ctx, env, live)
+	if err != nil {
+		return Result{}, err
+	}
+	if gate.hold != nil {
+		return *gate.hold, nil
+	}
+	deployment := render.ServerDeploymentObject(st)
+	deployment.Annotations = gate.annotations
 	objs := []client.Object{}
 	for _, c := range render.ServerClaims(st) {
 		objs = append(objs, c)
 	}
-	objs = append(objs, render.ServerServiceObject(st), render.ServerDeploymentObject(st))
+	objs = append(objs, render.ServerServiceObject(st), deployment)
 	if err := Apply(ctx, env, objs...); err != nil {
 		return Result{}, err
 	}
@@ -63,8 +88,10 @@ func (Server) Reconcile(ctx context.Context, env *Env) (Result, error) {
 		return Result{}, err
 	}
 	if ready {
-		return Ready(fmt.Sprintf("serving; reach it with: kubectl -n %s port-forward svc/%s %d %d",
-			st.Namespace, render.ServerService(st), render.GRPCPort, render.ArtifactsPort)), nil
+		// The newest pod is the declared one, so it runs this version.
+		st.Status.Version = version.Stigmer
+		return Ready(fmt.Sprintf("serving Stigmer %s%s; reach it with: kubectl -n %s port-forward svc/%s %d %d",
+			version.Stigmer, upgradeSentence(gate.annotations), st.Namespace, render.ServerService(st), render.GRPCPort, render.ArtifactsPort)), nil
 	}
 	return Explain(ctx, env, render.SelectorLabels(st, render.ComponentServer), []string{render.ServerContainer},
 		Deploying(stigmerv1.ReasonDeploying, Ref("Deployment", st.Namespace, render.ServerDeployment(st)), "waiting for the server's pod"))
