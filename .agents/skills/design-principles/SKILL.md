@@ -41,10 +41,10 @@ exists to keep out.
   activity.
 - Design each face from the person who uses it, then take what fits from the
   references; never start from the reference product.
-- Whatever a screen shows should be achievable through the data that is
-  already modeled.
-- In an example there are only three files. What if there are 20 files? How
-  will that be shown?
+- Whatever a screen shows should be achievable through the data that is already
+  modeled.
+- In an example there are only three files. What if there are 20 files? How will
+  that be shown?
 
 ## What they never do
 
