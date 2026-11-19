@@ -121,13 +121,20 @@ export function sharedDocsReader(): DocsReader {
   return shared;
 }
 
-/** The index's page lines (`- [title](url): description`), in order. Pure. */
+/**
+ * The index's page lines (`- [title](url): description`), in order. The
+ * regex reads only the link; the rest of the line is sliced, not matched, so
+ * a long line can't make the match backtrack. Pure.
+ */
 export function parseIndex(text: string): DocsHit[] {
   const hits: DocsHit[] = [];
-  for (const line of text.split("\n")) {
-    const match = /^- \[([^\]]+)\]\(([^)\s]+)\)(?::\s*(.*))?$/.exec(line.trim());
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    const match = /^- \[([^\]]+)\]\(([^)\s]+)\)/.exec(line);
     if (match === null) continue;
-    hits.push({ title: match[1] ?? "", url: match[2] ?? "", description: (match[3] ?? "").trim() });
+    const rest = line.slice(match[0].length);
+    if (rest !== "" && !rest.startsWith(":")) continue;
+    hits.push({ title: match[1] ?? "", url: match[2] ?? "", description: rest.slice(1).trim() });
   }
   return hits;
 }
@@ -224,12 +231,15 @@ export function docPageUrl(page: string): string {
     if (url.origin !== DOCS_ORIGIN) refuse();
     path = url.pathname;
   } else {
-    text = text.replace(/[?#].*$/, "");
+    const query = text.search(/[?#]/);
+    if (query !== -1) text = text.slice(0, query);
     const relative = text.replace(/^\/+/, "");
     path = relative === "docs" || relative.startsWith("docs/") ? `/${relative}` : `/docs/${relative}`;
     path = new URL(path, DOCS_ORIGIN).pathname;
   }
-  path = path.replace(/\/+$/, "").replace(/\.md$/, "");
+  let end = path.length;
+  while (end > 0 && path[end - 1] === "/") end -= 1;
+  path = path.slice(0, end).replace(/\.md$/, "");
   if (!/^\/docs(\/[A-Za-z0-9._-]+)*$/.test(path) || path.split("/").some((segment) => segment === "." || segment === "..")) {
     refuse();
   }

@@ -69,6 +69,18 @@ describe("parseIndex", () => {
     ]);
     expect(hits[4]).toEqual({ title: "Vault", url: "https://stigmer.ai/docs/sdk/resources/vault", description: "" });
   });
+
+  it("skips a link followed by anything but a description", () => {
+    expect(parseIndex("- [A](https://stigmer.ai/docs/a)x\n- [B](https://stigmer.ai/docs/b):  b  ")).toEqual([
+      { title: "B", url: "https://stigmer.ai/docs/b", description: "b" },
+    ]);
+  });
+
+  it("reads a hostile line in linear time", () => {
+    const started = performance.now();
+    expect(parseIndex(`- [\\](!):${" ".repeat(50_000)}\u2028x`)).toEqual([{ title: "\\", url: "!", description: "x" }]);
+    expect(performance.now() - started).toBeLessThan(1_000);
+  });
 });
 
 describe("rankDocs", () => {
@@ -136,6 +148,14 @@ describe("docPageUrl", () => {
     ["concepts/tools?x=1#y", "https://stigmer.ai/docs/concepts/tools"],
   ])("reads %s as %s", (page, url) => {
     expect(docPageUrl(page)).toBe(url);
+  });
+
+  it("reads hostile arguments in linear time", () => {
+    const started = performance.now();
+    expect(docPageUrl(`concepts/tools${"/".repeat(50_000)}`)).toBe("https://stigmer.ai/docs/concepts/tools");
+    expect(docPageUrl(`concepts/tools${"#".repeat(50_000)}\n`)).toBe("https://stigmer.ai/docs/concepts/tools");
+    expect(() => docPageUrl(`concepts/tools${"/".repeat(50_000)}x`)).toThrow(DocsError);
+    expect(performance.now() - started).toBeLessThan(1_000);
   });
 
   it.each([
