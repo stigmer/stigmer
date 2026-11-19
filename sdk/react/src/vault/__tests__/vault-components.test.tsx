@@ -7,14 +7,19 @@
  *   refuses a malformed name or address before sending, removes by name or
  *   address only once the person confirms in the dialog (Cancel leaves the entry), shows a
  *   refused write, and its Replace button says whether the replace form is
- *   open and names it (stigmer/stigmer#2909);
+ *   open and names it (stigmer/stigmer#2909); its rows read as the kit's
+ *   list rows (the name 14/20 medium, the line under it 12/16), and its
+ *   add rows' fields are the compact size of their 28px Add;
  * - VaultListPanel lists shared vaults only (never anyone's My vault), says
  *   who may use each, writes entries by vault id, and saves or deletes a
- *   vault's own fields for an editor, refusals shown;
+ *   vault's own fields for an editor, refusals shown, and an open vault's
+ *   Secrets and Logins headings carry their counts;
  * - VaultsSection says which chats use My vault (those that include it,
  *   for the person's own messages, never a chat with an agent of another
  *   organization), shows My vault's entries with "Sign in again" for a
- *   login a sign-in saved, and creates a shared vault for an admin.
+ *   login a sign-in saved, and creates a shared vault for an admin; its
+ *   headings carry the "You" tag and the shared vaults' count, and a member
+ *   with no shared vault is told admins make them.
  * The permission checks, the access dialog and the OAuth flow are stood in.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -335,6 +340,34 @@ describe("VaultEntriesEditor", () => {
     ]);
   });
 
+  it("draws each entry as a list row: the name 14/20 medium, what it is for 12/16", () => {
+    renderEditor();
+    const alpha = within(screen.getByRole("region", { name: "Secrets" })).getByText("ALPHA");
+    expect(alpha.className).toContain("stg:text-sm");
+    expect(alpha.className).toContain("stg:font-medium");
+    const line = within(screen.getByRole("region", { name: "Secrets" })).getByText("first");
+    expect(line.className).toContain("stg:text-xs");
+    expect(line.className).not.toContain("stg:text-2xs");
+  });
+
+  it("draws the add rows' fields at the compact size, level with their Add button", () => {
+    renderEditor();
+    const addSecret = screen.getByRole("form", { name: "Add a secret" });
+    const addLogin = screen.getByRole("form", { name: "Add a login" });
+    for (const field of [
+      within(addSecret).getByLabelText("Secret name"),
+      within(addSecret).getByLabelText("Secret value"),
+      within(addSecret).getByLabelText("Secret description"),
+      within(addLogin).getByLabelText("Login address"),
+      within(addLogin).getByLabelText("Login token"),
+      within(addLogin).getByLabelText("Login description"),
+    ]) {
+      expect(field.className).toContain("stg:h-7");
+      expect(field.className).toContain("stg:text-xs");
+    }
+    expect(within(addSecret).getByRole("button", { name: "Add" }).className).toContain("stg:h-7");
+  });
+
   it("says whether an entry's replace form is open, and names the form it opens", () => {
     renderEditor();
     const replace = within(screen.getByRole("region", { name: "Secrets" })).getAllByRole("button", { name: "Replace" })[0]!;
@@ -422,7 +455,8 @@ describe("VaultListPanel", () => {
     expect(screen.queryByLabelText("Vault details")).toBeNull();
 
     rerender(<VaultListPanel org={ORG} onOpen={onOpen} openId="vlt_team" onClose={onClose} />);
-    for (const title of ["Secrets", "Logins", "Details", "Delete this vault"]) {
+    // Support tools holds one secret and no login: a count only where there is one.
+    for (const title of ["Secrets 1", "Logins", "Details", "Delete this vault"]) {
       expect(await screen.findByRole("heading", { name: title })).toBeTruthy();
     }
     fireEvent.click(screen.getByRole("button", { name: "Delete vault" }));
@@ -524,6 +558,24 @@ describe("VaultsSection", () => {
     fireEvent.click(screen.getByRole("button", { name: "New shared vault" }));
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.queryByRole("button", { name: "Create vault" })).toBeNull();
+  });
+
+  it("names My vault with its You tag and counts the shared vaults in their headings", async () => {
+    render(<VaultsSection />, { wrapper: providers(clientWith([])) });
+    expect(screen.getByRole("heading", { name: "My vault You" })).toBeTruthy();
+    // Support tools and the handbook: My vault is never counted.
+    expect(await screen.findByRole("heading", { name: "Shared vaults 2" })).toBeTruthy();
+  });
+
+  it("tells a member with no shared vault that admins make them", async () => {
+    permission.allowed = false;
+    render(<VaultsSection />, { wrapper: providers(clientWith([], { onlyMine: true })) });
+    expect(await screen.findByText("No shared vaults yet")).toBeTruthy();
+    expect(
+      screen.getByText("Admins of this organization create shared vaults and choose who may use them."),
+    ).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Shared vaults" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "New shared vault" })).toBeNull();
   });
 
   it("shows an OAuth failure", async () => {

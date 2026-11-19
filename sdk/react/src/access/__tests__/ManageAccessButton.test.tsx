@@ -59,4 +59,14 @@ describe("ManageAccessButton", () => {
     render(<ManageAccessButton resource={RESOURCE} label="Share" />);
     expect(screen.getByRole("button", { name: /Share/i })).toBeTruthy();
   });
+
+  it("is a row's small act by default and a page header's act at size sm", () => {
+    const { rerender } = render(<ManageAccessButton resource={RESOURCE} />);
+    expect(screen.getByRole("button", { name: /Manage access/i }).className).toContain("stg:h-7");
+
+    rerender(<ManageAccessButton resource={RESOURCE} size="sm" />);
+    const header = screen.getByRole("button", { name: /Manage access/i });
+    expect(header.className).toContain("stg:h-8");
+    expect(header.className).toContain("stg:text-sm");
+  });
 });
