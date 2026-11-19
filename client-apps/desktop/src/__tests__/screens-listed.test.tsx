@@ -46,7 +46,8 @@ const SCREENS_FILE = resolve(process.cwd(), "..", "..", "test", "visual", "scree
 
 /**
  * Every route the router serves a screen at: each route with a path or an
- * index and an element, by its full path. A pathless route (a layout, the
+ * index that draws something (an element, a component or a lazy module), by
+ * its full path. A pathless route (a layout, the
  * error boundary's holder) adds nothing to the path; `*` is the not-found
  * screen.
  */
@@ -59,7 +60,8 @@ function collectPaths(routes: readonly RouteObject[], base: string): string[] {
   const paths: string[] = [];
   for (const route of routes) {
     const path = route.path === undefined ? base : `${base}/${route.path}`;
-    if (route.element != null && (route.index === true || route.path !== undefined)) paths.push(path === "" ? "/" : path);
+    const draws = route.element != null || route.Component != null || route.lazy != null;
+    if (draws && (route.index === true || route.path !== undefined)) paths.push(path === "" ? "/" : path);
     if (route.children) paths.push(...collectPaths(route.children, path));
   }
   return paths;
@@ -105,10 +107,12 @@ describe("DSK-08 every desktop screen is on the screen list", () => {
           { index: true, element: <p /> },
           { path: "settings", children: [{ element: <div />, children: [{ path: "audit", element: <p /> }] }] },
           { path: "*", element: <p /> },
+          { path: "audit-log", Component: () => <p /> },
+          { path: "later", lazy: async () => ({ Component: () => <p /> }) },
         ],
       },
     ];
-    expect(screenPaths(tree)).toEqual(["/", "/settings/audit", "/*"]);
+    expect(screenPaths(tree)).toEqual(["/", "/settings/audit", "/*", "/audit-log", "/later"]);
     expect(unlisted(["/settings/audit"], [])).toHaveLength(1);
   });
 });

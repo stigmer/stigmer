@@ -6,6 +6,11 @@
         "launcher-hours-used"
       ]
     },
+    "/_not-found": {
+      "scenes": [
+        "page-not-found"
+      ]
+    },
     "/auth/callback": {
       "scenes": [
         "sign-in-return-finishing",

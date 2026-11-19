@@ -16,7 +16,16 @@ import { join, relative, resolve, sep } from "node:path";
 const APP_DIR = resolve(process.cwd(), "src", "app");
 const SCREENS_FILE = resolve(process.cwd(), "..", "..", "test", "visual", "screens.json");
 
-/** Every route the console serves: each page file's folder, as the app router names it. */
+/** A page file in any extension the app router accepts. */
+const PAGE = /^page\.(tsx|ts|jsx|js)$/;
+/** The root's not-found file, the screen for an address that leads nowhere. */
+const NOT_FOUND = /^not-found\.(tsx|ts|jsx|js)$/;
+
+/**
+ * Every route the console serves: each page file's folder, as the app router
+ * names it, and `/_not-found` (the router's own name for it) when the root
+ * draws a page for an address that leads nowhere.
+ */
 function pageRoutes(dir: string): string[] {
   const routes: string[] = [];
   for (const entry of readdirSync(dir)) {
@@ -24,9 +33,11 @@ function pageRoutes(dir: string): string[] {
     if (statSync(full).isDirectory()) {
       // Private folders (`_x`, `__tests__`) are not routes in the app router.
       if (!entry.startsWith("_")) routes.push(...pageRoutes(full));
-    } else if (entry === "page.tsx") {
+    } else if (PAGE.test(entry)) {
       const rel = relative(APP_DIR, dir).split(sep).join("/");
       routes.push(rel === "" ? "/" : `/${rel}`);
+    } else if (dir === APP_DIR && NOT_FOUND.test(entry)) {
+      routes.push("/_not-found");
     }
   }
   return routes;
