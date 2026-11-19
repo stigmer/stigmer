@@ -1,0 +1,22 @@
+# Stigmer Enterprise: the license key's Secret switches the server to the
+# Enterprise image, which signs every caller in through your identity
+# provider.
+apiVersion: stigmer.ai/v1
+kind: Stigmer
+metadata:
+  name: stigmer
+  namespace: stigmer
+spec:
+  owner:
+    email: priya@acme.dev
+  identity:
+    oidc:
+      issuer: https://login.acme.dev
+      audience: https://stigmer.acme.dev
+      consoleClientId: stigmer-console
+      nativeClientId: stigmer-desktop
+  enterprise:
+    license:
+      name: stigmer-license
+      key: STIGMER_LICENSE_KEY
+    accessHistoryRetentionDays: 365

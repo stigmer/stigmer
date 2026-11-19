@@ -1,0 +1,5 @@
+# Only the module's sources reach the image build.
+bin/
+config/
+hack/
+*.md

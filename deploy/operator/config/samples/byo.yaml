@@ -1,0 +1,28 @@
+# A Stigmer on your own Postgres and your own Temporal. The role needs to own
+# its database (Stigmer creates its schemas there); the password is read
+# from the Secret named here.
+apiVersion: stigmer.ai/v1
+kind: Stigmer
+metadata:
+  name: stigmer
+  namespace: stigmer
+spec:
+  owner:
+    email: priya@acme.dev
+  runner:
+    llm:
+      secretName: anthropic
+  database:
+    postgresql:
+      external:
+        host: postgres.databases.svc
+        user: stigmer
+        database: stigmer
+        passwordSecret:
+          name: stigmer-db
+          key: password
+        sslMode: require
+  temporal:
+    external:
+      hostPort: temporal-frontend.temporal.svc:7233
+      namespace: stigmer

@@ -1,0 +1,30 @@
+{{- /*
+The operator's cluster role, its rules read from files/role.yaml, which
+`make manifests` in deploy/operator generates from the controller's markers.
+It is cluster-wide on purpose: the operator installs definitions, cluster
+roles and webhooks for the prerequisites it runs (CloudNativePG), and Helm's
+role escalation check needs it to hold what those grant.
+*/ -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    {{- include "stigmer-operator.labels" . | nindent 4 }}
+rules:
+  {{- (.Files.Get "files/role.yaml" | fromYaml).rules | toYaml | nindent 2 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    {{- include "stigmer-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Release.Name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Release.Name }}
+    namespace: {{ .Release.Namespace }}

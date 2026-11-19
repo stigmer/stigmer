@@ -1,0 +1,24 @@
+# The Stigmer operator: its Deployment, its role, and the Stigmer definition.
+#
+# The definition lives in crds/, copied there from the operator's generated
+# one by `make manifests` in deploy/operator (never edited here): Helm
+# installs it before the operator and leaves it in place on uninstall, so
+# uninstalling the operator never deletes an install's Stigmer resource.
+#
+# version == appVersion == the Stigmer version the operator runs. The
+# operator's image is tagged v{{ appVersion }}, and that image pulls every
+# Stigmer image at the same tag: one version line.
+apiVersion: v2
+name: stigmer-operator
+description: The Stigmer operator — install and run Stigmer on Kubernetes from one Stigmer resource, with Postgres, Temporal, the server and its runner managed for you.
+type: application
+version: 0.2.0
+appVersion: "0.2.0"
+kubeVersion: ">=1.30.0-0"
+home: https://stigmer.ai
+sources:
+  - https://github.com/stigmer/stigmer
+keywords:
+  - stigmer
+  - operator
+  - agents

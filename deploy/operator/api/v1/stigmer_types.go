@@ -1,0 +1,537 @@
+// The Stigmer resource: what a platform engineer declares, and the status the
+// operator writes back in words.
+//
+// The spec carries only what the operator renders today. A field arrives
+// with the code that acts on it, so `kubectl explain stigmer.spec` never
+// lists a setting that does nothing. Cross-field rules are CEL rules on the
+// definition, so the API server refuses a contradictory declaration at
+// apply time with a sentence, before the operator sees it. Rules that need
+// the cluster (a Secret that is missing, a second Stigmer) are the
+// operator's, and they reach the status instead.
+//
+// Status is one list of components, each with a phase, a one-word reason,
+// the object it is about and a sentence; the Ready condition carries the
+// worst-off component's sentence, which is what `kubectl get stigmer` prints.
+
+package v1
+
+import (
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+// StigmerSpec declares one Stigmer install.
+//
+// +kubebuilder:validation:XValidation:rule="!(has(self.database) && has(self.database.postgresql) && has(self.database.postgresql.external)) || (has(self.temporal) && has(self.temporal.external))",message="spec.database.postgresql.external names your own Postgres, and the operator does not create Temporal's databases on a Postgres it does not run: bring your own Temporal too (spec.temporal.external), or let the operator run the database"
+// +kubebuilder:validation:XValidation:rule="!has(self.enterprise) || (has(self.identity) && has(self.identity.oidc))",message="Stigmer Enterprise signs every caller in, and a licensed server refuses to boot without sign-in: set spec.identity.oidc"
+// +kubebuilder:validation:XValidation:rule="!has(self.enterprise) || !has(self.temporal) || !has(self.temporal.external) || has(self.temporal.external.tls) || has(self.temporal.external.apiKey)",message="under a Stigmer Enterprise license, spec.temporal.external must authenticate: whoever reaches a plaintext Temporal can start work on the runner's queue, and a licensed install serves many organizations. Set spec.temporal.external.tls or spec.temporal.external.apiKey"
+type StigmerSpec struct {
+	// Image says where Stigmer's images are pulled from. The tag is always
+	// this operator's own version: operator vX runs Stigmer vX.
+	// +optional
+	Image ImageSpec `json:"image,omitempty"`
+
+	// Owner is the person who runs this install. They own the organization
+	// when sign-in is on, and every action is attributed to them when it
+	// is off (the server's STIGMER_OPERATOR_EMAIL and STIGMER_OPERATOR_NAME).
+	// +optional
+	Owner *OwnerSpec `json:"owner,omitempty"`
+
+	// Server sizes and tunes the Stigmer server.
+	// +optional
+	Server ServerSpec `json:"server,omitempty"`
+
+	// Runner sizes and tunes the shared runner, the worker that runs agents
+	// beside the server.
+	// +optional
+	Runner RunnerSpec `json:"runner,omitempty"`
+
+	// Database is where Stigmer keeps its records. Absent, the operator runs
+	// Postgres for you.
+	// +optional
+	Database *DatabaseSpec `json:"database,omitempty"`
+
+	// Temporal is the workflow engine Stigmer's runs execute on. Absent, the
+	// operator runs it for you on the bundled database.
+	// +optional
+	Temporal *TemporalSpec `json:"temporal,omitempty"`
+
+	// Identity turns sign-in on. Absent, the server signs nobody in and every
+	// caller is the owner, which is safe only while the install is reachable
+	// from inside the cluster alone.
+	// +optional
+	Identity *IdentitySpec `json:"identity,omitempty"`
+
+	// Enterprise runs Stigmer Enterprise under a license.
+	// +optional
+	Enterprise *EnterpriseSpec `json:"enterprise,omitempty"`
+
+	// Prerequisites says which cluster-level operators this operator may
+	// install when they are missing.
+	// +optional
+	Prerequisites PrerequisitesSpec `json:"prerequisites,omitempty"`
+}
+
+// ImageSpec says where images come from, for a mirror or a private registry.
+type ImageSpec struct {
+	// Registry holds every Stigmer image under its usual name.
+	// +kubebuilder:default="ghcr.io/stigmer"
+	// +optional
+	Registry string `json:"registry,omitempty"`
+
+	// PullPolicy applies to every Stigmer image.
+	// +kubebuilder:validation:Enum=Always;IfNotPresent;Never
+	// +kubebuilder:default=IfNotPresent
+	// +optional
+	PullPolicy corev1.PullPolicy `json:"pullPolicy,omitempty"`
+
+	// PullSecrets are Secrets in this namespace the kubelet pulls with.
+	// +optional
+	PullSecrets []corev1.LocalObjectReference `json:"pullSecrets,omitempty"`
+}
+
+// OwnerSpec names the person who runs the install.
+type OwnerSpec struct {
+	// Email is the owner's sign-in address.
+	// +kubebuilder:validation:XValidation:rule="self.contains('@')",message="spec.owner.email must be an email address"
+	Email string `json:"email"`
+
+	// Name is how the owner is shown.
+	// +optional
+	Name string `json:"name,omitempty"`
+}
+
+// ServerSpec tunes the Stigmer server.
+type ServerSpec struct {
+	// Resources overrides the server container's requests and limits.
+	// +optional
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+
+	// Storage is the server's own volume: the skill store and everything
+	// under its home except artifacts. Defaults to 5Gi.
+	// +optional
+	Storage *VolumeSpec `json:"storage,omitempty"`
+
+	// Artifacts is the volume the server writes artifacts to and the shared
+	// runner reads them from. Defaults to 20Gi.
+	// +optional
+	Artifacts *VolumeSpec `json:"artifacts,omitempty"`
+
+	// Help is where your people ask for help, shown in the console.
+	// +optional
+	Help *HelpSpec `json:"help,omitempty"`
+
+	// InternalAccounts are your own team's sign-in addresses, each exact
+	// (sam@example.com) or with one * (*@example.com), left out of the
+	// onboarding count.
+	// +optional
+	InternalAccounts []string `json:"internalAccounts,omitempty"`
+
+	// ExtraEnv adds settings to the server container. A name the operator
+	// sets itself is refused, so nothing here can silently undo the
+	// declaration above.
+	// +optional
+	ExtraEnv []corev1.EnvVar `json:"extraEnv,omitempty"`
+}
+
+// HelpSpec is the console's help link.
+type HelpSpec struct {
+	// URL is where the link goes.
+	URL string `json:"url"`
+
+	// Label is the link's text.
+	// +optional
+	Label string `json:"label,omitempty"`
+}
+
+// RunnerSpec tunes the shared runner.
+type RunnerSpec struct {
+	// LLM names the Secret holding the model provider's key, read by key name:
+	// ANTHROPIC_API_KEY, ANTHROPIC_BASE_URL, OPENAI_API_KEY,
+	// ANTHROPIC_FOUNDRY_API_KEY or AWS_BEARER_TOKEN_BEDROCK. Agents cannot run
+	// without one.
+	// +optional
+	LLM *LLMSpec `json:"llm,omitempty"`
+
+	// Resources overrides the runner container's requests and limits.
+	// +optional
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+
+	// Storage is the runner's own volume: paused sessions, their approvals
+	// and agent workspaces. Defaults to 10Gi.
+	// +optional
+	Storage *VolumeSpec `json:"storage,omitempty"`
+
+	// ExtraEnv adds settings to the runner container. A name the operator
+	// sets itself is refused.
+	// +optional
+	ExtraEnv []corev1.EnvVar `json:"extraEnv,omitempty"`
+}
+
+// LLMSpec names the model key's Secret.
+type LLMSpec struct {
+	// SecretName is a Secret in this namespace.
+	// +kubebuilder:validation:MinLength=1
+	SecretName string `json:"secretName"`
+}
+
+// VolumeSpec sizes one claim.
+type VolumeSpec struct {
+	// Size is the claim's requested capacity.
+	// +optional
+	Size *resource.Quantity `json:"size,omitempty"`
+
+	// StorageClassName is the class the claim binds with; absent means the
+	// cluster's default.
+	// +optional
+	StorageClassName *string `json:"storageClassName,omitempty"`
+}
+
+// DatabaseSpec is where Stigmer keeps its records.
+type DatabaseSpec struct {
+	// PostgreSQL is the one database engine Stigmer runs on in a cluster.
+	// +optional
+	PostgreSQL *PostgreSQLSpec `json:"postgresql,omitempty"`
+}
+
+// PostgreSQLSpec chooses the bundled Postgres or yours.
+//
+// +kubebuilder:validation:XValidation:rule="!(has(self.bundled) && has(self.external))",message="spec.database.postgresql: choose one of bundled or external"
+type PostgreSQLSpec struct {
+	// Bundled is the Postgres the operator runs, through CloudNativePG.
+	// +optional
+	Bundled *BundledPostgreSQLSpec `json:"bundled,omitempty"`
+
+	// External is a Postgres you run.
+	// +optional
+	External *ExternalPostgreSQLSpec `json:"external,omitempty"`
+}
+
+// BundledPostgreSQLSpec sizes the bundled Postgres.
+type BundledPostgreSQLSpec struct {
+	// Instances is the number of Postgres instances: one primary, the rest
+	// standbys.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=5
+	// +kubebuilder:default=1
+	// +optional
+	Instances int32 `json:"instances,omitempty"`
+
+	// Storage sizes each instance's volume. Defaults to 10Gi.
+	// +optional
+	Storage *VolumeSpec `json:"storage,omitempty"`
+
+	// Resources overrides each instance's requests and limits.
+	// +optional
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+}
+
+// ExternalPostgreSQLSpec names a Postgres you run.
+type ExternalPostgreSQLSpec struct {
+	// Host is the server's address.
+	// +kubebuilder:validation:MinLength=1
+	Host string `json:"host"`
+
+	// Port is the server's port.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	// +kubebuilder:default=5432
+	// +optional
+	Port int32 `json:"port,omitempty"`
+
+	// User is the role Stigmer signs in as. It needs to own Database, where
+	// Stigmer creates its schemas.
+	// +kubebuilder:validation:MinLength=1
+	User string `json:"user"`
+
+	// Database is the database Stigmer uses.
+	// +kubebuilder:default=stigmer
+	// +optional
+	Database string `json:"database,omitempty"`
+
+	// PasswordSecret names the Secret and key holding the role's password.
+	PasswordSecret SecretKeySelector `json:"passwordSecret"`
+
+	// SSLMode is libpq's sslmode for the connection.
+	// +kubebuilder:validation:Enum=disable;allow;prefer;require;verify-ca;verify-full
+	// +optional
+	SSLMode string `json:"sslMode,omitempty"`
+}
+
+// SecretKeySelector names one key of a Secret in the Stigmer's namespace.
+type SecretKeySelector struct {
+	// Name is the Secret's name.
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+
+	// Key is the key within the Secret.
+	// +kubebuilder:validation:MinLength=1
+	Key string `json:"key"`
+}
+
+// TemporalSpec chooses the bundled Temporal or yours.
+//
+// +kubebuilder:validation:XValidation:rule="!(has(self.bundled) && has(self.external))",message="spec.temporal: choose one of bundled or external"
+type TemporalSpec struct {
+	// Bundled is the Temporal the operator runs on the bundled database.
+	// +optional
+	Bundled *BundledTemporalSpec `json:"bundled,omitempty"`
+
+	// External is a Temporal frontend you run.
+	// +optional
+	External *ExternalTemporalSpec `json:"external,omitempty"`
+}
+
+// BundledTemporalSpec sizes the bundled Temporal.
+type BundledTemporalSpec struct {
+	// Resources overrides each Temporal service's requests and limits
+	// (frontend, history, matching, worker).
+	// +optional
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+}
+
+// ExternalTemporalSpec names a Temporal frontend you run.
+type ExternalTemporalSpec struct {
+	// HostPort is the frontend's gRPC address, such as temporal.internal:7233,
+	// with an IPv6 address in brackets.
+	// +kubebuilder:validation:Pattern=`^(\[[0-9A-Fa-f:.]+\]|[^:\[\]]+):[0-9]+$`
+	HostPort string `json:"hostPort"`
+
+	// Namespace is the Temporal namespace Stigmer's runs use.
+	// +kubebuilder:default=default
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
+
+	// TLS turns on TLS to the frontend. With no keys named, the frontend's
+	// certificate is checked against the system's trusted roots.
+	// +optional
+	TLS *TemporalTLSSpec `json:"tls,omitempty"`
+
+	// APIKey names the Secret and key holding the frontend's API key
+	// (Temporal Cloud, or a frontend with a JWT authorizer). An API key
+	// implies TLS.
+	// +optional
+	APIKey *SecretKeySelector `json:"apiKey,omitempty"`
+}
+
+// TemporalTLSSpec is TLS to an external Temporal, every item a PEM in one
+// Secret, read by key.
+//
+// +kubebuilder:validation:XValidation:rule="has(self.certKey) == has(self.keyKey)",message="spec.temporal.external.tls: certKey and keyKey go together; mutual TLS needs the client certificate and its key"
+// +kubebuilder:validation:XValidation:rule="!(has(self.caKey) || has(self.certKey) || has(self.keyKey)) || has(self.secretName)",message="spec.temporal.external.tls names keys but not their Secret: set secretName"
+type TemporalTLSSpec struct {
+	// SecretName is the Secret holding the PEM items below.
+	// +optional
+	SecretName string `json:"secretName,omitempty"`
+
+	// ServerName overrides the name the frontend's certificate is checked
+	// against.
+	// +optional
+	ServerName string `json:"serverName,omitempty"`
+
+	// CAKey is the key of the CA that signed the frontend's certificate.
+	// +optional
+	CAKey string `json:"caKey,omitempty"`
+
+	// CertKey is the key of the client certificate, for mutual TLS.
+	// +optional
+	CertKey string `json:"certKey,omitempty"`
+
+	// KeyKey is the key of the client certificate's private key.
+	// +optional
+	KeyKey string `json:"keyKey,omitempty"`
+}
+
+// IdentitySpec turns sign-in on.
+type IdentitySpec struct {
+	// OIDC is your own identity provider.
+	// +optional
+	OIDC *OIDCSpec `json:"oidc,omitempty"`
+}
+
+// OIDCSpec names an OpenID Connect issuer and the clients Stigmer is
+// registered as.
+type OIDCSpec struct {
+	// Issuer is the issuer's URL, exactly as its discovery document names it.
+	// +kubebuilder:validation:XValidation:rule="self.startsWith('https://') || self.matches('^http://(localhost|127[.]0[.]0[.]1)(:[0-9]+)?(/.*)?$')",message="spec.identity.oidc.issuer must be an https URL (plain http is allowed only for a loopback issuer)"
+	Issuer string `json:"issuer"`
+
+	// Audience is the audience the issuer puts in Stigmer's tokens.
+	// +kubebuilder:validation:MinLength=1
+	Audience string `json:"audience"`
+
+	// ConsoleClientID is the web console's client.
+	// +optional
+	ConsoleClientID string `json:"consoleClientId,omitempty"`
+
+	// NativeClientID is the desktop app's and the CLI's client.
+	// +optional
+	NativeClientID string `json:"nativeClientId,omitempty"`
+}
+
+// EnterpriseSpec runs Stigmer Enterprise.
+//
+// +kubebuilder:validation:XValidation:rule="has(self.license)",message="Stigmer Enterprise settings need a license: set spec.enterprise.license to the Secret holding your license key"
+type EnterpriseSpec struct {
+	// License names the Secret and key holding the license key you were sent.
+	// The server runs the Enterprise image and verifies it at boot.
+	// +optional
+	License *SecretKeySelector `json:"license,omitempty"`
+
+	// OrganizationCreators are the account ids (ida_ and 26 characters, as
+	// `stigmer auth whoami` prints them) who may create an organization.
+	// Empty means anyone signed in.
+	// +optional
+	OrganizationCreators []string `json:"organizationCreators,omitempty"`
+
+	// AccessHistoryRetentionDays is how long the access history is kept;
+	// absent keeps every entry.
+	// +kubebuilder:validation:Minimum=1
+	// +optional
+	AccessHistoryRetentionDays *int32 `json:"accessHistoryRetentionDays,omitempty"`
+
+	// OutboundEgress is which addresses the server dials when it reaches a
+	// URL a person wrote: strict allows public addresses only; relaxed also
+	// allows private and loopback ones, for an identity provider or MCP
+	// server on your private network.
+	// +kubebuilder:validation:Enum=strict;relaxed
+	// +kubebuilder:default=strict
+	// +optional
+	OutboundEgress string `json:"outboundEgress,omitempty"`
+}
+
+// PrerequisiteMode says whether the operator may install a cluster-level
+// prerequisite.
+//
+// +kubebuilder:validation:Enum=auto;skip
+type PrerequisiteMode string
+
+const (
+	// PrerequisiteAuto installs the prerequisite when it is missing and leaves
+	// one someone else installed alone.
+	PrerequisiteAuto PrerequisiteMode = "auto"
+	// PrerequisiteSkip trusts that it is installed and never touches it.
+	PrerequisiteSkip PrerequisiteMode = "skip"
+)
+
+// PrerequisitesSpec lists the cluster-level operators this one may install.
+type PrerequisitesSpec struct {
+	// PostgresOperator is CloudNativePG, which runs the bundled Postgres.
+	// +kubebuilder:default=auto
+	// +optional
+	PostgresOperator PrerequisiteMode `json:"postgresOperator,omitempty"`
+}
+
+// Phase is where the install, or one component of it, stands.
+//
+// +kubebuilder:validation:Enum=Pending;Deploying;Ready;Refused;Error
+type Phase string
+
+const (
+	// PhasePending waits for something else to be ready first.
+	PhasePending Phase = "Pending"
+	// PhaseDeploying is converging and says on what.
+	PhaseDeploying Phase = "Deploying"
+	// PhaseReady is serving.
+	PhaseReady Phase = "Ready"
+	// PhaseRefused will not proceed until the declaration or the cluster
+	// changes; the message says what to change.
+	PhaseRefused Phase = "Refused"
+	// PhaseError failed in a way the operator retries.
+	PhaseError Phase = "Error"
+)
+
+// ConditionReady is true when every component is Ready.
+const ConditionReady = "Ready"
+
+// ObjectReference names the Kubernetes object a component's status is about.
+type ObjectReference struct {
+	// Kind is the object's kind.
+	Kind string `json:"kind"`
+	// Name is the object's name.
+	Name string `json:"name"`
+	// Namespace is the object's namespace, when it has one.
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
+}
+
+// ComponentStatus is one component's standing.
+type ComponentStatus struct {
+	// Name is the component: keys, database, temporal, server or runner.
+	Name string `json:"name"`
+	// Phase is where the component stands.
+	Phase Phase `json:"phase"`
+	// Reason is the one-word cause.
+	Reason ComponentReason `json:"reason"`
+	// Object is what the message is about.
+	// +optional
+	Object *ObjectReference `json:"object,omitempty"`
+	// Message says what is happening and, when something is wrong, the
+	// next step.
+	// +optional
+	Message string `json:"message,omitempty"`
+	// LastTransitionTime is when the phase, reason or object last changed.
+	// +optional
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+}
+
+// StigmerStatus is the operator's account of the install.
+type StigmerStatus struct {
+	// ObservedGeneration is the spec generation this status describes.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+	// Phase is the install's standing: the worst of its components'.
+	// +optional
+	Phase Phase `json:"phase,omitempty"`
+	// Version is the Stigmer version this operator runs.
+	// +optional
+	Version string `json:"version,omitempty"`
+	// Edition is "open source" or "enterprise".
+	// +optional
+	Edition string `json:"edition,omitempty"`
+	// Components lists each component's standing, in the order they are
+	// brought up.
+	// +listType=map
+	// +listMapKey=name
+	// +optional
+	Components []ComponentStatus `json:"components,omitempty"`
+	// Conditions carry Ready, whose message is the worst-off component's.
+	// +listType=map
+	// +listMapKey=type
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+// Stigmer is one self-hosted Stigmer install. A cluster holds one.
+//
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:shortName=stg
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
+// +kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.version`
+// +kubebuilder:printcolumn:name="Edition",type=string,JSONPath=`.status.edition`
+// +kubebuilder:printcolumn:name="Message",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].message`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
+type Stigmer struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	// +optional
+	Spec StigmerSpec `json:"spec,omitempty"`
+	// +optional
+	Status StigmerStatus `json:"status,omitempty"`
+}
+
+// StigmerList is a list of Stigmer.
+//
+// +kubebuilder:object:root=true
+type StigmerList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Stigmer `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&Stigmer{}, &StigmerList{})
+}
