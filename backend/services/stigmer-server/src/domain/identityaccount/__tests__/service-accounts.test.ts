@@ -15,10 +15,13 @@
  *   - the name is unique among one organization's service accounts, by
  *     its slug (ALREADY_EXISTS, reason SERVICE_ACCOUNT_NAME_TAKEN), while
  *     another organization may reuse it; a rename onto a held name is
- *     refused the same way and the slug follows an accepted rename; a
+ *     refused the same way and the slug follows an accepted rename, whose
+ *     old name another account may take as soon as the rename answers; a
  *     rename whose write loses once to a write landing on the row ends with
  *     one current name, the new one, the row's slug equal to it and the old
- *     name held only as the previous name the rename keeps;
+ *     name held only as the previous name the rename keeps, and while the
+ *     rename has moved its names and not yet saved, the old name stays the
+ *     account's: another account's create of it is ALREADY_EXISTS (#2926);
  *   - the owner role is INVALID_ARGUMENT; a member is PERMISSION_DENIED;
  *     a service account's own key is refused with the refusal copy, even
  *     an admin service account the model would admit;
@@ -34,7 +37,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { clone, fromBinary } from "@bufbuild/protobuf";
-import { Code, createClient } from "@connectrpc/connect";
+import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -305,6 +308,16 @@ describe("service accounts with sign-in on (built-in Authorizer)", () => {
     const updated = await command.update({ resource: renamed, updateMask: { paths: ["*"] } });
     expect(updated.metadata?.slug).toBe("after-rename");
     expect(updated.metadata?.org).toBe(acme);
+    // The rename has committed by the time it answers: the old name is
+    // free for another account at once (#2926).
+    const successor = await createServiceAccount(
+      at.as(ADMIN),
+      acme,
+      "before-rename",
+      IamRole.member,
+    );
+    expect(successor.metadata?.slug).toBe("before-rename");
+    expect(successor.metadata?.id).not.toBe(id);
 
     const taken = clone(IdentityAccountSchema, await query.get({ value: id }));
     if (taken.metadata === undefined)
@@ -345,20 +358,38 @@ describe("service accounts with sign-in on (built-in Authorizer)", () => {
     renamed.metadata.name = "Raced After";
     const beforeRename = new Date(Date.now() - 1).toISOString();
 
+    const landVisibility = visibilityWrite(
+      at.server.store,
+      ApiResourceKind.identity_account,
+      IdentityAccountSchema,
+      id,
+      ApiResourceVisibility.visibility_org,
+    );
+    // While the rename has moved its names and not yet saved, another
+    // account tries the old name (#2926): it is still this account's.
+    let raced: Code | "created" | undefined;
     const { result, writes } = await writeLandsMidUpdate(
       at.server.store,
       ApiResourceKind.identity_account,
       id,
-      visibilityWrite(
-        at.server.store,
-        ApiResourceKind.identity_account,
-        IdentityAccountSchema,
-        id,
-        ApiResourceVisibility.visibility_org,
-      ),
+      async () => {
+        await landVisibility();
+        raced = await createServiceAccount(
+          at.as(ADMIN),
+          acme,
+          "raced-before",
+          IamRole.member,
+        ).then(
+          () => "created" as const,
+          (error: unknown) => ConnectError.from(error).code,
+        );
+      },
       () => command.update({ resource: renamed, updateMask: { paths: ["*"] } }),
     );
 
+    expect(raced, "the old name is taken until the rename saves").toBe(
+      Code.AlreadyExists,
+    );
     expect(writes).toBeGreaterThanOrEqual(2);
     expect(result.metadata?.slug).toBe("raced-after");
     expect(result.metadata?.visibility).toBe(

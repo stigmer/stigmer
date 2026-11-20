@@ -20,7 +20,9 @@
  *     the organization's service accounts: a name another service account
  *     of the organization holds is ALREADY_EXISTS with the
  *     SERVICE_ACCOUNT_NAME_TAKEN reason and moves nothing, the old name is
- *     free at once, a name a gone account still holds is taken once its
+ *     still the account's after the move and free at once after
+ *     CommitServiceAccountRename (#2926), a commit that faults is logged
+ *     and refuses nothing, a name a gone account still holds is taken once its
  *     claim is old, a failed write moves the name back (a move back that
  *     faults is logged), the account may keep (or re-save) its own name, a name
  *     held in another organization is free, the person fields are cleared,
@@ -49,6 +51,7 @@ import { SERVICE_ACCOUNT_NAME_TAKEN } from "../service-accounts.js";
 import {
   newAssignBackendFieldsStep,
   newClaimServiceAccountNameStep,
+  newCommitServiceAccountRenameStep,
   newRenameServiceAccountStep,
   revertServiceAccountRenameOnFailure,
 } from "../steps.js";
@@ -300,8 +303,44 @@ describe("RenameServiceAccount — the slug follows the name, unique in the orga
     expect(await nameOf(accounts.store, ORG, "ci-deploy-prod")).toBe("ida_self");
     expect(
       await nameOf(accounts.store, ORG, "ci-deploy"),
-      "a service account's old name is free at once",
+      "the old name is the account's until its write lands (#2926)",
+    ).toBe("ida_self");
+
+    await newCommitServiceAccountRenameStep(accounts.store, silentLogger).execute(ctx);
+    expect(
+      await nameOf(accounts.store, ORG, "ci-deploy"),
+      "a service account's old name is free at once once the rename commits",
     ).toBeUndefined();
+    expect(await nameOf(accounts.store, ORG, "ci-deploy-prod")).toBe("ida_self");
+  });
+
+  it("CommitServiceAccountRename passes an update that moved no name, and logs a commit that faults", async () => {
+    const accounts = await seeded();
+    const committed: string[] = [];
+    const warnings: string[] = [];
+    const logger = createLogger({ level: "error", pretty: false, write: () => {} });
+    logger.warn = (message: string) => {
+      warnings.push(message);
+    };
+    const faulting = {
+      resourceNames: {
+        commitRename: async (move: { readonly to: string }) => {
+          committed.push(move.to);
+          throw new Error("name table down");
+        },
+      },
+    } as unknown as Store;
+
+    const kept = renaming(existing(accounts, "ida_self"), "ci-deploy");
+    await newRenameServiceAccountStep(accounts.store, accounts).execute(kept);
+    await newCommitServiceAccountRenameStep(faulting, logger).execute(kept);
+    expect(committed, "no move, nothing to commit").toEqual([]);
+
+    const renamed = renaming(existing(accounts, "ida_self"), "CI Deploy Prod");
+    await newRenameServiceAccountStep(accounts.store, accounts).execute(renamed);
+    await newCommitServiceAccountRenameStep(faulting, logger).execute(renamed);
+    expect(committed).toEqual(["ci-deploy-prod"]);
+    expect(warnings).toEqual([expect.stringMatching(/provisional hold lapses/)]);
   });
 
   it("a name another service account of the organization holds is ALREADY_EXISTS with SERVICE_ACCOUNT_NAME_TAKEN", async () => {
@@ -393,6 +432,7 @@ describe("RenameServiceAccount — the slug follows the name, unique in the orga
     // write land, then the second one's move lands and its write loses.
     const winner = renaming(loaded, "CI Deploy Prod");
     await newRenameServiceAccountStep(accounts.store, accounts).execute(winner);
+    await newCommitServiceAccountRenameStep(accounts.store, silentLogger).execute(winner);
     const loser = renaming(loaded, "CI Deploy Staging");
     await newRenameServiceAccountStep(accounts.store, accounts).execute(loser);
     const lost = new Error("write conflict");

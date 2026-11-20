@@ -14,16 +14,24 @@ import { Live } from "@/components/visuals/Live";
 import { Screen } from "@/components/visuals/Screen";
 import { TerminalRecording } from "@/components/visuals/TerminalRecording";
 import { ThemePlayground } from "@/components/visuals/ThemePlayground";
-import { CODE_VIEWPORT } from "@/lib/code-highlight";
+import { SCROLL_REGION } from "@/lib/scroll-region";
+import { cn } from "@/lib/utils";
 
 export function getMDXComponents(components?: MDXComponents) {
   return {
     ...defaultMdxComponents,
-    // fumadocs' own `pre`, its scroll area made a Tab stop (src/lib/code-highlight.ts).
+    // fumadocs' own `pre`, its scroll area made a Tab stop (src/lib/scroll-region.ts).
     pre: (props: ComponentProps<"pre">) => (
-      <CodeBlock {...props} viewportProps={CODE_VIEWPORT}>
+      <CodeBlock {...props} viewportProps={SCROLL_REGION}>
         <Pre>{props.children}</Pre>
       </CodeBlock>
+    ),
+    // fumadocs' own table wrapper, drawn here because fumadocs gives its props
+    // to the <table>, made a Tab stop the same way.
+    table: (props: ComponentProps<"table">) => (
+      <div {...SCROLL_REGION} className={cn("relative overflow-auto prose-no-margin my-6", SCROLL_REGION.className)}>
+        <table {...props} />
+      </div>
     ),
     Tab,
     Tabs,

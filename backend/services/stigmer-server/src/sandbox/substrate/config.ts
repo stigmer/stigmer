@@ -20,6 +20,15 @@
  * its node and copies its workspace to storage in the background
  * (gateway.ts). The sweep runs every 30 s, which bounds how late past its
  * window a sandbox sleeps.
+ *
+ * Each sandbox's CPU and memory are settings too, and they decide how many
+ * sandboxes a worker holds: Substrate refuses a template without both
+ * limits and books them against the capacity its worker reports, so a
+ * worker holds its CPU divided by the CPU setting, or its memory divided by
+ * the memory setting plus the runtime's overhead, whichever is fewer. The
+ * defaults are the container drivers' 2 CPU and 2 GiB
+ * (agent-sandbox/manifest.ts), so a server that sets neither keeps the
+ * template it had.
  */
 
 /** Whether every actor may reach any HTTPS host through the egress gateway. */
@@ -84,9 +93,33 @@ export interface SubstrateDriverSettings {
   /** How long a session's sandbox stays idle before it is suspended. */
   readonly suspendAfterSeconds: number;
   readonly sweepIntervalSeconds: number;
+  /**
+   * Each sandbox's CPU in millicores (1000 is one core): what Substrate
+   * books against its worker's CPU and, under gVisor, the sandbox's hard
+   * ceiling (its cgroup's cpu.max), so a smaller value fits more sandboxes
+   * on a worker and makes a busy turn, and a wake, slower. Never 0:
+   * Substrate requires a CPU limit on every template.
+   */
+  readonly cpuMillicores: number;
+  /**
+   * Each sandbox's memory in MiB: what Substrate books against its worker's
+   * memory, beside the runtime's overhead, and the sandbox's ceiling. A
+   * sandbox that reaches the ceiling is stopped whole by Substrate, not one
+   * command in it, and reverted to its last snapshot; the turn's recovery
+   * then resumes the same command (#3347).
+   */
+  readonly memoryMib: number;
 }
 
 const PREFIX = "STIGMER_SANDBOX_SUBSTRATE_";
+
+/** The container drivers' sizes (agent-sandbox/manifest.ts): 2 CPU, 2 GiB. */
+const DEFAULT_CPU_MILLICORES = 2000;
+const DEFAULT_MEMORY_MIB = 2048;
+/** Substrate's own bound on a CPU limit (its Resources.cpu_millicores): under 1000 cores. */
+const MAX_CPU_MILLICORES = 999_999;
+/** The most MiB whose bytes are still a whole number JavaScript holds exactly. */
+const MAX_MEMORY_MIB = Math.floor(Number.MAX_SAFE_INTEGER / 1024 ** 2);
 
 export function newSubstrateSettingsFromEnv(
   env: NodeJS.ProcessEnv = process.env,
@@ -104,16 +137,29 @@ export function newSubstrateSettingsFromEnv(
     const value = (env[PREFIX + name] ?? "").trim();
     return value === "" ? fallback : value;
   };
-  const seconds = (name: string, fallback: number): number => {
+  // A positive whole number of `unit`, no larger than `max`.
+  const positiveWhole = (
+    name: string,
+    fallback: number,
+    unit: string,
+    max: number = Number.MAX_SAFE_INTEGER,
+  ): number => {
     const raw = optional(name, String(fallback));
     const value = Number(raw);
     if (!Number.isInteger(value) || value <= 0) {
       throw new Error(
-        `${PREFIX}${name} must be a positive whole number of seconds; got ${raw}`,
+        `${PREFIX}${name} must be a positive whole number of ${unit}; got ${raw}`,
+      );
+    }
+    if (value > max) {
+      throw new Error(
+        `${PREFIX}${name} must be at most ${max} ${unit}; got ${raw}`,
       );
     }
     return value;
   };
+  const seconds = (name: string, fallback: number): number =>
+    positiveWhole(name, fallback, "seconds");
 
   const apiEndpoint = required("API_ENDPOINT");
   if (!apiEndpoint.startsWith("https://")) {
@@ -149,6 +195,21 @@ export function newSubstrateSettingsFromEnv(
       `${PREFIX}EGRESS_HTTPS must be all or none; got ${httpsEgress}`,
     );
   }
+  // 0 is said apart from any other bad value: Substrate's own field reads
+  // "0 means none", which holds for a container's limits but not for the
+  // template's, the one this setting writes.
+  const cpuRaw = optional("CPU_MILLICORES", "");
+  if (cpuRaw !== "" && Number(cpuRaw) === 0) {
+    throw new Error(
+      `${PREFIX}CPU_MILLICORES must not be 0: Substrate requires a CPU limit on every sandbox; got ${cpuRaw}`,
+    );
+  }
+  const cpuMillicores = positiveWhole(
+    "CPU_MILLICORES",
+    DEFAULT_CPU_MILLICORES,
+    "millicores",
+    MAX_CPU_MILLICORES,
+  );
 
   return {
     apiEndpoint,
@@ -166,6 +227,13 @@ export function newSubstrateSettingsFromEnv(
     platformHttpsHosts: parseHosts(optional("EGRESS_HTTPS_PLATFORM", "")),
     suspendAfterSeconds: seconds("SUSPEND_AFTER_SECONDS", 300),
     sweepIntervalSeconds: seconds("SWEEP_INTERVAL_SECONDS", 30),
+    cpuMillicores,
+    memoryMib: positiveWhole(
+      "MEMORY_MIB",
+      DEFAULT_MEMORY_MIB,
+      "MiB",
+      MAX_MEMORY_MIB,
+    ),
   };
 }
 

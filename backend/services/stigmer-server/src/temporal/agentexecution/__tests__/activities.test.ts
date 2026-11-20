@@ -622,6 +622,24 @@ describe("EnsureSessionSandbox activity", () => {
     expect(sent()).toEqual([]);
   });
 
+  it("asks a provisioner that offers makeRoom to make room on no_room, then starts the turn in the same ask", async () => {
+    const { provisioner, facts } = scriptedProvisioner(["no_room", "ready"]);
+    const madeFor: string[] = [];
+    const withRoom: SandboxProvisioner = {
+      ...provisioner,
+      makeRoom: async (forSessionId) => {
+        madeFor.push(forSessionId);
+        return true;
+      },
+    };
+    const { ensure, sent } = await sandboxFixture(withRoom, () => undefined);
+    expect(await ensure({ execution_id: "run_wait", caller_class: "user" })).toBe("ready");
+    expect(madeFor).toEqual(["ses_wait"]);
+    expect(facts, "asked again once room was made, with the same facts").toHaveLength(2);
+    expect(facts[1]).toBe(facts[0]);
+    expect(sent(), "the turn never waited").toEqual([]);
+  });
+
   it("answers not_carried for a sandbox whose files cannot be carried to this server's runner", async () => {
     const { provisioner } = scriptedProvisioner(["not_carried"]);
     const { ensure } = await sandboxFixture(provisioner, () => undefined);
