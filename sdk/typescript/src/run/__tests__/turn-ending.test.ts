@@ -6,7 +6,9 @@
 // own to-do list finished; a viewer who can't fix the cause gets the
 // reader's comfort and no link, and one who can't act gets no act; a
 // person's own stop reads "Stopped by you"; a turn no sandbox had room for
-// reads as one that didn't start, not as a lost runner; and a turn still working, one
+// reads as one that didn't start, not as a lost runner; a turn whose sandbox
+// ran out of memory says so, tells the person how to steer the agent, and
+// offers no act; and a turn still working, one
 // that finished on its own, and an ending its own surface tells read
 // nothing.
 
@@ -131,6 +133,24 @@ describe("describeTurnEnding", () => {
     expect(describeTurnEnding({ turn, viewer: READER })).toMatchObject({ comfort: "Nothing was lost: your message is still here.", act: "none" });
   });
 
+  it("reads a turn whose sandbox ran out of memory as its command's limit, offering no act that would repeat it", () => {
+    const turn = failed("failed", "sandbox_out_of_memory");
+    expect(describeTurnEnding({ turn, viewer: MEMBER })).toEqual({
+      tone: "failed",
+      pill: "Didn't finish",
+      headline: "The sandbox ran out of memory, so this turn stopped.",
+      comfort:
+        "A command needed more memory than this sandbox has. Files changed since the sandbox last slept may be gone. Tell the agent it ran out of memory and ask it to try a lighter way, like a smaller build or one step at a time.",
+      stepNote: "Stopped here",
+      act: "none",
+      link: "none",
+      kind: "sandbox_out_of_memory",
+    });
+    expect(describeTurnEnding({ turn, viewer: READER })).toMatchObject({ comfort: "A command needed more memory than this sandbox has.", act: "none" });
+    // Never the platform's fault, never "Run again".
+    expect(describeTurnEnding({ turn, viewer: ADMIN })!.comfort).not.toMatch(/Stigmer's side|Run again/);
+  });
+
   it("reads a budget stop amber, counts what the to-do list finished, and continues", () => {
     const turn = turnOf({ phase: "terminated", stopCause: "budget_reached", stopDetail: { kind: "cost_cap", model: "", app: "" } }, [
       todoCall(["completed", "completed", "in_progress", "pending", "pending"]),
@@ -182,6 +202,7 @@ describe("describeTurnEnding", () => {
       "provider_key_rejected", "provider_key_missing", "provider_out_of_credit", "provider_rate_limited", "provider_overloaded",
       "model_unavailable", "provider_unreachable", "request_rejected", "cost_cap", "tool_call_limit", "stalled", "operation_limit",
       "workspace_busy", "agent_setup", "app_unreachable", "app_needs_sign_in", "internal", "runner_lost", "no_sandbox_room",
+      "sandbox_out_of_memory",
     ];
     for (const kind of kinds) {
       const ending = describeTurnEnding({ turn: failed("x", kind, { app: "crm" }), viewer: ADMIN, names: NAMES })!;

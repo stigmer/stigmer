@@ -1356,6 +1356,7 @@ export const ENDING_STORY_NAMES = [
   "fail-internal",
   "fail-runner-lost",
   "fail-no-sandbox-room",
+  "fail-sandbox-out-of-memory",
   "fail-platform-stop",
   "fail-user-stop",
   "fail-generic-model",
@@ -1537,6 +1538,16 @@ const ENDINGS: Readonly<Record<EndingStoryName, Ending>> = {
     kind: "no_sandbox_room",
     error: "Every sandbox was busy for 15 minutes, so this turn didn't start. Nothing was lost: run it again to wait for room.",
     neverStarted: true,
+  },
+  "fail-sandbox-out-of-memory": {
+    title: "a command ran the sandbox out of memory part-way through the plan",
+    phase: "failed",
+    stopCause: "failed",
+    kind: "sandbox_out_of_memory",
+    error:
+      "The sandbox ran out of memory, so this turn stopped. A command needed more memory than this sandbox has. Files changed since the sandbox last slept may be gone.",
+    midPlan: true,
+    endsAtMs: 125_000,
   },
   "fail-platform-stop": {
     title: "Stigmer stopped the turn",

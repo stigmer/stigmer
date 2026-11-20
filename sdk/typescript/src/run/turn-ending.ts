@@ -319,6 +319,18 @@ const BY_KIND: Readonly<Record<string, Entry>> = {
     fixedBy: "actor",
     stepNote: "Didn't start",
   },
+  sandbox_out_of_memory: {
+    tone: "failed",
+    pill: DIDNT_FINISH,
+    headline: "The sandbox ran out of memory, so this turn stopped.",
+    fixer:
+      "A command needed more memory than this sandbox has. Files changed since the sandbox last slept may be gone. Tell the agent it ran out of memory and ask it to try a lighter way, like a smaller build or one step at a time.",
+    reader: "A command needed more memory than this sandbox has.",
+    act: "none",
+    link: "none",
+    fixedBy: "actor",
+    stepNote: "Stopped here",
+  },
 };
 
 /** One entry per stop cause, for a turn the runner named no kind for, and the stops whose cause says it all. */
