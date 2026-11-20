@@ -37,11 +37,16 @@ Find these before you answer or write anything. Each one changes the code.
    `go.mod`, `pom.xml` or `build.gradle`. The backend's language picks the
    SDK; the frontend's picks the chat (the chat is React).
 2. **Where Stigmer runs**: Stigmer Cloud, their own server, or `stigmer up`
-   on this machine. `stigmer auth whoami` names the server, its version and
-   edition. Federation and child organizations are served by Stigmer Cloud
-   and the Enterprise edition, not by the open-source server: never
-   recommend either before you know which they run, and when you don't,
-   say which editions have it.
+   on this machine. `stigmer auth whoami` names the server's version and
+   edition and the Organization; `stigmer config backend status` its
+   address (`Endpoint`). The app's backend talks to that same server and
+   Organization: put that address in its settings (an `http://` or loopback
+   address takes the SDK's plaintext option), never a guessed
+   `localhost:7234`, and never start a server (`stigmer up`) to make the app
+   work. Federation and child organizations are served by Stigmer Cloud and
+   the Enterprise edition, not by the open-source server: never recommend
+   either before you know which they run, and when you don't, say which
+   editions have it.
 3. **How their users sign in**: their own sessions, or an OIDC provider
    (Auth0, Okta, Entra ID, Cognito). Read their auth code to find how a
    request names the signed-in user.
