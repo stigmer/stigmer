@@ -79,7 +79,8 @@
  *   server, the bucket and the model answer and the database and Temporal
  *   do not. Both sandboxes sleep with their claims kept; the first
  *   session's next message wakes only its sandbox, with the file its first
- *   turn wrote. Deleting the Stigmer leaves the namespace as the bucket
+ *   turn wrote. The database archives through its fence (BackupHealthy).
+ *   Deleting the Stigmer leaves the namespace as the bucket
  *   profile's does, and the janitor then removes the sandbox namespace,
  *   agent-sandbox and CloudNativePG, saying so in the operator's log.
  *
@@ -741,6 +742,10 @@ async function runAgentSandbox(fake, modelBaseUrl) {
   } finally {
     forward.stop();
   }
+  // The database archives through its fence, and its first backup is done
+  // before the delete: a delete during a running backup waits out
+  // CloudNativePG's smart shutdown (180 s) for the backup's session.
+  log(`backups behind the database's fence: ${await waitBackupHealthy(stigmer)}`);
   assertOperatorLogClean();
 
   log("arm: deleting the Stigmer removes the sandboxes and what the operator installed");
