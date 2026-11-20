@@ -43,7 +43,9 @@ Find these before you answer or write anything. Each one changes the code.
    Organization: put that address in its settings (an `http://` or loopback
    address takes the SDK's plaintext option), never a guessed
    `localhost:7234`, and never start a server (`stigmer up`) to make the app
-   work. Federation and child organizations are served by Stigmer Cloud and
+   work. `stigmer status` reports only a stack `stigmer up` runs on this
+   machine: "not running" there says nothing about the server the CLI is
+   signed in to. Federation and child organizations are served by Stigmer Cloud and
    the Enterprise edition, not by the open-source server: never recommend
    either before you know which they run, and when you don't, say which
    editions have it.
