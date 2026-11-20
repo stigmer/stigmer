@@ -6,10 +6,14 @@
  *     runner root's HOME (its user is the image's, which Substrate cannot
  *     set; the start script refuses one that is not root), mounts
  *     the workspace and the actor's own name, names no sandbox class or
- *     configuration (the WorkerPool chooses both), limits the runner to 2
- *     CPU and 2 GiB in Substrate's integer units, and snapshots volumes
- *     only, its golden snapshot on (a suspend keeps the workspace, never
- *     the runner's memory);
+ *     configuration (the WorkerPool chooses both), limits the runner to the
+ *     settings' CPU and memory in Substrate's integer units, and snapshots
+ *     volumes only, its golden snapshot on (a suspend keeps the workspace,
+ *     never the runner's memory);
+ *   - at the default settings its limits are exactly the 2 CPU and 2 GiB
+ *     the template carried before they were settings, so an upgrade that
+ *     sets neither keeps its template and its awake sandboxes; a changed
+ *     CPU or memory names a new template;
  *   - it adds the runner's five capabilities to Substrate's default set and
  *     drops none, so the runner can run the agent as its own user and the
  *     waiter keeps port 80 (#2339);
@@ -49,7 +53,10 @@ import {
   waiterCommand,
 } from "../../runner-launch.js";
 import { FakeSubstrate } from "../__test-utils__/fake-gateway.js";
-import type { SubstrateDriverSettings } from "../config.js";
+import {
+  newSubstrateSettingsFromEnv,
+  type SubstrateDriverSettings,
+} from "../config.js";
 import {
   ActorMetadataField,
   GoldenSnapshotMode,
@@ -109,6 +116,8 @@ const settings: SubstrateDriverSettings = {
   platformHttpsHosts: [],
   suspendAfterSeconds: 1800,
   sweepIntervalSeconds: 60,
+  cpuMillicores: 2000,
+  memoryMib: 2048,
 };
 
 function envOf(
@@ -209,6 +218,40 @@ describe("the template", () => {
     });
   });
 
+  it("limits each sandbox to the settings' CPU and memory", () => {
+    const template = buildRunnerTemplate({
+      config,
+      settings: { ...settings, cpuMillicores: 1000, memoryMib: 1536 },
+      runnerMode: "local",
+    });
+    expect(template.resources?.limits).toMatchObject({
+      cpuMillicores: 1000n,
+      memoryBytes: 1536n * 1024n * 1024n,
+    });
+  });
+
+  it("keeps today's limits at the default settings, so an upgrade keeps its template", () => {
+    // The limits the template carried as a constant before they were
+    // settings. The name hashes the encoding (template.ts), so equal limits
+    // with everything else equal is an equal name.
+    const defaults = newSubstrateSettingsFromEnv({
+      STIGMER_SANDBOX_SUBSTRATE_API_ENDPOINT: "https://api.ate-system.svc:443",
+      STIGMER_SANDBOX_SUBSTRATE_API_TOKEN_FILE: "/unused",
+      STIGMER_SANDBOX_SUBSTRATE_ROUTER_URL: "http://router.example:18200",
+      STIGMER_SANDBOX_SUBSTRATE_ATESPACE: "stigmer",
+      STIGMER_SANDBOX_SUBSTRATE_WORKER_SELECTOR: "workload=stigmer",
+    });
+    const template = buildRunnerTemplate({
+      config,
+      settings: defaults,
+      runnerMode: "local",
+    });
+    expect(template.resources?.limits).toMatchObject({
+      cpuMillicores: 2000n,
+      memoryBytes: 2147483648n,
+    });
+  });
+
   it("with HTTPS egress: projects the gateway's trust bundle and points every tool at it", () => {
     const template = buildRunnerTemplate({
       config,
@@ -297,7 +340,7 @@ describe("the template", () => {
   });
 });
 
-describe("the template's name and the network lanes (stigmer#2984)", () => {
+describe("the template's name, the network lanes (stigmer#2984) and each sandbox's size", () => {
   const nameOf = (
     c: SandboxDriverConfig,
     s: SubstrateDriverSettings,
@@ -331,6 +374,8 @@ describe("the template's name and the network lanes (stigmer#2984)", () => {
       { ...wide, platformHttpsHosts: ["foundry.example.com"] },
     ],
     ["HTTPS egress switched off", config, { ...wide, httpsEgress: "none" as const }],
+    ["each sandbox's CPU changed", config, { ...wide, cpuMillicores: 1000 }],
+    ["each sandbox's memory changed", config, { ...wide, memoryMib: 1024 }],
     [
       "the backend lane moved",
       { ...config, backendEndpoint: "http://stigmer.stigmer.svc:7300" },

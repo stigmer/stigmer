@@ -118,8 +118,6 @@ const TRUST_VARIABLES = [
   "CURL_CA_BUNDLE",
   "REQUESTS_CA_BUNDLE",
 ];
-/** The container drivers' limits (agent-sandbox/manifest.ts): 2 CPU, 2 GiB. */
-const LIMITS = { cpuMillicores: 2000n, memoryBytes: 2n * 1024n ** 3n };
 /** Every template this driver writes carries this prefix; nothing else may. */
 export const TEMPLATE_NAME_PREFIX = "stigmer-runner-";
 
@@ -222,7 +220,14 @@ export function buildRunnerTemplate(input: RunnerTemplateInput): ActorTemplate {
         },
       },
     ],
-    resources: { limits: { ...LIMITS } },
+    // Booked against the worker and, under gVisor, each sandbox's ceiling
+    // (config.ts, cpuMillicores and memoryMib).
+    resources: {
+      limits: {
+        cpuMillicores: BigInt(settings.cpuMillicores),
+        memoryBytes: BigInt(settings.memoryMib) * 1024n ** 2n,
+      },
+    },
     snapshotConfig: {
       // The workspace only (module header). No storage location: Substrate
       // stores every snapshot under its API server's --snapshot-location.

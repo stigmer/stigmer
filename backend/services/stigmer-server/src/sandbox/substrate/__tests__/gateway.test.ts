@@ -985,6 +985,8 @@ function liveSettings(
     platformHttpsHosts: [],
     suspendAfterSeconds: 1800,
     sweepIntervalSeconds: 60,
+    cpuMillicores: 2000,
+    memoryMib: 2048,
   };
 }
 
