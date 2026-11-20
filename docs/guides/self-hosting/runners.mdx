@@ -684,16 +684,18 @@ room to spare), 1000 against 2000 left a lone Session's start unchanged at about
 5 s, made five Sessions starting at once take about 1.9 s longer at the median
 (6.5 s against 4.6 s), and doubled the time of work spread across two processes
 (1.6 s against 0.8 s); work in one process took the same. A sandbox that reaches
-its memory ceiling is stopped whole by Substrate, not one command in it, and
-today the turn then resumes and runs the same command again, about every two
-minutes, until it fails after ten tries with an error that doesn't name memory
-(#3347); each try reverts the sandbox to its last snapshot. So lower the memory
-setting only with room for the largest build or install your agents run.
-Changing either setting makes a new template: an awake Session on the old one
-sleeps as soon as it isn't busy, and wakes on the new one at its next message. A
-worker full of idle Sessions still takes a new run: one of them sleeps to make
-room for it, so a worker's count limits how many Sessions work at once, not how
-many people have open conversations.
+its memory ceiling is stopped whole by Substrate, not one command in it. The
+turn that ran the command then ends, about two minutes after the stop, with stop
+cause `failed`, stop detail `sandbox_out_of_memory` and an error that says the
+sandbox ran out of memory; it isn't run again, since the same command would be
+stopped the same way. The sandbox goes back to how it was when it last slept, so
+files changed since then may be gone, and the conversation's next message wakes
+it as usual. So lower the memory setting only with room for the largest build or
+install your agents run. Changing either setting makes a new template: an awake
+Session on the old one sleeps as soon as it isn't busy, and wakes on the new one
+at its next message. A worker full of idle Sessions still takes a new run: one
+of them sleeps to make room for it, so a worker's count limits how many Sessions
+work at once, not how many people have open conversations.
 
 What the driver needs:
 
