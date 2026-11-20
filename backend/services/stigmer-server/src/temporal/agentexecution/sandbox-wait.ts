@@ -63,8 +63,9 @@
  *
  * Pinned by __tests__/sandbox-wait.test.ts and, in the workflow, by
  * invoke-workflow.temporal.test.ts and the sandbox-waited,
- * sandbox-not-carried, sandbox-not-carried-went-on, sandbox-out-of-memory
- * and sandbox-out-of-memory-went-on replay histories.
+ * sandbox-not-carried, sandbox-not-carried-went-on, sandbox-out-of-memory,
+ * sandbox-out-of-memory-asked-again and sandbox-out-of-memory-went-on replay
+ * histories.
  */
 
 /**
