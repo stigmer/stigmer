@@ -139,7 +139,12 @@ const FIGURES = ["lines", "branches", "cases"];
  */
 const IGNORE_HINT = /\b(?:istanbul|[cv]8|node:coverage)\s+ignore\s+(if|else|next|file|start|stop)(?=\W|$)/;
 
-/** The separators a declaration accepts (test-integrity.mjs `DECLARATION`), before a hint's reason. */
+/**
+ * The separators a hint's reason may follow: `--`, the coverage providers' own
+ * convention, or a long dash. A hint has no title before its separator for a
+ * long dash to cut, so it keeps the long dash a pull request's declaration
+ * line no longer accepts.
+ */
 const REASON = /(?:--|—|–)(.*)$/;
 
 /** Sources the TypeScript transform rewrites, stripping every comment that is not a legal one. */
