@@ -636,6 +636,19 @@ door-coding-agent: build-libs build-server build-runner ## Paste the coding-agen
 	@command -v claude >/dev/null 2>&1 || { echo "error: claude not found (Claude Code, signed in)"; exit 1; }
 	node test/install/coding-agent-door.mjs $(DOOR_ARGS)
 
+# The app walk (test/install/coding-agent-app.mjs): a one-line ask to Claude
+# Code with Stigmer's plugin puts an agent in a scratch app, Next.js
+# (APP=ledgerly-nextjs) or FastAPI (APP=statements-fastapi), on a server that
+# signs its callers in with a runner on the fake model; it ends with one of
+# the app's signed-in customers using the agent in the app, as themselves.
+# Needs a coding agent, so it is in no lane; WALK_ARGS passes its flags
+# (--keep, --max-turns=<n>, --model=<id>).
+.PHONY: walk-coding-agent-app
+walk-coding-agent-app: build-libs build-server build-runner ## Ask Claude Code with Stigmer's plugin to put the agent in a scratch app (APP=ledgerly-nextjs|statements-fastapi; by hand; needs claude signed in)
+	@command -v claude >/dev/null 2>&1 || { echo "error: claude not found (Claude Code, signed in)"; exit 1; }
+	npm run build -w @stigmer/coding-agent-plugin
+	node test/install/coding-agent-app.mjs --app=$(APP) $(WALK_ARGS)
+
 # The coding-agent question bank (test/install/coding-agent-bank.mjs): every
 # case in coding-agents/evals/ asked of Claude Code with Stigmer's plugin and
 # without it (`claude plugin eval`, signed in to its own model), against a

@@ -12,7 +12,9 @@ description: >
   fails, hangs or won't start; and before deleting, cancelling or
   approving anything in their Stigmer. To set Stigmer up in this project,
   use the stigmer-setup skill; to run their agents or read their runs, the
-  stigmer-run skill.
+  stigmer-run skill; to put their agent in their own product (backend
+  calls, the chat and its look, their users' sign-in, an organization per
+  customer, approvals in their screens), the stigmer-integrate skill.
 ---
 
 # Stigmer
@@ -58,6 +60,11 @@ about what the docs don't cover.
 - Running their agents and reading their runs (an agent on a file, the last
   run, its output files, why it failed, approvals, follow-ups, scores and
   evals): the stigmer-run skill.
+- Putting their agent in their own product, whatever the stack (calling it
+  from their backend, streaming its reply, the chat in their app and its
+  look, their users' sign-in, an organization per customer, approvals in
+  their own screens, moving from Claude Managed Agents): the
+  stigmer-integrate skill.
 
 ## What Stigmer is
 

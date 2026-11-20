@@ -29,6 +29,13 @@ one is for the coding agent on a person's laptop.
   Command line first, each job's Stigmer tool beside it. Every `stigmer`
   command any plugin skill names is held to the CLI's command tree by the
   CLI's own suite (`client-apps/cli/src/commands/__tests__/coding-agent.test.ts`).
+- `plugin/skills/stigmer-integrate/SKILL.md`: putting the person's agent in
+  their own product, whatever the stack: whose run it is (the app's service
+  account, the signed-in user, an organization per customer), then each job
+  (a backend run on a file, streaming, the chat and its look, sign-in,
+  approvals in their screens, moving from Claude Managed Agents) as a method
+  and the docs pages to read for their language. The calls live on those
+  pages, a tab per language, not in the skill.
 - `plugin/.mcp.json`: the bundled `stigmer mcp-server`, for making, running and
   reading agents once setup is done.
 - `plugin/hooks/`: the guard. `hooks.json` is Claude Code's: a `PreToolUse`
@@ -77,7 +84,12 @@ CLI's suite holds the guide to the CLI
 (`client-apps/cli/src/commands/__tests__/coding-agent.test.ts`): every
 `stigmer …` line it names is a command this CLI has, with flags it declares.
 Run both after a change here. The door end to end, in a real coding agent, is
-`make door-coding-agent` (`test/install/coding-agent-door.mjs`), by hand.
+`make door-coding-agent` (`test/install/coding-agent-door.mjs`), by hand. The
+plugin on the job after setup, putting the agent in an existing app from a
+one-line ask, is `make walk-coding-agent-app APP=ledgerly-nextjs` (Next.js) or
+`APP=statements-fastapi` (FastAPI) (`test/install/coding-agent-app.mjs`), by
+hand: it passes when one of the app's signed-in customers uses the agent in the
+app and the conversation is theirs.
 
 ## The question bank
 
