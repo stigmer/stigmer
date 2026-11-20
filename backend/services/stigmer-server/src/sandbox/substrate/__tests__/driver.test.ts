@@ -23,7 +23,9 @@
  *     volumes kept, the move logged from and to; a refused move there
  *     refuses too; `maintain` still leaves a refused sleeping sandbox on its
  *     own template without failing; crashed → reverted first; deleting →
- *     refused, and so is a state the driver has no word for;
+ *     refused, and so is a state the driver has no word for; crashed for
+ *     its memory → reverted, left asleep, unpushed and thrown as
+ *     SandboxOutOfMemoryError (stigmer#3347), and the next ensure wakes it;
  *   - ABORTED → re-read, whether contention or a crash; no free worker →
  *     thrown at once;
  *   - a running runner refusing rotated secrets keeps running;
@@ -75,8 +77,10 @@ import { sandboxBaseName } from "../../naming.js";
 import { runnerEnvironmentOf } from "../../environment.js";
 import {
   isSandboxNotCarried,
+  isSandboxOutOfMemory,
   SandboxNoRoomError,
   SandboxNotCarriedError,
+  SandboxOutOfMemoryError,
   type EnvironmentFacts,
   type SandboxDriverConfig,
   type SandboxFacts,
@@ -312,6 +316,55 @@ describe("ensure, from each state", () => {
       name: ACTOR,
       state: "crashed",
       template: "stigmer-runner-old",
+    });
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
+    expect(h.substrate.calls.slice(0, 3)).toEqual([
+      `getActor ${ACTOR}`,
+      `revertActor ${ACTOR}`,
+      `getActor ${ACTOR}`,
+    ]);
+    expect(h.substrate.actors.get(ACTOR)?.state).toBe("running");
+  });
+
+  it("CRASHED for its memory: reverts, leaves it asleep, and ends the ask (stigmer#3347)", async () => {
+    const entries: LogEntry[] = [];
+    const h = harness(
+      undefined,
+      undefined,
+      createLogger({ level: "info", pretty: false, write: () => {}, sink: (entry) => entries.push(entry) }),
+    );
+    h.substrate.put({
+      name: ACTOR,
+      state: "crashed",
+      template: "stigmer-runner-old",
+      crash: { cause: "memory", message: "resume failed: killed for exceeding its memory limit" },
+    });
+    const ensured = h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
+    await expect(ensured).rejects.toBeInstanceOf(SandboxOutOfMemoryError);
+    expect(isSandboxOutOfMemory(await ensured.catch((e: unknown) => e))).toBe(true);
+    // Reverted and never woken: no resume, no push, its seat free.
+    expect(h.substrate.calls).toEqual([`getActor ${ACTOR}`, `revertActor ${ACTOR}`]);
+    expect(h.router.pushes).toHaveLength(0);
+    const actor = h.substrate.actors.get(ACTOR);
+    expect(actor?.state).toBe("suspended");
+    expect(actor?.crash).toBeUndefined();
+    expect(entries.find((e) => e.message.includes("memory limit"))).toMatchObject({
+      level: "warn",
+      fields: { actor: ACTOR, crash: "resume failed: killed for exceeding its memory limit" },
+    });
+
+    // The reason went with the revert: the next ask wakes it as any sleeping sandbox.
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
+    expect(h.substrate.actors.get(ACTOR)?.state).toBe("running");
+  });
+
+  it("CRASHED for any other reason: reverts and wakes it, as before", async () => {
+    const h = harness();
+    h.substrate.put({
+      name: ACTOR,
+      state: "crashed",
+      template: "stigmer-runner-old",
+      crash: { cause: "other", message: "gVisor sandbox exited" },
     });
     await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     expect(h.substrate.calls.slice(0, 3)).toEqual([

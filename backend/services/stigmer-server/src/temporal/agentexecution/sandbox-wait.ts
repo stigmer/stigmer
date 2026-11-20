@@ -39,12 +39,32 @@
  * may answer `not_carried` to a workflow that went on to the runner
  * before the end existed, and that history must replay as recorded.
  *
+ * A sandbox killed for exceeding its memory limit (sandbox/provisioner.ts,
+ * SandboxOutOfMemoryError; stigmer#3347) answers `out_of_memory`: the
+ * driver has reverted it to its last saved state and left it asleep. A
+ * killed runner stops heartbeating, so the turn learns of the kill at its
+ * heartbeat timeout, and its recovery's ask meets the answer. Without an
+ * end, that recovery runs the same command again and the sandbox is killed
+ * again, each time losing the files written since the last save. So:
+ *   - an ask after the turn's first (after a recovery, a resume or an
+ *     approval) ends the turn with `SANDBOX_OUT_OF_MEMORY_COPY` under stop
+ *     cause `failed` and kind `sandbox_out_of_memory`: the kill came while
+ *     the turn was alive, and running the command again would fail the
+ *     same way. Its own kind, because the console words an ending by kind
+ *     and `internal` would tell the person it wasn't their command.
+ *   - the turn's first ask, before any runner work, means the kill came
+ *     before this turn (an earlier turn, or a process it left running): it
+ *     asks once more, which wakes the sandbox, and goes on. A second
+ *     `out_of_memory` there is a fresh kill at the wake and ends the turn.
+ * One `patched()` id covers both, for the same reason as `not_carried`'s.
+ *
  * WORKFLOW-BUNDLE SAFE: imported by the workflow, so nothing here imports a
  * node built-in or a host module.
  *
  * Pinned by __tests__/sandbox-wait.test.ts and, in the workflow, by
  * invoke-workflow.temporal.test.ts and the sandbox-waited,
- * sandbox-not-carried and sandbox-not-carried-went-on replay histories.
+ * sandbox-not-carried, sandbox-not-carried-went-on, sandbox-out-of-memory
+ * and sandbox-out-of-memory-went-on replay histories.
  */
 
 /**
@@ -72,6 +92,28 @@ export const SANDBOX_NOT_CARRIED_PATCH_ID = "end-turn-on-sandbox-not-carried";
  */
 export const SANDBOX_NOT_CARRIED_COPY =
   "This conversation's sandbox was started by another Stigmer release and its files can't be moved to this one. Start a new conversation to continue.";
+
+/**
+ * The `patched()` id that gates ending the turn on `out_of_memory`, and the
+ * first ask's one ask again (module header). Wire constant: a history that
+ * took the patched path records it.
+ */
+export const SANDBOX_OUT_OF_MEMORY_PATCH_ID =
+  "end-turn-on-sandbox-out-of-memory";
+
+/**
+ * The person's sentence for a turn whose sandbox ran out of memory
+ * (status.error, printed by the CLI): what happened, why, and what it means
+ * for their files.
+ */
+export const SANDBOX_OUT_OF_MEMORY_COPY =
+  "The sandbox ran out of memory, so this turn stopped. A command needed more memory than this sandbox has. Files changed since the sandbox last slept may be gone.";
+
+/** The stop kind of a turn whose sandbox ran out of memory (`StigmerStopDetail.kind`, under `failed`). */
+export const SANDBOX_OUT_OF_MEMORY_STOP_KIND = "sandbox_out_of_memory";
+
+/** The stop cause an out-of-memory ending is written under: the turn's command, not the platform. */
+export const SANDBOX_OUT_OF_MEMORY_STOP_CAUSE = "failed";
 
 /** How long a turn waits for room when the server sets no other limit: 15 minutes. */
 export const DEFAULT_SANDBOX_WAIT_SECONDS = 900;
@@ -101,13 +143,16 @@ export function sandboxWaitBackoffMs(attempt: number): number {
  * What one ask for the turn's sandbox came to (sandbox/steps.ts
  * `ensureSessionSandboxForExecution`): `ready`, `no_room`, `not_carried`
  * (its files cannot be carried to this server's runner: module header),
- * `skipped` (nothing to ensure) or `failed` (logged and pre-stamped). Wire
- * words: the EnsureSessionSandbox activity returns them.
+ * `out_of_memory` (it was killed for exceeding its memory limit and is
+ * asleep again: module header), `skipped` (nothing to ensure) or `failed`
+ * (logged and pre-stamped). Wire words: the EnsureSessionSandbox activity
+ * returns them.
  */
 export type SandboxEnsureOutcome =
   | "ready"
   | "no_room"
   | "not_carried"
+  | "out_of_memory"
   | "skipped"
   | "failed";
 
@@ -155,6 +200,18 @@ export class SandboxNotCarried extends Error {
   constructor() {
     super(SANDBOX_NOT_CARRIED_COPY);
     this.name = "SandboxNotCarried";
+  }
+}
+
+/**
+ * The turn's sandbox was killed for exceeding its memory limit while the
+ * turn was alive (module header). Thrown inside the workflow and read by
+ * its failure write; never crosses a payload.
+ */
+export class SandboxOutOfMemory extends Error {
+  constructor() {
+    super(SANDBOX_OUT_OF_MEMORY_COPY);
+    this.name = "SandboxOutOfMemory";
   }
 }
 

@@ -45,6 +45,14 @@
  *     the turn on it at once and writes the same sentence; the stamp is
  *     for a workflow of a release before that end, whose turn then times
  *     out.
+ *   - A sandbox killed for exceeding its memory limit
+ *     (SandboxOutOfMemoryError, provisioner.ts `isSandboxOutOfMemory`)
+ *     answers `out_of_memory` and stamps nothing: the driver has already
+ *     put the sandbox back to sleep, and the request's and the recover
+ *     chain's ensures may meet the kill before the turn's own ask does, so
+ *     a stamp here could land on a run that did not run the command. The
+ *     workflow decides which turn the kill ends and writes the sentence
+ *     itself (sandbox-wait.ts SANDBOX_OUT_OF_MEMORY_COPY, stigmer#3347).
  *   - DeprovisionSessionSandbox (session delete): best-effort teardown,
  *     ERROR-logged on failure, never fails the delete.
  *
@@ -106,6 +114,7 @@ import { MAKE_ROOM_RETRY_DELAYS_MS } from "./make-room.js";
 import {
   isSandboxNoRoom,
   isSandboxNotCarried,
+  isSandboxOutOfMemory,
   type SandboxFacts,
   type SandboxProvisioner,
 } from "./provisioner.js";
@@ -306,6 +315,16 @@ export async function ensureSessionSandboxForExecution(
       });
       await stampProvisioningFailure(deps.store, deps.logger, executionId, SANDBOX_NOT_CARRIED_COPY, "");
       return "not_carried";
+    }
+    if (isSandboxOutOfMemory(error)) {
+      // Stamped by no one here (module header): the workflow ends the turn
+      // the kill belongs to.
+      deps.logger.warn("The session's sandbox was killed for exceeding its memory limit", {
+        executionId,
+        sessionId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return "out_of_memory";
     }
     // Non-critical: never fail the launch — but never silent either
     // (module header). The real error goes to the log; the sanitized

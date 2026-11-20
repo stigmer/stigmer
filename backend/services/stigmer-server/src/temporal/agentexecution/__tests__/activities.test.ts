@@ -23,7 +23,7 @@
  *     facts from the input, saying the runner is idle (it runs right
  *     before the workflow invokes the runner, so a driver may restart a
  *     sandbox started under another configuration, stigmer#1843), and
- *     answers its word, `not_carried` included; on `no_room` it tells the
+ *     answers its word, `not_carried` and `out_of_memory` included; on `no_room` it tells the
  *     session's liveness streams how long the turn has waited, and on
  *     another answer after a wait it sends a liveness without the wait; a
  *     turn that never waited sends nothing; a run since deleted is
@@ -68,7 +68,7 @@ import {
   ROUTING_SESSION,
 } from "../../../domain/run/temporal/config.js";
 import { SESSION_EVENT_LIVENESS_TYPE } from "../../../domain/session/events/broker.js";
-import { SandboxNoRoomError, SandboxNotCarriedError, type SandboxFacts, type SandboxProvisioner } from "../../../sandbox/provisioner.js";
+import { SandboxNoRoomError, SandboxNotCarriedError, SandboxOutOfMemoryError, type SandboxFacts, type SandboxProvisioner } from "../../../sandbox/provisioner.js";
 import type { EnsureSessionSandboxInput } from "../sandbox-wait.js";
 import type { RunnerCredentialProvider } from "../../../runnerauth/runner-credential-provider.js";
 import { WITHOUT_SANDBOX } from "./activity-deps.js";
@@ -538,7 +538,7 @@ describe("EnsureSessionSandbox activity", () => {
   };
 
   /** A provisioner whose ensure answers each call in turn: room, no room, or a promise the test settles. */
-  function scriptedProvisioner(answers: Array<"ready" | "no_room" | "not_carried" | Promise<void>>) {
+  function scriptedProvisioner(answers: Array<"ready" | "no_room" | "not_carried" | "out_of_memory" | Promise<void>>) {
     const facts: SandboxFacts[] = [];
     const provisioner: SandboxProvisioner = {
       ensureSessionSandbox: async (_id, given) => {
@@ -549,6 +549,9 @@ describe("EnsureSessionSandbox activity", () => {
         }
         if (answer === "not_carried") {
           throw new SandboxNotCarriedError("Substrate refused to move sandbox s to the current template");
+        }
+        if (answer === "out_of_memory") {
+          throw new SandboxOutOfMemoryError("Substrate killed sandbox s for exceeding its memory limit");
         }
         if (answer !== "ready") {
           await answer;
@@ -644,6 +647,12 @@ describe("EnsureSessionSandbox activity", () => {
     const { provisioner } = scriptedProvisioner(["not_carried"]);
     const { ensure } = await sandboxFixture(provisioner, () => undefined);
     expect(await ensure({ execution_id: "run_wait", caller_class: "user" })).toBe("not_carried");
+  });
+
+  it("answers out_of_memory for a sandbox killed for exceeding its memory limit (stigmer#3347)", async () => {
+    const { provisioner } = scriptedProvisioner(["out_of_memory"]);
+    const { ensure } = await sandboxFixture(provisioner, () => undefined);
+    expect(await ensure({ execution_id: "run_wait", caller_class: "user" })).toBe("out_of_memory");
   });
 
   it("on no_room tells the streams how long the turn has waited, then clears it once room comes", async () => {
