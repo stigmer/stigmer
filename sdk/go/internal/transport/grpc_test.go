@@ -159,3 +159,20 @@ func TestDial_FixedTokenIsSentAsTheBearer(t *testing.T) {
 		t.Errorf("headers = %v, want %v", rec.headers, want)
 	}
 }
+
+// TestStreamAuthInterceptor_SendsTheBearerOnAStream: a server-streaming call
+// (a session's event stream) carries the token the source answers.
+func TestStreamAuthInterceptor_SendsTheBearerOnAStream(t *testing.T) {
+	var sent []string
+	streamer := func(ctx context.Context, _ *grpc.StreamDesc, _ *grpc.ClientConn, _ string, _ ...grpc.CallOption) (grpc.ClientStream, error) {
+		md, _ := metadata.FromOutgoingContext(ctx)
+		sent = md.Get("authorization")
+		return nil, nil
+	}
+	if _, err := streamAuthInterceptor(fixedToken("tok"))(t.Context(), &grpc.StreamDesc{ServerStreams: true}, nil, "/x/y", streamer); err != nil {
+		t.Fatalf("interceptor: %v", err)
+	}
+	if want := []string{"Bearer tok"}; !slices.Equal(sent, want) {
+		t.Errorf("sent = %v, want %v", sent, want)
+	}
+}

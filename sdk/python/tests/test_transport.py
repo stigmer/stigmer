@@ -58,3 +58,24 @@ def test_receives_responses_above_grpc_default_cap(oversized_artifact_server):
         assert len(response.artifact) == _FIVE_MB
     finally:
         channel.close()
+
+
+def test_a_key_and_a_provider_are_refused_together() -> None:
+    with pytest.raises(ValueError, match="not both"):
+        create_channel("localhost:1", "stk_key", insecure=True, get_access_token=lambda: "tok")
+
+
+def test_a_server_streaming_call_carries_the_providers_token() -> None:
+    """A session's event stream is server-streaming: it is authenticated the same way."""
+    from stigmer._interceptors import AuthInterceptor
+
+    sent: list[object] = []
+
+    def continuation(details: grpc.ClientCallDetails, request: object) -> None:
+        sent.extend(details.metadata or [])
+
+    details = grpc.ClientCallDetails()
+    details.method, details.timeout, details.metadata = "/x/y", None, None  # type: ignore[misc]
+    details.credentials, details.wait_for_ready, details.compression = None, None, None  # type: ignore[misc]
+    AuthInterceptor(lambda: "tok").intercept_unary_stream(continuation, details, object())
+    assert sent == [("authorization", "Bearer tok")]
