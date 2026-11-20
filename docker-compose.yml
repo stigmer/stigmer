@@ -271,6 +271,13 @@ services:
       STIGMER_OIDC_AUDIENCE: ${STIGMER_OIDC_AUDIENCE:-}
       STIGMER_OIDC_CONSOLE_CLIENT_ID: ${STIGMER_OIDC_CONSOLE_CLIENT_ID:-}
       STIGMER_OIDC_NATIVE_CLIENT_ID: ${STIGMER_OIDC_NATIVE_CLIENT_ID:-}
+      # Where the server fetches the issuer's discovery document when it
+      # cannot reach the issuer's public name (a split-horizon network).
+      STIGMER_OIDC_DISCOVERY_URL: ${STIGMER_OIDC_DISCOVERY_URL:-}
+      # The runner's key, the same value the runner reads as STIGMER_TOKEN:
+      # with sign-in on, the server stores it at boot as the `runner`
+      # service account's key, so the runner starts signed in.
+      STIGMER_RUNNER_API_KEY: ${STIGMER_TOKEN:-}
       # Where your people ask for help, off until .env sets it (see
       # .env.example). The chart's server.help.{url,label}.
       STIGMER_HELP_URL: ${STIGMER_HELP_URL:-}

@@ -79,10 +79,17 @@ settings a little differently; this is what each one must be:
   and stamps the token with the client ID, so on a Dex install the audience
   **is** the client ID.
 
-The issuer URL must be one address that both the browser and the server
-container resolve. `localhost` is a different machine to each of them, so a
-provider on the same host as the stack needs a hostname or the host's address in
-its issuer, never `localhost`.
+The browser signs in at the issuer URL, and the server fetches the issuer's
+signing keys from it, so the simplest setup is one address that both the browser
+and the server container resolve. `localhost` is a different machine to each of
+them, so a provider on the same host as the stack needs a hostname or the host's
+address in its issuer, never `localhost`. When the server cannot reach the
+issuer's public name, because the provider runs beside it on a private network,
+set `STIGMER_OIDC_DISCOVERY_URL` to the address the server reaches it at. The
+server fetches the discovery document there and still requires it to name the
+issuer, and the provider must then answer with its key and user-info addresses
+on that private address too (Keycloak does when its
+`hostname-backchannel-dynamic` option is on).
 
 Copy the client ID your provider shows you. It is a public identifier, not a
 secret.
@@ -92,14 +99,22 @@ secret.
 <Tabs items={["Docker Compose", "Kubernetes"]} groupId="self-hosting-shape" persist>
 <Tab value="Docker Compose">
 
-Three lines in `.env`:
+Four lines in `.env`. The last is the runner's API key, which you generate here:
+
+```bash
+echo "stk_$(openssl rand -base64 32 | tr '+/' '-_' | tr -d '=')"
+```
 
 ```bash
 # .env
 STIGMER_OIDC_ISSUER=https://auth.example.com/realms/main
 STIGMER_OIDC_AUDIENCE=https://stigmer.example.com
 STIGMER_OIDC_CONSOLE_CLIENT_ID=stigmer-console
+STIGMER_TOKEN=stk_...
 ```
+
+At boot the server stores that key as the key of its `runner` service account,
+and the runner signs in with it. You never create a key for the runner yourself.
 
 ```bash
 docker compose up -d
@@ -195,11 +210,12 @@ such as `client_id` or `redirect_uri`.
 
 ### Create the keys
 
-Open **Settings → API keys** and choose **New API key**. Create one named
+Open **Settings → API keys** and choose **New API key** to create one for your
+own CLI. Each key is shown exactly once; the server stores only a hash and
+cannot show it again. On Docker Compose the runner already has its key (the
+`STIGMER_TOKEN` line above). On Kubernetes with the chart, also create one named
 `runner` with expiration **Never**: it is a long-lived credential, and a key
-that expires stops authenticating on that day. Create a second one for your own
-CLI. Each key is shown exactly once; the server stores only a hash and cannot
-show it again.
+that expires stops authenticating on that day.
 
 Create keys after you sign in. A key created while the server still trusted
 everyone is refused once authentication is on, and the refusal says so: the CLI
@@ -211,18 +227,10 @@ sign in and create a new one.
 <Tabs items={["Docker Compose", "Kubernetes"]} groupId="self-hosting-shape" persist>
 <Tab value="Docker Compose">
 
-One line in `.env`:
-
-```bash
-# .env
-STIGMER_TOKEN=stk_...
-```
-
-```bash
-docker compose up -d
-```
-
-Compose recreates the services whose settings changed.
+Nothing to do: the runner signed in with the `STIGMER_TOKEN` you set with the
+issuer. The `stigmer-server` log says "the shared runner's key is stored; the
+runner signs in with it" on the first start, and "the shared runner's key is in
+place" after that.
 
 </Tab>
 <Tab value="Kubernetes">

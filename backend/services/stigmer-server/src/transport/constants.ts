@@ -60,3 +60,13 @@ export const MANAGED_AGENTS_PATH_PREFIX = "/v1/sessions/";
  */
 export const RUNNER_ARTIFACT_UPLOAD_PATH = "/v1/proxy/artifacts/presigned-upload-url";
 export const RUNNER_ARTIFACT_DOWNLOAD_PATH = "/v1/proxy/artifacts/presigned-download-url";
+
+/**
+ * The download lane for local artifact storage on the unified port
+ * (artifactstorage/file-server.ts, createArtifactDownloadLane): the same
+ * signed links the second listener serves, under one prefix, so a server
+ * behind one hostname serves its files beside its console and API
+ * (`ARTIFACT_LOCAL_SERVE_URL=https://<host>/artifacts`). The prefix keeps a
+ * key from ever meeting a console route.
+ */
+export const ARTIFACT_DOWNLOAD_PATH_PREFIX = "/artifacts/";

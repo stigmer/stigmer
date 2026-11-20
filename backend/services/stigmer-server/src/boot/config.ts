@@ -289,6 +289,18 @@ export interface ServerConfig {
    */
   readonly oidcAudience: string;
   /**
+   * Where this server fetches its issuer's discovery document from
+   * (STIGMER_OIDC_DISCOVERY_URL), when that is not the issuer's public
+   * name: a sign-in server beside Stigmer in one cluster answers browsers at
+   * the public name and this process at an in-cluster address. The document
+   * must still name STIGMER_OIDC_ISSUER as its issuer
+   * (identity/oidc-discovery.ts). An http address is accepted anywhere: it
+   * is an address inside the operator's own network, the one hop the
+   * operator controls. Empty, the default, fetches from the issuer.
+   * Boot-fatal when it is not a URL or is set without the issuer.
+   */
+  readonly oidcDiscoveryUrl: string;
+  /**
    * The OAuth client the served web console signs in with
    * (STIGMER_OIDC_CONSOLE_CLIENT_ID):
    * a PUBLIC client the operator registers at the issuer for the browser's
@@ -316,6 +328,16 @@ export interface ServerConfig {
    * nothing to describe, and the composition root WARNs that it is unused.
    */
   readonly oidcNativeClientId: string;
+  /**
+   * The shared runner's API key (STIGMER_RUNNER_API_KEY): an `stk_` key the
+   * operator generated and also hands the runner as STIGMER_TOKEN. On a
+   * server that holds one organization with sign-in on, boot stores it as
+   * the `runner` service account's key (boot/runner-key.ts), so the runner
+   * starts signed in. Empty, the default, stores nothing. Boot-fatal when it
+   * is not an `stk_` key; a server holding several organizations refuses it
+   * at start, and one with sign-in off ignores it with a log line.
+   */
+  readonly runnerApiKey: string;
   /**
    * Where a person stuck on this server asks for help (STIGMER_HELP_URL):
    * the operator's support desk, team chat or community, as an absolute
@@ -648,6 +670,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     ...loadOidcConfig(env),
     oidcConsoleClientId: envString(env, "STIGMER_OIDC_CONSOLE_CLIENT_ID", ""),
     oidcNativeClientId: envString(env, "STIGMER_OIDC_NATIVE_CLIENT_ID", "").trim(),
+    runnerApiKey: loadRunnerApiKey(env),
     helpUrl: envString(env, "STIGMER_HELP_URL", "").trim(),
     helpLabel: envString(env, "STIGMER_HELP_LABEL", "").trim(),
     internalAccounts: envString(env, "STIGMER_INTERNAL_ACCOUNTS", "").trim(),
@@ -717,11 +740,18 @@ const PLAINTEXT_LOOPBACK_HOSTS: ReadonlySet<string> = new Set([
 function loadOidcConfig(env: NodeJS.ProcessEnv): {
   oidcIssuer: string;
   oidcAudience: string;
+  oidcDiscoveryUrl: string;
 } {
   const issuer = (env["STIGMER_OIDC_ISSUER"] ?? "").trim();
   const audience = (env["STIGMER_OIDC_AUDIENCE"] ?? "").trim();
+  const discoveryUrl = (env["STIGMER_OIDC_DISCOVERY_URL"] ?? "").trim();
   if (issuer === "" && audience === "") {
-    return { oidcIssuer: "", oidcAudience: "" };
+    if (discoveryUrl !== "") {
+      throw new Error(
+        "STIGMER_OIDC_DISCOVERY_URL is set without STIGMER_OIDC_ISSUER — it names where the issuer's discovery document is fetched from, so set the issuer and audience too, or unset it",
+      );
+    }
+    return { oidcIssuer: "", oidcAudience: "", oidcDiscoveryUrl: "" };
   }
   if (issuer === "" || audience === "") {
     throw new Error(
@@ -743,7 +773,37 @@ function loadOidcConfig(env: NodeJS.ProcessEnv): {
       `STIGMER_OIDC_ISSUER "${issuer}" must be an https URL — OIDC discovery and the signing keys are fetched from it; http is accepted only on localhost, 127.0.0.1 or [::1]`,
     );
   }
-  return { oidcIssuer: issuer, oidcAudience: audience };
+  if (discoveryUrl !== "") {
+    let discoveryParsed: URL | undefined;
+    try {
+      discoveryParsed = new URL(discoveryUrl);
+    } catch {
+      discoveryParsed = undefined;
+    }
+    if (
+      discoveryParsed === undefined ||
+      (discoveryParsed.protocol !== "https:" && discoveryParsed.protocol !== "http:")
+    ) {
+      throw new Error(
+        `STIGMER_OIDC_DISCOVERY_URL "${discoveryUrl}" is not an http or https URL — it names the address this server fetches the issuer's discovery document from`,
+      );
+    }
+  }
+  return { oidcIssuer: issuer, oidcAudience: audience, oidcDiscoveryUrl: discoveryUrl };
+}
+
+/** An `stk_` key as the server mints them: the prefix and 32 bytes, base64url. */
+const RUNNER_API_KEY_SHAPE = /^stk_[A-Za-z0-9_-]{43}$/;
+
+/** STIGMER_RUNNER_API_KEY, boot-fatal when it is not an `stk_` key. */
+function loadRunnerApiKey(env: NodeJS.ProcessEnv): string {
+  const key = (env["STIGMER_RUNNER_API_KEY"] ?? "").trim();
+  if (key !== "" && !RUNNER_API_KEY_SHAPE.test(key)) {
+    throw new Error(
+      "STIGMER_RUNNER_API_KEY is not an stk_ key: generate one with  echo \"stk_$(openssl rand -base64 32 | tr '+/' '-_' | tr -d '=')\"  and hand the same value to the runner as STIGMER_TOKEN",
+    );
+  }
+  return key;
 }
 
 /**

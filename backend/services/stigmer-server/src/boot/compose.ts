@@ -98,7 +98,11 @@ import { ownerAsFireCaller } from "../domain/routine/owner.js";
 import { registerChannelServices } from "../domain/channel/controller.js";
 import { registerChannelConversationServices } from "../domain/channel/conversation.js";
 import { registerChannelMessageServices } from "../domain/channel/message.js";
-import { registerApiKeyServices } from "../domain/apikey/controller.js";
+import {
+  newServiceAccountKeyProvisioner,
+  registerApiKeyServices,
+} from "../domain/apikey/controller.js";
+import { ensureRunnerKey } from "./runner-key.js";
 import {
   newCreateAccountPath,
   registerIdentityAccountServices,
@@ -122,7 +126,10 @@ import { newApiKeyIdentityVerifier } from "../domain/apikey/verifier.js";
 import { deleteKeysOwnedBy } from "../domain/apikey/account-keys.js";
 import type { IdentityVerifier } from "../extensions/identity.js";
 import { newOidcIdentityVerifier } from "../identity/oidc-verifier.js";
-import { createArtifactFileServer } from "../artifactstorage/file-server.js";
+import {
+  createArtifactDownloadLane,
+  createArtifactFileServer,
+} from "../artifactstorage/file-server.js";
 import { registerChannelAppServices } from "../domain/channelapp/controller.js";
 import { registerEnvironmentServices } from "../domain/environment/controller.js";
 import { newEnvironmentPolicy } from "../domain/run/environment-admission.js";
@@ -535,6 +542,19 @@ export async function composeServer(
   const authEnabled = config.oidcIssuer !== "";
   const requireAuthentication =
     authEnabled || extensions.requireAuthentication !== undefined;
+  // The shared runner's key at boot (boot/runner-key.ts) is a one-
+  // organization act: a server that holds several runs per-session
+  // sandboxes, each run on its own credential.
+  if (config.runnerApiKey !== "" && requireAuthentication && extensions.orgLimit !== 1) {
+    throw new Error(
+      "STIGMER_RUNNER_API_KEY is set on a server that holds several organizations: one shared runner would carry one organization's key into every organization's runs. Unset it and run agents in per-session sandboxes (SANDBOX_PROVISIONER_TYPE)",
+    );
+  }
+  if (config.runnerApiKey !== "" && !requireAuthentication) {
+    logger.info(
+      "STIGMER_RUNNER_API_KEY is ignored: sign-in is off, so the runner needs no key",
+    );
+  }
 
   // The AUTHORIZATION posture (authorization/posture.ts), named once and
   // handed down: a unit's own Authorizer (nothing built in installs);
@@ -926,7 +946,15 @@ export async function composeServer(
   // process and validated the same way wherever it is consumed. Built in
   // this stage, not inside routes() (which runs twice) — the same reason
   // the searchRegistry lives here.
-  const issuerDiscovery = newIssuerDiscovery();
+  // The configured issuer, and only it, may be fetched from an in-cluster
+  // address (STIGMER_OIDC_DISCOVERY_URL): federated issuers are always read
+  // at their own names.
+  const issuerDiscovery = newIssuerDiscovery(
+    fetch,
+    config.oidcIssuer !== "" && config.oidcDiscoveryUrl !== ""
+      ? new Map([[config.oidcIssuer, config.oidcDiscoveryUrl]])
+      : new Map(),
+  );
   // Provisioning reads the caller's profile from the userinfo endpoint of
   // the issuer that vouched for the token, discovered per issuer and
   // cached — so a composition whose own verifiers name their issuer
@@ -2619,6 +2647,15 @@ export async function composeServer(
           ),
         }),
     ...(runnerArtifactLane === undefined ? {} : { runnerArtifactLane }),
+    ...(config.artifactStorageType === "local"
+      ? {
+          artifactDownloadLane: createArtifactDownloadLane({
+            basePath: config.artifactLocalBasePath,
+            signer: downloadUrlSigner,
+            logger,
+          }),
+        }
+      : {}),
     skillTransferLane,
     ...(fileTransferLane === undefined ? {} : { fileTransferLane }),
     managedAgentsLane,
@@ -2719,6 +2756,33 @@ export async function composeServer(
         // once (domain/grant/membership.ts).
         if (authorizationPosture === "built-in" && membership !== undefined) {
           await membership.ensureRolesOnServerOrganization();
+        }
+        // The shared runner starts signed in: the key the operator
+        // generated becomes the `runner` service account's
+        // (boot/runner-key.ts). Only under sign-in, on the one organization.
+        const runnerOrg = singleOrganization.current();
+        if (config.runnerApiKey !== "" && requireAuthentication && runnerOrg !== undefined) {
+          await ensureRunnerKey({
+            plaintext: config.runnerApiKey,
+            org: runnerOrg,
+            store,
+            accounts: identityAccounts,
+            edges: inProcessWiring.clients.runnerKeyEdges,
+            provisioner: newServiceAccountKeyProvisioner({
+              store,
+              logger,
+              authorizer,
+              credentialBinding,
+              authorizationLifecycle,
+              listReadScope,
+              accounts: identityAccounts,
+            }),
+            logger,
+          });
+        } else if (config.runnerApiKey !== "" && runnerOrg === undefined) {
+          logger.warn(
+            "STIGMER_RUNNER_API_KEY is set but the server holds no single organization yet, so the runner's key is not stored this start",
+          );
         }
       }
       // Temporal boot is NON-fatal end to end: a failed

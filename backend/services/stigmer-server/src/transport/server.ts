@@ -17,6 +17,11 @@
  *                                                   a bucket)
  *      prefix       /v1/skill-artifacts            (the skill transfer
  *                                                   lane)
+ *      prefix       /artifacts/                    (local artifact
+ *                                                   storage's signed
+ *                                                   downloads; absent
+ *                                                   unless the store is
+ *                                                   local)
  *      prefix       /v1/sessions/                  (the Claude Managed
  *                                                   Agents lane: a
  *                                                   session's events on
@@ -54,6 +59,7 @@ import type { Socket } from "node:net";
 
 import type { Logger } from "../boot/logger.js";
 import {
+  ARTIFACT_DOWNLOAD_PATH_PREFIX,
   FILE_TRANSFER_PATH_PREFIX,
   KEEPALIVE_PING_INTERVAL_MS,
   KEEPALIVE_PING_TIMEOUT_MS,
@@ -126,6 +132,12 @@ export interface UnifiedPortServerOptions {
    */
   runnerArtifactLane?: LaneHandler;
   /**
+   * Lane 2: local artifact storage's signed downloads under `/artifacts/`
+   * (artifactstorage/file-server.ts). Present only when the store is
+   * local; a bucket's links point at the bucket.
+   */
+  artifactDownloadLane?: LaneHandler;
+  /**
    * Lane 3: console statics + /config.json. Present only when a
    * console export is bundled/configured — absent, every request flows
    * exactly as before the lane existed. The eligibility guard lives with
@@ -184,6 +196,13 @@ export function createUnifiedPortServer(
       (path === RUNNER_ARTIFACT_UPLOAD_PATH || path === RUNNER_ARTIFACT_DOWNLOAD_PATH)
     ) {
       options.runnerArtifactLane(request, response);
+      return;
+    }
+    if (
+      options.artifactDownloadLane !== undefined &&
+      path.startsWith(ARTIFACT_DOWNLOAD_PATH_PREFIX)
+    ) {
+      options.artifactDownloadLane(request, response);
       return;
     }
     if (

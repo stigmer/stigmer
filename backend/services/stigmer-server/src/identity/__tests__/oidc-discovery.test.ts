@@ -3,8 +3,9 @@
  * validation rules kept (issuer must match exactly,
  * jwks_uri required), userinfo_endpoint carried when present and absent
  * otherwise, one fetch per issuer after a success, and a failure that is
- * NOT cached so a flaky IdP at boot cannot brick a lane. The fetch is
- * injected; nothing dials out.
+ * NOT cached so a flaky IdP at boot cannot brick a lane, and the split
+ * horizon: an issuer named in `fetchFrom` is read from that address and
+ * still held to its public name. The fetch is injected; nothing dials out.
  */
 import { describe, expect, it } from "vitest";
 
@@ -118,5 +119,55 @@ describe("newIssuerDiscovery", () => {
     );
     expect((await discovery.discover(ISSUER)).jwksUri).toBe("a");
     expect((await discovery.discover(other)).jwksUri).toBe("b");
+  });
+
+  describe("split horizon (fetchFrom)", () => {
+    const INSIDE = "http://keycloak.stigmer.svc:8080/idp/realms/stigmer";
+
+    it("fetches the named issuer's document from the inside address and keeps its endpoints", async () => {
+      const fetchImpl = fetchAnswering([
+        {
+          status: 200,
+          body: {
+            issuer: ISSUER,
+            jwks_uri: `${INSIDE}/certs`,
+            userinfo_endpoint: `${INSIDE}/userinfo`,
+          },
+        },
+      ]);
+      const discovery = newIssuerDiscovery(fetchImpl, new Map([[ISSUER, INSIDE]]));
+
+      const found = await discovery.discover(ISSUER);
+
+      expect(fetchImpl.urls).toEqual([`${INSIDE}/.well-known/openid-configuration`]);
+      expect(found).toEqual({
+        issuer: ISSUER,
+        jwksUri: `${INSIDE}/certs`,
+        userinfoEndpoint: `${INSIDE}/userinfo`,
+      });
+    });
+
+    it("still refuses a document that names another issuer", async () => {
+      const discovery = newIssuerDiscovery(
+        fetchAnswering([{ status: 200, body: { issuer: INSIDE, jwks_uri: "k" } }]),
+        new Map([[ISSUER, INSIDE]]),
+      );
+
+      await expect(discovery.discover(ISSUER)).rejects.toThrow(
+        `does not match configured issuer '${ISSUER}'`,
+      );
+    });
+
+    it("reads every other issuer at its own name", async () => {
+      const other = "https://federated.test";
+      const fetchImpl = fetchAnswering([
+        { status: 200, body: { issuer: other, jwks_uri: "b" } },
+      ]);
+      const discovery = newIssuerDiscovery(fetchImpl, new Map([[ISSUER, INSIDE]]));
+
+      await discovery.discover(other);
+
+      expect(fetchImpl.urls).toEqual([`${other}/.well-known/openid-configuration`]);
+    });
   });
 });

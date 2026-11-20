@@ -379,23 +379,16 @@ entry is dropped at start, and the log says which.
 
 ### Rotate the runner's key
 
-The runner's API key is the one credential you'll rotate on purpose. Create the
-new key before you retire the old one, so the runner is never without one.
-
-<Steps>
-
-### Create the new key
-
-Sign in to the console and open **Settings → API keys**. Create a key named for
-the runner with expiration **Never**, the way the
-[authentication guide](./authentication) did. It's shown once.
-
-### Give it to the runner
+The runner's API key is the one credential you'll rotate on purpose.
 
 <Tabs items={["Docker Compose", "Kubernetes"]} groupId="self-hosting-shape" persist>
 <Tab value="Docker Compose">
 
-Replace the line in `.env`, then recreate the runner:
+Generate a new key, replace the line in `.env`, and recreate the stack:
+
+```bash
+echo "stk_$(openssl rand -base64 32 | tr '+/' '-_' | tr -d '=')"
+```
 
 ```bash
 # .env
@@ -406,10 +399,18 @@ STIGMER_TOKEN=stk_...
 docker compose up -d
 ```
 
+The server and the runner both read the line. At its start the server deletes
+the old key of its `runner` service account and stores the new one, and its log
+says "the shared runner's key changed".
+
 </Tab>
 <Tab value="Kubernetes">
 
-Replace the Secret and restart the pod:
+Create the new key before you retire the old one, so the runner is never without
+one. Sign in to the console and open **Settings → API keys**. Create a key named
+for the runner with expiration **Never**, the way the
+[authentication guide](./authentication) did. It's shown once. Then replace the
+Secret and restart the pod:
 
 ```bash
 kubectl -n stigmer create secret generic stigmer-runner-token \
@@ -418,11 +419,6 @@ kubectl -n stigmer create secret generic stigmer-runner-token \
 kubectl -n stigmer rollout restart deploy/stigmer
 ```
 
-</Tab>
-</Tabs>
-
-### Delete the old key
-
 List your keys and delete the one the runner no longer holds:
 
 ```bash
@@ -430,7 +426,8 @@ stigmer list apikey
 stigmer delete apikey key_...
 ```
 
-</Steps>
+</Tab>
+</Tabs>
 
 Your LLM provider key follows the same path: a new line in `.env`, or a replaced
 Secret and a restart.

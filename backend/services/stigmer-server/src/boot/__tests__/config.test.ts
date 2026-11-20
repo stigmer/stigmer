@@ -258,6 +258,36 @@ describe("loadConfig", () => {
     });
   });
 
+  describe("STIGMER_OIDC_DISCOVERY_URL (where the issuer's document is fetched from)", () => {
+    const OIDC = {
+      STIGMER_OIDC_ISSUER: "https://stigmer.example.com/idp/realms/stigmer",
+      STIGMER_OIDC_AUDIENCE: "https://stigmer.example.com",
+    };
+
+    it("is empty by default", () => {
+      expect(loadConfig(OIDC).oidcDiscoveryUrl).toBe("");
+    });
+
+    it("takes an in-cluster http address beside an https issuer", () => {
+      const inside = "http://stigmer-keycloak.stigmer.svc:8080/idp/realms/stigmer";
+      expect(
+        loadConfig({ ...OIDC, STIGMER_OIDC_DISCOVERY_URL: inside }).oidcDiscoveryUrl,
+      ).toBe(inside);
+    });
+
+    it.each(["not a url", "ftp://keycloak:8080"])("refuses %s at boot", (address) => {
+      expect(() =>
+        loadConfig({ ...OIDC, STIGMER_OIDC_DISCOVERY_URL: address }),
+      ).toThrow(/STIGMER_OIDC_DISCOVERY_URL .* is not an http or https URL/);
+    });
+
+    it("refuses an address without an issuer", () => {
+      expect(() =>
+        loadConfig({ STIGMER_OIDC_DISCOVERY_URL: "http://keycloak:8080/realms/x" }),
+      ).toThrow(/STIGMER_OIDC_DISCOVERY_URL is set without STIGMER_OIDC_ISSUER/);
+    });
+  });
+
   describe("STIGMER_OIDC_CONSOLE_CLIENT_ID (the console's sign-in client)", () => {
     const OIDC = {
       STIGMER_OIDC_ISSUER: "https://auth.example.com/realms/main",
