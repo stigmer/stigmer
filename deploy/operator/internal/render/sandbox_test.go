@@ -33,14 +33,14 @@ func TestAgentSandboxTellsTheServerItsDriver(t *testing.T) {
 	st := agentSandboxProfile()
 	env := envMap(ServerEnv(st, []string{"ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL"}))
 	for name, want := range map[string]string{
-		"SANDBOX_PROVISIONER_TYPE":                           "agent-sandbox",
-		"STIGMER_ACTIVITY_ROUTING":                           "session",
-		"STIGMER_DEFAULT_EXECUTION_TARGET":                   "cloud",
-		"STIGMER_SANDBOX_BACKEND_ENDPOINT":                   "http://stigmer.stigmer.svc.cluster.local:7234",
-		"STIGMER_SANDBOX_K8S_NAMESPACE":                      "stigmer-sandboxes",
+		"SANDBOX_PROVISIONER_TYPE":                            "agent-sandbox",
+		"STIGMER_ACTIVITY_ROUTING":                            "session",
+		"STIGMER_DEFAULT_EXECUTION_TARGET":                    "cloud",
+		"STIGMER_SANDBOX_BACKEND_ENDPOINT":                    "http://stigmer.stigmer.svc.cluster.local:7234",
+		"STIGMER_SANDBOX_K8S_NAMESPACE":                       "stigmer-sandboxes",
 		"STIGMER_SANDBOX_AGENT_SANDBOX_SUSPEND_AFTER_SECONDS": "120",
-		"STIGMER_SANDBOX_RUNNER_SECRETS":                     "ANTHROPIC_API_KEY",
-		"STIGMER_SANDBOX_RUNNER_ENV":                         "ANTHROPIC_BASE_URL",
+		"STIGMER_SANDBOX_RUNNER_SECRETS":                      "ANTHROPIC_API_KEY",
+		"STIGMER_SANDBOX_RUNNER_ENV":                          "ANTHROPIC_BASE_URL",
 	} {
 		if got := env[name].Value; got != want {
 			t.Errorf("%s = %q; want %q", name, got, want)
@@ -203,4 +203,3 @@ func TestTheDatabaseAndTemporalAdmitOnlyTheInstall(t *testing.T) {
 }
 
 func mapsEqual(a, b map[string]string) bool { return maps.Equal(a, b) }
-

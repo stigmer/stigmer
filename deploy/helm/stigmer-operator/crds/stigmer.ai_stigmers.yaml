@@ -945,7 +945,9 @@ spec:
                               and the bucket, such as a model gateway or an MCP server on your
                               network (10.20.0.0/16, 192.168.4.7/32).
                             items:
+                              maxLength: 43
                               type: string
+                            maxItems: 64
                             type: array
                             x-kubernetes-validations:
                             - message: spec.sandboxes.agentSandbox.egress.allowCIDRs
@@ -1017,7 +1019,9 @@ spec:
                           AllowCIDRs are private ranges the fenced server may also reach, such
                           as an external database, Temporal, issuer or MCP server.
                         items:
+                          maxLength: 43
                           type: string
+                        maxItems: 64
                         type: array
                         x-kubernetes-validations:
                         - message: spec.server.egress.allowCIDRs holds CIDR ranges,

@@ -188,6 +188,8 @@ type ServerEgressSpec struct {
 	// AllowCIDRs are private ranges the fenced server may also reach, such
 	// as an external database, Temporal, issuer or MCP server.
 	// +kubebuilder:validation:XValidation:rule="self.all(c, isCIDR(c))",message="spec.server.egress.allowCIDRs holds CIDR ranges, such as 10.20.0.0/16"
+	// +kubebuilder:validation:MaxItems=64
+	// +kubebuilder:validation:items:MaxLength=43
 	// +optional
 	AllowCIDRs []string `json:"allowCIDRs,omitempty"`
 }
@@ -728,6 +730,8 @@ type SandboxEgressSpec struct {
 	// and the bucket, such as a model gateway or an MCP server on your
 	// network (10.20.0.0/16, 192.168.4.7/32).
 	// +kubebuilder:validation:XValidation:rule="self.all(c, isCIDR(c))",message="spec.sandboxes.agentSandbox.egress.allowCIDRs holds CIDR ranges, such as 10.20.0.0/16"
+	// +kubebuilder:validation:MaxItems=64
+	// +kubebuilder:validation:items:MaxLength=43
 	// +optional
 	AllowCIDRs []string `json:"allowCIDRs,omitempty"`
 }

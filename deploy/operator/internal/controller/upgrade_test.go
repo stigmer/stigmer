@@ -77,7 +77,7 @@ func setBackupPhase(t *testing.T, ns, name, phase, why string) {
 
 func upgradeReconciler() *StigmerReconciler {
 	deps := []component.Component{}
-	for _, name := range []string{render.ComponentKeys, render.ComponentObjectStore, render.ComponentDatabase, render.ComponentTemporal} {
+	for _, name := range []string{render.ComponentKeys, render.ComponentObjectStore, render.ComponentDatabase, render.ComponentTemporal, render.ComponentSandboxes} {
 		deps = append(deps, &fake{name: name, res: component.Ready("ok")})
 	}
 	return &StigmerReconciler{Client: k8s, Reader: k8s, Components: append(deps, component.Server{})}
