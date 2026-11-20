@@ -48,6 +48,15 @@ export const DEFAULT_RUN_LIMIT = 10;
 /** The most runs one list_runs call returns. */
 export const MAX_RUN_LIMIT = 50;
 
+/**
+ * The most pages list_runs reads to fill its limit. A scoped read answers
+ * short, even empty, pages that still carry a token when the caller may see
+ * few of the rows it examined (pipeline/steps/list-page.ts on the server), so
+ * one page is not "the agent's runs"; the bound keeps a caller who may see
+ * none of a busy agent's runs from walking its whole history.
+ */
+const MAX_RUN_PAGES = 20;
+
 /** The most bytes of one output get_run_outputs inlines: the server's own cap. */
 export const MAX_INLINE_OUTPUT_BYTES = 512 * 1024;
 
@@ -82,13 +91,20 @@ export async function listRuns(
     } catch (err) {
       throw rpcError(err, desc);
     }
-    let runs: Run[];
+    const runs: Run[] = [];
+    let pageToken = "";
+    let pages = 0;
     try {
-      const page = await createClient(RunQueryController, transport).listByAgent(
-        { agentId, pageSize: args.limit },
-        callOptions,
-      );
-      runs = page.entries.slice(0, args.limit);
+      const query = createClient(RunQueryController, transport);
+      do {
+        const page = await query.listByAgent(
+          { agentId, pageSize: args.limit - runs.length, pageToken },
+          callOptions,
+        );
+        runs.push(...page.entries.slice(0, args.limit - runs.length));
+        pageToken = page.nextPageToken;
+        pages += 1;
+      } while (pageToken !== "" && runs.length < args.limit && pages < MAX_RUN_PAGES);
     } catch (err) {
       throw rpcError(err, `runs of ${desc}`);
     }

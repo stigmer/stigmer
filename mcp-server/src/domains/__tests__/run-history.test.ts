@@ -112,6 +112,8 @@ let outside: string;
 
 let listByAgentRequests: ListRunsByAgentRequest[];
 let agentRuns: Run[];
+/** When set, listByAgent answers these pages in turn, each but the last with a token. */
+let agentPages: Run[][] | undefined;
 let fileListRequests: ListFilesRequest[];
 let runFiles: File[];
 let scores: Score[];
@@ -165,6 +167,7 @@ beforeAll(async () => {
   writeFileSync(join(project, "data", "april.csv"), "invoice,amount\n2,200\n");
   writeFileSync(join(outside, "id_rsa"), "secret");
   symlinkSync(join(outside, "id_rsa"), join(project, "samples", "key-link"));
+  symlinkSync(join(project, "data", "april.csv"), join(project, "samples", "latest.csv"));
 
   const routes = (router: ConnectRouter) => {
     router.service(AgentQueryController, {
@@ -182,6 +185,11 @@ beforeAll(async () => {
       listByAgent: (req) => {
         if (req.agentId === "agt_flaky") throw new ConnectError("runs hidden", Code.PermissionDenied);
         listByAgentRequests.push(req);
+        if (agentPages !== undefined) {
+          const at = req.pageToken === "" ? 0 : Number(req.pageToken);
+          const last = at >= agentPages.length - 1;
+          return { entries: agentPages[Math.min(at, agentPages.length - 1)] ?? [], nextPageToken: last ? "" : String(at + 1) };
+        }
         return { entries: agentRuns, nextPageToken: "" };
       },
     });
@@ -245,6 +253,7 @@ beforeAll(async () => {
 beforeEach(() => {
   listByAgentRequests = [];
   agentRuns = [];
+  agentPages = undefined;
   fileListRequests = [];
   runFiles = [];
   scores = [];
@@ -300,6 +309,22 @@ describe("list_runs", () => {
     const listed = body(await call(withRoots, "list_runs", { agent: "invoice-checker" }));
     const [line] = listed.runs as Array<{ error: string }>;
     expect(line?.error).toBe(`${"x".repeat(300)}... (cut here; get_run reads the whole error)`);
+  });
+
+  it("follows a short or empty page that carries a token until it has the runs asked for", async () => {
+    // A scoped read may answer empty pages that still carry a token when the
+    // caller may see few of the rows the server examined.
+    agentPages = [[], [run("run_mine_new", RunPhase.RUN_COMPLETED)], [run("run_mine_old", RunPhase.RUN_FAILED)]];
+    const listed = body(await call(withRoots, "list_runs", { agent: "invoice-checker", limit: 2 }));
+    expect((listed.runs as Array<{ run_id: string }>).map((r) => r.run_id)).toEqual(["run_mine_new", "run_mine_old"]);
+    expect(listByAgentRequests.map((r) => [r.pageToken, r.pageSize])).toEqual([["", 2], ["1", 2], ["2", 1]]);
+  });
+
+  it("stops after 20 pages when every page is empty, and says it found none", async () => {
+    agentPages = Array.from({ length: 30 }, () => []);
+    const listed = body(await call(withRoots, "list_runs", { agent: "invoice-checker" }));
+    expect(listed.runs).toEqual([]);
+    expect(listByAgentRequests).toHaveLength(20);
   });
 
   it("asks for ten runs by default and says when the agent has none", async () => {
@@ -508,6 +533,16 @@ describe("run_agent files", () => {
     );
     expect(createdRun?.spec?.fileIds).toEqual(["fil_up_1"]);
     expect(deletes).toEqual(["fil_up_1"]);
+  });
+
+  it("uploads a linked file under the name it was named by, not its target's", async () => {
+    const result = await call(withRoots, "run_agent", {
+      agent: "invoice-checker",
+      message: "check the latest",
+      files: ["samples/latest.csv"],
+    });
+    expect(result.isError, result.content[0]?.text).toBeFalsy();
+    expect(uploads.map((u) => u.filename)).toEqual(["latest.csv"]);
   });
 
   it("uploads into the conversation on a follow-up and keeps it there", async () => {

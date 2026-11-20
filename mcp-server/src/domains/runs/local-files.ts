@@ -29,7 +29,7 @@
 // uploaded before the failure surfaces.
 
 import { realpathSync, statSync } from "node:fs";
-import { isAbsolute, relative, resolve, sep } from "node:path";
+import { basename, isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { Transport } from "@connectrpc/connect";
@@ -53,6 +53,13 @@ export interface LocalFileAccess {
   readonly listRoots: () => Promise<readonly string[] | undefined>;
 }
 
+/** A file a model named: its real path, read and checked, and the name it was named by. */
+export interface LocalFile {
+  readonly path: string;
+  /** The named path's last segment: a link keeps the name the person and the message use. */
+  readonly filename: string;
+}
+
 /**
  * Resolve each path a model named to a real file inside one of the client's
  * roots, or refuse the whole call naming the path and the CLI.
@@ -60,7 +67,7 @@ export interface LocalFileAccess {
 export async function resolveLocalFiles(
   paths: readonly string[],
   access: LocalFileAccess,
-): Promise<string[]> {
+): Promise<LocalFile[]> {
   if (paths.length === 0) return [];
   if (!access.localFiles) {
     throw new Error(
@@ -95,7 +102,7 @@ async function clientRoots(access: LocalFileAccess): Promise<string[]> {
   return roots;
 }
 
-function resolveOne(path: string, roots: readonly string[]): string {
+function resolveOne(path: string, roots: readonly string[]): LocalFile {
   const named = path.trim();
   if (named === "") {
     throw new Error("files: an entry is empty; name each file by its path in your project.");
@@ -124,7 +131,7 @@ function resolveOne(path: string, roots: readonly string[]): string {
     if (!stats.isFile()) {
       throw new Error(`"${named}" is not a regular file.`);
     }
-    return real;
+    return { path: real, filename: basename(candidate) };
   }
   throw new Error(`"${named}" was not found in any folder your coding agent has open.`);
 }
@@ -153,14 +160,14 @@ export function rootPath(uri: string): string | undefined {
  */
 export async function uploadLocalFiles(
   transport: Transport,
-  files: readonly string[],
+  files: readonly LocalFile[],
   target: { readonly org: string; readonly sessionId: string },
 ): Promise<string[]> {
   const client = new RoutedFileClient(transport);
   const ids: string[] = [];
-  for (const path of files) {
+  for (const { path, filename } of files) {
     try {
-      const file = await uploadFileFromPath(client, { ...target, path });
+      const file = await uploadFileFromPath(client, { ...target, path, filename });
       ids.push(file.metadata?.id ?? "");
     } catch (err) {
       await deleteUploaded(transport, ids);
