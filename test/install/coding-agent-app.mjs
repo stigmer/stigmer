@@ -292,6 +292,9 @@ async function main() {
       for (const line of runnerLogNotes(readFileSync(runnerLog, "utf8"))) log(`runner: ${line}`);
     }
     await stopProcessGroup(server);
+    // A coding agent that started `stigmer up` on its own (it keeps its stack
+    // under the stage's CLI home) leaves it running past the walk.
+    if (stage !== undefined) await stigmer(stage.stigmer, stage.env(process.env), ["down"]).catch(() => undefined);
     await stage?.stop();
     if (!args.keep) rmSync(scratch, { recursive: true, force: true });
     else log(`kept ${scratch}`);
