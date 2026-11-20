@@ -1818,6 +1818,36 @@ export function describeStoreContract(
       expect(stolen.entry.id).toBe("org_a");
     });
 
+    it("a name an undone rename pushed aside stays its resource's until the undo restores it (#2926)", async () => {
+      // A service account's move: its old name is free once the move
+      // commits, and not before.
+      await names().claim(key("deploy-bot"), "org_a", T0);
+      const a = { ...ORG, id: "org_a", from: "deploy-bot", to: "ci-bot", fromExpiresAt: T1, now: T1 };
+      const b = { ...ORG, id: "org_a", from: "deploy-bot", to: "build-bot", fromExpiresAt: T1, now: T1 };
+      await won(a);
+      // B's move lands after A's and pushes `ci-bot` aside; before B's
+      // row write loses and its undo runs, another resource tries the name.
+      const undoB = await won(b);
+      const raced = await names().claim(key("ci-bot"), "org_b", T1);
+      expect(raced.claimed, "a pushed-aside name is not free before its rename commits or is undone").toBe(false);
+      expect(raced.entry.id).toBe("org_a");
+
+      await names().revertRename(b, undoB);
+      expect(await names().current("organization", "", "org_a")).toEqual({
+        ...key("ci-bot"), id: "org_a", state: "current", claimedAt: T1, expiresAt: "",
+      });
+    });
+
+    it("a rename's old name is not free before the rename commits or is undone, however short its hold (#2926)", async () => {
+      await names().claim(key("deploy-bot"), "org_a", T0);
+      await won({ ...ORG, id: "org_a", from: "deploy-bot", to: "ci-bot", fromExpiresAt: T1, now: T1 });
+
+      const raced = await names().claim(key("deploy-bot"), "org_b", T1);
+      expect(raced.claimed, "the row write has not landed yet").toBe(false);
+      expect(raced.entry).toMatchObject({ id: "org_a", state: "previous" });
+      expect(await names().resolve(key("deploy-bot"), T1)).toMatchObject({ id: "org_a", state: "previous" });
+    });
+
     it("an undo run twice leaves the restored name as the first run left it", async () => {
       await names().claim(key("acme"), "org_a", T0);
       await won({ ...ORG, id: "org_a", from: "acme", to: "acme-y", fromExpiresAt: T3, now: T1 });
