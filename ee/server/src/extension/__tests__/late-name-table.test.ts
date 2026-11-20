@@ -60,6 +60,7 @@ describe("lateNameTable", () => {
       currentMany: record("currentMany", [ENTRY]),
       claim: record("claim", { claimed: true, entry: ENTRY }),
       rename: record("rename", { claimed: true, entry: ENTRY, demoted: [] }),
+      commitRename: record("commitRename", undefined),
       revertRename: record("revertRename", undefined),
       release: record("release", undefined),
       releaseName: record("releaseName", undefined),
@@ -73,6 +74,7 @@ describe("lateNameTable", () => {
     expect(await names.currentMany([HOLDER])).toEqual([ENTRY]);
     expect(await names.claim(KEY, "tem_1", "now")).toEqual({ claimed: true, entry: ENTRY });
     expect(await names.rename(MOVE)).toEqual({ claimed: true, entry: ENTRY, demoted: [] });
+    await names.commitRename(MOVE, UNDO);
     await names.revertRename(MOVE, UNDO);
     await names.release("team", "org_acme", "tem_1");
     await names.releaseName(KEY, "tem_1");
@@ -83,6 +85,7 @@ describe("lateNameTable", () => {
       ["currentMany", [[HOLDER]]],
       ["claim", [KEY, "tem_1", "now"]],
       ["rename", [MOVE]],
+      ["commitRename", [MOVE, UNDO]],
       ["revertRename", [MOVE, UNDO]],
       ["release", ["team", "org_acme", "tem_1"]],
       ["releaseName", [KEY, "tem_1"]],

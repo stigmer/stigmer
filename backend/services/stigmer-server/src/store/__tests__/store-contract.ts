@@ -20,7 +20,8 @@
  * ORDER is deliberately NOT asserted here, it is driver-relative), the
  * resource-name table (one winner of
  * concurrent claims, lazy expiry, renames that move, take back, revert and
- * overlap to one current name, a release that frees only its own names), OAuth grants, once-only pending-state
+ * overlap to one current name, the names a rename sets aside held until it
+ * commits or is undone, a release that frees only its own names), OAuth grants, once-only pending-state
  * redemption with its 10-minute TTL, the organization deletion table (one
  * winner of concurrent marks, transitions that apply only from the phase
  * they name), removal of one organization's side-store records, the
@@ -75,6 +76,7 @@ import { declareListIndex, field, label } from "../list-index.js";
 import type { ListIndexRow } from "../list-index.js";
 import type { PermissionChange } from "../permission-history.js";
 import { makeOrganization } from "./support.js";
+import { UNCOMMITTED_RENAME_HOLD_MS } from "../resource-names.js";
 import { etagOf } from "../etag.js";
 
 /** The kit's own declaration, so the arms do not depend on the server's list. */
@@ -1798,11 +1800,12 @@ export function describeStoreContract(
     });
 
     it("an undone rename that lost the race restores the winner's name, which nobody else can take (#2764)", async () => {
-      // A service account's move: its old name is free at once.
+      // A service account's move: its old name is free once the move
+      // commits. A's row write lands and A commits.
       await names().claim(key("deploy-bot"), "org_a", T0);
       const a = { ...ORG, id: "org_a", from: "deploy-bot", to: "ci-bot", fromExpiresAt: T1, now: T1 };
       const b = { ...ORG, id: "org_a", from: "deploy-bot", to: "build-bot", fromExpiresAt: T1, now: T1 };
-      await won(a);
+      await names().commitRename(a, await won(a));
       // B read `deploy-bot` too; its table move lands after A's, then its
       // row write loses to A's and B is undone.
       const undoB = await won(b);
@@ -1811,11 +1814,103 @@ export function describeStoreContract(
       expect(await names().current("organization", "", "org_a")).toEqual({
         ...key("ci-bot"), id: "org_a", state: "current", claimedAt: T1, expiresAt: "",
       });
-      expect(await names().resolve(key("deploy-bot"), T2), "the old name stays free, as A left it").toBeUndefined();
+      expect(await names().resolve(key("deploy-bot"), T1), "the old name stays free, as A's commit left it").toBeUndefined();
       expect(await names().resolve(key("build-bot"), T1)).toBeUndefined();
       const stolen = await names().claim(key("ci-bot"), "org_b", T2);
       expect(stolen.claimed, "the winner's name stays its own").toBe(false);
       expect(stolen.entry.id).toBe("org_a");
+    });
+
+    it("a name an undone rename pushed aside stays its resource's until the undo restores it (#2926)", async () => {
+      // A service account's move: its old name is free once the move
+      // commits, and not before.
+      await names().claim(key("deploy-bot"), "org_a", T0);
+      const a = { ...ORG, id: "org_a", from: "deploy-bot", to: "ci-bot", fromExpiresAt: T1, now: T1 };
+      const b = { ...ORG, id: "org_a", from: "deploy-bot", to: "build-bot", fromExpiresAt: T1, now: T1 };
+      await won(a);
+      // B's move lands after A's and pushes `ci-bot` aside; before B's
+      // row write loses and its undo runs, another resource tries the name.
+      const undoB = await won(b);
+      const raced = await names().claim(key("ci-bot"), "org_b", T1);
+      expect(raced.claimed, "a pushed-aside name is not free before its rename commits or is undone").toBe(false);
+      expect(raced.entry.id).toBe("org_a");
+
+      await names().revertRename(b, undoB);
+      expect(await names().current("organization", "", "org_a")).toEqual({
+        ...key("ci-bot"), id: "org_a", state: "current", claimedAt: T1, expiresAt: "",
+      });
+    });
+
+    it("a rename's old name is not free before the rename commits or is undone, however short its hold (#2926)", async () => {
+      await names().claim(key("deploy-bot"), "org_a", T0);
+      await won({ ...ORG, id: "org_a", from: "deploy-bot", to: "ci-bot", fromExpiresAt: T1, now: T1 });
+
+      const raced = await names().claim(key("deploy-bot"), "org_b", T1);
+      expect(raced.claimed, "the row write has not landed yet").toBe(false);
+      expect(raced.entry).toMatchObject({ id: "org_a", state: "previous" });
+      expect(await names().resolve(key("deploy-bot"), T1)).toMatchObject({ id: "org_a", state: "previous" });
+    });
+
+    it("a commit frees a short-held name at once, and is idempotent (#2926)", async () => {
+      await names().claim(key("deploy-bot"), "org_a", T0);
+      const move = { ...ORG, id: "org_a", from: "deploy-bot", to: "ci-bot", fromExpiresAt: T1, now: T1 };
+      const undo = await won(move);
+      await names().commitRename(move, undo);
+      await names().commitRename(move, undo);
+
+      expect(await names().resolve(key("deploy-bot"), T1)).toBeUndefined();
+      expect((await names().claim(key("deploy-bot"), "org_b", T1)).claimed).toBe(true);
+      expect(await names().current("organization", "", "org_a")).toMatchObject({ name: "ci-bot" });
+    });
+
+    it("a commit leaves a pushed-aside name a later rename restamped as that rename left it", async () => {
+      await names().claim(key("acme"), "org_a", T0);
+      const a = { ...ORG, id: "org_a", from: "acme", to: "acme-y", fromExpiresAt: T1, now: T1 };
+      const undoA = await won(a);
+      // A later rename takes `acme` back and pushes it aside again before
+      // A's commit runs: its row now carries the later stamp, not A's.
+      await won({ ...ORG, id: "org_a", from: "acme-y", to: "acme", fromExpiresAt: T1, now: T2 });
+      await won({ ...ORG, id: "org_a", from: "acme", to: "acme-z", fromExpiresAt: T1, now: T2 });
+      await names().commitRename(a, undoA);
+
+      expect(await names().resolve(key("acme"), T2), "still the later rename's to commit").toMatchObject({
+        id: "org_a", state: "previous", claimedAt: T2,
+      });
+      expect((await names().claim(key("acme"), "org_b", T2)).claimed).toBe(false);
+    });
+
+    it("an uncommitted rename's names free themselves once the provisional hold lapses", async () => {
+      await names().claim(key("deploy-bot"), "org_a", T0);
+      await won({ ...ORG, id: "org_a", from: "deploy-bot", to: "ci-bot", fromExpiresAt: T1, now: T1 });
+      const justBefore = new Date(Date.parse(T1) + UNCOMMITTED_RENAME_HOLD_MS - 1).toISOString();
+      const lapsed = new Date(Date.parse(T1) + UNCOMMITTED_RENAME_HOLD_MS).toISOString();
+
+      expect(await names().resolve(key("deploy-bot"), justBefore)).toMatchObject({ id: "org_a", state: "previous" });
+      expect(await names().resolve(key("deploy-bot"), lapsed)).toBeUndefined();
+      expect((await names().claim(key("deploy-bot"), "org_b", lapsed)).claimed).toBe(true);
+    });
+
+    it("a long hold is stamped at once, and its commit changes nothing", async () => {
+      await names().claim(key("acme"), "org_a", T0);
+      const move = { ...ORG, id: "org_a", from: "acme", to: "acme-corp", fromExpiresAt: T3, now: T1 };
+      const undo = await won(move);
+      const held = { ...key("acme"), id: "org_a", state: "previous", claimedAt: T1, expiresAt: T3 };
+      expect(await names().resolve(key("acme"), T1)).toEqual(held);
+      await names().commitRename(move, undo);
+      expect(await names().resolve(key("acme"), T1)).toEqual(held);
+    });
+
+    it("a commit after the undo changes nothing", async () => {
+      await names().claim(key("deploy-bot"), "org_a", T0);
+      const move = { ...ORG, id: "org_a", from: "deploy-bot", to: "ci-bot", fromExpiresAt: T1, now: T1 };
+      const undo = await won(move);
+      await names().revertRename(move, undo);
+      await names().commitRename(move, undo);
+
+      expect(await names().current("organization", "", "org_a")).toEqual({
+        ...key("deploy-bot"), id: "org_a", state: "current", claimedAt: T0, expiresAt: "",
+      });
+      expect(await names().resolve(key("ci-bot"), T1)).toBeUndefined();
     });
 
     it("an undo run twice leaves the restored name as the first run left it", async () => {
@@ -1853,8 +1948,9 @@ export function describeStoreContract(
       await won({ ...ORG, id: "org_a", from: "first", to: "second", fromExpiresAt: T1, now: T1 });
       const b = { ...ORG, id: "org_a", from: "first", to: "third", fromExpiresAt: T1, now: T1 };
       const undoB = await won(b);
-      // `second` was pushed aside with an immediate expiry; another
-      // resource takes it before B's undo runs (#2926).
+      // `second` was pushed aside with an immediate expiry; B's undo runs
+      // only after the provisional hold lapsed, and another resource took
+      // the name meanwhile (a rename whose process stalled, #2926).
       expect((await names().claim(key("second"), "org_b", T2)).claimed).toBe(true);
       await names().revertRename(b, undoB);
 
