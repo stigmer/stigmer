@@ -26,7 +26,7 @@
 
 import { execFileSync } from "node:child_process";
 import { cpSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** The manifests whose `version` is the package's. */
@@ -90,7 +90,7 @@ export function build(root) {
 
   const [npm, prefix] = npmCommand();
   const packed = JSON.parse(execFileSync(npm, [...prefix, "pack", "--dry-run", "--json", "--ignore-scripts"], { cwd: root, encoding: "utf8" }));
-  const missing = packOmissions(filesUnder(dist).map((path) => relative(root, path)), packed[0].files.map((file) => file.path));
+  const missing = packOmissions(filesUnder(dist).map((path) => tarballPath(relative(root, path))), packed[0].files.map((file) => file.path));
   if (missing.length > 0) throw new Error(`npm would leave out of the tarball: ${missing.join(", ")}`);
   return { files: filesUnder(dist).length, version };
 }
@@ -109,6 +109,17 @@ export function npmCommand(env = process.env, execPath = process.execPath) {
   const execpath = env.npm_execpath;
   if (execpath !== undefined && execpath.length > 0) return [execPath, [execpath]];
   return ["npm", []];
+}
+
+/**
+ * A path relative to the package, spelled as npm's pack listing spells it:
+ * `/` between segments on every platform. On Windows `relative` joins with
+ * `\`, and comparing that spelling made every staged file look left out of
+ * the tarball, which failed v0.2.0's desktop release on Windows once the npm
+ * spawn was fixed (stigmer/stigmer#3174). Pure.
+ */
+export function tarballPath(path, separator = sep) {
+  return path.split(separator).join("/");
 }
 
 /** The staged files a tarball listing lacks. Pure. */

@@ -82,7 +82,7 @@ class FakeSessions implements SessionActivityReader {
 
   private read(sessionId: string): SessionActivity {
     return (
-      this.activities.get(sessionId) ?? { busy: false, lastActiveAt: undefined }
+      this.activities.get(sessionId) ?? { parked: false, routineFire: false, busy: false, lastActiveAt: undefined }
     );
   }
 
@@ -180,6 +180,8 @@ describe("the idle sweep", () => {
       env("session:ses_1"),
     );
     h.sessions.activities.set("ses_1", {
+      parked: false,
+      routineFire: false,
       busy: false,
       lastActiveAt: new Date(T0),
     });
@@ -207,14 +209,20 @@ describe("the idle sweep", () => {
       await h.driver.provisioner.ensureSessionSandbox(id, env(`session:${id}`));
     }
     h.sessions.activities.set("ses_fresh", {
+      parked: false,
+      routineFire: false,
       busy: false,
       lastActiveAt: new Date(T0 + 2 * MIN),
     });
     h.sessions.activities.set("ses_busy", {
+      parked: false,
+      routineFire: false,
       busy: true,
       lastActiveAt: new Date(T0),
     });
     h.sessions.activities.set("ses_ensured", {
+      parked: false,
+      routineFire: false,
       busy: false,
       lastActiveAt: new Date(T0),
     });
@@ -237,10 +245,14 @@ describe("the idle sweep", () => {
       env("session:ses_1"),
     );
     h.sessions.lagging.set("ses_1", {
+      parked: false,
+      routineFire: false,
       busy: false,
       lastActiveAt: new Date(T0),
     });
     h.sessions.activities.set("ses_1", {
+      parked: false,
+      routineFire: false,
       busy: true,
       lastActiveAt: new Date(T0 + 6 * MIN),
     });
@@ -332,6 +344,8 @@ describe("the idle sweep", () => {
       env("session:ses_1"),
     );
     h.sessions.lagging.set("ses_1", {
+      parked: false,
+      routineFire: false,
       busy: false,
       lastActiveAt: new Date(T0),
     });
@@ -369,6 +383,8 @@ describe("the idle sweep", () => {
   it("starts the idle clock at the Sandbox's creation, for one another replica made", async () => {
     const h = harness();
     h.sessions.activities.set("ses_new", {
+      parked: false,
+      routineFire: false,
       busy: false,
       lastActiveAt: new Date(T0 - 30 * MIN),
     });
@@ -425,6 +441,8 @@ describe("the idle sweep", () => {
     for (const id of ["ses_a", "ses_b"]) {
       await h.driver.provisioner.ensureSessionSandbox(id, env(`session:${id}`));
       h.sessions.activities.set(id, {
+        parked: false,
+        routineFire: false,
         busy: false,
         lastActiveAt: new Date(T0),
       });
@@ -472,6 +490,8 @@ describe("the started sweep", () => {
       env("session:ses_1"),
     );
     h.sessions.activities.set("ses_1", {
+      parked: false,
+      routineFire: false,
       busy: false,
       lastActiveAt: new Date(T0),
     });

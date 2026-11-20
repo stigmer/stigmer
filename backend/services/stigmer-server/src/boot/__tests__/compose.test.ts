@@ -364,10 +364,14 @@ describe("a sandbox driver's background work", () => {
     try {
       expect(events).toEqual(["started"]);
       expect(await context?.sessions.activity("ses_none")).toEqual({
+        parked: false,
+        routineFire: false,
         busy: false,
         lastActiveAt: undefined,
       });
       expect(await context?.sessions.recentActivity("ses_none")).toEqual({
+        parked: false,
+        routineFire: false,
         busy: false,
         lastActiveAt: undefined,
       });

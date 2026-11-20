@@ -27,8 +27,11 @@
  * workflow answers it by
  * asking again until room comes or the server's wait runs out
  * (temporal/agentexecution/sandbox-wait.ts); every other throw is a
- * provisioning failure. The built-in `local-process`, `docker` and
- * `agent-sandbox` drivers never throw it.
+ * provisioning failure. On each such ask, a driver that offers `makeRoom`
+ * first puts one idle sandbox to sleep for the waiting run, so it takes
+ * that sandbox's seat rather than waiting out an idle window
+ * (make-room.ts, steps.ts). The built-in `local-process`, `docker` and
+ * `agent-sandbox` drivers never throw it, and offer no `makeRoom`.
  *
  * "Not carried" is part of the contract too. A sandbox started under
  * another configuration (another runner image, or another server
@@ -301,6 +304,19 @@ export interface SandboxProvisioner {
    * records) simply does not expose it.
    */
   startBackground?(context: SandboxBackgroundContext): SandboxBackgroundHandle;
+  /**
+   * Optional: put one of this provisioner's idle sandboxes to sleep so the
+   * session `forSessionId`, waiting because the fleet has no room, can
+   * start; true when one went to sleep. Never puts a busy sandbox to sleep,
+   * never `forSessionId`'s own, and acts only on sandboxes on the workers
+   * the waiting one could use; which one yields is make-room.ts's
+   * `orderSandboxesToFree`. The agent-execution workflow's ask for its
+   * sandbox calls it once per ask that hears "no room", never the
+   * request's ensure, so one waiting run puts at most one sandbox to sleep
+   * per ask (steps.ts). A driver whose fleet never answers "no room"
+   * leaves it out; a rejection is logged and read as false.
+   */
+  makeRoom?(forSessionId: string): Promise<boolean>;
 }
 
 /**
@@ -316,6 +332,20 @@ export interface SandboxProvisioner {
 export interface SessionActivity {
   readonly busy: boolean;
   readonly lastActiveAt: Date | undefined;
+  /**
+   * A run in the session is parked on a person's answer or a pause: alive,
+   * not working. Its person may be about to answer, so a driver making
+   * room for a waiting run puts it to sleep last (make-room.ts).
+   */
+  readonly parked: boolean;
+  /**
+   * A routine's fire started the session (the server-written
+   * `status.routine_id`). Each fire is a fresh conversation for one run,
+   * so a driver puts its sandbox to sleep as soon as it is not busy rather
+   * than after the idle window. False when the session could not be read,
+   * so a sandbox keeps the ordinary window, never a shorter one.
+   */
+  readonly routineFire: boolean;
 }
 
 /**

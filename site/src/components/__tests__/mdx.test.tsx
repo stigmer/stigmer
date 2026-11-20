@@ -8,11 +8,15 @@
  * capitalized tag against the page's own imports and `getMDXComponents`,
  * naming the page and the tag.
  *
- * And every Markdown code block's scroll area is a Tab stop, so a keyboard
- * can scroll a long line (stigmer#2902).
+ * And every Markdown code block's and table's scroll area is a Tab stop, so
+ * a keyboard can scroll a long line or a wide table (stigmer#2902,
+ * stigmer#3314). The table's wrapper is drawn here rather than by fumadocs,
+ * so it is held to every class fumadocs' own wrapper carries: a fumadocs bump
+ * that changes the wrapper reds this file instead of changing the look.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render } from "@testing-library/react";
+import defaultMdxComponents from "fumadocs-ui/mdx";
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -80,6 +84,33 @@ describe("the docs' MDX components", () => {
     const area = container.querySelector(".fd-scroll-container");
     expect(area?.getAttribute("tabindex")).toBe("0");
     expect(area?.textContent).toBe("echo a line long enough to scroll");
+  });
+
+  it("makes every table's scroll area a Tab stop", () => {
+    const { table: Table } = getMDXComponents();
+    const { container } = render(
+      <Table>
+        <tbody>
+          <tr>
+            <td>a cell wide enough to scroll</td>
+          </tr>
+        </tbody>
+      </Table>,
+    );
+    const area = container.firstElementChild;
+    expect(area?.getAttribute("tabindex")).toBe("0");
+    expect(area?.querySelector(":scope > table td")?.textContent).toBe("a cell wide enough to scroll");
+  });
+
+  it("keeps every class of fumadocs' own table wrapper", () => {
+    const { table: Table } = getMDXComponents();
+    const { table: FumadocsTable } = defaultMdxComponents;
+    const ours = render(<Table />).container.firstElementChild;
+    const theirs = render(<FumadocsTable />).container.firstElementChild;
+    const theirClasses = [...(theirs?.classList ?? [])];
+
+    expect(theirClasses).toContain("overflow-auto");
+    expect(theirClasses.filter((name) => !ours?.classList.contains(name))).toEqual([]);
   });
 
   it("provides every component a docs page renders", () => {

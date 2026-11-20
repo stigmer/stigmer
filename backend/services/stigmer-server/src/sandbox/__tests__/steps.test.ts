@@ -25,7 +25,14 @@
  *     the driver's words (stigmer#1843);
  *   - only a caller that says the runner is idle (the workflow's ensure,
  *     right before it invokes the runner) hands `runnerIdle` to the
- *     driver: the request's and the recover's ensures never do.
+ *     driver: the request's and the recover's ensures never do;
+ *   - only a caller that says its run is waiting (the workflow's ensure)
+ *     asks the driver to make room on "no room": once per ask, then asks
+ *     for the sandbox again on the short schedule with the same facts (one
+ *     mint), starting when the freed seat is seen and waiting as before
+ *     when it is not; no room made, a makeRoom that throws (logged, read
+ *     as false) and a driver that offers none all wait as before; the
+ *     ask's one info line says whether room was made.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -44,7 +51,7 @@ import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccou
 
 import type { AccountsByCaller } from "../../domain/identityaccount/resolve.js";
 
-import { createLogger } from "../../boot/logger.js";
+import { createLogger, type LogEntry } from "../../boot/logger.js";
 import {
   AgentExecutionTemporalConfig,
   ROUTING_GLOBAL,
@@ -56,6 +63,7 @@ import type {
 } from "../../runnerauth/runner-credential-provider.js";
 import { SqliteStore } from "../../store/sqlite/store.js";
 import type { SandboxLane } from "../lane.js";
+import { MAKE_ROOM_RETRY_DELAYS_MS } from "../make-room.js";
 import {
   SandboxNoRoomError,
   SandboxNotCarriedError,
@@ -67,6 +75,7 @@ import {
   deprovisionSessionSandboxBestEffort,
   ensureSessionSandboxForExecution,
   SANDBOX_PROVISIONING_FAILED_PREFIX,
+  type EnsureSessionSandboxOptions,
   type SandboxCaller,
 } from "../steps.js";
 
@@ -97,16 +106,26 @@ const silentLogger = createLogger({
 function fakeProvisioner(overrides?: {
   ensureError?: Error;
   deprovisionError?: Error;
+  /** Errors the session ensures throw in turn, oldest first, before they succeed. */
+  ensureErrors?: Error[];
 }): SandboxProvisioner & {
   ensured: Array<{ scope: string; id: string; facts: SandboxFacts }>;
   deprovisioned: Array<{ scope: string; id: string }>;
+  /** Every session ensure asked, failed or not. */
+  asked: SandboxFacts[];
 } {
   const ensured: Array<{ scope: string; id: string; facts: SandboxFacts }> =
     [];
   const deprovisioned: Array<{ scope: string; id: string }> = [];
+  const asked: SandboxFacts[] = [];
   const ensure = async (scope: string, id: string, facts: SandboxFacts) => {
+    asked.push(facts);
     if (overrides?.ensureError) {
       throw overrides.ensureError;
+    }
+    const next = overrides?.ensureErrors?.shift();
+    if (next !== undefined) {
+      throw next;
     }
     ensured.push({ scope, id, facts });
   };
@@ -119,6 +138,7 @@ function fakeProvisioner(overrides?: {
   return {
     ensured,
     deprovisioned,
+    asked,
     ensureSessionSandbox: (id, facts) => ensure("session", id, facts),
     deprovisionSessionSandbox: (id) => deprovision("session", id),
     createConnectSandbox: async (id, facts) => {
@@ -688,6 +708,150 @@ describe("what an ensure came to", () => {
     await ensureWith(provisioner, await seeded("idle", ExecutionTarget.CLOUD), true, { runnerIdle: true });
     await ensureWith(provisioner, await seeded("busy", ExecutionTarget.CLOUD));
     expect(provisioner.ensured.map((call) => call.facts.runnerIdle)).toEqual([true, undefined]);
+  });
+});
+
+describe("making room for a waiting run", () => {
+  let dir: string;
+  let store: SqliteStore;
+
+  beforeAll(() => {
+    dir = mkdtempSync(path.join(tmpdir(), "sandbox-make-room-"));
+    store = SqliteStore.open(path.join(dir, "test.db"));
+  });
+  afterAll(async () => {
+    await store.close();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  const noRoom = () => new SandboxNoRoomError("no free Substrate worker for sandbox s: none");
+
+  async function seeded(id: string): Promise<Run> {
+    await store.saveResource(
+      ApiResourceKind.session,
+      `ses_${id}`,
+      SessionSchema,
+      create(SessionSchema, { metadata: { id: `ses_${id}`, name: id }, spec: { executionTarget: ExecutionTarget.CLOUD } }),
+    );
+    const execution = create(RunSchema, {
+      metadata: { id: `axr_${id}`, name: id },
+      spec: { target: { case: "sessionId", value: `ses_${id}` } },
+    });
+    await store.saveResource(ApiResourceKind.run, `axr_${id}`, RunSchema, execution);
+    return execution;
+  }
+
+  /** A provisioner whose ensures throw `errors` in turn and whose makeRoom answers `room`, recording every ask. */
+  function roomy(errors: Error[], room: () => Promise<boolean>) {
+    const provisioner = fakeProvisioner({ ensureErrors: errors });
+    const forSessions: string[] = [];
+    return {
+      provisioner: Object.assign(provisioner, {
+        makeRoom: async (forSessionId: string) => {
+          forSessions.push(forSessionId);
+          return room();
+        },
+      }),
+      forSessions,
+    };
+  }
+
+  function capture() {
+    const entries: LogEntry[] = [];
+    const logger = createLogger({ level: "info", pretty: false, write: () => {}, sink: (entry) => entries.push(entry) });
+    return { entries, logger };
+  }
+
+  function ensure(
+    provisioner: SandboxProvisioner,
+    execution: Run,
+    options: EnsureSessionSandboxOptions | undefined,
+    logger = silentLogger,
+    slept: number[] = [],
+  ) {
+    return ensureSessionSandboxForExecution(
+      {
+        store,
+        logger,
+        lane: lane(provisioner),
+        temporalConfig: sessionRoutingCloudDefault,
+        accounts: undefined,
+        sleep: async (ms) => {
+          slept.push(ms);
+        },
+      },
+      execution,
+      TEST_CALLER,
+      options,
+    );
+  }
+
+  it("without the option, never asks: the request's ensure stays as it was", async () => {
+    const { provisioner, forSessions } = roomy([noRoom()], async () => true);
+    expect(await ensure(provisioner, await seeded("request"), { runnerIdle: false })).toBe("no_room");
+    expect(await ensure(provisioner, await seeded("request2"), undefined)).toBe("ready");
+    expect(forSessions).toEqual([]);
+  });
+
+  it("asks once for the waiting session, then asks for its sandbox again with the same facts and starts", async () => {
+    const { provisioner, forSessions } = roomy([noRoom(), noRoom()], async () => true);
+    const slept: number[] = [];
+    const { entries, logger } = capture();
+    expect(await ensure(provisioner, await seeded("made"), { runnerIdle: true, makeRoom: true }, logger, slept)).toBe("ready");
+    expect(forSessions).toEqual(["ses_made"]);
+    expect(slept).toEqual(MAKE_ROOM_RETRY_DELAYS_MS.slice(0, 2));
+    expect(provisioner.asked).toHaveLength(3);
+    const [first, ...retries] = provisioner.asked;
+    for (const facts of retries) expect(facts, "one mint per ask").toBe(first);
+    expect(entries.filter((entry) => entry.message === "No sandbox has room for the session now")).toEqual([]);
+  });
+
+  it("waits as before when the freed seat is still not seen after the retries, saying room was made", async () => {
+    const { provisioner, forSessions } = roomy(
+      Array.from({ length: 1 + MAKE_ROOM_RETRY_DELAYS_MS.length }, noRoom),
+      async () => true,
+    );
+    const slept: number[] = [];
+    const { entries, logger } = capture();
+    expect(await ensure(provisioner, await seeded("unseen"), { makeRoom: true }, logger, slept)).toBe("no_room");
+    expect(forSessions).toEqual(["ses_unseen"]);
+    expect(slept).toEqual([...MAKE_ROOM_RETRY_DELAYS_MS]);
+    const lines = entries.filter((entry) => entry.message === "No sandbox has room for the session now");
+    expect(lines.map((entry) => entry.fields?.madeRoom)).toEqual([true]);
+  });
+
+  it("waits at once when no idle sandbox could be put to sleep, saying so", async () => {
+    const { provisioner } = roomy([noRoom()], async () => false);
+    const slept: number[] = [];
+    const { entries, logger } = capture();
+    expect(await ensure(provisioner, await seeded("none"), { makeRoom: true }, logger, slept)).toBe("no_room");
+    expect(slept).toEqual([]);
+    expect(provisioner.asked).toHaveLength(1);
+    const lines = entries.filter((entry) => entry.message === "No sandbox has room for the session now");
+    expect(lines.map((entry) => entry.fields?.madeRoom)).toEqual([false]);
+  });
+
+  it("a makeRoom that throws is logged once and read as false: the turn waits as it would have", async () => {
+    const { provisioner } = roomy([noRoom()], () => Promise.reject(new Error("store unavailable")));
+    const { entries, logger } = capture();
+    expect(await ensure(provisioner, await seeded("threw"), { makeRoom: true }, logger)).toBe("no_room");
+    expect(
+      entries.filter((entry) => entry.message.startsWith("Could not put an idle sandbox to sleep")).map((e) => e.fields?.error),
+    ).toEqual(["store unavailable"]);
+    expect(entries.find((entry) => entry.message === "No sandbox has room for the session now")?.fields?.madeRoom).toBe(false);
+  });
+
+  it("a retry that fails otherwise is a provisioning failure, as any ensure's is", async () => {
+    const { provisioner } = roomy([noRoom(), new Error("quota")], async () => true);
+    expect(await ensure(provisioner, await seeded("broke"), { makeRoom: true })).toBe("failed");
+  });
+
+  it("asks nothing of a provisioner that offers no makeRoom, and nothing on any other failure", async () => {
+    const plain = fakeProvisioner({ ensureError: noRoom() });
+    expect(await ensure(plain, await seeded("plain"), { makeRoom: true })).toBe("no_room");
+    const { provisioner, forSessions } = roomy([new Error("quota")], async () => true);
+    expect(await ensure(provisioner, await seeded("quota"), { makeRoom: true })).toBe("failed");
+    expect(forSessions).toEqual([]);
   });
 });
 

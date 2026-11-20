@@ -153,6 +153,7 @@ import {
   newLoadExistingAccountStep,
   newLoadTargetAccountStep,
   newPersistNewAccountStep,
+  newCommitServiceAccountRenameStep,
   newPersistUpdatedAccountStep,
   newPreserveBackendFieldsStep,
   newClaimServiceAccountNameStep,
@@ -470,6 +471,7 @@ async function update(
       .addStep(newPreserveBackendFieldsStep())
       .addStep(newRenameServiceAccountStep(deps.store, deps.accounts))
       .addStep(newPersistUpdatedAccountStep(deps.accounts))
+      .addStep(newCommitServiceAccountRenameStep(deps.store, deps.logger))
       .build()
       .execute(reqCtx)
       .catch(revertServiceAccountRenameOnFailure(deps.store, deps.logger, reqCtx));

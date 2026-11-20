@@ -34,6 +34,7 @@ export function lateNameTable(unit: string): LateNameTable {
         currentMany: (holders) => composed().currentMany(holders),
         claim: (key, id, now) => composed().claim(key, id, now),
         rename: (move) => composed().rename(move),
+        commitRename: (move, undo) => composed().commitRename(move, undo),
         revertRename: (move, undo) => composed().revertRename(move, undo),
         release: (kind, org, id) => composed().release(kind, org, id),
         releaseName: (key, id) => composed().releaseName(key, id),

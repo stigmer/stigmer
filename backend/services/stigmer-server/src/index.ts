@@ -783,6 +783,11 @@ export {
   storeRenameRows,
 } from "./pipeline/steps/rename.js";
 export type { NewSlugRule, RenameChain, RenameRows } from "./pipeline/steps/rename.js";
+// A rename's table move holds what it sets aside until the rename commits
+// or is undone, at most this long, with the stamp both drivers write
+// (store/resource-names.ts): a composition that keeps its own
+// ResourceNameStore (a test's in-memory table) stamps the same.
+export { UNCOMMITTED_RENAME_HOLD_MS, provisionalHoldOf } from "./store/resource-names.js";
 // A reference holds the id of the resource it means (pipeline/steps/
 // references.ts): a composition's code that reads a stored reference reads
 // its target by that id, names it in copy by the target's current slug,
@@ -1024,6 +1029,15 @@ export type {
 // How long a sweep lets a turn run on a draining worker before it stores
 // the sandbox anyway, counted from the driver's first sight of the drain.
 export { DRAIN_DEADLINE_MS as SUBSTRATE_DRAIN_DEADLINE_MS } from "./sandbox/substrate/limits.js";
+// Which idle sandbox yields its seat to a run waiting for one: a
+// composition's own `makeRoom` orders its sandboxes with the core's rule
+// (busy never, a leaving worker never, plain idle before parked, longest
+// idle first), never a copy.
+export type { MakeRoomCandidate } from "./sandbox/make-room.js";
+export {
+  MAKE_ROOM_MAX_TRIES,
+  orderSandboxesToFree,
+} from "./sandbox/make-room.js";
 export type { SubstrateRunnerMode } from "./sandbox/substrate/template.js";
 // The one queue a sandbox serves, for a composition that pushes to it
 // outside a turn (a renewed token).

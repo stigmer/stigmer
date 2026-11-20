@@ -35,7 +35,22 @@
  *     window, logged with both templates, moved at the pass after and woken
  *     under the current policy; a busy one finishes its turn first; one a
  *     turn moved to the current template before the act is left alone
- *     (stigmer#2984).
+ *     (stigmer#2984);
+ *   - a routine's fire is suspended as soon as its run is not working,
+ *     inside its idle window, and logged apart; its working run is left
+ *     alone;
+ *   - making room for a waiting run puts one sandbox to sleep per ask from
+ *     the last pass's listing: the longest idle, never the waiting
+ *     session's own, a busy one, one it cannot map or one on a leaving
+ *     worker, plain idle before parked; one that moved worker, slept or
+ *     became busy since the listing, or whose worker began leaving since
+ *     (read again inside the queue; a read that fails refuses), is skipped
+ *     for the next, one a turn
+ *     reached mid-suspend is thawed and the next put to sleep; a listing
+ *     that offers nothing (none yet, or every awake sandbox newer than it)
+ *     is read again from Substrate once per ask, and a fresh read that
+ *     cannot see which workers are leaving makes no room; false with
+ *     nothing idle, and once the sweep stops.
  */
 import { describe, expect, it, vi } from "vitest";
 
@@ -52,6 +67,7 @@ import { newSubstrateSandboxDriverOverGateway } from "../driver.js";
 import type { SubstrateSandboxState } from "../gateway.js";
 import { CLOCK_SKEW_ALLOWANCE_MS, DRAIN_DEADLINE_MS } from "../limits.js";
 import {
+  makeRoom,
   newSweepState,
   runSweepPass,
   SCAN_INTERVAL_MS,
@@ -126,7 +142,7 @@ class FakeSessions implements SessionActivityReader {
     this.reads += 1;
     this.onRead(sessionId, this.reads);
     return (
-      this.activities.get(sessionId) ?? { busy: false, lastActiveAt: undefined }
+      this.activities.get(sessionId) ?? { parked: false, routineFire: false, busy: false, lastActiveAt: undefined }
     );
   }
 
@@ -195,6 +211,8 @@ function known(
   h.driver.internals.sessionByActor.set(name, sessionId);
   h.sessions.ids.push(sessionId);
   h.sessions.activities.set(sessionId, {
+    parked: false,
+    routineFire: false,
     busy,
     lastActiveAt: new Date(h.t() - idleMs),
   });
@@ -248,6 +266,8 @@ describe("the ladder", () => {
     h.sessions.onRead = (_id, read) => {
       if (read === 3)
         h.sessions.activities.set("ses_a", {
+          parked: false,
+          routineFire: false,
           busy: true,
           lastActiveAt: new Date(h.t()),
         });
@@ -267,6 +287,8 @@ describe("the ladder", () => {
     h.sessions.onRead = (_id, read) => {
       if (read === 2)
         h.sessions.activities.set("ses_a", {
+          parked: false,
+          routineFire: false,
           busy: true,
           lastActiveAt: new Date(h.t()),
         });
@@ -289,6 +311,8 @@ describe("the ladder", () => {
     const h = harness();
     const name = known(h, "ses_a", "running", 60 * MIN, true);
     h.sessions.lagging.set("ses_a", {
+      parked: false,
+      routineFire: false,
       busy: false,
       lastActiveAt: new Date(h.t() - 60 * MIN),
     });
@@ -328,6 +352,8 @@ describe("sandboxes this process never ensured", () => {
     });
     h.sessions.ids.push("ses_old");
     h.sessions.activities.set("ses_old", {
+      parked: false,
+      routineFire: false,
       busy: false,
       lastActiveAt: new Date(h.t() - 60 * MIN),
     });
@@ -401,6 +427,8 @@ describe("sandboxes this process never ensured", () => {
     });
     h.sessions.ids.push("ses_elsewhere");
     h.sessions.activities.set("ses_elsewhere", {
+      parked: false,
+      routineFire: false,
       busy: true,
       lastActiveAt: new Date(h.t() - 60 * MIN),
     });
@@ -724,6 +752,8 @@ describe("a sandbox started under an older configuration (stigmer#2984)", () => 
     expect(h.substrate.calls).not.toContain(`suspendActor ${name}`);
 
     h.sessions.activities.set("ses_a", {
+      parked: false,
+      routineFire: false,
       busy: false,
       lastActiveAt: new Date(h.t()),
     });
@@ -796,6 +826,8 @@ describe("a worker leaving", () => {
     h.sessions.onRead = (id, read) => {
       if (id === "ses_raced" && read === 3)
         h.sessions.activities.set("ses_raced", {
+          parked: false,
+          routineFire: false,
           busy: true,
           lastActiveAt: new Date(h.t()),
         });
@@ -876,5 +908,280 @@ describe("a worker leaving", () => {
         "unavailable",
       ],
     ]);
+  });
+});
+
+describe("a routine's fire", () => {
+  it("is suspended as soon as its run is not working, inside its idle window, and logged apart", async () => {
+    const infos: LogEntry[] = [];
+    const h = harness(
+      createLogger({
+        level: "info",
+        pretty: false,
+        write: () => {},
+        sink: (entry) => infos.push(entry),
+      }),
+    );
+    const fired = known(h, "ses_fired", "running", 0);
+    const working = known(h, "ses_working_fire", "running", 0, true);
+    const person = known(h, "ses_person", "running", 0);
+    for (const id of ["ses_fired", "ses_working_fire"]) {
+      const activity = h.sessions.activities.get(id);
+      if (activity !== undefined) h.sessions.activities.set(id, { ...activity, routineFire: true });
+    }
+    await h.pass();
+    expect(h.substrate.actors.get(fired)?.state).toBe("suspended");
+    expect(h.substrate.actors.get(working)?.state).toBe("running");
+    expect(h.substrate.actors.get(person)?.state).toBe("running");
+    expect(infos.map((entry) => entry.message)).toContain(
+      "Substrate sandbox suspended: its routine's run ended, so it holds no seat for the idle window",
+    );
+  });
+});
+
+describe("making room for a waiting run", () => {
+  function onWorker(h: ReturnType<typeof harness>, name: string, worker: string) {
+    const actor = h.substrate.actors.get(name);
+    if (actor === undefined) throw new Error(`no actor ${name}`);
+    actor.worker = worker;
+  }
+
+  function parked(h: ReturnType<typeof harness>, sessionId: string) {
+    const activity = h.sessions.activities.get(sessionId);
+    if (activity !== undefined) h.sessions.activities.set(sessionId, { ...activity, parked: true });
+  }
+
+  /** Three sandboxes inside their idle window, listed by a pass that sleeps none. */
+  async function full(h: ReturnType<typeof harness>) {
+    const names = {
+      a: known(h, "ses_a", "running", 1 * MIN),
+      b: known(h, "ses_b", "running", 4 * MIN),
+      c: known(h, "ses_c", "running", 2 * MIN),
+    };
+    for (const name of Object.values(names)) onWorker(h, name, "w-1");
+    await h.pass();
+    expect(h.substrate.suspensions).toEqual([]);
+    return names;
+  }
+
+  it("puts the longest-idle sandbox to sleep, one per ask, logging it with the waiting session", async () => {
+    const infos: LogEntry[] = [];
+    const h = harness(
+      createLogger({
+        level: "info",
+        pretty: false,
+        write: () => {},
+        sink: (entry) => infos.push(entry),
+      }),
+    );
+    const { a, b, c } = await full(h);
+    expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(true);
+    expect(h.substrate.suspensions).toEqual([{ name: b, durable: false }]);
+    expect(h.substrate.actors.get(a)?.state).toBe("running");
+    expect(h.substrate.actors.get(c)?.state).toBe("running");
+    const line = infos.find((entry) => entry.message.startsWith("Put the longest-idle sandbox to sleep"));
+    expect(line?.fields).toEqual({
+      actor: b,
+      sessionId: "ses_b",
+      idleSeconds: 240,
+      parked: false,
+      forSessionId: "ses_waiting",
+    });
+  });
+
+  it("never the waiting session's own sandbox, a busy one, one it cannot map, or one on a leaving worker", async () => {
+    const h = harness();
+    const own = known(h, "ses_waiting", "running", 50 * MIN);
+    const busy = known(h, "ses_busy", "running", 40 * MIN, true);
+    const unmapped = known(h, "ses_unmapped", "running", 3 * MIN);
+    const leaving = known(h, "ses_leaving", "running", 4 * MIN);
+    const idle = known(h, "ses_idle", "running", 1 * MIN);
+    // Inside the window for the pass: only the busy and own ones are older,
+    // and the own one is a pending run (busy) as a waiting run's is.
+    const ownActivity = h.sessions.activities.get("ses_waiting");
+    if (ownActivity !== undefined) h.sessions.activities.set("ses_waiting", { ...ownActivity, busy: true });
+    await h.pass();
+    if (ownActivity !== undefined) h.sessions.activities.set("ses_waiting", ownActivity);
+    h.driver.internals.sessionByActor.delete(unmapped);
+    const listing = h.state.listing;
+    if (listing === undefined) throw new Error("no listing");
+    h.state.listing = {
+      awake: listing.awake,
+      draining: new Map([[leaving, { worker: undefined, since: new Date(h.t()) }]]),
+    };
+    expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(true);
+    expect(h.substrate.suspensions).toEqual([{ name: idle, durable: false }]);
+    for (const name of [own, busy, unmapped, leaving]) {
+      expect(h.substrate.actors.get(name)?.state).toBe("running");
+    }
+  });
+
+  it("puts a plain idle sandbox to sleep before one parked on a person's answer, and the parked one when nothing else can", async () => {
+    const h = harness();
+    const waitingOnPerson = known(h, "ses_parked", "running", 4 * MIN);
+    const idle = known(h, "ses_idle", "running", 1 * MIN);
+    parked(h, "ses_parked");
+    await h.pass();
+    expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(true);
+    expect(h.substrate.suspensions).toEqual([{ name: idle, durable: false }]);
+    await h.pass();
+    expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(true);
+    expect(h.substrate.suspensions.map((s) => s.name)).toEqual([idle, waitingOnPerson]);
+  });
+
+  it("skips one that moved worker or went to sleep since the listing, and tries the next", async () => {
+    const h = harness();
+    const { a, b, c } = await full(h);
+    onWorker(h, b, "w-2");
+    const asleep = h.substrate.actors.get(c);
+    if (asleep !== undefined) asleep.state = "suspended";
+    expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(true);
+    expect(h.substrate.suspensions).toEqual([{ name: a, durable: false }]);
+  });
+
+  it("skips one whose worker began leaving since the listing, read fresh inside the queue", async () => {
+    const h = harness();
+    h.substrate.workers.set("w-1", "active");
+    h.substrate.workers.set("w-2", "active");
+    const { a, b, c } = await full(h);
+    onWorker(h, b, "w-2");
+    await h.pass();
+    h.substrate.workers.set("w-2", "draining");
+    expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(true);
+    expect(h.substrate.suspensions).toEqual([{ name: c, durable: false }]);
+    expect(h.substrate.actors.get(b)?.state).toBe("running");
+    expect(h.substrate.actors.get(a)?.state).toBe("running");
+  });
+
+  it("makes no room when the guard cannot read which workers are leaving", async () => {
+    const h = harness();
+    await full(h);
+    // Every read fails: the guard's for each of the three, then the fresh listing's.
+    for (let i = 0; i < 4; i += 1) h.substrate.fail("listWorkers", new Error("unavailable"));
+    expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(false);
+    expect(h.substrate.suspensions).toEqual([]);
+  });
+
+  it("skips one whose session became busy since the listing, read fresh inside the queue", async () => {
+    const h = harness();
+    const { a, b } = await full(h);
+    h.sessions.onRead = (id) => {
+      const activity = h.sessions.activities.get(id);
+      if (id === "ses_b" && activity !== undefined && h.sessions.kinds.at(-1) === "full") {
+        h.sessions.activities.set(id, { ...activity, busy: true });
+      }
+    };
+    expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(true);
+    expect(h.substrate.calls).not.toContain(`suspendActor ${b}`);
+    expect(h.substrate.suspensions.map((s) => s.name)).toEqual([sandboxBaseName("session", "ses_c")]);
+    expect(h.substrate.actors.get(a)?.state).toBe("running");
+  });
+
+  it("thaws one a turn reached while it suspended, and puts the next to sleep", async () => {
+    const h = harness();
+    const { b, c } = await full(h);
+    let fullReadsOfB = 0;
+    h.sessions.onRead = (id) => {
+      if (id !== "ses_b" || h.sessions.kinds.at(-1) !== "full") return;
+      fullReadsOfB += 1;
+      // The guard's read, then the check after the suspend, which sees the turn.
+      const activity = h.sessions.activities.get(id);
+      if (fullReadsOfB === 2 && activity !== undefined) h.sessions.activities.set(id, { ...activity, busy: true });
+    };
+    expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(true);
+    expect(h.substrate.calls.filter((call) => call.endsWith(b))).toEqual([
+      `getActor ${b}`,
+      `suspendActor ${b}`,
+      `resumeActor ${b}`,
+    ]);
+    expect(h.substrate.actors.get(b)?.state).toBe("running");
+    expect(h.substrate.actors.get(c)?.state).toBe("suspended");
+  });
+
+  it("before the first pass, lists Substrate itself and makes room, never on a leaving worker", async () => {
+    const h = harness();
+    h.substrate.workers.set("w-1", "draining");
+    h.substrate.workers.set("w-2", "active");
+    const leaving = known(h, "ses_leaving", "running", 4 * MIN);
+    const idle = known(h, "ses_a", "running", 1 * MIN);
+    onWorker(h, leaving, "w-1");
+    onWorker(h, idle, "w-2");
+    expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(true);
+    expect(h.substrate.suspensions).toEqual([{ name: idle, durable: false }]);
+    expect(h.substrate.actors.get(leaving)?.state).toBe("running");
+  });
+
+  it("when every awake sandbox started since the last listing, lists once more and makes room", async () => {
+    const h = harness();
+    await h.pass();
+    expect(h.state.listing?.awake).toEqual([]);
+    const idle = known(h, "ses_new", "running", 0);
+    const listed = h.substrate.calls.filter((call) => call.startsWith("listActors")).length;
+    expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(true);
+    expect(h.substrate.suspensions).toEqual([{ name: idle, durable: false }]);
+    expect(h.substrate.calls.filter((call) => call.startsWith("listActors")).length - listed).toBe(1);
+  });
+
+  it("answers false when nothing awake is idle, and lists only once more per ask", async () => {
+    const h = harness();
+    const busy = known(h, "ses_b", "running", 1 * MIN, true);
+    await h.pass();
+    const listed = h.substrate.calls.filter((call) => call.startsWith("listActors")).length;
+    expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(false);
+    expect(h.substrate.calls.filter((call) => call.startsWith("listActors")).length - listed).toBe(1);
+    expect(h.substrate.suspensions).toEqual([]);
+    expect(h.substrate.actors.get(busy)?.state).toBe("running");
+  });
+
+  it("makes no room when its fresh listing cannot read which workers are leaving", async () => {
+    const warned: LogEntry[] = [];
+    const h = harness(
+      createLogger({ level: "warn", pretty: false, write: () => {}, sink: (entry) => warned.push(entry) }),
+    );
+    known(h, "ses_a", "running", 1 * MIN);
+    h.substrate.fail("listWorkers", new Error("unavailable"));
+    expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(false);
+    expect(h.substrate.suspensions).toEqual([]);
+    expect(warned.map((entry) => entry.message)).toEqual([
+      "Could not read which workers are leaving; made no room for a waiting run",
+    ]);
+  });
+
+  it("skips a sandbox whose session cannot be read, with a warning, and takes the next", async () => {
+    const warned: LogEntry[] = [];
+    const h = harness(
+      createLogger({ level: "warn", pretty: false, write: () => {}, sink: (entry) => warned.push(entry) }),
+    );
+    const { a, b } = await full(h);
+    const read = h.sessions.recentActivity.bind(h.sessions);
+    h.sessions.recentActivity = async (id) => {
+      if (id === "ses_b") throw new Error("store unavailable");
+      return read(id);
+    };
+    expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(true);
+    expect(h.substrate.actors.get(b)?.state).toBe("running");
+    expect(h.substrate.suspensions.map((s) => s.name)).toEqual([sandboxBaseName("session", "ses_c")]);
+    expect(h.substrate.actors.get(a)?.state).toBe("running");
+    expect(warned.map((entry) => [entry.message, entry.fields?.error])).toEqual([
+      ["Making room for a waiting run skipped a sandbox", "store unavailable"],
+    ]);
+  });
+
+  it("puts nothing to sleep once the sweep is stopping", async () => {
+    const h = harness();
+    await full(h);
+    expect(await makeRoom(h.state, { ...h.options, stopping: () => true }, "ses_waiting")).toBe(false);
+    expect(h.substrate.suspensions).toEqual([]);
+  });
+
+  it("is the started sweep's, and answers false once it stops", async () => {
+    const h = harness();
+    known(h, "ses_a", "running", 1 * MIN);
+    const sweep = startSubstrateSweep(h.options);
+    await vi.waitFor(() => expect(h.sessions.kinds.length).toBeGreaterThan(0));
+    await vi.waitFor(async () => expect(await sweep.makeRoom("ses_waiting")).toBe(true));
+    await sweep.stop();
+    known(h, "ses_b", "running", 1 * MIN);
+    expect(await sweep.makeRoom("ses_waiting")).toBe(false);
   });
 });

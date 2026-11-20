@@ -84,6 +84,42 @@
  * wake, never its files, as a turn's move between configurations does
  * (driver.ts).
  *
+ * A routine's fire. A session a routine's fire started
+ * (SessionActivity.routineFire) is suspended as soon as it is not busy,
+ * whatever its idle window, and logged apart (idle-decision.ts).
+ *
+ * Making room for a waiting run. When a run waits because no worker has
+ * room, its workflow's ask calls the provisioner's `makeRoom`
+ * (provisioner.ts), which the built-in answers here (builtin.ts). It
+ * chooses from the last pass's listing of awake session sandboxes and
+ * draining ones, so an ask usually costs no Substrate listing. When that
+ * listing offers nothing that would yield (before the first pass, or when
+ * every awake sandbox started since it was read, as a fleet filling up
+ * within one interval does), it lists Substrate once and chooses again;
+ * an ask that cannot read which workers are leaving then makes no room.
+ * It leaves out the waiting session's own sandbox,
+ * every one it cannot map to a session and every one on a leaving worker,
+ * reads each session's cheap activity, and orders them with the shared
+ * decision (../make-room.ts): plain idle before parked, longest idle
+ * first, by the same last-active clock the ladder uses. It then suspends
+ * the first whose guarded suspend lands, and stops: one sandbox per ask.
+ * Its guard is its own, not the ladder's re-decision, which would refuse
+ * every sandbox inside its idle window: inside the actor's queue it
+ * proceeds only while the sandbox is still running on the worker it was
+ * listed on, that worker is not leaving by a fresh read (a listing can be
+ * an interval old, and a pass's read of the leaving workers can fail; a
+ * fresh read that fails refuses), and a fresh full read says its session
+ * is not busy, and after
+ * the suspend it thaws the sandbox when a turn arrived, as every guarded
+ * suspend does. A sandbox that slept or moved since the listing, or that a
+ * turn took, is skipped for the next; a second replica choosing the same
+ * one finds it no longer running. The ordinary suspend keeps the
+ * workspace, so the slept session's next message wakes it with its files.
+ * A sandbox this replica cannot map to a session is never chosen: with
+ * several server replicas, one another replica started since this one's
+ * last scan of the sessions (at most SCAN_INTERVAL_MS ago) waits for that
+ * scan before it can yield here, while the waiting run asks on.
+ *
  * The suspend itself, and every pass's upkeep (a sleeping sandbox moved
  * to the current template, unused templates retired, a stuck delete
  * repeated; no egress policy, which only an ensure writes), are the driver's lifecycle
@@ -95,6 +131,7 @@
  * line per sandbox per pass is one nobody can count.
  */
 import type { Logger } from "../../boot/logger.js";
+import { orderSandboxesToFree, type MakeRoomCandidate } from "../make-room.js";
 import { sandboxBaseName } from "../naming.js";
 import type {
   SandboxBackgroundHandle,
@@ -103,6 +140,7 @@ import type {
 } from "../provisioner.js";
 import type {
   SubstrateActorSummary,
+  SubstrateDrainingSandbox,
   SubstrateDriverInternals,
   SubstrateMaintenance,
   SubstrateSandboxLifecycle,
@@ -132,16 +170,30 @@ export interface SubstrateSweepOptions {
 /** What one sweep keeps between passes. */
 export interface SweepState {
   lastScanStartedAt: number | undefined;
+  /** The last pass's awake session sandboxes and draining ones, which make-room chooses from (module header). */
+  listing: SweepListing | undefined;
+}
+
+/** The awake session sandboxes one pass listed, and the draining ones by name. */
+export interface SweepListing {
+  readonly awake: readonly SubstrateActorSummary[];
+  readonly draining: ReadonlyMap<string, Drain>;
 }
 
 export function newSweepState(): SweepState {
-  return { lastScanStartedAt: undefined };
+  return { lastScanStartedAt: undefined, listing: undefined };
+}
+
+/** A started sweep: its background handle, and make-room over its last listing. */
+export interface SubstrateSweepHandle extends SandboxBackgroundHandle {
+  /** Puts one idle sandbox to sleep for the waiting session (module header); false once stopping. */
+  makeRoom(forSessionId: string): Promise<boolean>;
 }
 
 /** Starts the sweep: one pass now, then one per interval, never two at once. */
 export function startSubstrateSweep(
   options: SubstrateSweepOptions,
-): SandboxBackgroundHandle {
+): SubstrateSweepHandle {
   const { driver, lifecycle, logger } = options;
   const state = newSweepState();
   let running: Promise<void> | undefined;
@@ -173,6 +225,10 @@ export function startSubstrateSweep(
       clearInterval(timer);
       await running;
     },
+    makeRoom: (forSessionId) =>
+      stopped
+        ? Promise.resolve(false)
+        : makeRoom(state, { ...options, stopping: () => stopped }, forSessionId),
   };
 }
 
@@ -187,10 +243,8 @@ export async function runSweepPass(
   const actors = await lifecycle.list();
   const draining = await leaving(options);
 
-  const awake = actors.filter(
-    (actor) =>
-      actor.name.startsWith(SESSION_ACTOR_PREFIX) && actor.state === "running",
-  );
+  const awake = awakeSessions(actors);
+  state.listing = { awake, draining };
   const unnamed = awake.filter(
     (actor) => !driver.sessionByActor.has(actor.name),
   );
@@ -244,8 +298,18 @@ export async function runSweepPass(
   logUpkeepFailures(await lifecycle.maintain(actors, { stopping }), logger);
 }
 
+/** The awake session sandboxes of a listing. */
+function awakeSessions(
+  actors: readonly SubstrateActorSummary[],
+): SubstrateActorSummary[] {
+  return actors.filter(
+    (actor) =>
+      actor.name.startsWith(SESSION_ACTOR_PREFIX) && actor.state === "running",
+  );
+}
+
 /** A sandbox's drain as the pass read it: its worker, and when the driver first saw that worker draining. */
-interface Drain {
+export interface Drain {
   readonly worker: string | undefined;
   readonly since: Date;
 }
@@ -334,20 +398,35 @@ function decide(
   drainingSince: Date | undefined,
 ): IdleAction {
   const { driver, lifecycle } = options;
+  return decideIdle({
+    state: actor.state,
+    busy: activity.busy,
+    lastActiveAt: lastActiveOf(actor, activity, driver, now),
+    now: new Date(now),
+    suspendAfterMs: driver.settings.suspendAfterSeconds * 1000,
+    ...(drainingSince !== undefined ? { drainingSince } : {}),
+    outdated: actor.template !== lifecycle.currentTemplate(),
+    routineFire: activity.routineFire,
+  });
+}
+
+/**
+ * When a sandbox's session was last active, by the sweep's clock: the
+ * latest of its session's activity, this process's last ensure of it, and
+ * its creation; `now` when none is known.
+ */
+function lastActiveOf(
+  actor: SubstrateActorSummary,
+  activity: SessionActivity,
+  driver: SubstrateDriverInternals,
+  now: number,
+): Date {
   const stamps = [
     activity.lastActiveAt?.getTime(),
     driver.lastEnsuredAt(actor.name)?.getTime(),
     actor.createTime?.getTime(),
   ].filter((ms): ms is number => ms !== undefined);
-  return decideIdle({
-    state: actor.state,
-    busy: activity.busy,
-    lastActiveAt: new Date(stamps.length > 0 ? Math.max(...stamps) : now),
-    now: new Date(now),
-    suspendAfterMs: driver.settings.suspendAfterSeconds * 1000,
-    ...(drainingSince !== undefined ? { drainingSince } : {}),
-    outdated: actor.template !== lifecycle.currentTemplate(),
-  });
+  return new Date(stamps.length > 0 ? Math.max(...stamps) : now);
 }
 
 /**
@@ -369,10 +448,13 @@ async function act(
   let forced = false;
   // The template the sandbox was on when the act re-decided, for the log.
   let template: string | undefined;
+  // Whether a routine's fire started the session, for the log.
+  let routineFire = false;
   const proceed = async (fresh: SubstrateActorSummary): Promise<boolean> => {
     const activity = await sessions.activity(sessionId);
     forced = planned === "store" && activity.busy;
     template = fresh.template;
+    routineFire = activity.routineFire;
     // Still on the worker that was draining, or the drain no longer applies.
     const since =
       drain !== undefined && fresh.worker === drain.worker
@@ -406,9 +488,156 @@ async function act(
       "Substrate sandbox suspended: it ran under an older configuration, whose network lanes this server may no longer grant; its next wake starts on the current one",
       { actor, sessionId, template, current: lifecycle.currentTemplate() },
     );
+  } else if (outcome === "done" && routineFire) {
+    logger.info(
+      "Substrate sandbox suspended: its routine's run ended, so it holds no seat for the idle window",
+      { actor, sessionId },
+    );
   } else if (outcome === "done") {
     logger.info("Substrate sandbox suspended (idle)", { actor, sessionId });
   }
+}
+
+/**
+ * Puts one idle sandbox to sleep so the waiting session can start; true
+ * when one went to sleep (module header, "Making room for a waiting
+ * run").
+ */
+export async function makeRoom(
+  state: SweepState,
+  options: SubstrateSweepOptions,
+  forSessionId: string,
+): Promise<boolean> {
+  const stopping = options.stopping ?? (() => false);
+  if (state.listing !== undefined && (await freeOne(state.listing, options, forSessionId))) {
+    return true;
+  }
+  if (stopping()) return false;
+  // Nothing in the last listing would yield: every awake sandbox may have
+  // started since it was read. One fresh listing, then choose again.
+  let draining: SubstrateDrainingSandbox[];
+  try {
+    draining = await options.lifecycle.draining();
+  } catch (error) {
+    // An ordinary suspend on a leaving worker could lose files, so an ask
+    // that cannot see which are leaving makes no room (module header).
+    options.logger.warn("Could not read which workers are leaving; made no room for a waiting run", {
+      sessionId: forSessionId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return false;
+  }
+  state.listing = {
+    awake: awakeSessions(await options.lifecycle.list()),
+    draining: new Map(
+      draining.map((sandbox) => [
+        sandbox.actor.name,
+        { worker: sandbox.actor.worker, since: sandbox.drainingSince },
+      ]),
+    ),
+  };
+  return freeOne(state.listing, options, forSessionId);
+}
+
+/** Whether `actor` sits on a leaving worker now; true when that cannot be read. */
+async function leavingNow(
+  actor: SubstrateActorSummary,
+  options: SubstrateSweepOptions,
+): Promise<boolean> {
+  try {
+    return (await options.lifecycle.draining()).some(
+      (sandbox) => sandbox.actor.name === actor.name,
+    );
+  } catch (error) {
+    options.logger.warn("Could not read which workers are leaving; made no room for a waiting run", {
+      actor: actor.name,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return true;
+  }
+}
+
+/** Puts the first sandbox `listing` offers to sleep (module header); true when one went to sleep. */
+async function freeOne(
+  listing: SweepListing,
+  options: SubstrateSweepOptions,
+  forSessionId: string,
+): Promise<boolean> {
+  const { driver, lifecycle, sessions, logger } = options;
+  const now = options.now ?? Date.now;
+  const stopping = options.stopping ?? (() => false);
+  const own = sandboxBaseName("session", forSessionId);
+  // Each candidate's sandbox as listed, by session id.
+  const listedOn = new Map<string, SubstrateActorSummary>();
+  const candidates: MakeRoomCandidate[] = [];
+  for (const actor of listing.awake) {
+    const sessionId = driver.sessionByActor.get(actor.name);
+    if (actor.name === own || sessionId === undefined) continue;
+    try {
+      const activity = await sessions.recentActivity(sessionId);
+      listedOn.set(sessionId, actor);
+      candidates.push({
+        id: sessionId,
+        busy: activity.busy,
+        parked: activity.parked,
+        draining: listing.draining.has(actor.name),
+        lastActiveAt: lastActiveOf(actor, activity, driver, now()),
+      });
+    } catch (error) {
+      logger.warn("Making room for a waiting run skipped a sandbox", {
+        actor: actor.name,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+  const chosen = orderSandboxesToFree(candidates).flatMap((sessionId) => {
+    const listed = listedOn.get(sessionId);
+    return listed === undefined ? [] : [{ sessionId, listed }];
+  });
+  for (const { sessionId, listed } of chosen) {
+    if (stopping()) return false;
+    let parked = false;
+    const outcome = await lifecycle.suspend("session", sessionId, {
+      proceed: async (fresh) => {
+        if (fresh.state !== "running" || fresh.worker !== listed.worker) {
+          return false;
+        }
+        // The listing may be up to an interval old, or its read of the
+        // leaving workers may have failed: read them again, and refuse
+        // when they cannot be read (module header).
+        if (await leavingNow(fresh, options)) {
+          return false;
+        }
+        const activity = await sessions.activity(sessionId);
+        parked = activity.parked;
+        return !activity.busy;
+      },
+      stillIdle: async () => !(await sessions.activity(sessionId)).busy,
+    });
+    if (outcome === "done") {
+      const lastActiveAt =
+        candidates.find((c) => c.id === sessionId)?.lastActiveAt.getTime() ??
+        now();
+      logger.info(
+        "Put the longest-idle sandbox to sleep so a waiting run can start; its next message wakes it with its files",
+        {
+          actor: listed.name,
+          sessionId,
+          idleSeconds: Math.round((now() - lastActiveAt) / 1000),
+          parked,
+          forSessionId,
+        },
+      );
+      return true;
+    }
+    if (outcome === "thawed") {
+      logger.info("A turn arrived while its sandbox suspended; resumed it", {
+        actor: listed.name,
+        sessionId,
+      });
+    }
+  }
+  return false;
 }
 
 async function suspendOrphan(
