@@ -5,7 +5,10 @@
  *
  * The built-in reads its own settings (config.ts) and exposes the idle
  * sweep as the provisioner's background work (provisioner.ts,
- * startBackground), which the composition root starts and stops. A
+ * startBackground), which the composition root starts and stops, and
+ * answers the provisioner's `makeRoom` through that running sweep
+ * (sweep.ts, "Making room for a waiting run"): false before the sweep
+ * starts and once it stops. A
  * composition that keeps records of its sandboxes and runs its own sweep
  * over them takes `provisioner` and `lifecycle` from
  * newSubstrateSandboxDriver and leaves `startIdleSweep` unused, so the two
@@ -22,7 +25,6 @@
 import type { Logger } from "../../boot/logger.js";
 import type {
   SandboxBackgroundContext,
-  SandboxBackgroundHandle,
   SandboxDriverConfig,
   SandboxProvisioner,
   SandboxProvisionerFactory,
@@ -38,7 +40,7 @@ import {
 } from "./driver.js";
 import { newSubstrateClientGateway } from "./gateway.js";
 import { newRouterFetch } from "./push.js";
-import { startSubstrateSweep } from "./sweep.js";
+import { startSubstrateSweep, type SubstrateSweepHandle } from "./sweep.js";
 import type { SubstrateRunnerMode } from "./template.js";
 
 /** The substrate driver, built: its provisioner, its lifecycle, and its optional sweep. */
@@ -46,7 +48,7 @@ export interface SubstrateSandboxDriverHandle {
   readonly provisioner: SandboxProvisioner;
   readonly lifecycle: SubstrateSandboxLifecycle;
   /** The open-source idle sweep over the server's sessions (sweep.ts). */
-  startIdleSweep(context: SandboxBackgroundContext): SandboxBackgroundHandle;
+  startIdleSweep(context: SandboxBackgroundContext): SubstrateSweepHandle;
 }
 
 export function newSubstrateSandboxDriver(options: {
@@ -100,8 +102,14 @@ export const newSubstrateSandboxProvisioner: SandboxProvisionerFactory = ({
     settings: newSubstrateSettingsFromEnv(),
     logger,
   });
+  let sweep: SubstrateSweepHandle | undefined;
   return {
     ...driver.provisioner,
-    startBackground: (context) => driver.startIdleSweep(context),
+    startBackground: (context) => {
+      sweep = driver.startIdleSweep(context);
+      return sweep;
+    },
+    makeRoom: async (forSessionId) =>
+      sweep === undefined ? false : sweep.makeRoom(forSessionId),
   };
 };

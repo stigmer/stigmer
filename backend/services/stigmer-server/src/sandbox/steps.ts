@@ -26,6 +26,17 @@
  *     the request's and the recover chain's race the turn's first runner
  *     activity and, during a rolling update, run on either release
  *     (stigmer#1843).
+ *   - Making room. Only the workflow's ensure says a run is waiting
+ *     (`options.makeRoom`): on "no room" it asks a provisioner that offers
+ *     `makeRoom` to put one idle sandbox to sleep, and when one went to
+ *     sleep asks for its own sandbox again on a short schedule
+ *     (make-room.ts MAKE_ROOM_RETRY_DELAYS_MS), because Substrate's
+ *     scheduler may see the freed seat a moment late. The retries hand the
+ *     driver the same facts, so the runner's token is minted once per ask.
+ *     The request's ensure never asks, so one run puts at most one sandbox
+ *     to sleep per ask of its workflow. A `makeRoom` that throws is logged
+ *     and read as false: the turn waits as it would have, and the ask's
+ *     one info line says whether room was made (`madeRoom`).
  *   - A sandbox whose files cannot be carried to this server's runner
  *     (SandboxNotCarriedError, provisioner.ts `isSandboxNotCarried`)
  *     answers `not_carried` and pre-stamps the person's sentence
@@ -89,7 +100,13 @@ import {
 } from "../temporal/agentexecution/dispatch.js";
 import type { Store } from "../store/interface.js";
 import { mintSandboxToken, type SandboxLane } from "./lane.js";
-import { isSandboxNoRoom, isSandboxNotCarried } from "./provisioner.js";
+import { MAKE_ROOM_RETRY_DELAYS_MS } from "./make-room.js";
+import {
+  isSandboxNoRoom,
+  isSandboxNotCarried,
+  type SandboxFacts,
+  type SandboxProvisioner,
+} from "./provisioner.js";
 import {
   SANDBOX_NOT_CARRIED_COPY,
   type SandboxEnsureOutcome,
@@ -130,6 +147,16 @@ export interface EnsureSessionSandboxDeps {
    * one operator (the module header).
    */
   readonly accounts: AccountsByCaller | undefined;
+  /** Waits between asks once room was made; a real timer when absent (tests pass their own). */
+  readonly sleep?: (ms: number) => Promise<void>;
+}
+
+/** What only the workflow's ensure says (module header). */
+export interface EnsureSessionSandboxOptions {
+  /** The workflow asks with none of the turn's runner work in flight. */
+  readonly runnerIdle?: boolean;
+  /** The run is waiting for its sandbox: on "no room", ask the provisioner to make room. */
+  readonly makeRoom?: boolean;
 }
 
 /**
@@ -174,14 +201,14 @@ export function newEnsureSessionSandboxStep(
  *
  * Returns what the ensure came to (SandboxEnsureOutcome): the request's
  * steps ignore it, and the workflow's activity waits on `no_room` and ends
- * the turn on `not_carried`. `options.runnerIdle` is the workflow's
- * activity's alone (module header).
+ * the turn on `not_carried`. `options.runnerIdle` and `options.makeRoom`
+ * are the workflow's activity's alone (module header).
  */
 export async function ensureSessionSandboxForExecution(
   deps: EnsureSessionSandboxDeps,
   execution: Run,
   caller: SandboxCaller,
-  options?: { readonly runnerIdle?: boolean },
+  options?: EnsureSessionSandboxOptions,
 ): Promise<SandboxEnsureOutcome> {
   if (!deps.lane.enabled) {
     return "skipped";
@@ -192,6 +219,8 @@ export async function ensureSessionSandboxForExecution(
   if (sessionId === "") {
     return "skipped";
   }
+  // Whether this ask made room: absent when it did not ask (module header).
+  let madeRoom: boolean | undefined;
   try {
     const dispatch = await resolveActivityTaskQueue(
       deps.store,
@@ -217,7 +246,7 @@ export async function ensureSessionSandboxForExecution(
       deps.store,
       await deps.store.getResource(ApiResourceKind.session, sessionId, SessionSchema),
     );
-    await lane.provisioner.ensureSessionSandbox(sessionId, {
+    const facts: SandboxFacts = {
       taskQueue: dispatch.taskQueue,
       stigmerToken: mintSandboxToken(
         lane,
@@ -235,7 +264,24 @@ export async function ensureSessionSandboxForExecution(
       ...(caller.routineId !== undefined ? { routineId: caller.routineId } : {}),
       ...(environment !== undefined ? { environment } : {}),
       ...(options?.runnerIdle === true ? { runnerIdle: true } : {}),
-    });
+    };
+    const provisioner = lane.provisioner;
+    try {
+      await provisioner.ensureSessionSandbox(sessionId, facts);
+    } catch (error) {
+      if (
+        options?.makeRoom !== true ||
+        provisioner.makeRoom === undefined ||
+        !isSandboxNoRoom(error)
+      ) {
+        throw error;
+      }
+      madeRoom = await askForRoom(deps.logger, provisioner, sessionId, executionId);
+      if (!madeRoom) {
+        throw error;
+      }
+      await ensureOnceRoomIsSeen(deps, provisioner, sessionId, facts);
+    }
     return "ready";
   } catch (error) {
     if (isSandboxNoRoom(error)) {
@@ -243,6 +289,7 @@ export async function ensureSessionSandboxForExecution(
       deps.logger.info("No sandbox has room for the session now", {
         executionId,
         sessionId,
+        ...(madeRoom !== undefined ? { madeRoom } : {}),
         error: error instanceof Error ? error.message : String(error),
       });
       return "no_room";
@@ -272,6 +319,56 @@ export async function ensureSessionSandboxForExecution(
     await stampProvisioningFailure(deps.store, deps.logger, executionId, error);
     return "failed";
   }
+}
+
+/**
+ * Asks the provisioner to put one idle sandbox to sleep for the waiting
+ * session; a rejection is logged and read as false (module header).
+ */
+async function askForRoom(
+  logger: Logger,
+  provisioner: SandboxProvisioner,
+  sessionId: string,
+  executionId: string,
+): Promise<boolean> {
+  try {
+    return (await provisioner.makeRoom?.(sessionId)) === true;
+  } catch (error) {
+    logger.warn("Could not put an idle sandbox to sleep for a waiting run; it waits for room as before", {
+      executionId,
+      sessionId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return false;
+  }
+}
+
+/**
+ * Asks for the sandbox again once room was made, on MAKE_ROOM_RETRY_DELAYS_MS,
+ * with the same facts; rethrows the last "no room" when the freed seat is
+ * still not seen, and any other error at once.
+ */
+async function ensureOnceRoomIsSeen(
+  deps: EnsureSessionSandboxDeps,
+  provisioner: SandboxProvisioner,
+  sessionId: string,
+  facts: SandboxFacts,
+): Promise<void> {
+  const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+  let last: unknown;
+  for (const delay of MAKE_ROOM_RETRY_DELAYS_MS) {
+    await sleep(delay);
+    try {
+      await provisioner.ensureSessionSandbox(sessionId, facts);
+      return;
+    } catch (error) {
+      if (!isSandboxNoRoom(error)) {
+        throw error;
+      }
+      last = error;
+    }
+  }
+  throw last;
 }
 
 /**

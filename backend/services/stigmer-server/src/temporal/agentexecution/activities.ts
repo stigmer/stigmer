@@ -62,7 +62,10 @@
  * workflow before the turn's first runner activity on a CLOUD target, with
  * the caller's facts from the workflow input. It answers in one word
  * (sandbox-wait.ts SandboxEnsureOutcome), and the workflow asks again while
- * the answer is `no_room`. Ensuring the sandbox can rightly take minutes (a
+ * the answer is `no_room`. Only this ensure asks the driver to make room
+ * on "no room" (sandbox/make-room.ts), putting one idle sandbox to sleep
+ * per ask, so a waiting run takes an idle sandbox's seat rather than
+ * waiting out its idle window. Ensuring the sandbox can rightly take minutes (a
  * template being built, an actor settling), so the activity heartbeats
  * while it runs: a server that dies mid-ensure is retried in seconds. On
  * `no_room` it tells the session's live streams how long the turn has
@@ -314,7 +317,9 @@ export function createAgentExecutionActivities(
           // The workflow asks right before it invokes the runner, with none
           // of the turn's runner work in flight, so a driver may restart a
           // sandbox started under another configuration (stigmer#1843).
-          { runnerIdle: true },
+          // The run is waiting for its sandbox, so on "no room" the driver
+          // may put an idle one to sleep for it (sandbox/make-room.ts).
+          { runnerIdle: true, makeRoom: true },
         );
       } finally {
         clearInterval(beat);

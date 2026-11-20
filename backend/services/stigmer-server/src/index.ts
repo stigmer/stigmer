@@ -1020,6 +1020,15 @@ export type {
 // How long a sweep lets a turn run on a draining worker before it stores
 // the sandbox anyway, counted from the driver's first sight of the drain.
 export { DRAIN_DEADLINE_MS as SUBSTRATE_DRAIN_DEADLINE_MS } from "./sandbox/substrate/limits.js";
+// Which idle sandbox yields its seat to a run waiting for one: a
+// composition's own `makeRoom` orders its sandboxes with the core's rule
+// (busy never, a leaving worker never, plain idle before parked, longest
+// idle first), never a copy.
+export type { MakeRoomCandidate } from "./sandbox/make-room.js";
+export {
+  MAKE_ROOM_MAX_TRIES,
+  orderSandboxesToFree,
+} from "./sandbox/make-room.js";
 export type { SubstrateRunnerMode } from "./sandbox/substrate/template.js";
 // The one queue a sandbox serves, for a composition that pushes to it
 // outside a turn (a renewed token).
