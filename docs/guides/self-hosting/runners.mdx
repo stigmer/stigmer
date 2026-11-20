@@ -586,9 +586,7 @@ waits for it, so how often it runs depends on how long a runner's files last:
 - `substrate` keeps only a sleeping Session's two volumes, the workspace and the
   Agent's home, neither of which holds an Environment's packages, so a Session's
   packages install again at each wake
-  ([stigmer#3360](https://github.com/stigmer/stigmer/issues/3360)). A later
-  Environment edit reaches only new Sessions
-  ([stigmer#2440](https://github.com/stigmer/stigmer/issues/2440)); a network
+  ([stigmer#3360](https://github.com/stigmer/stigmer/issues/3360)). A network
   edit reaches every Session at its next turn.
 
 **How long they take.** One command may run for 10 minutes and the whole install

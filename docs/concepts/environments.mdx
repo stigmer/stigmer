@@ -143,19 +143,17 @@ its [agent hours](/docs/concepts/billing)). How often that is depends on the
 sandboxes your server runs:
 
 - **On Kubernetes sandboxes** (the `agent-sandbox` driver), a conversation's
-  sandbox sleeps when idle and keeps only its workspace, so its packages install
-  again when it wakes.
-- **On Agent Substrate**, a sleeping sandbox is saved whole and restored as it
-  was, so its packages install once, at its first start.
+  sandbox sleeps when idle and keeps only its workspace and the Agent's home, so
+  its packages install again when it wakes.
+- **On Agent Substrate**, a sleeping sandbox keeps the same two, its workspace
+  and the Agent's home, so its packages install again when it wakes too
+  ([stigmer#3360](https://github.com/stigmer/stigmer/issues/3360)).
 
 An edit to an Environment reaches its conversations in two halves:
 
 - **Its network** applies at a conversation's next turn. On Agent Substrate, a
   host you remove from the list stops being reachable from the next turn on.
-- **Its packages** apply at a sandbox's next fresh start. On Agent Substrate, a
-  restored sandbox keeps what it installed, so a package edit reaches only new
-  conversations
-  ([stigmer#2440](https://github.com/stigmer/stigmer/issues/2440)).
+- **Its packages** apply at a sandbox's next fresh start.
 
 A failed install fails the turn, with the installer's own output. A command that
 fails is tried once more after two seconds; one command may run for 10 minutes
