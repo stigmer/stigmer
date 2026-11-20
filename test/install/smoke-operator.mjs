@@ -781,7 +781,12 @@ async function runExposed(fake, modelBaseUrl) {
     const mail = await mailbox.newestTo(COLLEAGUE);
     const link = /https:\/\/\S+?action-token\S+/.exec(mail)?.[0];
     if (link === undefined) throw new Error(`the verification mail carries no link:\n${mail}`);
-    const verified = await alice.walk(link.replace(/[)>\]]+$/, ""), { answers: {}, stopAt: `${PUBLIC_URL}/auth/callback` });
+    // Keycloak asks a new account for its password once its address is
+    // verified, on the page the mail's link leads to.
+    const verified = await alice.walk(link.replace(/[)>\]]+$/, ""), {
+      answers: { "kc-passwd-update-form": { "password-new": COLLEAGUE_PASSWORD, "password-confirm": COLLEAGUE_PASSWORD } },
+      stopAt: `${PUBLIC_URL}/auth/callback`,
+    });
     if (verified.redirect === undefined) throw new Error(`following the verification link ended on a page:\n${(verified.page ?? "").slice(0, 400)}`);
     const aliceTokens = await exchangeCode({ issuer: ISSUER, clientId: CONSOLE_CLIENT, redirect: `${PUBLIC_URL}/auth/callback`, verifier, code: new URL(verified.redirect).searchParams.get("code"), caFile });
     const colleague = await startSignedInProxy({ target: PUBLIC_URL, token: aliceTokens.access_token, caFile });

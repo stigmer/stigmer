@@ -2,7 +2,8 @@
 // admin API the operator calls (internal/keycloak), for tests that converge
 // a realm without running Keycloak. It keeps what is written, answers reads
 // the way Keycloak shapes them (ids assigned on create, an SMTP password
-// masked on read, the default user profile), and counts writes, so a test
+// masked on read, the default user profile with its required names), and
+// counts writes, so a test
 // can prove that a pass over a converged realm writes nothing.
 package keycloaktest
 
@@ -153,6 +154,8 @@ func (f *Fake) serve(w http.ResponseWriter, r *http.Request) {
 		f.profiles[name] = Object{"attributes": []any{
 			Object{"name": "username"},
 			Object{"name": "email", "validations": Object{"email": Object{}, "length": Object{"max": float64(255)}}},
+			Object{"name": "firstName", "required": Object{"roles": []any{"admin", "user"}}},
+			Object{"name": "lastName", "required": Object{"roles": []any{"admin", "user"}}},
 		}}
 		write(w, http.StatusCreated, nil)
 	case len(parts) == 2:

@@ -59,7 +59,8 @@ export function formsOf(html) {
       if (name !== undefined) hidden[name] = decode(/\bvalue="([^"]*)"/i.exec(a)?.[1] ?? "");
     }
     const buttons = [...m[2].matchAll(/<(?:input|button)\b[^>]*\bname="([^"]*)"/gi)].map((b) => b[1]);
-    forms.push({ id, action: decode(action), hidden, buttons });
+    // A consent page's form carries no id; its Yes button names it.
+    forms.push({ id: id === "" && buttons.includes("accept") ? "consent" : id, action: decode(action), hidden, buttons });
   }
   return forms;
 }
@@ -92,11 +93,12 @@ export function createBrowser({ caFile }) {
     /**
      * Walk pages from `url`. `answers` fills the forms by id. Resolves
      * { redirect } at a redirect to `stopAt`, or { page } at a page with no
-     * form `answers` knows.
+     * form `answers` knows, or at a form that came straight back (refused).
      */
     async walk(url, { answers, stopAt }) {
       let res = await send(url);
       let current = url;
+      let submitted = "";
       for (let step = 0; step < 20; step++) {
         if (res.status >= 300 && res.status < 400) {
           const next = new URL(res.headers.location, current).toString();
@@ -106,7 +108,11 @@ export function createBrowser({ caFile }) {
           continue;
         }
         const form = formsOf(res.body).find((f) => answers[f.id] !== undefined);
-        if (form === undefined) return { page: res.body, status: res.status };
+        // A form that comes straight back after it was submitted is a
+        // refusal (a wrong password, an address sign-up does not admit):
+        // the page says why, so it ends the walk.
+        if (form === undefined || form.id === submitted) return { page: res.body, status: res.status };
+        submitted = form.id;
         const fields = { ...form.hidden, ...answers[form.id] };
         current = new URL(form.action, current).toString();
         res = await send(current, { method: "POST", form: fields });
@@ -122,6 +128,7 @@ export function signInAnswers({ email, password, newPassword }) {
     "kc-form-login": { username: email, password, credentialId: "" },
     "kc-passwd-update-form": { "password-new": newPassword ?? password, "password-confirm": newPassword ?? password },
     "kc-oauth": { accept: "Yes" },
+    consent: { accept: "Yes" },
     "kc-user-verify-device-user-code-form": {},
   };
 }

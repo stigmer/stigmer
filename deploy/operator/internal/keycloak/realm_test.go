@@ -99,6 +99,12 @@ func TestTheRealmConvergesAndOpensSignUpAfterTheOwner(t *testing.T) {
 			t.Errorf("%s audience mappers: %v", client, mappers)
 		}
 	}
+	for _, a := range f.Profile("stigmer")["attributes"].([]any) {
+		attr := a.(map[string]any)
+		if name := attr["name"]; (name == "firstName" || name == "lastName") && attr["required"] != nil {
+			t.Errorf("%s is still required, which stops every sign-in at a profile page", name)
+		}
+	}
 	owner := f.User("stigmer", "priya@acme.dev")
 	if owner == nil || !slices.Contains(strings(owner["requiredActions"]), "UPDATE_PASSWORD") {
 		t.Fatalf("owner: %v", owner)

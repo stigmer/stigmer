@@ -14,6 +14,11 @@
 // left among their required actions) is the durable signal that the owner
 // has signed in.
 //
+// The user profile. Keycloak asks every account for a first and last name
+// by default, which would stop the owner (created by email alone) and every
+// sign-up at a profile page Stigmer has no use for; the operator makes both
+// optional.
+//
 // Sign-up. Closed until the owner has signed in, and opened only for the
 // declared email domains: the user profile's email attribute carries a
 // pattern that admits addresses in those domains and the owner's own, and
@@ -99,7 +104,7 @@ func Converge(ctx context.Context, c *Client, d Desired) (Outcome, error) {
 			return out, err
 		}
 	}
-	if err := convergeEmailPattern(ctx, c, d); err != nil {
+	if err := convergeUserProfile(ctx, c, d); err != nil {
 		return out, err
 	}
 
@@ -187,8 +192,12 @@ func nativeClient(d Desired) Object {
 		"serviceAccountsEnabled":    false,
 		"redirectUris":              redirects,
 		"webOrigins":                []any{},
+		// PKCE is offered, not required: the app and the CLI send a challenge
+		// on every browser sign-in, but a device-code request carries none,
+		// and Keycloak holds a client that requires it to the device grant
+		// too. "" is Keycloak's "not required".
 		"attributes": Object{
-			"pkce.code.challenge.method":                "S256",
+			"pkce.code.challenge.method":                "",
 			"oauth2.device.authorization.grant.enabled": "true",
 		},
 	}
@@ -287,7 +296,10 @@ func EmailPattern(domains []string, owner string) string {
 	return fmt.Sprintf(`^[^@\s]+@(%s)$|^%s$`, strings.Join(quoted, "|"), regexp.QuoteMeta(strings.ToLower(owner)))
 }
 
-func convergeEmailPattern(ctx context.Context, c *Client, d Desired) error {
+// NameAttributes are the user profile attributes the operator makes optional.
+var NameAttributes = []string{"firstName", "lastName"}
+
+func convergeUserProfile(ctx context.Context, c *Client, d Desired) error {
 	profile, err := c.UserProfile(ctx, d.Realm)
 	if err != nil {
 		return fmt.Errorf("reading the user profile: %w", err)
@@ -296,6 +308,13 @@ func convergeEmailPattern(ctx context.Context, c *Client, d Desired) error {
 	changed := false
 	for _, a := range attrs {
 		attr, _ := a.(Object)
+		if name, _ := attr["name"].(string); slices.Contains(NameAttributes, name) {
+			if _, required := attr["required"]; required {
+				delete(attr, "required")
+				changed = true
+			}
+			continue
+		}
 		if attr["name"] != "email" {
 			continue
 		}
