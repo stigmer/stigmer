@@ -19,7 +19,7 @@ import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { inMemoryPluginFiles, readMarketplace, readPluginPackage } from "@stigmer/plugin-package";
 import { beforeAll, describe, expect, it } from "vitest";
-import { build, npmCommand, packOmissions } from "../scripts/build.mjs";
+import { build, npmCommand, packOmissions, tarballPath } from "../scripts/build.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const built = join(root, "dist", "plugin");
@@ -99,6 +99,12 @@ describe("the pack check", () => {
   it("names every staged file a tarball listing lacks", () => {
     expect(packOmissions(["dist/plugin/.mcp.json", "dist/index.js"], ["dist/index.js"])).toEqual(["dist/plugin/.mcp.json"]);
     expect(packOmissions(["dist/index.js"], ["dist/index.js", "package.json"])).toEqual([]);
+  });
+
+  it("compares in npm's `/` spelling, so a Windows path is not a false omission (stigmer/stigmer#3174)", () => {
+    expect(tarballPath("dist\\plugin\\.mcp.json", "\\")).toBe("dist/plugin/.mcp.json");
+    expect(tarballPath("dist/plugin/.mcp.json", "/")).toBe("dist/plugin/.mcp.json");
+    expect(packOmissions([tarballPath("dist\\index.js", "\\")], ["dist/index.js"])).toEqual([]);
   });
 });
 
