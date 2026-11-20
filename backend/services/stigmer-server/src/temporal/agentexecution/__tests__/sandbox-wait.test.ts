@@ -69,7 +69,7 @@ describe("the wait for a sandbox with room", () => {
     expect(killed.name).toBe("SandboxOutOfMemory");
     expect(killed.message).toBe(SANDBOX_OUT_OF_MEMORY_COPY);
     expect(SANDBOX_OUT_OF_MEMORY_COPY).toBe(
-      "The sandbox ran out of memory, so this turn stopped. A command needed more memory than this sandbox has. Files changed since the sandbox last slept may be gone.",
+      "The sandbox ran out of memory, so this turn stopped. A command needed more memory than this sandbox has. Its files went back to their last saved state, so recent changes may be gone.",
     );
   });
 

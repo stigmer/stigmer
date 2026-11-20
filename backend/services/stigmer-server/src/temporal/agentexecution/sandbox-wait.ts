@@ -107,7 +107,7 @@ export const SANDBOX_OUT_OF_MEMORY_PATCH_ID =
  * for their files.
  */
 export const SANDBOX_OUT_OF_MEMORY_COPY =
-  "The sandbox ran out of memory, so this turn stopped. A command needed more memory than this sandbox has. Files changed since the sandbox last slept may be gone.";
+  "The sandbox ran out of memory, so this turn stopped. A command needed more memory than this sandbox has. Its files went back to their last saved state, so recent changes may be gone.";
 
 /** The stop kind of a turn whose sandbox ran out of memory (`StigmerStopDetail.kind`, under `failed`). */
 export const SANDBOX_OUT_OF_MEMORY_STOP_KIND = "sandbox_out_of_memory";

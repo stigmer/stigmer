@@ -1545,7 +1545,7 @@ const ENDINGS: Readonly<Record<EndingStoryName, Ending>> = {
     stopCause: "failed",
     kind: "sandbox_out_of_memory",
     error:
-      "The sandbox ran out of memory, so this turn stopped. A command needed more memory than this sandbox has. Files changed since the sandbox last slept may be gone.",
+      "The sandbox ran out of memory, so this turn stopped. A command needed more memory than this sandbox has. Its files went back to their last saved state, so recent changes may be gone.",
     midPlan: true,
     endsAtMs: 125_000,
   },

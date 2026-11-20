@@ -688,14 +688,17 @@ its memory ceiling is stopped whole by Substrate, not one command in it. The
 turn that ran the command then ends, about two minutes after the stop, with stop
 cause `failed`, stop detail `sandbox_out_of_memory` and an error that says the
 sandbox ran out of memory; it isn't run again, since the same command would be
-stopped the same way. The sandbox goes back to how it was when it last slept, so
-files changed since then may be gone, and the conversation's next message wakes
-it as usual. So lower the memory setting only with room for the largest build or
-install your agents run. Changing either setting makes a new template: an awake
-Session on the old one sleeps as soon as it isn't busy, and wakes on the new one
-at its next message. A worker full of idle Sessions still takes a new run: one
-of them sleeps to make room for it, so a worker's count limits how many Sessions
-work at once, not how many people have open conversations.
+stopped the same way. The sandbox goes back to its last snapshot in storage. A
+sleep's snapshot is copied to storage in the background, so files changed since
+an earlier sleep, or since the sandbox started, may be gone, and with them the
+conversation's own history, which open source keeps in the agent's home. The
+conversation's next message wakes the sandbox as usual. So lower the memory
+setting only with room for the largest build or install your agents run.
+Changing either setting makes a new template: an awake Session on the old one
+sleeps as soon as it isn't busy, and wakes on the new one at its next message. A
+worker full of idle Sessions still takes a new run: one of them sleeps to make
+room for it, so a worker's count limits how many Sessions work at once, not how
+many people have open conversations.
 
 What the driver needs:
 

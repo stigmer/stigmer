@@ -105,7 +105,8 @@ export interface SubstrateDriverSettings {
    * Each sandbox's memory in MiB: what Substrate books against its worker's
    * memory, beside the runtime's overhead, and the sandbox's ceiling. A
    * sandbox that reaches the ceiling is stopped whole by Substrate, not one
-   * command in it; the driver reverts it to its last snapshot and leaves it
+   * command in it; the driver reverts it to its last snapshot in storage
+   * (a sleep's snapshot is copied there in the background) and leaves it
    * asleep, and the turn that ran the command ends as
    * `sandbox_out_of_memory` rather than run it again (#3347).
    */

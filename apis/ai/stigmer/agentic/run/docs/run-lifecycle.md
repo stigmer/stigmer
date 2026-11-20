@@ -90,7 +90,7 @@ A turn that runs in a provisioned sandbox (a session whose execution target is `
 
 Only a driver whose fleet can be full says it has no room (the `substrate` driver); with any other, a turn starts as before.
 
-A turn whose sandbox is stopped for using more memory than it's allowed (the `substrate` driver) ends `RUN_FAILED`, with stop cause `failed`, stop detail `sandbox_out_of_memory`, and an error that says the sandbox ran out of memory, instead of running the same command again. The server learns of the stop when the turn's runner stops reporting, so the run ends about two minutes after it. The sandbox is put back to how it was when it last slept, and the session's next turn wakes it as usual.
+A turn whose sandbox is stopped for using more memory than it's allowed (the `substrate` driver) ends `RUN_FAILED`, with stop cause `failed`, stop detail `sandbox_out_of_memory`, and an error that says the sandbox ran out of memory, instead of running the same command again. The server learns of the stop when the turn's runner stops reporting, so the run ends about two minutes after it. The sandbox is put back to its last snapshot in storage, so recent changes to its files may be gone, and the session's next turn wakes it as usual.
 
 A sandbox started by another release of the server is moved to the current runner, with its files, before the turn's runner starts. When its files can't be moved (the `substrate` driver, after a release that changed the sandbox's disk layout), the turn ends at once, `RUN_FAILED` with stop cause `failed` and stop detail `internal`, and an error that says the conversation's sandbox is from another release and to start a new conversation.
 
