@@ -54,12 +54,12 @@ it names are the truth.
   `BackupHealthy` condition says so instead).
 - The operator never caches Secrets it did not label; an adopter's Secret is
   read by name through `Env.Reader`.
-- An install reachable from outside the cluster signs people in, or says on
-  purpose that it does not (`spec.server.allowUnauthenticatedExposure`): a front
-  door with no `identity` brings the bundled sign-in.
-- The operator's outbound calls go only to components it runs: the bundled
-  sign-in's admin API at its in-cluster Service (`internal/keycloak`), never an
-  address an adopter declares.
+- One hostname per install: the console at `/`, the API at its own paths (gRPC
+  takes no prefix), sign-in at `/idp`, volume files at `/artifacts`; never a
+  second host.
+- Exposure signs people in, or says on purpose it does not
+  (`spec.server.allowUnauthenticatedExposure`).
+- Outbound calls go only to components the operator runs (`internal/keycloak`).
 - Nothing private in this public repository: no internal tracker ids, no private
   paths, no names of other products.
 
