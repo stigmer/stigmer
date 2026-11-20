@@ -403,6 +403,61 @@ async function main(): Promise<void> {
     },
   );
 
+  // 14. A CLOUD turn whose first ask answered `out_of_memory` (its
+  //     sandbox was killed for exceeding its memory limit, stigmer#3347)
+  //     on the workflow before that answer meant anything: an activity
+  //     worker of the newer release answered it during a rolling update,
+  //     and the turn went on to the runner and completed. Recorded from
+  //     the workflow before the end existed, so such a turn keeps its
+  //     recorded path.
+  executeBehaviors = [async () => slim("RUN_COMPLETED")];
+  gateCounts = [];
+  sandboxAnswers = ["out_of_memory"];
+  await capture(
+    "sandbox-out-of-memory-went-on",
+    CLOUD_INPUT,
+    async (handle) => {
+      await handle.result();
+    },
+  );
+
+  // 15. A CLOUD turn whose runner was lost (a drain's shape here; a
+  //     memory kill reaches the same recovery as a heartbeat timeout), and
+  //     whose recovery's ask answered `out_of_memory`, past the fourth
+  //     patch marker: the turn ends as failed / sandbox_out_of_memory with
+  //     the person's sentence, recovering into nothing.
+  executeBehaviors = [
+    async () => {
+      throw ApplicationFailure.create({
+        type: "WorkerShutdown",
+        message: "Worker is shutting down and this activity did not complete in time",
+      });
+    },
+  ];
+  gateCounts = [];
+  sandboxAnswers = ["ready", "out_of_memory"];
+  await capture(
+    "sandbox-out-of-memory",
+    CLOUD_INPUT,
+    async (handle) => {
+      await handle.result().catch(() => undefined);
+    },
+  );
+
+  // 16. A CLOUD turn whose first ask met an earlier turn's memory kill,
+  //     past the fourth marker: it asks once more, the sandbox wakes, and
+  //     the turn runs and completes.
+  executeBehaviors = [async () => slim("RUN_COMPLETED")];
+  gateCounts = [];
+  sandboxAnswers = ["out_of_memory"];
+  await capture(
+    "sandbox-out-of-memory-asked-again",
+    CLOUD_INPUT,
+    async (handle) => {
+      await handle.result();
+    },
+  );
+
   worker.shutdown();
   await runPromise.catch(() => {});
   await env.teardown();
