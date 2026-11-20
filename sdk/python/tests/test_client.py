@@ -99,3 +99,47 @@ class TestKeylessLocalConnection:
     def test_empty_key_is_refused_even_on_an_insecure_connection(self) -> None:
         with pytest.raises(ValueError, match="the key given is empty"):
             StigmerClient("", base_url="localhost:7234", insecure=True)
+
+
+class TestTokenProvider:
+    """``get_access_token`` acts as one of a product's users: asked per call."""
+
+    def test_the_provider_is_asked_on_every_call(self, recorder) -> None:
+        servicer, target = recorder
+        tokens = iter(["first-token", "second-token"])
+        with StigmerClient(
+            get_access_token=lambda: next(tokens), base_url=target, insecure=True
+        ) as client:
+            _one_call(client)
+            _one_call(client)
+        assert [call["authorization"] for call in servicer.calls] == [
+            "Bearer first-token",
+            "Bearer second-token",
+        ]
+
+    def test_a_provider_alone_is_enough_on_a_tls_connection(self) -> None:
+        # Construction only: nothing is dialled until a call.
+        client = StigmerClient(get_access_token=lambda: "tok", base_url="api.stigmer.ai:443")
+        client.close()
+
+    def test_a_key_and_a_provider_together_are_refused(self) -> None:
+        with pytest.raises(ValueError, match="not both"):
+            StigmerClient("stk_key", get_access_token=lambda: "tok", base_url="localhost:1", insecure=True)
+
+    def test_the_provider_error_reaches_the_caller_and_nothing_is_sent(self, recorder) -> None:
+        servicer, target = recorder
+
+        def refuse() -> str:
+            raise RuntimeError("mint refused")
+
+        with StigmerClient(get_access_token=refuse, base_url=target, insecure=True) as client:
+            with pytest.raises(RuntimeError, match="mint refused"):
+                _one_call(client)
+        assert servicer.calls == []
+
+    def test_an_empty_token_is_refused_naming_the_provider(self, recorder) -> None:
+        servicer, target = recorder
+        with StigmerClient(get_access_token=lambda: "", base_url=target, insecure=True) as client:
+            with pytest.raises(ValueError, match="get_access_token returned no token"):
+                _one_call(client)
+        assert servicer.calls == []

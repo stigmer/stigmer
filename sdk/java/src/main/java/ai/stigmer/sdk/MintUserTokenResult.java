@@ -7,7 +7,9 @@ import java.time.Instant;
  * user token and its lifetime.
  *
  * <p>Pass {@link #accessToken()} to the React SDK's {@code StigmerProvider}
- * via the {@code getAccessToken} callback to authenticate browser-based API calls.
+ * via the {@code getAccessToken} callback to authenticate browser-based API
+ * calls, or keep the result in a {@link TokenCache} to act as the person from
+ * your backend.
  * {@link #toString()} leaves the token out, so a result can be logged.
  */
 public final class MintUserTokenResult {
@@ -24,7 +26,7 @@ public final class MintUserTokenResult {
         this.expiresAt = expiresAt;
     }
 
-    /** The token the browser sends as its Bearer credential. */
+    /** The person's Bearer credential, for their browser or your backend. */
     public String accessToken() { return accessToken; }
 
     /** Token type. Always "Bearer". */

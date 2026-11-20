@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from typing import Iterable, Literal
+from typing import Callable, Iterable, Literal
 from types import TracebackType
 
 import grpc
@@ -62,6 +62,17 @@ class StigmerClient(GeneratedClient):
 
         client = StigmerClient(base_url="localhost:7234", insecure=True)
 
+    As one of your product's signed-in users, from your backend: mint the
+    person a token with the service account's client, keep it in a
+    :class:`TokenCache`, and build a client on it. What that client starts
+    is the person's own (their Session, their run)::
+
+        admin = StigmerClient(os.environ["STIGMER_API_KEY"])
+        tokens = TokenCache(
+            lambda: admin.tokens.mint_user_token(org="acme", user_id=user.id)
+        )
+        as_user = StigmerClient(get_access_token=tokens.get_access_token)
+
     With an app-level execution target::
 
         client = StigmerClient(os.environ["STIGMER_API_KEY"], execution_target="local")
@@ -80,6 +91,7 @@ class StigmerClient(GeneratedClient):
         self,
         api_key: str | None = None,
         *,
+        get_access_token: Callable[[], str] | None = None,
         base_url: str = DEFAULT_TARGET,
         insecure: bool = False,
         execution_target: ExecutionTargetOption | None = None,
@@ -93,6 +105,12 @@ class StigmerClient(GeneratedClient):
                 connection; may be left out with ``insecure=True``, where
                 the client sends no ``authorization`` header (a local
                 server started by ``stigmer up`` needs none).
+            get_access_token: Called on every call for a bearer token, in
+                place of ``api_key`` (pass one or the other, never both):
+                a token minted for one of your product's users, so the
+                client acts as that person. Wrap the mint in a
+                :class:`TokenCache` so it runs once per token, not once per
+                call. An error it raises reaches the caller of that call.
             base_url: gRPC target address. Defaults to ``api.stigmer.ai:443``.
             insecure: Disable TLS (local development only).
             execution_target: Default execution target for all sessions
@@ -108,18 +126,25 @@ class StigmerClient(GeneratedClient):
         # is a local server's, may go without a credential. An empty string
         # is a misconfiguration (an unset variable read as ""), never a
         # request for a keyless connection.
+        if api_key is not None and get_access_token is not None:
+            raise ValueError(
+                "stigmer: pass api_key or get_access_token, not both: a"
+                " client acts as one account"
+            )
         if api_key is not None and not api_key:
             raise ValueError(
                 "stigmer: API key is required: the key given is empty"
                 " (leave it out only with insecure=True for a local server)"
             )
-        if api_key is None and not insecure:
+        if api_key is None and get_access_token is None and not insecure:
             raise ValueError(
                 "stigmer: API key is required on a TLS connection: pass an"
-                " API key, or insecure=True for a local server"
+                " API key or get_access_token, or insecure=True for a local server"
             )
 
-        self._channel = create_channel(base_url, api_key, insecure=insecure)
+        self._channel = create_channel(
+            base_url, api_key, insecure=insecure, get_access_token=get_access_token
+        )
         super().__init__(self._channel)
 
         self.default_execution_target = (

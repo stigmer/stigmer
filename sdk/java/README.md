@@ -255,6 +255,22 @@ try (StigmerClient client = StigmerClient.builder(System.getenv("STIGMER_API_KEY
 }
 ```
 
+The backend can also act as the person itself, so what it starts (a session,
+a run, an upload) is theirs: keep the mint in a `TokenCache` and build a
+client on it. The cache mints once, serves the token until a minute before it
+expires, shares one mint between threads and does not keep a failed one
+(`admin` is a client on the service account's key):
+
+```java
+import ai.stigmer.sdk.TokenCache;
+
+TokenCache tokens = TokenCache.of(() -> admin.tokens().mintUserToken(
+    MintUserTokenInput.builder().org("acme").userId("user-123").build()));
+try (StigmerClient asUser = StigmerClient.builder().tokenProvider(tokens).build()) {
+    // what asUser starts is user-123's
+}
+```
+
 ## Error Handling
 
 All SDK operations throw `StigmerException` (unchecked) with structured error codes:

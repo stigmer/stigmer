@@ -43,6 +43,25 @@ class StigmerClientTest {
     }
 
     @Test
+    void builder_tokenProviderAlone_buildsOnTls() {
+        try (StigmerClient client = StigmerClient.builder().tokenProvider(() -> "tok").build()) {
+            assertNotNull(client);
+        }
+    }
+
+    @Test
+    void builder_keyAndTokenProvider_areRefusedTogether() {
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> StigmerClient.builder("stk_test_key").tokenProvider(() -> "tok").build());
+        assertTrue(e.getMessage().contains("mutually exclusive"), e.getMessage());
+    }
+
+    @Test
+    void builder_nullTokenProvider_throws() {
+        assertThrows(NullPointerException.class, () -> StigmerClient.builder().tokenProvider(null));
+    }
+
+    @Test
     void builder_emptyApiKey_isRefusedEvenWhenInsecure() {
         assertThrows(IllegalArgumentException.class,
                 () -> StigmerClient.builder("").insecure().build());

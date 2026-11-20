@@ -10,15 +10,16 @@ where the request comes from and who makes it.
 
 ## Three authentication paths
 
-|                       | API key                                                                          | Identity federation                                          | Minted user tokens                                                                                |
-| --------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
-| **What it is**        | A static secret you create in the Console, for yourself or for a service account | A trust relationship with your OIDC provider                 | Tokens your backend mints per user with a service account's API key                               |
-| **Who uses it**       | Your backend, CLI, CI/CD (as a service account)                                  | Your end users (via their existing IdP)                      | Your end users (via your backend)                                                                 |
-| **Where it runs**     | Server-side only                                                                 | Browser (user's JWT sent directly)                           | Browser (token fetched from your backend)                                                         |
-| **Setup effort**      | Create a key in the Console                                                      | Register a Federation Issuer, configure JWKS + issuer        | Create an admin service account and its key, set the embedding settings, add one backend endpoint |
-| **User provisioning** | Not applicable (server credential)                                               | JIT automatic or manual                                      | Automatic on first sign-in when the embedding settings allow it, or manual                        |
-| **Organizations**     | Every Organization of its owner, or one; a service account's key, its own        | One per token                                                | The service account's Organization, or a child of it                                              |
-| **Best for**          | Server-to-server, scripts, internal tools                                        | Apps where users already have an OIDC provider (Auth0, Okta) | Embedding Stigmer in your product without OIDC setup                                              |
+|                       | API key                                                                                                                 | Identity federation                                                   | Minted user tokens                                                                                |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **What it is**        | A static secret you create in the Console, for yourself or for a service account                                        | A trust relationship with your OIDC provider                          | Tokens your backend mints per user with a service account's API key                               |
+| **Who uses it**       | Your backend, CLI, CI/CD (as a service account)                                                                         | Your end users (via their existing IdP)                               | Your end users (via your backend), or your backend acting as one of them                          |
+| **Where it runs**     | Server-side only                                                                                                        | Browser (user's JWT sent directly)                                    | Browser (token fetched from your backend), or your backend                                        |
+| **Setup effort**      | Create a key in the Console                                                                                             | Register a Federation Issuer, configure JWKS + issuer                 | Create an admin service account and its key, set the embedding settings, add one backend endpoint |
+| **User provisioning** | Not applicable (server credential)                                                                                      | JIT automatic or manual                                               | Automatic on first sign-in when the embedding settings allow it, or manual                        |
+| **Organizations**     | Every Organization of its owner, or one; a service account's key, its own Organization and that Organization's children | One per token                                                         | The service account's Organization, or a child of it                                              |
+| **Editions**          | Every edition                                                                                                           | Stigmer Cloud and the Enterprise edition (not the open-source server) | Every server that signs its callers in                                                            |
+| **Best for**          | Server-to-server, scripts, internal tools                                                                               | Apps where users already have an OIDC provider (Auth0, Okta)          | Embedding Stigmer in your product without OIDC setup                                              |
 
 ## How to choose
 
@@ -59,6 +60,8 @@ alone.
 ID, Cognito, or any OIDC-compatible system). Use **identity federation**.
 Register your provider as a Federation Issuer in Stigmer, and the SDK sends your
 users' JWTs directly. Stigmer validates them against your JWKS endpoint.
+Federation is served by Stigmer Cloud and the Enterprise edition; on the
+open-source server, use minted user tokens instead.
 
 <Card
   href="/docs/guides/authentication/federation/overview"

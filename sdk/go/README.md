@@ -147,6 +147,13 @@ client, _ := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")))
 // Token authentication (from interactive login)
 client, _ := stigmer.NewClient(stigmer.WithToken(loginToken))
 
+// As one of your product's signed-in users: a token minted with the service
+// account's client (admin), kept until a minute before it expires
+tokens := stigmer.NewTokenCache(func(ctx context.Context) (*stigmer.MintUserTokenResult, error) {
+	return admin.Tokens.MintUserToken(ctx, &stigmer.MintUserTokenInput{Org: "acme", UserID: user.ID})
+})
+asUser, _ := stigmer.NewClient(stigmer.WithTokenFunc(tokens.Token))
+
 // Custom endpoint
 client, _ := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")), stigmer.WithBaseURL("stigmer.example.com:443"))
 

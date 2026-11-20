@@ -136,6 +136,40 @@ if err != nil {
 fmt.Println(agent.GetMetadata().GetName())
 ```
 
+## Act as one of your users
+
+When your backend starts work that belongs to a person signed in to your
+product, build a second client on a token minted for them, kept in a token
+cache. What that client starts (a Session, a run, an upload) is the person's.
+The service account's client mints; the cache mints again only shortly before
+the token expires.
+
+```go
+var admin *stigmer.Client
+var userID string
+// ---cut---
+import (
+	"context"
+	"log"
+
+	stigmer "go.stigmer.ai/sdk"
+)
+
+tokens := stigmer.NewTokenCache(func(ctx context.Context) (*stigmer.MintUserTokenResult, error) {
+    return admin.Tokens.MintUserToken(ctx, &stigmer.MintUserTokenInput{Org: "acme", UserID: userID})
+})
+asUser, err := stigmer.NewClient(stigmer.WithTokenFunc(tokens.Token))
+if err != nil {
+    log.Fatal(err)
+}
+defer asUser.Close()
+```
+
+`admin` is the client built on the service account's key.
+
+The whole flow, and what the person's role allows, is in
+[From your backend, as the user](/docs/guides/authentication/product-users#from-your-backend-as-the-user).
+
 ## What's next
 
 <Cards>

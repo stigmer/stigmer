@@ -21,10 +21,12 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Transport pins: the channel factory must receive responses above
@@ -132,6 +134,46 @@ class StigmerChannelTest {
                 "localhost:" + server.getPort(), "stk_test_key", true));
         oneCall();
         assertEquals("Bearer stk_test_key", authorizations.get(0));
+    }
+
+    @Test
+    @DisplayName("a token provider is asked on every call")
+    void tokenProviderIsAskedOnEveryCall() {
+        AtomicInteger n = new AtomicInteger();
+        channel = StigmerChannel.create(new StigmerChannel.Config(
+                "localhost:" + server.getPort(), null, () -> "token-" + n.incrementAndGet(), true));
+        oneCall();
+        oneCall();
+        assertEquals(List.of("Bearer token-1", "Bearer token-2"), authorizations);
+    }
+
+    @Test
+    @DisplayName("a provider's exception reaches the caller and nothing is sent")
+    void tokenProviderExceptionReachesTheCaller() {
+        channel = StigmerChannel.create(new StigmerChannel.Config(
+                "localhost:" + server.getPort(), null, () -> {
+                    throw new IllegalArgumentException("mint refused");
+                }, true));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, this::oneCall);
+        assertEquals("mint refused", e.getMessage());
+        assertEquals(List.of(), authorizations);
+    }
+
+    @Test
+    @DisplayName("an empty token from the provider is refused before sending")
+    void emptyTokenIsRefused() {
+        channel = StigmerChannel.create(new StigmerChannel.Config(
+                "localhost:" + server.getPort(), null, () -> "", true));
+        IllegalStateException e = assertThrows(IllegalStateException.class, this::oneCall);
+        assertTrue(e.getMessage().contains("returned no token"), e.getMessage());
+        assertEquals(List.of(), authorizations);
+    }
+
+    @Test
+    @DisplayName("a key and a provider together are refused")
+    void keyAndProviderAreRefused() {
+        assertThrows(IllegalArgumentException.class, () -> StigmerChannel.create(
+                new StigmerChannel.Config("localhost:" + server.getPort(), "stk_key", () -> "tok", true)));
     }
 
     @Test
