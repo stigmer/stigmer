@@ -1,6 +1,8 @@
 package stigmer
 
 import (
+	"context"
+	"strings"
 	"testing"
 
 	"go.stigmer.ai/sdk/internal/gen"
@@ -19,6 +21,23 @@ func TestNewClient_MutuallyExclusiveCredentials(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when both WithAPIKey and WithToken are provided")
 	}
+}
+
+func TestNewClient_TokenFuncExcludesTheOtherCredentials(t *testing.T) {
+	fn := func(context.Context) (string, error) { return "tok", nil }
+	for name, other := range map[string]ClientOption{"WithAPIKey": WithAPIKey("stk_test"), "WithToken": WithToken("tok_test")} {
+		if _, err := NewClient(WithTokenFunc(fn), other); err == nil || !strings.Contains(err.Error(), "WithTokenFunc is mutually exclusive") {
+			t.Errorf("WithTokenFunc with %s: err = %v, want the mutually exclusive refusal", name, err)
+		}
+	}
+}
+
+func TestNewClient_TokenFuncAloneIsACredential(t *testing.T) {
+	client, err := NewClient(WithTokenFunc(func(context.Context) (string, error) { return "tok", nil }))
+	if err != nil {
+		t.Fatalf("a TLS client with only WithTokenFunc must build, got: %v", err)
+	}
+	defer client.Close()
 }
 
 func TestNewClient_InsecureNoCredentials(t *testing.T) {

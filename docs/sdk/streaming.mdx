@@ -81,6 +81,75 @@ Create a run, then stream its Session from the start (`after_seq` 0). Keep the
 events of your run, print what the Agent does, and stop when the run's
 `stigmer.run.status` event says it ended.
 
+Creating the run starts the turn and returns at once, unlike `sendAndWait`,
+which also waits for the answer. A run on a new conversation names the Agent in
+its `sessionSpec`; the run that comes back names the Session it started:
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+import { startTurn } from "@stigmer/client";
+
+const { runId, sessionId } = await startTurn(stigmer, {
+  org: "acme",
+  sessionSpec: { agentRef: { org: "acme", slug: "support-agent" } },
+  message: "Summarize this week's tickets.",
+});
+```
+
+`startTurn` is the first half of `sendAndWait`: it creates the run, names it
+when you don't, and reads the Session from it.
+</Tab>
+<Tab value="Go">
+```go
+run, err := client.Run.Create(ctx, &stigmer.RunInput{
+    Name:        "weekly-summary",
+    Org:         "acme",
+    SessionSpec: &stigmer.SessionSpecInput{AgentRef: stigmer.ResourceRef{Org: "acme", Slug: "support-agent"}},
+    Message:     "Summarize this week's tickets.",
+})
+if err != nil {
+    log.Fatal(err)
+}
+runID, sessionID := run.GetMetadata().GetId(), run.GetSpec().GetSessionId()
+log.Printf("run %s in session %s", runID, sessionID)
+```
+</Tab>
+<Tab value="Python">
+```python
+from stigmer import ResourceRef, RunInput, SessionSpecInput
+
+run = client.runs.create(RunInput(
+    name="weekly-summary",
+    org="acme",
+    session_spec=SessionSpecInput(agent_ref=ResourceRef(org="acme", slug="support-agent")),
+    message="Summarize this week's tickets.",
+))
+run_id, session_id = run.metadata.id, run.spec.session_id
+```
+</Tab>
+<Tab value="Java">
+```java
+import ai.stigmer.agentic.run.v1.Run;
+import ai.stigmer.sdk.gen.ResourceRef;
+import ai.stigmer.sdk.gen.RunInput;
+
+Run run = client.run.create(RunInput.builder()
+    .name("weekly-summary")
+    .org("acme")
+    .sessionSpec(RunInput.SessionSpecInput.builder()
+        .agentRef(ResourceRef.of("acme", "support-agent"))
+        .build())
+    .message("Summarize this week's tickets.")
+    .build());
+String runId = run.getMetadata().getId();
+String sessionId = run.getSpec().getSessionId();
+```
+</Tab>
+</SDKTabs>
+
+Then follow it:
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript

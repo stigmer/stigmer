@@ -9,6 +9,7 @@ import io.grpc.ManagedChannel;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 /**
  * Top-level Stigmer API client.
@@ -49,6 +50,17 @@ import java.util.concurrent.TimeUnit;
  *     .baseUrl("localhost:7234")
  *     .insecure()
  *     .build();
+ * }</pre>
+ *
+ * <p>As one of your product's signed-in users, from your backend: mint the
+ * person a token with the service account's client, keep it in a
+ * {@link TokenCache}, and build a client on it. What that client starts is
+ * the person's own (their Session, their run):
+ *
+ * <pre>{@code
+ * TokenCache tokens = TokenCache.of(() -> admin.tokens().mintUserToken(
+ *     MintUserTokenInput.builder().org("acme").userId(user.getId()).build()));
+ * StigmerClient asUser = StigmerClient.builder().tokenProvider(tokens).build();
  * }</pre>
  */
 public final class StigmerClient extends GeneratedClient implements AutoCloseable {
@@ -91,10 +103,11 @@ public final class StigmerClient extends GeneratedClient implements AutoCloseabl
     }
 
     /**
-     * Creates a builder with no API key, for a local server on a plaintext
-     * connection: {@link Builder#build()} refuses it unless
-     * {@link Builder#insecure()} was called. No {@code authorization} header
-     * is sent.
+     * Creates a builder with no API key: give it a
+     * {@link Builder#tokenProvider(Supplier) token provider}, or, for a local
+     * server on a plaintext connection, call {@link Builder#insecure()} and
+     * no {@code authorization} header is sent. {@link Builder#build()}
+     * refuses a TLS client with neither.
      */
     public static Builder builder() {
         return new Builder(null);
@@ -233,6 +246,7 @@ public final class StigmerClient extends GeneratedClient implements AutoCloseabl
     /** Builder for {@link StigmerClient}. */
     public static final class Builder {
         private final String apiKey;
+        private Supplier<String> tokenProvider;
         private String baseUrl = DEFAULT_TARGET;
         private boolean insecure;
         private RunnerAdapter runnerAdapter;
@@ -244,6 +258,22 @@ public final class StigmerClient extends GeneratedClient implements AutoCloseabl
         /** Sets the gRPC target address (host:port). Default is {@code api.stigmer.ai:443}. */
         public Builder baseUrl(String baseUrl) {
             this.baseUrl = Objects.requireNonNull(baseUrl, "baseUrl must not be null");
+            return this;
+        }
+
+        /**
+         * Authenticates with a bearer token asked for on every call, in place
+         * of an API key: a token minted for one of your product's users, so
+         * the client acts as that person. Pass a {@link TokenCache} so the
+         * mint runs once per token, not once per call. An exception the
+         * provider throws reaches the caller of that call, and nothing is
+         * sent. Start from {@link StigmerClient#builder()}: a builder made
+         * with an API key refuses a provider at {@link #build()}.
+         *
+         * @throws NullPointerException if {@code tokenProvider} is null
+         */
+        public Builder tokenProvider(Supplier<String> tokenProvider) {
+            this.tokenProvider = Objects.requireNonNull(tokenProvider, "tokenProvider must not be null");
             return this;
         }
 
@@ -268,17 +298,24 @@ public final class StigmerClient extends GeneratedClient implements AutoCloseabl
         /**
          * Builds the {@link StigmerClient}.
          *
-         * @throws IllegalStateException if no API key was given and the
-         *                               connection is not {@link #insecure()}
+         * @throws IllegalStateException if both an API key and a token
+         *                               provider were given, or neither and
+         *                               the connection is not {@link #insecure()}
          */
         public StigmerClient build() {
-            if (apiKey == null && !insecure) {
+            if (apiKey != null && tokenProvider != null) {
+                throw new IllegalStateException(
+                        "stigmer: an API key and a token provider are mutually exclusive:"
+                                + " a client acts as one account");
+            }
+            if (apiKey == null && tokenProvider == null && !insecure) {
                 throw new IllegalStateException(
                         "stigmer: an API key is required on a TLS connection:"
-                                + " use builder(apiKey), or insecure() for a local server");
+                                + " use builder(apiKey), builder().tokenProvider(…),"
+                                + " or insecure() for a local server");
             }
             ManagedChannel channel = StigmerChannel.create(new StigmerChannel.Config(
-                    baseUrl, apiKey, insecure));
+                    baseUrl, apiKey, tokenProvider, insecure));
             return new StigmerClient(channel, runnerAdapter);
         }
     }

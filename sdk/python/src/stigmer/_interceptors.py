@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Sequence
+from typing import Any, Callable, Sequence
 
 import grpc
 
@@ -55,12 +55,28 @@ class AuthInterceptor(
 ):
     """Injects ``Authorization: Bearer <token>`` into every outgoing call.
 
+    The token comes from ``token_provider``, asked once per call: a fixed API
+    key's provider returns the key, and ``StigmerClient(get_access_token=…)``
+    passes the caller's own, so a token that expires is fetched again (a
+    :class:`~stigmer.TokenCache` keeps it until it nearly does). An error the
+    provider raises reaches the caller of the RPC unchanged, before any
+    request is sent.
+
     Handles both unary-unary and unary-stream (server-streaming) RPCs, which
     covers all call patterns used by the Stigmer API.
     """
 
-    def __init__(self, api_key: str) -> None:
-        self._bearer = f"Bearer {api_key}"
+    def __init__(self, token_provider: Callable[[], str]) -> None:
+        self._token_provider = token_provider
+
+    def _bearer(self) -> str:
+        token = self._token_provider()
+        if not isinstance(token, str) or not token:
+            raise ValueError(
+                "stigmer: get_access_token returned no token: it must return"
+                " the bearer token as a non-empty string"
+            )
+        return f"Bearer {token}"
 
     def intercept_unary_unary(
         self,
@@ -69,7 +85,7 @@ class AuthInterceptor(
         request: Any,
     ) -> Any:
         return continuation(
-            _with_auth_metadata(client_call_details, self._bearer),
+            _with_auth_metadata(client_call_details, self._bearer()),
             request,
         )
 
@@ -80,6 +96,6 @@ class AuthInterceptor(
         request: Any,
     ) -> Any:
         return continuation(
-            _with_auth_metadata(client_call_details, self._bearer),
+            _with_auth_metadata(client_call_details, self._bearer()),
             request,
         )

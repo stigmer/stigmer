@@ -6,7 +6,9 @@ with a service account's API key, the way a payments or messaging platform
 lets a backend act with its server key. The account must be an admin of the
 organization the token is for, or of its parent organization; a person's key
 is refused. Pass the returned ``access_token`` to the React SDK's
-``StigmerProvider`` through ``getAccessToken``.
+``StigmerProvider`` through ``getAccessToken``, or act as the person from the
+backend itself: a :class:`~stigmer.TokenCache` over the mint, given to
+``StigmerClient(get_access_token=…)``.
 
 The organization's embedding settings decide whether a first sign-in creates
 the person's account and with which role, and which web pages may use the
@@ -36,11 +38,13 @@ class MintUserTokenResult:
     """A minted user token.
 
     Pass ``access_token`` to the React SDK's ``StigmerProvider`` through its
-    ``getAccessToken`` callback to authenticate browser-based API calls.
+    ``getAccessToken`` callback to authenticate browser-based API calls, or
+    keep the result in a :class:`~stigmer.TokenCache` to act as the person
+    from your backend.
     """
 
     access_token: str
-    """The token a browser sends as its Bearer credential."""
+    """The person's Bearer credential, for their browser or your backend."""
 
     token_type: str
     """Token type. Always "Bearer"."""

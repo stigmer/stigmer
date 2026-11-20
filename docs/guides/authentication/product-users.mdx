@@ -16,7 +16,9 @@ with sign-in configured.
 ## When to use this
 
 Use this when your product has its own sign-in (sessions, cookies, your own user
-table) and your users need to reach Stigmer from the browser.
+table) and your users need to reach Stigmer from the browser, or your backend
+starts work that should belong to them: see
+[From your backend, as the user](#from-your-backend-as-the-user).
 
 <Callout type="info">
   **Looking for a different auth method?** If your users already sign in through
@@ -72,7 +74,8 @@ sequenceDiagram
 ## Set how people sign in
 
 Your Organization's **embedding settings** decide what happens when your backend
-mints a token. An admin sets them under Settings > Embedding, or with
+mints a token. An admin sets them under Settings > Embedding, with
+[`stigmer embedding set`](/docs/cli/commands/embedding), or with
 `organization.updateEmbedding`:
 
 - **Create accounts on sign-in**: create a Stigmer account the first time a
@@ -104,7 +107,9 @@ resolves in that child, where the same `user_id` is a separate account.
 ## Backend: Mint user tokens
 
 Minting is one call on the ordinary Stigmer client, built with the service
-account's API key.
+account's API key. For a new app,
+[`stigmer app-handover --stack <stack> --agent <agent> --write .`](/docs/cli/commands/app-handover)
+writes this token route and a chat page for Next.js, Node, Python, Go or Java.
 
 ### TypeScript (Node.js)
 
@@ -274,6 +279,160 @@ function App() {
 When your user signs out, or another person signs in on the same page, call
 `tokens.invalidate()`, so a token minted for one person is never sent for the
 next.
+
+## From your backend, as the user
+
+Sometimes your backend starts the work itself, but the work belongs to the
+signed-in person: a customer uploads a statement and your backend runs an Agent
+on it. Started with the service account's own client, that run is the service
+account's. To make it the person's, your backend mints them a token as above,
+keeps it in a token cache, and starts the run with a second client built on that
+cache. The Session is then created as the person (its
+`status.audit.spec_audit.created_by` is their account), exactly as if they had
+started it in your app's chat.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+declare const user: { id: string };
+// ---cut---
+import { createTokenCache, sendAndWait } from "@stigmer/client";
+import { createNodeClient } from "@stigmer/client/node";
+
+const admin = createNodeClient({
+  baseUrl: "https://api.stigmer.ai",
+  apiKey: process.env.STIGMER_API_KEY!,
+});
+
+// One cache per person: the mint runs once per token, not on every call.
+const tokens = createTokenCache(() =>
+  admin.tokens.mintUserToken({ org: "acme", userId: user.id }),
+);
+const asUser = createNodeClient({
+  baseUrl: "https://api.stigmer.ai",
+  getAccessToken: tokens.getAccessToken,
+});
+
+const turn = await sendAndWait(asUser, {
+  org: "acme",
+  sessionSpec: { agentRef: { org: "acme", slug: "statement-checker" } },
+  message: "Check the statement I uploaded.",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+var user struct{ ID string }
+// ---cut---
+import (
+	"context"
+	"log"
+	"os"
+
+	stigmer "go.stigmer.ai/sdk"
+)
+
+admin, err := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")))
+if err != nil {
+    log.Fatal(err)
+}
+defer admin.Close()
+
+// One cache per person: the mint runs once per token, not on every call.
+tokens := stigmer.NewTokenCache(func(ctx context.Context) (*stigmer.MintUserTokenResult, error) {
+    return admin.Tokens.MintUserToken(ctx, &stigmer.MintUserTokenInput{Org: "acme", UserID: user.ID})
+})
+asUser, err := stigmer.NewClient(stigmer.WithTokenFunc(tokens.Token))
+if err != nil {
+    log.Fatal(err)
+}
+defer asUser.Close()
+
+turn, err := asUser.SendAndWait(ctx, &stigmer.RunInput{
+    Org:         "acme",
+    SessionSpec: &stigmer.SessionSpecInput{AgentRef: stigmer.ResourceRef{Org: "acme", Slug: "statement-checker"}},
+    Message:     "Check the statement I uploaded.",
+})
+if err != nil {
+    log.Fatal(err)
+}
+log.Print(turn.Answer)
+```
+</Tab>
+<Tab value="Python">
+```python
+class CurrentUser:
+    """Your app's signed-in user."""
+
+    id: str
+
+
+current_user = CurrentUser()
+# ---cut---
+import os
+
+from stigmer import ResourceRef, SessionSpecInput, StigmerClient, TokenCache
+
+admin = StigmerClient(os.environ["STIGMER_API_KEY"])
+
+# One cache per person: the mint runs once per token, not on every call.
+tokens = TokenCache(lambda: admin.tokens.mint_user_token(org="acme", user_id=current_user.id))
+
+with StigmerClient(get_access_token=tokens.get_access_token) as as_user:
+    turn = as_user.send_and_wait(
+        org="acme",
+        session_spec=SessionSpecInput(agent_ref=ResourceRef(org="acme", slug="statement-checker")),
+        message="Check the statement I uploaded.",
+    )
+```
+</Tab>
+<Tab value="Java">
+```java
+interface CurrentUser { String getId(); }
+
+CurrentUser currentUser;
+// ---cut---
+import ai.stigmer.sdk.MintUserTokenInput;
+import ai.stigmer.sdk.SendAndWaitInput;
+import ai.stigmer.sdk.StigmerClient;
+import ai.stigmer.sdk.TokenCache;
+import ai.stigmer.sdk.TurnOutcome;
+import ai.stigmer.sdk.gen.ResourceRef;
+import ai.stigmer.sdk.gen.RunInput;
+
+StigmerClient admin = StigmerClient.builder(System.getenv("STIGMER_API_KEY")).build();
+
+// One cache per person: the mint runs once per token, not on every call.
+TokenCache tokens = TokenCache.of(() -> admin.tokens().mintUserToken(MintUserTokenInput.builder()
+    .org("acme")
+    .userId(currentUser.getId())
+    .build()));
+
+try (StigmerClient asUser = StigmerClient.builder().tokenProvider(tokens).build()) {
+    TurnOutcome turn = asUser.sendAndWait(SendAndWaitInput.builder()
+        .org("acme")
+        .sessionSpec(RunInput.SessionSpecInput.builder()
+            .agentRef(ResourceRef.of("acme", "statement-checker"))
+            .build())
+        .message("Check the statement I uploaded.")
+        .build());
+}
+```
+</Tab>
+</SDKTabs>
+
+- **Keep one cache per person**, for example in a map keyed by your user id, and
+  drop it (or call its `invalidate`) when they sign out. The cache mints once,
+  serves the token until a minute before it expires, shares one mint between
+  calls made at the same time, and does not keep a failed mint.
+- **Upload with the same client.** Files the run reads go up through the
+  person's client, so they are the person's too.
+- **The person's role decides what the run may do.** Their token carries the
+  role their account holds, so the embedding settings' sign-in role must let
+  them run the Agent (Member), and the Agent must be theirs to run: in your
+  Organization, or shared down to the child organization the token is for.
+- **The service account stays on the server.** Only your backend holds its key;
+  the person's token never needs to leave your backend either.
 
 ## Give embedded assistants their credentials
 

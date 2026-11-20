@@ -6,7 +6,9 @@
 // The account must be an admin of the organization the token is for, or of
 // its parent organization (a parent's admins are admins in each of its
 // children); a person's key is refused. Pass the returned
-// AccessToken to the React SDK's StigmerProvider through getAccessToken.
+// AccessToken to the React SDK's StigmerProvider through getAccessToken, or
+// act as the person from the backend itself: a TokenCache over the mint,
+// given to NewClient through WithTokenFunc.
 //
 // Org and UserID are checked here before any request, so a missing value
 // fails as invalid-argument without a round trip. The organization's
@@ -49,7 +51,8 @@ type MintUserTokenInput struct {
 
 // MintUserTokenResult is a minted user token and its lifetime.
 type MintUserTokenResult struct {
-	// AccessToken is the token a browser sends as its Bearer credential.
+	// AccessToken is the person's Bearer credential, for their browser or your
+	// backend.
 	AccessToken string
 
 	// TokenType is the token type. Always "Bearer".

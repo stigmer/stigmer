@@ -173,6 +173,13 @@ and the report goes back to them through your own UI.
 answer. The [SDK guide](/docs/sdk/streaming) shows how to stream the Agent's
 reply as it writes, and how to answer when it asks before acting.
 
+On Stigmer Cloud the job runs as the account behind your key: in your product,
+your service account, so the Session and its report are your app's, not your
+customer's. When the job should be the signed-in customer's own (created as
+them, and run with their role), mint them a token and start it with a client on
+that token:
+[From your backend, as the user](/docs/guides/authentication/product-users#from-your-backend-as-the-user).
+
 ## Next step
 
 Your backend can run the job, but your customer still can't see it happen or

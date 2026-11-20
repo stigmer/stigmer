@@ -118,6 +118,29 @@ except StigmerError as err:
         raise
 ```
 
+## Act as one of your users
+
+When your backend starts work that belongs to a person signed in to your
+product, build a second client on a token minted for them, kept in a token
+cache. What that client starts (a Session, a run, an upload) is the person's.
+The service account's client mints; the cache mints again only shortly before
+the token expires.
+
+```python
+user_id = ""
+# ---cut---
+import os
+
+from stigmer import StigmerClient, TokenCache
+
+admin = StigmerClient(os.environ["STIGMER_API_KEY"])
+tokens = TokenCache(lambda: admin.tokens.mint_user_token(org="acme", user_id=user_id))
+as_user = StigmerClient(get_access_token=tokens.get_access_token)
+```
+
+The whole flow, and what the person's role allows, is in
+[From your backend, as the user](/docs/guides/authentication/product-users#from-your-backend-as-the-user).
+
 ## What's next
 
 <Cards>
