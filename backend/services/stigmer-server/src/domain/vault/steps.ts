@@ -49,7 +49,7 @@ import {
 import type { OrganizationAdmission } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { claimName } from "../../pipeline/steps/names.js";
-import { moveName } from "../../pipeline/steps/rename.js";
+import { commitMovedName, moveName } from "../../pipeline/steps/rename.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
@@ -229,11 +229,13 @@ export function newClaimExternalIdStep(store: Store): PipelineStep<VaultDesc> {
 }
 
 /**
- * After an update persists: frees the external id the saved row no longer
- * carries, whether the update cleared it or moved it to another (a move
- * clears the old id from the vault). Only that name: a racing update may
- * hold another of the vault's external ids, and the row it saves carries
- * that one.
+ * After an update persists: ends an external id move it made
+ * (commitMovedName, the rename protocol's other half beside
+ * undoExternalIdMoveAfterFailure), then frees the external id the saved
+ * row no longer carries, whether the update cleared it or moved it to
+ * another (a move clears the old id from the vault). Only that name: a
+ * racing update may hold another of the vault's external ids, and the row
+ * it saves carries that one.
  */
 export function newReleaseClearedExternalIdStep(
   store: Store,
@@ -242,6 +244,10 @@ export function newReleaseClearedExternalIdStep(
   return {
     name: "ReleaseClearedExternalId",
     async execute(ctx: RequestContext<VaultDesc>): Promise<void> {
+      const move = ctx.get(CLAIMED_EXTERNAL_ID_KEY) as ExternalIdMove | undefined;
+      if (move?.kind === "renamed") {
+        await commitMovedName(store, move.rename, move.undo, logger);
+      }
       const existing = ctx.get(EXISTING_RESOURCE_KEY) as Vault | undefined;
       const previous = existing?.spec?.externalId ?? "";
       if (previous === "" || (ctx.newState.spec?.externalId ?? "") === previous) {

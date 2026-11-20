@@ -60,12 +60,24 @@
  * created-since read is the list index's existing bound
  * (store/list-index.ts, `createdAtOrAfter`) and the by-id read is
  * `getResource`.
+ *
+ * Two more facts ride every answer. `parked`: a live run that is not
+ * working, which the entry already holds (its live and working sets). And
+ * `routineFire`: whether a routine's fire started the session, from the
+ * session's server-written `status.routine_id`
+ * (domain/session/routine-link.ts), which never changes, so it is read
+ * with one point read when the reader first builds the session's entry
+ * and carried by every later one. A read that fails, or finds the session
+ * gone, counts as not a fire and is tried again at the next full read: a
+ * sandbox then keeps the ordinary idle window, never a shorter one, as a
+ * bad execution row never keeps a session busy.
  */
 import { fromBinary } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../boot/logger.js";
@@ -111,6 +123,8 @@ interface SessionEntry {
   lastActiveMs: number | undefined;
   /** The execution whose stamp is lastActiveMs. */
   lastActiveId: string | undefined;
+  /** A routine's fire started the session; undefined until a read of the session answered (module header). */
+  routineFire: boolean | undefined;
   /** When the read that left this entry began, by this server's clock. */
   readAtMs: number;
   touchedAtMs: number;
@@ -124,6 +138,7 @@ function newEntry(readAtMs: number): SessionEntry {
     aheadStamps: [],
     lastActiveMs: undefined,
     lastActiveId: undefined,
+    routineFire: undefined,
     readAtMs,
     touchedAtMs: readAtMs,
   };
@@ -177,13 +192,38 @@ export function newStoreSessionActivityReader(
     }
   };
 
+  /** Whether a routine's fire started the session; undefined when the read failed (module header). */
+  const readRoutineFire = async (
+    sessionId: string,
+  ): Promise<boolean | undefined> => {
+    try {
+      const session = await store.getResource(
+        ApiResourceKind.session,
+        sessionId,
+        SessionSchema,
+      );
+      return (session.status?.routineId ?? "") !== "";
+    } catch (error) {
+      if (!(error instanceof ResourceNotFoundError)) {
+        logger.warn("Failed to read a session's routine; its sandbox keeps the ordinary idle window", {
+          sessionId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      return undefined;
+    }
+  };
+
   const activity = async (sessionId: string): Promise<SessionActivity> => {
     const readAtMs = now();
+    const routineFire =
+      entries.get(sessionId)?.routineFire ?? (await readRoutineFire(sessionId));
     const rows = await store.queryResources(agentExecutionListIndex, {
       anyKey: [{ name: "session", value: sessionId }],
     });
     const nowMs = now();
     const entry = newEntry(readAtMs);
+    entry.routineFire = routineFire;
     const nextBound = listIndexInstantOfMillis(readAtMs - RECENT_LOOKBACK_MS);
     for (const row of rows) {
       const execution = decode(sessionId, row);
@@ -496,5 +536,8 @@ function activityOfEntry(entry: SessionEntry): SessionActivity {
       entry.lastActiveMs === undefined
         ? undefined
         : new Date(entry.lastActiveMs),
+    // Every working run is live, so more live than working is one parked.
+    parked: entry.liveIds.size > entry.workingIds.size,
+    routineFire: entry.routineFire === true,
   };
 }

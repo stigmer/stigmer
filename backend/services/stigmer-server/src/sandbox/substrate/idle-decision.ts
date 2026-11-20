@@ -34,6 +34,16 @@
  * turn in flight is never cut for it: the pass after the turn ends puts
  * it to sleep. A draining worker still decides first, because a store
  * also keeps the files a leaving node would lose.
+ *
+ * A routine's fire (`routineFire`: a routine started the session) is a
+ * fresh conversation for one run, so nobody is about to type into it: its
+ * sandbox is suspended as soon as its session is not busy, whatever its
+ * idle window, rather than holding a seat for the window after its run
+ * ends. A fire parked on an approval sleeps too, and its workflow wakes it
+ * before the turn carries on, as for any parked turn; a person who later
+ * continues the conversation finds it asleep after each of their turns
+ * too, which costs their next message a wake, never their files. A
+ * draining worker still decides first, as for an outdated sandbox.
  */
 import type { SubstrateSandboxState } from "./driver.js";
 import { DRAIN_DEADLINE_MS } from "./limits.js";
@@ -51,6 +61,8 @@ export interface IdleInput {
   readonly drainingSince?: Date;
   /** On another template than the server's current one (module header). */
   readonly outdated?: boolean;
+  /** A routine's fire started the session (module header). */
+  readonly routineFire?: boolean;
 }
 
 export function decideIdle(input: IdleInput): IdleAction {
@@ -64,7 +76,7 @@ export function decideIdle(input: IdleInput): IdleAction {
   if (input.busy) {
     return "none";
   }
-  if (input.outdated === true) {
+  if (input.outdated === true || input.routineFire === true) {
     return "suspend";
   }
   const idleMs = input.now.getTime() - input.lastActiveAt.getTime();

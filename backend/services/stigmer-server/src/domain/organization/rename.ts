@@ -31,7 +31,7 @@ import { internalError, notFoundError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { setAuditFieldsForUpdate } from "../../pipeline/steps/defaults.js";
-import { moveName } from "../../pipeline/steps/rename.js";
+import { commitMovedName, moveName } from "../../pipeline/steps/rename.js";
 
 import type { RenameInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -146,9 +146,10 @@ export function newRenameOrganizationSlugStep(
 
 /**
  * Writes the new slug and the spec audit (event "renamed") onto the live
- * organization row, inside the store's atomic write. When the write fails,
- * the names move back (the module header says why a failed move back is
- * safe). The written row is the chain's answer.
+ * organization row, inside the store's atomic write. When the write lands,
+ * the move commits (commitMovedName); when it fails, the names move back
+ * (the module header says why a failed move back is safe). The written row
+ * is the chain's answer.
  */
 export function newPersistRenamedOrganizationStep(
   store: Store,
@@ -199,6 +200,7 @@ export function newPersistRenamedOrganizationStep(
         throw internalError(error, "failed to save organization");
       }
       ctx.set(RENAMED_ORGANIZATION_KEY, organization);
+      await commitMovedName(store, move, undo, logger);
       await settleOrganizationSlug(store, organization, logger);
     },
   };

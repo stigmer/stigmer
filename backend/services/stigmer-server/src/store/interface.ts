@@ -363,8 +363,8 @@ export interface ResourceNameRename {
   readonly from: string;
   readonly to: string;
   /**
-   * When the names this rename demotes stop resolving; "" holds them for
-   * good.
+   * When the names this rename demotes stop resolving once it commits
+   * (`commitRename`); "" holds them for good.
    */
   readonly fromExpiresAt: string;
   /** RFC-3339 now, the instant expiry is judged against. */
@@ -388,6 +388,16 @@ export interface ResourceNameRename {
  * Expiry is lazy: an expired previous name is ignored by `resolve` and
  * removed by the write that takes it, so nothing sweeps. Every time is
  * passed in as an RFC-3339 string, so a caller (and a test) decides "now".
+ *
+ * A rename is two steps, because the store has no transaction across this
+ * table and the rows (pipeline/steps/rename.ts says why): `rename` moves
+ * the names, then the caller writes its row. Every won rename then ends in
+ * exactly one of `commitRename`, after its row write lands, or
+ * `revertRename`, after it fails. Until then the names it demoted are held
+ * provisionally (resource-names.ts `provisionalHoldOf`), so none of them,
+ * its old name included, can be taken by another resource while the row
+ * still names it (#2926); a rename whose process died between the steps
+ * lets them go after `UNCOMMITTED_RENAME_HOLD_MS`.
  */
 export interface ResourceNameStore {
   /** The name's live entry at `now` (current, or previous and unexpired), or undefined when nothing holds it. */
@@ -412,13 +422,28 @@ export interface ResourceNameStore {
    * Moves `id`'s current name from `from` to `to` in one transaction: `to`
    * becomes current (taken fresh, or taken back when it is one of `id`'s
    * own previous names) and every other current name of `id`, `from`
-   * included, becomes previous until `fromExpiresAt`, so `id` is left with
-   * exactly one current name however renames interleave. Lost, with
-   * nothing changed, when another resource holds `to`. A won outcome lists
-   * what it changed (`ResourceNameUndo`), reported by the write that
-   * changed it.
+   * included, becomes previous, so `id` is left with exactly one current
+   * name however renames interleave. Each demoted name is stamped with the
+   * provisional hold (`provisionalHoldOf`): `fromExpiresAt` itself when that
+   * is "" or at least `UNCOMMITTED_RENAME_HOLD_MS` away, otherwise that
+   * long, until `commitRename` applies `fromExpiresAt` or `revertRename`
+   * restores it. Lost, with nothing changed, when another resource holds
+   * `to`. A won outcome lists what it changed (`ResourceNameUndo`),
+   * reported by the write that changed it.
    */
   rename(rename: ResourceNameRename): Promise<ResourceNameRenamed>;
+  /**
+   * Ends a rename whose resource write landed, with the rename's won
+   * outcome as `undo`: each `undo.demoted` name whose row is still as this
+   * rename left it (`id`'s, previous, stamped `now` and the provisional
+   * hold) takes the caller's own `fromExpiresAt`, so an old name the caller
+   * frees at once is free from here. A name a later rename took back or
+   * restamped is left as it is, as `revertRename` leaves it. One at a time
+   * with the resource's renames; idempotent. It changes nothing when the
+   * provisional hold is `fromExpiresAt`, nor after `revertRename` restored
+   * the names, which are then current again.
+   */
+  commitRename(rename: ResourceNameRename, undo: ResourceNameUndo): Promise<void>;
   /**
    * Undoes a rename whose resource write failed, with the rename's won
    * outcome as `undo`, so the table is left as if the rename never ran
@@ -428,16 +453,16 @@ export interface ResourceNameStore {
    *    `undo.takenBack` stood.
    * 2. When `id` then holds no current name, each `undo.demoted` name whose
    *    row is still as this rename left it (`id`'s, previous, stamped
-   *    `now` and `fromExpiresAt`) gets its earlier state back. A name a
-   *    later rename restamped, or another resource took since, is left as
+   *    `now` and the provisional hold) gets its earlier state back. A name
+   *    a later rename restamped, or another resource took since, is left as
    *    it is.
    * 3. When `id` still holds no current name, `from` is made current, the
    *    last resort that keeps a live resource named.
    *
    * A name another rename made current since stays current: steps 2 and 3
    * run only when `id` holds none. Idempotent. Between the rename and its
-   * undo the names it demoted are previous names, and free at once under
-   * an immediate expiry; that window is #2926.
+   * undo the names it demoted are provisionally held, so no other resource
+   * takes one before it is restored (#2926).
    */
   revertRename(rename: ResourceNameRename, undo: ResourceNameUndo): Promise<void>;
   /**

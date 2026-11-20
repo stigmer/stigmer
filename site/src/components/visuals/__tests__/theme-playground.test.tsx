@@ -10,7 +10,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { THEME_PRESETS } from "@stigmer/design-tokens";
 import { LIVE_CAPTION, LIVE_READY_MESSAGE, LIVE_THEME_MESSAGE } from "@/lib/live";
-import { CODE_HIGHLIGHT, CODE_VIEWPORT } from "@/lib/code-highlight";
+import { CODE_HIGHLIGHT } from "@/lib/code-highlight";
+import { SCROLL_REGION } from "@/lib/scroll-region";
 import { ThemePlayground } from "../ThemePlayground";
 
 /** The props each code block was last drawn with, by its title. */
@@ -91,7 +92,7 @@ describe("ThemePlayground", () => {
     expect([...drawnBlocks.keys()].sort()).toEqual(["Themed.tsx", "my-theme.css"]);
     for (const block of drawnBlocks.values()) {
       expect(block.options).toBe(CODE_HIGHLIGHT);
-      expect(block.codeblock?.viewportProps).toBe(CODE_VIEWPORT);
+      expect(block.codeblock?.viewportProps).toBe(SCROLL_REGION);
     }
   });
 

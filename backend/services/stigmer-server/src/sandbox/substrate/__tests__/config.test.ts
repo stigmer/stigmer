@@ -1,6 +1,10 @@
 /**
  * Pins the substrate driver's settings (config.ts): the required values,
- * the defaults (one idle window, 300 s), the router's CA, server name and
+ * the defaults (one idle window, 300 s; each sandbox 2 CPU and 2 GiB), each
+ * sandbox's size read from its setting and refused when it is not a
+ * positive whole number within Substrate's bound (a CPU of 0 refused with
+ * Substrate's own reason, since its field's "0 means none" does not hold
+ * for a template), the router's CA, server name and
  * client certificate (only for an https:// router), the parsing of the
  * selector and the extra destinations, the platform HTTPS hosts
  * (EGRESS_HTTPS_PLATFORM, parseHosts: lower-cased, each once, a scheme,
@@ -36,6 +40,8 @@ describe("newSubstrateSettingsFromEnv", () => {
       platformHttpsHosts: [],
       suspendAfterSeconds: 300,
       sweepIntervalSeconds: 30,
+      cpuMillicores: 2000,
+      memoryMib: 2048,
     });
   });
 
@@ -156,6 +162,58 @@ describe("newSubstrateSettingsFromEnv", () => {
         STIGMER_SANDBOX_SUBSTRATE_SUSPEND_AFTER_SECONDS: "1.5",
       }),
     ).toThrow(/positive whole number/);
+  });
+});
+
+describe("each sandbox's size (CPU_MILLICORES, MEMORY_MIB)", () => {
+  it("reads a set value of each", () => {
+    expect(
+      newSubstrateSettingsFromEnv({
+        ...base,
+        STIGMER_SANDBOX_SUBSTRATE_CPU_MILLICORES: " 1000 ",
+        STIGMER_SANDBOX_SUBSTRATE_MEMORY_MIB: "1024",
+      }),
+    ).toMatchObject({ cpuMillicores: 1000, memoryMib: 1024 });
+    expect(
+      newSubstrateSettingsFromEnv({
+        ...base,
+        STIGMER_SANDBOX_SUBSTRATE_CPU_MILLICORES: "999999",
+      }).cpuMillicores,
+    ).toBe(999_999);
+  });
+
+  it("refuses a CPU of 0 with Substrate's reason, whatever its spelling", () => {
+    for (const zero of ["0", "00", "-0"]) {
+      expect(() =>
+        newSubstrateSettingsFromEnv({
+          ...base,
+          STIGMER_SANDBOX_SUBSTRATE_CPU_MILLICORES: zero,
+        }),
+      ).toThrow(
+        new RegExp(
+          `STIGMER_SANDBOX_SUBSTRATE_CPU_MILLICORES must not be 0: Substrate requires a CPU limit on every sandbox; got ${zero}$`,
+        ),
+      );
+    }
+  });
+
+  it.each([
+    ["CPU_MILLICORES", "-500", /CPU_MILLICORES must be a positive whole number of millicores; got -500$/],
+    ["CPU_MILLICORES", "1.5", /CPU_MILLICORES must be a positive whole number of millicores; got 1\.5$/],
+    ["CPU_MILLICORES", "1 core", /CPU_MILLICORES must be a positive whole number of millicores; got 1 core$/],
+    ["CPU_MILLICORES", "1000000", /CPU_MILLICORES must be at most 999999 millicores; got 1000000$/],
+    ["MEMORY_MIB", "0", /MEMORY_MIB must be a positive whole number of MiB; got 0$/],
+    ["MEMORY_MIB", "-1", /MEMORY_MIB must be a positive whole number of MiB; got -1$/],
+    ["MEMORY_MIB", "0.5", /MEMORY_MIB must be a positive whole number of MiB; got 0\.5$/],
+    ["MEMORY_MIB", "1Gi", /MEMORY_MIB must be a positive whole number of MiB; got 1Gi$/],
+    ["MEMORY_MIB", "8589934592", /MEMORY_MIB must be at most 8589934591 MiB; got 8589934592$/],
+  ])("refuses %s=%s, naming the variable", (name, value, message) => {
+    expect(() =>
+      newSubstrateSettingsFromEnv({
+        ...base,
+        [`STIGMER_SANDBOX_SUBSTRATE_${name}`]: value,
+      }),
+    ).toThrow(message);
   });
 });
 

@@ -28,7 +28,11 @@
  *     it; a run stamped inside the look-back before one already seen is
  *     caught, and an ended run is decoded once, until a by-id read
  *     finds it active again; a held run that cannot be read sends it to
- *     the full read; an entry untouched for ten minutes is dropped.
+ *     the full read; an entry untouched for ten minutes is dropped;
+ *   - every answer also says whether a run is parked (live, not working)
+ *     and whether a routine's fire started the session, from its
+ *     server-written routine and never a client's label, read once per
+ *     entry; a read that fails counts as not a fire and is tried again.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -137,6 +141,8 @@ describe("activity(sessionId)", () => {
       expect({ phase, ...(await reader.activity("ses_a")) }).toEqual({
         phase,
         busy: false,
+        parked: true,
+        routineFire: false,
         lastActiveAt: new Date("2026-10-01T09:00:00Z"),
       });
     }
@@ -169,6 +175,8 @@ describe("activity(sessionId)", () => {
     const reader = newStoreSessionActivityReader(store, silentLogger, NOW);
     expect(await reader.activity("ses_a")).toEqual({
       busy: false,
+      parked: false,
+      routineFire: false,
       lastActiveAt: new Date("2026-10-03T10:07:30Z"),
     });
   });
@@ -177,8 +185,80 @@ describe("activity(sessionId)", () => {
     const reader = newStoreSessionActivityReader(store, silentLogger, NOW);
     expect(await reader.activity("ses_none")).toEqual({
       busy: false,
+      parked: false,
+      routineFire: false,
       lastActiveAt: undefined,
     });
+  });
+});
+
+describe("what else every answer says", () => {
+  async function session(id: string, fields: { routineId?: string; labels?: Record<string, string> }) {
+    await store.saveResource(
+      ApiResourceKind.session,
+      id,
+      SessionSchema,
+      create(SessionSchema, {
+        metadata: { id, name: id, org: "org-a", labels: fields.labels ?? {} },
+        ...(fields.routineId !== undefined ? { status: { routineId: fields.routineId } } : {}),
+      }),
+    );
+  }
+
+  it("parked: a live run that is not working, beside a working one or alone", async () => {
+    await save(
+      execution("run_1", "ses_a", RunPhase.RUN_WAITING_FOR_APPROVAL, new Date("2026-10-03T12:00:00Z")),
+      execution("run_2", "ses_b", RunPhase.RUN_IN_PROGRESS, new Date("2026-10-03T12:00:00Z")),
+      execution("run_3", "ses_c", RunPhase.RUN_COMPLETED, new Date("2026-10-03T12:00:00Z"), new Date("2026-10-03T12:01:00Z")),
+    );
+    const reader = newStoreSessionActivityReader(store, silentLogger, NOW);
+    expect((await reader.activity("ses_a")).parked).toBe(true);
+    expect((await reader.activity("ses_b")).parked, "working, not parked").toBe(false);
+    expect((await reader.activity("ses_c")).parked, "ended, not parked").toBe(false);
+    expect((await reader.recentActivity("ses_a")).parked, "the cheap read says so too").toBe(true);
+  });
+
+  it("routineFire: the session's server-written routine, never a client's label", async () => {
+    await session("ses_fired", { routineId: "rtn_1" });
+    await session("ses_labelled", { labels: { routine: "rtn_1" } });
+    await session("ses_plain", {});
+    const reader = newStoreSessionActivityReader(store, silentLogger, NOW);
+    expect((await reader.activity("ses_fired")).routineFire).toBe(true);
+    expect((await reader.recentActivity("ses_fired")).routineFire).toBe(true);
+    expect((await reader.activity("ses_labelled")).routineFire).toBe(false);
+    expect((await reader.activity("ses_plain")).routineFire).toBe(false);
+    expect((await reader.activity("ses_gone")).routineFire, "no session: not a fire").toBe(false);
+  });
+
+  it("reads the session once per entry; a read that fails counts as not a fire, warns, and is tried again", async () => {
+    await session("ses_fired", { routineId: "rtn_1" });
+    const warnings: string[] = [];
+    const logger = createLogger({ level: "warn", pretty: false, write: () => {}, sink: (entry) => warnings.push(entry.message) });
+    let sessionReads = 0;
+    let fail = true;
+    const counted = new Proxy(store, {
+      get(target, prop, receiver) {
+        if (prop === "getResource") {
+          return (...args: Parameters<Store["getResource"]>) => {
+            if (args[0] === ApiResourceKind.session) {
+              sessionReads += 1;
+              if (fail) return Promise.reject(new Error("connection reset"));
+            }
+            return target.getResource(...args);
+          };
+        }
+        return Reflect.get(target, prop, receiver) as unknown;
+      },
+    });
+    const reader = newStoreSessionActivityReader(counted, logger, NOW);
+    expect((await reader.activity("ses_fired")).routineFire).toBe(false);
+    expect(warnings).toContain("Failed to read a session's routine; its sandbox keeps the ordinary idle window");
+    fail = false;
+    expect((await reader.activity("ses_fired")).routineFire).toBe(true);
+    const after = sessionReads;
+    await reader.activity("ses_fired");
+    await reader.recentActivity("ses_fired");
+    expect(sessionReads - after, "known once read").toBe(0);
   });
 });
 
@@ -234,7 +314,12 @@ describe("sessionActivityOf", () => {
         ],
         NOW(),
       ),
-    ).toEqual({ busy: false, lastActiveAt: new Date("2026-10-03T08:00:00Z") });
+    ).toEqual({
+      busy: false,
+      lastActiveAt: new Date("2026-10-03T08:00:00Z"),
+      parked: false,
+      routineFire: false,
+    });
   });
 });
 
@@ -354,7 +439,9 @@ describe("recentActivity(sessionId)", () => {
         }
         if (prop === "getResource") {
           return (...args: Parameters<Store["getResource"]>) => {
-            counts.byId += 1;
+            // Executions read by id; the session's own point read for its
+            // routine is pinned on its own.
+            if (args[0] === ApiResourceKind.run) counts.byId += 1;
             return target.getResource(...args);
           };
         }
@@ -639,6 +726,8 @@ describe("recentActivity(sessionId)", () => {
     r.advance(PASS_MS);
     expect(await r.reader.recentActivity("ses_a")).toEqual({
       busy: false,
+      parked: false,
+      routineFire: false,
       lastActiveAt: at(-60 * 60_000 + 19 * 60_000 + 30_000),
     });
   });
@@ -777,6 +866,8 @@ describe("recentActivity(sessionId)", () => {
     r.corrupt.add("run_1");
     expect(await r.reader.recentActivity("ses_a")).toEqual({
       busy: true,
+      parked: false,
+      routineFire: false,
       lastActiveAt: at(20_000),
     });
     expect(r.warnings).toEqual([]);
@@ -924,6 +1015,8 @@ describe("recentActivity(sessionId)", () => {
     r.corrupt.add("run_2");
     expect(await r.reader.recentActivity("ses_a")).toEqual({
       busy: false,
+      parked: false,
+      routineFire: false,
       lastActiveAt: at(-59 * 60_000),
     });
     expect(r.warnings).toEqual(["Failed to unmarshal execution, skipping"]);
@@ -945,6 +1038,8 @@ describe("recentActivity(sessionId)", () => {
     // The full read skips the row it cannot decode, as it always has.
     expect(await r.reader.recentActivity("ses_a")).toEqual({
       busy: false,
+      parked: false,
+      routineFire: false,
       lastActiveAt: undefined,
     });
     expect(r.warnings).toContain("Failed to unmarshal execution, skipping");

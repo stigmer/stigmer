@@ -4,12 +4,14 @@
  * table (`ComposedServices.resourceNames`) as those lanes meet it. It
  * claims, resolves and releases as `@stigmer/server`'s store contract pins
  * for a current name, and renames as it pins a rename: the new name
- * current, every other current name of the id previous until the move's
- * `fromExpiresAt`, a held name refused, an id's own previous name taken
- * back, and a revert restoring the name it took back and, when the id
- * then holds no current name, the names it pushed aside that are still as
- * it left them, else `from`. An expired previous name resolves to nothing
- * and is free. The composed suites run the real table.
+ * current, every other current name of the id previous under the move's
+ * provisional hold (`provisionalHoldOf`), a held name refused, an id's own
+ * previous name taken back, a commit stamping the names it pushed aside
+ * that are still as it left them with the move's `fromExpiresAt`, and a
+ * revert restoring the name it took back and, when the id then holds no
+ * current name, the names it pushed aside that are still as it left them,
+ * else `from`. An expired previous name resolves to nothing and is free.
+ * The composed suites run the real table.
  *
  * `rowsHold`, when given, makes every row a rig stores hold its name, as
  * the backfill and every create chain make it on a server: a name nobody
@@ -17,6 +19,7 @@
  * `nameOrganization` gives an organization id its slug, as an
  * organization's create does, for copy that names the organization.
  */
+import { provisionalHoldOf } from "@stigmer/server";
 import type {
   NameTable,
   ResourceNameEntry,
@@ -90,12 +93,26 @@ export function inMemoryNames(
           entry.state === "current" && entry.name !== move.to
         ) {
           demoted.push(entry);
-          entries.set(key, { ...entry, state: "previous", claimedAt: move.now, expiresAt: move.fromExpiresAt });
+          entries.set(key, { ...entry, state: "previous", claimedAt: move.now, expiresAt: provisionalHoldOf(move) });
         }
       }
       const entry: ResourceNameEntry = { ...toKey, id: move.id, state: "current", claimedAt: move.now, expiresAt: "" };
       entries.set(keyOf(toKey), entry);
       return takenBack === undefined ? { claimed: true, entry, demoted } : { claimed: true, entry, takenBack, demoted };
+    },
+    commitRename: (move, undo) => {
+      const provisional = provisionalHoldOf(move);
+      for (const before of undo.demoted) {
+        const name = keyOf(before);
+        const now = entries.get(name);
+        if (
+          now?.id === move.id && now.state === "previous" &&
+          now.claimedAt === move.now && now.expiresAt === provisional
+        ) {
+          entries.set(name, { ...now, expiresAt: move.fromExpiresAt });
+        }
+      }
+      return Promise.resolve();
     },
     revertRename: (move, undo) => {
       const toKey = keyOf({ kind: move.kind, org: move.org, name: move.to });
@@ -116,7 +133,7 @@ export function inMemoryNames(
           const now = entries.get(name);
           if (
             now?.id === move.id && now.state === "previous" &&
-            now.claimedAt === move.now && now.expiresAt === move.fromExpiresAt
+            now.claimedAt === move.now && now.expiresAt === provisionalHoldOf(move)
           ) {
             entries.set(name, before);
           }

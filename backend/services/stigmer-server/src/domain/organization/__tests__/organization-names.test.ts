@@ -23,8 +23,10 @@
  *
  * And, over store doubles, the two failure paths: the release a failed
  * create runs (it frees the claim only when the organization was never
- * stored, and every fault leaves the name claimed), and the move back a
- * rename whose row write fails runs. Also over doubles, the arms a composed
+ * stored, and every fault leaves the name claimed), the move back a
+ * rename whose row write fails runs, never a commit, and the commit a
+ * rename whose row write lands runs, with the move's outcome, before the
+ * row settles (#2926). Also over doubles, the arms a composed
  * server does not reach in order: when a name's holder counts as gone, the
  * claim and release steps' server faults, and the organization loaders'
  * answers for an id or slug no row holds and for a store fault.
@@ -678,9 +680,68 @@ describe("a rename whose row write fails", () => {
     return ctx;
   }
 
+  it("commits the move with its outcome once the row write lands, never moving it back", async () => {
+    const calls: string[] = [];
+    const commits: Array<[ResourceNameRename, ResourceNameUndo]> = [];
+    const pushedAside: ResourceNameEntry = {
+      ...organizationNameKey("acme"),
+      id: "org_01jaaaaaaaaaaaaaaaaaaaaaaa",
+      state: "current",
+      claimedAt: "2026-09-02T00:00:00.000Z",
+      expiresAt: "",
+    };
+    const store = {
+      resourceNames: {
+        current: async (_kind: string, _org: string, id: string) => {
+          calls.push("current");
+          return calls.includes("commitRename")
+            ? { ...organizationNameKey("acme-corp"), id, state: "current", claimedAt: "", expiresAt: "" }
+            : undefined;
+        },
+        rename: async (move: ResourceNameRename) => ({
+          claimed: true,
+          entry: { ...organizationNameKey(move.to), id: move.id, state: "current", claimedAt: move.now, expiresAt: "" },
+          demoted: [pushedAside],
+        }),
+        commitRename: async (move: ResourceNameRename, undo: ResourceNameUndo) => {
+          calls.push("commitRename");
+          commits.push([move, undo]);
+        },
+        revertRename: async () => {
+          calls.push("revertRename");
+        },
+      },
+      updateResource: async (
+        _kind: unknown,
+        _id: string,
+        _schema: unknown,
+        modify: (row: Organization) => void,
+      ) => {
+        const row = create(OrganizationSchema, {
+          metadata: { id: "org_01jaaaaaaaaaaaaaaaaaaaaaaa", slug: "acme" },
+        });
+        modify(row);
+        return row;
+      },
+    } as unknown as Store;
+    const logger = { error: () => {}, warn: () => {}, info: () => {}, debug: () => {} } as unknown as Logger;
+
+    const ctx = renameRequest();
+    await newRenameOrganizationSlugStep(store).execute(ctx);
+    await newPersistRenamedOrganizationStep(store, logger).execute(ctx);
+    expect(commits).toEqual([
+      [expect.objectContaining({ from: "acme", to: "acme-corp" }), expect.objectContaining({ demoted: [pushedAside] })],
+    ]);
+    expect(calls.slice(1), "committed before the row settles, and never moved back").toEqual([
+      "commitRename",
+      "current",
+    ]);
+  });
+
   it("moves the names back and fails; a failed move back is logged and the write's error stands", async () => {
     const moves: ResourceNameRename[] = [];
     const reverts: ResourceNameRename[] = [];
+    const commits: ResourceNameRename[] = [];
     let revertFails = false;
     const store = {
       resourceNames: {
@@ -698,6 +759,9 @@ describe("a rename whose row write fails", () => {
             throw new Error("database locked");
           }
           reverts.push(move);
+        },
+        commitRename: async (move: ResourceNameRename) => {
+          commits.push(move);
         },
       },
       saveResource: async () => {
@@ -720,6 +784,7 @@ describe("a rename whose row write fails", () => {
     expect(moves).toHaveLength(1);
     expect(moves[0]).toMatchObject({ from: "acme", to: "acme-corp" });
     expect(reverts).toEqual(moves);
+    expect(commits, "a move that is moved back never commits").toEqual([]);
 
     revertFails = true;
     const again = renameRequest();
@@ -757,6 +822,9 @@ describe("a rename whose row write fails", () => {
         }),
         revertRename: async (_move: ResourceNameRename, undo: ResourceNameUndo) => {
           reverts.push(undo);
+        },
+        commitRename: async () => {
+          throw new Error("a move that is moved back never commits");
         },
       },
       saveResource: async () => {
