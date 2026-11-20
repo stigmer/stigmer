@@ -10,6 +10,9 @@
  *     settings' CPU and memory in Substrate's integer units, and snapshots
  *     volumes only, its golden snapshot on (a suspend keeps the workspace,
  *     never the runner's memory);
+ *   - the agent's home is a durable volume of its own, named as the
+ *     agent-sandbox driver names its claim, so a sleep keeps the agent's
+ *     conversation and outputs as well as its workspace (stigmer#3349);
  *   - at the default settings its limits are exactly the 2 CPU and 2 GiB
  *     the template carried before they were settings, so an upgrade that
  *     sets neither keeps its template and its awake sandboxes; a changed
@@ -47,6 +50,7 @@ import { describe, expect, it } from "vitest";
 import { createLogger } from "../../../boot/logger.js";
 import type { SandboxDriverConfig } from "../../provisioner.js";
 import {
+  AGENT_HOME,
   RUNNER_CAPABILITIES,
   RUNNER_HOME,
   SERVER_RELEASE_ENV,
@@ -127,6 +131,18 @@ function envOf(
   );
 }
 
+/** A template's volume by its name, never by its place in the list. */
+function volumeNamed(
+  template: ReturnType<typeof buildRunnerTemplate>,
+  name: string,
+): (typeof template.volumes)[number] {
+  const volume = template.volumes.find((v) => v.name === name);
+  if (volume === undefined) {
+    throw new Error(`the template has no volume named ${name}`);
+  }
+  return volume;
+}
+
 describe("the template", () => {
   it("runs the waiter behind its probe with plain per-target settings only", () => {
     const template = buildRunnerTemplate({
@@ -177,9 +193,10 @@ describe("the template", () => {
     });
     expect(template.volumes.map((v) => v.name)).toEqual([
       "workspace",
+      "agent-home",
       "system-info",
     ]);
-    expect(template.volumes[1]?.systemInfo?.dataSources).toEqual([
+    expect(volumeNamed(template, "system-info").systemInfo?.dataSources).toEqual([
       expect.objectContaining({
         actorMetadata: expect.objectContaining({
           items: [
@@ -207,6 +224,26 @@ describe("the template", () => {
       cpuMillicores: 2000n,
       memoryBytes: 2147483648n,
     });
+  });
+
+  it("keeps the agent's home on a durable volume of its own, at the agent's home", () => {
+    // Without it, the agent's outputs, its set-aside context and (with a
+    // local runner) its conversation are gone after a sleep (stigmer#3349).
+    const template = buildRunnerTemplate({
+      config,
+      settings,
+      runnerMode: "local",
+    });
+    const home = volumeNamed(template, "agent-home");
+    expect(home.durableDir).toBeDefined();
+    expect(volumeNamed(template, "workspace").durableDir).toBeDefined();
+    expect(template.containers[0]?.volumeMounts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "workspace", mountPath: "/workspace" }),
+        expect.objectContaining({ name: "agent-home", mountPath: AGENT_HOME }),
+      ]),
+    );
+    expect(AGENT_HOME).toBe("/home/stigmer-agent");
   });
 
   it("limits each sandbox to the settings' CPU and memory", () => {
@@ -250,7 +287,8 @@ describe("the template", () => {
       runnerMode: "local",
     });
     expect(
-      template.volumes[1]?.systemInfo?.dataSources[0]?.trustBundle,
+      volumeNamed(template, "system-info").systemInfo?.dataSources[0]
+        ?.trustBundle,
     ).toMatchObject({
       names: ["egress-mitm.ate.dev"],
       path: "trust-bundle.pem",

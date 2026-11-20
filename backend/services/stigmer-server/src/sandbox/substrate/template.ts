@@ -15,12 +15,29 @@
  * snapshot the moment the waiter listens.
  *
  * The template captures volumes only (`preferred_fidelity: VOLUMES`): a
- * suspend keeps the workspace on the actor's node and Substrate copies it
- * to storage in the background, and the next wake, from the node or from
- * storage, boots the waiter fresh from the image over it. Memory would
- * bring a suspended runner back with the secrets it slept with
- * (driver.ts); the golden snapshot is always memory, so a new actor still
- * starts from the waiter's.
+ * suspend keeps its two durable volumes on the actor's node and Substrate
+ * copies them to storage in the background, and the next wake, from the
+ * node or from storage, boots the waiter fresh from the image over them.
+ * Memory would bring a suspended runner back with the secrets it slept
+ * with (driver.ts); the golden snapshot is always memory, so a new actor
+ * still starts from the waiter's. Everything else the image holds starts
+ * over at each wake.
+ *
+ * The two kept volumes are the agent-sandbox driver's two claims
+ * (agent-sandbox/manifest.ts): `workspace` at `/workspace`, and
+ * `agent-home` at the agent's home, where the Session's agent state lives
+ * (the Stigmer harness's checkpoints when kept on disk, the Claude
+ * engine's transcripts, the platform folder with the agent's outputs and
+ * its set-aside context), so a sleep keeps the agent's memory as well as
+ * its files (stigmer#3349). The home is its own volume, not a folder of
+ * the workspace: a Session that clones its repository in place works at
+ * `/workspace` itself, where any other folder would show in the person's
+ * tree. The volume starts empty, and the runner makes the home the agent's
+ * at every boot (the runner's src/shared/agent-handover.ts). Substrate
+ * moves a sleeping actor to a new template only when the two have the
+ * same volumes and mounts, so a sandbox made before the home volume was
+ * added is refused by the move and its conversation ends (driver.ts,
+ * SandboxNotCarriedError).
  *
  * The template is named by its content: `stigmer-runner-<12 hex of the
  * SHA-256 of its encoding and of the configuration's egress rules>`.
@@ -76,6 +93,7 @@ import { create, toBinary } from "@bufbuild/protobuf";
 import type { SandboxDriverConfig } from "../provisioner.js";
 import { temporalAddressThroughServer } from "../../transport/temporal-worker-door/address.js";
 import {
+  AGENT_HOME,
   RUNNER_CAPABILITIES,
   RUNNER_HOME,
   SERVER_RELEASE_ENV,
@@ -98,6 +116,8 @@ import type { SubstrateGateway } from "./gateway.js";
 const WAITER_PORT = 80;
 /** The workspace mount, the same path every driver gives the runner. */
 const WORKSPACE_MOUNT_PATH = "/workspace";
+/** The agent's home's volume, named as agent-sandbox names its claim; mounted at AGENT_HOME. */
+const AGENT_HOME_VOLUME = "agent-home";
 /** Where the actor's own name is projected; the waiter reads it on every push. */
 const SYSTEM_INFO_MOUNT_PATH = "/run/ate";
 const ACTOR_NAME_FILE = "actor-name";
@@ -185,12 +205,14 @@ export function buildRunnerTemplate(input: RunnerTemplateInput): ActorTemplate {
         wakeupProbe: { httpGet: { path: "/readyz", port: WAITER_PORT } },
         volumeMounts: [
           { name: "workspace", mountPath: WORKSPACE_MOUNT_PATH },
+          { name: AGENT_HOME_VOLUME, mountPath: AGENT_HOME },
           { name: "system-info", mountPath: SYSTEM_INFO_MOUNT_PATH },
         ],
       },
     ],
     volumes: [
       { name: "workspace", durableDir: {} },
+      { name: AGENT_HOME_VOLUME, durableDir: {} },
       {
         name: "system-info",
         systemInfo: {
@@ -225,7 +247,7 @@ export function buildRunnerTemplate(input: RunnerTemplateInput): ActorTemplate {
       },
     },
     snapshotConfig: {
-      // The workspace only (module header). No storage location: Substrate
+      // The durable volumes only (module header). No storage location: Substrate
       // stores every snapshot under its API server's --snapshot-location.
       preferredFidelity: SnapshotFidelity.VOLUMES,
       goldenSnapshotConfig: { mode: GoldenSnapshotMode.ENABLED },
