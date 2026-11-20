@@ -1800,11 +1800,12 @@ export function describeStoreContract(
     });
 
     it("an undone rename that lost the race restores the winner's name, which nobody else can take (#2764)", async () => {
-      // A service account's move: its old name is free at once.
+      // A service account's move: its old name is free once the move
+      // commits. A's row write lands and A commits.
       await names().claim(key("deploy-bot"), "org_a", T0);
       const a = { ...ORG, id: "org_a", from: "deploy-bot", to: "ci-bot", fromExpiresAt: T1, now: T1 };
       const b = { ...ORG, id: "org_a", from: "deploy-bot", to: "build-bot", fromExpiresAt: T1, now: T1 };
-      await won(a);
+      await names().commitRename(a, await won(a));
       // B read `deploy-bot` too; its table move lands after A's, then its
       // row write loses to A's and B is undone.
       const undoB = await won(b);
@@ -1813,7 +1814,7 @@ export function describeStoreContract(
       expect(await names().current("organization", "", "org_a")).toEqual({
         ...key("ci-bot"), id: "org_a", state: "current", claimedAt: T1, expiresAt: "",
       });
-      expect(await names().resolve(key("deploy-bot"), T2), "the old name stays free, as A left it").toBeUndefined();
+      expect(await names().resolve(key("deploy-bot"), T1), "the old name stays free, as A's commit left it").toBeUndefined();
       expect(await names().resolve(key("build-bot"), T1)).toBeUndefined();
       const stolen = await names().claim(key("ci-bot"), "org_b", T2);
       expect(stolen.claimed, "the winner's name stays its own").toBe(false);
