@@ -1,8 +1,8 @@
 /**
  * The substrate sandbox driver: every sandbox is an Agent Substrate actor,
- * a gVisor sandbox that can be suspended (stopped, its workspace kept on
- * its node and copied to storage in the background) and resumed with its
- * files, from its node or, once the node is gone, from storage. A
+ * a gVisor sandbox that can be suspended (stopped, its workspace and the
+ * agent's home kept on its node and copied to storage in the background;
+ * template.ts) and resumed with its files, from its node or, once the node is gone, from storage. A
  * session's sandbox therefore sleeps while the session is idle and wakes
  * when the next turn arrives.
  *

@@ -11,8 +11,8 @@
  *     sleeps like an idle session, and the run workflow asks for the
  *     sandbox again before the turn carries on (stigmer#3122).
  *   - running and idle for `suspendAfter`: suspend (the sandbox stopped,
- *     its workspace kept on its node and copied to storage in the
- *     background; the next wakeup starts a fresh runner over it, on its
+ *     its workspace and the agent's home kept on its node and copied to
+ *     storage in the background; the next wakeup starts a fresh runner over it, on its
  *     node or, once that is gone, on any worker).
  *   - Every other state is mid-transition or already asleep: nothing.
  *
