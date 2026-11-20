@@ -139,10 +139,28 @@ func Edition(st *stigmerv1.Stigmer) string {
 	return "open source"
 }
 
+// BundledIdentity reports whether the operator runs the bundled sign-in:
+// declared, or brought by a front door that does not say on purpose that it
+// signs nobody in.
+func BundledIdentity(st *stigmerv1.Stigmer) bool {
+	if st.Spec.Identity != nil {
+		return st.Spec.Identity.Bundled != nil
+	}
+	return st.Spec.Ingress != nil && !st.Spec.Server.AllowUnauthenticatedExposure
+}
+
 // SignInOn reports whether the server signs callers in.
 func SignInOn(st *stigmerv1.Stigmer) bool {
-	return st.Spec.Identity != nil && st.Spec.Identity.OIDC != nil
+	return BundledIdentity(st) || (st.Spec.Identity != nil && st.Spec.Identity.OIDC != nil)
 }
+
+// RunnerKeySecret holds the shared runner's API key under sign-in. The
+// server stores the same key as its runner service account's at boot, so a
+// lost Secret only means a new key on the next start.
+func RunnerKeySecret(st *stigmerv1.Stigmer) string { return st.Name + "-runner-key" }
+
+// RunnerKeyKey is the runner key Secret's one key.
+const RunnerKeyKey = "STIGMER_TOKEN"
 
 // registry is the declared registry, or Stigmer's own.
 func registry(st *stigmerv1.Stigmer) string {
@@ -164,6 +182,63 @@ func ServerImage(st *stigmerv1.Stigmer) string {
 // RunnerImage is the shared runner's image.
 func RunnerImage(st *stigmerv1.Stigmer) string {
 	return fmt.Sprintf("%s/stigmer-runner:%s", registry(st), version.Stigmer)
+}
+
+// The front door: one hostname for the console, the API, sign-in and files.
+const (
+	// IdentityPath is where the bundled sign-in answers on the hostname.
+	IdentityPath = "/idp"
+	// ArtifactsPath is where files kept on a volume are served on the
+	// hostname (the server's ARTIFACT_DOWNLOAD_PATH_PREFIX).
+	ArtifactsPath = "/artifacts"
+)
+
+// FrontDoor is the declared front door, or nil.
+func FrontDoor(st *stigmerv1.Stigmer) *stigmerv1.IngressSpec { return st.Spec.Ingress }
+
+// PublicURL is where people reach Stigmer: the front door's https origin, or
+// the port-forward's.
+func PublicURL(st *stigmerv1.Stigmer) string {
+	fd := FrontDoor(st)
+	if fd == nil {
+		return localPublicURL
+	}
+	if fd.Port != nil && *fd.Port != 443 {
+		return fmt.Sprintf("https://%s:%d", fd.Hostname, *fd.Port)
+	}
+	return "https://" + fd.Hostname
+}
+
+// ArtifactServeURL is where files kept on a volume are downloaded from.
+func ArtifactServeURL(st *stigmerv1.Stigmer) string {
+	if FrontDoor(st) == nil {
+		return localArtifactURL
+	}
+	return PublicURL(st) + ArtifactsPath
+}
+
+// FrontDoorIngress is the Ingress for the console, the API and files.
+func FrontDoorIngress(st *stigmerv1.Stigmer) string { return st.Name }
+
+// IdentityIngress is the Ingress for the bundled sign-in's path.
+func IdentityIngress(st *stigmerv1.Stigmer) string { return st.Name + "-identity" }
+
+// FrontDoorRoute and IdentityRoute are the Gateway arm's HTTPRoutes.
+func FrontDoorRoute(st *stigmerv1.Stigmer) string { return st.Name }
+
+// IdentityRoute is the bundled sign-in's HTTPRoute.
+func IdentityRoute(st *stigmerv1.Stigmer) string { return st.Name + "-identity" }
+
+// FrontDoorCertificate is the cert-manager Certificate the operator asks for
+// when the declaration names an issuer.
+func FrontDoorCertificate(st *stigmerv1.Stigmer) string { return st.Name + "-tls" }
+
+// FrontDoorTLSSecret is the Secret holding the front door's certificate.
+func FrontDoorTLSSecret(st *stigmerv1.Stigmer) string {
+	if fd := FrontDoor(st); fd != nil && fd.TLS != nil && fd.TLS.SecretName != "" {
+		return fd.TLS.SecretName
+	}
+	return FrontDoorCertificate(st)
 }
 
 // PortForwardPorts are the ports a port-forward to the server needs: the API,

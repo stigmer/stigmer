@@ -26,7 +26,7 @@ func TestEveryReasonHasASentence(t *testing.T) {
 }
 
 func TestHealthyAndWaitingAreNotFailures(t *testing.T) {
-	for _, r := range []ComponentReason{ReasonHealthy, ReasonDeploying, ReasonWaitingForDependency, ReasonStartingUp, ReasonWaitingForSchema, ReasonRunnerKeyPending} {
+	for _, r := range []ComponentReason{ReasonHealthy, ReasonDeploying, ReasonWaitingForDependency, ReasonStartingUp, ReasonWaitingForSchema, ReasonCertificatePending, ReasonRealmConverging} {
 		if r.IsFailure() {
 			t.Errorf("%s reads as a failure; it is a wait", r)
 		}

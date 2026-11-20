@@ -15,19 +15,23 @@
 // server's newest pod runs once it serves.
 //
 // The runner has no health endpoint, so it is Ready when its container is
-// running and not restarting. Under sign-in it needs its own API key, which
-// this version cannot give it, so the container is held back and the
-// component says so.
+// running and not restarting. Under sign-in it starts signed in: the server
+// component mints the runner key Secret (an stk_ key) once, the server
+// stores it at boot as its runner service account's key, and the runner
+// presents the same value.
 
 package component
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	stigmerv1 "github.com/stigmer/stigmer/deploy/operator/api/v1"
@@ -71,6 +75,11 @@ func (Server) Reconcile(ctx context.Context, env *Env) (Result, error) {
 	}
 	if gate.hold != nil {
 		return *gate.hold, nil
+	}
+	if render.SignInOn(st) {
+		if err := ensureRunnerKey(ctx, env); err != nil {
+			return Result{}, err
+		}
 	}
 	deployment := render.ServerDeploymentObject(st)
 	deployment.Annotations = gate.annotations
@@ -139,10 +148,6 @@ func (Runner) Dependencies() []string { return []string{render.ComponentServer} 
 // Reconcile implements Component.
 func (Runner) Reconcile(ctx context.Context, env *Env) (Result, error) {
 	st := env.Stigmer
-	if !render.RunnerEnabled(st) {
-		return Pending(stigmerv1.ReasonRunnerKeyPending, nil,
-			"not started: under sign-in the shared runner needs its own API key, which this version of the operator cannot give it"), nil
-	}
 	llm := st.Spec.Runner.LLM
 	keyNote := ""
 	if llm == nil {
@@ -173,8 +178,45 @@ func (Runner) Reconcile(ctx context.Context, env *Env) (Result, error) {
 		return Result{}, err
 	}
 	if ready {
-		return Ready(fmt.Sprintf("running, serving task queue %s%s", render.RunnerTaskQueue, keyNote)), nil
+		signedIn := ""
+		if render.SignInOn(st) {
+			signedIn = ", signed in as the runner service account"
+		}
+		return Ready(fmt.Sprintf("running%s, serving task queue %s%s", signedIn, render.RunnerTaskQueue, keyNote)), nil
 	}
 	return Explain(ctx, env, render.SelectorLabels(st, render.ComponentServer), []string{render.RunnerContainer},
 		Deploying(stigmerv1.ReasonDeploying, Ref("Deployment", st.Namespace, render.ServerDeployment(st)), "waiting for the runner to start"))
+}
+
+// ensureRunnerKey mints the runner key Secret once: an stk_ key in the form
+// the server's keys take (32 random bytes, base64url without padding).
+func ensureRunnerKey(ctx context.Context, env *Env) error {
+	st := env.Stigmer
+	name := render.RunnerKeySecret(st)
+	var existing corev1.Secret
+	err := env.Reader.Get(ctx, client.ObjectKey{Namespace: st.Namespace, Name: name}, &existing)
+	if err == nil {
+		return nil
+	}
+	if !apierrors.IsNotFound(err) {
+		return fmt.Errorf("reading Secret %s: %w", name, err)
+	}
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return fmt.Errorf("reading random bytes for the runner key: %w", err)
+	}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            name,
+			Namespace:       st.Namespace,
+			Labels:          render.Labels(st, render.ComponentRunner),
+			OwnerReferences: []metav1.OwnerReference{OwnerReference(st)},
+		},
+		Type: corev1.SecretTypeOpaque,
+		Data: map[string][]byte{render.RunnerKeyKey: []byte("stk_" + base64.RawURLEncoding.EncodeToString(b))},
+	}
+	if err := env.Client.Create(ctx, secret); err != nil && !apierrors.IsAlreadyExists(err) {
+		return fmt.Errorf("creating Secret %s: %w", name, err)
+	}
+	return nil
 }

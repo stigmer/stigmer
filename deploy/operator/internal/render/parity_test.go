@@ -98,7 +98,14 @@ func profiles() map[string]*stigmerv1.Stigmer {
 		Bucket: "acme-stigmer", Region: "eu-west-1", Endpoint: "http://minio.storage:9000",
 		RunnerEndpoint: "http://minio.example:9000", CredentialsSecret: corev1.LocalObjectReference{Name: "bucket"},
 	}}
-	return map[string]*stigmerv1.Stigmer{"bundled": bundled, "byo": byo, "oidc": oidc, "enterprise": enterprise, "bucket": bucket}
+	exposed := base()
+	port := int32(30443)
+	exposed.Spec.Ingress = &stigmerv1.IngressSpec{
+		Hostname: "stigmer.example.com", Port: &port,
+		TLS: &stigmerv1.IngressTLSSpec{Issuer: &stigmerv1.IssuerReference{Name: "letsencrypt", Kind: "ClusterIssuer"}},
+	}
+	exposed.Spec.Identity = &stigmerv1.IdentitySpec{Bundled: &stigmerv1.BundledIdentitySpec{}}
+	return map[string]*stigmerv1.Stigmer{"bundled": bundled, "byo": byo, "oidc": oidc, "enterprise": enterprise, "bucket": bucket, "exposed": exposed}
 }
 
 // operatorOnly are names the operator renders that Compose does not carry,
@@ -156,6 +163,11 @@ func translate(st *stigmerv1.Stigmer, role, name, v string) string {
 		return t.HostPort
 	case "http://stigmer-server:7234":
 		return "http://localhost:7234"
+	case "http://localhost:7234":
+		// Compose's public URL default; a front door replaces it.
+		return PublicURL(st)
+	case "http://localhost:7235":
+		return ArtifactServeURL(st)
 	case "/data/.stigmer/data/artifacts":
 		return ArtifactsMount
 	}
@@ -227,9 +239,7 @@ func TestServerAndRunnerSettingsMatchCompose(t *testing.T) {
 	}
 	for name, st := range profiles() {
 		checkParity(t, name, "server", st, server.Environment, ServerEnv(st))
-		if RunnerEnabled(st) {
-			checkParity(t, name, "runner", st, runner.Environment, RunnerEnv(st))
-		}
+		checkParity(t, name, "runner", st, runner.Environment, RunnerEnv(st))
 	}
 }
 

@@ -32,17 +32,21 @@ func TestExtraEnvMayNotRepeatAnOwnedName(t *testing.T) {
 	}
 }
 
-func TestRunnerIsHeldBackUnderSignIn(t *testing.T) {
-	if !RunnerEnabled(profiles()["bundled"]) {
-		t.Error("the runner does not run without sign-in")
-	}
+func TestRunnerStartsSignedInUnderSignIn(t *testing.T) {
 	st := profiles()["oidc"]
-	if RunnerEnabled(st) {
-		t.Error("the runner runs under sign-in with no key")
-	}
 	d := ServerDeploymentObject(st)
-	if n := len(d.Spec.Template.Spec.Containers); n != 1 {
-		t.Errorf("the server's pod holds %d containers under sign-in; want the server alone", n)
+	if n := len(d.Spec.Template.Spec.Containers); n != 2 {
+		t.Fatalf("the server's pod holds %d containers under sign-in; want the server and the runner", n)
+	}
+	server, runner := envMap(ServerEnv(st)), envMap(RunnerEnv(st))
+	for name, e := range map[string]corev1.EnvVar{"server STIGMER_RUNNER_API_KEY": server["STIGMER_RUNNER_API_KEY"], "runner STIGMER_TOKEN": runner["STIGMER_TOKEN"]} {
+		if e.ValueFrom == nil || e.ValueFrom.SecretKeyRef == nil ||
+			e.ValueFrom.SecretKeyRef.Name != RunnerKeySecret(st) || e.ValueFrom.SecretKeyRef.Key != RunnerKeyKey {
+			t.Errorf("%s does not read the runner key Secret: %+v", name, e)
+		}
+	}
+	if _, ok := envMap(RunnerEnv(profiles()["bundled"]))["STIGMER_TOKEN"]; ok {
+		t.Error("the runner reads a key on an install that signs nobody in")
 	}
 }
 

@@ -78,6 +78,11 @@ func (Database) Reconcile(ctx context.Context, env *Env) (Result, error) {
 	if err := EnsureBasicAuthSecret(ctx, env, render.PostgresTemporalSecret(st), render.TemporalUser, render.ComponentDatabase); err != nil {
 		return Result{}, err
 	}
+	if render.BundledIdentity(st) {
+		if err := EnsureBasicAuthSecret(ctx, env, render.PostgresKeycloakSecret(st), render.KeycloakUser, render.ComponentDatabase); err != nil {
+			return Result{}, err
+		}
+	}
 	name := render.PostgresCluster(st)
 	ref := Ref("Cluster", st.Namespace, name)
 	existing, err := readCluster(ctx, env, name)
@@ -120,6 +125,9 @@ func (Database) Reconcile(ctx context.Context, env *Env) (Result, error) {
 		return Result{}, err
 	}
 	databases := render.TemporalDatabaseObjects(st)
+	if render.BundledIdentity(st) {
+		databases = append(databases, render.KeycloakDatabaseObject(st))
+	}
 	for _, d := range databases {
 		if err := Apply(ctx, env, d); err != nil {
 			return Result{}, err
@@ -168,7 +176,7 @@ func (Database) Reconcile(ctx context.Context, env *Env) (Result, error) {
 		applied, _, _ := unstructured.NestedBool(liveDB.Object, "status", "applied")
 		if !applied {
 			msg, _, _ := unstructured.NestedString(liveDB.Object, "status", "message")
-			sentence := fmt.Sprintf("creating Temporal's database %s", d.GetName())
+			sentence := fmt.Sprintf("creating database %s", d.GetName())
 			if msg != "" {
 				sentence += ": CloudNativePG says: " + msg
 			}

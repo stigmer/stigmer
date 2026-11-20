@@ -22,6 +22,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -91,6 +92,7 @@ func main() {
 			&corev1.PersistentVolumeClaim{}: byLabel,
 			&appsv1.Deployment{}:            byLabel,
 			&batchv1.Job{}:                  byLabel,
+			&networkingv1.Ingress{}:         byLabel,
 		}},
 		Client: client.Options{Cache: &client.CacheOptions{
 			DisableFor: []client.Object{&corev1.Pod{}, &corev1.Event{}},

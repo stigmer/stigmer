@@ -83,14 +83,7 @@ func PostgresClusterObject(st *stigmerv1.Stigmer, backup ClusterBackup) *unstruc
 		"bootstrap": map[string]any{
 			"initdb": map[string]any{"database": PostgresAppDatabase, "owner": PostgresAppUser},
 		},
-		"managed": map[string]any{
-			"roles": []any{map[string]any{
-				"name":           TemporalUser,
-				"ensure":         "present",
-				"login":          true,
-				"passwordSecret": map[string]any{"name": PostgresTemporalSecret(st)},
-			}},
-		},
+		"managed": map[string]any{"roles": managedRoles(st)},
 	}
 	withBackup(st, spec, backup)
 	if len(st.Spec.Image.PullSecrets) > 0 {
@@ -110,6 +103,21 @@ func PostgresClusterObject(st *stigmerv1.Stigmer, backup ClusterBackup) *unstruc
 		},
 		"spec": spec,
 	}}
+}
+
+// managedRoles are the roles declared to CloudNativePG: Temporal's always,
+// and the bundled sign-in's when it runs.
+func managedRoles(st *stigmerv1.Stigmer) []any {
+	roles := []any{map[string]any{
+		"name":           TemporalUser,
+		"ensure":         "present",
+		"login":          true,
+		"passwordSecret": map[string]any{"name": PostgresTemporalSecret(st)},
+	}}
+	if BundledIdentity(st) {
+		roles = append(roles, KeycloakRole(st))
+	}
+	return roles
 }
 
 // TemporalDatabaseObjects are Temporal's two databases, owned by its role and

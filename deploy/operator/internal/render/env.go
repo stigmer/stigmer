@@ -24,8 +24,8 @@ import (
 	stigmerv1 "github.com/stigmer/stigmer/deploy/operator/api/v1"
 )
 
-// Until a front door is declared, the server is reached by port-forward, so
-// the URLs minted for browsers and the CLI name the forwarded ports.
+// Without a front door the server is reached by port-forward, so the URLs
+// minted for browsers and the CLI name the forwarded ports (PublicURL).
 const (
 	localPublicURL   = "http://localhost:7234"
 	localArtifactURL = "http://localhost:7235"
@@ -197,6 +197,22 @@ func temporalConnectionEnv(t TemporalConnection) []corev1.EnvVar {
 	return env
 }
 
+// OIDC is the issuer the server trusts: the declared one, or the bundled
+// sign-in's, whose discovery document the server fetches at its in-cluster
+// Service while the issuer stays the public name browsers sign in at.
+func OIDC(st *stigmerv1.Stigmer) stigmerv1.OIDCSpec {
+	if st.Spec.Identity != nil && st.Spec.Identity.OIDC != nil {
+		return *st.Spec.Identity.OIDC
+	}
+	return stigmerv1.OIDCSpec{
+		Issuer:          BundledIssuer(st),
+		Audience:        PublicURL(st),
+		ConsoleClientID: ConsoleClientID,
+		NativeClientID:  NativeClientID,
+		DiscoveryURL:    KeycloakInternalURL(st) + RealmPath,
+	}
+}
+
 // ServerEnv is the server container's environment, before extraEnv.
 func ServerEnv(st *stigmerv1.Stigmer) []corev1.EnvVar {
 	db := Database(st)
@@ -230,11 +246,11 @@ func ServerEnv(st *stigmerv1.Stigmer) []corev1.EnvVar {
 		env = append(env,
 			value("ARTIFACT_STORAGE_TYPE", "local"),
 			value("ARTIFACT_LOCAL_BASE_PATH", ArtifactsMount),
-			value("ARTIFACT_LOCAL_SERVE_URL", localArtifactURL),
+			value("ARTIFACT_LOCAL_SERVE_URL", ArtifactServeURL(st)),
 		)
 	}
 	env = append(env,
-		value("SKILL_TRANSFER_BASE_URL", localPublicURL),
+		value("SKILL_TRANSFER_BASE_URL", PublicURL(st)),
 		fromSecret(EncryptionKey, keys, EncryptionKey, false),
 		fromSecret(RunnerTokenKey, keys, RunnerTokenKey, false),
 		fromSecret(PlatformTokenKey, keys, PlatformTokenKey, false),
@@ -245,13 +261,19 @@ func ServerEnv(st *stigmerv1.Stigmer) []corev1.EnvVar {
 	}
 	env = append(env, value("STIGMER_OPERATOR_EMAIL", email), value("STIGMER_OPERATOR_NAME", name))
 	if SignInOn(st) {
-		oidc := st.Spec.Identity.OIDC
+		oidc := OIDC(st)
 		env = append(env,
 			value("STIGMER_OIDC_ISSUER", oidc.Issuer),
 			value("STIGMER_OIDC_AUDIENCE", oidc.Audience),
 			value("STIGMER_OIDC_CONSOLE_CLIENT_ID", oidc.ConsoleClientID),
 			value("STIGMER_OIDC_NATIVE_CLIENT_ID", oidc.NativeClientID),
 		)
+		if oidc.DiscoveryURL != "" {
+			env = append(env, value("STIGMER_OIDC_DISCOVERY_URL", oidc.DiscoveryURL))
+		}
+		// The shared runner's key, stored by the server at boot as its runner
+		// service account's; the runner reads the same value as STIGMER_TOKEN.
+		env = append(env, fromSecret("STIGMER_RUNNER_API_KEY", RunnerKeySecret(st), RunnerKeyKey, false))
 	}
 	if help := st.Spec.Server.Help; help != nil && help.URL != "" {
 		env = append(env, value("STIGMER_HELP_URL", help.URL))
@@ -314,11 +336,6 @@ func enterpriseEnv(st *stigmerv1.Stigmer) []corev1.EnvVar {
 	}
 }
 
-// RunnerEnabled reports whether the shared runner container renders. Under
-// sign-in the runner needs its own API key, which the server does not yet
-// provision itself, so it is held back and its component says so.
-func RunnerEnabled(st *stigmerv1.Stigmer) bool { return !SignInOn(st) }
-
 // RunnerEnv is the shared runner container's environment, before extraEnv.
 func RunnerEnv(st *stigmerv1.Stigmer) []corev1.EnvVar {
 	t := Temporal(st)
@@ -329,7 +346,7 @@ func RunnerEnv(st *stigmerv1.Stigmer) []corev1.EnvVar {
 		value("STIGMER_BACKEND_ENDPOINT", fmt.Sprintf("http://localhost:%d", GRPCPort)),
 		// What a remote MCP server dials back on: the public URL, never the
 		// pod-local address above.
-		value("STIGMER_MCP_PUBLIC_ENDPOINT", localPublicURL),
+		value("STIGMER_MCP_PUBLIC_ENDPOINT", PublicURL(st)),
 		value("TEMPORAL_SERVICE_ADDRESS", t.HostPort),
 		value("TEMPORAL_NAMESPACE", t.Namespace),
 	}
@@ -353,6 +370,9 @@ func RunnerEnv(st *stigmerv1.Stigmer) []corev1.EnvVar {
 			value("LOCAL_ARTIFACT_PATH", ArtifactsMount),
 		)
 	}
+	if SignInOn(st) {
+		env = append(env, fromSecret("STIGMER_TOKEN", RunnerKeySecret(st), RunnerKeyKey, false))
+	}
 	if llm := st.Spec.Runner.LLM; llm != nil {
 		for _, key := range RunnerModelKeys {
 			env = append(env, fromSecret(key, llm.SecretName, key, true))
@@ -366,7 +386,7 @@ func RunnerEnv(st *stigmerv1.Stigmer) []corev1.EnvVar {
 func OwnedEnvNames(container string) []string {
 	full := &stigmerv1.Stigmer{Spec: stigmerv1.StigmerSpec{
 		Owner:    &stigmerv1.OwnerSpec{Email: "x@x"},
-		Identity: &stigmerv1.IdentitySpec{OIDC: &stigmerv1.OIDCSpec{Issuer: "https://x", Audience: "x"}},
+		Identity: &stigmerv1.IdentitySpec{OIDC: &stigmerv1.OIDCSpec{Issuer: "https://x", Audience: "x", DiscoveryURL: "http://x"}},
 		Database: &stigmerv1.DatabaseSpec{PostgreSQL: &stigmerv1.PostgreSQLSpec{External: &stigmerv1.ExternalPostgreSQLSpec{
 			Host: "x", User: "x", SSLMode: "require", PasswordSecret: stigmerv1.SecretKeySelector{Name: "x", Key: "x"},
 		}}},
@@ -391,9 +411,6 @@ func OwnedEnvNames(container string) []string {
 	var env []corev1.EnvVar
 	if container == "runner" {
 		env = append(RunnerEnv(full), RunnerEnv(bucket)...)
-		// Held back under sign-in today; the runner will read its key from
-		// here, so the name is reserved now.
-		env = append(env, value("STIGMER_TOKEN", ""))
 	} else {
 		env = append(ServerEnv(full), ServerEnv(bucket)...)
 	}

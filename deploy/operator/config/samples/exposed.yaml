@@ -1,0 +1,38 @@
+# A Stigmer people reach at one hostname, signed in through the bundled
+# sign-in. Everything answers at https://stigmer.acme.dev: the console at /,
+# the API at its own paths, sign-in at /idp, and files kept on a volume at
+# /artifacts. cert-manager issues the certificate, and the front door is Ready
+# only once it has. The owner signs in first with a one-time password the
+# status names, then sign-up opens to acme.dev addresses, each verified by
+# mail.
+#
+#   kubectl -n stigmer create secret generic mail \
+#     --from-literal=username=<mail user> --from-literal=password=<mail password>
+#   kubectl apply -f exposed.yaml
+#   kubectl -n stigmer get stigmer        # the URL, and where the one-time password is
+apiVersion: stigmer.ai/v1
+kind: Stigmer
+metadata:
+  name: stigmer
+  namespace: stigmer
+spec:
+  owner:
+    email: priya@acme.dev
+  runner:
+    llm:
+      secretName: anthropic
+  ingress:
+    hostname: stigmer.acme.dev
+    tls:
+      issuer:
+        name: letsencrypt
+        kind: ClusterIssuer
+  identity:
+    bundled:
+      signUp:
+        emailDomains: [acme.dev]
+      smtp:
+        host: smtp.acme.dev
+        from: stigmer@acme.dev
+        secretName: mail
+        starttls: true

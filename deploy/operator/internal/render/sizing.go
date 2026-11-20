@@ -52,6 +52,10 @@ var (
 	RunnerSizing   = withPath(size("500m", "1Gi", "4Gi", "512Mi"), "spec.runner.resources")
 	PostgresSizing = withPath(size("100m", "256Mi", "1Gi", "128Mi"), "spec.database.postgresql.bundled.resources")
 	TemporalSizing = withPath(size("100m", "256Mi", "1Gi", "128Mi"), "spec.temporal.bundled.resources")
+	// KeycloakSizing is the bundled sign-in's: its JVM is killed below about
+	// 1 GiB under a realm import and a burst of sign-ins, so the limit leaves
+	// room above the request. Not declarable: nothing an adopter tunes.
+	KeycloakSizing = size("100m", "512Mi", "1536Mi", "512Mi")
 )
 
 func withPath(s Sizing, path string) Sizing {
@@ -107,7 +111,7 @@ func SizingRefusal(st *stigmerv1.Stigmer) string {
 		on       bool
 	}{
 		{ServerSizing, st.Spec.Server.Resources, true},
-		{RunnerSizing, st.Spec.Runner.Resources, RunnerEnabled(st)},
+		{RunnerSizing, st.Spec.Runner.Resources, true},
 		{PostgresSizing, BundledDatabase(st).Resources, Database(st).Bundled},
 		{TemporalSizing, bundledTemporalResources(st), Temporal(st).Bundled},
 	}

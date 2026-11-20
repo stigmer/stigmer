@@ -61,8 +61,15 @@ const (
 	ReasonAnotherStigmer ComponentReason = "AnotherStigmer"
 	// ReasonModelKeyMissing: agents cannot run until a model key is given.
 	ReasonModelKeyMissing ComponentReason = "ModelKeyMissing"
-	// ReasonRunnerKeyPending: under sign-in the shared runner waits for its key.
-	ReasonRunnerKeyPending ComponentReason = "RunnerKeyPending"
+	// ReasonCertificatePending: the front door waits for its certificate.
+	ReasonCertificatePending ComponentReason = "CertificatePending"
+	// ReasonFrontDoorPending: the front door waits for its controller to
+	// serve it.
+	ReasonFrontDoorPending ComponentReason = "FrontDoorPending"
+	// ReasonGatewayNotAccepted: the Gateway's controller refused a route.
+	ReasonGatewayNotAccepted ComponentReason = "GatewayNotAccepted"
+	// ReasonRealmConverging: the bundled sign-in's realm is being set up.
+	ReasonRealmConverging ComponentReason = "RealmConverging"
 	// ReasonPrerequisiteMissing: a cluster-level piece the declaration needs
 	// is not installed, and the operator never installs it (cert-manager).
 	ReasonPrerequisiteMissing ComponentReason = "PrerequisiteMissing"
@@ -105,7 +112,10 @@ func AllComponentReasons() []ComponentReason {
 		ReasonSizingRefused,
 		ReasonAnotherStigmer,
 		ReasonModelKeyMissing,
-		ReasonRunnerKeyPending,
+		ReasonCertificatePending,
+		ReasonFrontDoorPending,
+		ReasonGatewayNotAccepted,
+		ReasonRealmConverging,
 		ReasonPrerequisiteMissing,
 		ReasonWaitingForBackupPlugin,
 		ReasonBackingUpBeforeUpgrade,
@@ -139,7 +149,10 @@ var ReasonMessages = map[ComponentReason]string{
 	ReasonSizingRefused:          "a declared size cannot run",
 	ReasonAnotherStigmer:         "this cluster already runs a Stigmer",
 	ReasonModelKeyMissing:        "agents cannot run until the runner has a model key",
-	ReasonRunnerKeyPending:       "under sign-in the shared runner needs its own key",
+	ReasonCertificatePending:     "the front door waits for its certificate",
+	ReasonFrontDoorPending:       "the front door waits for its controller to serve it",
+	ReasonGatewayNotAccepted:     "the Gateway's controller refused the front door's routes",
+	ReasonRealmConverging:        "setting up the sign-in's realm, clients and owner",
 	ReasonPrerequisiteMissing:    "a cluster-level piece it needs is not installed: install it",
 	ReasonWaitingForBackupPlugin: "waiting for the backup plugin, so the database is born archiving",
 	ReasonBackingUpBeforeUpgrade: "taking a backup before the server migrates its database forward",
@@ -155,7 +168,8 @@ func (r ComponentReason) IsFailure() bool {
 		ReasonOutOfMemory, ReasonCrashLooping, ReasonUnschedulable, ReasonVolumeMountFailed,
 		ReasonRolloutStalled, ReasonCreateRefused, ReasonJobFailed, ReasonSecretMissing,
 		ReasonConfigurationRefused, ReasonSizingRefused, ReasonAnotherStigmer,
-		ReasonModelKeyMissing, ReasonReconcileFailed, ReasonPrerequisiteMissing, ReasonUpgradeBackupFailed:
+		ReasonModelKeyMissing, ReasonReconcileFailed, ReasonPrerequisiteMissing, ReasonUpgradeBackupFailed,
+		ReasonGatewayNotAccepted:
 		return true
 	}
 	return false

@@ -86,22 +86,28 @@ func ServerClaims(st *stigmerv1.Stigmer) []*corev1.PersistentVolumeClaim {
 	if ObjectStore(st) == nil {
 		claims = append(claims, Claim(st, ArtifactsClaim(st), st.Spec.Server.Artifacts, ArtifactsSize))
 	}
-	if RunnerEnabled(st) {
-		claims = append(claims, Claim(st, RunnerDataClaim(st), st.Spec.Runner.Storage, RunnerDataSize))
-	}
-	return claims
+	return append(claims, Claim(st, RunnerDataClaim(st), st.Spec.Runner.Storage, RunnerDataSize))
 }
 
-// ServerServiceObject is the server's in-cluster address.
+// ServerServiceObject is the server's in-cluster address. Its API port says
+// kubernetes.io/h2c, the standard word (Gateway API's backend protocol, read
+// by Gateway implementations and several Ingress controllers) for a backend
+// that speaks HTTP/2 without TLS: gRPC needs it, and the server's port
+// answers the console and Connect over it too. A front door that wants its
+// own hint on the Service gets it from spec.ingress.serviceAnnotations.
 func ServerServiceObject(st *stigmerv1.Stigmer) *corev1.Service {
+	m := meta(st, ServerService(st), ComponentServer)
+	if fd := FrontDoor(st); fd != nil && len(fd.ServiceAnnotations) > 0 {
+		m.Annotations = fd.ServiceAnnotations
+	}
 	return &corev1.Service{
 		TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "Service"},
-		ObjectMeta: meta(st, ServerService(st), ComponentServer),
+		ObjectMeta: m,
 		Spec: corev1.ServiceSpec{
 			Type:     corev1.ServiceTypeClusterIP,
 			Selector: SelectorLabels(st, ComponentServer),
 			Ports: []corev1.ServicePort{
-				{Name: "grpc-api", Port: GRPCPort, TargetPort: intstr.FromString("grpc-api"), AppProtocol: ptr("grpc")},
+				{Name: "grpc-api", Port: GRPCPort, TargetPort: intstr.FromString("grpc-api"), AppProtocol: ptr("kubernetes.io/h2c")},
 				{Name: "artifacts", Port: ArtifactsPort, TargetPort: intstr.FromString("artifacts"), AppProtocol: ptr("http")},
 			},
 		},
@@ -160,7 +166,7 @@ func ServerDeploymentObject(st *stigmerv1.Stigmer) *appsv1.Deployment {
 		volumes = append(volumes, volume("artifacts", ArtifactsClaim(st)))
 	}
 	containers := []corev1.Container{server}
-	if RunnerEnabled(st) {
+	{
 		runnerMounts := []corev1.VolumeMount{{Name: "runner-data", MountPath: "/data"}}
 		if onVolume {
 			runnerMounts = append(runnerMounts, corev1.VolumeMount{Name: "artifacts", MountPath: ArtifactsMount})

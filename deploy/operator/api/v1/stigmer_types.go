@@ -28,6 +28,10 @@ import (
 // +kubebuilder:validation:XValidation:rule="!has(self.enterprise) || !has(self.temporal) || !has(self.temporal.external) || has(self.temporal.external.tls) || has(self.temporal.external.apiKey)",message="under a Stigmer Enterprise license, spec.temporal.external must authenticate: whoever reaches a plaintext Temporal can start work on the runner's queue, and a licensed install serves many organizations. Set spec.temporal.external.tls or spec.temporal.external.apiKey"
 // +kubebuilder:validation:XValidation:rule="has(self.objectStore) || !has(self.database) || !has(self.database.postgresql) || !has(self.database.postgresql.bundled) || (!has(self.database.postgresql.bundled.backup) && !has(self.database.postgresql.bundled.recoverFrom))",message="the database's backups and restores live in the bucket: declare spec.objectStore to use spec.database.postgresql.bundled.backup or recoverFrom"
 // +kubebuilder:validation:XValidation:rule="!has(self.objectStore) || !has(self.server) || !has(self.server.artifacts)",message="spec.server.artifacts sizes the artifacts volume, and an install with spec.objectStore keeps its artifacts in the bucket instead: remove spec.server.artifacts"
+// +kubebuilder:validation:XValidation:rule="!has(self.identity) || !has(self.identity.bundled) || has(self.ingress)",message="the bundled sign-in serves people's browsers at the front door: declare spec.ingress with the hostname they reach Stigmer at"
+// +kubebuilder:validation:XValidation:rule="!(has(self.identity) ? has(self.identity.bundled) : (has(self.ingress) && !(has(self.server) && has(self.server.allowUnauthenticatedExposure) && self.server.allowUnauthenticatedExposure))) || has(self.owner)",message="the bundled sign-in creates the owner's account first, so an exposed install needs spec.owner.email; or name your own issuer in spec.identity.oidc"
+// +kubebuilder:validation:XValidation:rule="!(has(self.identity) ? has(self.identity.bundled) : has(self.ingress)) || !has(self.database) || !has(self.database.postgresql) || !has(self.database.postgresql.external)",message="the bundled sign-in keeps its accounts on the bundled database, and spec.database.postgresql.external names your own: sign people in with your own issuer (spec.identity.oidc), or let the operator run the database"
+// +kubebuilder:validation:XValidation:rule="!(has(self.server) && has(self.server.allowUnauthenticatedExposure) && self.server.allowUnauthenticatedExposure) || !has(self.identity)",message="spec.server.allowUnauthenticatedExposure exposes the install with sign-in off, and spec.identity turns sign-in on: keep one"
 type StigmerSpec struct {
 	// Image says where Stigmer's images are pulled from. The tag is always
 	// this operator's own version: operator vX runs Stigmer vX.
@@ -68,9 +72,16 @@ type StigmerSpec struct {
 	// +optional
 	ObjectStore *ObjectStoreSpec `json:"objectStore,omitempty"`
 
-	// Identity turns sign-in on. Absent, the server signs nobody in and every
-	// caller is the owner, which is safe only while the install is reachable
-	// from inside the cluster alone.
+	// Ingress is the front door: the one hostname people reach Stigmer at,
+	// for the console, the API, sign-in (/idp) and files kept on a volume
+	// (/artifacts). Absent, the install is reached by port-forward.
+	// +optional
+	Ingress *IngressSpec `json:"ingress,omitempty"`
+
+	// Identity is how people sign in. Absent on an install with a front
+	// door, the operator runs the bundled sign-in; absent on one without,
+	// the server signs nobody in and every caller is the owner, which is
+	// safe only while the install is reachable from inside the cluster.
 	// +optional
 	Identity *IdentitySpec `json:"identity,omitempty"`
 
@@ -140,11 +151,96 @@ type ServerSpec struct {
 	// +optional
 	InternalAccounts []string `json:"internalAccounts,omitempty"`
 
+	// AllowUnauthenticatedExposure says, on purpose, that an install with a
+	// front door signs nobody in: everyone who reaches the hostname acts as
+	// the owner. Without it, a front door brings the bundled sign-in.
+	// +optional
+	AllowUnauthenticatedExposure bool `json:"allowUnauthenticatedExposure,omitempty"`
+
 	// ExtraEnv adds settings to the server container. A name the operator
 	// sets itself is refused, so nothing here can silently undo the
 	// declaration above.
 	// +optional
 	ExtraEnv []corev1.EnvVar `json:"extraEnv,omitempty"`
+}
+
+// IngressSpec is the front door: an Ingress the cluster's controller serves,
+// or routes on a Gateway the cluster runs.
+//
+// +kubebuilder:validation:XValidation:rule="has(self.tls) != has(self.gatewayRef)",message="spec.ingress needs exactly one of tls (an Ingress with its certificate) or gatewayRef (routes on your Gateway, whose listener holds the certificate)"
+type IngressSpec struct {
+	// Hostname is the one name people reach Stigmer at.
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)+$`
+	Hostname string `json:"hostname"`
+
+	// Port is the port people reach the front door on, when it is not 443.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	// +optional
+	Port *int32 `json:"port,omitempty"`
+
+	// ClassName is the IngressClass that serves the front door.
+	// +optional
+	ClassName string `json:"className,omitempty"`
+
+	// Annotations go on the Ingress for the console, the API and files, for
+	// a controller that needs a hint to speak gRPC to the server.
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty"`
+
+	// ServiceAnnotations go on the server's Service, for a controller that
+	// reads its gRPC hint there (Traefik's
+	// traefik.ingress.kubernetes.io/service.serversscheme: h2c).
+	// +optional
+	ServiceAnnotations map[string]string `json:"serviceAnnotations,omitempty"`
+
+	// TLS is the front door's certificate.
+	// +optional
+	TLS *IngressTLSSpec `json:"tls,omitempty"`
+
+	// GatewayRef attaches routes to a Gateway the cluster runs instead of
+	// rendering an Ingress. The operator never edits the Gateway.
+	// +optional
+	GatewayRef *GatewayReference `json:"gatewayRef,omitempty"`
+}
+
+// IngressTLSSpec names the front door's certificate.
+//
+// +kubebuilder:validation:XValidation:rule="has(self.secretName) != has(self.issuer)",message="spec.ingress.tls needs exactly one of secretName (a certificate you keep) or issuer (cert-manager issues one)"
+type IngressTLSSpec struct {
+	// SecretName is a TLS Secret in this namespace you keep current.
+	// +optional
+	SecretName string `json:"secretName,omitempty"`
+
+	// Issuer is the cert-manager issuer that issues the certificate.
+	// +optional
+	Issuer *IssuerReference `json:"issuer,omitempty"`
+}
+
+// IssuerReference names a cert-manager issuer.
+type IssuerReference struct {
+	// Name is the issuer's name.
+	Name string `json:"name"`
+
+	// Kind is Issuer (in this namespace) or ClusterIssuer.
+	// +kubebuilder:validation:Enum=Issuer;ClusterIssuer
+	// +kubebuilder:default=ClusterIssuer
+	// +optional
+	Kind string `json:"kind,omitempty"`
+}
+
+// GatewayReference names a Gateway API Gateway and, optionally, its listener.
+type GatewayReference struct {
+	// Name is the Gateway's name.
+	Name string `json:"name"`
+
+	// Namespace is the Gateway's namespace; this one when empty.
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
+
+	// SectionName is the listener the routes attach to.
+	// +optional
+	SectionName string `json:"sectionName,omitempty"`
 }
 
 // HelpSpec is the console's help link.
@@ -437,11 +533,67 @@ type TemporalTLSSpec struct {
 	KeyKey string `json:"keyKey,omitempty"`
 }
 
-// IdentitySpec turns sign-in on.
+// IdentitySpec is how people sign in.
+//
+// +kubebuilder:validation:XValidation:rule="has(self.bundled) != has(self.oidc)",message="spec.identity needs exactly one of bundled (the sign-in the operator runs) or oidc (your own issuer)"
 type IdentitySpec struct {
+	// Bundled is the sign-in the operator runs beside Stigmer, at
+	// <hostname>/idp. The owner's account is created with a one-time
+	// password.
+	// +optional
+	Bundled *BundledIdentitySpec `json:"bundled,omitempty"`
+
 	// OIDC is your own identity provider.
 	// +optional
 	OIDC *OIDCSpec `json:"oidc,omitempty"`
+}
+
+// BundledIdentitySpec tunes the bundled sign-in.
+//
+// +kubebuilder:validation:XValidation:rule="!has(self.signUp) || size(self.signUp.emailDomains) == 0 || has(self.smtp)",message="sign-up for your email domains needs mail: without a verification email anyone could claim an address in the domain. Set spec.identity.bundled.smtp"
+type BundledIdentitySpec struct {
+	// SignUp opens sign-up to people with an address in your domains, once
+	// the owner has signed in. Absent, only the owner signs in.
+	// +optional
+	SignUp *SignUpSpec `json:"signUp,omitempty"`
+
+	// SMTP is the mail server the sign-in sends verification and password
+	// mail through.
+	// +optional
+	SMTP *SMTPSpec `json:"smtp,omitempty"`
+}
+
+// SignUpSpec limits who may sign up.
+type SignUpSpec struct {
+	// EmailDomains are the domains whose addresses may sign up, such as
+	// acme.dev.
+	// +kubebuilder:validation:items:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)+$`
+	// +optional
+	EmailDomains []string `json:"emailDomains,omitempty"`
+}
+
+// SMTPSpec is a mail server.
+type SMTPSpec struct {
+	// Host is the mail server's address.
+	Host string `json:"host"`
+
+	// Port is the mail server's port.
+	// +kubebuilder:default=587
+	// +optional
+	Port int32 `json:"port,omitempty"`
+
+	// From is the address mail is sent from.
+	// +kubebuilder:validation:XValidation:rule="self.contains('@')",message="spec.identity.bundled.smtp.from must be an email address"
+	From string `json:"from"`
+
+	// SecretName is a Secret with the keys username and password, when the
+	// mail server asks for them.
+	// +optional
+	SecretName string `json:"secretName,omitempty"`
+
+	// StartTLS upgrades the connection to TLS.
+	// +optional
+	StartTLS bool `json:"starttls,omitempty"`
 }
 
 // OIDCSpec names an OpenID Connect issuer and the clients Stigmer is
@@ -462,6 +614,12 @@ type OIDCSpec struct {
 	// NativeClientID is the desktop app's and the CLI's client.
 	// +optional
 	NativeClientID string `json:"nativeClientId,omitempty"`
+
+	// DiscoveryURL is where the server fetches the issuer's discovery
+	// document when it cannot reach the issuer's public name from inside the
+	// cluster. The document must still name Issuer.
+	// +optional
+	DiscoveryURL string `json:"discoveryUrl,omitempty"`
 }
 
 // EnterpriseSpec runs Stigmer Enterprise.
@@ -564,8 +722,8 @@ type ObjectReference struct {
 
 // ComponentStatus is one component's standing.
 type ComponentStatus struct {
-	// Name is the component: keys, objectStore, database, temporal, server
-	// or runner.
+	// Name is the component: keys, objectStore, database, temporal,
+	// frontDoor, identity, server or runner.
 	Name string `json:"name"`
 	// Phase is where the component stands.
 	Phase Phase `json:"phase"`
@@ -622,6 +780,10 @@ type StigmerStatus struct {
 	// Edition is "open source" or "enterprise".
 	// +optional
 	Edition string `json:"edition,omitempty"`
+	// URL is where people reach Stigmer: the front door's https address, or
+	// the port-forward's local one.
+	// +optional
+	URL string `json:"url,omitempty"`
 	// Backup is where the database's backups stand, when it has any.
 	// +optional
 	Backup *BackupStatus `json:"backup,omitempty"`
@@ -646,6 +808,7 @@ type StigmerStatus struct {
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.version`
 // +kubebuilder:printcolumn:name="Edition",type=string,JSONPath=`.status.edition`
+// +kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.url`
 // +kubebuilder:printcolumn:name="Backup",type=date,JSONPath=`.status.backup.lastSuccessfulBackup`
 // +kubebuilder:printcolumn:name="Message",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].message`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`

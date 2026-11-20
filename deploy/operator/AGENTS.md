@@ -54,6 +54,12 @@ it names are the truth.
   `BackupHealthy` condition says so instead).
 - The operator never caches Secrets it did not label; an adopter's Secret is
   read by name through `Env.Reader`.
+- An install reachable from outside the cluster signs people in, or says on
+  purpose that it does not (`spec.server.allowUnauthenticatedExposure`): a front
+  door with no `identity` brings the bundled sign-in.
+- The operator's outbound calls go only to components it runs: the bundled
+  sign-in's admin API at its in-cluster Service (`internal/keycloak`), never an
+  address an adopter declares.
 - Nothing private in this public repository: no internal tracker ids, no private
   paths, no names of other products.
 
@@ -62,4 +68,4 @@ it names are the truth.
 `make lint-operator test-operator` from the repository root; a behaviour change
 also runs `make smoke-operator PROFILE=bundled` (the install test on kind), and
 a change to the bucket, backups or upgrades `PROFILE=bucket` and
-`PROFILE=upgrade`.
+`PROFILE=upgrade`, and a change to the front door or sign-in `PROFILE=exposed`.

@@ -25,6 +25,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
@@ -51,6 +52,8 @@ func Components() []component.Component {
 		component.ObjectStore{},
 		component.Database{},
 		component.Temporal{},
+		component.FrontDoor{},
+		component.Identity{},
 		component.Server{},
 		component.Runner{},
 	}
@@ -84,6 +87,9 @@ type StigmerReconciler struct {
 // +kubebuilder:rbac:groups=postgresql.cnpg.io,resources=clusters;databases;backups;scheduledbackups,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=barmancloud.cnpg.io,resources=objectstores,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cert-manager.io,resources=issuers;certificates,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=httproutes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=gateways,verbs=get;list;watch
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;clusterrolebindings;roles;rolebindings,verbs=get;list;watch;create;update;patch;delete;escalate;bind
 // +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=mutatingwebhookconfigurations;validatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
@@ -101,6 +107,9 @@ func (r *StigmerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	orig := st.DeepCopy()
 	st.Status.ObservedGeneration = st.Generation
 	st.Status.Edition = render.Edition(&st)
+	// Published before the walk, so it reads true while the front door
+	// still waits for its certificate.
+	st.Status.URL = render.PublicURL(&st)
 
 	if msg, err := r.refusal(ctx, &st); err != nil {
 		log.Info("could not check the declaration; retrying", "error", err.Error())
@@ -135,9 +144,25 @@ func (r *StigmerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 	status.Keep(&st.Status, names)
-	status.Summarize(&st, fmt.Sprintf("Ready; reach it with: kubectl -n %s port-forward svc/%s %s",
-		st.Namespace, render.ServerService(&st), render.PortForwardPorts(&st)))
+	status.Summarize(&st, readySentence(&st))
 	return r.finish(ctx, orig, &st)
+}
+
+// readySentence is what a Ready install's Ready condition says: where to
+// reach it and, while the owner has not signed in, how.
+func readySentence(st *stigmerv1.Stigmer) string {
+	if render.FrontDoor(st) == nil {
+		return fmt.Sprintf("Ready; reach it with: kubectl -n %s port-forward svc/%s %s",
+			st.Namespace, render.ServerService(st), render.PortForwardPorts(st))
+	}
+	sentence := "Ready · " + render.PublicURL(st)
+	for _, c := range st.Status.Components {
+		if c.Name == render.ComponentIdentity && strings.Contains(c.Message, component.OwnerSetupHint) {
+			sentence += fmt.Sprintf(" · sign in as %s with the one-time password in Secret %s (kubectl -n %s get secret %s -o jsonpath='{.data.password}' | base64 -d)",
+				st.Spec.Owner.Email, render.OwnerSetupSecret(st), st.Namespace, render.OwnerSetupSecret(st))
+		}
+	}
+	return sentence
 }
 
 // refusal refuses the whole Stigmer when no component could proceed, and
@@ -216,6 +241,7 @@ func (r *StigmerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&batchv1.Job{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.PersistentVolumeClaim{}).
+		Owns(&networkingv1.Ingress{}).
 		Named("stigmer").
 		Complete(r)
 }

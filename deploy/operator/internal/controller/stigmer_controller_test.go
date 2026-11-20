@@ -46,6 +46,8 @@ func TestAdmissionRefusesContradictions(t *testing.T) {
 	oidc := &stigmerv1.IdentitySpec{OIDC: &stigmerv1.OIDCSpec{Issuer: "https://issuer", Audience: "a"}}
 	license := &stigmerv1.SecretKeySelector{Name: "l", Key: "STIGMER_LICENSE_KEY"}
 	bucket := &stigmerv1.ObjectStoreSpec{S3: stigmerv1.S3Spec{Bucket: "acme", CredentialsSecret: corev1.LocalObjectReference{Name: "bucket"}}}
+	owner := &stigmerv1.OwnerSpec{Email: "priya@acme.dev"}
+	frontDoor := &stigmerv1.IngressSpec{Hostname: "stigmer.acme.dev", TLS: &stigmerv1.IngressTLSSpec{SecretName: "stigmer-tls"}}
 	cases := []struct {
 		name string
 		spec stigmerv1.StigmerSpec
@@ -78,6 +80,30 @@ func TestAdmissionRefusesContradictions(t *testing.T) {
 		{"an artifacts volume beside a bucket", stigmerv1.StigmerSpec{ObjectStore: bucket,
 			Server: stigmerv1.ServerSpec{Artifacts: &stigmerv1.VolumeSpec{}}},
 			"remove spec.server.artifacts"},
+		{"the bundled sign-in without a front door", stigmerv1.StigmerSpec{Owner: owner,
+			Identity: &stigmerv1.IdentitySpec{Bundled: &stigmerv1.BundledIdentitySpec{}}},
+			"declare spec.ingress"},
+		{"an exposed install without an owner", stigmerv1.StigmerSpec{Ingress: frontDoor},
+			"needs spec.owner.email"},
+		{"the bundled sign-in on your own database", stigmerv1.StigmerSpec{Owner: owner, Ingress: frontDoor, Database: external,
+			Temporal: &stigmerv1.TemporalSpec{External: &stigmerv1.ExternalTemporalSpec{HostPort: "t:7233"}}},
+			"keeps its accounts on the bundled database"},
+		{"sign-up without mail", stigmerv1.StigmerSpec{Owner: owner, Ingress: frontDoor,
+			Identity: &stigmerv1.IdentitySpec{Bundled: &stigmerv1.BundledIdentitySpec{SignUp: &stigmerv1.SignUpSpec{EmailDomains: []string{"acme.dev"}}}}},
+			"needs mail"},
+		{"exposure on purpose beside sign-in", stigmerv1.StigmerSpec{Identity: oidc, Ingress: frontDoor,
+			Server: stigmerv1.ServerSpec{AllowUnauthenticatedExposure: true}},
+			"keep one"},
+		{"both sign-ins", stigmerv1.StigmerSpec{Owner: owner, Ingress: frontDoor,
+			Identity: &stigmerv1.IdentitySpec{Bundled: &stigmerv1.BundledIdentitySpec{}, OIDC: oidc.OIDC}},
+			"exactly one of bundled"},
+		{"a front door with neither a certificate nor a Gateway", stigmerv1.StigmerSpec{Owner: owner,
+			Ingress: &stigmerv1.IngressSpec{Hostname: "stigmer.acme.dev"}},
+			"exactly one of tls"},
+		{"a certificate both kept and issued", stigmerv1.StigmerSpec{Owner: owner,
+			Ingress: &stigmerv1.IngressSpec{Hostname: "stigmer.acme.dev", TLS: &stigmerv1.IngressTLSSpec{
+				SecretName: "tls", Issuer: &stigmerv1.IssuerReference{Name: "ca"}}}},
+			"exactly one of secretName"},
 		{"a bucket endpoint that is not a URL", stigmerv1.StigmerSpec{ObjectStore: &stigmerv1.ObjectStoreSpec{S3: stigmerv1.S3Spec{
 			Bucket: "acme", Endpoint: "minio:9000", CredentialsSecret: corev1.LocalObjectReference{Name: "bucket"}}}},
 			"must be an http or https URL"},
@@ -97,6 +123,11 @@ func TestAdmissionRefusesContradictions(t *testing.T) {
 		Enterprise: &stigmerv1.EnterpriseSpec{License: license}}
 	if err := k8s.Create(ctx, ok); err != nil {
 		t.Errorf("a valid licensed declaration is refused: %v", err)
+	}
+	exposed := stigmer(ns, "exposed")
+	exposed.Spec = stigmerv1.StigmerSpec{Owner: owner, Ingress: frontDoor}
+	if err := k8s.Create(ctx, exposed); err != nil {
+		t.Errorf("an exposed install with an owner is refused: %v", err)
 	}
 	loopback := stigmer(ns, "loopback")
 	loopback.Spec.Identity = &stigmerv1.IdentitySpec{OIDC: &stigmerv1.OIDCSpec{Issuer: "http://127.0.0.1:8080/realms/x", Audience: "a"}}
