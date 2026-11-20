@@ -210,8 +210,11 @@ async function main() {
     log(`claude -p in ${appDir} on ${args.model} with the plugin: ${app.ask}`);
     const extra = { pluginDir, allowedTools: [...PLUGIN_TOOLS, ...STACK_TOOLS[args.app]] };
     let turn = await runClaude(appDir, env, sessionId, app.ask, true, streamPath, stop.signal, args, extra);
-    for (let i = 0; i < args.maxTurns && turn.result.trim().endsWith("?"); i++) {
-      log(`the coding agent asked (${turn.result.slice(-160).replace(/\n/g, " ")}); answering`);
+    // Done when the app holds the key: the last thing the job needs. Until
+    // then, a stop is a question or a pause, and the walk says go ahead.
+    const keyed = () => [".env.local", ".env"].some((f) => existsSync(join(appDir, f)) && readFileSync(join(appDir, f), "utf8").includes("STIGMER_API_KEY="));
+    for (let i = 0; i < args.maxTurns && !keyed(); i++) {
+      log(`the coding agent stopped (${turn.result.slice(-160).replace(/\n/g, " ")}); answering`);
       turn = await runClaude(appDir, env, sessionId, ANSWER, false, streamPath, stop.signal, args, extra);
     }
     log(`the coding agent's last word: ${turn.result.slice(0, 300).replace(/\n/g, " ")}`);

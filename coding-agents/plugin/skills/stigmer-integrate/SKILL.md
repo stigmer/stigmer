@@ -78,10 +78,15 @@ account's.
 - Minting tokens needs a service account with the **admin** role.
   Creating child organizations needs an admin's own key: a service
   account's key cannot create organizations.
-- A key never passes through you. When one is needed, the person creates it
-  where the CLI saves it to their env file
-  (`stigmer apikey create --service-account <name> --save-to-env <file>`), as
-  the stigmer-setup skill's step 6 does.
+- A key never passes through you: the CLI writes it into the env file and
+  prints only where it went. When the app needs one, make it as the
+  stigmer-setup skill's step 6 does, telling the person what you are making:
+  `stigmer service-account list`, and use the app's admin account if one
+  exists (never make a second without asking), otherwise
+  `stigmer service-account create app-backend --role admin`; check the env
+  file is git-ignored (`git check-ignore <file>`), then
+  `stigmer apikey create --service-account app-backend --name <the app's name> --save-to-env <file>`.
+  Never print the file, and never ask the person to paste a key.
 
 ## The jobs
 
