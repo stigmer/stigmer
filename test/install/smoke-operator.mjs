@@ -835,8 +835,13 @@ async function runExposed(fake, modelBaseUrl) {
   assertZeroRestarts(namespace);
   assertOperatorLogClean();
   stigmer.delete();
-  const allowed = ["Secret/anthropic", "Secret/stigmer-keys"];
-  await pollUntil("everything the Stigmer owned to be removed", GONE_TIMEOUT_MS, () => leftovers(namespace).every((n) => allowed.includes(n)));
+  // cert-manager keeps the certificate it issued after its Certificate is
+  // gone (its default), so a new declaration of the hostname reuses it.
+  const allowed = ["Secret/anthropic", "Secret/stigmer-keys", "Secret/stigmer-tls"];
+  await pollUntil("everything the Stigmer owned to be removed", GONE_TIMEOUT_MS, () => leftovers(namespace).every((n) => allowed.includes(n))).catch((error) => {
+    throw new Error(`${error.message}; left: ${leftovers(namespace).filter((n) => !allowed.includes(n)).join(", ")}`);
+  });
+  log(`left in ${namespace}: ${leftovers(namespace).join(", ")}`);
   log("=== profile exposed: PASS ===");
   kubectl(["delete", "namespace", namespace, "--wait=false"]);
 }
