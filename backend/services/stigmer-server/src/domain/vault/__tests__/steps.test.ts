@@ -183,6 +183,14 @@ describe("ReleaseClearedExternalId", () => {
     expect(calls).toEqual(["releaseName:customer-1"]);
   });
 
+  it("lets go of the old id by name once a move is saved", async () => {
+    const { store, calls } = names();
+    await newReleaseClearedExternalIdStep(store, silentLogger).execute(
+      ctxOf(vault({ externalId: "new" }), vault({ externalId: "old" })),
+    );
+    expect(calls).toEqual(["releaseName:old"]);
+  });
+
   it("commits a saved move with what it changed, then lets go of the old id by name (#2926)", async () => {
     const { store, calls, undos } = names();
     const ctx = ctxOf(vault({ externalId: "new" }), vault({ externalId: "old" }));
