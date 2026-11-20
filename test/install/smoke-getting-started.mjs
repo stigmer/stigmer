@@ -28,6 +28,13 @@
  * `out/` (stigmer#2595: before `--until turn` it sat at the reply box, and
  * `--download` saved nothing until the person left).
  *
+ * The reader's SDK install must hold one copy of @bufbuild/protobuf. Two
+ * copies are two runtimes: descriptors built by one and serialized by the
+ * other lose every enum's name (stigmer#3337: `@stigmer/apis` pinned 2.12.0
+ * exactly while the SDK took any 2.x, and protobuf-es 2.17 names an enum
+ * value by a field 2.12's descriptors never set), and nothing the pages run
+ * would show it.
+ *
  * The harness performs the lines the page names as the install's
  * (doc-steps.mjs HARNESS_LINES): the CLI is the build under test, installed
  * in an isolated home by test/install/lib/install-cli.mjs (the boot the CLI
@@ -211,6 +218,24 @@ function sdkInstallArgs(args, scratch) {
   return tarballs;
 }
 
+/**
+ * Refuse a reader's install that holds more than one physical copy of
+ * `name`: `npm ls --parseable --all` prints each edge's resolved path, and a
+ * deduped edge repeats its path (scripts/verify-consumer-install.mjs reads
+ * the server's and the runner's installs the same way).
+ */
+function assertOneCopy(dir, name) {
+  const listed = spawnSync("npm", ["ls", name, "--parseable", "--all"], { cwd: dir, encoding: "utf8" });
+  const copies = [...new Set((listed.stdout ?? "").split("\n").filter((line) => line.includes(join("node_modules", ...name.split("/")))))];
+  if (copies.length !== 1) {
+    throw new Error(
+      `the reader's SDK install holds ${copies.length} copies of ${name}, not one:\n${copies.map((p) => `  ${p}`).join("\n")}\n` +
+        "Check each published @stigmer/* package's range for it against the others'.",
+    );
+  }
+  log(`one ${name} in the reader's install: ${copies[0]}`);
+}
+
 const args = parseArgs();
 const release = args.published ? { kind: "published", version: args.version } : { kind: "build" };
 
@@ -287,7 +312,10 @@ try {
   const performs = {
     cli: async () => log("CLI install: the build under test is installed in the isolated home"),
     "model-key": async () => log("model key: the fake model's key and address are in the shell"),
-    sdk: async (line) => run(`npm install ${[...sdkTargets, ...registryPackagesOf(line)].map(shellQuote).join(" ")}`),
+    sdk: async (line) => {
+      await run(`npm install ${[...sdkTargets, ...registryPackagesOf(line)].map(shellQuote).join(" ")}`);
+      assertOneCopy(work, "@bufbuild/protobuf");
+    },
   };
 
   const outputs = new Map();
