@@ -783,6 +783,11 @@ export {
   storeRenameRows,
 } from "./pipeline/steps/rename.js";
 export type { NewSlugRule, RenameChain, RenameRows } from "./pipeline/steps/rename.js";
+// A rename's table move holds what it sets aside until the rename commits
+// or is undone, at most this long, with the stamp both drivers write
+// (store/resource-names.ts): a composition that keeps its own
+// ResourceNameStore (a test's in-memory table) stamps the same.
+export { UNCOMMITTED_RENAME_HOLD_MS, provisionalHoldOf } from "./store/resource-names.js";
 // A reference holds the id of the resource it means (pipeline/steps/
 // references.ts): a composition's code that reads a stored reference reads
 // its target by that id, names it in copy by the target's current slug,

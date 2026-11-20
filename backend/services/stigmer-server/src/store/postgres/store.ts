@@ -124,7 +124,7 @@ import type {
   SessionQueueWriteResult,
   SessionQueueWriter,
 } from "../session-events.js";
-import { assertRenameMoves } from "../resource-names.js";
+import { assertRenameMoves, provisionalHoldOf } from "../resource-names.js";
 import type { StoreLogger } from "../logger.js";
 import {
   apiResourceKindName,
@@ -2335,7 +2335,8 @@ class PostgresResourceNameStore implements ResourceNameStore {
       // it, so the outcome lists exactly what changed, even against a claim,
       // which takes no lock above (revertRename restores from the list,
       // #2764). One UPDATE ... FROM rather than a read then an update, which
-      // could each see a different set of rows.
+      // could each see a different set of rows. Each is held provisionally
+      // until the rename commits or is undone (#2926).
       const demoted = await client.query<{ name: string; claimed_at: string }>(
         `WITH before AS (
            SELECT name, claimed_at FROM resource_names
@@ -2354,7 +2355,7 @@ class PostgresResourceNameStore implements ResourceNameStore {
           rename.to,
           rename.id,
           rename.now,
-          rename.fromExpiresAt,
+          provisionalHoldOf(rename),
         ],
       );
       const undo: ResourceNameUndo = {
@@ -2430,7 +2431,7 @@ class PostgresResourceNameStore implements ResourceNameStore {
             undo.demoted.map((d) => d.name),
             undo.demoted.map((d) => d.claimedAt),
             undo.demoted.map((d) => d.expiresAt),
-            rename.fromExpiresAt,
+            provisionalHoldOf(rename),
           ],
         );
       }
@@ -2446,6 +2447,40 @@ class PostgresResourceNameStore implements ResourceNameStore {
              WHERE kind = $1 AND org = $2 AND id = $4 AND state = 'current'
            )`,
         [rename.kind, rename.org, rename.from, rename.id],
+      );
+    });
+  }
+
+  async commitRename(
+    rename: ResourceNameRename,
+    undo: ResourceNameUndo,
+  ): Promise<void> {
+    const provisional = provisionalHoldOf(rename);
+    if (provisional === rename.fromExpiresAt || undo.demoted.length === 0) {
+      return; // the move already stamped the caller's own expiry
+    }
+    await this.transaction(async (client) => {
+      // One at a time with the resource's renames (rename's lock).
+      await client.query(
+        `SELECT pg_advisory_xact_lock(hashtextextended($1 || '/' || $2 || '/' || $3, 0))`,
+        [rename.kind, rename.org, rename.id],
+      );
+      // Only rows still as this rename left them: a later rename that took
+      // a listed name back or restamped it owns it now (revertRename's
+      // rule, #2764).
+      await client.query(
+        `UPDATE resource_names SET expires_at = $6
+         WHERE kind = $1 AND org = $2 AND id = $3 AND name = ANY($4::text[])
+           AND state = 'previous' AND claimed_at = $5 AND expires_at = $7`,
+        [
+          rename.kind,
+          rename.org,
+          rename.id,
+          undo.demoted.map((d) => d.name),
+          rename.now,
+          rename.fromExpiresAt,
+          provisional,
+        ],
       );
     });
   }

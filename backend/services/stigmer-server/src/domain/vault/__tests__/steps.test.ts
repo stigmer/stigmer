@@ -1,8 +1,9 @@
 /**
  * Pins the vault chain steps' edges the RPC tests do not reach: create
  * refuses an owner organization other than the vault's own; an update
- * that clears or moves an external id lets go of the old one by name, and
- * logs a release it cannot make; and a failed write undoes its external
+ * that clears or moves an external id lets go of the old one by name, a
+ * saved move committed first (#2926), and logs a release it cannot make;
+ * and a failed write undoes its external
  * id move whichever way it made it (a rename reverted, an update's first
  * claim released by name, a create's unstored claim freed), logging,
  * never throwing, when the undo itself fails. Racing updates leave the
@@ -136,6 +137,10 @@ function names(fail = false): { store: Store; calls: string[]; undos: unknown[] 
         undos.push(undo);
         return record("revertRename")();
       },
+      commitRename: (_rename: ResourceNameRename, undo: ResourceNameUndo) => {
+        undos.push(undo);
+        return record("commitRename")();
+      },
     },
   } as unknown as Store;
   return { store, calls, undos };
@@ -178,12 +183,29 @@ describe("ReleaseClearedExternalId", () => {
     expect(calls).toEqual(["releaseName:customer-1"]);
   });
 
-  it("lets go of the old id by name once a move is saved", async () => {
+  it("commits a saved move with what it changed, then lets go of the old id by name (#2926)", async () => {
+    const { store, calls, undos } = names();
+    const ctx = ctxOf(vault({ externalId: "new" }), vault({ externalId: "old" }));
+    const rename: ResourceNameRename = {
+      kind: EXTERNAL_ID_NAME_KIND, org: "org_a", id: "vlt_1", from: "old", to: "new", fromExpiresAt: "", now: "",
+    };
+    const undo: ResourceNameUndo = {
+      demoted: [{
+        kind: EXTERNAL_ID_NAME_KIND, org: "org_a", name: "old", id: "vlt_1", state: "current", claimedAt: "", expiresAt: "",
+      }],
+    };
+    ctx.set(CLAIMED_EXTERNAL_ID_KEY, { kind: "renamed", rename, undo });
+    await newReleaseClearedExternalIdStep(store, silentLogger).execute(ctx);
+    expect(calls).toEqual(["commitRename", "releaseName:old"]);
+    expect(undos).toEqual([undo]);
+  });
+
+  it("commits nothing when the update moved no external id", async () => {
     const { store, calls } = names();
     await newReleaseClearedExternalIdStep(store, silentLogger).execute(
-      ctxOf(vault({ externalId: "new" }), vault({ externalId: "old" })),
+      ctxOf(vault({ externalId: "" }), vault({ externalId: "customer-1" })),
     );
-    expect(calls).toEqual(["releaseName:old"]);
+    expect(calls).not.toContain("commitRename");
   });
 });
 
