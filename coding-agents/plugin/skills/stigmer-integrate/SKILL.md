@@ -71,11 +71,13 @@ Decide this before any backend code: every job below rests on it.
 | The signed-in user, from the backend | The backend starts work the user owns (a run on their upload) | A second client on a token minted for the user, kept in a token cache | https://stigmer.ai/docs/guides/authentication/product-users ("From your backend, as the user") |
 | A business customer, walled off | Customers must never see each other's conversations, files or keys | An organization per customer, people landing there by minted token or federation | https://stigmer.ai/docs/getting-started/one-organization-per-customer |
 
-Say which you chose and why. A run started with the service account's key is
-the service account's: the customer does not own it, and their chat does not
-show it. A conversation is private to whoever started it, so read a user's
-run (its answer, its files) with that user's client, never the service
-account's.
+Tell the person which you chose and why, with the rule behind it, in their
+answer: a run started with the service account's key is the service
+account's (the customer does not own it, and their chat does not show it); it
+is the customer's only when started on a token minted for them, or inside an
+organization of their own. A conversation is private to whoever started it,
+so read a user's run (its answer, its files) with that user's client, never
+the service account's.
 
 ## The keys
 
