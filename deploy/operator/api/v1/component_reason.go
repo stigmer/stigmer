@@ -68,6 +68,9 @@ const (
 	ReasonFrontDoorPending ComponentReason = "FrontDoorPending"
 	// ReasonGatewayNotAccepted: the Gateway's controller refused a route.
 	ReasonGatewayNotAccepted ComponentReason = "GatewayNotAccepted"
+	// ReasonPerSessionRunnersOnly: a licensed install runs agents in
+	// per-session sandboxes, not on a shared runner.
+	ReasonPerSessionRunnersOnly ComponentReason = "PerSessionRunnersOnly"
 	// ReasonRealmConverging: the bundled sign-in's realm is being set up.
 	ReasonRealmConverging ComponentReason = "RealmConverging"
 	// ReasonPrerequisiteMissing: a cluster-level piece the declaration needs
@@ -116,6 +119,7 @@ func AllComponentReasons() []ComponentReason {
 		ReasonFrontDoorPending,
 		ReasonGatewayNotAccepted,
 		ReasonRealmConverging,
+		ReasonPerSessionRunnersOnly,
 		ReasonPrerequisiteMissing,
 		ReasonWaitingForBackupPlugin,
 		ReasonBackingUpBeforeUpgrade,
@@ -153,6 +157,7 @@ var ReasonMessages = map[ComponentReason]string{
 	ReasonFrontDoorPending:       "the front door waits for its controller to serve it",
 	ReasonGatewayNotAccepted:     "the Gateway's controller refused the front door's routes",
 	ReasonRealmConverging:        "setting up the sign-in's realm, clients and owner",
+	ReasonPerSessionRunnersOnly:  "a licensed server runs agents in per-session sandboxes, not on a shared runner",
 	ReasonPrerequisiteMissing:    "a cluster-level piece it needs is not installed: install it",
 	ReasonWaitingForBackupPlugin: "waiting for the backup plugin, so the database is born archiving",
 	ReasonBackingUpBeforeUpgrade: "taking a backup before the server migrates its database forward",

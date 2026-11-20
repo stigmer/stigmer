@@ -169,15 +169,10 @@ type ServerSpec struct {
 //
 // +kubebuilder:validation:XValidation:rule="has(self.tls) != has(self.gatewayRef)",message="spec.ingress needs exactly one of tls (an Ingress with its certificate) or gatewayRef (routes on your Gateway, whose listener holds the certificate)"
 type IngressSpec struct {
-	// Hostname is the one name people reach Stigmer at.
+	// Hostname is the one name people reach Stigmer at, on port 443 (the CLI
+	// and the desktop app speak TLS to a server on 443).
 	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)+$`
 	Hostname string `json:"hostname"`
-
-	// Port is the port people reach the front door on, when it is not 443.
-	// +kubebuilder:validation:Minimum=1
-	// +kubebuilder:validation:Maximum=65535
-	// +optional
-	Port *int32 `json:"port,omitempty"`
 
 	// ClassName is the IngressClass that serves the front door.
 	// +optional

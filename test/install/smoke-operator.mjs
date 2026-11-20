@@ -5,7 +5,7 @@
  * installed with its chart on a kind cluster this script creates, and one
  * Stigmer resource per profile brought up and proven end to end.
  *
- *   make smoke-operator PROFILE=bundled      (or byo, enterprise, bucket, upgrade)
+ *   make smoke-operator PROFILE=bundled      (or byo, enterprise, bucket, exposed, upgrade)
  *
  * What one pass proves, per profile:
  *
@@ -50,6 +50,27 @@
  *   database archives under a name of its own, and the files are in the
  *   bucket.
  *
+ * exposed: what a platform engineer brings to expose Stigmer
+ *   (test/install/lib/front-door.mjs: Traefik serving Ingresses and Gateway
+ *   API routes on this host's 443, cert-manager with a CA made here, a
+ *   Gateway, a mail catcher), then one declaration with spec.ingress for
+ *   https://stigmer.localtest.me and the bundled sign-in with sign-up for one
+ *   domain. The front door waits for its certificate, naming cert-manager's
+ *   reason, while status.url already names the URL; the issuer is created
+ *   and it is Ready. Through the front door alone, trusting the CA: the
+ *   console's /config.json names the public issuer, native gRPC answers
+ *   SERVING, the sign-in answers at /idp, and files are served at
+ *   /artifacts. Sign-up is closed. The owner signs in with the one-time
+ *   password through the console's own client (PKCE) and the forced
+ *   password change, owns the organization, and the one-time password's
+ *   Secret is deleted. An agent runs as the owner on the shared runner,
+ *   which started signed in. Sign-up opens to the declared domain only: an
+ *   address elsewhere is refused, one in the domain registers, verifies by
+ *   the mail it receives, and is a member. `stigmer auth login` signs the
+ *   owner in through a browser and a colleague in by device code. Then the
+ *   front door moves to the Gateway: the Ingresses are gone, and the
+ *   console, gRPC and a browser sign-in work through it.
+ *
  * upgrade: two builds of this checkout's operator stamped as consecutive
  *   versions (smoke-1, smoke-2), with the source images tagged at both. A
  *   bucket-backed Stigmer under smoke-1 runs an agent; `helm upgrade` moves
@@ -70,7 +91,9 @@
  * Plain node + the helm, kind, kubectl and docker CLIs, no dependencies.
  */
 
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { createHmac, generateKeyPairSync, randomBytes, randomUUID, sign } from "node:crypto";
 import { join } from "node:path";
 import process from "node:process";
@@ -79,10 +102,23 @@ import { LAYER_ENGINES, assertClaudeReady } from "./lib/claude-engine.mjs";
 import { FAKE_MODEL_API_KEY, fakeModelEnv, parseFakeModelArg, startFakeModel } from "./lib/fake-model.mjs";
 import { IMAGE_REGISTRY, SOURCE_TAG, createKindCluster } from "./lib/kind-cluster.mjs";
 import { createObjectStore } from "./lib/object-store.mjs";
+import { CA_ISSUER, GATEWAY, HOSTNAME, MAIL, PUBLIC_URL, TRAEFIK_H2C, createFrontDoor, kindConfig } from "./lib/front-door.mjs";
+import {
+  consoleSignIn,
+  createBrowser,
+  exchangeCode,
+  formsOf,
+  grpcHealth,
+  pkce,
+  request,
+  signInAnswers,
+  startSignedInProxy,
+} from "./lib/front-door-client.mjs";
 import { ARTIFACT_PORT, SERVER_PORT, createOperator, createStigmer } from "./lib/install-operator.mjs";
 import {
   assertArtifactLane,
   assertConsoleServed,
+  connectJson,
   assertPortFree,
   pollUntil,
   readAgentExecution,
@@ -93,7 +129,7 @@ import {
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 /** In the order they run: upgrade last, since it leaves the operator at its second build. */
-const PROFILES = ["bundled", "byo", "enterprise", "bucket", "upgrade"];
+const PROFILES = ["bundled", "byo", "enterprise", "bucket", "exposed", "upgrade"];
 // A first install pulls CloudNativePG and Temporal, creates the database and
 // its schema, and waits through the server's startup probe; generous on a
 // shared CI host.
@@ -136,6 +172,7 @@ function log(step) {
 let cluster;
 let operator;
 let objectStore;
+let frontDoor;
 /** The Stigmer being exercised, so a failure can print its diagnostics. */
 let current;
 
@@ -568,6 +605,237 @@ async function runBucket(fake, modelBaseUrl) {
   kubectl(["delete", "namespace", namespace, "--wait=false"]);
 }
 
+const OWNER = "owner@team.test";
+const OWNER_PASSWORD = `Owner-${randomBytes(9).toString("base64url")}`;
+const COLLEAGUE = "alice@team.test";
+const COLLEAGUE_PASSWORD = `Alice-${randomBytes(9).toString("base64url")}`;
+const ISSUER = `${PUBLIC_URL}/idp/realms/stigmer`;
+const CONSOLE_CLIENT = "stigmer-console";
+const cliEntry = join(repoRoot, "client-apps", "cli", "src", "cli", "stigmer.ts");
+const tsxBin = join(repoRoot, "node_modules", ".bin", "tsx");
+/** The CLI's device sign-in line (client-apps/cli/src/auth/device.ts), restated: the install layer imports no CLI source. */
+const DEVICE_CODE = /To sign in, open (\S+) and enter ([A-Z0-9]{4}-[A-Z0-9]{4})/;
+
+/** The stand-in browser `stigmer auth login` opens: walks the sign-in as the owner, then hands the code to the CLI's loopback callback. */
+const CLI_BROWSER = `
+import { createBrowser, signInAnswers } from ${JSON.stringify(join(repoRoot, "test", "install", "lib", "front-door-client.mjs"))};
+const [url] = process.argv.slice(2);
+const browser = createBrowser({ caFile: process.env.NODE_EXTRA_CA_CERTS });
+const walked = await browser.walk(url, {
+  answers: signInAnswers({ email: process.env.SMOKE_EMAIL, password: process.env.SMOKE_PASSWORD }),
+  stopAt: "http://127.0.0.1:",
+});
+if (walked.redirect === undefined) { console.error("the sign-in ended on a page:", (walked.page ?? "").slice(0, 400)); process.exit(1); }
+await fetch(walked.redirect);
+`;
+
+/** A one-shot https GET through the front door, trusting the test's CA. */
+async function frontDoorGet(caFile, path) {
+  return request(`${PUBLIC_URL}${path}`, { ca: readFileSync(caFile) });
+}
+
+/** The front door serves the console, gRPC and the sign-in on the one hostname. */
+async function assertFrontDoor(caFile, what) {
+  const config = JSON.parse((await frontDoorGet(caFile, "/config.json")).body);
+  if (config.authMode !== "oidc" || config.oidcIssuer !== ISSUER || config.oidcClientId !== CONSOLE_CLIENT) {
+    throw new Error(`${what}: /config.json reads ${JSON.stringify(config)}`);
+  }
+  const status = await grpcHealth({ origin: PUBLIC_URL, caFile });
+  if (status !== 1) throw new Error(`${what}: native gRPC health answered status ${status}, want SERVING`);
+  const discovery = JSON.parse((await frontDoorGet(caFile, "/idp/realms/stigmer/.well-known/openid-configuration")).body);
+  if (discovery.issuer !== ISSUER) throw new Error(`${what}: the sign-in's discovery names ${discovery.issuer}`);
+  log(`${what}: /config.json names ${ISSUER}; native gRPC SERVING; the sign-in answers at /idp`);
+}
+
+/** The roles `account` holds on `org`, as the owner reads them. */
+async function rolesOf(ownerBase, account, org) {
+  const got = await connectJson(ownerBase, "ai.stigmer.iam.grant.v1.GrantQueryController/getPrincipalResourceRoles", {
+    principal: { kind: "identity_account", id: account },
+    resource: { kind: "organization", id: org },
+  });
+  return (got.roles ?? []).map((r) => r.code);
+}
+
+/** Provision the caller's account on first sign-in; resolves its id. */
+async function provision(base) {
+  const account = await connectJson(base, "ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/provisionMyAccount", {});
+  return account.metadata?.id;
+}
+
+/** Run the CLI from source in `home`. */
+function cli(home, caFile, args, extraEnv = {}) {
+  const env = { ...process.env, HOME: home, NODE_EXTRA_CA_CERTS: caFile, ...extraEnv };
+  for (const key of ["STIGMER_SERVER_ADDRESS", "STIGMER_API_KEY", "STIGMER_ORG"]) delete env[key];
+  const child = spawn(tsxBin, [cliEntry, ...args], { env, stdio: ["ignore", "pipe", "pipe"] });
+  let stdout = "";
+  let stderr = "";
+  child.stdout.setEncoding("utf8").on("data", (c) => (stdout += c));
+  child.stderr.setEncoding("utf8").on("data", (c) => (stderr += c));
+  const done = new Promise((resolve) => child.once("close", (status) => resolve({ status, stdout, stderr })));
+  return { done, output: () => stdout + stderr, kill: () => child.kill("SIGKILL") };
+}
+
+async function cliOk(home, caFile, args, extraEnv) {
+  const result = await cli(home, caFile, args, extraEnv).done;
+  if (result.status !== 0) throw new Error(`stigmer ${args.join(" ")} exited ${result.status}:\n${result.stdout}\n${result.stderr}`);
+  return `${result.stdout}${result.stderr}`;
+}
+
+async function cliBrowserSignIn(home, caFile) {
+  const script = join(home, "browser.mjs");
+  writeFileSync(script, CLI_BROWSER);
+  const said = await cliOk(home, caFile, ["auth", "login"], {
+    BROWSER: `"${process.execPath}" "${script}"`,
+    SMOKE_EMAIL: OWNER,
+    SMOKE_PASSWORD: OWNER_PASSWORD,
+  });
+  if (!said.includes(`Authenticated with ${HOSTNAME}`)) throw new Error(`auth login did not say it authenticated: ${said}`);
+  const whoami = await cliOk(home, caFile, ["auth", "whoami"]);
+  if (!whoami.includes(OWNER)) throw new Error(`whoami after the browser sign-in: ${whoami}`);
+}
+
+async function runExposed(fake, modelBaseUrl) {
+  const namespace = "smoke-exposed";
+  log(`=== profile exposed (namespace ${namespace}, ${PUBLIC_URL}) ===`);
+  frontDoor.install();
+  prepareNamespace(namespace, modelBaseUrl);
+  const stigmer = createStigmer(cluster, { namespace, log });
+  current = stigmer;
+  const ingress = { hostname: HOSTNAME, className: "traefik", serviceAnnotations: TRAEFIK_H2C, tls: { issuer: { name: CA_ISSUER, kind: "ClusterIssuer" } } };
+  const declaration = {
+    owner: { email: OWNER },
+    runner: { llm: { secretName: MODEL_SECRET } },
+    ingress,
+    identity: { bundled: { signUp: { emailDomains: ["team.test"] }, smtp: { host: MAIL.host, port: MAIL.port, from: "stigmer@team.test" } } },
+  };
+  stigmer.apply(declaration);
+
+  const waiting = await stigmer.waitComponent("frontDoor", "waiting for its certificate", 5 * 60_000, (c) => c.reason === "CertificatePending");
+  if (stigmer.read().status.url !== PUBLIC_URL) throw new Error(`status.url reads ${stigmer.read().status.url} while the certificate waits`);
+  log(`the front door waits, the URL already published: ${waiting.message}`);
+  frontDoor.createIssuer();
+  await stigmer.waitReady(READY_TIMEOUT_MS);
+  assertZeroRestarts(namespace);
+  const ready = stigmer.read().status.conditions.find((c) => c.type === "Ready").message;
+  if (!ready.includes("stigmer-owner-setup")) throw new Error(`the Ready sentence does not say where the one-time password is: ${ready}`);
+  log(`Ready, every container with zero restarts: ${ready}`);
+
+  const workDir = mkdtempSync(join(tmpdir(), "stigmer-exposed-"));
+  const caFile = frontDoor.caFile();
+  const mailbox = await frontDoor.mailbox();
+  const proxies = [];
+  try {
+    await assertFrontDoor(caFile, "through the Ingress");
+    const files = await frontDoorGet(caFile, "/artifacts/smoke-nonexistent-key");
+    if (files.status !== 404 || files.body !== "404 page not found\n") throw new Error(`/artifacts answered ${files.status}: ${files.body.slice(0, 120)}`);
+    log("files: /artifacts answers as the server's download lane (an unsigned link is a missing key)");
+
+    const registration = () => {
+      const { challenge } = pkce();
+      const url = new URL(`${ISSUER}/protocol/openid-connect/registrations`);
+      for (const [k, v] of Object.entries({ client_id: CONSOLE_CLIENT, redirect_uri: `${PUBLIC_URL}/auth/callback`, response_type: "code", scope: "openid", code_challenge: challenge, code_challenge_method: "S256" })) url.searchParams.set(k, v);
+      return url.toString();
+    };
+    const closed = await createBrowser({ caFile }).send(registration());
+    if (formsOf(closed.body).some((f) => f.id === "kc-register-form")) throw new Error("sign-up is open before the owner signed in");
+    log("sign-up is closed before the owner signs in");
+
+    const oneTime = Buffer.from(cluster.kubectlJson(["-n", namespace, "get", "secret", "stigmer-owner-setup"]).data.password, "base64").toString("utf8");
+    const ownerTokens = await consoleSignIn(createBrowser({ caFile }), {
+      issuer: ISSUER, publicUrl: PUBLIC_URL, clientId: CONSOLE_CLIENT, audience: PUBLIC_URL, caFile,
+      answers: signInAnswers({ email: OWNER, password: oneTime, newPassword: OWNER_PASSWORD }),
+    });
+    const owner = await startSignedInProxy({ target: PUBLIC_URL, token: ownerTokens.access_token, caFile });
+    proxies.push(owner);
+    const ownerAccount = await provision(owner.baseUrl);
+    const org = (await connectJson(owner.baseUrl, "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/listMine", {})).entries?.[0]?.metadata?.id;
+    const ownerRoles = await rolesOf(owner.baseUrl, ownerAccount, org);
+    if (!ownerRoles.includes("owner")) throw new Error(`the owner holds ${ownerRoles.join(", ")} on the organization`);
+    log(`the owner signed in with the one-time password, chose their own, and owns organization ${org}`);
+    await pollUntil("the one-time password's Secret to be deleted and sign-up to open", 3 * 60_000, () => {
+      const gone = cluster.kubectlQuiet(["-n", namespace, "get", "secret", "stigmer-owner-setup"]).status !== 0;
+      return gone && (stigmer.component("identity")?.message ?? "").includes("sign-up is open to addresses at team.test");
+    });
+    log(`identity: ${stigmer.component("identity").message}`);
+
+    const run = await runAgentToReply(owner.baseUrl, RUN_COMPLETED_TIMEOUT_MS, { expectText: fake.replyText, log });
+    const runner = stigmer.component("runner");
+    if (!runner.message.includes("signed in as the runner service account")) throw new Error(`the runner: ${runner.message}`);
+    const serverLog = kubectl(["-n", namespace, "logs", "deployment/stigmer", "-c", "server", "--tail=-1"]);
+    if (!serverLog.includes("the shared runner's key is stored")) throw new Error("the server never stored the runner's key");
+    log(`agent run ${run.executionId} COMPLETED as the owner on the shared runner, which started signed in (no key step)`);
+
+    const eve = await createBrowser({ caFile }).walk(registration(), {
+      answers: { "kc-register-form": { email: "eve@elsewhere.test", password: COLLEAGUE_PASSWORD, "password-confirm": COLLEAGUE_PASSWORD, firstName: "Eve", lastName: "Else" } },
+    });
+    if (!(eve.page ?? "").includes("Sign-up is open to addresses at team.test")) throw new Error(`an address elsewhere was not refused:\n${(eve.page ?? "").slice(0, 400)}`);
+    log("sign-up refuses eve@elsewhere.test in words");
+    const alice = createBrowser({ caFile });
+    const { verifier, challenge } = pkce();
+    const signUp = new URL(`${ISSUER}/protocol/openid-connect/registrations`);
+    for (const [k, v] of Object.entries({ client_id: CONSOLE_CLIENT, redirect_uri: `${PUBLIC_URL}/auth/callback`, response_type: "code", scope: "openid profile email offline_access", code_challenge: challenge, code_challenge_method: "S256", audience: PUBLIC_URL })) signUp.searchParams.set(k, v);
+    await alice.walk(signUp.toString(), {
+      answers: { "kc-register-form": { email: COLLEAGUE, password: COLLEAGUE_PASSWORD, "password-confirm": COLLEAGUE_PASSWORD, firstName: "Alice", lastName: "Team" } },
+      stopAt: `${PUBLIC_URL}/auth/callback`,
+    });
+    const mail = await mailbox.newestTo(COLLEAGUE);
+    const link = /https:\/\/\S+?action-token\S+/.exec(mail)?.[0];
+    if (link === undefined) throw new Error(`the verification mail carries no link:\n${mail}`);
+    const verified = await alice.walk(link.replace(/[)>\]]+$/, ""), { answers: {}, stopAt: `${PUBLIC_URL}/auth/callback` });
+    if (verified.redirect === undefined) throw new Error(`following the verification link ended on a page:\n${(verified.page ?? "").slice(0, 400)}`);
+    const aliceTokens = await exchangeCode({ issuer: ISSUER, clientId: CONSOLE_CLIENT, redirect: `${PUBLIC_URL}/auth/callback`, verifier, code: new URL(verified.redirect).searchParams.get("code"), caFile });
+    const colleague = await startSignedInProxy({ target: PUBLIC_URL, token: aliceTokens.access_token, caFile });
+    proxies.push(colleague);
+    const aliceAccount = await provision(colleague.baseUrl);
+    const aliceRoles = await rolesOf(owner.baseUrl, aliceAccount, org);
+    if (!aliceRoles.includes("member") || aliceRoles.includes("admin") || aliceRoles.includes("owner")) throw new Error(`the colleague holds ${aliceRoles.join(", ")}`);
+    log(`${COLLEAGUE} signed up, verified by mail, and is a member`);
+
+    const home = mkdtempSync(join(tmpdir(), "stigmer-exposed-cli-"));
+    await cliOk(home, caFile, ["config", "backend", "add", "smoke", "--endpoint", `${HOSTNAME}:443`]);
+    await cliOk(home, caFile, ["config", "backend", "use", "smoke"]);
+    await cliBrowserSignIn(home, caFile);
+    log("stigmer auth login: the owner signed in through the browser");
+    await cliOk(home, caFile, ["auth", "logout"]);
+    const device = cli(home, caFile, ["auth", "login", "--device"]);
+    const code = await pollUntil("the CLI's device code", 60_000, () => DEVICE_CODE.exec(device.output()) ?? false);
+    const approved = await createBrowser({ caFile }).walk(`${code[1]}?user_code=${code[2]}`, {
+      answers: signInAnswers({ email: COLLEAGUE, password: COLLEAGUE_PASSWORD }),
+    });
+    const deviceResult = await device.done;
+    if (deviceResult.status !== 0) throw new Error(`auth login --device exited ${deviceResult.status}:\n${deviceResult.stderr}\npage:\n${(approved.page ?? "").slice(0, 300)}`);
+    const whoami = await cliOk(home, caFile, ["auth", "whoami"]);
+    if (!whoami.includes(COLLEAGUE)) throw new Error(`whoami after the device sign-in: ${whoami}`);
+    log(`stigmer auth login --device: ${COLLEAGUE} approved code ${code[2]} at ${code[1]}`);
+
+    log("arm: the front door moves to the Gateway");
+    await frontDoor.waitGateway();
+    stigmer.apply({ ...declaration, ingress: { hostname: HOSTNAME, serviceAnnotations: TRAEFIK_H2C, gatewayRef: GATEWAY } });
+    const routed = await stigmer.waitComponent("frontDoor", "Ready through the Gateway", 5 * 60_000, (c) => c.phase === "Ready" && c.message.includes("through Gateway"));
+    const ingresses = cluster.kubectlJson(["-n", namespace, "get", "ingresses"]).items;
+    if (ingresses.length !== 0) throw new Error(`Ingresses outlived the move to the Gateway: ${ingresses.map((i) => i.metadata.name)}`);
+    log(`frontDoor: ${routed.message}`);
+    await stigmer.waitReady(READY_TIMEOUT_MS);
+    await assertFrontDoor(caFile, "through the Gateway");
+    await cliOk(home, caFile, ["auth", "logout"]);
+    await cliBrowserSignIn(home, caFile);
+    log("stigmer auth login through the Gateway: the owner signed in again");
+    rmSync(home, { recursive: true, force: true });
+  } finally {
+    for (const p of proxies) await p.stop();
+    mailbox.stop();
+    rmSync(workDir, { recursive: true, force: true });
+  }
+
+  assertZeroRestarts(namespace);
+  assertOperatorLogClean();
+  stigmer.delete();
+  const allowed = ["Secret/anthropic", "Secret/stigmer-keys"];
+  await pollUntil("everything the Stigmer owned to be removed", GONE_TIMEOUT_MS, () => leftovers(namespace).every((n) => allowed.includes(n)));
+  log("=== profile exposed: PASS ===");
+  kubectl(["delete", "namespace", namespace, "--wait=false"]);
+}
+
 /** The source images tagged as `version` and loaded, as a release of that version would publish them. */
 function tagSourceImages(version) {
   for (const image of ["stigmer-server", "stigmer-runner"]) {
@@ -651,7 +919,7 @@ async function runEnterprise(modelBaseUrl) {
   log(`the server's status relays its refusal: ${server.message}`);
   const images = stigmer.images();
   if (images.server !== `ghcr.io/stigmer/stigmer-server-ee:${SOURCE_TAG}`) throw new Error(`the licensed server runs ${images.server}`);
-  if (images.runner !== undefined) throw new Error("the shared runner runs under sign-in with no key");
+  if (images.runner !== undefined) throw new Error("a licensed install runs a shared runner");
   const deployment = cluster.kubectlJson(["-n", namespace, "get", "deployment", "stigmer"]);
   if ((deployment.status?.readyReplicas ?? 0) !== 0) throw new Error("the Deployment reports a ready replica with a key no image trusts");
   // The runner waits for the server before it says anything of its own;
@@ -675,9 +943,11 @@ async function main() {
   assertTools();
   await assertPortFree(SERVER_PORT);
   await assertPortFree(ARTIFACT_PORT);
-  cluster = createKindCluster({ existing: args.cluster, prefix: "stigmer-operator-smoke", log });
+  if (args.profiles.includes("exposed")) await assertPortFree(443);
+  cluster = createKindCluster({ existing: args.cluster, prefix: "stigmer-operator-smoke", log, config: args.profiles.includes("exposed") ? kindConfig() : undefined });
   operator = createOperator(cluster, { log });
   objectStore = createObjectStore(cluster, { log });
+  frontDoor = createFrontDoor(cluster, { log, workDir: mkdtempSync(join(tmpdir(), "stigmer-front-door-")) });
   let failed = false;
   const fake = await startFakeModel({ host: "0.0.0.0", mode: args.fakeModel });
   try {
@@ -694,6 +964,7 @@ async function main() {
       else if (profile === "byo") await runByo(fake, modelBaseUrl);
       else if (profile === "enterprise") await runEnterprise(modelBaseUrl);
       else if (profile === "bucket") await runBucket(fake, modelBaseUrl);
+      else if (profile === "exposed") await runExposed(fake, modelBaseUrl);
       else await runUpgrade(fake, modelBaseUrl);
     }
     log("PASS");

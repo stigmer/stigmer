@@ -17,7 +17,7 @@
  */
 
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
@@ -37,7 +37,7 @@ const ENTERPRISE_LOCAL_TAG = "stigmer-server-ee:smoke-local";
  * A kind cluster: `existing` names one the caller owns (left as found);
  * otherwise one is created on `start` and deleted on `stop`.
  */
-export function createKindCluster({ existing = "", prefix = "stigmer-helm-smoke", log }) {
+export function createKindCluster({ existing = "", prefix = "stigmer-helm-smoke", log, config }) {
   const own = existing === "";
   const name = own ? `${prefix}-${Date.now()}` : existing;
   const workDir = mkdtempSync(join(tmpdir(), "stigmer-kind-"));
@@ -55,7 +55,15 @@ export function createKindCluster({ existing = "", prefix = "stigmer-helm-smoke"
     async start() {
       if (!own) return;
       log(`kind create cluster ${name}`);
-      run("kind", ["create", "cluster", "--name", name, ...kubeconfigFlag, "--wait", "120s"], { stdio: "inherit" });
+      // `config` is a kind cluster configuration (an object), for a test that
+      // maps a node port to the host.
+      const configFlag = [];
+      if (config !== undefined) {
+        const file = join(workDir, "kind.json");
+        writeFileSync(file, JSON.stringify(config));
+        configFlag.push("--config", file);
+      }
+      run("kind", ["create", "cluster", "--name", name, ...kubeconfigFlag, ...configFlag, "--wait", "120s"], { stdio: "inherit" });
     },
     kubectl: (args, options = {}) => run("kubectl", [...kubeconfigFlag, "--context", context, ...args], options),
     kubectlJson: (args) => JSON.parse(cluster.kubectl([...args, "-o", "json"])),

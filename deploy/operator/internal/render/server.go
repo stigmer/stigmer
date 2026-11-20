@@ -86,7 +86,10 @@ func ServerClaims(st *stigmerv1.Stigmer) []*corev1.PersistentVolumeClaim {
 	if ObjectStore(st) == nil {
 		claims = append(claims, Claim(st, ArtifactsClaim(st), st.Spec.Server.Artifacts, ArtifactsSize))
 	}
-	return append(claims, Claim(st, RunnerDataClaim(st), st.Spec.Runner.Storage, RunnerDataSize))
+	if RunnerEnabled(st) {
+		claims = append(claims, Claim(st, RunnerDataClaim(st), st.Spec.Runner.Storage, RunnerDataSize))
+	}
+	return claims
 }
 
 // ServerServiceObject is the server's in-cluster address. Its API port says
@@ -166,7 +169,7 @@ func ServerDeploymentObject(st *stigmerv1.Stigmer) *appsv1.Deployment {
 		volumes = append(volumes, volume("artifacts", ArtifactsClaim(st)))
 	}
 	containers := []corev1.Container{server}
-	{
+	if RunnerEnabled(st) {
 		runnerMounts := []corev1.VolumeMount{{Name: "runner-data", MountPath: "/data"}}
 		if onVolume {
 			runnerMounts = append(runnerMounts, corev1.VolumeMount{Name: "artifacts", MountPath: ArtifactsMount})

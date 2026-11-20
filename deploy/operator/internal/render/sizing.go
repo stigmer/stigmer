@@ -111,7 +111,7 @@ func SizingRefusal(st *stigmerv1.Stigmer) string {
 		on       bool
 	}{
 		{ServerSizing, st.Spec.Server.Resources, true},
-		{RunnerSizing, st.Spec.Runner.Resources, true},
+		{RunnerSizing, st.Spec.Runner.Resources, RunnerEnabled(st)},
 		{PostgresSizing, BundledDatabase(st).Resources, Database(st).Bundled},
 		{TemporalSizing, bundledTemporalResources(st), Temporal(st).Bundled},
 	}

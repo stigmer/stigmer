@@ -273,7 +273,9 @@ func ServerEnv(st *stigmerv1.Stigmer) []corev1.EnvVar {
 		}
 		// The shared runner's key, stored by the server at boot as its runner
 		// service account's; the runner reads the same value as STIGMER_TOKEN.
-		env = append(env, fromSecret("STIGMER_RUNNER_API_KEY", RunnerKeySecret(st), RunnerKeyKey, false))
+		if RunnerEnabled(st) {
+			env = append(env, fromSecret("STIGMER_RUNNER_API_KEY", RunnerKeySecret(st), RunnerKeyKey, false))
+		}
 	}
 	if help := st.Spec.Server.Help; help != nil && help.URL != "" {
 		env = append(env, value("STIGMER_HELP_URL", help.URL))
@@ -335,6 +337,13 @@ func enterpriseEnv(st *stigmerv1.Stigmer) []corev1.EnvVar {
 		value("STIGMER_ACCESS_HISTORY_RETENTION_DAYS", retention),
 	}
 }
+
+// RunnerEnabled reports whether the shared runner container renders. A
+// licensed server may hold several organizations, and one shared runner
+// would carry one organization's key into every organization's runs (the
+// server refuses STIGMER_RUNNER_API_KEY there), so a licensed install runs
+// agents in per-session sandboxes and renders no shared runner.
+func RunnerEnabled(st *stigmerv1.Stigmer) bool { return !Licensed(st) }
 
 // RunnerEnv is the shared runner container's environment, before extraEnv.
 func RunnerEnv(st *stigmerv1.Stigmer) []corev1.EnvVar {
@@ -403,6 +412,10 @@ func OwnedEnvNames(container string) []string {
 		Enterprise: &stigmerv1.EnterpriseSpec{License: &stigmerv1.SecretKeySelector{Name: "x", Key: "x"}},
 	}}
 	// The volume arm and the bucket arm set different names; both are owned.
+	// A licensed install renders no shared runner; the open-source arm sets
+	// the runner's key.
+	open := full.DeepCopy()
+	open.Spec.Enterprise = nil
 	bucket := full.DeepCopy()
 	bucket.Spec.ObjectStore = &stigmerv1.ObjectStoreSpec{S3: stigmerv1.S3Spec{
 		Bucket: "x", Endpoint: "http://x", RunnerEndpoint: "http://x",
@@ -412,7 +425,7 @@ func OwnedEnvNames(container string) []string {
 	if container == "runner" {
 		env = append(RunnerEnv(full), RunnerEnv(bucket)...)
 	} else {
-		env = append(ServerEnv(full), ServerEnv(bucket)...)
+		env = append(append(ServerEnv(full), ServerEnv(bucket)...), ServerEnv(open)...)
 	}
 	names := make([]string, 0, len(env))
 	for _, e := range env {

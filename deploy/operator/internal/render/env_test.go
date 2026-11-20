@@ -48,6 +48,13 @@ func TestRunnerStartsSignedInUnderSignIn(t *testing.T) {
 	if _, ok := envMap(RunnerEnv(profiles()["bundled"]))["STIGMER_TOKEN"]; ok {
 		t.Error("the runner reads a key on an install that signs nobody in")
 	}
+	licensed := profiles()["enterprise"]
+	if n := len(ServerDeploymentObject(licensed).Spec.Template.Spec.Containers); n != 1 {
+		t.Errorf("a licensed install's pod holds %d containers; want the server alone", n)
+	}
+	if _, ok := envMap(ServerEnv(licensed))["STIGMER_RUNNER_API_KEY"]; ok {
+		t.Error("a licensed server is handed the shared runner's key")
+	}
 }
 
 func TestSecretsAreReferencedNeverCopied(t *testing.T) {

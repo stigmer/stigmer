@@ -18,7 +18,8 @@
 // running and not restarting. Under sign-in it starts signed in: the server
 // component mints the runner key Secret (an stk_ key) once, the server
 // stores it at boot as its runner service account's key, and the runner
-// presents the same value.
+// presents the same value. A licensed install renders no shared runner
+// (render.RunnerEnabled), and the component says why.
 
 package component
 
@@ -76,7 +77,7 @@ func (Server) Reconcile(ctx context.Context, env *Env) (Result, error) {
 	if gate.hold != nil {
 		return *gate.hold, nil
 	}
-	if render.SignInOn(st) {
+	if render.SignInOn(st) && render.RunnerEnabled(st) {
 		if err := ensureRunnerKey(ctx, env); err != nil {
 			return Result{}, err
 		}
@@ -148,6 +149,10 @@ func (Runner) Dependencies() []string { return []string{render.ComponentServer} 
 // Reconcile implements Component.
 func (Runner) Reconcile(ctx context.Context, env *Env) (Result, error) {
 	st := env.Stigmer
+	if !render.RunnerEnabled(st) {
+		return Pending(stigmerv1.ReasonPerSessionRunnersOnly, nil,
+			"no shared runner: a licensed server may hold several organizations, and one shared runner would carry one organization's key into every organization's runs, so agents run in per-session sandboxes"), nil
+	}
 	llm := st.Spec.Runner.LLM
 	keyNote := ""
 	if llm == nil {

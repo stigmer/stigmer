@@ -203,9 +203,6 @@ func PublicURL(st *stigmerv1.Stigmer) string {
 	if fd == nil {
 		return localPublicURL
 	}
-	if fd.Port != nil && *fd.Port != 443 {
-		return fmt.Sprintf("https://%s:%d", fd.Hostname, *fd.Port)
-	}
 	return "https://" + fd.Hostname
 }
 

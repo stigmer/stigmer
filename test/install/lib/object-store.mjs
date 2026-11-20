@@ -91,6 +91,20 @@ function seaweedfsManifests() {
 }
 
 /** The bucket stack on `cluster`: cert-manager, SeaweedFS and the bucket. Idempotent. */
+/**
+ * Install cert-manager, once per cluster: the bucket profiles need it for the
+ * backup plugin, the front door for its certificate.
+ */
+export function installCertManager(cluster, { log }) {
+  const present = cluster.kubectlQuiet(["-n", "cert-manager", "get", "deployment", "cert-manager-webhook"]);
+  if (present.status === 0) return;
+  log(`installing cert-manager (${CERT_MANAGER_RELEASE})`);
+  cluster.kubectl(["apply", "-f", CERT_MANAGER_RELEASE], { stdio: "inherit" });
+  for (const deployment of ["cert-manager", "cert-manager-cainjector", "cert-manager-webhook"]) {
+    cluster.kubectl(["-n", "cert-manager", "rollout", "status", `deployment/${deployment}`, "--timeout=5m"], { stdio: "inherit" });
+  }
+}
+
 export function createObjectStore(cluster, { log }) {
   let installed = false;
 
@@ -126,11 +140,7 @@ export function createObjectStore(cluster, { log }) {
     /** Install cert-manager and the bucket, once. */
     install() {
       if (installed) return;
-      log(`installing cert-manager (${CERT_MANAGER_RELEASE})`);
-      cluster.kubectl(["apply", "-f", CERT_MANAGER_RELEASE], { stdio: "inherit" });
-      for (const deployment of ["cert-manager", "cert-manager-cainjector", "cert-manager-webhook"]) {
-        cluster.kubectl(["-n", "cert-manager", "rollout", "status", `deployment/${deployment}`, "--timeout=5m"], { stdio: "inherit" });
-      }
+      installCertManager(cluster, { log });
       log(`installing the bucket: SeaweedFS (${SEAWEEDFS_IMAGE}) in namespace ${OBJECT_STORE_NAMESPACE}`);
       cluster.kubectl(["create", "namespace", OBJECT_STORE_NAMESPACE]);
       cluster.kubectl(["apply", "-f", "-"], { input: JSON.stringify(seaweedfsManifests()) });

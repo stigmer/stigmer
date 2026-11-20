@@ -498,16 +498,11 @@ spec:
                     - name
                     type: object
                   hostname:
-                    description: Hostname is the one name people reach Stigmer at.
+                    description: |-
+                      Hostname is the one name people reach Stigmer at, on port 443 (the CLI
+                      and the desktop app speak TLS to a server on 443).
                     pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)+$
                     type: string
-                  port:
-                    description: Port is the port people reach the front door on,
-                      when it is not 443.
-                    format: int32
-                    maximum: 65535
-                    minimum: 1
-                    type: integer
                   serviceAnnotations:
                     additionalProperties:
                       type: string

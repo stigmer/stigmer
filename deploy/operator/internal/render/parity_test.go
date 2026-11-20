@@ -99,9 +99,8 @@ func profiles() map[string]*stigmerv1.Stigmer {
 		RunnerEndpoint: "http://minio.example:9000", CredentialsSecret: corev1.LocalObjectReference{Name: "bucket"},
 	}}
 	exposed := base()
-	port := int32(30443)
 	exposed.Spec.Ingress = &stigmerv1.IngressSpec{
-		Hostname: "stigmer.example.com", Port: &port,
+		Hostname: "stigmer.example.com",
 		TLS: &stigmerv1.IngressTLSSpec{Issuer: &stigmerv1.IssuerReference{Name: "letsencrypt", Kind: "ClusterIssuer"}},
 	}
 	exposed.Spec.Identity = &stigmerv1.IdentitySpec{Bundled: &stigmerv1.BundledIdentitySpec{}}
@@ -239,7 +238,9 @@ func TestServerAndRunnerSettingsMatchCompose(t *testing.T) {
 	}
 	for name, st := range profiles() {
 		checkParity(t, name, "server", st, server.Environment, ServerEnv(st))
-		checkParity(t, name, "runner", st, runner.Environment, RunnerEnv(st))
+		if RunnerEnabled(st) {
+			checkParity(t, name, "runner", st, runner.Environment, RunnerEnv(st))
+		}
 	}
 }
 

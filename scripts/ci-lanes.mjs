@@ -835,6 +835,12 @@ export const LANES = {
       "backend/services/stigmer-server/src/artifactstorage/**",
       "backend/services/runner/src/shared/artifact-storage.ts",
       "backend/services/runner/src/shared/run-credential-store.ts",
+      // The exposed profile proves the runner's key at boot, the issuer
+      // discovered in-cluster and the CLI's sign-ins against the bundled
+      // sign-in.
+      "backend/services/stigmer-server/src/boot/runner-key.ts",
+      "backend/services/stigmer-server/src/identity/**",
+      "client-apps/cli/src/auth/**",
       "Makefile",
       ".nvmrc",
       "package.json",
