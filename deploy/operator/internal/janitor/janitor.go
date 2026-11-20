@@ -12,8 +12,8 @@
 //  1. the sandbox namespaces the operator made, with their sandboxes and
 //     the server's access in them;
 //  2. agent-sandbox, once no Sandbox remains anywhere;
-//  3. the backup plugin, once no ObjectStore remains;
-//  4. CloudNativePG, once no Cluster remains.
+//  3. the backup plugin, once no ObjectStore and no database pod remains;
+//  4. CloudNativePG, once no Cluster and no database pod remains.
 //
 // It runs only when no Stigmer exists: a Stigmer's owned database is
 // deleted by garbage collection after the Stigmer is gone, and CloudNativePG
@@ -85,9 +85,17 @@ type prerequisite struct {
 	crd string
 	// instances are kinds whose objects keep it in place.
 	instances []schema.GroupVersionKind
+	// podLabel, when set, is a label whose pods keep it in place: a
+	// database's pods outlive its Cluster object while they shut down, and
+	// their last step (archiving the final WAL) needs both CloudNativePG and
+	// its backup plugin running.
+	podLabel string
 	// manifests is the release the operator applied.
 	manifests func() ([]*unstructured.Unstructured, error)
 }
+
+// cnpgInstanceLabel marks a CloudNativePG database's pods.
+const cnpgInstanceLabel = "cnpg.io/cluster"
 
 // prerequisites is every cluster-level piece, in the order they come down.
 func prerequisites() []prerequisite {
@@ -102,12 +110,14 @@ func prerequisites() []prerequisite {
 			name:      "the Barman Cloud backup plugin",
 			crd:       "objectstores.barmancloud.cnpg.io",
 			instances: []schema.GroupVersionKind{{Group: "barmancloud.cnpg.io", Version: "v1", Kind: "ObjectStore"}},
+			podLabel:  cnpgInstanceLabel,
 			manifests: manifests.BarmanCloudPlugin,
 		},
 		{
 			name:      "CloudNativePG",
 			crd:       render.CNPGClusterCRD,
 			instances: []schema.GroupVersionKind{{Group: "postgresql.cnpg.io", Version: "v1", Kind: "Cluster"}},
+			podLabel:  cnpgInstanceLabel,
 			manifests: manifests.CloudNativePG,
 		},
 	}
@@ -201,6 +211,18 @@ func sweepPrerequisite(ctx context.Context, c Client, p prerequisite) (Outcome, 
 				out.Detail = fmt.Sprintf("%s %s/%s remains", gvk.Kind, list.Items[0].Namespace, list.Items[0].Name)
 				return out, nil
 			}
+		}
+	}
+	if p.podLabel != "" {
+		var pods metav1.PartialObjectMetadataList
+		pods.SetGroupVersionKind(schema.GroupVersionKind{Version: "v1", Kind: "PodList"})
+		if err := c.List(ctx, &pods, client.HasLabels{p.podLabel}, client.Limit(1)); err != nil {
+			return out, fmt.Errorf("listing pods labelled %s: %w", p.podLabel, err)
+		}
+		if len(pods.Items) > 0 {
+			out.Verdict = KeptInUse
+			out.Detail = fmt.Sprintf("pod %s/%s is still shutting down", pods.Items[0].Namespace, pods.Items[0].Name)
+			return out, nil
 		}
 	}
 	objs, err := p.manifests()
