@@ -86,7 +86,7 @@ import {
   portHolder,
 } from "../../pipeline/steps/names.js";
 import type { NameHolder } from "../../pipeline/steps/names.js";
-import { moveName } from "../../pipeline/steps/rename.js";
+import { commitMovedName, moveName } from "../../pipeline/steps/rename.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import { idValueOf, metadataOf } from "../../pipeline/steps/shapes.js";
 import { fittedName, fittedSlug } from "../../pipeline/steps/slug.js";
@@ -474,7 +474,7 @@ export function newClaimServiceAccountNameStep(
   };
 }
 
-/** Where RenameServiceAccount leaves the name move it made, for the revert after a failed write. */
+/** Where RenameServiceAccount leaves the name move it made, for its commit or its revert. */
 const SERVICE_ACCOUNT_RENAME_KEY = "serviceAccountRename";
 
 interface ServiceAccountRename {
@@ -486,8 +486,10 @@ interface ServiceAccountRename {
  * A service account's rename: its slug follows its name (the update
  * chain otherwise keeps a stored slug), so the name stays unique among
  * the organization's service accounts. The name moves in the name table
- * with no hold: a name a service account gave up is free again at once,
- * unlike a renamed resource's 30 days. A name held by an account that is
+ * with no hold: a name a service account gave up is free again once the
+ * rename commits (CommitServiceAccountRename, after Persist), unlike a
+ * renamed resource's 30 days, and until then it is still the account's
+ * (ResourceNameStore, #2926). A name held by an account that is
  * gone is freed and taken (pipeline/steps/rename.ts moveName). Its
  * person fields stay empty, whatever the request sent: its one name is
  * `metadata.name`. Any other account passes untouched.
@@ -569,6 +571,32 @@ export function revertServiceAccountRenameOnFailure(
       }
     }
     throw error;
+  };
+}
+
+/**
+ * CommitServiceAccountRename: after the row write landed, ends the name
+ * move (ResourceNameStore.commitRename), so the name the account gave up
+ * is free from here, before the update answers. Best-effort: a fault is
+ * logged and the update still answers, since the row is written; the old
+ * name is then free once the move's provisional hold lapses
+ * (UNCOMMITTED_RENAME_HOLD_MS). Any other update passes untouched.
+ */
+export function newCommitServiceAccountRenameStep(
+  store: Store,
+  logger: Logger,
+): AccountStep {
+  return {
+    name: "CommitServiceAccountRename",
+    async execute(ctx: AccountContext): Promise<void> {
+      const moved = ctx.get(SERVICE_ACCOUNT_RENAME_KEY) as
+        | ServiceAccountRename
+        | undefined;
+      if (moved === undefined) {
+        return;
+      }
+      await commitMovedName(store, moved.move, moved.undo, logger);
+    },
   };
 }
 

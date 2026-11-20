@@ -124,7 +124,7 @@ import type {
   SessionQueueWriter,
 } from "../session-events.js";
 import type { StoreLogger } from "../logger.js";
-import { assertRenameMoves } from "../resource-names.js";
+import { assertRenameMoves, provisionalHoldOf } from "../resource-names.js";
 import {
   apiResourceKindName,
   filterRowsByField,
@@ -2182,7 +2182,8 @@ class SqliteResourceNameStore implements ResourceNameStore {
       // moved `from` first leaves its own new name current, and this one
       // demotes it too. Read as they stood, then demoted: the outcome lists
       // them for revertRename (#2764). The one synchronous BEGIN IMMEDIATE
-      // transaction lets nothing in between the two statements.
+      // transaction lets nothing in between the two statements. Each is
+      // held provisionally until the rename commits or is undone (#2926).
       const demoted = db
         .prepare(
           `SELECT ${RESOURCE_NAME_COLUMNS} FROM resource_names
@@ -2197,7 +2198,7 @@ class SqliteResourceNameStore implements ResourceNameStore {
            AND state = 'current' AND name <> ?`,
       ).run(
         rename.now,
-        rename.fromExpiresAt,
+        provisionalHoldOf(rename),
         rename.kind,
         rename.org,
         rename.id,
@@ -2248,6 +2249,7 @@ class SqliteResourceNameStore implements ResourceNameStore {
           )
           .get(rename.kind, rename.org, rename.id) !== undefined;
       if (!holdsCurrent()) {
+        const provisional = provisionalHoldOf(rename);
         const restore = db.prepare(
           `UPDATE resource_names SET state = 'current', claimed_at = ?, expires_at = ?
            WHERE kind = ? AND org = ? AND name = ? AND id = ?
@@ -2262,7 +2264,7 @@ class SqliteResourceNameStore implements ResourceNameStore {
             name.name,
             rename.id,
             rename.now,
-            rename.fromExpiresAt,
+            provisional,
           );
         }
       }
@@ -2277,6 +2279,36 @@ class SqliteResourceNameStore implements ResourceNameStore {
              WHERE kind = ? AND org = ? AND id = ? AND state = 'current'
            )`,
       ).run(rename.kind, rename.org, rename.from, rename.id, rename.kind, rename.org, rename.id);
+    });
+  }
+
+  async commitRename(
+    rename: ResourceNameRename,
+    undo: ResourceNameUndo,
+  ): Promise<void> {
+    const provisional = provisionalHoldOf(rename);
+    if (provisional === rename.fromExpiresAt || undo.demoted.length === 0) {
+      return; // the move already stamped the caller's own expiry
+    }
+    // Only rows still as this rename left them (postgres/store.ts says
+    // why, #2764); BEGIN IMMEDIATE runs it one at a time with renames.
+    this.transaction((db) => {
+      const commit = db.prepare(
+        `UPDATE resource_names SET expires_at = ?
+         WHERE kind = ? AND org = ? AND name = ? AND id = ?
+           AND state = 'previous' AND claimed_at = ? AND expires_at = ?`,
+      );
+      for (const name of undo.demoted) {
+        commit.run(
+          rename.fromExpiresAt,
+          rename.kind,
+          rename.org,
+          name.name,
+          rename.id,
+          rename.now,
+          provisional,
+        );
+      }
     });
   }
 

@@ -3,7 +3,9 @@
  * (persist.ts) over store doubles, on the arms a composed server does not
  * reach in order: a store fault answers Internal and moves nothing; a row
  * with no id or slug is a server fault; a row gone between the load and
- * the write answers NotFound and moves the names back; an update's Persist
+ * the write answers NotFound and moves the names back, committing nothing;
+ * a landed write commits the move with its outcome, and a commit that
+ * faults is logged while the row is answered (#2926); an update's Persist
  * swaps on the bytes its load kept and answers a lost swap as a
  * WRITE_CONFLICT naming the resource; a failed move back
  * is logged; a port's rows hold their names while the port finds them; and
@@ -94,12 +96,13 @@ function recordingLogger(): Logger & { errors: string[]; warnings: string[] } {
   } as unknown as Logger & { errors: string[]; warnings: string[] };
 }
 
-/** A name table that records moves and reverts; `rename` and `current` may fault. */
+/** A name table that records moves, commits and reverts; `rename`, `current` and `commitRename` may fault. */
 function names(
   options: {
     currentFails?: boolean;
     renameFails?: boolean;
     revertFails?: boolean;
+    commitFails?: boolean;
     /** The current name `current` answers once a move happened: a later rename's. */
     currentAfterMove?: string;
     /** `current` faults once a move happened. */
@@ -110,6 +113,7 @@ function names(
   const reverted: ResourceNameRename[] = [];
   const outcomes: ResourceNameUndo[] = [];
   const undos: ResourceNameUndo[] = [];
+  const committed: Array<[ResourceNameRename, ResourceNameUndo]> = [];
   const table: NameTable = {
     resourceNames: {
       current: async (kind: string, org: string, id: string) => {
@@ -162,9 +166,15 @@ function names(
         reverted.push(move);
         undos.push(undo);
       },
+      commitRename: async (move: ResourceNameRename, undo: ResourceNameUndo) => {
+        if (options.commitFails === true) {
+          throw new Error("names unavailable");
+        }
+        committed.push([move, undo]);
+      },
     },
   } as unknown as NameTable;
-  return { table, moves, reverted, outcomes, undos };
+  return { table, moves, reverted, outcomes, undos, committed };
 }
 
 /** Rows a test controls: what `find` and `modify` answer. */
@@ -304,8 +314,29 @@ describe("PersistRenamed", () => {
     return ctx;
   }
 
+  it("commits the move with its outcome once the write lands", async () => {
+    const { table, moves, outcomes, committed, reverted } = names();
+    const ctx = await renamed(table, rows({}));
+    const logger = recordingLogger();
+    await newPersistRenamedStep(table, rows({}), logger).execute(ctx);
+    expect(committed).toEqual([[moves[0], outcomes[0]]]);
+    expect(reverted).toEqual([]);
+    expect(logger.warnings).toEqual([]);
+  });
+
+  it("logs a commit that faults, and answers the written row", async () => {
+    const { table } = names({ commitFails: true });
+    const ctx = await renamed(table, rows({}));
+    const logger = recordingLogger();
+    await newPersistRenamedStep(table, rows({}), logger).execute(ctx);
+    expect((ctx.get(RENAMED_RESOURCE_KEY) as Agent).metadata?.slug).toBe("helper-renamed");
+    expect(logger.warnings).toEqual([
+      "renamed; the names it set aside stay held until the rename's provisional hold lapses",
+    ]);
+  });
+
   it("answers NotFound and moves the names back when the row is gone before the write", async () => {
-    const { table, moves, reverted, outcomes, undos } = names();
+    const { table, moves, reverted, outcomes, undos, committed } = names();
     const gone = rows({ modify: async () => undefined });
     const ctx = await renamed(table, gone);
     const missing = await refusalOf(() =>
@@ -315,6 +346,7 @@ describe("PersistRenamed", () => {
     expect(missing.rawMessage).toBe(`Agent not found: ${AGENT_ID}`);
     expect(reverted).toEqual(moves);
     expect(undos, "the move back gets the rename's outcome, every name it pushed aside included").toEqual(outcomes);
+    expect(committed, "a move that is moved back never commits").toEqual([]);
     expect(ctx.get(RENAMED_RESOURCE_KEY)).toBeUndefined();
   });
 

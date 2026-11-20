@@ -13,6 +13,10 @@
  *     that one name and moves again. The organization rename, a service
  *     account's name change and a vault's external id move call it too,
  *     each with its own hold and refusal;
+ *   - commitMovedName: after the row write landed, end the move, so the
+ *     names it set aside take the caller's own hold. Until a move commits
+ *     or is moved back, nothing it set aside can be taken by another
+ *     resource (store/interface.ts ResourceNameStore, #2926);
  *   - RENAMED_NAME_HOLD_MS: how long an old slug keeps leading to the
  *     renamed resource, during which nobody else in the organization can
  *     take it and the resource can take it back. Reads follow it
@@ -25,7 +29,8 @@
  * The store has no transaction across the name table and the rows, so the
  * order is chosen for what a failure leaves: the names move first, then
  * the row's slug is written onto the live row inside the store's atomic
- * write (RenameRows.modify), and a failed write moves the names back. Only
+ * write (RenameRows.modify), a landed write commits the move, and a
+ * failed write moves the names back. Only
  * the slug and the spec audit are written, so a rename never reverts an
  * edit that landed between its load and its write, and the write is
  * followed by a read of the table's current name, so two renames that
@@ -104,6 +109,37 @@ export async function moveName(
     moved.entry.id,
   );
   return table.resourceNames.rename(move);
+}
+
+/**
+ * Ends a move whose row write landed (ResourceNameStore.commitRename): the
+ * names it set aside take `move.fromExpiresAt`, so an old name the caller
+ * frees at once is free from here. Every caller of moveName calls this
+ * after its write lands, or revertRename after it fails. Best-effort, and
+ * awaited before the caller answers: the row is written, so a fault is
+ * logged and the names are free once the move's provisional hold lapses
+ * (UNCOMMITTED_RENAME_HOLD_MS).
+ */
+export async function commitMovedName(
+  table: NameTable,
+  move: ResourceNameRename,
+  undo: ResourceNameUndo,
+  logger: Logger,
+): Promise<void> {
+  try {
+    await table.resourceNames.commitRename(move, undo);
+  } catch (error) {
+    logger.warn(
+      "renamed; the names it set aside stay held until the rename's provisional hold lapses",
+      {
+        kind: move.kind,
+        id: move.id,
+        from: move.from,
+        to: move.to,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    );
+  }
 }
 
 /**
@@ -328,7 +364,8 @@ export function newRenameNameStep<Desc extends DescMessage>(
 /**
  * PersistRenamed: writes the new slug and the spec audit (event
  * "renamed") onto the live row, inside one atomic write, and nothing
- * else. When the write fails, or the row is gone, the names move back; a
+ * else. When the write lands, the move commits (commitMovedName). When
+ * the write fails, or the row is gone, the names move back; a
  * failed move back is logged, and leaves both slugs leading to the
  * resource until a retry, which converges because the new slug is already
  * its own.
@@ -371,6 +408,7 @@ export function newPersistRenamedStep<Desc extends DescMessage>(
           RENAMED_RESOURCE_KEY,
           await settleOnTable(names, rows, move, written, logger),
         );
+        await commitMovedName(names, move, undo, logger);
         return;
       }
       try {
