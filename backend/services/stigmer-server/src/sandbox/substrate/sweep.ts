@@ -92,8 +92,12 @@
  * room, its workflow's ask calls the provisioner's `makeRoom`
  * (provisioner.ts), which the built-in answers here (builtin.ts). It
  * chooses from the last pass's listing of awake session sandboxes and
- * draining ones, so an ask costs no Substrate listing; before the first
- * pass it answers false. It leaves out the waiting session's own sandbox,
+ * draining ones, so an ask usually costs no Substrate listing. When that
+ * listing offers nothing that would yield (before the first pass, or when
+ * every awake sandbox started since it was read, as a fleet filling up
+ * within one interval does), it lists Substrate once and chooses again;
+ * an ask that cannot read which workers are leaving then makes no room.
+ * It leaves out the waiting session's own sandbox,
  * every one it cannot map to a session and every one on a leaving worker,
  * reads each session's cheap activity, and orders them with the shared
  * decision (../make-room.ts): plain idle before parked, longest idle
@@ -129,6 +133,7 @@ import type {
 } from "../provisioner.js";
 import type {
   SubstrateActorSummary,
+  SubstrateDrainingSandbox,
   SubstrateDriverInternals,
   SubstrateMaintenance,
   SubstrateSandboxLifecycle,
@@ -231,10 +236,7 @@ export async function runSweepPass(
   const actors = await lifecycle.list();
   const draining = await leaving(options);
 
-  const awake = actors.filter(
-    (actor) =>
-      actor.name.startsWith(SESSION_ACTOR_PREFIX) && actor.state === "running",
-  );
+  const awake = awakeSessions(actors);
   state.listing = { awake, draining };
   const unnamed = awake.filter(
     (actor) => !driver.sessionByActor.has(actor.name),
@@ -287,6 +289,16 @@ export async function runSweepPass(
 
   if (stopping()) return;
   logUpkeepFailures(await lifecycle.maintain(actors, { stopping }), logger);
+}
+
+/** The awake session sandboxes of a listing. */
+function awakeSessions(
+  actors: readonly SubstrateActorSummary[],
+): SubstrateActorSummary[] {
+  return actors.filter(
+    (actor) =>
+      actor.name.startsWith(SESSION_ACTOR_PREFIX) && actor.state === "running",
+  );
 }
 
 /** A sandbox's drain as the pass read it: its worker, and when the driver first saw that worker draining. */
@@ -489,11 +501,46 @@ export async function makeRoom(
   options: SubstrateSweepOptions,
   forSessionId: string,
 ): Promise<boolean> {
+  const stopping = options.stopping ?? (() => false);
+  if (state.listing !== undefined && (await freeOne(state.listing, options, forSessionId))) {
+    return true;
+  }
+  if (stopping()) return false;
+  // Nothing in the last listing would yield: every awake sandbox may have
+  // started since it was read. One fresh listing, then choose again.
+  let draining: SubstrateDrainingSandbox[];
+  try {
+    draining = await options.lifecycle.draining();
+  } catch (error) {
+    // An ordinary suspend on a leaving worker could lose files, so an ask
+    // that cannot see which are leaving makes no room (module header).
+    options.logger.warn("Could not read which workers are leaving; made no room for a waiting run", {
+      sessionId: forSessionId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return false;
+  }
+  state.listing = {
+    awake: awakeSessions(await options.lifecycle.list()),
+    draining: new Map(
+      draining.map((sandbox) => [
+        sandbox.actor.name,
+        { worker: sandbox.actor.worker, since: sandbox.drainingSince },
+      ]),
+    ),
+  };
+  return freeOne(state.listing, options, forSessionId);
+}
+
+/** Puts the first sandbox `listing` offers to sleep (module header); true when one went to sleep. */
+async function freeOne(
+  listing: SweepListing,
+  options: SubstrateSweepOptions,
+  forSessionId: string,
+): Promise<boolean> {
   const { driver, lifecycle, sessions, logger } = options;
   const now = options.now ?? Date.now;
   const stopping = options.stopping ?? (() => false);
-  const listing = state.listing;
-  if (listing === undefined) return false;
   const own = sandboxBaseName("session", forSessionId);
   // Each candidate's sandbox as listed, by session id.
   const listedOn = new Map<string, SubstrateActorSummary>();

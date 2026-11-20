@@ -44,8 +44,11 @@
  *     session's own, a busy one, one it cannot map or one on a leaving
  *     worker, plain idle before parked; one that moved worker, slept or
  *     became busy since the listing is skipped for the next, one a turn
- *     reached mid-suspend is thawed and the next put to sleep; false before
- *     the first pass, with nothing idle, and once the sweep stops.
+ *     reached mid-suspend is thawed and the next put to sleep; a listing
+ *     that offers nothing (none yet, or every awake sandbox newer than it)
+ *     is read again from Substrate once per ask, and a fresh read that
+ *     cannot see which workers are leaving makes no room; false with
+ *     nothing idle, and once the sweep stops.
  */
 import { describe, expect, it, vi } from "vitest";
 
@@ -1069,17 +1072,47 @@ describe("making room for a waiting run", () => {
     expect(h.substrate.actors.get(c)?.state).toBe("suspended");
   });
 
-  it("answers false before the first pass, and when nothing awake is idle", async () => {
+  it("before the first pass, lists Substrate itself and makes room", async () => {
     const h = harness();
-    known(h, "ses_a", "running", 1 * MIN);
-    expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(false);
-    const busy = known(h, "ses_b", "running", 1 * MIN, true);
-    const activity = h.sessions.activities.get("ses_a");
-    if (activity !== undefined) h.sessions.activities.set("ses_a", { ...activity, busy: true });
+    const idle = known(h, "ses_a", "running", 1 * MIN);
+    expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(true);
+    expect(h.substrate.suspensions).toEqual([{ name: idle, durable: false }]);
+  });
+
+  it("when every awake sandbox started since the last listing, lists once more and makes room", async () => {
+    const h = harness();
     await h.pass();
+    expect(h.state.listing?.awake).toEqual([]);
+    const idle = known(h, "ses_new", "running", 0);
+    const listed = h.substrate.calls.filter((call) => call.startsWith("listActors")).length;
+    expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(true);
+    expect(h.substrate.suspensions).toEqual([{ name: idle, durable: false }]);
+    expect(h.substrate.calls.filter((call) => call.startsWith("listActors")).length - listed).toBe(1);
+  });
+
+  it("answers false when nothing awake is idle, and lists only once more per ask", async () => {
+    const h = harness();
+    const busy = known(h, "ses_b", "running", 1 * MIN, true);
+    await h.pass();
+    const listed = h.substrate.calls.filter((call) => call.startsWith("listActors")).length;
     expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(false);
+    expect(h.substrate.calls.filter((call) => call.startsWith("listActors")).length - listed).toBe(1);
     expect(h.substrate.suspensions).toEqual([]);
     expect(h.substrate.actors.get(busy)?.state).toBe("running");
+  });
+
+  it("makes no room when its fresh listing cannot read which workers are leaving", async () => {
+    const warned: LogEntry[] = [];
+    const h = harness(
+      createLogger({ level: "warn", pretty: false, write: () => {}, sink: (entry) => warned.push(entry) }),
+    );
+    known(h, "ses_a", "running", 1 * MIN);
+    h.substrate.fail("listWorkers", new Error("unavailable"));
+    expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(false);
+    expect(h.substrate.suspensions).toEqual([]);
+    expect(warned.map((entry) => entry.message)).toEqual([
+      "Could not read which workers are leaving; made no room for a waiting run",
+    ]);
   });
 
   it("skips a sandbox whose session cannot be read, with a warning, and takes the next", async () => {
