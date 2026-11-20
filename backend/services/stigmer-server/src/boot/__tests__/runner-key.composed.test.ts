@@ -35,8 +35,10 @@ import type { ComposedServer } from "../compose.js";
 import { loadConfig } from "../config.js";
 import { createLogger } from "../logger.js";
 
+// One organization, as the open-source edition declares (editions/open-source.ts).
 const signIn: ServerExtension = {
   name: "fake-sign-in",
+  orgLimit: 1,
   requireAuthentication: true,
   identityVerifiers: [fakeVerifier],
 };

@@ -33,6 +33,11 @@
  *     service account, a row that records no mode), so a mode added later
  *     is not a person until the rule says so.
  *
+ *   On the server's organization, the service account the server made for
+ *   its shared runner (recorded under SERVER_RUNNER_ACCOUNT_KEY) is nobody
+ *   to the zero-rows arm, so the first person still owns it; a service
+ *   account a person made still counts.
+ *
  *   ensureOperatorOwnership(operator): `owner` on every organization that
  *   has NO owner row (a boot-time write never overrides a recorded
  *   human grant); a second boot writes nothing; the row's audit actor is
@@ -78,7 +83,7 @@ import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organizatio
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { Store } from "../../../store/interface.js";
-import { accountIdFor } from "../../identityaccount/constants.js";
+import { SERVER_RUNNER_ACCOUNT_KEY, accountIdFor } from "../../identityaccount/constants.js";
 import { SINGLE_ORG_KEY } from "../../organization/limit.js";
 import {
   BLUEPRINT_KINDS,
@@ -86,6 +91,7 @@ import {
   SERVER_ORGANIZATION_ROLES_OWED,
 } from "../constants.js";
 import { newGrantPath } from "../grant-path.js";
+import { organizationRole } from "../specs.js";
 import type { GrantPath } from "../grant-path.js";
 import {
   CREATOR_SCAN_SCHEMAS,
@@ -622,6 +628,34 @@ describe("membership rules", () => {
 
       expect(rolesOf(first.metadata!.id)).toEqual(["owner@stigmer"]);
       expect(rolesOf(second.metadata!.id)).toEqual(["member@stigmer"]);
+    });
+
+    it("the service account the server made for its runner does not stop the first person owning it", async () => {
+      await grantPath.grant(
+        organizationRole("ida_server_runner", IamRole.admin, "stigmer"),
+        userCaller("ida_server_runner"),
+        "service_account_created",
+      );
+      await store.bootstrapState.set(SERVER_RUNNER_ACCOUNT_KEY, "ida_server_runner");
+      const unconfigured = rulesOver(grants, "");
+      const first = account("auth0|first", "first@example.com");
+      await unconfigured.onAccountCreated(first, userCaller(first.metadata!.id));
+
+      expect(rolesOf(first.metadata!.id)).toEqual(["owner@stigmer"]);
+    });
+
+    it("a service account a person made still counts: its organization is not handed to the next stranger", async () => {
+      await grantPath.grant(
+        organizationRole("ida_ci_robot", IamRole.admin, "stigmer"),
+        userCaller("ida_ci_robot"),
+        "service_account_created",
+      );
+      await store.bootstrapState.set(SERVER_RUNNER_ACCOUNT_KEY, "ida_server_runner");
+      const unconfigured = rulesOver(grants, "");
+      const stranger = account("auth0|stranger", "stranger@example.com");
+      await unconfigured.onAccountCreated(stranger, userCaller(stranger.metadata!.id));
+
+      expect(rolesOf(stranger.metadata!.id)).toEqual(["member@stigmer"]);
     });
 
     it("an organization the server did not make keeps today's answers", async () => {

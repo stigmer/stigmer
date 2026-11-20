@@ -68,8 +68,12 @@ func TestTheFrontDoorIsReadyOnlyWithItsCertificate(t *testing.T) {
 	ns := namespace(t)
 	createIgnoringExisting(t, stubCRD("cert-manager.io", "certificates", "Certificate", nil))
 	createIgnoringExisting(t, stubCRD("cert-manager.io", "issuers", "Issuer", nil))
-	createIgnoringExisting(t, stubCRD("gateway.networking.k8s.io", "httproutes", "HTTPRoute", nil))
-	createIgnoringExisting(t, stubCRD("gateway.networking.k8s.io", "gateways", "Gateway", nil))
+	for _, kind := range []struct{ plural, kind string }{{"httproutes", "HTTPRoute"}, {"gateways", "Gateway"}} {
+		crd := stubCRD("gateway.networking.k8s.io", kind.plural, kind.kind, nil)
+		// A *.k8s.io group's definitions carry the approval Gateway API's own carry.
+		crd.SetAnnotations(map[string]string{"api-approved.kubernetes.io": "https://github.com/kubernetes-sigs/gateway-api/pull/1538"})
+		createIgnoringExisting(t, crd)
+	}
 
 	s := stigmer(ns, "stigmer")
 	s.Spec.Server.AllowUnauthenticatedExposure = true

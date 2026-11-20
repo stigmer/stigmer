@@ -19,9 +19,14 @@
  * call of a run carries the run's own credential.
  *
  * What it does, every boot, after the organization and its roles exist:
- *   - finds the organization's service account named `runner`, or creates
- *     it with the admin role (an admin who changed its role later keeps
- *     that choice);
+ *   - finds the service account it made on an earlier boot (its id is
+ *     recorded under SERVER_RUNNER_ACCOUNT_KEY), or creates one named
+ *     `runner` with the admin role and records it (an admin who changed its
+ *     role later keeps that choice). It never adopts a service account a
+ *     person made: a name already taken is a boot error naming it. The
+ *     record is also how the membership rules know this account is the
+ *     server's own, so its role never stops the first person to sign in
+ *     from owning the organization (domain/grant/membership.ts);
  *   - when one of that account's keys already has the key's hash, nothing
  *     more: this is its idempotency;
  *   - otherwise deletes the account's keys named `runner` (the key was
@@ -34,6 +39,7 @@
  * account's key holds is a boot error: the operator reused a key.
  */
 import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
 
 import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
@@ -45,6 +51,7 @@ import { hashApiKey } from "../domain/apikey/keymaterial.js";
 import { findApiKeyByHash } from "../domain/apikey/lookup.js";
 import { keysOwnedBy, ownerOfKey } from "../domain/apikey/queries.js";
 import { isServiceAccount } from "../domain/identityaccount/actor.js";
+import { SERVER_RUNNER_ACCOUNT_KEY } from "../domain/identityaccount/constants.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
 import type { Store } from "../store/interface.js";
 import type { Logger } from "./logger.js";
@@ -107,18 +114,33 @@ export async function ensureRunnerKey(deps: RunnerKeyBootDeps): Promise<RunnerKe
 }
 
 async function runnerAccount(deps: RunnerKeyBootDeps): Promise<IdentityAccount> {
-  const existing = (await deps.accounts.findByOrg(deps.org)).find(
-    (account) =>
-      isServiceAccount(account) && account.metadata?.name === RUNNER_SERVICE_ACCOUNT_NAME,
-  );
-  if (existing !== undefined) {
-    return existing;
+  const recorded = await deps.store.bootstrapState.get(SERVER_RUNNER_ACCOUNT_KEY);
+  if (recorded !== "") {
+    const existing = (await deps.accounts.findByOrg(deps.org)).find(
+      (account) => isServiceAccount(account) && account.metadata?.id === recorded,
+    );
+    if (existing !== undefined) {
+      return existing;
+    }
   }
-  return deps.edges.createServiceAccount(
-    create(CreateServiceAccountInputSchema, {
-      org: deps.org,
-      name: RUNNER_SERVICE_ACCOUNT_NAME,
-      role: IamRole.admin,
-    }),
-  );
+  let created: IdentityAccount;
+  try {
+    created = await deps.edges.createServiceAccount(
+      create(CreateServiceAccountInputSchema, {
+        org: deps.org,
+        name: RUNNER_SERVICE_ACCOUNT_NAME,
+        role: IamRole.admin,
+      }),
+    );
+  } catch (error) {
+    if (error instanceof ConnectError && error.code === Code.AlreadyExists) {
+      throw new Error(
+        `a service account named "${RUNNER_SERVICE_ACCOUNT_NAME}" already exists that this server did not make: rename or delete it so the server can make the shared runner's own`,
+        { cause: error },
+      );
+    }
+    throw error;
+  }
+  await deps.store.bootstrapState.set(SERVER_RUNNER_ACCOUNT_KEY, created.metadata?.id ?? "");
+  return created;
 }

@@ -101,7 +101,7 @@ func profiles() map[string]*stigmerv1.Stigmer {
 	exposed := base()
 	exposed.Spec.Ingress = &stigmerv1.IngressSpec{
 		Hostname: "stigmer.example.com",
-		TLS: &stigmerv1.IngressTLSSpec{Issuer: &stigmerv1.IssuerReference{Name: "letsencrypt", Kind: "ClusterIssuer"}},
+		TLS:      &stigmerv1.IngressTLSSpec{Issuer: &stigmerv1.IssuerReference{Name: "letsencrypt", Kind: "ClusterIssuer"}},
 	}
 	exposed.Spec.Identity = &stigmerv1.IdentitySpec{Bundled: &stigmerv1.BundledIdentitySpec{}}
 	return map[string]*stigmerv1.Stigmer{"bundled": bundled, "byo": byo, "oidc": oidc, "enterprise": enterprise, "bucket": bucket, "exposed": exposed}
