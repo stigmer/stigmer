@@ -518,10 +518,12 @@ export async function makeRoom(
       });
     }
   }
-  for (const sessionId of orderSandboxesToFree(candidates)) {
-    if (stopping()) return false;
+  const chosen = orderSandboxesToFree(candidates).flatMap((sessionId) => {
     const listed = listedOn.get(sessionId);
-    if (listed === undefined) continue;
+    return listed === undefined ? [] : [{ sessionId, listed }];
+  });
+  for (const { sessionId, listed } of chosen) {
+    if (stopping()) return false;
     let parked = false;
     const outcome = await lifecycle.suspend("session", sessionId, {
       proceed: async (fresh) => {

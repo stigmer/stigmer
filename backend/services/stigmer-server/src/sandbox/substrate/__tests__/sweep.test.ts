@@ -1082,6 +1082,33 @@ describe("making room for a waiting run", () => {
     expect(h.substrate.actors.get(busy)?.state).toBe("running");
   });
 
+  it("skips a sandbox whose session cannot be read, with a warning, and takes the next", async () => {
+    const warned: LogEntry[] = [];
+    const h = harness(
+      createLogger({ level: "warn", pretty: false, write: () => {}, sink: (entry) => warned.push(entry) }),
+    );
+    const { a, b } = await full(h);
+    const read = h.sessions.recentActivity.bind(h.sessions);
+    h.sessions.recentActivity = async (id) => {
+      if (id === "ses_b") throw new Error("store unavailable");
+      return read(id);
+    };
+    expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(true);
+    expect(h.substrate.actors.get(b)?.state).toBe("running");
+    expect(h.substrate.suspensions.map((s) => s.name)).toEqual([sandboxBaseName("session", "ses_c")]);
+    expect(h.substrate.actors.get(a)?.state).toBe("running");
+    expect(warned.map((entry) => [entry.message, entry.fields?.error])).toEqual([
+      ["Making room for a waiting run skipped a sandbox", "store unavailable"],
+    ]);
+  });
+
+  it("puts nothing to sleep once the sweep is stopping", async () => {
+    const h = harness();
+    await full(h);
+    expect(await makeRoom(h.state, { ...h.options, stopping: () => true }, "ses_waiting")).toBe(false);
+    expect(h.substrate.suspensions).toEqual([]);
+  });
+
   it("is the started sweep's, and answers false once it stops", async () => {
     const h = harness();
     known(h, "ses_a", "running", 1 * MIN);

@@ -76,6 +76,8 @@
  * port) the one operator is every session's creator and the caller is
  * minted for, as before.
  */
+import { setTimeout as delay } from "node:timers/promises";
+
 import { create } from "@bufbuild/protobuf";
 
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -354,7 +356,7 @@ async function ensureOnceRoomIsSeen(
   sessionId: string,
   facts: SandboxFacts,
 ): Promise<void> {
-  const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+  const sleep = deps.sleep ?? delay;
   let last: unknown;
   for (const delay of MAKE_ROOM_RETRY_DELAYS_MS) {
     await sleep(delay);
