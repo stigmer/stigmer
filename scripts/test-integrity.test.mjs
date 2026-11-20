@@ -397,15 +397,25 @@ it("packageOf finds the nearest manifest directory", () => {
 
 // ─── Declarations ───────────────────────────────────────────────────────
 
-it("declarations parse with either dash, and cover a case by title, key or file", () => {
+it("declarations split subject from reason at the first ` -- ` alone, and cover a case by title, key or file", () => {
   const declarations = parseDeclarations([
     "Some prose.",
     "Test-removal: gone -- the feature was deleted in this PR",
-    "Quarantine: pkg/a.test.ts — stigmer#42",
+    "Quarantine: pkg/a.test.ts -- stigmer#42",
   ].join("\n"));
   assert.deepEqual(declarations.removals, [{ subject: "gone", reason: "the feature was deleted in this PR" }]);
   assert.deepEqual(declarations.quarantines, [{ subject: "pkg/a.test.ts", repo: "stigmer", issue: 42 }]);
   assert.deepEqual(declarations.skips, []);
+
+  // A long dash belongs to the title or reason it sits in.
+  const skips = (line) => parseDeclarations(line).skips;
+  assert.deepEqual(
+    skips("Skip: user-token enforcement — who changes the settings (userTokens targets) -- not served here"),
+    [{ subject: "user-token enforcement — who changes the settings (userTokens targets)", reason: "not served here" }],
+  );
+  assert.deepEqual(skips("Skip: s -- not served — the OSS server lacks it"), [{ subject: "s", reason: "not served — the OSS server lacks it" }]);
+  assert.deepEqual(skips("Skip: s — not served"), [], "a long dash alone separates nothing");
+  assert.deepEqual(skips("Skip: s – not served"), [], "nor does an en dash");
 
   const comparison = {
     deleted: [{ key: "gone", title: "gone", path: "pkg/a.test.ts", line: 1 }, { key: "other", title: "other", path: "pkg/b.test.ts", line: 1 }],
@@ -488,7 +498,7 @@ it("a weakened waiver is a new one, or proven-elsewhere moved to gap; nothing el
 });
 
 it("an RPC-waiver declaration names the RPC and why, and covers exactly that RPC", () => {
-  const declarations = parseDeclarations("RPC-waiver: A.b -- served by the cloud only; #12 owns the test\nrpc-waiver: C.d — no client yet");
+  const declarations = parseDeclarations("RPC-waiver: A.b -- served by the cloud only; #12 owns the test\nrpc-waiver: C.d -- no client yet");
   assert.deepEqual(declarations.rpcWaivers, [
     { subject: "A.b", reason: "served by the cloud only; #12 owns the test" },
     { subject: "C.d", reason: "no client yet" },
@@ -536,7 +546,7 @@ it("a lowered or removed floor is a drop; a raised, added or unchanged one is no
 });
 
 it("a Coverage-drop declaration names the package and why, and covers exactly that package", () => {
-  const declarations = parseDeclarations("Coverage-drop: client-apps/cli -- the offline cache cases moved to the conformance suite\ncoverage-drop: sdk/ink — retired");
+  const declarations = parseDeclarations("Coverage-drop: client-apps/cli -- the offline cache cases moved to the conformance suite\ncoverage-drop: sdk/ink -- retired");
   assert.deepEqual(declarations.coverageDrops, [
     { subject: "client-apps/cli", reason: "the offline cache cases moved to the conformance suite" },
     { subject: "sdk/ink", reason: "retired" },
@@ -991,6 +1001,31 @@ it("the command: clean, a deleted case refused, then declared", () => {
     const declared = r.run("--base", "main", "--pr-body-file", join(r.dir, "body.md"));
     assert.equal(declared.status, 0, declared.stdout);
     assert.match(declared.stdout, /declared .*"dropped" removed: covered by kept/);
+  } finally {
+    rmSync(r.dir, { recursive: true, force: true });
+  }
+});
+
+it("the command: a new skip on a title with a long dash, refused, then declared by the line the refusal printed", () => {
+  const r = repo();
+  const title = "enforcement — who changes the settings";
+  try {
+    r.write(A_TEST, `describe(${JSON.stringify(title)}, () => { it("a", () => {}); });`);
+    r.git("add", ".");
+    r.git("commit", "-q", "-m", "base");
+    r.git("checkout", "-q", "-b", "change");
+
+    r.write(A_TEST, `const served = false;\ndescribe.skipIf(!served)(${JSON.stringify(title)}, () => { it("a", () => {}); });`);
+    r.git("commit", "-qam", "skip");
+    const refused = r.run("--base", "main");
+    assert.equal(refused.status, 1, refused.stdout);
+    const printed = /declare `(Skip: [^`]+)`/.exec(refused.stdout)?.[1];
+    assert.equal(printed, `Skip: ${title} -- <why it does not apply>`);
+
+    r.write("body.md", printed.replace("<why it does not apply>", "the settings RPC is not served here"));
+    const declared = r.run("--base", "main", "--pr-body-file", join(r.dir, "body.md"));
+    assert.equal(declared.status, 0, declared.stdout);
+    assert.match(declared.stdout, /declared .*"enforcement — who changes the settings" skips when !served: the settings RPC is not served here/);
   } finally {
     rmSync(r.dir, { recursive: true, force: true });
   }
