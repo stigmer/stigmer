@@ -18,6 +18,7 @@ interface ListFlags extends OutputFlags {
   verb?: string;
   label?: string[];
   session?: string;
+  agent?: string;
 }
 
 export function registerList(program: Command): void {
@@ -33,6 +34,7 @@ export function registerList(program: Command): void {
       [],
     )
     .option("--session <id>", "files: list one conversation's Files, what was given to it and what its turns saved (only for 'list files')")
+    .option("--agent <agent>", "runs: list one agent's runs, newest first across its conversations (only for 'list runs')")
     .action((type: string, options: ListFlags, command: Command) => runList(type, options, command));
   addReadFlags(list);
 }
@@ -45,6 +47,7 @@ async function runList(type: string, options: ListFlags, command: Command): Prom
     if (options.session !== undefined) {
       throw new UsageError("--session names a conversation whose Files to list; 'list types' has none");
     }
+    if (options.agent !== undefined) throw agentFilterRefusal(type);
     process.stdout.write(renderTypes(options.verb, readFormat(options)));
     return;
   }
@@ -69,6 +72,7 @@ async function runList(type: string, options: ListFlags, command: Command): Prom
   if (info === undefined) {
     throw new UsageError(`unknown resource type: ${type}`);
   }
+  if (options.agent !== undefined) throw agentFilterRefusal(type);
   if (!info.supportedVerbs.has(Verb.List)) {
     throw new UsageError(`${info.displayName} does not support 'list'`);
   }
@@ -101,6 +105,10 @@ async function runList(type: string, options: ListFlags, command: Command): Prom
   process.stdout.write(rendered);
 }
 
+function agentFilterRefusal(type: string): UsageError {
+  return new UsageError(`--agent lists one agent's runs; 'list ${type}' takes no agent (use 'list runs --agent <agent>')`);
+}
+
 function sessionFilterRefusal(type: string): UsageError {
   return new UsageError(`--session lists one conversation's Files; 'list ${type}' takes no conversation (use 'list files --session <id>')`);
 }
@@ -108,6 +116,8 @@ function sessionFilterRefusal(type: string): UsageError {
 // Runs bypass the registry: they're listed by their own controller. Results are
 // scoped to the resolved org context (--org flag, env, or configured context);
 // an unset cloud context resolves to "" = permission-bounded across orgs.
+// `--agent` lists one agent's runs instead, newest first across its
+// conversations, the agent named as `agent quality` names it.
 async function runListRuns(options: ListFlags, command: Command, labels: Record<string, string>): Promise<void> {
   const [{ connectBackend }, runs] = await Promise.all([
     import("../backend.js"),
@@ -120,7 +130,10 @@ async function runListRuns(options: ListFlags, command: Command, labels: Record<
   const limit = parseLimit(options.limit);
   const format = readFormat(options);
 
-  const result = await runs.listAgentRuns(client.stigmer, limit, org, labels);
+  const result =
+    options.agent === undefined
+      ? await runs.listOrgRuns(client.stigmer, limit, org, labels)
+      : await runs.listRunsOfAgent(client.stigmer, limit, options.agent, org, labels);
   process.stdout.write(runs.renderRunList(result, format));
 }
 

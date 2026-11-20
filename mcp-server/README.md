@@ -47,7 +47,7 @@ MCP client ──JSON-RPC──▶ stdio | HTTP (stateless) ──▶ tool handl
   flattening, oneof expansion) are produced at build time by the codegen in
   `tools/codegen/src/generator/mcp-ts.ts`. Never hand-edit `src/gen/`.
 
-## Tools (16)
+## Tools (19)
 
 Every tool carries MCP tool annotations (`src/domains/toolmarks.ts`), its
 **marks**, which clients act on: Codex asks the person before any tool not
@@ -87,11 +87,15 @@ prompt whether or not any skill loads.
 ### Full roster: runs
 
 Runs are asynchronous: the `run_*` tools return immediately with the run ID and
-the assistant polls the observation tools.
+the assistant polls the observation tools. Runs that already happened are found
+with `list_runs` and read with `get_run`, `get_run_outputs` and `get_run_scores`.
 
 | Tool | Marks | Description |
 | --- | --- | --- |
-| `run_agent` | write, open world | Start a run of an agent (new session or `session_id` follow-up); a new session uses the caller's My vault unless `include_my_vault` is false, then the shared `vaults` it names, and the installed `plugins` it names beside its agent's. |
+| `run_agent` | write, open world | Start a run of an agent (new session or `session_id` follow-up); a new session uses the caller's My vault unless `include_my_vault` is false, then the shared `vaults` it names, and the installed `plugins` it names beside its agent's. `files` hands the run files from the person's project, taken only by `stigmer mcp-server` over stdio and only inside the folders the client lists as MCP roots (`src/domains/runs/local-files.ts`). |
+| `list_runs` | read | One agent's runs, newest first across its conversations (`RunQueryController.listByAgent`): each run's id, session, phase, timing and error in one line. |
+| `get_run_outputs` | read | What a run saved in its outputs folder, newest per path: text inline (at most 512 KB a file, the cut said), other files named; never a download link. |
+| `get_run_scores` | read | A run's scores: each one's source (run-health check, person, AI judge, eval), state, verdict, criteria and comment; an empty list says nothing graded it. |
 | `get_run` | read | Poll a run: its lifecycle and its events from the session's event log, as a turn summary (phase, answer, the tool uses waiting for an answer by `tool_use_id`, a bounded item tail) or every event as Managed Agents JSON. |
 | `submit_run_approval` | write, open world | Answer a tool use the run waits on, by `tool_use_id`: allow, deny (with a reason for the agent) or allow_all (the call's class for the rest of the turn). |
 | `cancel_run` | destructive | Cancel a run (`run_*`) by interrupting its conversation: every unfinished turn stops. |

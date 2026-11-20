@@ -159,6 +159,40 @@ func (r *RunClient) ListBySessionAll(ctx context.Context, input *runv1.ListRunsB
 	}
 }
 
+func (r *RunClient) ListByAgent(ctx context.Context, input *runv1.ListRunsByAgentRequest) (*runv1.RunList, error) {
+	resp, err := r.query.ListByAgent(ctx, input)
+	return resp, wrapErr(err)
+}
+
+// ListByAgentAll returns every entry of ListByAgent, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (r *RunClient) ListByAgentAll(ctx context.Context, input *runv1.ListRunsByAgentRequest) iter.Seq2[*runv1.Run, error] {
+	return func(yield func(*runv1.Run, error) bool) {
+		req := &runv1.ListRunsByAgentRequest{}
+		if input != nil {
+			req = proto.Clone(input).(*runv1.ListRunsByAgentRequest)
+		}
+		for {
+			page, err := r.ListByAgent(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
+}
+
 func (r *RunClient) GetArtifactDownloadUrl(ctx context.Context, input *runv1.GetArtifactDownloadUrlRequest) (*runv1.GetArtifactDownloadUrlResponse, error) {
 	resp, err := r.query.GetArtifactDownloadUrl(ctx, input)
 	return resp, wrapErr(err)

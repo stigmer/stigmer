@@ -48,7 +48,9 @@ beforeAll(async () => {
     reportPort = resolve;
   });
   serving = serveHttp(
-    httpHandler({ serverAddress: cfg.stigmerServerAddress, apiKey: "" }, cfg),
+    // Given the shared-disk switch, as an embedder might pass it: the HTTP
+    // handler must drop it, so no HTTP roster reads a path.
+    httpHandler({ serverAddress: cfg.stigmerServerAddress, apiKey: "", localFiles: true }, cfg),
     cfg,
     controller.signal,
     { onListening: reportPort },
@@ -148,7 +150,20 @@ describe("HTTP transport hardening + OAuth discovery", () => {
     expect(res.headers.get("content-type")).toContain("application/json");
     expect(res.headers.get("mcp-session-id")).toBeNull();
     const body = (await res.json()) as { result: { tools: Array<{ name: string }> } };
-    expect(body.result.tools).toHaveLength(13);
+    expect(body.result.tools).toHaveLength(16);
+  });
+
+  it("reads no file over HTTP, whatever the embedder passed: run_agent refuses files before any call", async () => {
+    const res = await mcpPost("/", {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: { name: "run_agent", arguments: { agent: "a", message: "m", files: ["package.json"] } },
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { result: { isError?: boolean; content: Array<{ text?: string }> } };
+    expect(body.result.isError).toBe(true);
+    expect(body.result.content[0]?.text).toContain("does not share your disk");
   });
 
   it("ignores a session id a client still holds from a stateful server", async () => {

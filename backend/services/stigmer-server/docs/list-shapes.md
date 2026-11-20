@@ -72,6 +72,7 @@ Rows read `| \`package.Service.method\` | class |`.
 | `ai.stigmer.agentic.routine.v1.RoutineQueryController.listByAgent` | paged |
 | `ai.stigmer.agentic.routine.v1.RoutineQueryController.listFires` | paged |
 | `ai.stigmer.agentic.run.v1.RunQueryController.list` | paged |
+| `ai.stigmer.agentic.run.v1.RunQueryController.listByAgent` | paged |
 | `ai.stigmer.agentic.run.v1.RunQueryController.listBySession` | paged |
 | `ai.stigmer.agentic.score.v1.ScoreQueryController.listByRun` | paged |
 | `ai.stigmer.agentic.score.v1.ScoreQueryController.listBySession` | paged |

@@ -11,6 +11,8 @@
  *     predicate: the scope is offered the request org's rows only, the
  *     list family's shape; stigmer/stigmer#1384),
  *   - activity.listRecentActivity (the sessions it summarizes),
+ *   - run.listByAgent (restrict verb over one agent's runs: another
+ *     person's run of the same agent never listed),
  *   - search (enumeration verb feeding the engine allowlist, and the
  *     proof that no request shape bypasses it),
  *   - the OUTAGE arm: a throwing scope answers the sanitized INTERNAL,
@@ -174,7 +176,8 @@ describe("list read scope (composed server, fake scope)", () => {
       );
     }
     // Two turns of one session — the rows a server-internal reader of a
-    // conversation's executions asks listBySession for.
+    // conversation's executions asks listBySession for, and the two runs
+    // of one agent listByAgent narrows.
     for (const id of ["run_turn_1", "run_turn_2"]) {
       await server.store.saveResource(
         ApiResourceKind.run,
@@ -186,6 +189,7 @@ describe("list read scope (composed server, fake scope)", () => {
           metadata: { id, name: id, org: acmeId },
           spec: { target: { case: "sessionId", value: "ses_mine" } },
           status: {
+            agentId: "agt_runs_scoped",
             audit: {
               specAudit: { createdAt: { seconds: 1_700_000_000n } },
               statusAudit: { updatedAt: { seconds: 1_700_000_000n } },
@@ -318,6 +322,17 @@ describe("list read scope (composed server, fake scope)", () => {
     });
     expect(orgScoped.entries.map((e) => e.id)).toEqual(["agt_mine"]);
     expect(seenKinds).toEqual([ApiResourceKind.agent]);
+  });
+
+  it("run.listByAgent narrows the agent's runs to the scope's kept ids", async () => {
+    allowed = new Set(["run_turn_1"]);
+    const query = createClient(RunQueryController, transport);
+    const runs = await query.listByAgent({ agentId: "agt_runs_scoped" });
+    expect(runs.entries.map((e) => e.metadata?.id)).toEqual(["run_turn_1"]);
+    expect(seenKinds).toEqual([ApiResourceKind.run]);
+    expect(offeredIds.map((ids) => [...ids].sort())).toEqual([
+      ["run_turn_1", "run_turn_2"],
+    ]);
   });
 
   it("a scope outage answers the sanitized INTERNAL — never an unscoped or empty success", async () => {

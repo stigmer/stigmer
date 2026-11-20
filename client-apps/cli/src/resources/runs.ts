@@ -12,12 +12,17 @@
 import { create } from "@bufbuild/protobuf";
 import { RunSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { RunListSchema, ListRunsRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import {
+  ListRunsByAgentRequestSchema,
+  ListRunsRequestSchema,
+  RunListSchema,
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { InterruptSessionInputSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Stigmer } from "@stigmer/client";
 import type { OutputFormat } from "../output/index.js";
 import { buildTypeInfo } from "../registry/index.js";
+import { resolveAgent } from "./agent/resolve.js";
 import { readCursorPages } from "./cursor-pages.js";
 import type { ResourceResult } from "./get-bindings.js";
 import { obj, renderListMessage, str, type TableShape } from "./render.js";
@@ -84,14 +89,14 @@ export async function getRun(client: Stigmer, id: string): Promise<ResourceResul
 }
 
 /**
- * List the newest `limit` runs for the current context, reading
- * as many pages as that takes.
+ * List the newest `limit` runs of the organization, reading as many pages as
+ * that takes.
  *
  * `org` scopes results to that organization; empty means permission-bounded
  * (all orgs the caller can view — the OSS single-tenant behavior). `labels`
  * keeps only the runs carrying every pair given.
  */
-export async function listAgentRuns(
+export async function listOrgRuns(
   client: Stigmer,
   limit: number,
   org = "",
@@ -99,6 +104,33 @@ export async function listAgentRuns(
 ): Promise<ResourceResult> {
   const entries = await readCursorPages(limit, (pageSize, pageToken) =>
     client.run.list(create(ListRunsRequestSchema, { pageSize, pageToken, org, labels })),
+  );
+  return { schema: RunListSchema, message: create(RunListSchema, { entries }) };
+}
+
+/** How `list runs --agent` says to set the organization a bare slug needs. */
+const SET_ORG_WITH = [
+  "stigmer config context set --org <org>",
+  "stigmer --org <org> list runs --agent <agent>",
+] as const;
+
+/**
+ * List the newest `limit` runs of one agent, across its conversations: the
+ * agent's last run is the first entry, whichever conversation took it.
+ * `agentRef` names the agent as `agent quality` does (an id, `org/slug`, or a
+ * slug in `org`); `labels` keeps only the runs carrying every pair given.
+ */
+export async function listRunsOfAgent(
+  client: Stigmer,
+  limit: number,
+  agentRef: string,
+  org: string,
+  labels: Record<string, string> = {},
+): Promise<ResourceResult> {
+  const agent = await resolveAgent(client, agentRef, org, SET_ORG_WITH);
+  const agentId = agent.metadata?.id ?? "";
+  const entries = await readCursorPages(limit, (pageSize, pageToken) =>
+    client.run.listByAgent(create(ListRunsByAgentRequestSchema, { agentId, pageSize, pageToken, labels })),
   );
   return { schema: RunListSchema, message: create(RunListSchema, { entries }) };
 }

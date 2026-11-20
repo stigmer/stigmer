@@ -22,6 +22,12 @@
 // backend instead (auth/token.ts, createBackendTokenSource), which refreshes the
 // sign-in and saves it as every other command does. A given key (flag or
 // environment) still wins and is never refreshed.
+//
+// This server runs on the person's machine, as their coding agent's child,
+// so it tells the server it shares their disk (`localFiles`): run_agent may
+// then hand a run the project files a call names, inside the folders the
+// coding agent lists as its workspace. The server applies it to the stdio
+// roster alone; its HTTP rosters never read a path.
 
 import type { Command } from "commander";
 import { type Config, activeBackend, hasSignIn } from "../config/config.js";
@@ -81,10 +87,12 @@ async function runMcpServer(flags: McpServerFlags): Promise<void> {
   // Imported lazily so `stigmer --help`/`version` never pull in the MCP stack.
   const { run, defaultConfig } = await import("@stigmer/mcp-server");
   const { createBackendTokenSource } = await import("../auth/token.js");
-  const options =
-    signIn === undefined
+  const options = {
+    localFiles: true,
+    ...(signIn === undefined
       ? {}
-      : { getAccessToken: createBackendTokenSource(signIn.name, signIn.endpoint).getAccessToken };
+      : { getAccessToken: createBackendTokenSource(signIn.name, signIn.endpoint).getAccessToken }),
+  };
 
   const controller = new AbortController();
   const onSignal = (): void => controller.abort();

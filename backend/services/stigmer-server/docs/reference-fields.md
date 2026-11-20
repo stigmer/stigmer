@@ -146,6 +146,7 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.run.v1.GetRunUsageReportInput.run_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.GetSessionUsageReportInput.session_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput.session_id` | stamped id |
+| `ai.stigmer.agentic.run.v1.ListRunsByAgentRequest.agent_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.session_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.LoadedVersions.plugins` | stamped reference |
 | `ai.stigmer.agentic.run.v1.LoadedVersions.skills` | stamped reference |

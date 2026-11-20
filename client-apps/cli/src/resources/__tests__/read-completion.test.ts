@@ -30,7 +30,7 @@ import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Se
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { classify, ExitCode } from "../../errors/index.js";
-import { getRun, listAgentRuns, renderRunList } from "../runs.js";
+import { getRun, listOrgRuns, renderRunList } from "../runs.js";
 import { listResources } from "../list.js";
 import { renderResource } from "../render.js";
 import { searchResources } from "../search.js";
@@ -159,7 +159,7 @@ describe("run integration", () => {
   });
 
   it("lists runs as protojson envelope", async () => {
-    const result = await listAgentRuns(client, 50);
+    const result = await listOrgRuns(client, 50);
     const json = JSON.parse(renderRunList(result, "json"));
     expect(json.entries[0].metadata.id).toBe("run_1");
   });

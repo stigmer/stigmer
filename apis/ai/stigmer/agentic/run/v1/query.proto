@@ -33,6 +33,20 @@ service RunQueryController {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
+  // List the runs of one agent, newest first, across its conversations.
+  //
+  // Results are filtered to the runs the caller can view. An eval run's
+  // tries are left out, as SessionQueryController.listByAgent leaves out
+  // their conversations.
+  //
+  // @internal
+  // Authorization is handled in handler: the store reads the run index's
+  // agent key (status.agent_id), then the list read scope filters each batch,
+  // as listBySession does.
+  rpc listByAgent(ListRunsByAgentRequest) returns (RunList) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Stored Run Content Operations
   //

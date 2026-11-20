@@ -21,6 +21,8 @@
  *   - list/listBySession filter semantics over seeded rows; list's cursor
  *     pages (newest created first, one organization, a token refused on
  *     another request) and listBySession returning its parent whole;
+ *     listByAgent walking one agent's runs newest first across its
+ *     conversations, an eval run's tries left out;
  *   - update's status-clearing standard build and delete's audit-trail
  *     return, over the wire; update's reserved-label guard under an
  *     authorizer that enforces it (a run's schedule label is refused, an
@@ -79,6 +81,7 @@ import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import type { Authorizer } from "../../../extensions/authorizer.js";
+import { EVAL_RUN_LABEL } from "../../eval-run/constants.js";
 import { fileReviewSeed } from "./file-review-seed.js";
 import {
   organizationId,
@@ -627,6 +630,68 @@ describe("get / list / listBySession over the wire", () => {
     expect(pages).toBe(3);
     expect(new Set(walked)).toEqual(ids);
     expect(walked).toHaveLength(3);
+  });
+});
+
+describe("listByAgent over the wire", () => {
+  it("requires agent_id", async () => {
+    await expectCode(
+      () => query.listByAgent({ agentId: "" }),
+      Code.InvalidArgument,
+    );
+  });
+
+  it("walks one agent's runs newest first across its conversations, an eval run's tries left out", async () => {
+    const agentId = "agt_by_agent";
+    const base = Date.parse("2026-09-04T00:00:00Z");
+    const runAt = (
+      i: number,
+      sessionId: string,
+      extra?: { agentId?: string; labels?: Record<string, string> },
+    ) =>
+      seed(
+        seedInput({
+          agentId: extra?.agentId ?? agentId,
+          sessionId,
+          createdAtMs: base + i * 1000,
+          labels: extra?.labels,
+        }),
+      );
+    // The older conversation takes the newest follow-up: "the last run"
+    // is that follow-up, whichever conversation began first.
+    const first = await runAt(0, "ses_by_agent_old");
+    const second = await runAt(1, "ses_by_agent_new");
+    await runAt(2, "ses_by_agent_other", { agentId: "agt_someone_else" });
+    await runAt(3, "ses_by_agent_eval", {
+      labels: { [EVAL_RUN_LABEL]: "evr_by_agent" },
+    });
+    const followUp = await runAt(4, "ses_by_agent_old");
+
+    const walked: string[] = [];
+    let pageToken = "";
+    do {
+      const page = await query.listByAgent({ agentId, pageSize: 1, pageToken });
+      expect(page.entries.length).toBeLessThanOrEqual(1);
+      walked.push(...page.entries.map((e) => e.metadata!.id));
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
+
+    expect(walked).toEqual([followUp, second, first]);
+  });
+
+  it("keeps only the runs carrying every label named, and answers an agent with no runs empty", async () => {
+    const agentId = "agt_by_agent_labels";
+    const labelled = await seed(
+      seedInput({ agentId, labels: { team: "support" } }),
+    );
+    await seed(seedInput({ agentId }));
+
+    const page = await query.listByAgent({ agentId, labels: { team: "support" } });
+    expect(page.entries.map((e) => e.metadata?.id)).toEqual([labelled]);
+
+    const none = await query.listByAgent({ agentId: "agt_never_ran" });
+    expect(none.entries).toEqual([]);
+    expect(none.nextPageToken).toBe("");
   });
 });
 

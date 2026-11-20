@@ -1,7 +1,9 @@
 // MCP tools for runs: start a run, poll it, answer the tool uses it waits
 // on, and cancel it. Together they close the agent iteration loop: author
 // with apply_agent, run with run_agent, observe with get_run, steer with
-// submit_run_approval, stop with cancel_run.
+// submit_run_approval, stop with cancel_run. Runs that already happened are
+// found with list_runs, and what they left behind is read with
+// get_run_outputs and get_run_scores (history.ts).
 //
 // A run is asynchronous by design: run_agent returns as soon as the backend
 // accepts the run; progress is observed by polling. MCP tools are
@@ -19,8 +21,32 @@ import { textOrError } from "../toolresult.js";
 import { APPROVAL_DECISIONS, submitRunApproval } from "./approve.js";
 import { cancelRun } from "./cancel.js";
 import { DEFAULT_ITEM_LIMIT, fetchRun } from "./fetch.js";
+import {
+  DEFAULT_RUN_LIMIT,
+  getRunOutputs,
+  getRunScores,
+  listRuns,
+  MAX_RUN_LIMIT,
+} from "./history.js";
+import { type LocalFileAccess, MAX_RUN_FILES, rootPath } from "./local-files.js";
 import { runAgent } from "./run.js";
 import { DESTRUCTIVE, READ, WRITE_OPEN_WORLD } from "../toolmarks.js";
+
+/**
+ * What run_agent's `files` may read: the target says whether this server
+ * shares the person's disk; the client's MCP roots bound the paths
+ * (local-files.ts). A client that does not declare roots has none to list.
+ */
+function fileAccessOf(server: McpServer, target: BackendTarget): LocalFileAccess {
+  return {
+    localFiles: target.localFiles === true,
+    listRoots: async () => {
+      if (server.server.getClientCapabilities()?.roots === undefined) return undefined;
+      const listed = await server.server.listRoots();
+      return listed.roots.map((root) => rootPath(root.uri)).filter((path): path is string => path !== undefined);
+    },
+  };
+}
 
 /** Register the tools that start, observe and steer a run; returns the registered tool names. */
 export function registerRunTools(server: McpServer, target: BackendTarget): string[] {
@@ -33,7 +59,8 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
         "(run_* ID) while the run continues in the background — poll get_run to observe " +
         "progress, the tool uses it waits on, and the final answer. Omit session_id to start a fresh " +
         "conversation on the agent; pass one to send a follow-up message into an existing session, " +
-        "which runs the agent the session started on.",
+        "which runs the agent the session started on. `files` hands the run files from the person's " +
+        "project (\"run invoice-checker on samples/march.csv\").",
       inputSchema: z.strictObject({
         org: z
           .string()
@@ -81,20 +108,121 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
               "true). Pass false to run on the listed vaults only. Only when starting a new " +
               "conversation (no session_id).",
           ),
+        files: z
+          .array(z.string())
+          .max(MAX_RUN_FILES)
+          .optional()
+          .describe(
+            `Files from the person's project the message carries, at most ${MAX_RUN_FILES}: each a path, ` +
+              "relative to a folder their coding agent has open or absolute inside one. The agent sees " +
+              "each with the message and finds it under .stigmer/uploads/. Taken only by the tool " +
+              "server running on the person's machine (`stigmer mcp-server`) and only inside the " +
+              "folders their coding agent has open; anywhere else the call is refused, and the file " +
+              "is attached from a shell with `stigmer run <agent> --attach <path>`. A folder is " +
+              "refused the same way. Works on a follow-up too.",
+          ),
       }),
     },
     (args, extra) =>
       textOrError(async () =>
-        runAgent(target.serverAddress, await resolveToken(extra, target), {
+        runAgent(
+          target.serverAddress,
+          await resolveToken(extra, target),
+          {
+            org: args.org,
+            agent: args.agent,
+            message: args.message,
+            sessionId: args.session_id,
+            vaults: args.vaults,
+            includeMyVault: args.include_my_vault,
+            plugins: args.plugins,
+            files: args.files,
+          },
+          fileAccessOf(server, target),
+        ),
+      ),
+  );
+
+  server.registerTool(
+    "list_runs",
+    {
+      annotations: READ,
+      description:
+        "List one agent's runs, newest first, across all its conversations: how to find \"the last " +
+        "run\" of an agent, or the run a person means (\"last night's\", \"the one that failed\"). " +
+        "Each run has its run_id, session_id, phase, start and end, and its error in one line when it " +
+        "failed. Read one run with get_run (why it failed, what it said), what it saved with " +
+        "get_run_outputs, and how it was graded with get_run_scores.",
+      inputSchema: z.strictObject({
+        org: z
+          .string()
+          .default("")
+          .describe(
+            "Organization slug that owns the agent (e.g. acme). Leave empty on a server that holds one organization.",
+          ),
+        agent: z.string().describe("Agent slug (e.g. invoice-checker)."),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(MAX_RUN_LIMIT)
+          .optional()
+          .describe(`How many of the newest runs to return (default ${DEFAULT_RUN_LIMIT}, at most ${MAX_RUN_LIMIT}).`),
+      }),
+    },
+    (args, extra) =>
+      textOrError(async () =>
+        listRuns(target.serverAddress, await resolveToken(extra, target), {
           org: args.org,
           agent: args.agent,
-          message: args.message,
-          sessionId: args.session_id,
-          vaults: args.vaults,
-          includeMyVault: args.include_my_vault,
-          plugins: args.plugins,
+          limit: args.limit ?? DEFAULT_RUN_LIMIT,
         }),
       ),
+  );
+
+  server.registerTool(
+    "get_run_outputs",
+    {
+      annotations: READ,
+      description:
+        "Read what a run made: the files it saved in its outputs folder (a report, a CSV), newest per " +
+        "path. Text files come back with their content, at most 512 KB each, the cut said; other " +
+        "files are named with their size and type. Give the person the content itself, not a " +
+        "description of where it is. To save the files to a folder, the person runs " +
+        "`stigmer download run <run_id> --output-dir <folder>`. No download link is returned: it " +
+        "would open the file without a sign-in.",
+      inputSchema: z.strictObject({
+        run_id: z.string().describe("Run ID (run_*); find one with list_runs."),
+        path: z
+          .string()
+          .optional()
+          .describe("Only this output: its path in the outputs folder (reports/march.md) or its filename."),
+      }),
+    },
+    (args, extra) =>
+      textOrError(async () =>
+        getRunOutputs(target.serverAddress, await resolveToken(extra, target), {
+          runId: args.run_id,
+          path: args.path,
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "get_run_scores",
+    {
+      annotations: READ,
+      description:
+        "Read how a run was graded: each score with where it came from (the platform's run-health " +
+        "check, a person's thumbs, an AI judge, an eval), whether it was graded, its verdict, its " +
+        "criteria and comment. An empty list means nobody and nothing graded the run: say so " +
+        "plainly rather than judge it yourself.",
+      inputSchema: z.strictObject({
+        run_id: z.string().describe("Run ID (run_*); find one with list_runs."),
+      }),
+    },
+    (args, extra) =>
+      textOrError(async () => getRunScores(target.serverAddress, await resolveToken(extra, target), args.run_id)),
   );
 
   server.registerTool(
@@ -111,7 +239,7 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
         "(messages, thinking, tool uses with their results); total_items tells you when the " +
         "tail is a window. run.status.credentials.sources names the vault and entry each key " +
         "the run uses came from, never a value. Use view=full for every event of the run as " +
-        "Claude Managed Agents JSON.",
+        "Claude Managed Agents JSON. Find a run you have no id for with list_runs.",
       inputSchema: z.strictObject({
         run_id: z.string().describe("Run ID (run_*)."),
         view: z
@@ -179,7 +307,7 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
       ),
   );
 
-  return ["run_agent", "get_run", "submit_run_approval"];
+  return ["run_agent", "list_runs", "get_run_outputs", "get_run_scores", "get_run", "submit_run_approval"];
 }
 
 /** Register the tools that control a running run; returns the registered tool names. */

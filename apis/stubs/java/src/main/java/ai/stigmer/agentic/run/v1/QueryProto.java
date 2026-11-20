@@ -41,7 +41,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "tic/run/v1/io.proto\0328ai/stigmer/commons/" +
       "apiresource/rpc_service_options.proto\032+a" +
       "i/stigmer/commons/rpc/method_options.pro" +
-      "to2\325\014\n\022RunQueryController\022q\n\003get\022 .ai.st" +
+      "to2\301\r\n\022RunQueryController\022q\n\003get\022 .ai.st" +
       "igmer.agentic.run.v1.RunId\032\036.ai.stigmer." +
       "agentic.run.v1.Run\"(\302\270\030$\010\001\020)\"\005value*\027una" +
       "uthorized to get run\022\\\n\004list\022*.ai.stigme" +
@@ -49,43 +49,46 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "igmer.agentic.run.v1.RunList\"\004\320\270\030\001\022n\n\rli" +
       "stBySession\0223.ai.stigmer.agentic.run.v1." +
       "ListRunsBySessionRequest\032\".ai.stigmer.ag" +
-      "entic.run.v1.RunList\"\004\320\270\030\001\022\313\001\n\026getArtifa" +
-      "ctDownloadUrl\0228.ai.stigmer.agentic.run.v" +
-      "1.GetArtifactDownloadUrlRequest\0329.ai.sti" +
-      "gmer.agentic.run.v1.GetArtifactDownloadU" +
-      "rlResponse\"<\302\270\0308\010\001\020)\"\006run_id**unauthoriz" +
-      "ed to download artifact from run\022\303\001\n\022get" +
-      "ArtifactContent\0224.ai.stigmer.agentic.run" +
-      ".v1.GetArtifactContentRequest\0325.ai.stigm" +
-      "er.agentic.run.v1.GetArtifactContentResp" +
-      "onse\"@\302\270\030<\010\001\020)\"\006run_id*.unauthorized to " +
-      "read artifact content from run\022\263\001\n\021getRu" +
-      "nUsageReport\0221.ai.stigmer.agentic.run.v1" +
-      ".GetRunUsageReportInput\0322.ai.stigmer.age" +
-      "ntic.run.v1.GetRunUsageReportOutput\"7\302\270\030" +
-      "3\010\001\020)\"\006run_id*%unauthorized to view run " +
-      "usage report\022\307\001\n\025getSessionUsageReport\0225" +
-      ".ai.stigmer.agentic.run.v1.GetSessionUsa" +
-      "geReportInput\0326.ai.stigmer.agentic.run.v" +
-      "1.GetSessionUsageReportOutput\"?\302\270\030;\010\001\020*\"" +
-      "\nsession_id*)unauthorized to view sessio" +
-      "n usage report\022\270\001\n\023getAgentUsageReport\0223" +
-      ".ai.stigmer.agentic.run.v1.GetAgentUsage" +
-      "ReportInput\0324.ai.stigmer.agentic.run.v1." +
-      "GetAgentUsageReportOutput\"6\302\270\0302\010\001\020\036\"\003org" +
-      "*\'unauthorized to view agent usage repor" +
-      "t\022\271\001\n\021getOrgUsageReport\0221.ai.stigmer.age" +
-      "ntic.run.v1.GetOrgUsageReportInput\0322.ai." +
-      "stigmer.agentic.run.v1.GetOrgUsageReport" +
-      "Output\"=\302\270\0309\010\001\020\036\"\003org*.unauthorized to v" +
-      "iew organization usage report\022m\n\rgetRunS" +
-      "ummary\022/.ai.stigmer.agentic.run.v1.GetRu" +
-      "nSummaryRequest\032%.ai.stigmer.agentic.run" +
-      ".v1.RunSummary\"\004\320\270\030\001\032\004\240\377+)B\225\001B\nQueryProt" +
-      "oP\001\242\002\004ASAR\252\002\031Ai.Stigmer.Agentic.Run.V1\312\002" +
-      "\031Ai\\Stigmer\\Agentic\\Run\\V1\342\002%Ai\\Stigmer\\" +
-      "Agentic\\Run\\V1\\GPBMetadata\352\002\035Ai::Stigmer" +
-      "::Agentic::Run::V1b\006proto3"
+      "entic.run.v1.RunList\"\004\320\270\030\001\022j\n\013listByAgen" +
+      "t\0221.ai.stigmer.agentic.run.v1.ListRunsBy" +
+      "AgentRequest\032\".ai.stigmer.agentic.run.v1" +
+      ".RunList\"\004\320\270\030\001\022\313\001\n\026getArtifactDownloadUr" +
+      "l\0228.ai.stigmer.agentic.run.v1.GetArtifac" +
+      "tDownloadUrlRequest\0329.ai.stigmer.agentic" +
+      ".run.v1.GetArtifactDownloadUrlResponse\"<" +
+      "\302\270\0308\010\001\020)\"\006run_id**unauthorized to downlo" +
+      "ad artifact from run\022\303\001\n\022getArtifactCont" +
+      "ent\0224.ai.stigmer.agentic.run.v1.GetArtif" +
+      "actContentRequest\0325.ai.stigmer.agentic.r" +
+      "un.v1.GetArtifactContentResponse\"@\302\270\030<\010\001" +
+      "\020)\"\006run_id*.unauthorized to read artifac" +
+      "t content from run\022\263\001\n\021getRunUsageReport" +
+      "\0221.ai.stigmer.agentic.run.v1.GetRunUsage" +
+      "ReportInput\0322.ai.stigmer.agentic.run.v1." +
+      "GetRunUsageReportOutput\"7\302\270\0303\010\001\020)\"\006run_i" +
+      "d*%unauthorized to view run usage report" +
+      "\022\307\001\n\025getSessionUsageReport\0225.ai.stigmer." +
+      "agentic.run.v1.GetSessionUsageReportInpu" +
+      "t\0326.ai.stigmer.agentic.run.v1.GetSession" +
+      "UsageReportOutput\"?\302\270\030;\010\001\020*\"\nsession_id*" +
+      ")unauthorized to view session usage repo" +
+      "rt\022\270\001\n\023getAgentUsageReport\0223.ai.stigmer." +
+      "agentic.run.v1.GetAgentUsageReportInput\032" +
+      "4.ai.stigmer.agentic.run.v1.GetAgentUsag" +
+      "eReportOutput\"6\302\270\0302\010\001\020\036\"\003org*\'unauthoriz" +
+      "ed to view agent usage report\022\271\001\n\021getOrg" +
+      "UsageReport\0221.ai.stigmer.agentic.run.v1." +
+      "GetOrgUsageReportInput\0322.ai.stigmer.agen" +
+      "tic.run.v1.GetOrgUsageReportOutput\"=\302\270\0309" +
+      "\010\001\020\036\"\003org*.unauthorized to view organiza" +
+      "tion usage report\022m\n\rgetRunSummary\022/.ai." +
+      "stigmer.agentic.run.v1.GetRunSummaryRequ" +
+      "est\032%.ai.stigmer.agentic.run.v1.RunSumma" +
+      "ry\"\004\320\270\030\001\032\004\240\377+)B\225\001B\nQueryProtoP\001\242\002\004ASAR\252\002" +
+      "\031Ai.Stigmer.Agentic.Run.V1\312\002\031Ai\\Stigmer\\" +
+      "Agentic\\Run\\V1\342\002%Ai\\Stigmer\\Agentic\\Run\\" +
+      "V1\\GPBMetadata\352\002\035Ai::Stigmer::Agentic::R" +
+      "un::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

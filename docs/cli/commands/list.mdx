@@ -33,6 +33,9 @@ stigmer list agents --limit 10
 # List the agents labelled team=finance
 stigmer list agents --label team=finance
 
+# List one agent's runs, newest first
+stigmer list runs --agent invoice-checker
+
 # Output as JSON for scripting
 stigmer list skills --output json
 ```
@@ -41,6 +44,7 @@ stigmer list skills --output json
 
 | Flag             | Type     | Default | Description                                                                                                 |
 | ---------------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------- |
+| `--agent`        | `string` |         | runs: list one agent's runs, newest first across its conversations (only for 'list runs')                   |
 | `--json`         | `bool`   |         | shorthand for --output json                                                                                 |
 | `--label`, `-l`  | `string` |         | keep only resources carrying this label (repeatable; every pair must match)                                 |
 | `--limit`        | `string` | `50`    | maximum number of results (0 reads every page)                                                              |
@@ -121,6 +125,21 @@ than one page of reading to fill a page, and the CLI follows the pages for you:
 stigmer list agents --label team=finance
 stigmer list routines -l team=finance -l tier=gold
 ```
+
+### One agent's runs
+
+`stigmer list runs` lists the organization's runs. `--agent` lists one agent's
+instead, newest first across all its conversations, so the first one is the
+agent's last run, whichever conversation it was in. Name the agent by slug (in
+the current organization), `org/slug` or id:
+
+```bash
+stigmer list runs --agent invoice-checker --limit 5
+stigmer --org acme list runs --agent reconciler
+```
+
+Read one with `stigmer get run <run-id>` or `stigmer runs logs <run-id>`, and
+save what it made with `stigmer download run <run-id>`.
 
 ## Global Flags
 
