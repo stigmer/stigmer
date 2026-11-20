@@ -1072,11 +1072,17 @@ describe("making room for a waiting run", () => {
     expect(h.substrate.actors.get(c)?.state).toBe("suspended");
   });
 
-  it("before the first pass, lists Substrate itself and makes room", async () => {
+  it("before the first pass, lists Substrate itself and makes room, never on a leaving worker", async () => {
     const h = harness();
+    h.substrate.workers.set("w-1", "draining");
+    h.substrate.workers.set("w-2", "active");
+    const leaving = known(h, "ses_leaving", "running", 4 * MIN);
     const idle = known(h, "ses_a", "running", 1 * MIN);
+    onWorker(h, leaving, "w-1");
+    onWorker(h, idle, "w-2");
     expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(true);
     expect(h.substrate.suspensions).toEqual([{ name: idle, durable: false }]);
+    expect(h.substrate.actors.get(leaving)?.state).toBe("running");
   });
 
   it("when every awake sandbox started since the last listing, lists once more and makes room", async () => {
