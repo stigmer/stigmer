@@ -132,6 +132,20 @@ export function createKindCluster({ existing = "", prefix = "stigmer-helm-smoke"
       }
     },
     /**
+     * The per-session runner image (the runner's Dockerfile.sandbox, its
+     * `sandbox` stage, which the Compose runner is built on), tagged as the
+     * repository a per-session driver pulls at `compose-dev`, and loaded.
+     */
+    loadSandboxRunnerImage() {
+      const tagged = `${IMAGE_REGISTRY}/runner:${SOURCE_TAG}`;
+      log(`building ${tagged} (Dockerfile.sandbox, target sandbox)`);
+      run("docker", ["build", "--target", "sandbox", "-f", join(repoRoot, "backend", "services", "runner", "Dockerfile.sandbox"), "-t", tagged, repoRoot], {
+        stdio: "inherit",
+      });
+      log(`kind load docker-image ${tagged}`);
+      run("kind", ["load", "docker-image", tagged, "--name", name], { stdio: "inherit" });
+    },
+    /**
      * The Stigmer Enterprise image built from source by its own smoke's
      * build (`make bundle-ee-slim` first, for ee/server/dist-slim), tagged
      * as the chart's enterprise repository at `compose-dev`, and loaded.

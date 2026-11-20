@@ -1,6 +1,7 @@
 // Third-party pieces embedded in the operator binary at the versions it is
 // tested against: CloudNativePG's release manifest, its Barman Cloud backup
-// plugin's release manifest, and Temporal's Helm chart.
+// plugin's release manifest, Temporal's Helm chart, and agent-sandbox's core
+// manifest.
 //
 // Embedding them means an install needs no network path to GitHub or a
 // chart repository, and an operator version always installs the same
@@ -29,6 +30,9 @@ var barmanCloudPluginRelease []byte
 //go:embed temporal
 var temporalChart embed.FS
 
+//go:embed agent-sandbox/sandbox.yaml
+var agentSandboxRelease []byte
+
 // CloudNativePGNamespace is where CloudNativePG's release installs itself.
 const CloudNativePGNamespace = "cnpg-system"
 
@@ -49,6 +53,20 @@ func BarmanCloudPlugin() ([]*unstructured.Unstructured, error) {
 	objs, err := helmrender.Parse(barmanCloudPluginRelease)
 	if err != nil {
 		return nil, fmt.Errorf("parsing the embedded Barman Cloud plugin release: %w", err)
+	}
+	return objs, nil
+}
+
+// AgentSandboxNamespace is where agent-sandbox's release installs its
+// controller.
+const AgentSandboxNamespace = "agent-sandbox-system"
+
+// AgentSandbox parses agent-sandbox's core release into objects: its
+// definitions, its controller and the controller's roles.
+func AgentSandbox() ([]*unstructured.Unstructured, error) {
+	objs, err := helmrender.Parse(agentSandboxRelease)
+	if err != nil {
+		return nil, fmt.Errorf("parsing the embedded agent-sandbox release: %w", err)
 	}
 	return objs, nil
 }

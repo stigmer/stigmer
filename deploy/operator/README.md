@@ -31,17 +31,29 @@ Postgres and Temporal, a bucket with backups, sign-in through your own identity
 provider, and Stigmer Enterprise are declared on the same resource;
 `config/samples/` has one of each.
 
+With a bucket declared, `spec.sandboxes.driver: agentSandbox` runs each session
+in a sandbox of its own instead of the shared runner: the operator installs
+agent-sandbox if the cluster has none, makes a sandbox namespace beside the
+install, and fences the sandboxes so they reach the server, the bucket and the
+public internet but not the database, Temporal or other private addresses. The
+pool of sandboxes is never sized from demand by the operator. Once no `Stigmer`
+remains, the operator removes what it installed at the cluster level (the
+sandbox namespace, agent-sandbox, the backup plugin, CloudNativePG) and leaves
+anything someone else installed.
+
 One operator version runs one Stigmer version (the image tag is stamped into the
 binary), and a cluster holds one operator and one `Stigmer`.
 
 ## What it needs
 
 The operator holds cluster-wide rights: it installs definitions, cluster roles
-and webhooks for the prerequisites it runs (CloudNativePG and, with a bucket
-declared, its Barman Cloud backup plugin). It reads Gateways and writes Ingresses,
-HTTPRoutes and cert-manager Certificates for the front door, and it calls the
-bundled sign-in's admin API at its in-cluster Service. Its role is generated from the
-controller's markers into `config/rbac/role.yaml`.
+and webhooks for the prerequisites it runs (CloudNativePG, with a bucket
+declared its Barman Cloud backup plugin, and agent-sandbox), deletes them and
+the sandbox namespace it made once no `Stigmer` remains, and writes the fences
+(NetworkPolicies). It reads Gateways and writes Ingresses, HTTPRoutes and
+cert-manager Certificates for the front door, and it calls the bundled sign-in's
+admin API at its in-cluster Service. Its role is generated from the controller's
+markers into `config/rbac/role.yaml`.
 
 ## Working on it
 
@@ -59,6 +71,7 @@ make docker-build      # ghcr.io/stigmer/stigmer-operator:compose-dev
 From the repository root, `make build-operator`, `make test-operator`,
 `make lint-operator`, and the install test on kind,
 `make smoke-operator PROFILE=bundled` (also `byo`, `enterprise`, `bucket`,
-`upgrade` and `exposed`), which lives in `test/install/smoke-operator.mjs`.
+`exposed`, `agent-sandbox` and `upgrade`), which lives in
+`test/install/smoke-operator.mjs`.
 
 The operator's chart is `deploy/helm/stigmer-operator`.

@@ -32,6 +32,7 @@ import (
 // +kubebuilder:validation:XValidation:rule="!(has(self.identity) ? has(self.identity.bundled) : (has(self.ingress) && !(has(self.server) && has(self.server.allowUnauthenticatedExposure) && self.server.allowUnauthenticatedExposure))) || has(self.owner)",message="the bundled sign-in creates the owner's account first, so an exposed install needs spec.owner.email; or name your own issuer in spec.identity.oidc"
 // +kubebuilder:validation:XValidation:rule="!(has(self.identity) ? has(self.identity.bundled) : has(self.ingress)) || !has(self.database) || !has(self.database.postgresql) || !has(self.database.postgresql.external)",message="the bundled sign-in keeps its accounts on the bundled database, and spec.database.postgresql.external names your own: sign people in with your own issuer (spec.identity.oidc), or let the operator run the database"
 // +kubebuilder:validation:XValidation:rule="!(has(self.server) && has(self.server.allowUnauthenticatedExposure) && self.server.allowUnauthenticatedExposure) || !has(self.identity)",message="spec.server.allowUnauthenticatedExposure exposes the install with sign-in off, and spec.identity turns sign-in on: keep one"
+// +kubebuilder:validation:XValidation:rule="!has(self.sandboxes) || !has(self.sandboxes.driver) || self.sandboxes.driver == 'shared' || has(self.objectStore)",message="a sandbox on any node reads and writes a run's files through the bucket, never through a shared disk: declare spec.objectStore to run agents in per-session sandboxes"
 type StigmerSpec struct {
 	// Image says where Stigmer's images are pulled from. The tag is always
 	// this operator's own version: operator vX runs Stigmer vX.
@@ -88,6 +89,11 @@ type StigmerSpec struct {
 	// Enterprise runs Stigmer Enterprise under a license.
 	// +optional
 	Enterprise *EnterpriseSpec `json:"enterprise,omitempty"`
+
+	// Sandboxes is where engineers' agents run: beside the server on the
+	// shared runner, or each session in a sandbox of its own.
+	// +optional
+	Sandboxes *SandboxesSpec `json:"sandboxes,omitempty"`
 
 	// Prerequisites says which cluster-level operators this operator may
 	// install when they are missing.
@@ -157,11 +163,33 @@ type ServerSpec struct {
 	// +optional
 	AllowUnauthenticatedExposure bool `json:"allowUnauthenticatedExposure,omitempty"`
 
+	// Egress fences the server's own outbound calls. Off by default: a
+	// server reaches an issuer or an MCP server on your private network,
+	// which a fence would cut. An Enterprise license whose outboundEgress is
+	// strict fences it too.
+	// +optional
+	Egress *ServerEgressSpec `json:"egress,omitempty"`
+
 	// ExtraEnv adds settings to the server container. A name the operator
 	// sets itself is refused, so nothing here can silently undo the
 	// declaration above.
 	// +optional
 	ExtraEnv []corev1.EnvVar `json:"extraEnv,omitempty"`
+}
+
+// ServerEgressSpec fences the server's outbound calls.
+type ServerEgressSpec struct {
+	// Fenced lets the server reach only DNS, the Kubernetes API, what the
+	// install runs (its database, Temporal, the bundled sign-in), the
+	// bucket, the public internet and AllowCIDRs.
+	// +optional
+	Fenced bool `json:"fenced,omitempty"`
+
+	// AllowCIDRs are private ranges the fenced server may also reach, such
+	// as an external database, Temporal, issuer or MCP server.
+	// +kubebuilder:validation:XValidation:rule="self.all(c, isCIDR(c))",message="spec.server.egress.allowCIDRs holds CIDR ranges, such as 10.20.0.0/16"
+	// +optional
+	AllowCIDRs []string `json:"allowCIDRs,omitempty"`
 }
 
 // IngressSpec is the front door: an Ingress the cluster's controller serves,
@@ -648,6 +676,62 @@ type EnterpriseSpec struct {
 	OutboundEgress string `json:"outboundEgress,omitempty"`
 }
 
+// SandboxDriver is where an agent's session runs.
+//
+// +kubebuilder:validation:Enum=shared;agentSandbox
+type SandboxDriver string
+
+const (
+	// SandboxDriverShared runs every session on the shared runner beside the
+	// server: one pod, one disk, every agent's commands side by side.
+	SandboxDriverShared SandboxDriver = "shared"
+	// SandboxDriverAgentSandbox runs each session in a pod of its own through
+	// agent-sandbox (agents.x-k8s.io), with its files on its own volumes.
+	SandboxDriverAgentSandbox SandboxDriver = "agentSandbox"
+)
+
+// SandboxesSpec says where engineers' agents run.
+//
+// +kubebuilder:validation:XValidation:rule="!has(self.agentSandbox) || (has(self.driver) && self.driver == 'agentSandbox')",message="spec.sandboxes.agentSandbox tunes the agentSandbox driver: set spec.sandboxes.driver to agentSandbox, or remove it"
+type SandboxesSpec struct {
+	// Driver is where each session runs: shared (the shared runner beside
+	// the server) or agentSandbox (a pod per session). A per-session driver
+	// needs spec.objectStore, and the operator installs what it runs on.
+	// +kubebuilder:default=shared
+	// +optional
+	Driver SandboxDriver `json:"driver,omitempty"`
+
+	// IdleSeconds is how long a quiet sandbox stays awake before it sleeps;
+	// it wakes with its files on the session's next message. Absent keeps
+	// the driver's own default.
+	// +kubebuilder:validation:Minimum=30
+	// +optional
+	IdleSeconds *int32 `json:"idleSeconds,omitempty"`
+
+	// AgentSandbox tunes the agentSandbox driver.
+	// +optional
+	AgentSandbox *AgentSandboxSpec `json:"agentSandbox,omitempty"`
+}
+
+// AgentSandboxSpec tunes sessions that run in agent-sandbox pods.
+type AgentSandboxSpec struct {
+	// Egress widens the fence around the sandboxes. They always reach the
+	// server, the bucket, DNS and the public internet, and never another
+	// private address unless it is named here.
+	// +optional
+	Egress *SandboxEgressSpec `json:"egress,omitempty"`
+}
+
+// SandboxEgressSpec names the private ranges sandboxes may also reach.
+type SandboxEgressSpec struct {
+	// AllowCIDRs are private ranges a sandbox may reach besides the server
+	// and the bucket, such as a model gateway or an MCP server on your
+	// network (10.20.0.0/16, 192.168.4.7/32).
+	// +kubebuilder:validation:XValidation:rule="self.all(c, isCIDR(c))",message="spec.sandboxes.agentSandbox.egress.allowCIDRs holds CIDR ranges, such as 10.20.0.0/16"
+	// +optional
+	AllowCIDRs []string `json:"allowCIDRs,omitempty"`
+}
+
 // PrerequisiteMode says whether the operator may install a cluster-level
 // prerequisite.
 //
@@ -675,6 +759,12 @@ type PrerequisitesSpec struct {
 	// +kubebuilder:default=auto
 	// +optional
 	PostgresBackupPlugin PrerequisiteMode `json:"postgresBackupPlugin,omitempty"`
+
+	// AgentSandbox is agent-sandbox's controller, which runs the agentSandbox
+	// driver's pods.
+	// +kubebuilder:default=auto
+	// +optional
+	AgentSandbox PrerequisiteMode `json:"agentSandbox,omitempty"`
 }
 
 // Phase is where the install, or one component of it, stands.

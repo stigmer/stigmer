@@ -237,7 +237,7 @@ func TestServerAndRunnerSettingsMatchCompose(t *testing.T) {
 		t.Fatal("docker-compose.yml has no stigmer-server or stigmer-runner environment")
 	}
 	for name, st := range profiles() {
-		checkParity(t, name, "server", st, server.Environment, ServerEnv(st))
+		checkParity(t, name, "server", st, server.Environment, ServerEnv(st, nil))
 		if RunnerEnabled(st) {
 			checkParity(t, name, "runner", st, runner.Environment, RunnerEnv(st))
 		}
@@ -319,7 +319,7 @@ func TestTemporalRetentionMatchesCompose(t *testing.T) {
 func TestOperatorOnlyNamesAreRendered(t *testing.T) {
 	var all []string
 	for _, st := range profiles() {
-		for _, e := range append(ServerEnv(st), RunnerEnv(st)...) {
+		for _, e := range append(ServerEnv(st, nil), RunnerEnv(st)...) {
 			all = append(all, e.Name)
 		}
 	}

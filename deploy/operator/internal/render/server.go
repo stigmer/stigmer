@@ -92,6 +92,17 @@ func ServerClaims(st *stigmerv1.Stigmer) []*corev1.PersistentVolumeClaim {
 	return claims
 }
 
+// ServerServiceAccountObject is the server pod's own identity: the
+// principal agent-sandbox's Role is bound to and Substrate knows the server
+// by. Its token is never mounted by default (ServerDeploymentObject).
+func ServerServiceAccountObject(st *stigmerv1.Stigmer) *corev1.ServiceAccount {
+	return &corev1.ServiceAccount{
+		TypeMeta:                     metav1.TypeMeta{APIVersion: "v1", Kind: "ServiceAccount"},
+		ObjectMeta:                   meta(st, ServerServiceAccount(st), ComponentServer),
+		AutomountServiceAccountToken: ptr(false),
+	}
+}
+
 // ServerServiceObject is the server's in-cluster address. Its API port says
 // kubernetes.io/h2c, the standard word (Gateway API's backend protocol, read
 // by Gateway implementations and several Ingress controllers) for a backend
@@ -133,7 +144,11 @@ func volume(name, claim string) corev1.Volume {
 }
 
 // ServerDeploymentObject is the server's (and the shared runner's) workload.
-func ServerDeploymentObject(st *stigmerv1.Stigmer) *appsv1.Deployment {
+// modelKeys are the keys the model Secret holds (ServerEnv).
+//
+// The pod runs as the server's own ServiceAccount. Its token is mounted only
+// for agent-sandbox, whose driver calls the Kubernetes API with it.
+func ServerDeploymentObject(st *stigmerv1.Stigmer, modelKeys []string) *appsv1.Deployment {
 	pull := st.Spec.Image.PullPolicy
 	if pull == "" {
 		pull = corev1.PullIfNotPresent
@@ -142,7 +157,7 @@ func ServerDeploymentObject(st *stigmerv1.Stigmer) *appsv1.Deployment {
 		Name:            ServerContainer,
 		Image:           ServerImage(st),
 		ImagePullPolicy: pull,
-		Env:             append(ServerEnv(st), st.Spec.Server.ExtraEnv...),
+		Env:             append(ServerEnv(st, modelKeys), st.Spec.Server.ExtraEnv...),
 		Ports: []corev1.ContainerPort{
 			{Name: "grpc-api", ContainerPort: GRPCPort},
 			{Name: "artifacts", ContainerPort: ArtifactsPort},
@@ -203,7 +218,8 @@ func ServerDeploymentObject(st *stigmerv1.Stigmer) *appsv1.Deployment {
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{Labels: Labels(st, ComponentServer)},
 				Spec: corev1.PodSpec{
-					AutomountServiceAccountToken:  ptr(false),
+					ServiceAccountName:            ServerServiceAccount(st),
+					AutomountServiceAccountToken:  ptr(Driver(st) == stigmerv1.SandboxDriverAgentSandbox),
 					TerminationGracePeriodSeconds: ptr(int64(60)),
 					ImagePullSecrets:              st.Spec.Image.PullSecrets,
 					SecurityContext: &corev1.PodSecurityContext{

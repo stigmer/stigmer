@@ -104,6 +104,19 @@ func TestAdmissionRefusesContradictions(t *testing.T) {
 			Ingress: &stigmerv1.IngressSpec{Hostname: "stigmer.acme.dev", TLS: &stigmerv1.IngressTLSSpec{
 				SecretName: "tls", Issuer: &stigmerv1.IssuerReference{Name: "ca"}}}},
 			"exactly one of secretName"},
+		{"per-session sandboxes without a bucket", stigmerv1.StigmerSpec{
+			Sandboxes: &stigmerv1.SandboxesSpec{Driver: stigmerv1.SandboxDriverAgentSandbox}},
+			"declare spec.objectStore to run agents in per-session sandboxes"},
+		{"agent-sandbox settings under the shared driver", stigmerv1.StigmerSpec{
+			Sandboxes: &stigmerv1.SandboxesSpec{AgentSandbox: &stigmerv1.AgentSandboxSpec{}}},
+			"set spec.sandboxes.driver to agentSandbox"},
+		{"a sandbox range that is not a range", stigmerv1.StigmerSpec{ObjectStore: bucket,
+			Sandboxes: &stigmerv1.SandboxesSpec{Driver: stigmerv1.SandboxDriverAgentSandbox,
+				AgentSandbox: &stigmerv1.AgentSandboxSpec{Egress: &stigmerv1.SandboxEgressSpec{AllowCIDRs: []string{"10.0.0.1"}}}}},
+			"holds CIDR ranges"},
+		{"a server range that is not a range", stigmerv1.StigmerSpec{
+			Server: stigmerv1.ServerSpec{Egress: &stigmerv1.ServerEgressSpec{Fenced: true, AllowCIDRs: []string{"db.internal"}}}},
+			"holds CIDR ranges"},
 		{"a bucket endpoint that is not a URL", stigmerv1.StigmerSpec{ObjectStore: &stigmerv1.ObjectStoreSpec{S3: stigmerv1.S3Spec{
 			Bucket: "acme", Endpoint: "minio:9000", CredentialsSecret: corev1.LocalObjectReference{Name: "bucket"}}}},
 			"must be an http or https URL"},

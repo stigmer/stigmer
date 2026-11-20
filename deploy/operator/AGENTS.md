@@ -21,8 +21,10 @@ it names are the truth.
 - `internal/render/env.go` and `internal/render/parity_test.go`: the server's
   and the runner's settings and the Compose parity contract that holds them to
   `docker-compose.yml`.
-- `internal/manifests/README.md`: the embedded CloudNativePG release, its Barman
-  Cloud backup plugin and the Temporal chart, and how to move them.
+- `internal/manifests/README.md`: the embedded releases and how to move them.
+- `internal/render/sandbox.go`, `internal/render/networkpolicy.go`,
+  `internal/janitor/janitor.go` headers: per-session sandboxes, the fences, and
+  the cleanup once no `Stigmer` remains.
 - `internal/render/backup.go`, `internal/component/backup.go` and
   `internal/component/upgrade.go`: backups to the bucket, restores, and the
   backup an upgrade waits for.
@@ -37,9 +39,9 @@ it names are the truth.
 - A reason is a constant in `api/v1/component_reason.go` with a sentence in
   `ReasonMessages`; never a string literal at a call site. A released reason is
   never renamed.
-- Every refusal and every wait is a sentence that names the object and the next
-  step. A declaration that cannot be carried out is a `Refused` result, never a
-  returned error; an error is only what the operator retries.
+- Every refusal and wait is a sentence naming the object and the next step. A
+  declaration that cannot be carried out is `Refused`, never a returned error;
+  an error is only what the operator retries.
 - Everything namespaced that the operator makes is owned by the `Stigmer`
   through `component.Apply`, except the keys Secret, which must outlive it.
   Cluster-level prerequisites go through `component.ApplyShared` and are never
@@ -52,14 +54,19 @@ it names are the truth.
   words naming the command. A new database never names the plugin before it
   serves, and a failing backup never takes the install out of Ready (the
   `BackupHealthy` condition says so instead).
-- The operator never caches Secrets it did not label; an adopter's Secret is
-  read by name through `Env.Reader`.
+- Never cache a Secret the operator did not label; read an adopter's by name
+  through `Env.Reader`.
 - One hostname per install: the console at `/`, the API at its own paths (gRPC
   takes no prefix), sign-in at `/idp`, volume files at `/artifacts`; never a
   second host.
 - Exposure signs people in, or says on purpose it does not
   (`spec.server.allowUnauthenticatedExposure`).
 - Outbound calls go only to components the operator runs (`internal/keycloak`).
+- The sandbox pool is the declared size; the operator never sizes it from
+  demand, which is the sandbox runtime's own autoscaler's job. A sandbox image
+  is pinned by digest.
+- The janitor deletes only what carries the operator's label, once no `Stigmer`
+  remains.
 - Nothing private in this public repository: no internal tracker ids, no private
   paths, no names of other products.
 
@@ -68,4 +75,5 @@ it names are the truth.
 `make lint-operator test-operator` from the repository root; a behaviour change
 also runs `make smoke-operator PROFILE=bundled` (the install test on kind), and
 a change to the bucket, backups or upgrades `PROFILE=bucket` and
-`PROFILE=upgrade`, and a change to the front door or sign-in `PROFILE=exposed`.
+`PROFILE=upgrade`, a change to the front door or sign-in `PROFILE=exposed`, and
+a change to sandboxes, fences or the janitor `PROFILE=agent-sandbox`.

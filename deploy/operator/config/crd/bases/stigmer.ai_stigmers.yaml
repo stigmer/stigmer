@@ -639,6 +639,15 @@ spec:
                   Prerequisites says which cluster-level operators this operator may
                   install when they are missing.
                 properties:
+                  agentSandbox:
+                    default: auto
+                    description: |-
+                      AgentSandbox is agent-sandbox's controller, which runs the agentSandbox
+                      driver's pods.
+                    enum:
+                    - auto
+                    - skip
+                    type: string
                   postgresBackupPlugin:
                     default: auto
                     description: |-
@@ -916,6 +925,58 @@ spec:
                         type: string
                     type: object
                 type: object
+              sandboxes:
+                description: |-
+                  Sandboxes is where engineers' agents run: beside the server on the
+                  shared runner, or each session in a sandbox of its own.
+                properties:
+                  agentSandbox:
+                    description: AgentSandbox tunes the agentSandbox driver.
+                    properties:
+                      egress:
+                        description: |-
+                          Egress widens the fence around the sandboxes. They always reach the
+                          server, the bucket, DNS and the public internet, and never another
+                          private address unless it is named here.
+                        properties:
+                          allowCIDRs:
+                            description: |-
+                              AllowCIDRs are private ranges a sandbox may reach besides the server
+                              and the bucket, such as a model gateway or an MCP server on your
+                              network (10.20.0.0/16, 192.168.4.7/32).
+                            items:
+                              type: string
+                            type: array
+                            x-kubernetes-validations:
+                            - message: spec.sandboxes.agentSandbox.egress.allowCIDRs
+                                holds CIDR ranges, such as 10.20.0.0/16
+                              rule: self.all(c, isCIDR(c))
+                        type: object
+                    type: object
+                  driver:
+                    default: shared
+                    description: |-
+                      Driver is where each session runs: shared (the shared runner beside
+                      the server) or agentSandbox (a pod per session). A per-session driver
+                      needs spec.objectStore, and the operator installs what it runs on.
+                    enum:
+                    - shared
+                    - agentSandbox
+                    type: string
+                  idleSeconds:
+                    description: |-
+                      IdleSeconds is how long a quiet sandbox stays awake before it sleeps;
+                      it wakes with its files on the session's next message. Absent keeps
+                      the driver's own default.
+                    format: int32
+                    minimum: 30
+                    type: integer
+                type: object
+                x-kubernetes-validations:
+                - message: 'spec.sandboxes.agentSandbox tunes the agentSandbox driver:
+                    set spec.sandboxes.driver to agentSandbox, or remove it'
+                  rule: '!has(self.agentSandbox) || (has(self.driver) && self.driver
+                    == ''agentSandbox'')'
               server:
                 description: Server sizes and tunes the Stigmer server.
                 properties:
@@ -943,6 +1004,31 @@ spec:
                           StorageClassName is the class the claim binds with; absent means the
                           cluster's default.
                         type: string
+                    type: object
+                  egress:
+                    description: |-
+                      Egress fences the server's own outbound calls. Off by default: a
+                      server reaches an issuer or an MCP server on your private network,
+                      which a fence would cut. An Enterprise license whose outboundEgress is
+                      strict fences it too.
+                    properties:
+                      allowCIDRs:
+                        description: |-
+                          AllowCIDRs are private ranges the fenced server may also reach, such
+                          as an external database, Temporal, issuer or MCP server.
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-validations:
+                        - message: spec.server.egress.allowCIDRs holds CIDR ranges,
+                            such as 10.20.0.0/16
+                          rule: self.all(c, isCIDR(c))
+                      fenced:
+                        description: |-
+                          Fenced lets the server reach only DNS, the Kubernetes API, what the
+                          install runs (its database, Temporal, the bundled sign-in), the
+                          bucket, the public internet and AllowCIDRs.
+                        type: boolean
                     type: object
                   extraEnv:
                     description: |-
@@ -1397,6 +1483,11 @@ spec:
                 with sign-in off, and spec.identity turns sign-in on: keep one'
               rule: '!(has(self.server) && has(self.server.allowUnauthenticatedExposure)
                 && self.server.allowUnauthenticatedExposure) || !has(self.identity)'
+            - message: 'a sandbox on any node reads and writes a run''s files through
+                the bucket, never through a shared disk: declare spec.objectStore
+                to run agents in per-session sandboxes'
+              rule: '!has(self.sandboxes) || !has(self.sandboxes.driver) || self.sandboxes.driver
+                == ''shared'' || has(self.objectStore)'
           status:
             description: StigmerStatus is the operator's account of the install.
             properties:

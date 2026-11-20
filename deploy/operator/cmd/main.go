@@ -9,7 +9,8 @@
 // does not grow with the cluster. Before the manager starts, a second
 // operator elsewhere in the cluster stops this one with a line naming it.
 // Leader election is on, so a rolling update of the operator never runs two
-// walks at once.
+// walks at once. The janitor runs beside the controller on the leader, and
+// reads the cluster directly rather than through the cache.
 
 package main
 
@@ -36,10 +37,15 @@ import (
 
 	stigmerv1 "github.com/stigmer/stigmer/deploy/operator/api/v1"
 	"github.com/stigmer/stigmer/deploy/operator/internal/controller"
+	"github.com/stigmer/stigmer/deploy/operator/internal/janitor"
 	"github.com/stigmer/stigmer/deploy/operator/internal/render"
 	"github.com/stigmer/stigmer/deploy/operator/internal/singleton"
 	"github.com/stigmer/stigmer/deploy/operator/internal/version"
 )
+
+// janitorEvery is how often the janitor looks for an operator-installed
+// prerequisite no Stigmer needs any more.
+const janitorEvery = 15 * time.Second
 
 func main() {
 	var metricsAddr, probeAddr string
@@ -93,6 +99,7 @@ func main() {
 			&appsv1.Deployment{}:            byLabel,
 			&batchv1.Job{}:                  byLabel,
 			&networkingv1.Ingress{}:         byLabel,
+			&networkingv1.NetworkPolicy{}:   byLabel,
 		}},
 		Client: client.Options{Cache: &client.CacheOptions{
 			DisableFor: []client.Object{&corev1.Pod{}, &corev1.Event{}},
@@ -110,6 +117,12 @@ func main() {
 	}
 	if err := reconciler.SetupWithManager(mgr); err != nil {
 		log.Error(err, "could not set up the controller")
+		os.Exit(1)
+	}
+	// Once no Stigmer remains, the janitor removes the cluster-level pieces
+	// this operator installed (internal/janitor).
+	if err := mgr.Add(janitor.Runnable(janitor.Direct{Reader: mgr.GetAPIReader(), Writer: mgr.GetClient()}, janitorEvery)); err != nil {
+		log.Error(err, "could not add the janitor")
 		os.Exit(1)
 	}
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

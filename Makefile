@@ -852,8 +852,8 @@ smoke-helm-enterprise: build-server build-web stage-compose-runner-cli bundle-ee
 # and its chart deploy/helm/stigmer-operator). build/test/lint delegate to
 # the module's Makefile, which pins its tools; smoke-operator is its install
 # test on kind (test/install/smoke-operator.mjs), one profile at a time:
-# PROFILE=bundled (the default), byo, bucket, exposed, upgrade, or enterprise,
-# which builds the Enterprise image too.
+# PROFILE=bundled (the default), byo, bucket, exposed, agent-sandbox, upgrade,
+# or enterprise, which builds the Enterprise image too.
 OPERATOR_DIR := deploy/operator
 OPERATOR_CHART_DIR := deploy/helm/stigmer-operator
 PROFILE ?= bundled
@@ -870,7 +870,7 @@ lint-operator: ## gofmt, go vet, go mod tidy and generated files for the operato
 	@command -v helm >/dev/null 2>&1 || { echo "error: helm not found"; exit 1; }
 	helm lint --strict $(OPERATOR_CHART_DIR)
 
-smoke-operator: build-server build-web stage-compose-runner-cli ## Build the images and the operator from source and run the operator's install test on kind, PROFILE=bundled|byo|bucket|exposed|upgrade|enterprise (needs Docker, kind, helm, kubectl)
+smoke-operator: build-server build-web stage-compose-runner-cli ## Build the images and the operator from source and run the operator's install test on kind, PROFILE=bundled|byo|bucket|exposed|agent-sandbox|upgrade|enterprise (needs Docker, kind, helm, kubectl)
 	@for tool in docker kind helm kubectl; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the operator's install test needs it"; exit 1; }; done
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
 	@if [ "$(PROFILE)" = "enterprise" ]; then $(MAKE) bundle-ee-slim; fi

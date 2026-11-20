@@ -88,6 +88,9 @@ func (Temporal) Reconcile(ctx context.Context, env *Env) (Result, error) {
 	if err := Apply(ctx, env, first...); err != nil {
 		return Result{}, err
 	}
+	if err := Apply(ctx, env, render.TemporalPolicyObject(st)); err != nil {
+		return Result{}, err
+	}
 	if schemaJob != "" {
 		done, res, err := jobStanding(ctx, env, schemaJob, stigmerv1.ReasonWaitingForSchema, "setting up Temporal's database schema")
 		if err != nil || !done {

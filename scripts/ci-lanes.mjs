@@ -841,6 +841,10 @@ export const LANES = {
       "backend/services/stigmer-server/src/boot/runner-key.ts",
       "backend/services/stigmer-server/src/identity/**",
       "client-apps/cli/src/auth/**",
+      // The agent-sandbox profile proves the server's agent-sandbox driver
+      // in the cluster, as the operator configures it.
+      "backend/services/stigmer-server/src/sandbox/agent-sandbox/**",
+      "backend/services/stigmer-server/src/sandbox/provisioner.ts",
       "Makefile",
       ".nvmrc",
       "package.json",

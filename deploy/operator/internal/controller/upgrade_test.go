@@ -40,7 +40,7 @@ func serverAt(t *testing.T, st *stigmerv1.Stigmer, tag string) {
 	t.Helper()
 	old := version.Stigmer
 	version.Stigmer = tag
-	d := render.ServerDeploymentObject(st)
+	d := render.ServerDeploymentObject(st, nil)
 	version.Stigmer = old
 	if err := k8s.Create(context.Background(), d); err != nil {
 		t.Fatal(err)

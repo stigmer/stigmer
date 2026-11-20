@@ -5,7 +5,7 @@
  * installed with its chart on a kind cluster this script creates, and one
  * Stigmer resource per profile brought up and proven end to end.
  *
- *   make smoke-operator PROFILE=bundled      (or byo, enterprise, bucket, exposed, upgrade)
+ *   make smoke-operator PROFILE=bundled      (or byo, enterprise, bucket, exposed, agent-sandbox, upgrade)
  *
  * What one pass proves, per profile:
  *
@@ -71,6 +71,18 @@
  *   front door moves to the Gateway: the Ingresses are gone, and the
  *   console, gRPC and a browser sign-in work through it.
  *
+ * agent-sandbox: the bucket stack, then one declaration with per-session
+ *   sandboxes on agent-sandbox, a fenced server and the fake model's address
+ *   declared as a range sandboxes may reach. The operator installs
+ *   agent-sandbox and the sandbox namespace; the install is Ready with no
+ *   shared runner. Two sessions run in two Sandboxes. From inside one, the
+ *   server, the bucket and the model answer and the database and Temporal
+ *   do not. Both sandboxes sleep with their claims kept; the first
+ *   session's next message wakes only its sandbox, with the file its first
+ *   turn wrote. Deleting the Stigmer leaves the namespace as the bucket
+ *   profile's does, and the janitor then removes the sandbox namespace,
+ *   agent-sandbox and CloudNativePG, saying so in the operator's log.
+ *
  * upgrade: two builds of this checkout's operator stamped as consecutive
  *   versions (smoke-1, smoke-2), with the source images tagged at both. A
  *   bucket-backed Stigmer under smoke-1 runs an agent; `helm upgrade` moves
@@ -99,7 +111,8 @@ import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { LAYER_ENGINES, assertClaudeReady } from "./lib/claude-engine.mjs";
-import { FAKE_MODEL_API_KEY, fakeModelEnv, parseFakeModelArg, startFakeModel } from "./lib/fake-model.mjs";
+import { FAKE_MODEL_API_KEY, fakeModelEnv, isTitleCall, parseFakeModelArg, startFakeModel } from "./lib/fake-model.mjs";
+import { anthropicText, anthropicToolUse } from "../support/src/llm-wire.ts";
 import { IMAGE_REGISTRY, SOURCE_TAG, createKindCluster } from "./lib/kind-cluster.mjs";
 import { createObjectStore } from "./lib/object-store.mjs";
 import { CA_ISSUER, GATEWAY, HOSTNAME, MAIL, PUBLIC_URL, TRAEFIK_H2C, createFrontDoor, kindConfig } from "./lib/front-door.mjs";
@@ -119,6 +132,7 @@ import {
   assertArtifactLane,
   assertConsoleServed,
   connectJson,
+  createSmokeAgent,
   assertPortFree,
   pollUntil,
   readAgentExecution,
@@ -129,7 +143,7 @@ import {
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 /** In the order they run: upgrade last, since it leaves the operator at its second build. */
-const PROFILES = ["bundled", "byo", "enterprise", "bucket", "exposed", "upgrade"];
+const PROFILES = ["bundled", "byo", "enterprise", "bucket", "exposed", "agent-sandbox", "upgrade"];
 // A first install pulls CloudNativePG and Temporal, creates the database and
 // its schema, and waits through the server's startup probe; generous on a
 // shared CI host.
@@ -605,6 +619,150 @@ async function runBucket(fake, modelBaseUrl) {
   kubectl(["delete", "namespace", namespace, "--wait=false"]);
 }
 
+/** What a sandbox's fence lets through, probed from inside one: a TCP connect to each address, three seconds each. */
+const FENCE_PROBE = `
+const net = require("node:net");
+const targets = JSON.parse(process.argv[1]);
+Promise.all(targets.map(([name, host, port]) => new Promise((resolve) => {
+  const socket = net.connect({ host, port, timeout: 3000 });
+  const done = (open) => { socket.destroy(); resolve([name, open]); };
+  socket.once("connect", () => done(true));
+  socket.once("timeout", () => done(false));
+  socket.once("error", () => done(false));
+}))).then((results) => console.log(JSON.stringify(Object.fromEntries(results))));
+`;
+
+/** The address a kind node resolves `host` to, for a fence that names it by range. */
+function hostIPv4(host) {
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(host)) return host;
+  const resolved = spawnSync("docker", ["exec", `${cluster.name}-control-plane`, "getent", "ahostsv4", host], { encoding: "utf8" });
+  const ip = resolved.stdout.trim().split(/\s+/)[0];
+  if (resolved.status !== 0 || !/^\d+\.\d+\.\d+\.\d+$/.test(ip ?? "")) throw new Error(`the kind node cannot resolve ${host}`);
+  return ip;
+}
+
+/** One run in an existing session: the agent runs `command` in its sandbox, then answers `reply`. */
+async function runInSession(baseUrl, fake, { orgId, sessionId, agent, command, reply }) {
+  const turn = (request) => !isTitleCall(request);
+  fake.enqueue({ kind: "anthropic", matches: turn, body: anthropicToolUse(`toolu_${randomUUID().slice(0, 8)}`, "execute", { command }) });
+  fake.enqueue({ kind: "anthropic", matches: turn, body: anthropicText(reply) });
+  const target = sessionId !== undefined ? { sessionId } : { sessionSpec: { agentRef: { kind: "agent", org: orgId, slug: agent.agentSlug } } };
+  const run = await connectJson(baseUrl, "ai.stigmer.agentic.run.v1.RunCommandController/create", {
+    apiVersion: "agentic.stigmer.ai/v1",
+    kind: "Run",
+    metadata: { name: `smoke-sandbox-${randomUUID().slice(0, 8)}`, org: orgId },
+    spec: { ...target, message: "Run the step.", autoApproveAll: true },
+  });
+  const runId = run.metadata?.id;
+  const done = await pollUntil(`run ${runId} RUN_COMPLETED`, RUN_COMPLETED_TIMEOUT_MS, async () => {
+    const current = await readAgentExecution(baseUrl, runId);
+    const phase = current.status?.phase ?? "";
+    if (["RUN_FAILED", "RUN_CANCELLED", "RUN_TERMINATED"].includes(phase)) throw new Error(`run ${runId} reached ${phase}: ${current.status?.error ?? ""}`);
+    return phase === "RUN_COMPLETED" ? current : false;
+  });
+  return { runId, sessionId: done.spec?.sessionId };
+}
+
+/** The sandbox pods running now. */
+function sandboxPods(sandboxes) {
+  return cluster
+    .kubectlJson(["-n", sandboxes, "get", "pods"])
+    .items.filter((p) => p.metadata.deletionTimestamp === undefined && p.status?.phase === "Running")
+    .map((p) => p.metadata.name);
+}
+
+async function runAgentSandbox(fake, modelBaseUrl) {
+  const namespace = "smoke-agent-sandbox";
+  const sandboxes = `${namespace}-sandboxes`;
+  log(`=== profile agent-sandbox (namespace ${namespace}, sandboxes in ${sandboxes}) ===`);
+  objectStore.install();
+  prepareNamespace(namespace, modelBaseUrl);
+  objectStore.writeCredentials(namespace);
+  const modelIP = hostIPv4(new URL(modelBaseUrl).hostname);
+  const stigmer = createStigmer(cluster, { namespace, log });
+  current = stigmer;
+  stigmer.apply({
+    owner: { email: "owner@example.com" },
+    runner: { llm: { secretName: MODEL_SECRET } },
+    objectStore: objectStore.spec(),
+    // The server's own fence too: everything below must still work behind it.
+    server: { egress: { fenced: true } },
+    sandboxes: { driver: "agentSandbox", idleSeconds: 30, agentSandbox: { egress: { allowCIDRs: [`${modelIP}/32`] } } },
+  });
+  await stigmer.waitReady(READY_TIMEOUT_MS);
+  assertZeroRestarts(namespace);
+  if (stigmer.images().runner !== undefined) throw new Error("a per-session install runs a shared runner");
+  const runnerStanding = stigmer.component("runner");
+  if (runnerStanding?.reason !== "PerSessionSandboxes") throw new Error(`the runner component reads ${runnerStanding?.reason}: ${runnerStanding?.message}`);
+  log(`Ready; sandboxes: ${stigmer.component("sandboxes")?.message}`);
+
+  const forward = await stigmer.portForward();
+  let first;
+  try {
+    const { baseUrl } = forward;
+    await waitForServing(baseUrl, SERVER_HEALTHY_TIMEOUT_MS);
+    const agent = await createSmokeAgent(baseUrl, { log });
+    const marker = `slept-and-woke-${randomUUID().slice(0, 8)}`;
+    first = await runInSession(baseUrl, fake, { orgId: agent.orgId, agent, command: `echo ${marker} > /workspace/sleep-wake.txt`, reply: "Saved." });
+    log(`session one: run ${first.runId} COMPLETED, its file written in its sandbox`);
+    const second = await runInSession(baseUrl, fake, { orgId: agent.orgId, agent, command: "true", reply: "Done." });
+    log(`session two: run ${second.runId} COMPLETED`);
+    const boxes = cluster.kubectlJson(["-n", sandboxes, "get", "sandboxes.agents.x-k8s.io"]).items.map((b) => b.metadata.name);
+    if (boxes.length !== 2) throw new Error(`two sessions made ${boxes.length} Sandboxes: ${boxes.join(", ")}`);
+    log(`two sessions, two Sandboxes: ${boxes.join(", ")}`);
+
+    log("the fence, probed from inside a sandbox");
+    const pod = sandboxPods(sandboxes)[0];
+    if (pod === undefined) throw new Error("no sandbox pod is running to probe from");
+    const targets = [
+      ["server", `stigmer.${namespace}.svc.cluster.local`, 7234],
+      ["bucket", "seaweedfs.object-store.svc.cluster.local", 8333],
+      ["model", modelIP, Number(new URL(modelBaseUrl).port)],
+      ["database", `stigmer-postgres-rw.${namespace}.svc.cluster.local`, 5432],
+      ["temporal", `stigmer-temporal-frontend.${namespace}.svc.cluster.local`, 7233],
+    ];
+    const probe = JSON.parse(kubectl(["-n", sandboxes, "exec", pod, "--", "node", "-e", FENCE_PROBE, JSON.stringify(targets)]).trim().split("\n").pop());
+    const want = { server: true, bucket: true, model: true, database: false, temporal: false };
+    for (const [name, open] of Object.entries(want)) {
+      if (probe[name] !== open) throw new Error(`from a sandbox, ${name} is ${probe[name] ? "reachable" : "unreachable"}; want ${open ? "reachable" : "fenced off"}`);
+    }
+    log(`from a sandbox: server, bucket and model reachable; database and Temporal fenced off`);
+
+    await pollUntil("both sandboxes to sleep", 5 * 60_000, () => sandboxPods(sandboxes).length === 0);
+    const claims = cluster.kubectlJson(["-n", sandboxes, "get", "pvc"]).items.length;
+    log(`both sandboxes asleep: no pod running, ${claims} claims kept`);
+
+    await runInSession(baseUrl, fake, { orgId: agent.orgId, sessionId: first.sessionId, command: "cat /workspace/sleep-wake.txt", reply: "Read." });
+    const awake = sandboxPods(sandboxes);
+    if (awake.length !== 1) throw new Error(`one session's next message woke ${awake.length} sandboxes`);
+    const kept = kubectl(["-n", sandboxes, "exec", awake[0], "--", "cat", "/workspace/sleep-wake.txt"]).trim();
+    if (kept !== marker) throw new Error(`the woken sandbox's file reads ${JSON.stringify(kept)}, want ${marker}`);
+    log(`session one woke with its file: ${kept}`);
+  } finally {
+    forward.stop();
+  }
+  assertOperatorLogClean();
+
+  log("arm: deleting the Stigmer removes the sandboxes and what the operator installed");
+  stigmer.delete();
+  const allowed = ["Secret/anthropic", "Secret/bucket", "Secret/stigmer-keys"];
+  await pollUntil("everything the Stigmer owned to be removed", GONE_TIMEOUT_MS, () => leftovers(namespace).every((n) => allowed.includes(n)));
+  const gone = (args) => cluster.kubectlQuiet(args).status !== 0;
+  await pollUntil("the janitor to remove the sandbox namespace, agent-sandbox and CloudNativePG", 10 * 60_000, () =>
+    gone(["get", "namespace", sandboxes]) &&
+    gone(["get", "crd", "sandboxes.agents.x-k8s.io"]) &&
+    gone(["get", "namespace", "agent-sandbox-system"]) &&
+    gone(["get", "crd", "clusters.postgresql.cnpg.io"]) &&
+    gone(["get", "namespace", "cnpg-system"]),
+  );
+  const said = operator.logs().split("\n").filter((l) => l.includes("cleaned up after the last Stigmer"));
+  if (said.length === 0) throw new Error("the janitor said nothing of what it removed");
+  log(`the janitor: ${said.pop()}`);
+  assertOperatorLogClean();
+  log("=== profile agent-sandbox: PASS ===");
+  kubectl(["delete", "namespace", namespace, "--wait=false"]);
+}
+
 const OWNER = "owner@team.test";
 const OWNER_PASSWORD = `Owner-${randomBytes(9).toString("base64url")}`;
 const COLLEAGUE = "alice@team.test";
@@ -964,6 +1122,7 @@ async function main() {
     await cluster.start();
     cluster.loadSourceImages();
     if (args.profiles.includes("enterprise")) cluster.loadEnterpriseSourceImage();
+    if (args.profiles.includes("agent-sandbox")) cluster.loadSandboxRunnerImage();
     operator.buildAndLoad();
     operator.install();
     log("the operator is installed and ready");
@@ -975,6 +1134,7 @@ async function main() {
       else if (profile === "enterprise") await runEnterprise(modelBaseUrl);
       else if (profile === "bucket") await runBucket(fake, modelBaseUrl);
       else if (profile === "exposed") await runExposed(fake, modelBaseUrl);
+      else if (profile === "agent-sandbox") await runAgentSandbox(fake, modelBaseUrl);
       else await runUpgrade(fake, modelBaseUrl);
     }
     log("PASS");

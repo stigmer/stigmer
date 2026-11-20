@@ -21,10 +21,13 @@ STIGMER_VERSION ?= compose-dev
 
 # Third-party pieces embedded in the binary, at the versions it is tested
 # against. Bump with `make vendor-cloudnative-pg vendor-barman-cloud-plugin
-# vendor-temporal-chart`.
+# vendor-temporal-chart vendor-agent-sandbox`. AGENT_SANDBOX_VERSION is the
+# release the server's agent-sandbox driver is tested against
+# (scripts/agent-sandbox-live.mjs).
 CLOUDNATIVE_PG_VERSION := 1.30.2
 BARMAN_CLOUD_PLUGIN_VERSION := 0.16.0
 TEMPORAL_CHART_VERSION := 1.8.0
+AGENT_SANDBOX_VERSION := v1.0.5
 
 OPERATOR_CHART := ../helm/stigmer-operator
 VERSION_FLAG := -X github.com/stigmer/stigmer/deploy/operator/internal/version.Stigmer=$(STIGMER_VERSION)
@@ -95,6 +98,11 @@ vendor-temporal-chart: ## Fetch Temporal's Helm chart at the pinned version
 	find internal/manifests/temporal -name 'temporal-*.tgz' -delete
 	curl -fsSL -o internal/manifests/temporal/temporal-$(TEMPORAL_CHART_VERSION).tgz \
 		https://github.com/temporalio/helm-charts/releases/download/temporal-$(TEMPORAL_CHART_VERSION)/temporal-$(TEMPORAL_CHART_VERSION).tgz
+
+.PHONY: vendor-agent-sandbox
+vendor-agent-sandbox: ## Fetch agent-sandbox's core manifest at the pinned version
+	curl -fsSL -o internal/manifests/agent-sandbox/sandbox.yaml \
+		https://github.com/kubernetes-sigs/agent-sandbox/releases/download/$(AGENT_SANDBOX_VERSION)/sandbox.yaml
 
 $(CONTROLLER_GEN):
 	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)

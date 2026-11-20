@@ -214,7 +214,10 @@ func OIDC(st *stigmerv1.Stigmer) stigmerv1.OIDCSpec {
 }
 
 // ServerEnv is the server container's environment, before extraEnv.
-func ServerEnv(st *stigmerv1.Stigmer) []corev1.EnvVar {
+// modelKeys are the keys the model Secret holds, which a per-session driver
+// hands its sandboxes (SandboxModelKeys); the shared runner reads the Secret
+// itself, so they matter only under a per-session driver.
+func ServerEnv(st *stigmerv1.Stigmer, modelKeys []string) []corev1.EnvVar {
 	db := Database(st)
 	t := Temporal(st)
 	keys := KeysSecret(st)
@@ -289,6 +292,9 @@ func ServerEnv(st *stigmerv1.Stigmer) []corev1.EnvVar {
 	if Licensed(st) {
 		env = append(env, enterpriseEnv(st)...)
 	}
+	if PerSession(st) {
+		env = append(env, sandboxEnv(st, modelKeys)...)
+	}
 	return env
 }
 
@@ -338,12 +344,13 @@ func enterpriseEnv(st *stigmerv1.Stigmer) []corev1.EnvVar {
 	}
 }
 
-// RunnerEnabled reports whether the shared runner container renders. A
-// licensed server may hold several organizations, and one shared runner
-// would carry one organization's key into every organization's runs (the
-// server refuses STIGMER_RUNNER_API_KEY there), so a licensed install runs
-// agents in per-session sandboxes and renders no shared runner.
-func RunnerEnabled(st *stigmerv1.Stigmer) bool { return !Licensed(st) }
+// RunnerEnabled reports whether the shared runner container renders: only
+// under the shared driver, and never under a license. A licensed server may
+// hold several organizations, and one shared runner would carry one
+// organization's key into every organization's runs (the server refuses
+// STIGMER_RUNNER_API_KEY there), so a licensed install runs agents in
+// per-session sandboxes and renders no shared runner.
+func RunnerEnabled(st *stigmerv1.Stigmer) bool { return !Licensed(st) && !PerSession(st) }
 
 // RunnerEnv is the shared runner container's environment, before extraEnv.
 func RunnerEnv(st *stigmerv1.Stigmer) []corev1.EnvVar {
@@ -421,11 +428,20 @@ func OwnedEnvNames(container string) []string {
 		Bucket: "x", Endpoint: "http://x", RunnerEndpoint: "http://x",
 		CredentialsSecret: corev1.LocalObjectReference{Name: "x"},
 	}}
+	// Each per-session driver sets its own names, with every model key held
+	// and every optional setting declared.
+	idle := int32(300)
+	agentSandbox := bucket.DeepCopy()
+	agentSandbox.Spec.Ingress = &stigmerv1.IngressSpec{Hostname: "x.x"}
+	agentSandbox.Spec.Sandboxes = &stigmerv1.SandboxesSpec{Driver: stigmerv1.SandboxDriverAgentSandbox, IdleSeconds: &idle}
 	var env []corev1.EnvVar
 	if container == "runner" {
 		env = append(RunnerEnv(full), RunnerEnv(bucket)...)
 	} else {
-		env = append(append(ServerEnv(full), ServerEnv(bucket)...), ServerEnv(open)...)
+		env = append(append(ServerEnv(full, nil), ServerEnv(bucket, nil)...), ServerEnv(open, nil)...)
+		for _, arm := range []*stigmerv1.Stigmer{agentSandbox} {
+			env = append(env, ServerEnv(arm, RunnerModelKeys)...)
+		}
 	}
 	names := make([]string, 0, len(env))
 	for _, e := range env {

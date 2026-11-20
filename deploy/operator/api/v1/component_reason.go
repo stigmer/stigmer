@@ -71,6 +71,14 @@ const (
 	// ReasonPerSessionRunnersOnly: a licensed install runs agents in
 	// per-session sandboxes, not on a shared runner.
 	ReasonPerSessionRunnersOnly ComponentReason = "PerSessionRunnersOnly"
+	// ReasonPerSessionSandboxes: agents run in per-session sandboxes, so no
+	// shared runner is rendered.
+	ReasonPerSessionSandboxes ComponentReason = "PerSessionSandboxes"
+	// ReasonWaitingForWorkers: the sandbox pool has no ready worker yet.
+	ReasonWaitingForWorkers ComponentReason = "WaitingForWorkers"
+	// ReasonPreparingSandboxImage: the server is building the image every
+	// new sandbox starts from.
+	ReasonPreparingSandboxImage ComponentReason = "PreparingSandboxImage"
 	// ReasonRealmConverging: the bundled sign-in's realm is being set up.
 	ReasonRealmConverging ComponentReason = "RealmConverging"
 	// ReasonPrerequisiteMissing: a cluster-level piece the declaration needs
@@ -120,6 +128,9 @@ func AllComponentReasons() []ComponentReason {
 		ReasonGatewayNotAccepted,
 		ReasonRealmConverging,
 		ReasonPerSessionRunnersOnly,
+		ReasonPerSessionSandboxes,
+		ReasonWaitingForWorkers,
+		ReasonPreparingSandboxImage,
 		ReasonPrerequisiteMissing,
 		ReasonWaitingForBackupPlugin,
 		ReasonBackingUpBeforeUpgrade,
@@ -158,6 +169,9 @@ var ReasonMessages = map[ComponentReason]string{
 	ReasonGatewayNotAccepted:     "the Gateway's controller refused the front door's routes",
 	ReasonRealmConverging:        "setting up the sign-in's realm, clients and owner",
 	ReasonPerSessionRunnersOnly:  "a licensed server runs agents in per-session sandboxes, not on a shared runner",
+	ReasonPerSessionSandboxes:    "agents run in per-session sandboxes, so there is no shared runner",
+	ReasonWaitingForWorkers:      "waiting for the sandbox pool's first worker",
+	ReasonPreparingSandboxImage:  "the server is preparing the image every new sandbox starts from",
 	ReasonPrerequisiteMissing:    "a cluster-level piece it needs is not installed: install it",
 	ReasonWaitingForBackupPlugin: "waiting for the backup plugin, so the database is born archiving",
 	ReasonBackingUpBeforeUpgrade: "taking a backup before the server migrates its database forward",

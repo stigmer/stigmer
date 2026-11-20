@@ -121,7 +121,7 @@ func (Database) Reconcile(ctx context.Context, env *Env) (Result, error) {
 		keepLiveBootstrap(cluster, existing)
 		attaching = backup.Archive && render.LiveArchiveServerName(existing) == ""
 	}
-	if err := Apply(ctx, env, cluster); err != nil {
+	if err := Apply(ctx, env, cluster, render.PostgresPolicyObject(st)); err != nil {
 		return Result{}, err
 	}
 	databases := render.TemporalDatabaseObjects(st)

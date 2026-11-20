@@ -18,8 +18,15 @@
 // running and not restarting. Under sign-in it starts signed in: the server
 // component mints the runner key Secret (an stk_ key) once, the server
 // stores it at boot as its runner service account's key, and the runner
-// presents the same value. A licensed install renders no shared runner
-// (render.RunnerEnabled), and the component says why.
+// presents the same value.
+//
+// Under a per-session driver there is no shared runner: the runner
+// component judges only the model key every sandbox is handed, and is Ready
+// once one exists. The server learns which keys the Secret holds from this
+// component's read, because it refuses to boot on a listed key with no value
+// (render/sandbox.go). A licensed install that declares the shared driver is
+// refused: a licensed server may hold several organizations, and one shared
+// runner would carry one organization's key into every organization's runs.
 
 package component
 
@@ -48,7 +55,7 @@ func (Server) Name() string { return render.ComponentServer }
 
 // Dependencies implements Component.
 func (Server) Dependencies() []string {
-	return []string{render.ComponentKeys, render.ComponentObjectStore, render.ComponentDatabase, render.ComponentTemporal}
+	return []string{render.ComponentKeys, render.ComponentObjectStore, render.ComponentDatabase, render.ComponentTemporal, render.ComponentSandboxes}
 }
 
 // Reconcile implements Component.
@@ -82,14 +89,25 @@ func (Server) Reconcile(ctx context.Context, env *Env) (Result, error) {
 			return Result{}, err
 		}
 	}
-	deployment := render.ServerDeploymentObject(st)
+	var modelKeys []string
+	if render.PerSession(st) {
+		held, _, err := readModelSecret(ctx, env)
+		if err != nil {
+			return Result{}, err
+		}
+		modelKeys = render.SandboxModelKeys(held)
+	}
+	deployment := render.ServerDeploymentObject(st, modelKeys)
 	deployment.Annotations = gate.annotations
-	objs := []client.Object{}
+	objs := []client.Object{render.ServerServiceAccountObject(st)}
 	for _, c := range render.ServerClaims(st) {
 		objs = append(objs, c)
 	}
 	objs = append(objs, render.ServerServiceObject(st), deployment)
 	if err := Apply(ctx, env, objs...); err != nil {
+		return Result{}, err
+	}
+	if err := ensureServerFence(ctx, env); err != nil {
 		return Result{}, err
 	}
 
@@ -149,34 +167,26 @@ func (Runner) Dependencies() []string { return []string{render.ComponentServer} 
 // Reconcile implements Component.
 func (Runner) Reconcile(ctx context.Context, env *Env) (Result, error) {
 	st := env.Stigmer
-	if !render.RunnerEnabled(st) {
-		return Pending(stigmerv1.ReasonPerSessionRunnersOnly, nil,
-			"no shared runner: a licensed server may hold several organizations, and one shared runner would carry one organization's key into every organization's runs, so agents run in per-session sandboxes"), nil
+	if render.Licensed(st) && !render.PerSession(st) {
+		return Refused(stigmerv1.ReasonPerSessionRunnersOnly, nil,
+			"a licensed server may hold several organizations, and one shared runner would carry one organization's key into every organization's runs: "+
+				"run agents in per-session sandboxes with spec.sandboxes.driver agentSandbox or substrate"), nil
 	}
-	llm := st.Spec.Runner.LLM
+	held, missing, err := readModelSecret(ctx, env)
+	if err != nil {
+		return Result{}, err
+	}
+	if missing != nil {
+		return *missing, nil
+	}
 	keyNote := ""
-	if llm == nil {
+	if held == nil {
 		keyNote = "; no model key is declared (spec.runner.llm), so agents cannot run until one is"
-	} else {
-		var secret corev1.Secret
-		ref := Ref("Secret", st.Namespace, llm.SecretName)
-		if err := env.Reader.Get(ctx, client.ObjectKey{Namespace: st.Namespace, Name: llm.SecretName}, &secret); err != nil {
-			if client.IgnoreNotFound(err) != nil {
-				return Result{}, fmt.Errorf("reading Secret %s: %w", llm.SecretName, err)
-			}
-			return Refused(stigmerv1.ReasonModelKeyMissing, ref,
-				fmt.Sprintf("agents cannot run: create Secret %s in namespace %s with key ANTHROPIC_API_KEY (or another provider's key)", llm.SecretName, st.Namespace)), nil
-		}
-		found := false
-		for _, k := range render.RunnerModelKeys {
-			if k != "ANTHROPIC_BASE_URL" && len(secret.Data[k]) > 0 {
-				found = true
-			}
-		}
-		if !found {
-			return Refused(stigmerv1.ReasonModelKeyMissing, ref,
-				fmt.Sprintf("agents cannot run: Secret %s holds no model key; add ANTHROPIC_API_KEY (or OPENAI_API_KEY, ANTHROPIC_FOUNDRY_API_KEY, AWS_BEARER_TOKEN_BEDROCK)", llm.SecretName)), nil
-		}
+	}
+	if render.PerSession(st) {
+		r := Ready(fmt.Sprintf("agents run in per-session sandboxes (%s), so there is no shared runner%s", render.Driver(st), keyNote))
+		r.Reason = stigmerv1.ReasonPerSessionSandboxes
+		return r, nil
 	}
 	ready, err := containerReady(ctx, env, render.RunnerContainer)
 	if err != nil {
@@ -191,6 +201,35 @@ func (Runner) Reconcile(ctx context.Context, env *Env) (Result, error) {
 	}
 	return Explain(ctx, env, render.SelectorLabels(st, render.ComponentServer), []string{render.RunnerContainer},
 		Deploying(stigmerv1.ReasonDeploying, Ref("Deployment", st.Namespace, render.ServerDeployment(st)), "waiting for the runner to start"))
+}
+
+// readModelSecret reads the declared model key Secret. held is nil when no
+// Secret is declared; missing is the refusal when it is declared but absent
+// or holds no model key.
+func readModelSecret(ctx context.Context, env *Env) (held map[string][]byte, missing *Result, err error) {
+	st := env.Stigmer
+	llm := st.Spec.Runner.LLM
+	if llm == nil {
+		return nil, nil, nil
+	}
+	var secret corev1.Secret
+	ref := Ref("Secret", st.Namespace, llm.SecretName)
+	if err := env.Reader.Get(ctx, client.ObjectKey{Namespace: st.Namespace, Name: llm.SecretName}, &secret); err != nil {
+		if client.IgnoreNotFound(err) != nil {
+			return nil, nil, fmt.Errorf("reading Secret %s: %w", llm.SecretName, err)
+		}
+		r := Refused(stigmerv1.ReasonModelKeyMissing, ref,
+			fmt.Sprintf("agents cannot run: create Secret %s in namespace %s with key ANTHROPIC_API_KEY (or another provider's key)", llm.SecretName, st.Namespace))
+		return map[string][]byte{}, &r, nil
+	}
+	for _, k := range render.RunnerModelKeys {
+		if k != "ANTHROPIC_BASE_URL" && len(secret.Data[k]) > 0 {
+			return secret.Data, nil, nil
+		}
+	}
+	r := Refused(stigmerv1.ReasonModelKeyMissing, ref,
+		fmt.Sprintf("agents cannot run: Secret %s holds no model key; add ANTHROPIC_API_KEY (or OPENAI_API_KEY, ANTHROPIC_FOUNDRY_API_KEY, AWS_BEARER_TOKEN_BEDROCK)", llm.SecretName))
+	return secret.Data, &r, nil
 }
 
 // ensureRunnerKey mints the runner key Secret once: an stk_ key in the form

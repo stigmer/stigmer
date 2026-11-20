@@ -34,11 +34,11 @@ func TestExtraEnvMayNotRepeatAnOwnedName(t *testing.T) {
 
 func TestRunnerStartsSignedInUnderSignIn(t *testing.T) {
 	st := profiles()["oidc"]
-	d := ServerDeploymentObject(st)
+	d := ServerDeploymentObject(st, nil)
 	if n := len(d.Spec.Template.Spec.Containers); n != 2 {
 		t.Fatalf("the server's pod holds %d containers under sign-in; want the server and the runner", n)
 	}
-	server, runner := envMap(ServerEnv(st)), envMap(RunnerEnv(st))
+	server, runner := envMap(ServerEnv(st, nil)), envMap(RunnerEnv(st))
 	for name, e := range map[string]corev1.EnvVar{"server STIGMER_RUNNER_API_KEY": server["STIGMER_RUNNER_API_KEY"], "runner STIGMER_TOKEN": runner["STIGMER_TOKEN"]} {
 		if e.ValueFrom == nil || e.ValueFrom.SecretKeyRef == nil ||
 			e.ValueFrom.SecretKeyRef.Name != RunnerKeySecret(st) || e.ValueFrom.SecretKeyRef.Key != RunnerKeyKey {
@@ -49,17 +49,17 @@ func TestRunnerStartsSignedInUnderSignIn(t *testing.T) {
 		t.Error("the runner reads a key on an install that signs nobody in")
 	}
 	licensed := profiles()["enterprise"]
-	if n := len(ServerDeploymentObject(licensed).Spec.Template.Spec.Containers); n != 1 {
+	if n := len(ServerDeploymentObject(licensed, nil).Spec.Template.Spec.Containers); n != 1 {
 		t.Errorf("a licensed install's pod holds %d containers; want the server alone", n)
 	}
-	if _, ok := envMap(ServerEnv(licensed))["STIGMER_RUNNER_API_KEY"]; ok {
+	if _, ok := envMap(ServerEnv(licensed, nil))["STIGMER_RUNNER_API_KEY"]; ok {
 		t.Error("a licensed server is handed the shared runner's key")
 	}
 }
 
 func TestSecretsAreReferencedNeverCopied(t *testing.T) {
 	for name, st := range profiles() {
-		for _, e := range append(ServerEnv(st), RunnerEnv(st)...) {
+		for _, e := range append(ServerEnv(st, nil), RunnerEnv(st)...) {
 			if strings.HasSuffix(e.Name, "_KEY") || strings.Contains(e.Name, "PASSWORD") || strings.HasSuffix(e.Name, "_DATA") {
 				if e.Value != "" || e.ValueFrom == nil || e.ValueFrom.SecretKeyRef == nil {
 					t.Errorf("%s: %s is not a Secret reference", name, e.Name)
@@ -71,7 +71,7 @@ func TestSecretsAreReferencedNeverCopied(t *testing.T) {
 
 func TestDatabaseUserIsEscaped(t *testing.T) {
 	st := profiles()["byo"]
-	for _, e := range ServerEnv(st) {
+	for _, e := range ServerEnv(st, nil) {
 		if e.Name == "DATABASE_URL" && e.Value != "postgres://stigmer%20app@db.internal:5432" {
 			t.Errorf("DATABASE_URL = %q", e.Value)
 		}
@@ -133,8 +133,8 @@ func TestEveryObjectIsLabelledAsTheOperators(t *testing.T) {
 			t.Errorf("%s is not labelled as the operator's: %v", kind, labels)
 		}
 	}
-	check("Deployment", ServerDeploymentObject(st).Labels)
-	check("pod template", ServerDeploymentObject(st).Spec.Template.Labels)
+	check("Deployment", ServerDeploymentObject(st, nil).Labels)
+	check("pod template", ServerDeploymentObject(st, nil).Spec.Template.Labels)
 	check("Service", ServerServiceObject(st).Labels)
 	for _, c := range ServerClaims(st) {
 		check("claim "+c.Name, c.Labels)
@@ -149,13 +149,13 @@ func TestABucketReplacesTheArtifactsVolume(t *testing.T) {
 			t.Error("the artifacts claim is rendered with a bucket declared")
 		}
 	}
-	d := ServerDeploymentObject(st)
+	d := ServerDeploymentObject(st, nil)
 	for _, v := range d.Spec.Template.Spec.Volumes {
 		if v.Name == "artifacts" {
 			t.Error("the pod mounts the artifacts volume with a bucket declared")
 		}
 	}
-	server := envMap(ServerEnv(st))
+	server := envMap(ServerEnv(st, nil))
 	for name, want := range map[string]string{
 		"ARTIFACT_STORAGE_TYPE": "s3", "SKILL_ARTIFACT_STORAGE_TYPE": "s3", "S3_BUCKET": "acme-stigmer",
 		"S3_REGION": "eu-west-1", "S3_ENDPOINT": "http://minio.storage:9000", "S3_RUNNER_ENDPOINT": "http://minio.example:9000",
@@ -180,7 +180,7 @@ func TestABucketReplacesTheArtifactsVolume(t *testing.T) {
 		}
 	}
 	st.Spec.ObjectStore.S3.Region = ""
-	if got := envMap(ServerEnv(st))["S3_REGION"].Value; got != "us-east-1" {
+	if got := envMap(ServerEnv(st, nil))["S3_REGION"].Value; got != "us-east-1" {
 		t.Errorf("a bucket declared without a region is signed for %q, want us-east-1", got)
 	}
 }
