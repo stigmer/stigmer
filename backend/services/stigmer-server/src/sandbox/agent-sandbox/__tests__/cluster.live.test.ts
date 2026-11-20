@@ -257,8 +257,10 @@ describe("the agent-sandbox driver on a live cluster", () => {
       listed.find((sandbox) => sandbox.name === name)?.createdAt,
     ).toBeInstanceOf(Date);
     const idle: SessionActivityReader = {
-      activity: async () => ({ busy: false, lastActiveAt: new Date(created) }),
+      activity: async () => ({ parked: false, routineFire: false, busy: false, lastActiveAt: new Date(created) }),
       recentActivity: async () => ({
+        parked: false,
+        routineFire: false,
         busy: false,
         lastActiveAt: new Date(created),
       }),

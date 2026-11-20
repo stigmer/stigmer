@@ -107,6 +107,8 @@ describe.each(driverFixtures([ApiResourceKind.run]))(
         await save("run_2", RunPhase.RUN_IN_PROGRESS, T0 - 1_000);
         expect(await reader.recentActivity("ses_a")).toEqual({
           busy: true,
+          parked: false,
+          routineFire: false,
           lastActiveAt: new Date(T0),
         });
       });
@@ -127,6 +129,8 @@ describe.each(driverFixtures([ApiResourceKind.run]))(
         await save("run_0", RunPhase.RUN_IN_PROGRESS, T0 - 60_000);
         expect(await reader.recentActivity("ses_a")).toEqual({
           busy: true,
+          parked: false,
+          routineFire: false,
           lastActiveAt: new Date(T0 + 1_000),
         });
       });

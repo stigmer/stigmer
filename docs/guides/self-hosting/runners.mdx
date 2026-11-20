@@ -614,6 +614,20 @@ counted from the run's start, and wakes with its files before the turn carries
 on, when the person answers or resumes. Connect sandboxes don't sleep; they end
 with their run.
 
+Two things put a Session to sleep before its idle time is up. When a run waits
+because no worker has room, the server puts the awake Session that has been idle
+longest to sleep, one for each time a waiting run asks for its sandbox, and the
+waiting run starts in its place within seconds rather than after someone's idle
+time. A Session whose run is working is never chosen, nor one on a worker that
+is leaving, and one waiting for approval or paused is chosen only when every
+other awake Session is working. With several server replicas, a Session another
+replica started in the last ten minutes can be chosen only once this one has
+learned of it. And a Session that a routine's schedule started sleeps as soon as
+its run ends, rather than holding a seat for the idle time; when someone carries
+that conversation on, it sleeps again after each of their turns. Either way the
+owner of a Session put to sleep loses nothing: its next message wakes it with
+its files, a few seconds slower than an awake one answers (the figures below).
+
 On Stigmer Cloud, preprod (2026-10-31; Agent Substrate v0.6.0 on GKE, snapshots
 in Cloud Storage), a sleeping Session was working again, from the server
 accepting the message to the runner starting the turn, in 2.53 s at the median
@@ -663,7 +677,10 @@ minutes, until it fails after ten tries with an error that doesn't name memory
 (#3347); each try reverts the sandbox to its last snapshot. So lower the memory
 setting only with room for the largest build or install your agents run.
 Changing either setting makes a new template: an awake Session on the old one
-sleeps as soon as it isn't busy, and wakes on the new one at its next message.
+sleeps as soon as it isn't busy, and wakes on the new one at its next message. A
+worker full of idle Sessions still takes a new run: one of them sleeps to make
+room for it, so a worker's count limits how many Sessions work at once, not how
+many people have open conversations.
 
 What the driver needs:
 

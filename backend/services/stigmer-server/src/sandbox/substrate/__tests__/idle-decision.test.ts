@@ -6,7 +6,10 @@
  * has passed even while busy; every other state is still left alone. On
  * an older template (`outdated`), RUNNING is suspended as soon as it is
  * not busy, whatever its window; busy is still left alone; and a draining
- * worker still stores it (stigmer#2984).
+ * worker still stores it (stigmer#2984). A routine's fire is suspended the
+ * same way as soon as its run is not working (a parked fire is not busy
+ * either), its working run is left alone, and a draining worker still
+ * stores it first.
  */
 import { describe, expect, it } from "vitest";
 
@@ -126,6 +129,52 @@ describe("decideIdle for a sandbox from an older configuration", () => {
           now,
           suspendAfterMs: 5 * 60_000,
           outdated: true,
+          ...(drainMinutes !== undefined
+            ? { drainingSince: minutes(drainMinutes) }
+            : {}),
+        }),
+      ).toBe(expected);
+    },
+  );
+});
+
+describe("decideIdle for a routine's fire", () => {
+  const cases: Array<
+    [
+      string,
+      SubstrateSandboxState,
+      boolean,
+      number,
+      number | undefined,
+      IdleAction,
+    ]
+  > = [
+    // [name, state, busy, idle minutes, minutes since a drain was first seen, action]
+    ["busy: its run works on", "running", true, 600, undefined, "none"],
+    [
+      "its run ended a moment ago: suspended at once",
+      "running",
+      false,
+      0,
+      undefined,
+      "suspend",
+    ],
+    ["idle past the window", "running", false, 45, undefined, "suspend"],
+    ["on a draining worker: stored first", "running", false, 0, 1, "store"],
+    ["suspended", "suspended", false, 0, undefined, "none"],
+    ["resuming", "resuming", false, 0, undefined, "none"],
+  ];
+  it.each(cases)(
+    "%s",
+    (_name, state, busy, idleMinutes, drainMinutes, expected) => {
+      expect(
+        decideIdle({
+          state,
+          busy,
+          lastActiveAt: minutes(idleMinutes),
+          now,
+          suspendAfterMs: 5 * 60_000,
+          routineFire: true,
           ...(drainMinutes !== undefined
             ? { drainingSince: minutes(drainMinutes) }
             : {}),

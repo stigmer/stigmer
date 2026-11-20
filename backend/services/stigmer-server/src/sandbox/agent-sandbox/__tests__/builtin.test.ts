@@ -100,8 +100,8 @@ describe("selecting the agent-sandbox driver", () => {
     });
     const handle = provisioner.startBackground?.({
       sessions: {
-        activity: async () => ({ busy: false, lastActiveAt: undefined }),
-        recentActivity: async () => ({ busy: false, lastActiveAt: undefined }),
+        activity: async () => ({ parked: false, routineFire: false, busy: false, lastActiveAt: undefined }),
+        recentActivity: async () => ({ parked: false, routineFire: false, busy: false, lastActiveAt: undefined }),
         sessionIds: async function* () {},
       },
       logger: recording,
