@@ -15,7 +15,8 @@
  *   - the name is unique among one organization's service accounts, by
  *     its slug (ALREADY_EXISTS, reason SERVICE_ACCOUNT_NAME_TAKEN), while
  *     another organization may reuse it; a rename onto a held name is
- *     refused the same way and the slug follows an accepted rename; a
+ *     refused the same way and the slug follows an accepted rename, whose
+ *     old name another account may take as soon as the rename answers; a
  *     rename whose write loses once to a write landing on the row ends with
  *     one current name, the new one, the row's slug equal to it and the old
  *     name held only as the previous name the rename keeps, and while the
@@ -307,6 +308,16 @@ describe("service accounts with sign-in on (built-in Authorizer)", () => {
     const updated = await command.update({ resource: renamed, updateMask: { paths: ["*"] } });
     expect(updated.metadata?.slug).toBe("after-rename");
     expect(updated.metadata?.org).toBe(acme);
+    // The rename has committed by the time it answers: the old name is
+    // free for another account at once (#2926).
+    const successor = await createServiceAccount(
+      at.as(ADMIN),
+      acme,
+      "before-rename",
+      IamRole.member,
+    );
+    expect(successor.metadata?.slug).toBe("before-rename");
+    expect(successor.metadata?.id).not.toBe(id);
 
     const taken = clone(IdentityAccountSchema, await query.get({ value: id }));
     if (taken.metadata === undefined)
