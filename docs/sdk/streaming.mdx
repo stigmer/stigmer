@@ -92,8 +92,8 @@ import { startTurn } from "@stigmer/client";
 
 const { runId, sessionId } = await startTurn(stigmer, {
   org: "acme",
-  sessionSpec: { agentRef: { org: "acme", slug: "support-agent" } },
-  message: "Summarize this week's tickets.",
+  sessionSpec: { agentRef: { org: "acme", slug: "variance-reporter" } },
+  message: "Review this quarter's ledger.",
 });
 ```
 
@@ -103,10 +103,10 @@ when you don't, and reads the Session from it.
 <Tab value="Go">
 ```go
 run, err := client.Run.Create(ctx, &stigmer.RunInput{
-    Name:        "weekly-summary",
+    Name:        "quarterly-variance",
     Org:         "acme",
-    SessionSpec: &stigmer.SessionSpecInput{AgentRef: stigmer.ResourceRef{Org: "acme", Slug: "support-agent"}},
-    Message:     "Summarize this week's tickets.",
+    SessionSpec: &stigmer.SessionSpecInput{AgentRef: stigmer.ResourceRef{Org: "acme", Slug: "variance-reporter"}},
+    Message:     "Review this quarter's ledger.",
 })
 if err != nil {
     log.Fatal(err)
@@ -120,10 +120,10 @@ log.Printf("run %s in session %s", runID, sessionID)
 from stigmer import ResourceRef, RunInput, SessionSpecInput
 
 run = client.runs.create(RunInput(
-    name="weekly-summary",
+    name="quarterly-variance",
     org="acme",
-    session_spec=SessionSpecInput(agent_ref=ResourceRef(org="acme", slug="support-agent")),
-    message="Summarize this week's tickets.",
+    session_spec=SessionSpecInput(agent_ref=ResourceRef(org="acme", slug="variance-reporter")),
+    message="Review this quarter's ledger.",
 ))
 run_id, session_id = run.metadata.id, run.spec.session_id
 ```
@@ -135,12 +135,12 @@ import ai.stigmer.sdk.gen.ResourceRef;
 import ai.stigmer.sdk.gen.RunInput;
 
 Run run = client.run.create(RunInput.builder()
-    .name("weekly-summary")
+    .name("quarterly-variance")
     .org("acme")
     .sessionSpec(RunInput.SessionSpecInput.builder()
-        .agentRef(ResourceRef.of("acme", "support-agent"))
+        .agentRef(ResourceRef.of("acme", "variance-reporter"))
         .build())
-    .message("Summarize this week's tickets.")
+    .message("Review this quarter's ledger.")
     .build());
 String runId = run.getMetadata().getId();
 String sessionId = run.getSpec().getSessionId();

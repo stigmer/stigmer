@@ -283,8 +283,8 @@ next.
 ## From your backend, as the user
 
 Sometimes your backend starts the work itself, but the work belongs to the
-signed-in person: a customer uploads a statement and your backend runs an Agent
-on it. Started with the service account's own client, that run is the service
+signed-in person: a customer uploads a ledger and your backend runs an Agent on
+it. Started with the service account's own client, that run is the service
 account's. To make it the person's, your backend mints them a token as above,
 keeps it in a token cache, and starts the run with a second client built on that
 cache. The Session is then created as the person (its
@@ -293,27 +293,37 @@ started it in your app's chat.
 
 <SDKTabs>
 <Tab value="TypeScript">
+
 ```typescript
 declare const user: { id: string };
 // ---cut---
 import { createTokenCache, sendAndWait } from "@stigmer/client";
 import { createNodeClient } from "@stigmer/client/node";
 
-const admin = createNodeClient({ baseUrl: "https://api.stigmer.ai", apiKey:
-process.env.STIGMER_API_KEY!, });
+const admin = createNodeClient({
+  baseUrl: "https://api.stigmer.ai",
+  apiKey: process.env.STIGMER_API_KEY!,
+});
 
-// One cache per person: the mint runs once per token, not on every call. const
-tokens = createTokenCache(() => admin.tokens.mintUserToken({ org: "acme",
-userId: user.id }), ); const asUser = createNodeClient({ baseUrl:
-"https://api.stigmer.ai", getAccessToken: tokens.getAccessToken, });
+// One cache per person: the mint runs once per token, not on every call.
+const tokens = createTokenCache(() =>
+  admin.tokens.mintUserToken({ org: "acme", userId: user.id }),
+);
+const asUser = createNodeClient({
+  baseUrl: "https://api.stigmer.ai",
+  getAccessToken: tokens.getAccessToken,
+});
 
-const turn = await sendAndWait(asUser, { org: "acme", sessionSpec: { agentRef: {
-org: "acme", slug: "statement-checker" } }, message: "Check the statement I
-uploaded.", });
+const turn = await sendAndWait(asUser, {
+  org: "acme",
+  sessionSpec: { agentRef: { org: "acme", slug: "variance-reporter" } },
+  message: "Review the ledger I uploaded.",
+});
+```
 
-````
 </Tab>
 <Tab value="Go">
+
 ```go
 var user struct{ ID string }
 // ---cut---
@@ -343,27 +353,27 @@ defer asUser.Close()
 
 turn, err := asUser.SendAndWait(ctx, &stigmer.RunInput{
     Org:         "acme",
-    SessionSpec: &stigmer.SessionSpecInput{AgentRef: stigmer.ResourceRef{Org: "acme", Slug: "statement-checker"}},
-    Message:     "Check the statement I uploaded.",
+    SessionSpec: &stigmer.SessionSpecInput{AgentRef: stigmer.ResourceRef{Org: "acme", Slug: "variance-reporter"}},
+    Message:     "Review the ledger I uploaded.",
 })
 if err != nil {
     log.Fatal(err)
 }
 log.Print(turn.Answer)
-````
+```
 
 </Tab>
 <Tab value="Python">
+
 ```python
 class CurrentUser:
     """Your app's signed-in user."""
 
     id: str
 
+
 current_user = CurrentUser()
-
 # ---cut---
-
 import os
 
 from stigmer import ResourceRef, SessionSpecInput, StigmerClient, TokenCache
@@ -371,18 +381,19 @@ from stigmer import ResourceRef, SessionSpecInput, StigmerClient, TokenCache
 admin = StigmerClient(os.environ["STIGMER_API_KEY"])
 
 # One cache per person: the mint runs once per token, not on every call.
+tokens = TokenCache(lambda: admin.tokens.mint_user_token(org="acme", user_id=current_user.id))
 
-tokens = TokenCache(lambda: admin.tokens.mint_user_token(org="acme",
-user_id=current_user.id))
+with StigmerClient(get_access_token=tokens.get_access_token) as as_user:
+    turn = as_user.send_and_wait(
+        org="acme",
+        session_spec=SessionSpecInput(agent_ref=ResourceRef(org="acme", slug="variance-reporter")),
+        message="Review the ledger I uploaded.",
+    )
+```
 
-with StigmerClient(get_access_token=tokens.get_access_token) as as_user: turn =
-as_user.send_and_wait( org="acme",
-session_spec=SessionSpecInput(agent_ref=ResourceRef(org="acme",
-slug="statement-checker")), message="Check the statement I uploaded.", )
-
-````
 </Tab>
 <Tab value="Java">
+
 ```java
 interface CurrentUser { String getId(); }
 
@@ -408,12 +419,12 @@ try (StigmerClient asUser = StigmerClient.builder().tokenProvider(tokens).build(
     TurnOutcome turn = asUser.sendAndWait(SendAndWaitInput.builder()
         .org("acme")
         .sessionSpec(RunInput.SessionSpecInput.builder()
-            .agentRef(ResourceRef.of("acme", "statement-checker"))
+            .agentRef(ResourceRef.of("acme", "variance-reporter"))
             .build())
-        .message("Check the statement I uploaded.")
+        .message("Review the ledger I uploaded.")
         .build());
 }
-````
+```
 
 </Tab>
 </SDKTabs>
