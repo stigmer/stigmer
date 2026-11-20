@@ -44,10 +44,11 @@
     "url": "git+https://github.com/stigmer/stigmer.git",
     "directory": "apis/stubs/ts"
   },
-  "dependencies": {
-    "@bufbuild/protobuf": "2.12.0"
+  "peerDependencies": {
+    "@bufbuild/protobuf": "^2.12.0"
   },
   "devDependencies": {
+    "@bufbuild/protobuf": "2.12.0",
     "typescript": "^5.7.0"
   }
 }
