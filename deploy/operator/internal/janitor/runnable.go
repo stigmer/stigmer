@@ -32,7 +32,9 @@ func Runnable(c Client, every time.Duration) manager.RunnableFunc {
 				// paging on.
 				log.Info("sweep failed, retrying", "reason", err.Error())
 			case outcomes != nil:
-				if summary := summarize(outcomes); summary != last && !nothingToDo(outcomes) {
+				// Say every change, and the sweep that finishes a cleanup; stay
+				// quiet while there was never anything to do.
+				if summary := summarize(outcomes); summary != last && (last != "" || !nothingToDo(outcomes)) {
 					log.Info("cleaned up after the last Stigmer", "verdicts", summary)
 					last = summary
 				}
