@@ -50,10 +50,12 @@
  *   - Statements: an HTTP client that signs Dana in and uploads a statement
  *     gets back the report's first line;
  *   - in both, the conversation is Dana's own: a token minted for Dana's id
- *     in the app (`user-dana`, the app's session) lists it. A conversation
- *     is private to whoever started it, so a route that minted for anyone
- *     else, or a run on the service account's key, leaves Dana's list
- *     empty.
+ *     in the app (`user-dana`, the app's session) lists one more
+ *     conversation after the walk's use of the app than before it (the
+ *     coding agent may have tried the app as Dana). A conversation is
+ *     private to whoever started it, so a route that minted for anyone
+ *     else, or a run on the service account's key, leaves Dana's list as it
+ *     was.
  *
  * Usage: lib/coding-agent-app.mjs, USAGE (`--help` prints it).
  */
@@ -222,6 +224,9 @@ async function main() {
     log(`the stigmer-integrate skill ${/"skill":"[^"]*stigmer-integrate"/.test(readFileSync(streamPath, "utf8")) ? "loaded" : "did not load"}`);
 
     const { key } = checkKey(appDir, streamPath);
+    // Dana's conversations before the walk's own use of the app: the coding
+    // agent may have tried the app as Dana itself.
+    const before = (await customersConversations(stage.server.baseUrl, key)).length;
     const sources = filesUnder(appDir);
     const port = await freePort();
     const appUrl = `http://localhost:${port}`;
@@ -273,9 +278,9 @@ async function main() {
       log(`an HTTP client signed ${CUSTOMER} in, uploaded a statement, and got the report back`);
     }
 
-    const conversations = await customersConversations(stage.server.baseUrl, key);
-    check(conversations.length > 0, `${CUSTOMER}'s own token lists no conversation: the run was not ${CUSTOMER}'s`);
-    log(`${CUSTOMER}'s own token lists ${conversations.length} conversation(s): the run was ${CUSTOMER}'s`);
+    const after = (await customersConversations(stage.server.baseUrl, key)).length;
+    check(after > before, `${CUSTOMER}'s own token lists ${after} conversation(s), as before the walk used the app: the run was not ${CUSTOMER}'s`);
+    log(`${CUSTOMER}'s own token lists ${after - before} new conversation(s): the run was ${CUSTOMER}'s`);
     log("passed");
     passed = true;
   } finally {
