@@ -43,7 +43,9 @@
  *     the last pass's listing: the longest idle, never the waiting
  *     session's own, a busy one, one it cannot map or one on a leaving
  *     worker, plain idle before parked; one that moved worker, slept or
- *     became busy since the listing is skipped for the next, one a turn
+ *     became busy since the listing, or whose worker began leaving since
+ *     (read again inside the queue; a read that fails refuses), is skipped
+ *     for the next, one a turn
  *     reached mid-suspend is thawed and the next put to sleep; a listing
  *     that offers nothing (none yet, or every awake sandbox newer than it)
  *     is read again from Substrate once per ask, and a fresh read that
@@ -1034,6 +1036,29 @@ describe("making room for a waiting run", () => {
     if (asleep !== undefined) asleep.state = "suspended";
     expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(true);
     expect(h.substrate.suspensions).toEqual([{ name: a, durable: false }]);
+  });
+
+  it("skips one whose worker began leaving since the listing, read fresh inside the queue", async () => {
+    const h = harness();
+    h.substrate.workers.set("w-1", "active");
+    h.substrate.workers.set("w-2", "active");
+    const { a, b, c } = await full(h);
+    onWorker(h, b, "w-2");
+    await h.pass();
+    h.substrate.workers.set("w-2", "draining");
+    expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(true);
+    expect(h.substrate.suspensions).toEqual([{ name: c, durable: false }]);
+    expect(h.substrate.actors.get(b)?.state).toBe("running");
+    expect(h.substrate.actors.get(a)?.state).toBe("running");
+  });
+
+  it("makes no room when the guard cannot read which workers are leaving", async () => {
+    const h = harness();
+    await full(h);
+    // Every read fails: the guard's for each of the three, then the fresh listing's.
+    for (let i = 0; i < 4; i += 1) h.substrate.fail("listWorkers", new Error("unavailable"));
+    expect(await makeRoom(h.state, h.options, "ses_waiting")).toBe(false);
+    expect(h.substrate.suspensions).toEqual([]);
   });
 
   it("skips one whose session became busy since the listing, read fresh inside the queue", async () => {

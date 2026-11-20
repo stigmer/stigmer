@@ -106,12 +106,19 @@
  * Its guard is its own, not the ladder's re-decision, which would refuse
  * every sandbox inside its idle window: inside the actor's queue it
  * proceeds only while the sandbox is still running on the worker it was
- * listed on and a fresh full read says its session is not busy, and after
+ * listed on, that worker is not leaving by a fresh read (a listing can be
+ * an interval old, and a pass's read of the leaving workers can fail; a
+ * fresh read that fails refuses), and a fresh full read says its session
+ * is not busy, and after
  * the suspend it thaws the sandbox when a turn arrived, as every guarded
  * suspend does. A sandbox that slept or moved since the listing, or that a
  * turn took, is skipped for the next; a second replica choosing the same
  * one finds it no longer running. The ordinary suspend keeps the
  * workspace, so the slept session's next message wakes it with its files.
+ * A sandbox this replica cannot map to a session is never chosen: with
+ * several server replicas, one another replica started since this one's
+ * last scan of the sessions (at most SCAN_INTERVAL_MS ago) waits for that
+ * scan before it can yield here, while the waiting run asks on.
  *
  * The suspend itself, and every pass's upkeep (a sleeping sandbox moved
  * to the current template, unused templates retired, a stuck delete
@@ -532,6 +539,24 @@ export async function makeRoom(
   return freeOne(state.listing, options, forSessionId);
 }
 
+/** Whether `actor` sits on a leaving worker now; true when that cannot be read. */
+async function leavingNow(
+  actor: SubstrateActorSummary,
+  options: SubstrateSweepOptions,
+): Promise<boolean> {
+  try {
+    return (await options.lifecycle.draining()).some(
+      (sandbox) => sandbox.actor.name === actor.name,
+    );
+  } catch (error) {
+    options.logger.warn("Could not read which workers are leaving; made no room for a waiting run", {
+      actor: actor.name,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return true;
+  }
+}
+
 /** Puts the first sandbox `listing` offers to sleep (module header); true when one went to sleep. */
 async function freeOne(
   listing: SweepListing,
@@ -575,6 +600,12 @@ async function freeOne(
     const outcome = await lifecycle.suspend("session", sessionId, {
       proceed: async (fresh) => {
         if (fresh.state !== "running" || fresh.worker !== listed.worker) {
+          return false;
+        }
+        // The listing may be up to an interval old, or its read of the
+        // leaving workers may have failed: read them again, and refuse
+        // when they cannot be read (module header).
+        if (await leavingNow(fresh, options)) {
           return false;
         }
         const activity = await sessions.activity(sessionId);

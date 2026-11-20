@@ -620,12 +620,13 @@ longest to sleep, one for each time a waiting run asks for its sandbox, and the
 waiting run starts in its place within seconds rather than after someone's idle
 time. A Session whose run is working is never chosen, nor one on a worker that
 is leaving, and one waiting for approval or paused is chosen only when every
-other awake Session is working. And a Session that a routine's schedule started
-sleeps as soon as its run ends, rather than holding a seat for the idle time;
-when someone carries that conversation on, it sleeps again after each of their
-turns. Either way the owner of a Session put to sleep loses nothing: its next
-message wakes it with its files, a few seconds slower than an awake one answers
-(the figures below).
+other awake Session is working. With several server replicas, a Session another
+replica started in the last ten minutes can be chosen only once this one has
+learned of it. And a Session that a routine's schedule started sleeps as soon as
+its run ends, rather than holding a seat for the idle time; when someone carries
+that conversation on, it sleeps again after each of their turns. Either way the
+owner of a Session put to sleep loses nothing: its next message wakes it with
+its files, a few seconds slower than an awake one answers (the figures below).
 
 On Stigmer Cloud, preprod (2026-10-31; Agent Substrate v0.6.0 on GKE, snapshots
 in Cloud Storage), a sleeping Session was working again, from the server

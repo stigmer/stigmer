@@ -26,6 +26,7 @@ import {
   newSubstrateSandboxProvisioner,
 } from "../builtin.js";
 import { newSubstrateSettingsFromEnv } from "../config.js";
+import * as sweep from "../sweep.js";
 import { newSubstrateSandboxDriverOverGateway } from "../driver.js";
 import { mintCa, mintServerCertificate } from "../__test-utils__/test-ca.js";
 
@@ -114,6 +115,32 @@ describe("the built-in factory", () => {
     });
     await handle?.stop();
     expect(await provisioner.makeRoom?.("ses_waiting")).toBe(false);
+  });
+
+  it("hands makeRoom to the sweep it started, with the waiting session", async () => {
+    const asked: string[] = [];
+    const start = vi.spyOn(sweep, "startSubstrateSweep").mockImplementation(() => ({
+      stop: async () => {},
+      makeRoom: async (forSessionId) => {
+        asked.push(forSessionId);
+        return true;
+      },
+    }));
+    try {
+      const provisioner = newSubstrateSandboxProvisioner({ config, logger: silentLogger });
+      provisioner.startBackground?.({
+        sessions: {
+          activity: async () => ({ busy: false, lastActiveAt: undefined, parked: false, routineFire: false }),
+          recentActivity: async () => ({ busy: false, lastActiveAt: undefined, parked: false, routineFire: false }),
+          async *sessionIds() {},
+        },
+        logger: silentLogger,
+      });
+      expect(await provisioner.makeRoom?.("ses_waiting")).toBe(true);
+      expect(asked).toEqual(["ses_waiting"]);
+    } finally {
+      start.mockRestore();
+    }
   });
 
   it("refuses a runner image not pinned by digest before it dials anything", () => {
