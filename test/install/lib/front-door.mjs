@@ -70,7 +70,10 @@ export function createFrontDoor(cluster, { log, workDir }) {
           "upgrade", "--install", "traefik", TRAEFIK_CHART.name,
           "--repo", TRAEFIK_CHART.repo, "--version", TRAEFIK_CHART.version,
           "--namespace", "traefik", "--create-namespace",
-          "--set", "service.type=NodePort",
+          // The chart's Service type is `service.spec.type`; a bare
+          // `service.type` is ignored and leaves a LoadBalancer, whose
+          // address helm 3's --wait then waits for and kind never gives.
+          "--set", "service.spec.type=NodePort",
           "--set", `ports.websecure.nodePort=${HTTPS_NODE_PORT}`,
           "--set", "providers.kubernetesGateway.enabled=true",
           "--set", "gateway.enabled=false",

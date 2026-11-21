@@ -111,7 +111,8 @@ describe("the runner artifact lane", () => {
       },
       runnerArtifactLane: (request, response) => {
         response.setHeader("x-lane", "runner-artifacts");
-        response.end(request.url ?? "");
+        response.setHeader("x-url", request.url ?? "");
+        response.end();
       },
     });
     const port = await withLane.listen(0, "127.0.0.1");
@@ -120,7 +121,7 @@ describe("the runner artifact lane", () => {
       for (const route of [UPLOAD, DOWNLOAD, `${UPLOAD}?attempt=2`]) {
         const response = await fetch(`${at}${route}`, { method: "POST" });
         expect(response.headers.get("x-lane"), route).toBe("runner-artifacts");
-        expect(await response.text(), route).toBe(route);
+        expect(response.headers.get("x-url"), route).toBe(route);
       }
       const beneath = await fetch(`${at}${UPLOAD}/more`, { method: "POST" });
       expect(beneath.headers.get("x-lane")).toBeNull();

@@ -915,7 +915,16 @@ async function runSubstrate(fake, modelBaseUrl) {
     sandboxes: {
       driver: "substrate",
       idleSeconds: 30,
-      substrate: { workers: 1, sandbox: { cpuMillicores: 1000, memoryMiB: 1024 }, egress: { http: [`${modelHost}:${modelPort}`] } },
+      // The worker asks for a tenth of a core, not the default half: a CI
+      // runner has four, most of them asked for by Agent Substrate's control
+      // plane and the bundled database and Temporal, and a worker that
+      // cannot be scheduled leaves the pool, and the install, waiting.
+      substrate: {
+        workers: 1,
+        worker: { resources: { requests: { cpu: "100m", memory: "1Gi" } } },
+        sandbox: { cpuMillicores: 1000, memoryMiB: 1024 },
+        egress: { http: [`${modelHost}:${modelPort}`] },
+      },
     },
   });
   const seen = new Set();

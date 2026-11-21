@@ -103,7 +103,11 @@ export function createKindCluster({ existing = "", prefix = "stigmer-install-tes
       const pods = cluster.kubectlQuiet(["get", "pods", "--all-namespaces", "-o", "wide"]);
       const events = cluster.kubectlQuiet(["get", "events", "--all-namespaces", "--field-selector", "type!=Normal", "--sort-by", ".lastTimestamp"]);
       const tail = (events.stdout ?? "").trimEnd().split("\n").slice(-60).join("\n");
+      const nodes = cluster.kubectlQuiet(["describe", "nodes"]);
+      const allocated = (nodes.stdout ?? "").match(/Allocated resources:[\s\S]*?(?=\nEvents:|$)/g) ?? [];
       return [
+        "--- what the nodes' pods ask for ---",
+        allocated.join("\n") || (nodes.stderr ?? "").trimEnd(),
         "--- pods ---",
         (pods.stdout ?? "").trimEnd() || (pods.stderr ?? "").trimEnd(),
         "--- events that are not Normal, latest 60 ---",
