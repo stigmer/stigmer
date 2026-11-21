@@ -11,6 +11,13 @@
  *     It installs each entry by its exact name: `APT::Cmd::Pattern-Only`
  *     turns off apt's reading of a name as a regular expression or glob,
  *     which would install every matching package as root (stigmer#2840).
+ *     It first finishes any dpkg run cut off before it ended (`dpkg
+ *     --configure -a`, nothing to do on a clean system): the disk outlives
+ *     the runner (a docker restart, a Substrate sleep, which keeps the
+ *     disk since stigmer#3360), and an install it cut off (a deadline kill,
+ *     or a sleep after the turn awaiting it was cancelled, since the boot's
+ *     install runs on without it) would otherwise leave apt refusing every
+ *     later install in that sandbox.
  *   - cargo, gem, go, npm and pip run as the agent's own user
  *     (`shared/agent-identity.ts` setprivArgs), with the agent host's
  *     allow-listed environment plus the agent's HOME and the CA variables
@@ -156,6 +163,8 @@ export function installCommands(packages: PackageSet, prefix: string): InstallCo
   const bin = join(prefix, "bin");
   if (packages.apt.length > 0) {
     const env = { DEBIAN_FRONTEND: "noninteractive" };
+    // An interrupted dpkg run is finished first (module header).
+    commands.push({ manager: "apt", argv: ["dpkg", "--configure", "-a"], asAgent: false, env });
     commands.push({ manager: "apt", argv: ["apt-get", "update"], asAgent: false, env });
     commands.push({ manager: "apt", argv: ["apt-get", "install", "-y", "--no-install-recommends", "-o", "APT::Cmd::Pattern-Only=true", "--", ...packages.apt], asAgent: false, env });
   }
