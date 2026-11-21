@@ -16,6 +16,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { SCROLL_REGION } from "@/lib/scroll-region";
 import { FadeInUp } from "@/components/ui/motion";
 
 export type DropItInProps = React.HTMLAttributes<HTMLElement>;
@@ -79,7 +80,10 @@ function DropItIn({ className, ...props }: DropItInProps) {
             <div className="px-4 sm:px-6 py-3 border-b border-border">
               <span className="text-xs font-mono text-subtle">src/App.tsx</span>
             </div>
-            <pre className="p-4 sm:p-6 text-xs sm:text-sm font-mono leading-relaxed overflow-x-auto">
+            <pre
+              {...SCROLL_REGION}
+              className={cn("p-4 sm:p-6 text-xs sm:text-sm font-mono leading-relaxed overflow-x-auto", SCROLL_REGION.className)}
+            >
               <code>
                 {APP_EXCERPT.map((line, index) => (
                   <div

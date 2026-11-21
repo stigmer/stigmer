@@ -1,12 +1,13 @@
 /**
  * A block that scrolls on its own, made reachable by the keyboard, for
  * every place the site draws one: the Markdown code blocks, the theme
- * playground's code blocks and the Markdown tables.
+ * playground's code blocks, the Markdown tables and the home page's code
+ * samples.
  *
  * A scroll area that holds nothing focusable cannot be scrolled from the
  * keyboard: Tab passes it by and the arrow keys move nothing, so a long code
  * line or a wide table's right-hand columns are out of reach. axe reports it
- * as `scrollable-region-focusable` (WCAG 2.1.1; stigmer#2902, stigmer#3314).
+ * as `scrollable-region-focusable` (WCAG 2.1.1; stigmer#2902, stigmer#3314, stigmer#3384).
  * The fix is the area itself in the tab order (`tabIndex: 0`); a focused
  * area scrolls with the arrow keys natively.
  *
