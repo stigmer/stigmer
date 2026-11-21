@@ -664,6 +664,20 @@ walk-coding-agent-build: build-libs build-server build-runner ## Ask Claude Code
 	npm run build -w @stigmer/coding-agent-plugin
 	node test/install/coding-agent-build.mjs $(WALK_ARGS)
 
+# The operate walk (test/install/coding-agent-operate.mjs): a one-line ask to
+# Claude Code with Stigmer's plugin makes CI a key on the hermetic stage ("a
+# key that can run agents but not change them"), answered "go ahead" at each
+# stop, then the walk reads the server: one service account with the Member
+# role and one key, the key in the file the CLI named that account's, no key
+# in the coding agent's stream, the person's own keys and the agents as they
+# were. Needs a coding agent, so it is in no lane; WALK_ARGS passes its flags
+# (--keep, --max-turns=<n>, --model=<id>).
+.PHONY: walk-coding-agent-operate
+walk-coding-agent-operate: build-libs build-server build-runner ## Ask Claude Code with Stigmer's plugin to make CI a key, and read the server after (by hand; needs claude signed in)
+	@command -v claude >/dev/null 2>&1 || { echo "error: claude not found (Claude Code, signed in)"; exit 1; }
+	npm run build -w @stigmer/coding-agent-plugin
+	node test/install/coding-agent-operate.mjs $(WALK_ARGS)
+
 # The coding-agent question bank (test/install/coding-agent-bank.mjs): every
 # case in coding-agents/evals/ asked of Claude Code with Stigmer's plugin and
 # without it (`claude plugin eval`, signed in to its own model), against a

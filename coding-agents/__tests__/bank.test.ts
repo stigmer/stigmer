@@ -74,7 +74,10 @@ const FAIL_IF_QUESTION = "PASS unless the answer does this; an answer that says 
 /** The fail-if question before the denial rule, read for cases not yet re-probed under it. */
 const FAIL_IF_QUESTION_BEFORE = "PASS unless the answer does this:";
 /** The cases re-probed under the denial rule: these jobs' cases, and these cases by folder. */
-const REPROBED = { jobs: ["deciding", "stuck", "run-fix", "quality", "integrate", "design", "reach"], cases: ["admin/delete-every-agent-in-the-org"] };
+const REPROBED: { readonly jobs: readonly string[]; readonly cases: readonly string[] } = {
+  jobs: ["deciding", "stuck", "run-fix", "quality", "integrate", "design", "reach", "own-server", "admin"],
+  cases: [],
+};
 const MIN_MUST = 2;
 const MAX_MUST = 4;
 /** A provider or Stigmer key, or a long unbroken run of letters and digits a token would be (a docs path breaks at its slashes and hyphens). */

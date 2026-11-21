@@ -38,14 +38,15 @@ Find these before you answer or write anything. Each one changes the code.
    SDK; the frontend's picks the chat (the chat is React).
 2. **Where Stigmer runs**: Stigmer Cloud, their own server, or `stigmer up`
    on this machine. `stigmer auth whoami` names the server's version and
-   edition and the Organization; `stigmer config backend status` its
-   address (`Endpoint`). The app's backend talks to that same server and
-   Organization: put that address in its settings (an `http://` or loopback
-   address takes the SDK's plaintext option), never a guessed
-   `localhost:7234`, and never start a server (`stigmer up`) to make the app
-   work. `stigmer status` reports only a stack `stigmer up` runs on this
-   machine: "not running" there says nothing about the server the CLI is
-   signed in to. Federation and child organizations are served by Stigmer Cloud and
+   edition, the Organization and, on a newer CLI, the address (`Endpoint`);
+   on an older CLI, `stigmer config backend status` gives the address. The
+   app's backend talks to that same server and Organization: put that
+   address in its settings (an `http://` or loopback address takes the
+   SDK's plaintext option), never a guessed `localhost:7234`, and never
+   start a server (`stigmer up`) to make the app work. On an older CLI,
+   `stigmer status` reports only a stack `stigmer up` runs on this machine:
+   "not running" there says nothing about the server the CLI is signed in
+   to. Federation and child organizations are served by Stigmer Cloud and
    the Enterprise edition, not by the open-source server: never recommend
    either before you know which they run, and when you don't, say which
    editions have it.
