@@ -1,148 +1,115 @@
 ---
-title: Self-host on Kubernetes with Helm
+title: Self-host on Kubernetes
 description:
-  Install the complete Stigmer stack on a Kubernetes cluster with one Helm
-  chart, reach the console, run a first Agent, then turn authentication on and
-  put an Ingress in front in one step. Every setting is a line in your values
-  file.
+  Install the Stigmer operator, declare one Stigmer resource, and the operator
+  runs the whole stack on your cluster, from the database and Temporal to
+  sign-in, backups and a sandbox for each Session. Status says in words what is
+  ready.
 ---
 
-The Helm chart is the Kubernetes shape from [Self-hosting](./overview): the same
-four parts as the [Docker Compose stack](./docker-compose), the server with the
-web console and one runner in a single pod, with Postgres and a real Temporal
-server bundled for one team or pointed at the ones you already run. One rule
-holds for the whole page: every setting you change is a line in your values
-file. You never edit the chart, and it refuses a value it does not know.
+On Kubernetes, Stigmer runs through the Stigmer operator. You install the
+operator once per cluster with Helm, then declare what you want in one `Stigmer`
+resource: a hostname, the owner's email, a bucket, how Agents run. The operator
+runs the rest, the same parts as the [Docker Compose stack](./docker-compose),
+and keeps them converged. It mints the server's keys, runs Postgres and
+Temporal, brings up the server with the web console and its runner, and, as you
+declare them, a front door with its certificate, a bundled sign-in, backups to
+your bucket and a sandbox of its own for each Session. `kubectl get stigmer`
+says in words what is ready and what it is waiting for.
 
 <Callout type="warn">
-  **No sign-in until you turn it on.** A fresh install trusts every caller that
-  can reach it, like the compose stack. Keep it behind `kubectl port-forward`
-  until you [turn authentication on](./authentication): the chart refuses an
-  Ingress, a `NodePort` or `LoadBalancer` Service, or a public address until you
-  do. stdio MCP servers spawn **inside the runner container**: they can reach
-  its filesystem and network, not your nodes'.
+  **No sign-in until you give it a front door.** An install without
+  `spec.ingress` signs nobody in, and every caller is its owner, which is safe
+  only while it is reached from inside the cluster. Keep it behind `kubectl
+  port-forward` until you [put it behind a
+  hostname](#reach-it-at-a-hostname-signed-in), which brings sign-in with it.
 </Callout>
-
-## What the chart installs
-
-One Deployment whose pod has two containers: the server, which serves the API,
-the web console and the file server, and the runner, which executes Agents and
-holds your LLM key. They share the pod's network and one file-storage disk, the
-way the compose stack's two containers share one volume, which is why the chart
-needs no shared-filesystem storage class. Postgres runs as a StatefulSet with
-its own disk and Temporal as a Deployment, both bundled unless you point the
-chart at your own.
-
-For a release named `stigmer`, the chart creates four PersistentVolumeClaims.
-Three hold durable state: `data-stigmer-postgres-0` (every resource and run
-record, and Temporal's own tables), `stigmer-artifacts` (Files and what runs
-store) and `stigmer-server-data` (the Skill content store). The fourth,
-`stigmer-runner-data`, holds in-flight Session checkpoints so a paused run
-survives a pod restart; losing it abandons runs in flight but loses no durable
-data. Those three claims, the Secret you create below, and your values file are
-a complete backup. [Back up and upgrade your stack](./operations) has the
-procedures.
 
 ## What you need
 
-- A Kubernetes cluster, 1.27 or newer, with a default storage class. Any storage
-  class works: the server and the runner share one pod, so the chart needs no
-  shared-filesystem storage.
+- A Kubernetes cluster, 1.30 or newer, with a default storage class.
 - `helm` 3 and `kubectl`, pointed at the cluster.
 - The Stigmer CLI on your laptop. The
   [quickstart](/docs/getting-started/quickstart) has the install commands.
 - Laptop ports 7234 and 7235 free for the port-forward. If the laptop stack
   runs, stop it first with `stigmer down`; it uses the same ports.
-- An LLM provider key if you want Agents to answer.
+- An LLM provider key, so Agents can answer.
+
+Some declarations need more from the cluster, and the status names what is
+missing: [cert-manager](https://cert-manager.io) for backups and for a
+certificate it issues, a network plugin that enforces NetworkPolicies for the
+fences around the database, Temporal and each sandbox, and, for Agent Substrate,
+the pod-certificate APIs described [below](#a-sandbox-for-each-session).
 
 ## Install
 
 <Steps>
 
-### Create the Secrets
+### Install the operator
 
-The chart refuses to install until you name a Secret with two random keys and
-the database password. That's deliberate, the way `docker compose up` refuses
-without `.env`: the keys you must back up are never generated somewhere you
-can't see.
+```bash
+helm install stigmer-operator oci://ghcr.io/stigmer/charts/stigmer-operator \
+  --namespace stigmer-system --create-namespace
+```
+
+The chart installs the operator and the `Stigmer` definition. It holds
+cluster-wide rights because it installs what an install needs when the cluster
+has none: CloudNativePG for the database, and later its backup plugin,
+agent-sandbox or Agent Substrate. It removes only what it installed. The chart's
+[README](https://github.com/stigmer/stigmer/blob/main/deploy/helm/stigmer-operator/README.md)
+lists its values and the rights it holds.
+
+### Give it your model key
 
 ```bash
 kubectl create namespace stigmer
-kubectl -n stigmer create secret generic stigmer-secrets \
-  --from-literal=STIGMER_ENCRYPTION_KEY=$(openssl rand -base64 32) \
-  --from-literal=STIGMER_RUNNER_TOKEN_KEY=$(openssl rand -base64 32) \
-  --from-literal=POSTGRES_PASSWORD=$(openssl rand -hex 24)
-```
-
-`STIGMER_ENCRYPTION_KEY` encrypts secret values at rest.
-`STIGMER_RUNNER_TOKEN_KEY` signs the tokens the runner authenticates with. The
-database password must not contain a space, which Temporal can't use; the
-generated one has none. Keep this Secret with your backups: without the
-encryption key, every encrypted value in the database is unreadable. Once you
-turn on authentication, the Secret may also carry `STIGMER_PLATFORM_TOKEN_KEY`,
-which signs the tokens the server mints, such as your product's users' tokens;
-it is optional, and the server generates one on its volume without it.
-
-If you have an LLM provider key, put it in a second Secret now, so Agents can
-answer from the first run:
-
-```bash
-kubectl -n stigmer create secret generic stigmer-llm-keys \
+kubectl -n stigmer create secret generic anthropic \
   --from-literal=ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-Without it the stack still serves the console and the API; runs fail at the LLM
-call. You can add the key later: create this Secret, add its line to your values
-file, and run the `helm upgrade` shown further down this page.
+This Secret is the only one you write. The runner reads the providers' keys from
+it (`OPENAI_API_KEY`, `ANTHROPIC_FOUNDRY_API_KEY` and `AWS_BEARER_TOKEN_BEDROCK`
+too, when you add them), and the operator mints every key the server needs.
 
-If your model traffic goes through an LLM gateway in front of Anthropic, give
-the runner its address in your values file (see
-[Send Claude calls through an LLM gateway](/docs/guides/runners/model-backends#send-claude-calls-through-an-llm-gateway)):
+### Declare Stigmer
 
-```yaml no-validate="Helm values, not a Stigmer resource"
-runner:
-  extraEnv:
-    - name: ANTHROPIC_BASE_URL
-      value: https://llm-gateway.internal
-```
+Create a file called `stigmer.yaml`:
 
-### Write your values file and install
-
-Create a file called `values.yaml`. It names the Secrets you just created and
-never holds a key itself, so it is safe to keep in version control:
-
-```yaml no-validate="Helm values, not a Stigmer resource"
-secrets:
-  existingSecret: stigmer-secrets
-runner:
-  llm:
-    existingSecret: stigmer-llm-keys
-server:
-  operator:
+```yaml
+apiVersion: stigmer.ai/v1
+kind: Stigmer
+metadata:
+  name: stigmer
+  namespace: stigmer
+spec:
+  owner:
     email: you@example.com
+  runner:
+    llm:
+      secretName: anthropic
 ```
 
-Leave the `runner.llm` lines out if you created no LLM Secret. The operator
-email is optional too, and worth setting now: it's stamped on what you create,
-and when you later turn authentication on, the person who signs in with this
-email owns the server's Organization. Then install:
+Apply it and watch the status:
 
 ```bash
-helm install stigmer oci://ghcr.io/stigmer/charts/stigmer \
-  --namespace stigmer \
-  -f values.yaml \
-  --wait
+kubectl apply -f stigmer.yaml
+kubectl -n stigmer get stigmer --watch
 ```
 
-The first install pulls five images (Stigmer's server and runner, Postgres, and
-Temporal's server and setup tools), starts Postgres, lets Temporal create its
-schema and its namespace, and waits for the server to answer. The chart's notes
-print what to do next.
+The operator installs CloudNativePG if the cluster has none, creates the
+database, brings up Temporal, then the server and its runner, and moves from
+`Deploying` to `Ready`. While it works, the message column says what it is
+waiting for and names the object; a declaration it cannot carry out is `Refused`
+with the field and the next step. `kubectl -n stigmer describe stigmer` shows
+every component's standing.
+
+The owner is the person who runs this install: everything you create is
+attributed to them, and once sign-in is on they own the Organization.
 
 <Callout type="info">
-  Back up `values.yaml` beside the Secret. Every change on this page is a line
-  added to it; with the Secret and the three durable claims, it is everything a
-  reinstall needs.
+  The operator keeps the server's keys in the Secret `stigmer-keys`. Everything
+  Stigmer encrypts is readable only with it, so keep a copy outside the cluster;
+  the status says so until you do.
 </Callout>
 
 ### Open the console
@@ -152,13 +119,10 @@ kubectl -n stigmer port-forward svc/stigmer 7234:7234 7235:7235
 ```
 
 Open [http://localhost:7234](http://localhost:7234). The console opens straight
-into your library: the server set up the one place everything on this page lands
-the first time it started, so there is nothing to create first. Download links
-the platform mints point at port 7235, which the same port-forward carries.
-
-Leave the port-forward running in its terminal. It stops whenever the pod is
-recreated, which every `helm upgrade` that changes a setting does; start it
-again with the same command.
+into your library. Download links the platform mints point at port 7235, which
+the same port-forward carries. Leave the port-forward running in its terminal;
+it stops whenever the server's pod is replaced, and the same command starts it
+again.
 
 ### Connect the CLI
 
@@ -170,14 +134,9 @@ stigmer config backend add mycluster --endpoint localhost:7234
 stigmer config backend use mycluster
 ```
 
-Every `apply`, `run` and `get` on this page now lands where the console looks;
-no command needs to say where.
-
-A named backend keeps its own address and, later, its own API key, so switching
-between this cluster, your laptop and Stigmer Cloud is one command. The
-[`stigmer config`](/docs/cli/commands/config) reference lists every backend and
-context command, and [Organizations](/docs/concepts/organizations) explains how
-the editions that hold several fit together.
+Every `apply`, `run` and `get` on this page now lands where the console looks.
+The [`stigmer config`](/docs/cli/commands/config) reference lists every backend
+and context command.
 
 ### Run your first Agent
 
@@ -202,173 +161,340 @@ stigmer run my-first-agent -m "What can you help me with?"
 ```
 
 The Agent responds in your terminal. The run traveled from the CLI through the
-port-forward to the server, through Temporal, and executed inside the runner
-container on your cluster: the whole stack, end to end. Reload the console: your
-Agent is on the workbench.
+port-forward to the server, through Temporal, and executed in the runner on your
+cluster. Reload the console: your Agent is on the workbench.
 
 </Steps>
 
-## Reach it from outside the cluster, signed in
+## Reach it at a hostname, signed in
 
-Serving your team takes two things that go in together: an Ingress, so people
-can reach the stack, and authentication, so only people you let in can use it.
-Without authentication every caller has full control, so the chart refuses an
-Ingress while it is off. Prepare your OIDC provider first: the
-[authentication guide](./authentication) says what to register there and where
-the issuer, the audience and the console's client ID come from.
+A front door gives the install one hostname for everything people reach: the
+console at `/`, the API at its own paths, sign-in at `/idp`, and files kept on a
+volume at `/artifacts`, all on port 443. Declaring one turns sign-in on: by
+default through a sign-in the operator runs beside Stigmer.
 
-Then add both to `values.yaml`. The Ingress takes two hostnames, one for the API
-and console and one for file downloads; they are separate listeners and cannot
-share a host:
-
-```yaml no-validate="Helm values, not a Stigmer resource"
-server:
-  oidc:
-    issuer: https://auth.example.com/realms/main
-    audience: https://stigmer.example.com
-    consoleClientId: stigmer-console
-    # The desktop app's client (the authentication guide's last step).
-    nativeClientId: stigmer-desktop
-ingress:
-  enabled: true
-  className: nginx
-  api:
-    host: stigmer.example.com
-    tlsSecretName: stigmer-api-tls
-    annotations:
-      nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
-  artifacts:
-    host: artifacts.stigmer.example.com
-    tlsSecretName: stigmer-artifacts-tls
+```yaml
+apiVersion: stigmer.ai/v1
+kind: Stigmer
+metadata:
+  name: stigmer
+  namespace: stigmer
+spec:
+  owner:
+    email: you@example.com
+  runner:
+    llm:
+      secretName: anthropic
+  ingress:
+    hostname: stigmer.example.com
+    tls:
+      issuer:
+        name: letsencrypt
+        kind: ClusterIssuer
+  identity:
+    bundled:
+      signUp:
+        emailDomains: [example.com]
+      smtp:
+        host: smtp.example.com
+        from: stigmer@example.com
+        secretName: mail
+        starttls: true
 ```
 
-```bash
-helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer \
-  --namespace stigmer \
-  -f values.yaml \
-  --wait
+Point `stigmer.example.com` at your ingress controller. cert-manager issues the
+certificate through the issuer you name, and the front door is `Ready` only once
+the certificate is; while DNS is missing, the status says what to point where.
+To keep a certificate yourself, name its Secret in `tls.secretName` instead. On
+a cluster that runs Gateway API, `gatewayRef` attaches the routes to your
+Gateway, whose listener holds the certificate.
+
+The CLI, the desktop app and the SDKs speak gRPC, which needs HTTP/2 from your
+controller to the server. A controller that takes its hint on the Ingress reads
+it from `ingress.annotations`; one that reads it from the Service, such as
+Traefik, takes it in `ingress.serviceAnnotations`:
+
+```yaml validate-as="Stigmer.ingress"
+hostname: stigmer.example.com
+className: traefik
+serviceAnnotations:
+  traefik.ingress.kubernetes.io/service.serversscheme: h2c
+tls:
+  issuer:
+    name: letsencrypt
 ```
 
-The pod is recreated with the server alone. The runner needs its own API key,
-and only someone signed in can create one, so it starts once you sign in at
-`https://stigmer.example.com`, create the key and name its Secret in
-`runner.stigmerToken.existingSecret`; the upgrade's notes say so, and the
-[authentication guide](./authentication) walks the steps. Sign in as the
-operator first: the person whose provider email matches `server.operator.email`
-owns the server's Organization.
+**The owner signs in first.** The bundled sign-in creates the owner's account
+with a one-time password; the status names the Secret it is in
+(`stigmer-owner-setup`, key `password`). Sign in at
+`https://stigmer.example.com` with the owner's email and that password, and set
+your own. The Secret goes, and only then does sign-up open, to addresses in the
+domains you list, each verified by mail through the SMTP server you name (its
+user name and password go in the Secret named by `smtp.secretName`, keys
+`username` and `password`). Leave `signUp` out and only the owner signs in.
+Whoever signs up joins the owner's Organization and runs Agents on your model
+key, which is why sign-up waits for the owner and stays limited to your domains.
 
-The CLI and SDKs speak gRPC, which needs HTTP/2 all the way to the server. On
-ingress-nginx that is the preceding `backend-protocol: "GRPC"` annotation;
-without it the console works and the CLI does not. Set `tlsSecretName` on both
-hosts: the URLs the server mints for downloads and Skill transfers follow each
-host's scheme, and a host without a TLS Secret gets plain-HTTP links. The issuer
-is an `https` URL; the chart refuses a plain-HTTP one.
-
-Point your CLI at the API host on port 443, which is the one port the CLI dials
-with TLS:
+The runner starts signed in: the operator provisions its key, so there is no key
+to create and no second upgrade. Point your CLI at the hostname on port 443 and
+sign in:
 
 ```bash
 stigmer config backend add prod --endpoint stigmer.example.com:443
 stigmer config backend use prod
+stigmer auth login
 ```
 
-The console needs nothing: it reads its own origin, and an MCP server's Sign in
-returns to it on the same address. If you front the Service some other way than
-the chart's Ingress, `server.publicUrl` and `server.artifactPublicUrl` are the
-same two settings the compose page sets in `.env`, and the chart treats a public
-address there as exposure too. If something of yours already authenticates every
-caller before Stigmer, such as an authenticating proxy, set
-`server.allowUnauthenticatedExposure: true` to say the exposure is on purpose;
-the install notes repeat that whoever reaches it controls Stigmer.
+**Your own identity provider** replaces the bundled sign-in. Register Stigmer
+with it as the [authentication guide](./authentication) describes, then name it:
+
+```yaml validate-as="Stigmer.identity"
+oidc:
+  issuer: https://auth.example.com/realms/main
+  audience: https://stigmer.example.com
+  consoleClientId: stigmer-console
+  nativeClientId: stigmer-desktop
+```
+
+If the server cannot reach the issuer's public address from inside the cluster,
+`discoveryUrl` names where it can fetch the issuer's discovery document instead.
+If something of yours already authenticates every caller before Stigmer, such as
+an authenticating proxy, `server.allowUnauthenticatedExposure: true` exposes the
+install with sign-in off, on purpose.
 
 ## Bring your own Postgres and Temporal
 
-The chart bundles both, on purpose: one cluster, one backup story. If your team
-already runs them, point the chart at yours instead:
+The operator runs both by default, on purpose: one cluster, one backup story. If
+your team already runs them, point the install at yours. The role needs to own
+its database, where Stigmer creates its schemas, and its password is read from
+the Secret you name:
 
-```yaml no-validate="Helm values, not a Stigmer resource"
-postgres:
-  enabled: false
-externalDatabase:
-  host: db.internal.example.com
-  user: stigmer
-  database: stigmer
-  existingSecret: stigmer-db
-  passwordKey: password
+```yaml validate-as="Stigmer"
+database:
+  postgresql:
+    external:
+      host: postgres.databases.svc
+      user: stigmer
+      database: stigmer
+      passwordSecret:
+        name: stigmer-db
+        key: password
+      sslMode: require
 temporal:
-  enabled: false
-externalTemporal:
-  hostPort: temporal-frontend.temporal.svc.cluster.local:7233
-  namespace: default
+  external:
+    hostPort: temporal-frontend.temporal.svc:7233
+    namespace: stigmer
 ```
 
-When your Temporal requires authentication (Temporal Cloud, or a frontend with
-an authorizer), name the Secrets that hold its credentials:
+Your own Postgres needs your own Temporal: the operator creates Temporal's
+databases only on a Postgres it runs. When your Temporal requires authentication
+(Temporal Cloud, or a frontend with an authorizer), `temporal.external.tls`
+names the Secret with its PEM items and `temporal.external.apiKey` the Secret
+with its API key. The bundled sign-in keeps its accounts on the bundled
+database, so with your own Postgres people sign in through your own identity
+provider. Decide this before the first install: moving data from the bundled
+Postgres to yours later is a database restore, not a change to the resource.
 
-```yaml no-validate="Helm values, not a Stigmer resource"
-externalTemporal:
-  hostPort: my-namespace.a1b2c.tmprl.cloud:7233
-  namespace: my-namespace.a1b2c
-  tls:
-    enabled: true
-    existingSecret: temporal-tls # PEM items by key; each key optional
-    caKey: ca.crt # the frontend's CA; omit for publicly trusted roots
-    certKey: tls.crt # mutual TLS: the client certificate and its key
-    keyKey: tls.key
-  apiKey:
-    existingSecret: temporal-api-key # key STIGMER_TEMPORAL_API_KEY
-```
+## Keep files in a bucket, with backups
 
-The server and the runner both read them as `STIGMER_TEMPORAL_*` settings, and a
-runner the server starts per Session gets the same. The runner keeps the API key
-and the client key out of the environment its Agent's tools see. The names are
-Stigmer's own, so a `TEMPORAL_API_KEY` you use for your own Temporal work is
-never read. The bundled Temporal authenticates nothing; the chart fences it
-instead, so only the Stigmer pod may connect. The bundled Postgres is fenced the
-same way, to the Stigmer and Temporal pods.
-
-Decide this before your first install: moving data from the bundled Postgres to
-yours later is a database restore, not a value change. The database password
-never appears in a rendered manifest: the server reads it from the Secret, apart
-from its connection string, so no character in it can break that string. If
-Temporal stays bundled while Postgres is yours, Temporal creates its two
-databases on your instance at first start and needs a user with
-`CREATE DATABASE` and a password without a space.
-
-## Back up, upgrade, uninstall
-
-A complete backup is the three durable claims, the Secret, and your values file.
-`helm upgrade` to a new chart version with the same values file moves the whole
-stack to that Stigmer version: the chart version is the Stigmer version, and the
-images move with it. The pod is recreated, so there is a short interruption, and
-in-flight Agent turns resume from their Temporal checkpoints. `helm uninstall`
-removes the workload and **leaves every claim in place**; installing again with
-the same release name and values file picks them up.
-[Back up and upgrade your stack](./operations) has each procedure in full.
-
-## Every setting
-
-The chart documents every value, with the reason behind it, in its values and
-its README. Read both from the registry:
+Declare a bucket and Stigmer keeps its files there instead of on volumes: what a
+run stores beside its record, Files and Skills, each under its own prefix. The
+bundled database archives to the same bucket from its first minute, and takes a
+full backup on the schedule you set, so the bucket and the keys Secret are a
+complete backup.
 
 ```bash
-helm show values oci://ghcr.io/stigmer/charts/stigmer
-helm show readme oci://ghcr.io/stigmer/charts/stigmer
+kubectl -n stigmer create secret generic bucket \
+  --from-literal=ACCESS_KEY_ID=<key id> --from-literal=SECRET_ACCESS_KEY=<secret>
 ```
 
-Your values file holds only the lines you change. The chart refuses a misspelled
-or unknown value instead of ignoring it.
+```yaml validate-as="Stigmer"
+objectStore:
+  s3:
+    bucket: acme-stigmer
+    region: us-east-1
+    credentialsSecret:
+      name: bucket
+database:
+  postgresql:
+    bundled:
+      backup:
+        schedule: "0 0 2 * * *"
+        retention: 30d
+```
+
+Any S3-compatible bucket works: AWS S3, Cloudflare R2, MinIO, and Google Cloud
+Storage through its S3 API, with `endpoint` naming the service. Only the server
+and the database hold the bucket's keys; a runner reads and writes through
+short-lived URLs the server signs. Backups need cert-manager on the cluster; the
+operator installs CloudNativePG's backup plugin itself. The Backup column of
+`kubectl get stigmer` shows the last full backup, and a failing backup never
+takes the install out of `Ready`: the `BackupHealthy` condition says so instead.
+[Back up and upgrade your stack](./operations) has the restore.
+
+## A sandbox for each Session
+
+By default every Session's Agent runs in the one shared runner beside the
+server. With a bucket declared, each Session can run in a sandbox of its own
+instead, on one of two drivers. A sandbox sleeps after `idleSeconds` without
+activity and wakes, with its files, on the Session's next message.
+
+**agent-sandbox** runs a pod per Session in the namespace `stigmer-sandboxes`
+beside the install, and the operator installs agent-sandbox when the cluster has
+none:
+
+```yaml validate-as="Stigmer.sandboxes"
+driver: agentSandbox
+idleSeconds: 60
+agentSandbox:
+  egress:
+    allowCIDRs: [10.20.0.0/16]
+```
+
+Each sandbox is fenced: it reaches the server, the bucket, DNS and the public
+internet, and no other private address unless you list its range under
+`allowCIDRs`, such as a model gateway or an MCP server on your network. The
+fences are NetworkPolicies, so they hold only on a network plugin that enforces
+them.
+
+**Agent Substrate** runs each Session as a gVisor actor on a pool of workers. A
+sleeping Session is a snapshot in the bucket and wakes on any worker. The
+operator installs Agent Substrate when the cluster has none:
+
+```yaml validate-as="Stigmer.sandboxes"
+driver: substrate
+idleSeconds: 60
+substrate:
+  workers: 2
+  sandbox:
+    cpuMillicores: 2000
+    memoryMiB: 2048
+  egress:
+    http: [models.ai.svc.cluster.local:8080]
+```
+
+- **The cluster** must serve Kubernetes' pod-certificate APIs: Kubernetes 1.37
+  with the `ClusterTrustBundle`, `ClusterTrustBundleProjection` and
+  `PodCertificateRequest` feature gates and `certificates.k8s.io/v1beta1`. The
+  status says so in words when they are missing.
+- **The pool** runs at the size you declare. The operator never sizes it from
+  demand; Agent Substrate's own autoscaler is what will grow it. A run that
+  finds no room waits for it. Keep the pool to nodes of one CPU architecture
+  (`substrate.worker.nodeSelector`): a sleeping Session wakes only on workers of
+  the architecture it slept on.
+- **The fence** is Agent Substrate's own egress gateway: a sandbox reaches the
+  server, the bucket and the public internet over HTTPS, and over plain HTTP
+  only the addresses listed under `egress.http`.
+- **The install is `Ready`** once the server has prepared the image every new
+  sandbox starts from, so the first Session starts without waiting for it.
+- **Its certificate authorities**, which the operator generates, are valid for
+  10 years, and nothing rotates them yet.
+- **On a development cluster** such as kind, a sandbox image built on your
+  machine reaches the workers through the cluster's local registry: install the
+  operator with `--set localRegistry=kind-registry:5000`.
+
+The sandbox image runs on amd64 and arm64 nodes alike. The
+[runners guide](./runners#a-runner-per-session) covers what a sandbox holds and
+how a Session moves between them.
+
+## Stigmer Enterprise
+
+A license Secret switches the server to the Enterprise image. It signs every
+caller in through your identity provider, and runs every Session in a sandbox of
+its own rather than on a shared runner, so a licensed install declares a bucket
+and a sandbox driver:
+
+```bash
+kubectl -n stigmer create secret generic stigmer-license \
+  --from-literal=STIGMER_LICENSE_KEY=<the key you were sent>
+```
+
+```yaml validate-as="Stigmer"
+identity:
+  oidc:
+    issuer: https://login.example.com
+    audience: https://stigmer.example.com
+    consoleClientId: stigmer-console
+    nativeClientId: stigmer-desktop
+enterprise:
+  license:
+    name: stigmer-license
+    key: STIGMER_LICENSE_KEY
+  accessHistoryRetentionDays: 365
+objectStore:
+  s3:
+    bucket: acme-stigmer
+    region: us-east-1
+    credentialsSecret:
+      name: bucket
+sandboxes:
+  driver: agentSandbox
+```
+
+[Cloud or self-hosted](./cloud-vs-self-hosted) says what the license adds.
+
+## Upgrade
+
+Operator `vX` runs Stigmer `vX`. To move to a release, upgrade the operator:
+
+```bash
+helm upgrade stigmer-operator oci://ghcr.io/stigmer/charts/stigmer-operator \
+  --namespace stigmer-system --version <X.Y.Z>
+```
+
+The upgrade applies the new `Stigmer` definition first, then the new operator,
+which upgrades Stigmer. With a bucket, it takes a full backup of the database
+and waits for it before the server rolls, and the server's status says which
+version it upgraded from after which backup. In-flight Agent turns resume from
+their Temporal checkpoints. [Back up and upgrade your stack](./operations) has
+the details.
+
+## Change a setting
+
+Edit `stigmer.yaml` and apply it again; the operator converges the install, and
+the API server refuses, naming the field, a declaration that contradicts itself.
+A server or runner setting the resource does not carry goes in `server.extraEnv`
+or `runner.extraEnv`; a name the operator sets itself is refused there. The
+[Stigmer resource reference](./kubernetes-reference/stigmer) lists every field,
+its default and its rules.
+
+## Delete
+
+```bash
+kubectl -n stigmer delete stigmer stigmer
+```
+
+Deleting the `Stigmer` removes the install: the server, the runner, the
+sandboxes, Temporal, the bundled sign-in and the database with its volumes. Once
+no `Stigmer` remains in the cluster, the operator also removes what it installed
+at the cluster level: the sandbox namespace, Agent Substrate, agent-sandbox, the
+backup plugin and CloudNativePG. Anything someone else installed stays. Three
+things outlive the delete, so a restore stays possible: the keys Secret
+`stigmer-keys`, your bucket with the database's archive, and a certificate
+cert-manager issued. A delete while a backup is running waits for it, up to
+about 3 minutes more.
+
+To remove the operator too, delete every `Stigmer` first, so it can clean up,
+then:
+
+```bash
+helm uninstall stigmer-operator --namespace stigmer-system
+```
+
+The `Stigmer` definition stays;
+`kubectl delete customresourcedefinition stigmers.stigmer.ai` removes it.
 
 ## Next step
 
-Your stack is running on the cluster, and until you turn authentication on,
-anyone who can reach its Service has full control of it. Before your team uses
-it, turn authentication on with your OIDC provider.
-
 <Cards>
   <Card
-    title="Enable authentication"
-    href="/docs/guides/self-hosting/authentication"
-    description="Sign in with your OIDC provider and give the CLI and CI their API keys."
+    title="Back up and upgrade your stack"
+    href="/docs/guides/self-hosting/operations"
+    description="Restore to a point in time, upgrade with a backup first, rotate a key."
+  />
+  <Card
+    title="The Stigmer resource"
+    href="/docs/guides/self-hosting/kubernetes-reference/stigmer"
+    description="Every field, its default, the values it takes and the rules across them."
   />
 </Cards>

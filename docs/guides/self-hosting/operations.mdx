@@ -2,29 +2,32 @@
 title: Back up and upgrade your stack
 description:
   What a complete backup of a self-hosted Stigmer stack is, how to take one and
-  restore it on Docker Compose or Kubernetes, how to move between released
-  versions, how to change a setting or rotate a key, how to load test it, and
-  how to uninstall.
+  restore it on Docker Compose or on Kubernetes with the Stigmer operator, how
+  to move between released versions, how to change a setting or rotate a key,
+  how to load test it, and how to uninstall.
 ---
 
 This page is for the two shapes a team is served from: the
-[Docker Compose stack](./docker-compose) and the [Helm chart](./kubernetes). The
-laptop stack and the [all-in-one container](./all-in-one) are single-user
-shapes; their own pages say how to stop, start, and upgrade them.
+[Docker Compose stack](./docker-compose) and
+[Kubernetes with the Stigmer operator](./kubernetes). The laptop stack and the
+[all-in-one container](./all-in-one) are single-user shapes; their own pages say
+how to stop, start, and upgrade them.
 
-One idea holds for the whole page: a backup is the same three things whichever
-shape you run, so a backup taken on one shape restores onto the other.
+One idea holds for the whole page: a backup is the database, the files and the
+keys whichever shape you run. On Docker Compose you take it yourself. On
+Kubernetes, an install with a bucket takes it for you, continuously, and you
+keep the keys.
 
 ## What a complete backup is
 
 The stack keeps its durable state in three places, plus the keys that unlock it:
 
-| What                                                                   | On Docker Compose      | On Kubernetes                                         |
-| ---------------------------------------------------------------------- | ---------------------- | ----------------------------------------------------- |
-| The database: every resource and run record, and Temporal's own tables | `postgres-data` volume | `data-stigmer-postgres-0` claim, or your own database |
-| File storage: Files and what runs store                                | `artifacts` volume     | `stigmer-artifacts` claim                             |
-| The Skill content store                                                | `server-data` volume   | `stigmer-server-data` claim                           |
-| The keys that unlock encrypted values                                  | your `.env` file       | the `stigmer-secrets` Secret and your `values.yaml`   |
+| What                                                                   | On Docker Compose      | On Kubernetes                                                                            |
+| ---------------------------------------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------- |
+| The database: every resource and run record, and Temporal's own tables | `postgres-data` volume | the bundled database, archived to your bucket when you declare one, or your own database |
+| File storage: Files and what runs store                                | `artifacts` volume     | your bucket, or the `stigmer-artifacts` claim without one                                |
+| The Skill content store                                                | `server-data` volume   | your bucket, or the `stigmer-server-data` claim without one                              |
+| The keys that unlock encrypted values                                  | your `.env` file       | the `stigmer-keys` Secret the operator minted, and your `stigmer.yaml`                   |
 
 The database is one Postgres instance holding three databases: `stigmer`, the
 platform's own, and `temporal` and `temporal_visibility`, which hold Temporal's
@@ -35,13 +38,14 @@ databases out loses every scheduled run.
   The keys are part of the backup, not just configuration. Losing
   `STIGMER_ENCRYPTION_KEY` strands every encrypted value—vault secrets and
   logins, OAuth tokens—in the database with no recovery path. Store `.env` or
-  the exported Secret like a key file.
+  the exported `stigmer-keys` Secret like a key file. The operator keeps that
+  Secret when the `Stigmer` is deleted, for the same reason.
 </Callout>
 
-The fourth volume or claim, `runner-data`, is lifecycle state, not backup state:
-it holds in-flight Session checkpoints and Agent working directories so a paused
-run survives a restart. Losing it abandons runs in flight but loses no durable
-data.
+The fourth volume or claim, `runner-data` (`stigmer-runner-data` on Kubernetes),
+is lifecycle state, not backup state: it holds in-flight Session checkpoints and
+Agent working directories so a paused run survives a restart. Losing it abandons
+runs in flight but loses no durable data.
 
 ## Back up
 
@@ -86,22 +90,54 @@ Docker Compose prefixes the volume names—`stigmer_` when you run from the clon
 </Tab>
 <Tab value="Kubernetes">
 
-Dump the three databases through the Postgres pod. `pg_dump` takes a consistent
-snapshot of each database on its own, so the stack keeps running:
+**With a bucket, the operator backs up for you.** The bundled database streams
+its write-ahead log to the bucket from its first minute and takes a full backup
+on the schedule in `spec.database.postgresql.bundled.backup` (daily at 02:00 UTC
+unless you set one), and Files and Skills already live in the bucket. The Backup
+column of `kubectl get stigmer` shows the last full backup, and the
+`BackupHealthy` condition says when one is failing. To take one now, outside the
+schedule:
+
+```bash
+kubectl -n stigmer apply -f - <<'EOF'
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: stigmer-by-hand
+spec:
+  cluster:
+    name: stigmer-postgres
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+EOF
+```
+
+What you keep yourself is the keys and your declaration. Export the keys Secret
+as a flat file, and keep `stigmer.yaml` beside it:
 
 ```bash
 mkdir -p backup
+kubectl -n stigmer get secret stigmer-keys   -o go-template='{{range $k, $v := .data}}{{$k}}={{$v | base64decode}}{{"\n"}}{{end}}'   > backup/stigmer-keys.env
+cp stigmer.yaml backup/
+```
+
+**Without a bucket, nothing is backed up for you.** Declare one before the
+install holds data you would miss. Until then, or to move data to another shape,
+dump the three databases through the database's primary pod; `pg_dump` takes a
+consistent snapshot of each database on its own, so the stack keeps running:
+
+```bash
+PRIMARY=$(kubectl -n stigmer get pod \
+  -l cnpg.io/cluster=stigmer-postgres,cnpg.io/instanceRole=primary -o name)
 for db in stigmer temporal temporal_visibility; do
-  kubectl -n stigmer exec stigmer-postgres-0 -- \
+  kubectl -n stigmer exec "$PRIMARY" -c postgres -- \
     pg_dump -U postgres --create --clean --if-exists "$db"
 done > backup/stigmer-db.sql
 ```
 
-Copy the two file stores through the server container. On Kubernetes a disk is
-readable only through a pod that mounts it, so this copies a running stack: do
-it in a quiet moment, when no run is in flight. Your storage class's volume
-snapshots of the four claims are the same backup taken below the pod; the chart
-has no opinion on them.
+Copy the two file stores through the server container, in a quiet moment when no
+run is in flight:
 
 ```bash
 kubectl -n stigmer exec deploy/stigmer -c server -- \
@@ -112,21 +148,6 @@ kubectl -n stigmer exec deploy/stigmer -c server -- \
 
 `lost+found` is the root-owned directory an ext4 disk carries at its root; the
 server can't read it and doesn't need it.
-
-Export the Secret's values as a flat file, and keep `values.yaml` beside it. You
-never saw these values: the Kubernetes page generated them straight into the
-Secret.
-
-```bash
-kubectl -n stigmer get secret stigmer-secrets \
-  -o go-template='{{range $k, $v := .data}}{{$k}}={{$v | base64decode}}{{"\n"}}{{end}}' \
-  > backup/stigmer-secrets.env
-cp values.yaml backup/
-```
-
-If your values file names other Secrets—`stigmer-llm-keys`,
-`stigmer-runner-token`—export each the same way with its name in place of
-`stigmer-secrets`, or plan to create new keys when you restore.
 
 </Tab>
 </Tabs>
@@ -172,45 +193,67 @@ docker compose up -d
 </Tab>
 <Tab value="Kubernetes">
 
-Recreate the Secret from the exported file and install with your values file,
-exactly as the [Kubernetes page](./kubernetes) did. If the values file names
-other Secrets, recreate those first, the same way.
+**From the bucket, to a point in time.** On the new cluster, install the
+operator as the [Kubernetes page](./kubernetes) does. Recreate the keys Secret
+from the exported file before you declare anything: the operator keeps every key
+it finds there, and the restored database is readable only with them.
 
 ```bash
 kubectl create namespace stigmer
-kubectl -n stigmer create secret generic stigmer-secrets \
-  --from-env-file=backup/stigmer-secrets.env
-
-helm install stigmer oci://ghcr.io/stigmer/charts/stigmer \
-  --namespace stigmer \
-  -f backup/values.yaml \
-  --wait
+kubectl -n stigmer create secret generic stigmer-keys \
+  --from-env-file=backup/stigmer-keys.env
 ```
 
-The fresh install created empty databases. Stop their users, load the dump over
-them, then start the users again:
+Recreate the model key's Secret and the bucket's, then declare the install as it
+was, with `recoverFrom` under the bundled database: the archive's name, which is
+the old install's `status.backup.serverName`, and the moment to restore to, in
+RFC 3339. Leave `targetTime` out to restore to the newest moment the archive
+holds.
+
+```yaml validate-as="Stigmer.database"
+postgresql:
+  bundled:
+    recoverFrom:
+      serverName: stigmer-postgres
+      targetTime: "2026-11-21T09:30:00Z"
+    backup:
+      schedule: "0 0 2 * * *"
+```
 
 ```bash
-kubectl -n stigmer scale deploy/stigmer deploy/stigmer-temporal --replicas=0
-kubectl -n stigmer wait --for=delete pod \
-  -l 'app.kubernetes.io/instance=stigmer,app.kubernetes.io/component in (stigmer,temporal)' \
-  --timeout=120s
+kubectl apply -f stigmer.yaml
+kubectl -n stigmer get stigmer --watch
+```
 
-kubectl -n stigmer exec -i stigmer-postgres-0 -- \
+The database is created from the archive, Temporal's schedules and histories
+with it, and the server boots on it. Files and Skills were never anywhere but
+the bucket. `recoverFrom` is honoured only when the database is created; on a
+running install it changes nothing, and the status says so.
+
+**From a dump**, onto an install without a bucket: declare the install, wait for
+`Ready`, then stop the operator and the two users of the database while you load
+the dump over the fresh, empty databases:
+
+```bash
+kubectl -n stigmer-system scale deploy/stigmer-operator --replicas=0
+kubectl -n stigmer scale deploy/stigmer --replicas=0
+kubectl -n stigmer scale deploy -l app.kubernetes.io/name=temporal --replicas=0
+
+PRIMARY=$(kubectl -n stigmer get pod \
+  -l cnpg.io/cluster=stigmer-postgres,cnpg.io/instanceRole=primary -o name)
+kubectl -n stigmer exec -i "$PRIMARY" -c postgres -- \
   psql -U postgres -v ON_ERROR_STOP=1 -f - < backup/stigmer-db.sql
 
-kubectl -n stigmer scale deploy/stigmer deploy/stigmer-temporal --replicas=1
-kubectl -n stigmer rollout status deploy/stigmer
+kubectl -n stigmer-system scale deploy/stigmer-operator --replicas=1
 ```
 
 A database can't be dropped while something is connected to it, which is why the
-two Deployments go to zero first. `ON_ERROR_STOP` makes a failed restore stop
-and say so.
-
-Fill the two file stores through the running server container, then restart the
-pod so the server reads them fresh:
+server and Temporal go to zero first; the operator, started again, brings them
+back. `ON_ERROR_STOP` makes a failed restore stop and say so. Then fill the two
+file stores through the server container, and restart it so it reads them fresh:
 
 ```bash
+kubectl -n stigmer rollout status deploy/stigmer
 kubectl -n stigmer exec -i deploy/stigmer -c server -- \
   tar xzf - --strip-components=1 -C /data < backup/server-data.tgz
 kubectl -n stigmer exec -i deploy/stigmer -c server -- \
@@ -221,29 +264,33 @@ kubectl -n stigmer rollout restart deploy/stigmer
 
 `--strip-components=1` drops the archive's own root entry, which names the mount
 point: the server's user can't change the mount point's mode or time, and
-without the flag `tar` writes every file and still exits with an error. The
-files land owned by the server's user; the runner, which runs as root, reads and
-writes them all the same. Start your port-forward again afterwards; it stops
-with the pod.
+without the flag `tar` writes every file and still exits with an error. Start
+your port-forward again afterwards; it stops with the pod.
 
 </Tab>
 </Tabs>
 
 ## Move a stack between shapes
 
-A backup taken on Docker Compose restores onto Kubernetes with the Kubernetes
-steps under [Restore](#restore), and the other way round. The dump is Postgres's
-own format, and each tarball is a directory's contents rather than a path: the
-compose stack keeps its file storage at `/data/.stigmer/data/artifacts` and the
-chart at `/artifacts`, and the restore step names the target. The database
-stores a stored file's key, never its path, so downloads keep working after the
-move.
+A dump taken on Docker Compose restores onto a Kubernetes install without a
+bucket with the Kubernetes steps under [Restore](#restore), and the other way
+round. The dump is Postgres's own format, and each tarball is a directory's
+contents rather than a path: the compose stack keeps its file storage at
+`/data/.stigmer/data/artifacts` and the operator at `/artifacts`, and the
+restore step names the target. The database stores a stored file's key, never
+its path, so downloads keep working after the move. An install with a bucket
+keeps its files in the bucket rather than on a volume, which this procedure does
+not fill: move onto an install without one, and know that declaring a bucket
+later starts the file store empty in the bucket, leaving what the volume held
+behind.
 
 ## Upgrade
 
-The two Stigmer images always move together, and the chart version is the
-Stigmer version. Take a [backup](#back-up) first: the server migrates its
-database schema forward on start, and there is no migration back.
+The two Stigmer images always move together; on Kubernetes the operator's
+version is the Stigmer version. The server migrates its database schema forward
+on start, and there is no migration back, so a backup comes first: on Docker
+Compose [take one](#back-up); on Kubernetes with a bucket the operator takes it
+for you.
 
 <Tabs items={["Docker Compose", "Kubernetes"]} groupId="self-hosting-shape" persist>
 <Tab value="Docker Compose">
@@ -266,19 +313,20 @@ the release's file; your `.env` line wins over its default either way.
 </Tab>
 <Tab value="Kubernetes">
 
-Upgrade to the chart version you're moving to, with the same values file:
+Upgrade the operator to the version you're moving to:
 
 ```bash
-helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer \
-  --namespace stigmer \
+helm upgrade stigmer-operator oci://ghcr.io/stigmer/charts/stigmer-operator \
   --version 0.2.0 \
-  -f values.yaml \
-  --wait
+  --namespace stigmer-system
 ```
 
-The pod is recreated, so there is a short interruption; in-flight Agent turns
-resume from their Temporal checkpoints. Start your port-forward again
-afterwards.
+The upgrade applies the new `Stigmer` definition, then the new operator, which
+upgrades Stigmer. With a bucket it first takes a full backup of the database,
+named for the version (`stigmer-before-<version>`), and the server rolls only
+once that backup has finished; the server's status then says which version it
+upgraded from after which backup. In-flight Agent turns resume from their
+Temporal checkpoints. Start your port-forward again afterwards.
 
 </Tab>
 </Tabs>
@@ -290,8 +338,9 @@ Restore the pre-upgrade backup instead. Releases are listed on the
 
 ## Change a setting or a secret
 
-The rule from the shape pages holds here: a setting is a line in `.env` or in
-`values.yaml`, never an edit to the compose file or the chart.
+The rule from the shape pages holds here: a setting is a line in `.env` or a
+field of the `Stigmer` resource, never an edit to the compose file or to what
+the operator runs.
 
 <Tabs items={["Docker Compose", "Kubernetes"]} groupId="self-hosting-shape" persist>
 <Tab value="Docker Compose">
@@ -307,15 +356,15 @@ Leave it as it is.
 </Tab>
 <Tab value="Kubernetes">
 
-A value is a line in `values.yaml` followed by `helm upgrade -f values.yaml`,
-the command shown under [Upgrade](#upgrade) without `--version`. The pod is
-recreated with the new value.
+Edit `stigmer.yaml` and apply it; the operator rolls what the change touches. A
+server or runner setting the resource has no field for goes in
+`spec.server.extraEnv` or `spec.runner.extraEnv`.
 
 A Secret's contents is different: the pod reads its Secrets when it starts, and
-the chart doesn't restart it for you. Replace the Secret, then restart the pod:
+nothing restarts it when one changes. Replace the Secret, then restart the pod:
 
 ```bash
-kubectl -n stigmer create secret generic stigmer-llm-keys \
+kubectl -n stigmer create secret generic anthropic \
   --from-literal=ANTHROPIC_API_KEY=sk-ant-... \
   --dry-run=client -o yaml | kubectl apply -f -
 kubectl -n stigmer rollout restart deploy/stigmer
@@ -331,10 +380,10 @@ mail address) and every console screen shows it: at the foot of the sidebar,
 under the Sign in button, and under every failure. Every command the server
 refuses ends with it too. Unset, nothing shows.
 
-| `.env`               | `values.yaml`       | What it holds                                            |
-| -------------------- | ------------------- | -------------------------------------------------------- |
-| `STIGMER_HELP_URL`   | `server.help.url`   | An absolute `https:`, `http:` or `mailto:` address.      |
-| `STIGMER_HELP_LABEL` | `server.help.label` | Its words, at most 40 characters. `Get help` when unset. |
+| `.env`               | `Stigmer` resource       | What it holds                                            |
+| -------------------- | ------------------------ | -------------------------------------------------------- |
+| `STIGMER_HELP_URL`   | `spec.server.help.url`   | An absolute `https:`, `http:` or `mailto:` address.      |
+| `STIGMER_HELP_LABEL` | `spec.server.help.label` | Its words, at most 40 characters. `Get help` when unset. |
 
 ```bash title=".env"
 STIGMER_HELP_URL=https://support.example.com/stigmer
@@ -366,9 +415,9 @@ counted.
 
 Leave out your own team's tries by naming their sign-in addresses:
 
-| `.env`                      | `values.yaml`             | What it holds                                                                      |
-| --------------------------- | ------------------------- | ---------------------------------------------------------------------------------- |
-| `STIGMER_INTERNAL_ACCOUNTS` | `server.internalAccounts` | Comma-separated addresses, each exact or a pattern with one `*` (`*@example.com`). |
+| `.env`                      | `Stigmer` resource             | What it holds                                                              |
+| --------------------------- | ------------------------------ | -------------------------------------------------------------------------- |
+| `STIGMER_INTERNAL_ACCOUNTS` | `spec.server.internalAccounts` | Addresses, each exact or a pattern with one `*` (`*@example.com`): a list. |
 
 ```bash title=".env"
 STIGMER_INTERNAL_ACCOUNTS=*@example.com,tester+*@example.org
@@ -406,35 +455,30 @@ says "the shared runner's key changed".
 </Tab>
 <Tab value="Kubernetes">
 
-Create the new key before you retire the old one, so the runner is never without
-one. Sign in to the console and open **Settings → API keys**. Create a key named
-for the runner with expiration **Never**, the way the
-[authentication guide](./authentication) did. It's shown once. Then replace the
-Secret and restart the pod:
+The operator mints the runner's key into the Secret `stigmer-runner-key`. To
+rotate it, delete the Secret, wait for the operator to mint a new one, and
+restart the pod so the server and the runner both read it:
 
 ```bash
-kubectl -n stigmer create secret generic stigmer-runner-token \
-  --from-literal=STIGMER_TOKEN=stk_... \
-  --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n stigmer delete secret stigmer-runner-key
+kubectl -n stigmer wait --for=create secret/stigmer-runner-key --timeout=2m
 kubectl -n stigmer rollout restart deploy/stigmer
 ```
 
-List your keys and delete the one the runner no longer holds:
-
-```bash
-stigmer list apikey
-stigmer delete apikey key_...
-```
+At its start the server deletes the old key of its `runner` service account and
+stores the new one, and its log says "the shared runner's key changed". An
+install whose Sessions each run in a sandbox has no shared runner and no key to
+rotate.
 
 </Tab>
 </Tabs>
 
-Your LLM provider key follows the same path: a new line in `.env`, or a replaced
-Secret and a restart.
+Your LLM provider key is a new line in `.env`, or a replaced Secret and a
+restart ([Change a setting or a secret](#change-a-setting-or-a-secret)).
 
 Two keys are never rotated. `STIGMER_ENCRYPTION_KEY` is the one key every
 encrypted value was written under; a different key can't read them, so the key
-you generated at install is the key for the life of the stack.
+generated at install is the key for the life of the stack.
 `STIGMER_RUNNER_TOKEN_KEY` signs the short-lived credentials the runner
 authenticates each run with; leave it alone too.
 
@@ -528,14 +572,20 @@ docker compose down -v
 </Tab>
 <Tab value="Kubernetes">
 
-`helm uninstall stigmer -n stigmer` removes the workload and leaves all four
-claims in place; a later `helm install` with the same release name adopts them
-and the data is back. To delete the data too, delete the claims yourself:
+Deleting the `Stigmer` removes the install and its data: the server, the
+sandboxes, Temporal, the bundled sign-in, and the database with its volumes.
+Once no `Stigmer` remains, the operator removes what it installed at the cluster
+level too, and nothing someone else installed.
 
 ```bash
-kubectl -n stigmer delete pvc \
-  data-stigmer-postgres-0 stigmer-artifacts stigmer-server-data stigmer-runner-data
+kubectl -n stigmer delete stigmer stigmer
 ```
+
+The keys Secret `stigmer-keys`, your bucket with the database's archive, and a
+certificate cert-manager issued outlive the delete, so a restore stays possible.
+Delete the keys Secret and empty the bucket yourself when you mean the data to
+be gone for good. To remove the operator as well, delete every `Stigmer` first,
+then `helm uninstall stigmer-operator --namespace stigmer-system`.
 
 </Tab>
 </Tabs>
