@@ -1,7 +1,8 @@
 // `get agent`: what an agent is made of, as a person reads it. Its
 // description and when it last changed; the start of its instructions; the
-// skills, MCP servers, tools, subagents and plugins it works with; the
-// Environment its conversations run in and the values it declares; the
+// skills, MCP servers, tools, subagents and plugins it works with; whether
+// its conversations have a computer, the Environment they run in and the
+// values it declares; the
 // settings a run starts from. Everything comes from the agent itself
 // (apis/ai/stigmer/agentic/agent/v1/spec.proto); `-o yaml` prints it whole.
 
@@ -33,6 +34,7 @@ export const agentView: KindView = {
       {
         title: "Environment",
         fields: [
+          ["Computer", computerWord(spec.computer)],
           ["Sandbox", refLabel(obj(spec, "environment_ref"), metadata, ctx)],
           ["Values", declaredValues(spec.env)],
         ],
@@ -41,6 +43,13 @@ export const agentView: KindView = {
     ];
   },
 };
+
+// Whether the agent's conversations have a computer. Only COMPUTER_NONE
+// means none: an agent saved before the setting (unset) has one
+// (session/v1/enum.proto, Computer).
+function computerWord(computer: JsonValue | undefined): string {
+  return computer === "COMPUTER_NONE" ? "no" : "yes";
+}
 
 // The values an agent declares, by name, each marked secret or optional
 // where it is ("GITHUB_TOKEN (secret), REGION (optional)"). A plain value's

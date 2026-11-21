@@ -34,12 +34,18 @@
 // A plugin's own name cannot hold `_` (the plugin library admits lowercase
 // letters, digits, `-` and `.`), so the server name carries it.
 //
+// A conversation without a computer (the agent's spec.computer
+// COMPUTER_NONE, recorded on the session) is offered no shell at all,
+// whatever its lists say, and the same agent with a computer is offered
+// one: the first model request's tool surface shows both.
+//
 // Deliberately out of scope, each pinned beside its code in the runner:
 // an agent's own sub-agent narrowing, `Agent(type, …)`, a `tools` list that
 // resolves to nothing, the `.stigmer/` read that survives a list without
 // Read, and the lists on the Claude engine (the gateway contract,
 // approval-gateway-contract.test.ts, runs them on both engines).
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -290,5 +296,34 @@ describe("Run tool lists — a plugin's agent is scoped by its own list", () => 
       mcp.capturedRequests().filter((request) => request.method === "tools/call"),
       "only the named call reached the server",
     ).toHaveLength(1);
+  });
+});
+
+describe("Run tool lists — a conversation without a computer", () => {
+  it.each([
+    { computer: Computer.NONE, label: "without a computer", shell: false },
+    { computer: Computer.REQUIRED, label: "with a computer", shell: true },
+  ])("a turn $label is offered a shell: $shell", async ({ computer, shell }) => {
+    const { org } = await target.provisionTenancy();
+    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent-computer"), computer }));
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    mock.enqueue(anthropicText("Hello."));
+
+    const execution = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("run-computer"), agentRef: agentRefOf(agent) }),
+    );
+    const executionId = execution.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
+    const final = await awaitTerminal(clients, executionId);
+    expect(
+      RunPhase[final.status?.phase ?? 0],
+      `execution ${executionId} completes (error: ${final.status?.error ?? ""})`,
+    ).toBe(RunPhase[RunPhase.RUN_COMPLETED]);
+
+    const scripted = mock.scriptedRequests();
+    expect(scripted.length, "one answer").toBe(1);
+    const offered = (readAnthropicRequest(scripted[0]!.body).tools ?? []).map((t) => t.name);
+    expect(offered, "file tools are offered either way").toContain("read_file");
+    expect(offered.includes(STIGMER_SHELL_TOOL), `the shell is offered only with a computer (offered: ${offered.join(", ")})`).toBe(shell);
   });
 });

@@ -1638,6 +1638,23 @@
       ]
     },
     {
+      "name": "Computer",
+      "description": "Computer says whether an agent's conversations have a computer: a machine\n where its commands, repositories, folders, Environment, hooks and local\n programs run.\n\n Only COMPUTER_NONE means no computer. An unset value reads as having one,\n so an agent or conversation saved before this setting existed keeps its\n computer.",
+      "protoType": "ai.stigmer.agentic.session.v1.Computer",
+      "values": [
+        {
+          "name": "COMPUTER_NONE",
+          "number": 1,
+          "description": "No computer: no shell, repositories, folders, Environment, hooks or\n local programs. Saving such an agent, and starting its conversations or\n routines, refuses each of them, naming the one to remove."
+        },
+        {
+          "name": "COMPUTER_REQUIRED",
+          "number": 2,
+          "description": "Needs a computer: a sandbox where the server runs one, or the person's\n own machine in the desktop app or the CLI. The Claude harness always\n has one."
+        }
+      ]
+    },
+    {
       "name": "ApiResourceKind",
       "description": "API resource kinds for Stigmer.",
       "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
@@ -1959,6 +1976,21 @@
           ]
         },
         "description": "Which choice environment came from.",
+        "required": false
+      },
+      {
+        "name": "Computer",
+        "jsonName": "computer",
+        "protoField": "computer",
+        "type": {
+          "kind": "string",
+          "enumType": "ai.stigmer.agentic.session.v1.Computer",
+          "enumValues": [
+            "COMPUTER_NONE",
+            "COMPUTER_REQUIRED"
+          ]
+        },
+        "description": "Whether this conversation has a computer, from its agent's version\n (AgentSpec.computer). Unset reads as having one: a conversation from\n before the setting, or one with no agent.",
         "required": false
       }
     ]

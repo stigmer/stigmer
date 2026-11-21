@@ -12,6 +12,9 @@
  *     minted;
  *   - a target naming a model the catalog does not run on its engine is
  *     refused, naming the target;
+ *   - a Claude-engine target on an agent version without a computer is
+ *     refused with the sentence its conversations are refused with; a
+ *     Stigmer target, and a Claude one on a version with a computer, pass;
  *   - the plan refuses no spec and a case_glob that is not a glob; a
  *     plugin with no version to read is stamped "no eval cases at this
  *     version" without a read; a suite source's own refusal passes
@@ -67,7 +70,7 @@ import {
   EvalRunTryState,
   EvalRunTrySchema,
 } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
-import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { Computer, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
@@ -116,6 +119,7 @@ import {
   newLoadEvalRunSubjectStep,
   newPlanEvalRunStep,
   newRefuseActiveEvalRunDeleteStep,
+  newRefuseTargetsWithoutComputerStep,
   newResolveEvalRunDefaultsStep,
   newSettleEndedEvalRunStep,
   newStartEvalRunWorkflowStep,
@@ -639,6 +643,33 @@ describe("ValidateEvalRunTargets on an agent", () => {
 
     row.spec!.targets = [row.spec!.targets[0]!];
     await newValidateEvalRunTargetsStep(catalog).execute(createCtx(row));
+  });
+});
+
+describe("RefuseTargetsWithoutComputer on an agent", () => {
+  async function refuseOver(computer: Computer, harness: Harness): Promise<void> {
+    const agent = create(AgentSchema, { ...AGENT, spec: { ...AGENT.spec, computer } });
+    await temp.store.saveResource(ApiResourceKind.agent, AGENT_ID, AgentSchema, agent);
+    const row = evalRow("", EvalRunPhase.unspecified);
+    row.spec!.agentVersion = AGENT_HASH;
+    row.spec!.targets = [create(EvalRunTargetSchema, { harness, modelName: "" })];
+    const ctx = createCtx(row);
+    ctx.set(EVAL_RUN_SUBJECT_KEY, { kind: "agent", org: ORG, row: agent } satisfies LoadedSubject);
+    await newRefuseTargetsWithoutComputerStep(temp.store).execute(ctx);
+  }
+
+  it("refuses a Claude target on a version without a computer, with the conversation's sentence", async () => {
+    const refused = await failure(() => refuseOver(Computer.NONE, Harness.CLAUDE));
+    expect([refused.code, refused.rawMessage]).toEqual([
+      Code.FailedPrecondition,
+      "agent 'support-desk' has no computer, so its conversations can't run on the Claude engine, which always has one; choose the Stigmer engine, or give the agent a computer",
+    ]);
+  });
+
+  it("passes a Stigmer target without a computer, and a Claude one with a computer", async () => {
+    await refuseOver(Computer.NONE, Harness.STIGMER);
+    await refuseOver(Computer.REQUIRED, Harness.CLAUDE);
+    await refuseOver(Computer.UNSPECIFIED, Harness.CLAUDE);
   });
 });
 

@@ -88,6 +88,7 @@ import {
   newResolveEvalRunDefaultsStep,
   newStartEvalRunWorkflowStep,
   newValidateEvalRunTargetsStep,
+  newRefuseTargetsWithoutComputerStep,
   resolveEvalRunCreateTargets,
 } from "./steps.js";
 import { newRefuseUnofferedHarnessStep, type NamedHarness } from "../session/harness.js";
@@ -182,6 +183,7 @@ async function createEvalRun(
     .addStep(newResolveEvalRunDefaultsStep(deps.store, deps.authorizer))
     .addStep(newRefuseUnofferedHarnessStep(evalRunHarnesses))
     .addStep(newValidateEvalRunTargetsStep(deps.modelCatalog))
+    .addStep(newRefuseTargetsWithoutComputerStep(deps.store))
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())

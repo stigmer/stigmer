@@ -11,13 +11,17 @@
  *   1. the agent version the routine names, pinned as ResolveSessionAgent
  *      pins it (resolveAgentPin): a tag or hash the agent does not hold is
  *      refused here, on every server;
- *   2. the Environment the conversation would run in, resolved as
+ *   2. whether it has a computer, from that version, and what a
+ *      conversation without one may not add (ResolveSessionComputer,
+ *      domain/run/computer.ts): a repository, an Environment or the Claude
+ *      harness the routine names;
+ *   3. the Environment the conversation would run in, resolved as
  *      ResolveSessionEnvironment resolves it (the routine's own, else the
  *      agent version's default, else the organization's): a routine naming
  *      one where no server-started sandbox runs its fires is refused;
- *   3. a plugin's local program where the hosted sandbox cannot start one
+ *   4. a plugin's local program where the hosted sandbox cannot start one
  *      (RefuseLocalPrograms, domain/run/local-programs.ts);
- *   4. the Environment's rules (AdmitSessionEnvironment,
+ *   5. the Environment's rules (AdmitSessionEnvironment,
  *      domain/run/environment-admission.ts): networking or packages the
  *      driver cannot serve, an MCP server or a git repository whose host
  *      the Environment does not list.
@@ -29,8 +33,9 @@
  * Which updates are asked. An update is asked when, comparing the merged
  * state with the stored row (never the field mask: a declarative apply
  * masks every path), it changes what a fire runs in (the agent, its
- * version, the resources or the Environment; harness reaches none of the
- * rules) or turns the routine back on. Any other edit (a rename, the
+ * version, the harness, the resources or the Environment) or turns the
+ * routine back on. The harness is asked because an agent without a
+ * computer refuses the Claude harness. Any other edit (a rename, the
  * message, the schedule, the run settings, the vaults, disabling) is not
  * asked, so a routine an Environment edit broke after its save can still
  * be paused, renamed or fixed one field at a time. Resume (the platform's
@@ -58,6 +63,7 @@ import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb
 import {
   EnvironmentSource,
   ExecutionTarget,
+  Harness,
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionResourceSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { SessionStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/status_pb";
@@ -82,6 +88,7 @@ import { refuseLocalPrograms } from "../run/local-programs.js";
 import type { LocalProgramPolicy } from "../run/local-programs.js";
 import { runServers } from "../run/run-servers.js";
 import { resolveAgentPin } from "../session/resolve-session-agent.js";
+import { resolveSessionComputer } from "../session/resolve-session-computer.js";
 import { resolveSessionEnvironment } from "../session/resolve-session-environment.js";
 import { routineSessionSpec } from "./fired-session.js";
 
@@ -130,6 +137,7 @@ export async function admitRoutineRun(
   });
   status.agentId = pin.agentId;
   status.agentVersionHash = pin.versionHash;
+  await resolveSessionComputer(deps.store, session);
 
   const resolved = await resolveSessionEnvironment(
     deps.store,
@@ -178,6 +186,7 @@ export function updateAsksNothing(stored: Routine, next: Routine): boolean {
   const afterResources = after?.resources ?? [];
   return (
     sameReference(before?.agentRef, after?.agentRef) &&
+    (before?.harness ?? Harness.UNSPECIFIED) === (after?.harness ?? Harness.UNSPECIFIED) &&
     sameReference(before?.environmentRef, after?.environmentRef) &&
     beforeResources.length === afterResources.length &&
     beforeResources.every((resource, index) => {

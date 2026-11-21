@@ -14,7 +14,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentSpec(_message.Message):
-    __slots__ = ("description", "icon_url", "instructions", "skill_refs", "env", "tools", "disallowed_tools", "hooks", "run_config", "harness", "plugins", "subagents", "mcp_servers", "environment_ref")
+    __slots__ = ("description", "icon_url", "instructions", "skill_refs", "env", "tools", "disallowed_tools", "hooks", "run_config", "harness", "plugins", "subagents", "mcp_servers", "environment_ref", "computer")
     class EnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -36,6 +36,7 @@ class AgentSpec(_message.Message):
     SUBAGENTS_FIELD_NUMBER: _ClassVar[int]
     MCP_SERVERS_FIELD_NUMBER: _ClassVar[int]
     ENVIRONMENT_REF_FIELD_NUMBER: _ClassVar[int]
+    COMPUTER_FIELD_NUMBER: _ClassVar[int]
     description: str
     icon_url: str
     instructions: str
@@ -50,7 +51,8 @@ class AgentSpec(_message.Message):
     subagents: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
     mcp_servers: _containers.RepeatedCompositeFieldContainer[AgentMcpServer]
     environment_ref: _io_pb2.ApiResourceReference
-    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., instructions: _Optional[str] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., env: _Optional[_Mapping[str, _declaration_pb2.EnvVarDeclaration]] = ..., tools: _Optional[_Iterable[str]] = ..., disallowed_tools: _Optional[_Iterable[str]] = ..., hooks: _Optional[_Iterable[_Union[HookSource, _Mapping]]] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ..., harness: _Optional[_Union[_enum_pb2.Harness, str]] = ..., plugins: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., subagents: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., mcp_servers: _Optional[_Iterable[_Union[AgentMcpServer, _Mapping]]] = ..., environment_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ...) -> None: ...
+    computer: _enum_pb2.Computer
+    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., instructions: _Optional[str] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., env: _Optional[_Mapping[str, _declaration_pb2.EnvVarDeclaration]] = ..., tools: _Optional[_Iterable[str]] = ..., disallowed_tools: _Optional[_Iterable[str]] = ..., hooks: _Optional[_Iterable[_Union[HookSource, _Mapping]]] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ..., harness: _Optional[_Union[_enum_pb2.Harness, str]] = ..., plugins: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., subagents: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., mcp_servers: _Optional[_Iterable[_Union[AgentMcpServer, _Mapping]]] = ..., environment_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., computer: _Optional[_Union[_enum_pb2.Computer, str]] = ...) -> None: ...
 
 class AgentMcpServer(_message.Message):
     __slots__ = ("name", "url", "headers")

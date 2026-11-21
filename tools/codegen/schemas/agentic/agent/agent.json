@@ -196,6 +196,21 @@
       "description": "The Environment a new conversation on this agent runs in when neither\n the conversation nor its routine names one: the packages its sandboxes\n get and the websites they may reach. Unset: the organization's default\n Environment, if any.\n\n A conversation keeps the Environment it started with; changing this\n changes only new conversations. A conversation on the person's own\n machine (the desktop app, the CLI) ignores it.",
       "required": false,
       "referenceKind": 67
+    },
+    {
+      "name": "Computer",
+      "jsonName": "computer",
+      "protoField": "computer",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.session.v1.Computer",
+        "enumValues": [
+          "COMPUTER_NONE",
+          "COMPUTER_REQUIRED"
+        ]
+      },
+      "description": "Whether this agent's conversations have a computer. With\n COMPUTER_NONE, the agent runs no commands: saving refuses a Bash tool,\n hooks, an Environment, a plugin with hooks or local MCP servers, and a\n subagent that has a computer; its conversations and routines refuse\n repositories, folders, an Environment and the Claude harness.\n\n Unset reads as having a computer. A new agent left unset gets\n COMPUTER_REQUIRED; the Claude harness always has a computer, and\n COMPUTER_NONE on it is refused. An update that leaves this unset keeps\n the stored value. A conversation keeps the computer it started with.",
+      "required": false
     }
   ]
 }

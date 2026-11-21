@@ -11,7 +11,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SessionStatus(_message.Message):
-    __slots__ = ("audit", "agent_id", "agent_version_hash", "vault_attachers", "state", "routine_id", "environment", "environment_source")
+    __slots__ = ("audit", "agent_id", "agent_version_hash", "vault_attachers", "state", "routine_id", "environment", "environment_source", "computer")
     class VaultAttachersEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -27,6 +27,7 @@ class SessionStatus(_message.Message):
     ROUTINE_ID_FIELD_NUMBER: _ClassVar[int]
     ENVIRONMENT_FIELD_NUMBER: _ClassVar[int]
     ENVIRONMENT_SOURCE_FIELD_NUMBER: _ClassVar[int]
+    COMPUTER_FIELD_NUMBER: _ClassVar[int]
     audit: _status_pb2.ApiResourceAudit
     agent_id: str
     agent_version_hash: str
@@ -35,4 +36,5 @@ class SessionStatus(_message.Message):
     routine_id: str
     environment: _io_pb2.ApiResourceReference
     environment_source: _enum_pb2.EnvironmentSource
-    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., agent_id: _Optional[str] = ..., agent_version_hash: _Optional[str] = ..., vault_attachers: _Optional[_Mapping[str, str]] = ..., state: _Optional[str] = ..., routine_id: _Optional[str] = ..., environment: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., environment_source: _Optional[_Union[_enum_pb2.EnvironmentSource, str]] = ...) -> None: ...
+    computer: _enum_pb2.Computer
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., agent_id: _Optional[str] = ..., agent_version_hash: _Optional[str] = ..., vault_attachers: _Optional[_Mapping[str, str]] = ..., state: _Optional[str] = ..., routine_id: _Optional[str] = ..., environment: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., environment_source: _Optional[_Union[_enum_pb2.EnvironmentSource, str]] = ..., computer: _Optional[_Union[_enum_pb2.Computer, str]] = ...) -> None: ...

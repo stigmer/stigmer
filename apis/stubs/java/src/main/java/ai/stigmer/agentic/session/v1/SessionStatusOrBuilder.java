@@ -253,4 +253,27 @@ java.lang.String defaultValue);
    * @return The environmentSource.
    */
   ai.stigmer.agentic.session.v1.EnvironmentSource getEnvironmentSource();
+
+  /**
+   * <pre>
+   * Whether this conversation has a computer, from its agent's version
+   * (AgentSpec.computer). Unset reads as having one: a conversation from
+   * before the setting, or one with no agent.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.Computer computer = 10 [json_name = "computer"];</code>
+   * @return The enum numeric value on the wire for computer.
+   */
+  int getComputerValue();
+  /**
+   * <pre>
+   * Whether this conversation has a computer, from its agent's version
+   * (AgentSpec.computer). Unset reads as having one: a conversation from
+   * before the setting, or one with no agent.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.Computer computer = 10 [json_name = "computer"];</code>
+   * @return The computer.
+   */
+  ai.stigmer.agentic.session.v1.Computer getComputer();
 }

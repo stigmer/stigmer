@@ -25,11 +25,16 @@
  *     elsewhere it passes;
  *   - a version the agent does not hold is refused with
  *     agentVersionNotFoundMessage on every server;
+ *   - an agent without a computer is refused a repository, an Environment
+ *     and the Claude harness, with the sentences its conversation's create
+ *     answers, before the Environment is resolved; with none of them it
+ *     passes;
  *   - the step asks a create always, and an update only when it changes the
- *     agent, its version, the resources or the Environment, or turns the
- *     routine back on: a rename, an every-path echo, a harness change and
+ *     agent, its version, the harness, the resources or the Environment,
+ *     or turns the routine back on: a rename, an every-path echo and
  *     disabling a broken routine pass; a resources edit, an Environment
- *     edit, a version edit and re-enabling a broken one are refused;
+ *     edit, a version edit, a harness edit on an agent without a computer
+ *     and re-enabling a broken one are refused;
  *   - routineSessionSpec is the conversation a fire sends: the agent at the
  *     routine's version, the routine's name (else slug) as subject, its
  *     resources, harness only when set, its Environment only when named.
@@ -51,7 +56,7 @@ import type { EnvironmentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/env
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
-import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { Computer, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 
@@ -251,6 +256,7 @@ beforeAll(async () => {
     spec: MessageInitShape<typeof AgentSchema>["spec"];
   }[] = [
     { id: "agt_plain", slug: "plain", spec: {} },
+    { id: "agt_bare", slug: "bare", spec: { computer: Computer.NONE } },
     // The head dials an MCP server; the version tagged v1 dials none.
     {
       id: "agt_search",
@@ -500,6 +506,33 @@ describe("admitRoutineRun's local-program rule", () => {
   });
 });
 
+describe("admitRoutineRun on an agent without a computer", () => {
+  const bare = { agent: "agt_bare", agentSlug: "bare" };
+
+  it("refuses a repository, an Environment and the Claude harness with the conversation's sentences", async () => {
+    const prefix = "agent 'bare' has no computer";
+    const repo = await refusal(
+      admitRoutineRun(deps(), routine({ ...bare, repositories: ["https://github.com/acme/app.git"] }), testCallerIdentity()),
+    );
+    expect([repo.code, repo.rawMessage]).toEqual([
+      Code.FailedPrecondition,
+      `${prefix}, so this conversation can't attach repository 'repo0'; remove it, or give the agent a computer`,
+    ]);
+    const env = await refusal(admitRoutineRun(deps(), routine({ ...bare, environment: "env_01box" }), testCallerIdentity()));
+    expect(env.rawMessage).toBe(
+      `${prefix}, so this conversation can't run in an Environment; remove environment_ref, or give the agent a computer`,
+    );
+    const claude = await refusal(admitRoutineRun(deps(), routine({ ...bare, harness: Harness.CLAUDE }), testCallerIdentity()));
+    expect(claude.rawMessage).toBe(
+      `${prefix}, so its conversations can't run on the Claude engine, which always has one; choose the Stigmer engine, or give the agent a computer`,
+    );
+  });
+
+  it("admits one naming none of them", async () => {
+    await admitRoutineRun(deps(), routine(bare), testCallerIdentity());
+  });
+});
+
 describe("admitRoutineRun's agent version", () => {
   it("refuses a version the agent does not hold, on every server", async () => {
     for (const policy of [governing(), LOCAL_ONLY]) {
@@ -553,7 +586,6 @@ describe("the AdmitRoutineRun step", () => {
     }
     await run(renamed, stored);
     await run(clone(RoutineSchema, stored), stored);
-    await run(routine({ ...BROKEN, harness: Harness.CLAUDE }), stored);
     await run(routine({ ...BROKEN, enabled: false }), stored);
     await run(
       routine({ ...BROKEN, enabled: false }),
@@ -589,6 +621,13 @@ describe("the AdmitRoutineRun step", () => {
     expect(versionEdit.rawMessage).toBe(
       unlistedMcpHostMessage("box", "search", "search.example.org"),
     );
+  });
+
+  it("asks an update that changes only the harness", async () => {
+    const bare = { agent: "agt_bare", agentSlug: "bare" };
+    const error = await refusal(run(routine({ ...bare, harness: Harness.CLAUDE }), routine(bare)));
+    expect(error.code).toBe(Code.FailedPrecondition);
+    expect(error.rawMessage).toContain("can't run on the Claude engine");
   });
 
   it("asks an update that turns a routine back on", async () => {

@@ -1543,6 +1543,7 @@ SessionStatus contains system-managed state for a session.
     routineId: { type: "string", description: "The routine whose fire started this conversation; empty for every other conversation." },
     environment: { type: "ApiResourceReference", description: "The Environment this conversation runs in, whichever named it; unset when none applies.", typeDescriptionLink: "#apiresourcereference" },
     environmentSource: { type: "EnvironmentSource", description: "Which choice environment came from.", typeDescriptionLink: "#environmentsource" },
+    computer: { type: "Computer", description: "Whether this conversation has a computer, from its agent's version (AgentSpec.computer).", typeDescriptionLink: "#computer" },
   }}
 />
 
@@ -1570,6 +1571,15 @@ EnvironmentSource names whose choice a conversation's Environment was.
 | `ENVIRONMENT_SOURCE_ROUTINE` | The routine whose run started the conversation named it. |
 | `ENVIRONMENT_SOURCE_AGENT` | The conversation's agent names it as its default. |
 | `ENVIRONMENT_SOURCE_ORGANIZATION` | The organization names it as its default. |
+
+### Computer
+
+Computer says whether an agent's conversations have a computer: a machine where its commands, repositories, folders, Environment, hooks and local programs run.
+
+| Value | Description |
+|-------|-------------|
+| `COMPUTER_NONE` | No computer: no shell, repositories, folders, Environment, hooks or local programs. |
+| `COMPUTER_REQUIRED` | Needs a computer: a sandbox where the server runs one, or the person's own machine in the desktop app or the CLI. |
 
 ### Harness
 

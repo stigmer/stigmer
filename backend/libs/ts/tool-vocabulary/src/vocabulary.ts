@@ -72,6 +72,27 @@ export function isClaudeTool(name: string): name is ClaudeTool {
 export const CLAUDE_TOOL_ALIASES: ReadonlyMap<string, ClaudeTool> = new Map([["Task", "Agent"]]);
 
 /**
+ * The shell: the one Claude tool that runs commands on a computer. The
+ * Stigmer harness's `execute` covers it ({@link STIGMER_TOOL_COVERS}). An
+ * agent without a computer may not list it; the control plane refuses such
+ * a save by reading entries through {@link builtinToolOf}.
+ */
+export const SHELL_TOOL: ClaudeTool = "Bash";
+
+/**
+ * The Claude tool a tool-list entry names: its name before any `(…)`
+ * specifier, an older spelling read as its current one. Undefined for an
+ * MCP entry and for a name that is no Claude tool, which a turn ignores.
+ * The runner's list resolution and the control plane's save checks read
+ * entries through this one function.
+ */
+export function builtinToolOf(entry: string): ClaudeTool | undefined {
+  const open = entry.indexOf("(");
+  const name = open === -1 ? entry : entry.slice(0, open);
+  return isClaudeTool(name) ? name : CLAUDE_TOOL_ALIASES.get(name);
+}
+
+/**
  * The Stigmer harness's tool names and the Claude tools each covers. `delete`
  * is listed for completeness: the runner never binds it (file review needs
  * every removal to go through a reviewable write).

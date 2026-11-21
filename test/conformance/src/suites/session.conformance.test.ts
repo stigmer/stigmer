@@ -33,6 +33,13 @@
 // a state a client sends on create or update is not kept. A state that
 // moves with the session's turns is the session-events suite's.
 //
+// A conversation's computer (status.computer) is its agent's, read from the
+// pinned version: none for the built-in assistant, which reads as having
+// one. On an agent without a computer, a write that adds a repository, a
+// folder, the Claude engine or a plugin with hooks is refused
+// (FAILED_PRECONDITION, naming the agent and the thing to remove), on create
+// and on update alike.
+//
 // A conversation's own plugins (spec.plugins): each must name an installed
 // plugin, and a conversation whose turns would run where a plugin's local
 // program (a stdio MCP server) cannot start — the cloud target served by a
@@ -51,7 +58,7 @@ import type { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import { ExecutionTarget, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { Computer, ExecutionTarget, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
@@ -1027,5 +1034,68 @@ describe("Session conformance — the conversation's own plugins", () => {
         `plugin '${plugin.metadata!.name}' runs its MCP server 'notes' as a local program, which runs only in the desktop app or the CLI`,
       );
     });
+  });
+});
+
+describe("Session conformance — on an agent without a computer", () => {
+  async function bareAgent(org: string): Promise<Agent> {
+    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("bare"), computer: Computer.NONE }));
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }).catch(() => undefined));
+    return agent;
+  }
+
+  it("[rpc:SessionCommandController.create] a conversation records its agent's computer; the built-in assistant's records none", async () => {
+    const { org } = await target.provisionTenancy();
+    const bare = await createSession(org, uniqueName("bare"), agentRefOf(await bareAgent(org)));
+    expect(bare.status?.computer).toBe(Computer.NONE);
+    const plain = await createSession(org, uniqueName("plain"), await provisionAgentRef(org));
+    expect(plain.status?.computer, "a new agent gets a computer").toBe(Computer.REQUIRED);
+    const assistant = await createSession(org, uniqueName("assistant"), undefined);
+    expect(assistant.status?.computer, "none recorded reads as having one").toBe(Computer.UNSPECIFIED);
+  });
+
+  it("[rpc:SessionCommandController.create] a folder, a repository and the Claude engine are refused (FailedPrecondition), naming the agent", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await bareAgent(org);
+    const slug = agent.metadata!.slug;
+    const folder = await expectGrpcCode(
+      () =>
+        clients.sessionCommand.create(
+          makeSession({ org, name: uniqueName("folder"), agentRef: agentRefOf(agent), localWorkspaces: [{ name: "notes", path: "/tmp/notes" }] }),
+        ),
+      Code.FailedPrecondition,
+      "a folder needs a computer",
+    );
+    expect(folder.rawMessage).toContain(`agent '${slug}' has no computer, so this conversation can't attach folder 'notes'`);
+    const repository = await expectGrpcCode(
+      () =>
+        clients.sessionCommand.create({
+          ...makeSession({ org, name: uniqueName("repo"), agentRef: agentRefOf(agent) }),
+          spec: {
+            ...makeSessionSpec({ agentRef: agentRefOf(agent) }),
+            resources: [{ name: "app", resource: { case: "gitRepository", value: { url: "https://github.com/stigmer/stigmer" } } }],
+          },
+        }),
+      Code.FailedPrecondition,
+      "a repository needs a computer",
+    );
+    expect(repository.rawMessage).toContain("can't attach repository 'app'");
+    const claude = await expectGrpcCode(
+      () => clients.sessionCommand.create(makeSession({ org, name: uniqueName("claude"), agentRef: agentRefOf(agent), harness: Harness.CLAUDE })),
+      Code.FailedPrecondition,
+      "the Claude engine always has a computer",
+    );
+    expect(claude.rawMessage).toContain("can't run on the Claude engine");
+  });
+
+  it("[rpc:SessionCommandController.update] an update that adds a folder is refused as a create is", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await bareAgent(org);
+    const session = await createSession(org, uniqueName("later"), agentRefOf(agent));
+    await expectGrpcCode(
+      () => updateSession(session, makeSessionSpec({ agentRef: agentRefOf(agent), localWorkspaces: [{ name: "notes", path: "/tmp/notes" }] })),
+      Code.FailedPrecondition,
+      "a folder added later needs a computer too",
+    );
   });
 });
