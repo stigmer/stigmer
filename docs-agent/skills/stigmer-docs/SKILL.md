@@ -110,7 +110,7 @@ product.
 - Plugins: https://stigmer.ai/docs/concepts/plugins
 - Tools: https://stigmer.ai/docs/concepts/tools
 - Integrations & marketplace: https://stigmer.ai/docs/guides/integrations/overview
-- AI editors (Cursor, Claude): https://stigmer.ai/docs/guides/editors/connect-mcp
+- Your AI tools (Claude Code, Codex, Cursor, Claude Desktop): https://stigmer.ai/docs/guides/editors/connect-mcp
 - Approval flows: https://stigmer.ai/docs/concepts/approval-flows
 - Scores and evals: https://stigmer.ai/docs/concepts/scores,
   https://stigmer.ai/docs/guides/evals/test-with-evals

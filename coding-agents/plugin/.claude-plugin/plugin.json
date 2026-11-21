@@ -1,10 +1,29 @@
 {
   "name": "stigmer",
+  "displayName": "Stigmer",
   "version": "0.0.0-dev",
-  "description": "Stigmer for your coding agent: answers questions about Stigmer from its live docs, and sets Stigmer up for your project, from signing in to your agent's chat in your own app, then makes, runs and reads agents.",
-  "author": { "name": "Stigmer", "url": "https://stigmer.ai" },
-  "homepage": "https://stigmer.ai/docs/getting-started/coding-agent",
+  "description": "Stigmer in your coding agent: answers any question about Stigmer from its live docs, citing the page; sets Stigmer up for your project; designs, runs and fixes agents and reads their results; puts them in your own product; and runs your own server and organization. It asks you before anything that can't be undone.",
+  "author": {
+    "name": "Stigmer",
+    "url": "https://stigmer.ai"
+  },
+  "homepage": "https://stigmer.ai/docs/guides/editors/connect-mcp",
   "repository": "https://github.com/stigmer/coding-agent-plugin",
   "license": "Apache-2.0",
-  "keywords": ["stigmer", "agents", "ai-agents", "mcp"]
+  "keywords": [
+    "stigmer",
+    "agents",
+    "ai-agents",
+    "mcp"
+  ],
+  "icon": "./assets/logo.png",
+  "documentationUrl": "https://stigmer.ai/docs/guides/editors/connect-mcp",
+  "supportUrl": "https://github.com/stigmer/stigmer/issues",
+  "privacyPolicyUrl": "https://stigmer.ai/privacy",
+  "network": {
+    "hosts": [
+      "stigmer.ai",
+      "*.stigmer.ai"
+    ]
+  }
 }

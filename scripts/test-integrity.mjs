@@ -104,7 +104,7 @@
  *     naming it, but not name one it never reaches;
  *   - a TypeScript test outside a `__tests__` directory (the suites' own trees
  *     excepted), a `*.spec.ts` outside test/e2e/tests, test/visual/tests and
- *     site/e2e, and an import in test/support of anything but `node:*` or its
+ *     test/site/tests, and an import in test/support of anything but `node:*` or its
  *     own `.ts` files.
  * Files that do not follow the standard yet are listed in
  * scripts/test-layout-baseline.txt, one `<rule> <path> [<detail>]` per line
@@ -257,8 +257,8 @@ const OWN_CADENCE = [
 ];
 /** The suites' own trees, placed by their suite rather than by `__tests__`. */
 const SUITE_TREES = ["test/conformance/src/suites", "test/e2e/tests/"];
-/** Where a Playwright spec may live: the console's journeys, the kit's approved screenshots and the site's. */
-const SPEC_HOMES = ["test/e2e/tests/", "test/visual/tests/", "site/e2e/"];
+/** Where a Playwright spec may live: the console's journeys, the kit's approved screenshots and the built site's pages. */
+const SPEC_HOMES = ["test/e2e/tests/", "test/visual/tests/", "test/site/tests/"];
 /** The trees whose tests may use any service: the contract suite and the console's journeys. */
 const ANY_SERVICE_TREES = ["test/conformance/", "test/e2e/"];
 /** The machinery two or more suites share, which imports only `node:*` and its own files. */
@@ -946,7 +946,7 @@ export function checkLayout(ts, { tests: tracked, files, read, packageDirs, conf
       }
     }
     if (spec) {
-      if (!SPEC_HOMES.some((home) => path.startsWith(home))) find("layout-placement", path, 1, "a `*.spec.ts` lives under test/e2e/tests/, test/visual/tests/ or site/e2e/");
+      if (!SPEC_HOMES.some((home) => path.startsWith(home))) find("layout-placement", path, 1, "a `*.spec.ts` lives under test/e2e/tests/, test/visual/tests/ or test/site/tests/");
     } else if (!path.includes("/__tests__/") && !SUITE_TREES.some((tree) => path.startsWith(tree))) {
       find("layout-placement", path, 1, "a TypeScript test lives in a `__tests__` directory beside the module it tests");
     }

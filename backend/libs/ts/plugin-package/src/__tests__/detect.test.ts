@@ -102,6 +102,25 @@ describe("the open manifest's schema", () => {
 });
 
 describe("unknown and mistyped fields", () => {
+  it("reads every field Claude Code's manifest reference documents without a warning, in Claude's and Codex's manifests", () => {
+    const documented = {
+      $schema: "https://json.schemastore.org/claude-code-plugin-manifest.json",
+      displayName: "Example",
+      metadata: { catalogId: "cat-1" },
+      engines: { "claude-code": ">=2.1.328" },
+      network: { hosts: ["example.com"] },
+      types: "./types.d.ts",
+      icon: "./assets/logo.png",
+      documentationUrl: "https://example.com/docs",
+      supportUrl: "https://example.com/support",
+      privacyPolicyUrl: "https://example.com/privacy",
+      termsOfServiceUrl: "https://example.com/terms",
+    };
+    expect(kindsOf(read(claudePlugin({ manifest: documented }))).warnings).toEqual([]);
+    expect(kindsOf(read(codexPlugin({ manifest: documented }))).warnings).toEqual([]);
+    expect(kindsOf(read(claudePlugin({ manifest: { ...documented, colour: "blue" } }))).warnings).toEqual(["manifest-field-unknown"]);
+  });
+
   it("warns on an unknown top-level field in every dialect", () => {
     expect(kindsOf(read(openPlugin({ manifest: { colour: "blue" } }))).warnings).toEqual(["manifest-field-unknown"]);
     expect(kindsOf(read(claudePlugin({ manifest: { colour: "blue" } }))).warnings).toEqual(["manifest-field-unknown"]);

@@ -1,38 +1,127 @@
 ---
-title: Connect Stigmer to your AI editor
+title: Use Stigmer from your AI tools
 description:
-  Add the Stigmer MCP connector to Claude Code, Cursor, or Claude Desktop so
-  your AI assistant can look up and create Stigmer resources for you.
+  Which way in fits your AI tool. Coding agents (Claude Code, Codex, Cursor)
+  take Stigmer's plugin, on any Stigmer; apps without a terminal, such as Claude
+  Desktop, connect to Stigmer Cloud's hosted server.
 ---
 
-Stigmer runs a hosted MCP server at `https://mcp.stigmer.ai`. Connecting it to
-your AI editor lets the assistant you already use — Claude Code, Cursor, or
-Claude Desktop — search your Agents, start runs, and create resources on your
-behalf. You describe what you want in plain language; the assistant does the
-work through the connector.
+There are two ways to give an AI tool Stigmer, and one question decides which
+fits: **does your agent have a terminal?**
+
+- **Yes: Claude Code, Codex, Cursor.** Install
+  [Stigmer's plugin](#the-plugin-for-coding-agents). It answers any question
+  about Stigmer from these docs, sets Stigmer up for your project, and builds,
+  runs and ships your agents. It works on any Stigmer the command line reaches:
+  Stigmer Cloud, your own server, or `stigmer up` on your machine.
+- **No: Claude Desktop, claude.ai.** Add
+  [the hosted connector](#the-hosted-connector-for-apps-without-a-terminal) at
+  `https://mcp.stigmer.ai`. It reaches Stigmer Cloud, and you sign in through
+  the browser.
+
+Both give the assistant the same tools: searching your Agents and Skills,
+reading these docs, creating and running Agents, and reading what their runs
+did.
+
+## The plugin, for coding agents
+
+The plugin is one folder that Claude Code, Codex and Cursor each read. It
+brings:
+
+- **Skills**, the instructions your coding agent follows for each job: answering
+  questions from the live docs and citing the page, setting Stigmer up,
+  designing and running agents, putting them in your product, and running your
+  own server and organization.
+- **Stigmer's tool server**, `stigmer mcp-server`, started from the
+  [command line](/docs/cli/commands/mcp-server) on its own sign-in. Nothing to
+  paste: the plugin acts on whichever Stigmer you signed the command line in to.
+- **A guard**, in Claude Code: it asks you before anything that can't be undone
+  or is yours to give (deleting an Agent or Skill, cancelling a run, answering a
+  run's approval), even after you allowed the plugin's tools.
+
+It needs the command line, signed in:
+
+```bash
+npm install -g @stigmer/cli
+stigmer auth login
+```
+
+`stigmer up` starts a local Stigmer instead, with no sign-in.
+
+<Tabs items={["Claude Code", "Codex", "Cursor"]}>
+<Tab value="Claude Code">
+
+```bash
+claude plugin install stigmer --marketplace stigmer/coding-agent-plugin
+```
+
+Inside Claude Code, `/plugin` lists it once the marketplace is added.
+
+</Tab>
+<Tab value="Codex">
+
+```bash
+codex plugin marketplace add stigmer/coding-agent-plugin
+codex plugin add stigmer@stigmer
+```
+
+</Tab>
+<Tab value="Cursor">
+
+```bash
+git clone https://github.com/stigmer/coding-agent-plugin ~/.cursor/plugins/local/stigmer
+```
+
+Then run **Developer: Reload Window**. The skills and the MCP server show under
+**Customize**.
+
+</Tab>
+</Tabs>
+
+Then ask for what you want, in plain words: "how do I give our CI a key that can
+run agents but not change them?", "run invoice-checker on this file", "set up
+Stigmer for this project".
 
 <Callout type="info">
-  This guide uses the hosted endpoint, which is the right choice if you use
-  Stigmer Cloud (`app.stigmer.ai`). If you run Stigmer locally, see the
-  [`stigmer mcp-server`](/docs/cli/commands/mcp-server) reference for the local
-  STDIO option.
+  You don't need the plugin to start. [Set up Stigmer with your coding
+  agent](/docs/getting-started/coding-agent) works from one pasted prompt, and
+  the plugin keeps Stigmer in your coding agent afterwards.
 </Callout>
 
-## Two ways to connect
+## The hosted connector, for apps without a terminal
 
-- **OAuth (Claude Desktop):** sign in through the browser — no API key to
-  manage. This is the simplest path.
-- **API-key header (Claude Code, Cursor):** pass a Stigmer API key in the
-  `Authorization` header.
+Stigmer Cloud runs the same tool server at `https://mcp.stigmer.ai`. An app that
+can't run the command line, such as Claude Desktop, connects to it and signs in
+through the browser. It reaches Stigmer Cloud (`app.stigmer.ai`) only; for your
+own server, use the plugin, or run
+[`stigmer mcp-server`](/docs/cli/commands/mcp-server) yourself.
+
+In Claude Desktop:
+
+1. Open **Settings → Connectors**.
+2. Click **Add custom connector**.
+3. Enter `https://mcp.stigmer.ai` as the URL and confirm.
+4. Complete the browser sign-in when prompted.
+
+Claude Desktop registers itself and obtains a token through Stigmer's OAuth
+flow. Over the hosted connector, a file on your machine can't be attached to a
+run; the command line's `stigmer run <agent> --attach` does that.
+
+<Callout type="info">
+  The OAuth flow signs you in through Stigmer's primary identity provider. If
+  your organization brings its own identity provider, use [an API key in a
+  header](#an-api-key-in-a-header) instead.
+</Callout>
+
+## An API key in a header
+
+An editor that should reach Stigmer Cloud without the command line can send a
+Stigmer API key with every call instead.
 
 <Steps>
 <Step>
 
-## (Header method only) Get your API key
-
-Skip this step if you are using Claude Desktop — it signs in through the
-browser. For Claude Code or Cursor, the connector authenticates with a Stigmer
-API key:
+## Get your API key
 
 1. Open [`app.stigmer.ai`](https://app.stigmer.ai) and go to **Settings → API
    Keys**.
@@ -51,29 +140,9 @@ API key:
 
 ## Add the connector
 
-Pick your editor below. For the header methods, replace `stk_your_api_key` with
-the key you just created.
+Replace `stk_your_api_key` with the key you just created.
 
-<Tabs items={["Claude Desktop", "Claude Code", "Cursor"]}>
-<Tab value="Claude Desktop">
-
-Claude Desktop signs in through the browser — no API key to paste.
-
-1. Open **Settings → Connectors**.
-2. Click **Add custom connector**.
-3. Enter `https://mcp.stigmer.ai` as the URL and confirm.
-4. Complete the browser sign-in when prompted.
-
-Claude Desktop registers itself and obtains a token automatically through
-Stigmer's OAuth flow.
-
-<Callout type="info">
-  The OAuth flow signs you in through Stigmer's primary identity provider. If
-  your organization brings its own identity provider, use the API-key header
-  method (as shown in the Claude Code or Cursor tabs) instead.
-</Callout>
-
-</Tab>
+<Tabs items={["Claude Code", "Cursor"]}>
 <Tab value="Claude Code">
 
 Run this in your terminal (not inside the Claude Code prompt):
@@ -82,9 +151,6 @@ Run this in your terminal (not inside the Claude Code prompt):
 claude mcp add --transport http stigmer https://mcp.stigmer.ai \
   --header "Authorization: Bearer stk_your_api_key"
 ```
-
-The connector is now registered. Start Claude Code in any directory and it can
-reach Stigmer.
 
 <Callout type="info">
   On Claude Code 2.1.1+ you can also use the JSON form:
@@ -98,8 +164,8 @@ claude mcp add-json stigmer '{"type":"http","url":"https://mcp.stigmer.ai","head
 </Tab>
 <Tab value="Cursor">
 
-Add Stigmer to your MCP configuration. Create or edit `.cursor/mcp.json` in your
-repository (or `~/.cursor/mcp.json` for all repositories):
+Create or edit `.cursor/mcp.json` in your repository (or `~/.cursor/mcp.json`
+for all repositories):
 
 ```json
 {
@@ -135,13 +201,7 @@ connected.
 </Step>
 </Steps>
 
-## What you can do now
-
-With the connector in place, your assistant can work with Stigmer directly:
-
-- **Look up resources** — list Agents, or read a Skill.
-- **Create resources** — author Agents, Skills and MCP servers from a
-  description.
+## What your assistant can make
 
 When your assistant authors Skills and MCP servers to share, it writes a plugin:
 the same folder Cursor, Claude Code and Codex read, with a `skills/` directory
@@ -153,14 +213,21 @@ it applies can also carry MCP servers of its own in `mcp_servers`
 ## Going deeper
 
 <Cards>
-  <Card href="/docs/guides/plugins/install-a-plugin" title="Install a plugin">
-    Turn the plugin your assistant wrote into a running Agent with its Skills
-    and tools.
+  <Card
+    href="/docs/getting-started/coding-agent"
+    title="Set up Stigmer with your coding agent"
+  >
+    One pasted prompt: sign-in, an agent for your app's users, a first run, and
+    its chat in your app.
   </Card>
   <Card
     href="/docs/cli/commands/mcp-server"
     title="stigmer mcp-server reference"
   >
     Transport modes, environment variables, and the local STDIO option.
+  </Card>
+  <Card href="/docs/guides/plugins/install-a-plugin" title="Install a plugin">
+    Turn the plugin your assistant wrote into a running Agent with its Skills
+    and tools.
   </Card>
 </Cards>
