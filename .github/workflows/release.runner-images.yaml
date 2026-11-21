@@ -232,10 +232,14 @@ jobs:
           # The words GHCR shows on the package page: the index annotation, read
           # from the Dockerfile's description label (scripts/lib/image-description.mjs).
           IMAGE_DESCRIPTION="$(node scripts/lib/image-description.mjs --file backend/services/runner/Dockerfile.sandbox --target sandbox)"
+          PUSH_TAG=""
           if [ "$ARCH" = "amd64" ]; then
-            OUTPUT=(--tag "$IMAGE:$STAGE" --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" --push)
+            PUSH_TAG="$IMAGE:$STAGE"
           elif [ "$MULTIARCH" = "true" ]; then
-            OUTPUT=(--tag "$IMAGE:$STAGE-$ARCH" --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" --push)
+            PUSH_TAG="$IMAGE:$STAGE-$ARCH"
+          fi
+          if [ -n "$PUSH_TAG" ]; then
+            OUTPUT=(--tag "$PUSH_TAG" --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" --push)
           else
             OUTPUT=(--output type=cacheonly)
           fi
