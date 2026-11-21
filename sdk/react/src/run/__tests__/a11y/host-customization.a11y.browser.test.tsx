@@ -5,16 +5,20 @@
 // items, Escape closes it back to its trigger); no key is taken from the
 // page (every keydown reaches the page's own listener, none prevented); and
 // the quiet row stays shown while its menu is open, though the menu's
-// portal takes the focus out of the row.
+// portal takes the focus out of the row. Under a host whose every slot and
+// card throws (and whose message actions throw for a person's message), a
+// thread waiting on two asks still passes axe and is still walked by
+// keyboard alone: Tab reaches both approvals' Allow and the answer's More
+// actions, with no key taken.
 
 import { describe, it, expect, afterEach } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@vitest/browser/context";
 import { auditA11y, COLOR_MODES, renderAudited, resetAudit } from "../../../__tests__/helpers/a11y-audit";
-import { MessageThread } from "../../MessageThread";
+import { MessageThread, type MessageThreadSlots } from "../../MessageThread";
 import { ToolCardsContext, type ToolCardProps, type ToolCards } from "../../tool-cards-context";
 import type { MessageAction, MessageInfo } from "../../message-actions";
-import { result, said, status, turnsOf, use, user } from "../__fixtures__/thread-events";
+import { asked, result, said, status, turnsOf, use, user } from "../__fixtures__/thread-events";
 
 afterEach(resetAudit);
 
@@ -112,6 +116,88 @@ describe("a host's tool card and message actions", () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
       expect(seen).toEqual(expect.arrayContaining(["k", "j", "Escape"]));
       expect(prevented.filter((key) => key === "k" || key === "j" || key === "Tab")).toEqual([]);
+    } finally {
+      document.removeEventListener("keydown", listener);
+    }
+  });
+});
+
+function broke(part: string): never {
+  throw new Error(`host part broke: ${part}`);
+}
+
+const THROWING_SLOTS: Required<MessageThreadSlots> = {
+  MessageEntry: () => broke("MessageEntry"),
+  ApprovalCard: () => broke("ApprovalCard"),
+  TodoCard: () => broke("TodoCard"),
+  TodoRow: () => broke("TodoRow"),
+  PlanFileCard: () => broke("PlanFileCard"),
+  PlanCompletionCard: () => broke("PlanCompletionCard"),
+  PlanStreamingCard: () => broke("PlanStreamingCard"),
+  SetupProgress: () => broke("SetupProgress"),
+  RecalledMemoriesCard: () => broke("RecalledMemoriesCard"),
+  RunErrorNotice: () => broke("RunErrorNotice"),
+  LivenessStatusLine: () => broke("LivenessStatusLine"),
+};
+
+const L = "run_l";
+/** The invoiced turn, then a turn waiting on a command in its row and a to-do write with no row. */
+const WAITING = [
+  ...TURNS,
+  ...turnsOf(
+    user(L, "Clean the build"),
+    status(L, "running"),
+    use(L, "sh", "Bash", { command: "rm -rf build" }, { ask: true }),
+    asked(L, "sh"),
+    use(L, "gate", "write_todos", {}, { ask: true }),
+    asked(L, "gate"),
+    status(L, "waiting"),
+  ),
+];
+
+const throwingActions = (message: MessageInfo): readonly MessageAction[] => (message.role === "user" ? broke("messageActions") : actionsFor(message));
+
+function renderHostile(mode: "light" | "dark"): HTMLElement {
+  return renderAudited(
+    <ToolCardsContext.Provider value={{ mcp__billing__create_invoice: () => broke("tool card") }}>
+      <input aria-label="Search invoices" />
+      <MessageThread turns={WAITING} sessionId="ses_1" slots={THROWING_SLOTS} messageActions={throwingActions} onAnswerToolUse={() => {}} />
+    </ToolCardsContext.Provider>,
+    mode,
+  );
+}
+
+describe("a host whose every part throws", () => {
+  it.each(COLOR_MODES)("leaves a thread that passes the audit (%s)", async (mode) => {
+    const container = renderHostile(mode);
+    await screen.findByRole("alert", { name: "Approval required for write_todos" });
+    await auditA11y(container, `hostile host · ${mode}`);
+  });
+
+  it("leaves both approvals and the answer's acts reached by keyboard alone, taking no key", async () => {
+    const prevented: string[] = [];
+    const listener = (event: KeyboardEvent) => {
+      queueMicrotask(() => {
+        if (event.defaultPrevented) prevented.push(event.key);
+      });
+    };
+    document.addEventListener("keydown", listener);
+    try {
+      renderHostile("light");
+      const reached = new Set<string>();
+      screen.getByRole("textbox", { name: "Search invoices" }).focus();
+      for (let i = 0; i < 40; i += 1) {
+        await userEvent.tab();
+        const active = document.activeElement as HTMLElement | null;
+        const name = active?.getAttribute("aria-label") ?? active?.textContent ?? "";
+        const approval = active?.closest('[role="alert"]')?.getAttribute("aria-label") ?? "";
+        reached.add(approval === "" ? name : `${approval}: ${name}`);
+      }
+      expect([...reached]).toEqual(
+        expect.arrayContaining(["Approval required for Bash: Allow", "Approval required for write_todos: Allow", "More actions"]),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(prevented.filter((key) => key === "Tab")).toEqual([]);
     } finally {
       document.removeEventListener("keydown", listener);
     }

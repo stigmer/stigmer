@@ -344,6 +344,13 @@ working between visible steps). Each slot's props type is exported from
 built-in itself. See the [run reference](/docs/sdk/react/run) for each
 slot's props.
 
+If a slot throws while it draws, ours draws in its place with the same props
+and the chat keeps going; the error reaches your root's caught-error handler
+(React's `onCaughtError`, which logs with `console.error` unless you set one).
+A slot that draws nothing hides that part. For `ApprovalCard` and
+`RunErrorNotice` that hides a decision or a failure the person needs, so always
+draw them.
+
 Two more ways add your own parts without replacing ours. When your own tool
 runs (a tool of a server you connected, such as `create_invoice` on your
 billing server), pass your card for it to `StigmerProvider` as `toolCards`,
@@ -361,7 +368,7 @@ whether it's the final answer, its run and session) and returns your actions.
 Up to two with an icon show beside Copy, the rest in one "More actions" menu,
 all reachable by keyboard. A `MessageEntry` slot receives the same actions as
 data (`messageActions`, with `messageInfo`), for a bubble or a right-click menu
-of your own.
+of your own. If your function throws, that message shows without your actions.
 
 ## Token reference
 

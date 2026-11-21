@@ -8,7 +8,8 @@
  * card a to-do turn draws, while a to-do row slot alone leaves the plan
  * card; every built-in renders when slots are omitted, overrides apply
  * under the virtualized path too, and a memoized slot is not re-rendered
- * when the thread re-renders with the same turns.
+ * when the thread re-renders with the same turns, even when the host passes
+ * a new slots literal naming the same component.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
@@ -347,6 +348,22 @@ describe("MessageThread slots", () => {
 
     const { rerender } = renderThread(conv, { slots });
     rerender(<MessageThread turns={conv.turns} runs={conv.runs} slots={slots} />);
+
+    expect(renderCount).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a memoized slot from re-rendering when the host passes a new slots literal with the same component", () => {
+    const renderCount = vi.fn();
+    const CustomCard = memo(function CustomCard({ todos }: TodoCardProps) {
+      renderCount();
+      return <div data-testid="custom-todo-card">{todos.length} todos</div>;
+    });
+    const conv = conversation({ id: "e1", phase: "running", extra: todoWrite("e1", "pending") });
+
+    // A literal per render: the guard hands the rows the same component, so
+    // the card is neither remounted nor re-rendered.
+    const { rerender } = renderThread(conv, { slots: { TodoCard: CustomCard } });
+    rerender(<MessageThread turns={conv.turns} runs={conv.runs} slots={{ TodoCard: CustomCard }} />);
 
     expect(renderCount).toHaveBeenCalledTimes(1);
   });

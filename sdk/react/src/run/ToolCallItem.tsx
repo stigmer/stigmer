@@ -35,7 +35,7 @@ import { splitDisplayPath } from "./file-path-resolver.js";
 import { subagentSubjectOf } from "@stigmer/react-core";
 import { isFileCategory, useFileReviewRowFile } from "@stigmer/react-core/internal";
 import { type ToolCategory } from "@stigmer/react-core";
-import { getToolPresenter, useToolPresentation } from "./tool-presenter.js";
+import { presentationWording, useToolPresentation } from "./tool-presenter.js";
 import { StatusBadge } from "../status/StatusBadge.js";
 import type { StatusPhase } from "../resource-workbench/types.js";
 import { Tag } from "../internal/surface/Tag.js";
@@ -43,7 +43,8 @@ import { HELPER_STATE_WORDS, HelperEndingBadge, HelperGlyph, helperShowsWork, he
 import { HelperMark, SubagentSection } from "./SubagentSection.js";
 import { underOutputs, useOutputFileOpener } from "./OutputFileContext.js";
 import { useStepPlace } from "./step-place.js";
-import { holdsToolCard, toolCallInfoOf, ToolCardBoundary, useHasToolCard, useHostCard } from "./tool-card.js";
+import { holdsToolCard, toolCallInfoOf, useHasToolCard, useHostCard } from "./tool-card.js";
+import { HostPartBoundary } from "../internal/HostPartBoundary.js";
 
 /** Props for {@link ToolCallItem}. */
 export interface ToolCallItemProps {
@@ -153,7 +154,11 @@ export const ToolCallItem = memo(function ToolCallItem({
   // returned: the call and the command are two facts, and the row shows the
   // one still moving.
   const backgroundRunning = isBackgroundRunning(toolUse);
-  const { kind, category, title, phrase, primaryArg, result, resultSummary, disclosure, chrome } = useToolPresentation(toolUse);
+  const toolPresentation = useToolPresentation(toolUse);
+  const { category, title, phrase, primaryArg, result, resultSummary, disclosure, chrome } = toolPresentation;
+  // Which words are a host presenter's own: one that threw, or a blank
+  // label, left the kit's words.
+  const wording = presentationWording(toolPresentation);
   // A command that exited non-zero, or an edit the harness refused, failed
   // though the engine did not mark it an error: its line, its mark and its
   // open default all say so.
@@ -169,7 +174,7 @@ export const ToolCallItem = memo(function ToolCallItem({
   const settledDuration = formatHeaderDuration(toolUse.processedAt, toolUse.result?.processedAt ?? "");
   const thread = toolUse.thread;
   const isSubagent = thread !== undefined;
-  const hostLabel = getToolPresenter(kind)?.label !== undefined;
+  const hostLabel = wording.hostLabel;
 
   // The decision for this exact call when it waits for a person (parent or
   // nested subagent), or null. Drives the inline approval panel and forces
@@ -316,7 +321,7 @@ export const ToolCallItem = memo(function ToolCallItem({
   }
   // A host's registered summary (`registerToolPresenter({ summary })`) is
   // its own words for the counts, shown in their place.
-  const hostSummary = !isSubagent && getToolPresenter(kind)?.summary !== undefined ? resultSummary : null;
+  const hostSummary = !isSubagent && wording.hostSummary ? resultSummary : null;
   const counts = isSubagent || toolUse.result === undefined || hostSummary !== null ? null : stepCounts(result, category);
   const countsText = hostSummary ?? (counts === null ? null : countsWords(counts));
   // The text the second line may cut short, for the toggle's hint.
@@ -408,9 +413,11 @@ export const ToolCallItem = memo(function ToolCallItem({
   function withHostCard(ours: ReactNode): ReactNode {
     if (cardCall === undefined || HostCard === undefined) return ours;
     return (
-      <ToolCardBoundary state={cardCall.state} fallback={ours}>
+      // A card that threw while its call ran tries again once the call's
+      // state moves (its result landed).
+      <HostPartBoundary resetKey={cardCall.state} fallback={ours}>
         <HostCard call={cardCall} />
-      </ToolCardBoundary>
+      </HostPartBoundary>
     );
   }
 

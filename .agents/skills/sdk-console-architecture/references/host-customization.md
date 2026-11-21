@@ -72,6 +72,12 @@ The thread draws twenty row kinds (`ThreadItem` in
 components (`MessageThreadSlots`); the rest are closed, each for its reason. No
 closed kind opens without corpus evidence.
 
+The decisions are code: `sdk/react/src/run/row-kinds.ts` maps every kind to its
+decision and reason, so a new kind fails to compile until it is decided, and a
+new slot fails until an open kind claims it. A test
+(`sdk/react/src/run/__tests__/row-kinds.test.ts`) fails when this table and the
+map disagree.
+
 | Part (row kind)                                                        | Today's seam                                                 | Decision                                                                                                                                                                                                                    |
 | ---------------------------------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `message`, `queued-message`                                            | `MessageEntry` slot                                          | Open. The slot also receives the message's view and the host's message actions as data (below).                                                                                                                             |
@@ -196,10 +202,12 @@ A host draws the body of its own tool's row.
   call's input whole, so a card never sees partial input mid-stream.
 
 - **The row stays ours.** The step line (mark, words, time) keeps its failed
-  mark and words when the call failed: a failure is never hidden, and the card
-  draws it in its own look from `state` and `result.isError`. The tool presenter
-  (`registerToolPresenter`) still words that step line. While an approval waits
-  for a viewer who answers it, the approval is the row
+  mark when the call failed, and a failure always draws the row as a card: a
+  failure is never hidden, and the card draws it in its own look from `state`
+  and `result.isError`. The tool presenter (`registerToolPresenter`) still words
+  that step line in every state, its failure included; a blank or throwing label
+  leaves the kit's words, so the row keeps its accessible name. While an
+  approval waits for a viewer who answers it, the approval is the row
   (`sdk/react/src/run/ToolCallItem.tsx`) and the host's card appears once it is
   answered. For a viewer who cannot answer, the card draws with `needs-approval`
   under our line, which says whom it waits on; the card gets no way to answer,
@@ -240,7 +248,7 @@ A host draws the body of its own tool's row.
   never rewritten. One rule, no setting: a host that wants a call kept quiet
   registers no card for it.
 
-## Message actions and the final answer (designed; stigmer/stigmer#3380; C2, C3)
+## Message actions and the final answer (built; stigmer/stigmer#3380; C2, C3)
 
 - **Why a new mechanism.** A `MessageEntry` slot that wraps the built-in bubble
   can already pass its own buttons as `actions` (`MessageEntryProps.actions`, a
@@ -396,18 +404,19 @@ per-viewer mechanism is forwarded explicitly.
 ## What stays fixed, and why
 
 A host changes how a decision looks, never the decision. Each line names what
-holds it today, and where nothing does yet.
+holds it.
 
-| Fixed                                                                                     | Why                                                   | Held by                                                                                                                                                                                                                |
-| ----------------------------------------------------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| What an approval shows and records, Allow and Deny included                               | The person decides on what the agent will actually do | The built-in card: `sdk/react/src/run/__tests__/ApprovalCard.test.tsx`; the slot keeps the answer wiring (`sdk/react/src/run/__tests__/message-thread-slots.test.tsx`). Nothing yet holds what a replacing slot shows. |
-| The recorded order of events                                                              | The transcript is the record of what happened         | The transcript export (below). A finished turn's answer-first lead is presentation over that order (`sdk/react/src/run/__tests__/buildThreadItems-answer.test.ts`), and host cards after a turn are presentation too.  |
-| The transcript and its export                                                             | What a reader exports is what the session recorded    | `sdk/react/src/session/__tests__/SessionViewer-transcriptExport.test.tsx`, `sdk/react/src/session/__tests__/useExportTranscript.test.tsx`                                                                              |
-| Stop, always in reach while a turn can stop (KIT-08 in `test/ux-bar.json`, still pending) | A person can always halt the agent                    | One case so far, an owner's waiting turn: `sdk/react/src/session/__tests__/SessionViewer-sharedAccess.test.tsx`                                                                                                        |
-| Keyboard and screen-reader access; no focus trap, no key taken from the host (KIT-11)     | The viewer lives inside someone else's page           | `sdk/react/src/agent-chat/__tests__/agent-chat.a11y.browser.test.tsx`                                                                                                                                                  |
-| The closed rows above                                                                     | Each for its reason in the table                      | Nothing yet                                                                                                                                                                                                            |
+| Fixed                                                                                     | Why                                                                     | Held by                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| What an approval shows and records, Allow and Deny included                               | The person decides on what the agent will actually do                   | The built-in card: `sdk/react/src/run/__tests__/ApprovalCard.test.tsx`; the slot keeps the answer wiring (`sdk/react/src/run/__tests__/message-thread-slots.test.tsx`). A replacing slot's drawing is the host's; the hostile-host test proves it still receives the decision's wiring and that an ask inside a tool's row, which no slot draws, always shows Allow and Deny (`sdk/react/src/run/__tests__/hostile-host.test.tsx`). |
+| A host part that throws never takes the viewer down; the kit's part draws in its place    | A host's bug must not cost the person the decision, the failure or Stop | `sdk/react/src/run/__tests__/hostile-host.test.tsx` (every slot, card, message action and presenter override throwing), `sdk/react/src/session/__tests__/SessionViewer-hostileHost.test.tsx` (Stop), and by keyboard and axe in `sdk/react/src/run/__tests__/a11y/host-customization.a11y.browser.test.tsx`                                                                                                                         |
+| The recorded order of events                                                              | The transcript is the record of what happened                           | The transcript export (below). A finished turn's answer-first lead is presentation over that order (`sdk/react/src/run/__tests__/buildThreadItems-answer.test.ts`), and host cards after a turn are presentation too.                                                                                                                                                                                                               |
+| The transcript and its export                                                             | What a reader exports is what the session recorded                      | `sdk/react/src/session/__tests__/SessionViewer-transcriptExport.test.tsx`, `sdk/react/src/session/__tests__/useExportTranscript.test.tsx`                                                                                                                                                                                                                                                                                           |
+| Stop, always in reach while a turn can stop (KIT-08 in `test/ux-bar.json`, still pending) | A person can always halt the agent                                      | Two cases so far: an owner's waiting turn (`sdk/react/src/session/__tests__/SessionViewer-sharedAccess.test.tsx`) and a working turn under a host whose every part throws (`sdk/react/src/session/__tests__/SessionViewer-hostileHost.test.tsx`)                                                                                                                                                                                    |
+| Keyboard and screen-reader access; no focus trap, no key taken from the host (KIT-11)     | The viewer lives inside someone else's page                             | `sdk/react/src/agent-chat/__tests__/agent-chat.a11y.browser.test.tsx`; a thread under a throwing host in `sdk/react/src/run/__tests__/a11y/host-customization.a11y.browser.test.tsx`                                                                                                                                                                                                                                                |
+| The closed rows above                                                                     | Each for its reason in the table                                        | The row-kind map (`sdk/react/src/run/row-kinds.ts`), which fails to compile on an undecided kind, and its test against this table                                                                                                                                                                                                                                                                                                   |
 
-Where a line says "nothing yet", the planned guards close it: a typed map of
-every row kind, open or closed, that fails to compile when a kind is added
-undecided, and a test that replaces every seam with a hostile host's parts and
-proves what an approval shows, the failure notice, Stop and Copy survive.
+A part a host replaces whole and draws as nothing is the host drawing that part:
+the kit cannot tell an empty drawing from a deliberate one. For the
+`ApprovalCard` and `RunErrorNotice` slots that hides a decision or a failure,
+which a host must not do; the docs say so.
