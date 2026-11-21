@@ -200,6 +200,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** The kit's failure notice, if it draws. */
+function failureNotice(): HTMLElement | undefined {
+  return screen.queryAllByRole("alert").find((alert) => alert.textContent?.includes("This turn didn't finish."));
+}
+
 /** The messages the reports named, as `host part broke: <part>`. */
 function reportedParts(): string[] {
   const parts = new Set<string>();
@@ -250,7 +255,7 @@ describe("a host whose every part throws", () => {
     const row = [...container.querySelectorAll('[data-cursor-target="tool-call-row"]')].find((el) => el.textContent?.includes("create_invoice") || el.textContent?.includes("Create invoice"));
     expect(row).toBeDefined();
     expect(row!.querySelector(".stg\\:text-status-failed")).not.toBeNull();
-    expect(screen.getByRole("alert").textContent).toContain("This turn didn't finish.");
+    expect(failureNotice()).toBeDefined();
     expect(screen.getByRole("button", { name: "Send it again" })).toBeTruthy();
     // The failed send keeps its bubble, its Copy and its retry.
     expect(screen.getByText("Try the invoice again")).toBeTruthy();
@@ -300,7 +305,7 @@ describe("a host whose every part draws nothing", () => {
     expect(container.querySelector(".stg\\:text-status-failed")).not.toBeNull();
     // The notice is the host's to draw: it was told the reason and how to retry,
     // and the kit draws no notice of its own behind it.
-    expect(screen.queryByRole("alert")).toBeNull();
+    expect(failureNotice()).toBeUndefined();
     const notice = handed.notices.at(-1)!;
     expect(notice.error).toBe("model capacity exhausted");
     notice.onRetry?.(notice.retryMessage ?? "");
@@ -341,7 +346,7 @@ describe("a host that floods", () => {
   it("keeps Copy first, two icons and one menu for fifty acts, and survives an act that throws", async () => {
     renderUnder(FLOODS, waitingThread(), { onAnswerToolUse: vi.fn() });
 
-    const answer = screen.getByText("The release plan is ready.").closest("article")!;
+    const answer = screen.getByText("The release plan is ready.").closest<HTMLElement>('[role="article"]')!;
     const buttons = within(answer).getAllByRole("button");
     expect(buttons[0]!.getAttribute("aria-label") ?? buttons[0]!.textContent).toBe("Copy message");
     expect(within(answer).getByRole("button", { name: "Act 0" })).toBeTruthy();
@@ -361,6 +366,6 @@ describe("a host that floods", () => {
 
     expect(screen.getByTestId("long-card")).toBeTruthy();
     expect(container.querySelector(".stg\\:text-status-failed")).not.toBeNull();
-    expect(screen.getByRole("alert").textContent).toContain("This turn didn't finish.");
+    expect(failureNotice()).toBeDefined();
   });
 });
