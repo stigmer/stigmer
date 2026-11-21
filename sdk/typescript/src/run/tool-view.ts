@@ -268,6 +268,37 @@ export function resolveToolKindByName(name: string, mcpServerSlug?: string): Too
 }
 
 // ---------------------------------------------------------------------------
+// Public name: toolPublicName
+// ---------------------------------------------------------------------------
+
+/**
+ * The one name a tool call's tool is known by outside the kit, or
+ * `undefined` for a call that has none. A connected server's tool is
+ * `mcp__<server>__<tool>`: the name the agent's tool list, hooks and the
+ * console show, and the key a host registers its own card under
+ * (`toolCards` in `@stigmer/react-sdk`). Built-in tools, the memory
+ * attachment's tools and a server tool named like a built-in resolve to
+ * their own kinds ({@link resolveToolKind}), are drawn by the kit, and have
+ * none.
+ *
+ * Composed from the server slug and bare tool every record carries, never
+ * parsed. Mirrors the runner's `mcpToolName`
+ * (`backend/services/runner/src/shared/mcp-tool-names.ts`); kept honest by
+ * `test/fixtures/tool-view/public-names.json`, which both sides assert.
+ *
+ * @example
+ * ```ts
+ * toolPublicName({ name: "create_invoice", mcpServerName: "billing" });
+ * // "mcp__billing__create_invoice"
+ * toolPublicName({ name: "Edit", mcpServerName: "" }); // undefined
+ * ```
+ */
+export function toolPublicName(tool: Pick<ToolUse, "name" | "mcpServerName">): string | undefined {
+  if (resolveToolKind(tool) !== "mcp") return undefined;
+  return `mcp__${tool.mcpServerName}__${tool.name}`;
+}
+
+// ---------------------------------------------------------------------------
 // Intent: extractShellIntent
 // ---------------------------------------------------------------------------
 

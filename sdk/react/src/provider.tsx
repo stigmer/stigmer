@@ -26,6 +26,7 @@ import type { ColorMode, ResolvedColorMode } from "./color-mode.js";
 import { ColorModeContext, useSystemColorMode } from "./color-mode.js";
 import { PortalContainerContext } from "./portal-container.js";
 import { MermaidLoaderContext, type MermaidLoader } from "./mermaid-loader-context.js";
+import { ToolCardsContext, type ToolCards } from "./run/tool-cards-context.js";
 import { ModelRegistryContext } from "./models/ModelRegistryContext.js";
 import type { ModelRegistryState } from "./models/ModelRegistryContext.js";
 import { fetchModelRegistryDocument } from "@stigmer/react-core";
@@ -171,6 +172,35 @@ export interface StigmerProviderProps {
    * ```
    */
   readonly loadMermaid?: MermaidLoader;
+  /**
+   * Your own card for your own tool, drawn in that tool's step wherever the
+   * chat shows it, keyed by the tool's public name: `mcp__<server>__<tool>`
+   * for a tool of a server you connected (`toolPublicName` in
+   * `@stigmer/client`). The step's line stays the kit's (it still says the
+   * step is running, done or failed, and any approval stays the kit's); the
+   * card replaces the table of inputs and result under it, opens by
+   * default, and is never folded away: once the turn finishes it shows
+   * right after the answer. If the card throws, the kit's own body shows
+   * instead. Built-in tools (shell, edit, read and the rest) take no card.
+   *
+   * Pass an inline object freely: the provider compares it entry by entry.
+   * Define each card at module level, so a row is not remounted.
+   *
+   * @example
+   * ```tsx
+   * import type { ToolCardProps } from "@stigmer/react-sdk";
+   *
+   * function InvoiceCard({ call }: ToolCardProps) {
+   *   if (call.state === "running") return <p>Creating the invoice…</p>;
+   *   return <p>{call.result?.text ?? "No invoice was made."}</p>;
+   * }
+   *
+   * <StigmerProvider client={client} toolCards={{ mcp__billing__create_invoice: InvoiceCard }}>
+   *   <App />
+   * </StigmerProvider>
+   * ```
+   */
+  readonly toolCards?: ToolCards;
   /**
    * Built-in theme preset to apply.
    *
@@ -318,6 +348,7 @@ export function StigmerProvider({
   publicBaseUrl,
   showHelpLink = false,
   loadMermaid,
+  toolCards,
   preset,
   className,
   colorMode = "light",
@@ -332,6 +363,7 @@ export function StigmerProvider({
   const portalContainer = usePortalContainer(scope);
   const registryState = useModelRegistryFetch(client);
   const mermaidLoader = useStableLoader(loadMermaid);
+  const cards = useStableRecord(toolCards);
 
   return (
     <StigmerContext.Provider value={client}>
@@ -345,6 +377,7 @@ export function StigmerProvider({
                   <ModelRegistryContext.Provider value={registryState}>
                     <PortalContainerContext.Provider value={portalContainer}>
                       <MermaidLoaderContext.Provider value={mermaidLoader}>
+                      <ToolCardsContext.Provider value={cards}>
                         {/*
                           The in-tree scoping container. `data-stgm-root` is a
                           stable public selector — the documented seam for hosts
@@ -361,6 +394,7 @@ export function StigmerProvider({
                         >
                           {children}
                         </div>
+                      </ToolCardsContext.Provider>
                       </MermaidLoaderContext.Provider>
                     </PortalContainerContext.Provider>
                   </ModelRegistryContext.Provider>
@@ -399,6 +433,33 @@ function useStableLoader(loadMermaid: MermaidLoader | undefined): MermaidLoader 
         : null,
     [hasLoader],
   );
+}
+
+/**
+ * The host's `toolCards` as one map while its entries stay the same. Hosts
+ * pass an inline object, a new one every render; every row that reads the
+ * map would re-render with it, so it changes only when a name or a card
+ * comes, goes or changes.
+ */
+function useStableRecord<T>(record: Readonly<Record<string, T>> | undefined): Readonly<Record<string, T>> | null {
+  const [kept, setKept] = useState(record);
+  // Adjusting state while rendering, React's pattern for state derived from
+  // a prop: React re-renders at once with the new entries, before any child
+  // reads the map.
+  if (kept !== record && !sameEntries(kept, record)) {
+    setKept(record);
+    return record ?? null;
+  }
+  return kept ?? null;
+}
+
+/** Whether two records hold the same values under the same own keys. */
+function sameEntries<T>(a: Readonly<Record<string, T>> | undefined, b: Readonly<Record<string, T>> | undefined): boolean {
+  if (a === b) return true;
+  if (a === undefined || b === undefined) return false;
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  return keys.every((key) => Object.hasOwn(b, key) && a[key] === b[key]);
 }
 
 const RETRY_DELAYS_MS = [1_000, 2_000, 4_000];

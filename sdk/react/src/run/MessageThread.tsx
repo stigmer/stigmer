@@ -32,8 +32,7 @@ import {
   type TurnEndingViewer,
   describeTurnEnding,
   getUserMessage,
-  isBackgroundRunning,
-  stepTense,
+  stepPhrase,
   turnSteps,
 } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
@@ -49,6 +48,10 @@ import { SettledStepsRow } from "./SettledStepsRow.js";
 import { PlanSteps, type PlanStoppedTone } from "./PlanSteps.js";
 import { ThreadPresentationContext, useThreadPresentation, type ThreadPresentation, type TurnEndingWiring } from "./ThreadPresentationContext.js";
 import { ToolCallItem } from "./ToolCallItem.js";
+import { ToolCallDetail } from "./ToolCallDetail.js";
+import { foldsQuietly } from "./step-fold.js";
+import { CardsLiftedContext, NO_TOOL_CARD, ToolCardBoundary, toolCallInfoOf, toolCardCalls, useHasToolCard, useLiftedHostCard, type HasToolCard } from "./tool-card.js";
+import type { MessageAction, MessageInfo } from "./message-actions.js";
 import { RunPhaseBadge } from "./RunPhaseBadge.js";
 import { SetupProgress, type SetupProgressProps } from "./SetupProgress.js";
 import { RecalledMemoriesCard, type RecalledMemoriesCardProps } from "./RecalledMemoriesCard.js";
@@ -439,6 +442,43 @@ export interface MessageThreadProps {
    */
   readonly runScores?: boolean;
   /**
+   * The session the thread shows. Host tool cards (`toolCards` on
+   * `StigmerProvider`) and message actions receive it; `SessionViewer`
+   * passes its own. A thread built by hand without it hands them `""`.
+   */
+  readonly sessionId?: string;
+  /**
+   * The host's own actions for a message: an "Open in Billing" or a "Mark as
+   * paid" on the agent's final answer, a "Save" on a person's message. The
+   * thread calls it with what it knows about each message
+   * ({@link MessageInfo}) and draws the actions it returns: up to two with an
+   * icon beside Copy, the rest in one "More actions" menu, all reachable by
+   * keyboard. A person's message gets them in its log only, and an agent's
+   * once it settles; thinking, notes and a plan document get none. A
+   * `MessageEntry` slot receives the same actions as data
+   * (`MessageEntryProps.messageActions`).
+   *
+   * Called once per message, and again when the function changes; a host
+   * that re-renders often may keep it stable (`useCallback`), and need not.
+   *
+   * @example
+   * ```tsx
+   * import type { MessageAction, MessageInfo } from "@stigmer/react-sdk";
+   *
+   * function actionsFor(message: MessageInfo): readonly MessageAction[] {
+   *   if (message.role !== "agent" || !message.isFinalAnswer) return [];
+   *   return [
+   *     { id: "billing", label: "Open in Billing", icon: <span aria-hidden="true">↗</span>, onAction: () => openBilling(message.runId) },
+   *     { id: "paid", label: "Mark as paid", onAction: () => markPaid(message.sessionId) },
+   *   ];
+   * }
+   *
+   * declare function openBilling(runId: string): void;
+   * declare function markPaid(sessionId: string): void;
+   * ```
+   */
+  readonly messageActions?: (message: MessageInfo) => readonly MessageAction[];
+  /**
    * What closes each ended turn (the session view passes its outcome block:
    * how the turn ended, its time, what it changed and returned). When set,
    * it takes the place of the ended-turn phase badge; a failure's notice
@@ -495,7 +535,24 @@ export const DROPPED_MESSAGE_LABEL = "Not read — the turn was stopped";
 
 export type ThreadItem =
   | { readonly kind: "queued-message"; readonly message: QueuedMessage; readonly key: string }
-  | { readonly kind: "message"; readonly message: ThreadMessage; readonly key: string; readonly isPending?: boolean; readonly isFailed?: boolean; readonly isEditable?: boolean; readonly isPlanDocument?: boolean; readonly interactionMode?: InteractionMode; readonly files?: readonly MessageFileView[]; readonly executionId?: string; readonly scoresRunId?: string }
+  | {
+      readonly kind: "message";
+      readonly message: ThreadMessage;
+      readonly key: string;
+      readonly isPending?: boolean;
+      readonly isFailed?: boolean;
+      readonly isEditable?: boolean;
+      readonly isPlanDocument?: boolean;
+      readonly interactionMode?: InteractionMode;
+      readonly files?: readonly MessageFileView[];
+      readonly executionId?: string;
+      /** The turn the message belongs to. */
+      readonly runId?: string;
+      /** The turn's final answer ({@link finalAnswerId}): it carries the scores. */
+      readonly isFinalAnswer?: boolean;
+      /** A message in the session's log a host may act on (`messageActions`). */
+      readonly takesActions?: boolean;
+    }
   | {
       readonly kind: "tool-group";
       readonly toolUses: readonly ToolUse[];
@@ -524,9 +581,15 @@ export type ThreadItem =
       readonly key: string;
       readonly toolUses: readonly ToolUse[];
       readonly items: readonly ThreadItem[];
+      /**
+       * The calls with a host's card, a helper's included, in the order they
+       * were made: drawn once, above the line, while their steps inside it
+       * draw the kit's body.
+       */
+      readonly cards: readonly ToolUse[];
     }
   | { readonly kind: "subagent"; readonly toolUse: ToolUse; readonly thread: Thread; readonly key: string }
-  /** A completed turn's scores where no answer carries them: it wrote messages but ended on a step. */
+  /** A completed turn's scores where no final answer carries them: it ended on a step, or Stigmer stopped it. */
   | { readonly kind: "turn-scores"; readonly runId: string; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: RunPhase; readonly key: string }
   | { readonly kind: "outcome"; readonly turn: Turn; readonly key: string }
@@ -643,6 +706,12 @@ export interface BuildThreadItemsOptions {
   readonly endingViewer?: TurnEndingViewer;
   /** The provider's and the model's display names for a model id, for the ending's words. */
   readonly endingNames?: (model: string) => TurnEndingNames;
+  /**
+   * Which calls have a host's card (`toolCards` on the provider): a working
+   * stretch holding one never folds, and a finished turn lifts each card
+   * above its fold.
+   */
+  readonly hasToolCard?: HasToolCard;
 }
 
 /** Who reads an ending when the host says nothing: one who can act and can fix nothing. */
@@ -710,6 +779,18 @@ function closingMessageId(items: ReadonlyArray<TurnItem>): string | undefined {
 }
 
 /**
+ * The id of a turn's final answer: the message it closed on
+ * ({@link closingMessageId}) when it finished ({@link finishedTurn}), and
+ * never a completed Plan turn's, whose plan is a document. `undefined` while
+ * it works, for a turn that stopped, failed or ended on a step, and for one
+ * Stigmer stopped. The one rule the lead, the scores and a host's
+ * `isFinalAnswer` all read.
+ */
+function finalAnswerId(turn: Turn, run: Run | undefined): string | undefined {
+  return finishedTurn(turn) && !isCompletedPlanTurn(turn, run) ? closingMessageId(turn.items) : undefined;
+}
+
+/**
  * The plan's title for its compact card: the leading `# H1` of the plan
  * message, after the same plan-scoped bare-fence unwrap the document renderers
  * apply — so the card and the plan tab always agree on the title. `undefined`
@@ -764,6 +845,7 @@ export function buildThreadItems(
     planSteps = true,
     endingViewer = DEFAULT_ENDING_VIEWER,
     endingNames,
+    hasToolCard = NO_TOOL_CARD,
   } = options;
   const runsById = new Map<string, Run>();
   for (const run of runs) {
@@ -818,14 +900,10 @@ export function buildThreadItems(
     const planFile = isCompletedPlan ? planFiles?.get(runId) : undefined;
     const collapsePlanMessage = planMessageId !== undefined && planFile !== undefined;
 
-    // A completed turn's final answer carries its scores (thumbs and the
-    // run-health flags): the message it closed on, unless it is the turn's
-    // plan, which renders as a document or a card instead. A turn that ended
-    // on a step has no answer to score, and leads with nothing.
-    const scoredMessageId =
-      turn.status?.phase === "completed" && planMessageId === undefined
-        ? closingMessageId(turn.items)
-        : undefined;
+    // A finished turn's final answer leads it and carries its scores (thumbs
+    // and the run-health flags). A turn that ended on a step, or that
+    // Stigmer stopped, has no answer to score, and leads with nothing.
+    const finalAnswer = finalAnswerId(turn, run);
 
     // The plan the live Plan-mode turn is writing RIGHT NOW (the H1
     // convention — see findStreamingPlan). Two gates: the host wired a plan
@@ -913,6 +991,10 @@ export function buildThreadItems(
         kind: "message",
         message: { kind: "user", id: turn.userMessage?.id ?? `${runId}.user`, text: promptText },
         key: bridgePending ? "pending-user-turn" : `${runId}-spec`,
+        runId,
+        // Before the events carry the message, its id is made up: no act
+        // may name a message the log does not hold.
+        takesActions: turn.userMessage !== undefined,
         // The live turn's message is the one a person can edit and resubmit
         // (stop + rephrase), when the consumer enabled editing.
         isEditable: isActiveTurn && editableActiveTurn,
@@ -950,11 +1032,11 @@ export function buildThreadItems(
       // still leads it.
       emitTodos();
       // A stretch folds once every call returned, none runs on in the
-      // background, and none failed: a failure stays in view.
-      // A single step stays its own row: folding it would put one line
-      // behind another (segment-tool-calls.ts keeps runs under two as rows
-      // the same way).
-      const settled = group.length > 1 && group.every((tool) => tool.result !== undefined && !isBackgroundRunning(tool) && stepTense(tool) !== "failed");
+      // background, none failed and none has a host's card: those stay in
+      // view (step-fold.ts). A single step stays its own row: folding it
+      // would put one line behind another (segment-tool-calls.ts keeps runs
+      // under two as rows the same way).
+      const settled = group.length > 1 && group.every((tool) => foldsQuietly(tool, hasToolCard));
       items.push({ kind: "tool-group", toolUses: group, key: `${group[0]!.id}-tc`, ...(isActiveTurn && settled ? { fold: true } : {}) });
       for (const toolUse of group) inlineToolUseIds.add(toolUse.id);
       group = [];
@@ -995,7 +1077,10 @@ export function buildThreadItems(
               message: item,
               key: item.id,
               isPlanDocument: !collapsePlanMessage && item.id === planMessageId,
-              ...(item.id === scoredMessageId ? { scoresRunId: runId } : {}),
+              runId,
+              ...(item.id === finalAnswer ? { isFinalAnswer: true } : {}),
+              // A plan document has its own acts and no quiet row.
+              takesActions: collapsePlanMessage || item.id !== planMessageId,
             });
           }
           // Anchor (1): the plan sits right under the agent's opening narration.
@@ -1019,7 +1104,7 @@ export function buildThreadItems(
           // A message the person sent while the turn worked, where the
           // turn read it.
           flushGroup();
-          items.push({ kind: "message", message: { kind: "user", id: item.id, text: item.text }, key: item.id });
+          items.push({ kind: "message", message: { kind: "user", id: item.id, text: item.text }, key: item.id, runId, takesActions: true });
           break;
       }
     }
@@ -1071,7 +1156,7 @@ export function buildThreadItems(
     const finished = finishedTurn(turn);
     if (finished) {
       const segment = items.splice(segmentStart);
-      const answerKey = scoredMessageId ?? (planMessageId !== undefined && !collapsePlanMessage ? planMessageId : undefined);
+      const answerKey = finalAnswer ?? (planMessageId !== undefined && !collapsePlanMessage ? planMessageId : undefined);
       const lead = segment.filter((item) => item.key === answerKey);
       const kept = segment.filter((item) => item.kind === "plan-completion");
       const working = segment.filter((item) => !lead.includes(item) && item.kind !== "plan-completion");
@@ -1084,14 +1169,16 @@ export function buildThreadItems(
           key: `${runId}-how`,
           toolUses: turn.items.filter((item): item is ToolUse => item.kind === "tool_use" && item.threadId === "" && !isInternalTool(item.name)),
           items: working,
+          cards: toolCardCalls(turn.items, hasToolCard),
         });
       }
     }
 
-    // A completed turn that wrote messages but closed on none of them
-    // still carries its scores (the thumbs, the run-health, judge and eval
-    // chips, Make a test case): at its foot, since no answer leads.
-    if (turn.status?.phase === "completed" && planMessageId === undefined && scoredMessageId === undefined && lastMessageId(turn.items) !== undefined) {
+    // A completed turn that wrote messages but has no final answer (it
+    // ended on a step, or Stigmer stopped it) still carries its scores (the
+    // thumbs, the run-health, judge and eval chips, Make a test case): at
+    // its foot, since no answer leads.
+    if (turn.status?.phase === "completed" && planMessageId === undefined && finalAnswer === undefined && lastMessageId(turn.items) !== undefined) {
       items.push({ kind: "turn-scores", runId, key: `${runId}-scores` });
     }
 
@@ -1319,8 +1406,12 @@ export function MessageThread({
   turnOutcome,
   turnEnding,
   ambientLiveness = true,
+  sessionId,
+  messageActions,
 }: MessageThreadProps) {
   useRenderTracer("MessageThread", { turns, runs });
+  // Which calls have a host's card: stable while the provider's map is.
+  const hasToolCard = useHasToolCard();
 
   const includeApprovals = onAnswerToolUse != null;
   const editableActiveTurn = onEditMessage != null;
@@ -1348,8 +1439,9 @@ export function MessageThread({
         planSteps: slots?.TodoCard === undefined && slots?.TodoRow === undefined,
         ...(turnEnding !== undefined ? { endingViewer: turnEnding.viewer } : {}),
         ...(turnEnding?.names !== undefined ? { endingNames: turnEnding.names } : {}),
+        hasToolCard,
       }),
-    [turns, runs, pendingUserMessage, includeApprovals, resources, pendingMessageFailed, editableActiveTurn, collapseStreamingPlan, pendingFiles, queued, agentVersionLabel, planFiles, turnOutcome, ambientLiveness, slots?.TodoCard, slots?.TodoRow, turnEnding?.viewer, turnEnding?.names],
+    [turns, runs, pendingUserMessage, includeApprovals, resources, pendingMessageFailed, editableActiveTurn, collapseStreamingPlan, pendingFiles, queued, agentVersionLabel, planFiles, turnOutcome, ambientLiveness, slots?.TodoCard, slots?.TodoRow, turnEnding?.viewer, turnEnding?.names, hasToolCard],
   );
   // The asks answered in their own card, for the rows that would otherwise
   // offer the same decision. Keyed on the ids themselves: `items` is a new
@@ -1361,8 +1453,14 @@ export function MessageThread({
   );
   const cardedAsks = useMemo<ReadonlySet<string>>(() => (cardedKey === "" ? NO_CARDED_ASKS : new Set(cardedKey.split("\n"))), [cardedKey]);
   const presentation = useMemo<ThreadPresentation>(
-    () => ({ turnOutcome, ...(turnEnding !== undefined ? { turnEnding } : {}), cardedAsks }),
-    [turnOutcome, turnEnding, cardedAsks],
+    () => ({
+      turnOutcome,
+      ...(turnEnding !== undefined ? { turnEnding } : {}),
+      cardedAsks,
+      ...(sessionId !== undefined ? { sessionId } : {}),
+      ...(messageActions !== undefined ? { messageActions } : {}),
+    }),
+    [turnOutcome, turnEnding, cardedAsks, sessionId, messageActions],
   );
 
   useKeyStability(items);
@@ -1711,23 +1809,19 @@ export function ThreadItemRenderer({
         );
       }
       return (
-        <Entry
+        <MessageRow
+          Entry={Entry}
           message={item.message}
-          className={item.isPending ? "stg:opacity-70" : undefined}
+          isPending={item.isPending === true}
           isPlanDocument={item.isPlanDocument}
           interactionMode={item.interactionMode}
           files={item.files}
-          runId={item.executionId}
-          onEdit={
-            item.isEditable && onEditMessage
-              ? () => onEditMessage(item.message.text)
-              : undefined
-          }
-          actions={
-            runScoresEnabled && item.scoresRunId !== undefined ? (
-              <RunScores runId={item.scoresRunId} />
-            ) : undefined
-          }
+          executionId={item.executionId}
+          onEditMessage={item.isEditable ? onEditMessage : undefined}
+          runId={item.runId ?? ""}
+          isFinalAnswer={item.isFinalAnswer === true}
+          scores={runScoresEnabled && item.isFinalAnswer === true}
+          takesActions={item.takesActions === true}
         />
       );
     }
@@ -1737,8 +1831,8 @@ export function ThreadItemRenderer({
       return <PlanSteps steps={item.steps} working={item.working} stoppedNote={item.stoppedNote} stoppedTone={item.stoppedTone} />;
     case "turn-scores":
       return runScoresEnabled ? <RunScores runId={item.runId} /> : null;
-    case "how-it-got-there":
-      return (
+    case "how-it-got-there": {
+      const fold = (
         <SettledStepsRow toolUses={item.toolUses} prefix="How it got there">
           <InsideStepsCard.Provider value={true}>
           <div className="stg:flex stg:flex-col stg:gap-2 stg:px-3 stg:py-2">
@@ -1766,6 +1860,19 @@ export function ThreadItemRenderer({
           </InsideStepsCard.Provider>
         </SettledStepsRow>
       );
+      // The host's cards come out of the fold, once each, in the order they
+      // were made; inside it their steps draw the kit's body.
+      return item.cards.length === 0 ? (
+        <CardsLiftedContext.Provider value={true}>{fold}</CardsLiftedContext.Provider>
+      ) : (
+        <div className="stg:flex stg:flex-col stg:gap-4">
+          {item.cards.map((toolUse) => (
+            <LiftedToolCard key={toolUse.id} toolUse={toolUse} />
+          ))}
+          <CardsLiftedContext.Provider value={true}>{fold}</CardsLiftedContext.Provider>
+        </div>
+      );
+    }
     case "outcome":
       return <OutcomeRow turn={item.turn} />;
     case "subagent":
@@ -1880,6 +1987,98 @@ export function ThreadItemRenderer({
 
 /** True inside a card that already frames its steps, so a run of steps there draws as plain rows. */
 const InsideStepsCard = createContext(false);
+
+/** No host actions: one shared empty list, so a message without them keeps its memo. */
+const NO_MESSAGE_ACTIONS: readonly MessageAction[] = [];
+
+interface MessageRowProps {
+  /** The (possibly slotted) bubble. */
+  readonly Entry: ComponentType<MessageEntryProps>;
+  readonly message: ThreadMessage;
+  readonly isPending: boolean;
+  readonly isPlanDocument?: boolean;
+  readonly interactionMode?: InteractionMode;
+  readonly files?: readonly MessageFileView[];
+  readonly executionId?: string;
+  /** The thread's edit handler, set only on the message a person may edit. */
+  readonly onEditMessage?: (text: string) => void;
+  readonly runId: string;
+  readonly isFinalAnswer: boolean;
+  /** Draw the turn's scores in the quiet row. */
+  readonly scores: boolean;
+  readonly takesActions: boolean;
+}
+
+/**
+ * One message, its inputs held stable for the bubble's `React.memo`: the
+ * renderer above runs for every item on every streamed frame, so what a
+ * bubble receives (its edit callback, its scores, what the host is told and
+ * the host's actions) is built here, once per change. The host's actions
+ * are asked for again when its function changes, so a list that depends on
+ * the host's own state stays current.
+ */
+const MessageRow = memo(function MessageRow({
+  Entry,
+  message,
+  isPending,
+  isPlanDocument,
+  interactionMode,
+  files,
+  executionId,
+  onEditMessage,
+  runId,
+  isFinalAnswer,
+  scores,
+  takesActions,
+}: MessageRowProps) {
+  const { sessionId = "", messageActions } = useThreadPresentation();
+  const text = message.text;
+  const onEdit = useMemo(() => (onEditMessage !== undefined ? () => onEditMessage(text) : undefined), [onEditMessage, text]);
+  const actions = useMemo(() => (scores && runId !== "" ? <RunScores runId={runId} /> : undefined), [scores, runId]);
+  // A message a host may act on: a person's in the log, or an agent's once
+  // it settled (its text no longer changes).
+  const role = message.kind === "user" ? "user" : message.kind === "message" && !message.live ? "agent" : undefined;
+  const messageInfo = useMemo<MessageInfo | undefined>(
+    () => (takesActions && role !== undefined ? { id: message.id, role, text, isFinalAnswer, sessionId, runId } : undefined),
+    [takesActions, role, message.id, text, isFinalAnswer, sessionId, runId],
+  );
+  const hostActions = useMemo(
+    () => (messageInfo !== undefined && messageActions !== undefined ? messageActions(messageInfo) : NO_MESSAGE_ACTIONS),
+    [messageInfo, messageActions],
+  );
+  return (
+    <Entry
+      message={message}
+      className={isPending ? "stg:opacity-70" : undefined}
+      isPlanDocument={isPlanDocument}
+      interactionMode={interactionMode}
+      files={files}
+      runId={executionId}
+      onEdit={onEdit}
+      actions={actions}
+      {...(messageInfo !== undefined ? { messageInfo, messageActions: hostActions } : {})}
+    />
+  );
+});
+
+/**
+ * A host's card for a call of a finished turn, drawn above its "How it got
+ * there" fold with no step line: the card is what the host wants seen. If
+ * it throws, the kit's body for the call shows in its place, open.
+ */
+const LiftedToolCard = memo(function LiftedToolCard({ toolUse }: { readonly toolUse: ToolUse }) {
+  const Card = useLiftedHostCard(toolUse);
+  const { sessionId = "" } = useThreadPresentation();
+  const call = useMemo(() => toolCallInfoOf(toolUse, sessionId), [toolUse, sessionId]);
+  if (Card === undefined) return null;
+  return (
+    <div role="group" aria-label={stepPhrase(toolUse).text} data-cursor-target="host-tool-card">
+      <ToolCardBoundary state={call.state} fallback={<ToolCallDetail toolUse={toolUse} />}>
+        <Card call={call} />
+      </ToolCardBoundary>
+    </div>
+  );
+});
 
 /** A run of tool calls: one list of steps, or one line that opens to them once the working turn's stretch has settled. */
 function ToolGroupRow({

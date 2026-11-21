@@ -1,5 +1,6 @@
 // How a thread's rows are presented beyond their own data: what closes an
-// ended turn, and which asks the thread answers in a card of their own.
+// ended turn, which asks the thread answers in a card of their own, the
+// session the thread shows, and the host's actions on its messages.
 // MessageThread provides it from its props and its items, so the options
 // reach the rows of both the plain and the virtualized list without
 // threading through either (the pattern of FilePathContext and
@@ -8,6 +9,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 import type { Turn, TurnEnding, TurnEndingNames, TurnEndingViewer } from "@stigmer/client";
 import type { RunErrorNoticeLink } from "./RunErrorNotice.js";
+import type { MessageAction, MessageInfo } from "./message-actions.js";
 
 /** The act a turn's ending offers this viewer: its words and what it does. */
 export interface TurnEndingAction {
@@ -46,6 +48,10 @@ export interface ThreadPresentation {
    * once. Absent, none is: every row offers its own.
    */
   readonly cardedAsks?: ReadonlySet<string>;
+  /** The session the thread shows, for host cards and message actions; absent, `""`. */
+  readonly sessionId?: string;
+  /** The host's actions for a message (`MessageThreadProps.messageActions`). */
+  readonly messageActions?: (message: MessageInfo) => readonly MessageAction[];
 }
 
 const DEFAULT: ThreadPresentation = {};
