@@ -59,7 +59,7 @@ Packages:
 Local stack:
   up               start the local Stigmer stack (server, runner, Temporal)
   down             stop the local Stigmer stack
-  status           show the status of the local Stigmer stack
+  status           show which server the CLI uses and the local stack's health
   logs             view logs from the local Stigmer stack
   setup            configure the LLM provider and operator identity for local
                    execution
