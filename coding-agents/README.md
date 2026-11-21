@@ -36,6 +36,14 @@ one is for the coding agent on a person's laptop.
   approvals in their screens, moving from Claude Managed Agents) as a method
   and the docs pages to read for their language. The calls live on those
   pages, a tab per language, not in the skill.
+- `plugin/skills/stigmer-build/SKILL.md`: designing and changing the person's
+  agents and connecting them to people: which piece of Stigmer does each part
+  (a vault for a secret, an Environment for packages and network, the tool's
+  mark or a hook for an approval, a plugin for an MCP server or a team's
+  plugin, a Routine for a schedule or another system, a Channel for people
+  outside Stigmer), then each job's method, pages and pitfalls, and how to
+  act: a manifest applied from the live definition, a secret the person saves,
+  a routine or channel turned on only on their yes.
 - `plugin/.mcp.json`: the bundled `stigmer mcp-server`, for making, running and
   reading agents once setup is done.
 - `plugin/hooks/`: the guard. `hooks.json` is Claude Code's: a `PreToolUse`
@@ -89,7 +97,12 @@ plugin on the job after setup, putting the agent in an existing app from a
 one-line ask, is `make walk-coding-agent-app APP=ledgerly-nextjs` (Next.js) or
 `APP=statements-fastapi` (FastAPI) (`test/install/coding-agent-app.mjs`), by
 hand: it passes when one of the app's signed-in customers uses the agent in the
-app and the conversation is theirs.
+app and the conversation is theirs. The plugin changing an agent the person
+already has, from a one-line ask (a routine every Monday, a package in its
+sandbox), is `make walk-coding-agent-build`
+(`test/install/coding-agent-build.mjs`), by hand: it passes when the server
+holds the routine, still off, and the Environment, and the agent's
+instructions and skills are as they were.
 
 ## The question bank
 

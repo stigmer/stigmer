@@ -11,10 +11,11 @@ description: >
   how to do something with the CLI or SDKs, or why something in Stigmer
   fails, hangs or won't start; and before deleting, cancelling or
   approving anything in their Stigmer. To set Stigmer up in this project,
-  use the stigmer-setup skill; to run their agents or read their runs, the
-  stigmer-run skill; to put their agent in their own product (backend
-  calls, the chat and its look, their users' sign-in, an organization per
-  customer, approvals in their screens), the stigmer-integrate skill.
+  use the stigmer-setup skill; to run their agents or read their runs,
+  stigmer-run; to put their agent in their own product (backend calls, the
+  chat, their users' sign-in), stigmer-integrate; to design an agent or
+  connect it to people (keys, tools, approvals, Slack, WhatsApp,
+  routines), stigmer-build.
 ---
 
 # Stigmer
@@ -65,6 +66,12 @@ about what the docs don't cover.
   look, their users' sign-in, an organization per customer, approvals in
   their own screens, moving from Claude Managed Agents): the
   stigmer-integrate skill.
+- Designing or changing an agent (where its keys go, its MCP servers and
+  which tools it may use, what waits for a person's yes, the packages and
+  network of its sandbox, their own skills and plugins) and connecting it
+  to people (a chat link, Slack, WhatsApp, staff taking over, a routine on
+  a schedule or started by another system): the stigmer-build skill. How
+  these pieces work, asked as a question, stays here.
 
 ## What Stigmer is
 

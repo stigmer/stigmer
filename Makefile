@@ -649,6 +649,20 @@ walk-coding-agent-app: build-libs build-server build-runner ## Ask Claude Code w
 	npm run build -w @stigmer/coding-agent-plugin
 	node test/install/coding-agent-app.mjs --app=$(APP) $(WALK_ARGS)
 
+# The build walk (test/install/coding-agent-build.mjs): a one-line ask to
+# Claude Code with Stigmer's plugin changes the question bank's
+# invoice-checker on the hermetic stage (a routine every Monday at 9 Berlin
+# time, pdfplumber in its sandbox), then the walk reads the server: the
+# routine and the Environment made, the routine still off and never started,
+# the agent's instructions and skills as they were. Needs a coding agent, so
+# it is in no lane; WALK_ARGS passes its flags (--keep, --max-turns=<n>,
+# --model=<id>).
+.PHONY: walk-coding-agent-build
+walk-coding-agent-build: build-libs build-server build-runner ## Ask Claude Code with Stigmer's plugin to change an agent (a weekly routine, a package in its sandbox) and read the server after (by hand; needs claude signed in)
+	@command -v claude >/dev/null 2>&1 || { echo "error: claude not found (Claude Code, signed in)"; exit 1; }
+	npm run build -w @stigmer/coding-agent-plugin
+	node test/install/coding-agent-build.mjs $(WALK_ARGS)
+
 # The coding-agent question bank (test/install/coding-agent-bank.mjs): every
 # case in coding-agents/evals/ asked of Claude Code with Stigmer's plugin and
 # without it (`claude plugin eval`, signed in to its own model), against a

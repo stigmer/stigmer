@@ -26,8 +26,9 @@
  * the coding agent or the run did.
  *
  * One `claude -p` turn (runClaude) and a free port (freePort) live here too,
- * shared with the app walk (test/install/coding-agent-app.mjs), which walks
- * the same coding agent with Stigmer's plugin.
+ * shared with the app walk (test/install/coding-agent-app.mjs) and the build
+ * walk (test/install/coding-agent-build.mjs), which walk the same coding
+ * agent with Stigmer's plugin.
  *
  * Plain node, no dependencies, like its neighbours.
  */

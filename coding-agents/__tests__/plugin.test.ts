@@ -59,13 +59,13 @@ describe("the plugin", () => {
     }
   });
 
-  it("reads with no error or warning: the front door, the setup guide, the runs and integration skills, the bundled MCP server and the guard", () => {
+  it("reads with no error or warning: the front door, the setup guide, the runs, integration and build skills, the bundled MCP server and the guard", () => {
     const outcome = readPluginPackage(inMemoryPluginFiles(files));
     expect(outcome.warnings).toEqual([]);
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
     expect(outcome.plugin.name).toBe("stigmer");
-    expect(outcome.plugin.skills.map((skill) => skill.name).sort()).toEqual(["stigmer", "stigmer-integrate", "stigmer-run", "stigmer-setup"]);
+    expect(outcome.plugin.skills.map((skill) => skill.name).sort()).toEqual(["stigmer", "stigmer-build", "stigmer-integrate", "stigmer-run", "stigmer-setup"]);
     expect(JSON.parse(files.get(".mcp.json") ?? "{}")).toEqual({
       mcpServers: { stigmer: { command: "stigmer", args: ["mcp-server"] } },
     });
