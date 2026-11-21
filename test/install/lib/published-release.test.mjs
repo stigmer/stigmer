@@ -1,6 +1,6 @@
 // Pins which artifacts make a release an install's upgrade base
-// (test/install/lib/published-release.mjs): the images, the all-in-one image, the
-// chart and the CLI's packages each install pulls, under the tags the
+// (test/install/lib/published-release.mjs): the images, the all-in-one image
+// and the CLI's packages each install pulls, under the tags the
 // release pushes them with; that a 404 manifest or a version npm does not
 // list is "not published" while every other answer throws, so an outage
 // never moves a base; and that the first missing artifact is the one named.
@@ -11,11 +11,10 @@ import { test } from "node:test";
 
 import { CLI_PACKAGES, npmPublished, ociPublished, releaseArtifacts, unpublishedArtifact } from "./published-release.mjs";
 
-test("each install pulls its own artifacts, images at v<version> and the chart at <version>", () => {
+test("each install pulls its own artifacts, images at v<version>", () => {
   const images = ["ghcr.io/stigmer/stigmer-server:v3.41.0", "ghcr.io/stigmer/stigmer-runner:v3.41.0"];
   assert.deepEqual(releaseArtifacts("compose", "3.41.0"), { oci: images, npm: [] });
   assert.deepEqual(releaseArtifacts("all-in-one", "3.41.0"), { oci: ["ghcr.io/stigmer/stigmer:v3.41.0"], npm: [] });
-  assert.deepEqual(releaseArtifacts("helm", "3.41.0"), { oci: ["ghcr.io/stigmer/charts/stigmer:3.41.0", ...images], npm: [] });
   assert.deepEqual(releaseArtifacts("cli", "3.41.0"), { oci: [], npm: [...CLI_PACKAGES] });
   assert.throws(() => releaseArtifacts("desktop", "3.41.0"), /no published artifacts are known for "desktop"/);
 });
@@ -35,10 +34,10 @@ function registry(status, { tokenStatus = 200 } = {}) {
 
 test("a manifest that answers is published, with the anonymous token on the HEAD", async () => {
   const { fetchImpl, asked } = registry(200);
-  assert.equal(await ociPublished("ghcr.io/stigmer/charts/stigmer:3.41.0", { fetchImpl }), true);
+  assert.equal(await ociPublished("ghcr.io/stigmer/stigmer-server:v3.41.0", { fetchImpl }), true);
   assert.deepEqual(asked, [
-    { url: "https://ghcr.io/token?scope=repository:stigmer/charts/stigmer:pull", method: "GET", authorization: undefined },
-    { url: "https://ghcr.io/v2/stigmer/charts/stigmer/manifests/3.41.0", method: "HEAD", authorization: "Bearer anon" },
+    { url: "https://ghcr.io/token?scope=repository:stigmer/stigmer-server:pull", method: "GET", authorization: undefined },
+    { url: "https://ghcr.io/v2/stigmer/stigmer-server/manifests/v3.41.0", method: "HEAD", authorization: "Bearer anon" },
   ]);
 });
 
@@ -59,9 +58,9 @@ test("npm's answer: installable is published, an unlisted version is not, any ot
 });
 
 test("the first unpublished artifact is named, images before packages; none means the release is a base", async () => {
-  const oci = async (reference) => !reference.includes("charts");
+  const oci = async (reference) => !reference.includes("stigmer-runner");
   const npm = async (name) => name !== "@stigmer/runner-slim";
-  assert.equal(await unpublishedArtifact("helm", "3.41.0", { oci, npm }), "ghcr.io/stigmer/charts/stigmer:3.41.0");
+  assert.equal(await unpublishedArtifact("compose", "3.41.0", { oci, npm }), "ghcr.io/stigmer/stigmer-runner:v3.41.0");
   assert.equal(await unpublishedArtifact("cli", "3.41.0", { oci, npm }), "@stigmer/runner-slim@3.41.0");
-  assert.equal(await unpublishedArtifact("compose", "3.41.0", { oci, npm }), undefined);
+  assert.equal(await unpublishedArtifact("all-in-one", "3.41.0", { oci, npm }), undefined);
 });

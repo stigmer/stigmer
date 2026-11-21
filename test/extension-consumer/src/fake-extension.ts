@@ -95,7 +95,7 @@ import {
   newModelCatalogProviderFromDocument,
   newPipeline,
   newResolveSlugStep,
-  newR2ArtifactStorage,
+  newS3ArtifactStorage,
   newValidateProtoStep,
   notFoundError,
   PLATFORM_TOKEN_ISSUER,
@@ -787,12 +787,12 @@ const credentialProvider: RunnerCredentialProvider = {
 };
 
 /**
- * A consumer-registered R2 driver built through the exported constructor —
+ * A consumer-registered S3 driver built through the exported constructor —
  * the cloud's per-domain-bucket registration shape: the composition owns
  * the config, OSS owns the S3 plumbing.
  */
-const consumerR2Driver: ArtifactStorageDriverFactory = () =>
-  newR2ArtifactStorage({
+const consumerS3Driver: ArtifactStorageDriverFactory = () =>
+  newS3ArtifactStorage({
     bucket: "consumer-domain-bucket",
     endpoint: "https://r2.invalid",
     accessKeyId: "consumer-key",
@@ -1480,7 +1480,7 @@ export const fakeExtension: ServerExtension = {
     runnerCredentialProvider: credentialProvider,
     artifactStorageDrivers: new Map([
       ["consumer-blob", consumerBlobDriver],
-      ["consumer-r2", consumerR2Driver],
+      ["consumer-s3", consumerS3Driver],
     ]),
     sandboxProvisionerDrivers: new Map([
       ["consumer-sandbox", consumerSandboxDriver],

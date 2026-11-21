@@ -51,3 +51,22 @@ export const OAUTH_CLIENT_DOCUMENT_PATH = "/v1/oauth/client.json";
  * `/v1/sessions/{id}/events/stream`. No other lane serves under it.
  */
 export const MANAGED_AGENTS_PATH_PREFIX = "/v1/sessions/";
+/**
+ * The runner artifact lane (artifactstorage/runner-lane/lane.ts): a runner
+ * asks for a short-lived URL on the artifact store's bucket for a key
+ * under its run. Two exact paths, the runner's wire
+ * (runner/src/shared/artifact-storage.ts); every other `/v1/proxy/*` path
+ * stays the adapter's 404.
+ */
+export const RUNNER_ARTIFACT_UPLOAD_PATH = "/v1/proxy/artifacts/presigned-upload-url";
+export const RUNNER_ARTIFACT_DOWNLOAD_PATH = "/v1/proxy/artifacts/presigned-download-url";
+
+/**
+ * The download lane for local artifact storage on the unified port
+ * (artifactstorage/file-server.ts, createArtifactDownloadLane): the same
+ * signed links the second listener serves, under one prefix, so a server
+ * behind one hostname serves its files beside its console and API
+ * (`ARTIFACT_LOCAL_SERVE_URL=https://<host>/artifacts`). The prefix keeps a
+ * key from ever meeting a console route.
+ */
+export const ARTIFACT_DOWNLOAD_PATH_PREFIX = "/artifacts/";

@@ -402,6 +402,15 @@ export interface SessionActivityReader {
 export interface SandboxBackgroundContext {
   readonly sessions: SessionActivityReader;
   readonly logger: Logger;
+  /**
+   * Optional: tells the server whether a new session can start now, which
+   * it reports as the stigmer.sandboxes health status
+   * (transport/health.ts). A driver whose new sandboxes start from
+   * something it prepares (Substrate's golden snapshot) reports false
+   * until that exists and again when it is lost; a driver that never
+   * calls it is ready from boot.
+   */
+  readonly reportReady?: (ready: boolean) => void;
 }
 
 /** A started driver's background work; `stop` resolves once it is idle. */
@@ -470,7 +479,22 @@ export interface SandboxDriverConfig {
    * construction site that forgets it fails to compile.
    */
   readonly serverRelease: string;
+  /**
+   * Whether the server serves the runner artifact lane on
+   * `backendEndpoint` (artifactstorage/runner-lane/lane.ts): its artifact
+   * store is a bucket. A driver then hands its runners
+   * STIGMER_ARTIFACT_PROXY_ENDPOINT, the same address, so a sandbox reads
+   * and writes what its run stores beside its record through short-lived
+   * URLs and needs no disk shared with the server. Never
+   * STIGMER_PROXY_ENDPOINT, which would also send the runner's model calls
+   * through the server. Required, so a construction site that forgets it
+   * fails to compile.
+   */
+  readonly artifactLane: boolean;
 }
+
+/** The runner's setting naming the server's artifact lane (runner src/config.ts). */
+export const ARTIFACT_LANE_ENDPOINT_ENV = "STIGMER_ARTIFACT_PROXY_ENDPOINT";
 
 /**
  * The runner variables a driver sets itself, per sandbox or from its own
@@ -487,6 +511,7 @@ export const SANDBOX_DRIVER_OWNED_RUNNER_ENV: readonly string[] = [
   "STIGMER_TOKEN",
   "STIGMER_BACKEND_ENDPOINT",
   "STIGMER_MCP_PUBLIC_ENDPOINT",
+  ARTIFACT_LANE_ENDPOINT_ENV,
   "TEMPORAL_SERVICE_ADDRESS",
   "TEMPORAL_NAMESPACE",
   "WORKSPACE_ROOT_DIR",
@@ -557,7 +582,7 @@ export const BUILT_IN_SANDBOX_PROVISIONER_TYPES = [
  * Selects and constructs the configured provisioner, or undefined for
  * the default external-runner posture (type ""). Unknown names are a
  * loud boot throw — a typo'd knob must never silently run unisolated
- * (the validateR2Config precedent).
+ * (the validateS3Config precedent).
  */
 export function newSandboxProvisioner(
   type: string,

@@ -95,7 +95,7 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim build-server protos codegen build-ts-stubs build-libs gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check gen-authorization-model gen-authorization-model-check gen-substrate-stubs gen-substrate-stubs-check gen-runner-turn-stubs gen-runner-turn-stubs-check
+.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim build-server protos codegen build-ts-stubs build-libs gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-operator-docs gen-operator-docs-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check gen-authorization-model gen-authorization-model-check gen-substrate-stubs gen-substrate-stubs-check gen-runner-turn-stubs gen-runner-turn-stubs-check
 build: build-libs build-web verify-desktop docs-build build-java-sdk build-runner build-server ## Build all project artifacts
 	@echo ""
 	@echo "built: the server ($(SERVER_DIR)/dist) and runner (the CLI ships as the @stigmer/cli npm package)"
@@ -174,7 +174,7 @@ protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C sdk/python codegen
 	$(MAKE) -C sdk/java codegen
 
-gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-cli-docs ## Generate all SDK reference docs
+gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-cli-docs gen-operator-docs ## Generate all SDK reference docs
 
 gen-proto-sdk-docs: ## Generate SDK resource docs from proto schemas
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
@@ -260,7 +260,7 @@ gen-react-core-docs: site-deps ## Generate the React core (@stigmer/react-core) 
 gen-theme-docs: site-deps ## Generate theme token reference docs from tokens.css
 	cd site && yarn generate-theme-docs
 
-gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-react-core-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-cli-docs-check ## Verify all SDK docs are up to date (CI)
+gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-react-core-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-cli-docs-check gen-operator-docs-check ## Verify all SDK docs are up to date (CI)
 
 gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
@@ -342,6 +342,28 @@ gen-theme-docs-check: site-deps ## Verify theme token docs are up to date (CI)
 		echo "error: theme token docs are stale — run 'make gen-theme-docs'"; exit 1; \
 	fi; \
 	echo "✓ Theme token docs are up to date"
+
+# The Stigmer resource's reference page, rendered from the Kubernetes
+# operator's generated definition (deploy/operator/config/crd/bases, written
+# by `make manifests` in deploy/operator from the Go types' doc comments):
+# tools/codegen/src/generator/stigmer-resource.ts.
+OPERATOR_DOCS_DIR := docs/guides/self-hosting/kubernetes-reference
+
+gen-operator-docs: node_modules ## Generate the Stigmer resource's reference page from the operator's definition
+	node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=operator-docs --output-dir $(OPERATOR_DOCS_DIR)
+	@$(PRETTIER_GUARD)
+	$(PRETTIER) --write --prose-wrap always $(OPERATOR_DOCS_DIR)/stigmer.mdx
+
+gen-operator-docs-check: node_modules ## Verify the Stigmer resource's reference page is up to date (CI)
+	@$(PRETTIER_GUARD)
+	@tmpdir=$$(mktemp -d) && \
+	node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=operator-docs --output-dir "$$tmpdir" >/dev/null && \
+	$(PRETTIER) --stdin-filepath "$(OPERATOR_DOCS_DIR)/stigmer.mdx" --prose-wrap always < "$$tmpdir/stigmer.mdx" > "$$tmpdir/stigmer.fmt.mdx" && \
+	if diff -q "$$tmpdir/stigmer.fmt.mdx" "$(OPERATOR_DOCS_DIR)/stigmer.mdx" > /dev/null 2>&1; then \
+		rm -rf "$$tmpdir"; echo "✓ The Stigmer resource's reference page is up to date"; \
+	else \
+		rm -rf "$$tmpdir"; echo "error: the Stigmer resource's reference page is stale — run 'make manifests' in deploy/operator, then 'make gen-operator-docs'"; exit 1; \
+	fi
 
 gen-cli-docs: ## Generate CLI reference docs from the TypeScript command tree
 	cd client-apps/cli && npx tsx scripts/gen-cli-docs.ts --output ../../docs/cli/commands/
@@ -832,33 +854,6 @@ smoke-compose: build-server build-web stage-compose-runner-cli ## Build the comp
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
 	node test/install/smoke-compose.mjs --build
 
-# The Helm chart (deploy/helm/stigmer):
-# docker-compose.yml translated for Kubernetes. Three gates, the compose
-# stack's shape: lint-helm is the static pass (helm lint --strict and
-# kubeconform on every CI values profile), test-helm the render tests
-# (goldens, the compose-parity test, the schema refusals — also in the root
-# test:scripts lane), smoke-helm the kind install with the same probes as
-# smoke-compose plus the adversarial arms, from source-built images (the
-# release lane runs the same script against the pushed tags).
-# smoke-helm-enterprise runs its opt-in enterprise profile, which builds the
-# Enterprise image too, so it is not part of the gate.
-HELM_CHART_DIR := deploy/helm/stigmer
-HELM_PROFILES := bundled byo ingress-oidc enterprise
-# The floor Chart.yaml declares (native gRPC probes are GA in 1.27).
-HELM_KUBE_VERSION := 1.27.0
-
-.PHONY: lint-helm
-lint-helm: ## Lint the Helm chart on every CI values profile and validate its render against the Kubernetes schemas (needs helm, kubeconform)
-	@command -v helm >/dev/null 2>&1 || { echo "error: helm not found"; exit 1; }
-	@command -v kubeconform >/dev/null 2>&1 || { echo "error: kubeconform not found — https://github.com/yannh/kubeconform"; exit 1; }
-	@for profile in $(HELM_PROFILES); do \
-		echo "helm lint --strict ($$profile)"; \
-		helm lint --strict $(HELM_CHART_DIR) -f $(HELM_CHART_DIR)/ci/values-$$profile.yaml --quiet || exit 1; \
-		echo "kubeconform ($$profile)"; \
-		helm template stigmer $(HELM_CHART_DIR) -f $(HELM_CHART_DIR)/ci/values-$$profile.yaml \
-			| kubeconform -strict -kubernetes-version $(HELM_KUBE_VERSION) -summary || exit 1; \
-	done
-
 # zizmor, the workflow auditor; the workflows lane (.github/workflows/ci.workflows.yaml)
 # pins the same version, so a local run and the lane judge alike.
 ZIZMOR_VERSION := 1.30.1
@@ -873,10 +868,6 @@ lint-workflows: ## Audit .github with zizmor, as the workflows lane does (needs 
 		uvx zizmor==$(ZIZMOR_VERSION) --offline .github; \
 	fi
 
-.PHONY: test-helm
-test-helm: node_modules ## Run the chart's render, compose-parity and schema tests (needs helm)
-	node --test $(HELM_CHART_DIR)/__tests__/*.test.mjs
-
 .PHONY: test-agent-sandbox
 test-agent-sandbox: build-server ## Run the agent-sandbox driver's live test and the turn proof (a Stigmer turn outliving its pod) on a kind cluster of its own with agent-sandbox installed (needs Docker, kind, kubectl, temporal; AGENT_SANDBOX_VERSION=latest tests upstream's newest release, RUNNER_IMAGE a local image; both reach the script through the environment, which checks them)
 	@for tool in docker kind kubectl temporal; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the agent-sandbox live test needs it"; exit 1; }; done
@@ -887,17 +878,47 @@ test-docker-sandbox: build-server ## Run the Docker driver's live test alone: a 
 	@command -v docker >/dev/null 2>&1 || { echo "error: docker not found — the Docker driver's live test needs it"; exit 1; }
 	cd $(SERVER_DIR) && if [ -n "$${RUNNER_IMAGE:-}" ]; then export STIGMER_SANDBOX_RUNNER_IMAGE="$$RUNNER_IMAGE"; fi && npm run test:live -- src/sandbox/__tests__/docker.live.test.ts
 
-.PHONY: smoke-helm
-smoke-helm: build-server build-web stage-compose-runner-cli ## Build both images from source, install the chart on kind and run the gate smoke (needs Docker, kind, helm, kubectl)
-	@for tool in docker kind helm kubectl; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the Helm smoke needs it"; exit 1; }; done
-	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
-	node test/install/smoke-helm.mjs --build
+# The Stigmer operator (deploy/operator, its own Go module outside go.work,
+# and its chart deploy/helm/stigmer-operator). build/test/lint delegate to
+# the module's Makefile, which pins its tools; smoke-operator is its install
+# test on kind (test/install/smoke-operator.mjs), one profile at a time:
+# PROFILE=bundled (the default), byo, bucket, exposed, agent-sandbox,
+# substrate, upgrade, or enterprise, which builds the Enterprise image too.
+# CHART=<dir|.tgz> installs the operator from that chart instead of the
+# checkout's: `helm package deploy/helm/stigmer-operator` and pass the .tgz to
+# prove the chart as the release packages it.
+OPERATOR_DIR := deploy/operator
+OPERATOR_CHART_DIR := deploy/helm/stigmer-operator
+# The floor the chart's Chart.yaml declares (kubeVersion), its render
+# validated against that release's schemas. kubeconform carries no schema for
+# a CustomResourceDefinition; the Stigmer definition is the generated one,
+# which every envtest run loads into a real API server.
+OPERATOR_KUBE_VERSION := 1.30.0
+PROFILE ?= bundled
 
-.PHONY: smoke-helm-enterprise
-smoke-helm-enterprise: build-server build-web stage-compose-runner-cli bundle-ee-slim ## Build the server, runner and Enterprise images from source and install the chart's enterprise profile on kind: the licensed server refuses a key it cannot verify (needs Docker, kind, helm, kubectl)
-	@for tool in docker kind helm kubectl; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the Helm smoke needs it"; exit 1; }; done
+.PHONY: build-operator test-operator lint-operator smoke-operator
+build-operator: ## Build the Stigmer operator's binary (deploy/operator)
+	$(MAKE) -C $(OPERATOR_DIR) build
+
+test-operator: ## Run the operator's unit and envtest suites, the Compose parity contract included
+	$(MAKE) -C $(OPERATOR_DIR) test
+
+lint-operator: ## gofmt, go vet, go mod tidy and generated files for the operator; its chart linted and its render validated against the Kubernetes schemas, on default values and on every value set (needs helm, kubeconform)
+	$(MAKE) -C $(OPERATOR_DIR) lint
+	@command -v helm >/dev/null 2>&1 || { echo "error: helm not found"; exit 1; }
+	@command -v kubeconform >/dev/null 2>&1 || { echo "error: kubeconform not found — https://github.com/yannh/kubeconform"; exit 1; }
+	@for values in "" "-f $(OPERATOR_CHART_DIR)/ci/values-every-setting.yaml"; do \
+		echo "helm lint --strict $(OPERATOR_CHART_DIR) $$values"; \
+		helm lint --strict $(OPERATOR_CHART_DIR) $$values --quiet || exit 1; \
+		helm template stigmer-operator $(OPERATOR_CHART_DIR) --namespace stigmer-system $$values \
+			| kubeconform -strict -kubernetes-version $(OPERATOR_KUBE_VERSION) -skip CustomResourceDefinition -summary || exit 1; \
+	done
+
+smoke-operator: build-server build-web stage-compose-runner-cli ## Build the images and the operator from source and run the operator's install test on kind, PROFILE=bundled|byo|bucket|exposed|agent-sandbox|substrate|upgrade|enterprise; CHART=<dir|.tgz> installs a packaged chart (needs Docker, kind, helm, kubectl)
+	@for tool in docker kind helm kubectl; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the operator's install test needs it"; exit 1; }; done
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
-	node test/install/smoke-helm.mjs --build --profiles=enterprise
+	@if [ "$(PROFILE)" = "enterprise" ]; then $(MAKE) bundle-ee-slim; fi
+	node test/install/smoke-operator.mjs --profiles=$(PROFILE) $(if $(CHART),--chart=$(CHART))
 
 # The upgrade rehearsal (test/install/rehearse-upgrade.mjs): one install moved from
 # the newest published release to THIS checkout by the procedure its guide
@@ -905,14 +926,15 @@ smoke-helm-enterprise: build-server build-web stage-compose-runner-cli bundle-ee
 # target builds what its artifact's smoke builds, stamped with the checkout's
 # from-source version (scripts/lib/source-version.mjs), so the rehearsal can
 # require the upgraded server to report exactly that. REHEARSE_ARGS passes
-# through, e.g. REHEARSE_ARGS=--from=0.1.0. compose, helm and cli bind port
-# 7234: stop any running stack first.
+# through, e.g. REHEARSE_ARGS=--from=0.1.0. compose and cli bind port 7234:
+# stop any running stack first. The operator has no release to rehearse from
+# yet; smoke-operator's upgrade profile proves its own upgrade loop.
 SOURCE_BUILD_VERSION = $$(node $(CURDIR)/scripts/lib/source-version.mjs)
 LINUX_SLIM_PLATFORM = linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
 
 .PHONY: rehearse-upgrade
-rehearse-upgrade: ## Rehearse an upgrade from the last release to this checkout: ARTIFACT=compose|all-in-one|helm|cli [REHEARSE_ARGS=--from=X.Y.Z]
-	@test -n "$(ARTIFACT)" || { echo "error: set ARTIFACT=compose|all-in-one|helm|cli"; exit 1; }
+rehearse-upgrade: ## Rehearse an upgrade from the last release to this checkout: ARTIFACT=compose|all-in-one|cli [REHEARSE_ARGS=--from=X.Y.Z]
+	@test -n "$(ARTIFACT)" || { echo "error: set ARTIFACT=compose|all-in-one|cli"; exit 1; }
 	$(MAKE) rehearse-upgrade-$(ARTIFACT)
 
 .PHONY: rehearse-upgrade-compose
@@ -926,12 +948,6 @@ rehearse-upgrade-all-in-one: build-runner build-server build-web ## Rehearse the
 	@command -v docker >/dev/null 2>&1 || { echo "error: docker not found — the all-in-one rehearsal needs a Docker daemon"; exit 1; }
 	node scripts/stage-all-in-one.mjs
 	node test/install/rehearse-upgrade.mjs --artifact=all-in-one $(REHEARSE_ARGS)
-
-.PHONY: rehearse-upgrade-helm
-rehearse-upgrade-helm: build-server build-web stage-compose-runner-cli ## Rehearse the Helm chart's upgrade from the last release to this checkout on kind (needs Docker, kind, helm, kubectl)
-	@for tool in docker kind helm kubectl; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the Helm rehearsal needs it"; exit 1; }; done
-	@cd $(SERVER_DIR) && STIGMER_SERVER_VERSION=$(SOURCE_BUILD_VERSION) node scripts/bundle-slim.mjs --platform=$(LINUX_SLIM_PLATFORM)
-	node test/install/rehearse-upgrade.mjs --artifact=helm $(REHEARSE_ARGS)
 
 .PHONY: rehearse-upgrade-cli
 rehearse-upgrade-cli: build-runner build-server build-web ## Rehearse the CLI's `stigmer up` upgrade from the last release to this checkout
@@ -1612,22 +1628,22 @@ release-preflight: ## Refuse to release while RELEASE_HOLD.md exists at the repo
 # The release pins travel in the commit the tag is cut from: the compose
 # stack pin in docker-compose.yml + .env.example (the release lane cannot
 # push the bump to the protected main — GH006 on v3.14.0 and v3.14.1), the
-# Helm chart's Chart.yaml (version == appVersion; the chart's image tags
-# default to v<appVersion>, and release.npm-libs refuses to package on a
-# mismatch), and the two upgrade examples on the self-hosting operations
-# page (the version a reader copies into .env and into `helm upgrade
-# --version`; a literal nothing owned went stale at v3.14.0 while the stack
-# was at v3.16.0). `make release` refuses to tag until every pin names the
+# Kubernetes operator chart's Chart.yaml (version == appVersion; the
+# operator's image tag is v<appVersion>, and release.npm-libs refuses to
+# package on a mismatch), and the two upgrade examples on the self-hosting
+# operations page (the version a reader copies into .env and into
+# `helm upgrade stigmer-operator --version`; a literal nothing owned went
+# stale at v3.14.0 while the stack was at v3.16.0). `make release` refuses to tag until every pin names the
 # new version. perl, not sed -i: the recipe must run the same on macOS and
 # Linux.
-release-pins: ## Bump the release pins to version=X.Y.Z (compose stack, Helm chart, operations page); commit before `make release`
+release-pins: ## Bump the release pins to version=X.Y.Z (compose stack, operator chart, operations page); commit before `make release`
 	@[ -n "$(version)" ] || { echo "usage: make release-pins version=X.Y.Z"; exit 1; }
 	@echo "$(version)" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$$' || { echo "error: version must be X.Y.Z (got '$(version)')"; exit 1; }
 	@perl -pi -e 's/STIGMER_VERSION:-v[0-9A-Za-z.+-]+/STIGMER_VERSION:-v$(version)/g' docker-compose.yml
 	@perl -pi -e 's/^#STIGMER_VERSION=.*/#STIGMER_VERSION=v$(version)/' .env.example
-	@perl -pi -e 's/^version: .*/version: $(version)/; s/^appVersion: .*/appVersion: "$(version)"/' deploy/helm/stigmer/Chart.yaml
+	@perl -pi -e 's/^version: .*/version: $(version)/; s/^appVersion: .*/appVersion: "$(version)"/' deploy/helm/stigmer-operator/Chart.yaml
 	@perl -pi -e 's/^STIGMER_VERSION=v[0-9A-Za-z.+-]+$$/STIGMER_VERSION=v$(version)/; s/^(\s+--version )[0-9A-Za-z.+-]+( \\)$$/$${1}$(version)$${2}/' docs/guides/self-hosting/operations.mdx
-	@echo "release pins set to $(version):"; git --no-pager diff --stat -- docker-compose.yml .env.example deploy/helm/stigmer/Chart.yaml docs/guides/self-hosting/operations.mdx
+	@echo "release pins set to $(version):"; git --no-pager diff --stat -- docker-compose.yml .env.example deploy/helm/stigmer-operator/Chart.yaml docs/guides/self-hosting/operations.mdx
 
 # The new tag is the newest stable v* tag bumped by `bump=`, or v0.1.0 when
 # the line has no stable tag yet, whatever `bump=` says
@@ -1641,15 +1657,15 @@ release: release-preflight ## Tag and push a release (usage: make release [bump=
 	fi; \
 	COMPOSE_PIN=$$(git show HEAD:docker-compose.yml | sed -n -E 's/.*STIGMER_VERSION:-v([0-9A-Za-z.+-]+).*/\1/p' | sort -u | tr '\n' ' ' | sed 's/ $$//'); \
 	ENV_PIN=$$(git show HEAD:.env.example | sed -n -E 's/^#STIGMER_VERSION=v(.*)$$/\1/p'); \
-	CHART_PIN=$$(git show HEAD:deploy/helm/stigmer/Chart.yaml | sed -n -E 's/^version: (.*)$$/\1/p'); \
-	CHART_APP_PIN=$$(git show HEAD:deploy/helm/stigmer/Chart.yaml | sed -n -E 's/^appVersion: "?([^"]*)"?$$/\1/p'); \
+	CHART_PIN=$$(git show HEAD:deploy/helm/stigmer-operator/Chart.yaml | sed -n -E 's/^version: (.*)$$/\1/p'); \
+	CHART_APP_PIN=$$(git show HEAD:deploy/helm/stigmer-operator/Chart.yaml | sed -n -E 's/^appVersion: "?([^"]*)"?$$/\1/p'); \
 	DOCS_PIN=$$(git show HEAD:docs/guides/self-hosting/operations.mdx | sed -n -E 's/^STIGMER_VERSION=v(.*)$$/\1/p; s/^ +--version ([0-9A-Za-z.+-]+) \\$$/\1/p' | sort -u | tr '\n' ' ' | sed 's/ $$//'); \
 	if [ "$$COMPOSE_PIN" != "$$NEW_VERSION" ] || [ "$$ENV_PIN" != "$$NEW_VERSION" ] || [ "$$CHART_PIN" != "$$NEW_VERSION" ] || [ "$$CHART_APP_PIN" != "$$NEW_VERSION" ] || [ "$$DOCS_PIN" != "$$NEW_VERSION" ]; then \
 		echo "error: the release pins at HEAD do not all name $$NEW_VERSION:"; \
 		echo "  docker-compose.yml     STIGMER_VERSION:-v$$COMPOSE_PIN   (a fresh clone runs this stack)"; \
 		echo "  .env.example           #STIGMER_VERSION=v$$ENV_PIN"; \
-		echo "  deploy/helm/stigmer/Chart.yaml  version=$$CHART_PIN appVersion=$$CHART_APP_PIN   (the chart's image tags default to v<appVersion>; release.npm-libs refuses to package on a mismatch)"; \
-		echo "  docs/guides/self-hosting/operations.mdx  $$DOCS_PIN   (the version a reader copies into .env and helm upgrade --version)"; \
+		echo "  deploy/helm/stigmer-operator/Chart.yaml  version=$$CHART_PIN appVersion=$$CHART_APP_PIN   (the operator's image tag is v<appVersion>; release.npm-libs refuses to package on a mismatch)"; \
+		echo "  docs/guides/self-hosting/operations.mdx  $$DOCS_PIN   (the version a reader copies into .env and helm upgrade stigmer-operator --version)"; \
 		echo "Bump them in a pull request, and tag the merged commit:"; \
 		echo "  make release-pins version=$$NEW_VERSION"; \
 		echo "  (.agents/skills/release-stigmer-oss/SKILL.md, section 3)"; \
@@ -1668,8 +1684,10 @@ release: release-preflight ## Tag and push a release (usage: make release [bump=
 	@echo "  - CLI binaries + GitHub release  (release.cli.yaml)"
 	@echo "  - Desktop installers on the release (release.desktop.yaml)"
 	@echo "  - @stigmer/* npm packages        (release.npm-libs.yaml)"
-	@echo "    + the server, Enterprise server, runner and all-in-one images on GHCR, and the Helm chart"
-	@echo "      at oci://ghcr.io/stigmer/charts/stigmer, each smoked before it is promoted or pushed"
+	@echo "    + the server, Enterprise server, runner, all-in-one and Kubernetes operator images on GHCR,"
+	@echo "      and the operator's chart at oci://ghcr.io/stigmer/charts/stigmer-operator, each smoked"
+	@echo "      before it is promoted or pushed"
+	@echo "  - The sandbox runner image, amd64 and arm64 (release.sandbox-cloud.yaml; the operator waits for it)"
 	@echo "  - Go SDK (go get)                (sdk/go tag auto-cached by proxy.golang.org)"
 	@echo "  - stigmer-sdk + stigmer-apis PyPI  (release.python-sdk.yaml)"
 	@echo "  - MCP server Docker image        (release.mcp-server.yaml)"

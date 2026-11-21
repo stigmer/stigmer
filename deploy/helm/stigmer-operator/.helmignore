@@ -1,0 +1,3 @@
+# Not part of the packaged chart: the lint profile (ci/) and editor noise.
+ci/
+.DS_Store

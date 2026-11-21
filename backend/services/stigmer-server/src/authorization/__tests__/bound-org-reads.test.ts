@@ -43,7 +43,7 @@ const INVENTORY: Readonly<Record<string, { readonly reads: number; readonly reas
     reason: "`boundOrgOf` itself: the one reading every consumer shares, a blank never counting as an organization",
   },
   "server:domain/apikey/controller.ts": {
-    reads: 3,
+    reads: 2,
     reason: "a service account's key is created limited to the account's own organization, which its caller form carries",
   },
   "server:domain/apikey/steps.ts": {

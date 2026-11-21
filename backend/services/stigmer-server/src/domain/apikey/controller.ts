@@ -21,6 +21,9 @@
  * limited to, the service account's organization. A service account's own
  * key is refused every create and update of a key (pipeline/steps/
  * refuse-service-account.ts): it never decides what credentials exist.
+ * The same chain, with a plaintext the operator generated, is the server's
+ * boot provisioning of the shared runner's key
+ * (newServiceAccountKeyProvisioner, boot/runner-key.ts); no route reaches it.
  *
  * Kind mechanics per kind_meta: id prefix `key`, is_versioned false (no
  * version surface), not_search_indexed true (no IndexSearch steps).
@@ -243,24 +246,55 @@ async function createForServiceAccount(
   await authorizeDirect(method, deps.authorizer, admin, input);
   await refuseServiceAccountCaller(admin, CREATE_KEY_ACT, deps.accounts);
   const account = await loadAccount(deps, input.serviceAccountId);
+  const key = await runServiceAccountKeyChain(deps, account, {
+    name: input.name,
+    expiresAt: input.expiresAt,
+    neverExpires: input.neverExpires,
+    kind: kindOf(ctx),
+    generate: newGenerateApiKeyStep(),
+  });
+  deps.logger.info("API key created for a service account", {
+    keyId: key.metadata?.id ?? "",
+    serviceAccountId: input.serviceAccountId,
+    org: key.spec?.boundOrg ?? "",
+    createdBy: admin.identityId,
+  });
+  return key;
+}
+
+/**
+ * The ordinary create chain AS the service account (createForServiceAccount's
+ * header), with the key material from `generate`.
+ */
+async function runServiceAccountKeyChain(
+  deps: ApiKeyControllerDeps,
+  account: IdentityAccount,
+  key: {
+    readonly name: string;
+    readonly expiresAt?: CreateServiceAccountKeyInput["expiresAt"];
+    readonly neverExpires: boolean;
+    readonly kind: ApiResourceKind;
+    readonly generate: ReturnType<typeof newGenerateApiKeyStep>;
+  },
+): Promise<ApiKey> {
   const asAccount = serviceAccountCallerOf(account);
   if (asAccount === undefined) {
     throw failedPreconditionError(
-      notAServiceAccountMessage(input.serviceAccountId),
+      notAServiceAccountMessage(account.metadata?.id ?? ""),
     );
   }
   const caller: CallerIdentity = { ...asAccount, issuer: "", rawToken: "" };
   const apiKey = create(ApiKeySchema, {
     apiVersion: "iam.stigmer.ai/v1",
     kind: "ApiKey",
-    metadata: { name: input.name, org: asAccount.boundOrg ?? "" },
+    metadata: { name: key.name, org: asAccount.boundOrg ?? "" },
     spec: {
-      ...(input.expiresAt !== undefined ? { expiresAt: input.expiresAt } : {}),
-      neverExpires: input.neverExpires,
+      ...(key.expiresAt !== undefined ? { expiresAt: key.expiresAt } : {}),
+      neverExpires: key.neverExpires,
       boundOrg: asAccount.boundOrg ?? "",
     },
   });
-  const reqCtx = new RequestContext(ApiKeySchema, apiKey, caller, kindOf(ctx));
+  const reqCtx = new RequestContext(ApiKeySchema, apiKey, caller, key.kind);
   await newPipeline<typeof ApiKeySchema>(
     "apikey-create-for-service-account",
     deps.logger,
@@ -271,7 +305,7 @@ async function createForServiceAccount(
     .addStep(newCheckDuplicateKeyNameStep(deps.store, ownerIsCaller))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newGenerateApiKeyStep())
+    .addStep(key.generate)
     .addStep(newPersistStep(deps.store, deps.credentialBinding))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -282,13 +316,36 @@ async function createForServiceAccount(
     .addStep(newReplaceHashWithPlainTextStep())
     .build()
     .execute(reqCtx);
-  deps.logger.info("API key created for a service account", {
-    keyId: reqCtx.newState.metadata?.id ?? "",
-    serviceAccountId: asAccount.identityId,
-    org: asAccount.boundOrg ?? "",
-    createdBy: admin.identityId,
-  });
   return reqCtx.newState;
+}
+
+/**
+ * The server's own provisioning of a service account's key from a plaintext
+ * the operator generated (boot/runner-key.ts, the shared runner's key). It
+ * runs createForServiceAccount's chain as the account, never as a caller:
+ * no route reaches it, so the rule that a client never chooses key material
+ * holds for every request.
+ */
+export interface ServiceAccountKeyProvisioner {
+  provision(input: {
+    readonly account: IdentityAccount;
+    readonly name: string;
+    readonly plaintext: string;
+  }): Promise<ApiKey>;
+}
+
+export function newServiceAccountKeyProvisioner(
+  deps: ApiKeyControllerDeps,
+): ServiceAccountKeyProvisioner {
+  return {
+    provision: ({ account, name, plaintext }) =>
+      runServiceAccountKeyChain(deps, account, {
+        name,
+        neverExpires: true,
+        kind: ApiResourceKind.api_key,
+        generate: newGenerateApiKeyStep(plaintext),
+      }),
+  };
 }
 
 /** The account by id, or the identity-account domain's NOT_FOUND; a fault is INTERNAL. */

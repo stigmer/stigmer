@@ -32,6 +32,9 @@ import { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/co
 import { TerminateRunInputSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { ScoreCommandController } from "@stigmer/apis/ai/stigmer/agentic/score/v1/command_pb";
 import { ScoreIdSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/io_pb";
+import { IdentityAccountCommandController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/command_pb";
+import { ApiKeyCommandController } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/command_pb";
+import { ApiKeyIdSchema } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/io_pb";
 
 import type {
   AgentLoader,
@@ -59,6 +62,7 @@ import {
 import type { CallerIdentity } from "../extensions/identity.js";
 import type { Logger } from "./logger.js";
 import type { SingleOrganizationCreator } from "./single-organization.js";
+import type { RunnerKeyEdges } from "./runner-key.js";
 import type { CallOptions } from "@connectrpc/connect";
 
 /** The narrow in-process surfaces the domains consume. */
@@ -150,6 +154,12 @@ export interface InProcessClients {
    * creator stamp say who made it.
    */
   readonly singleOrganizationCreator: SingleOrganizationCreator;
+  /**
+   * The shared runner's key at boot (boot/runner-key.ts): the `runner`
+   * service account's create and the delete of a replaced key, through
+   * their full chains under the internal class.
+   */
+  readonly runnerKeyEdges: RunnerKeyEdges;
 }
 
 /**
@@ -206,6 +216,8 @@ export function createInProcessClients(
   );
   const skillCommand = createClient(SkillCommandController, transport);
   const scoreCommand = createClient(ScoreCommandController, transport);
+  const identityAccountCommand = createClient(IdentityAccountCommandController, transport);
+  const apiKeyCommand = createClient(ApiKeyCommandController, transport);
 
   // The caller-propagation call options: the
   // ORIGINAL caller's identity rides the
@@ -309,6 +321,12 @@ export function createInProcessClients(
     singleOrganizationCreator: {
       createAsCaller: (organization, caller) =>
         organizationCommand.create(organization, asCaller(caller)),
+    },
+    runnerKeyEdges: {
+      createServiceAccount: (input) => identityAccountCommand.createServiceAccount(input),
+      deleteApiKey: async (id) => {
+        await apiKeyCommand.delete(create(ApiKeyIdSchema, { value: id }));
+      },
     },
   };
 

@@ -623,8 +623,9 @@ export interface EnforcingLane {
   managedAgentsBaseUrl(): string;
   // The scripted model the lane's OWN runner answers with. A lane has the
   // shape of its target: on an execution target the enforcing server runs
-  // beside its own engine and a runner keyed with the founder's API key (the
-  // Helm chart's single-operator-key install, driven by the harness), and
+  // beside its own engine and a runner keyed with the founder's API key (a
+  // self-hosted runner before the server provisioned its own key at boot,
+  // driven by the harness), and
   // this is the mock that runner dials — never the primary's, so the two
   // FIFOs cannot interleave. Absent on a lane without an engine (the Class
   // A targets, the cloud's primary lane); the execution arms gate on

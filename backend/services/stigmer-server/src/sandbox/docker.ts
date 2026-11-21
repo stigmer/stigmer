@@ -87,6 +87,7 @@ import type {
   SandboxProvisionerFactory,
   SandboxScope,
 } from "./provisioner.js";
+import { ARTIFACT_LANE_ENDPOINT_ENV } from "./provisioner.js";
 import { temporalAddressThroughServer } from "../transport/temporal-worker-door/address.js";
 import {
   SANDBOX_ID_LABEL,
@@ -160,6 +161,9 @@ export function buildDockerRun(
     `HOME=${RUNNER_HOME}`,
     ...(config.mcpPublicEndpoint !== ""
       ? ["--env", `STIGMER_MCP_PUBLIC_ENDPOINT=${config.mcpPublicEndpoint}`]
+      : []),
+    ...(config.artifactLane
+      ? ["--env", `${ARTIFACT_LANE_ENDPOINT_ENV}=${config.backendEndpoint}`]
       : []),
     ...(config.serverRelease !== ""
       ? ["--env", `${SERVER_RELEASE_ENV}=${config.serverRelease}`]

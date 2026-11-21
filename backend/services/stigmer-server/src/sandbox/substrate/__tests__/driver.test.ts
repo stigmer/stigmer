@@ -115,6 +115,7 @@ const config: SandboxDriverConfig = {
   runnerEnv: { ANTHROPIC_BASE_URL: "http://fake-model.example:18555" },
   runnerSecretEnv: { ANTHROPIC_API_KEY: "sk-test" },
   serverRelease: "",
+  artifactLane: false,
 };
 
 const settings: SubstrateDriverSettings = {

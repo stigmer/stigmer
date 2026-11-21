@@ -1,4 +1,0 @@
-# Not part of the packaged chart: the render tests and the CI values
-# profiles live beside the chart in the repository only.
-__tests__/
-ci/

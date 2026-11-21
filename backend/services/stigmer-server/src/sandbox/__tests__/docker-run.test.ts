@@ -35,6 +35,7 @@ const config: SandboxDriverConfig = {
   runnerEnv: { ANTHROPIC_BASE_URL: "http://gateway.example:8080" },
   runnerSecretEnv: { ANTHROPIC_API_KEY: "sk-test" },
   serverRelease: "",
+  artifactLane: false,
 };
 const env = {
   taskQueue: "session:ses_1",
@@ -117,6 +118,16 @@ describe("buildDockerRun", () => {
     expect(args).toContain(
       "STIGMER_MCP_PUBLIC_ENDPOINT=https://api.example.com",
     );
+  });
+});
+
+describe("the artifact lane", () => {
+  it("a bucket-store server hands the container its artifact lane, its own address; a local-store server none", () => {
+    const lane = buildDockerRun("session", "ses_3", { ...env, taskQueue: "session:ses_3" }, { ...config, artifactLane: true });
+    expect(lane.args).toContain(`STIGMER_ARTIFACT_PROXY_ENDPOINT=${config.backendEndpoint}`);
+    const none = buildDockerRun("session", "ses_3", { ...env, taskQueue: "session:ses_3" }, config);
+    expect(none.args.some((arg) => arg.startsWith("STIGMER_ARTIFACT_PROXY_ENDPOINT="))).toBe(false);
+    expect(none.args.some((arg) => arg.startsWith("STIGMER_PROXY_ENDPOINT="))).toBe(false);
   });
 });
 

@@ -20,6 +20,17 @@
  * maps it (the chassis to INTERNAL, the provisioning handler to
  * UNAVAILABLE), never a credential rejection. The fetch is injected so
  * tests never dial out and the composition root owns the process boundary.
+ *
+ * Split horizon (`fetchFrom`): an issuer the browser reaches at its public
+ * name may be reachable from this process only at another address, as a
+ * sign-in server running beside Stigmer in one cluster is. For an issuer
+ * named in `fetchFrom` the document is fetched from that address instead,
+ * and its `issuer` is still held to the public name, so the tokens it vouches
+ * for are checked exactly as before. The document's own `jwks_uri` and
+ * `userinfo_endpoint` are used as the server names them: a sign-in server
+ * that answers at the address it was asked on (Keycloak's dynamic back
+ * channel) leads them inside too. Only the issuer the server is configured
+ * with is ever named there (boot/compose.ts), never a federated one.
  */
 
 export interface DiscoveredIssuer {
@@ -40,6 +51,7 @@ export function discoveryUrl(issuer: string): string {
 
 export function newIssuerDiscovery(
   fetchImpl: typeof fetch = fetch,
+  fetchFrom: ReadonlyMap<string, string> = new Map(),
 ): IssuerDiscovery {
   const discovered = new Map<string, DiscoveredIssuer>();
   return {
@@ -48,7 +60,7 @@ export function newIssuerDiscovery(
       if (cached !== undefined) {
         return cached;
       }
-      const url = discoveryUrl(issuer);
+      const url = discoveryUrl(fetchFrom.get(issuer) ?? issuer);
       const response = await fetchImpl(url);
       if (!response.ok) {
         throw new Error(

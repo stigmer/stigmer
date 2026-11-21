@@ -4,9 +4,9 @@
  * layout contract, the local signed-URL shape (a fixed serve URL, or one
  * resolved per mint once the file server binds — stigmer#1089; the key's
  * path segment-encoded; the download filename, the expiry and the
- * signature in the query, the expiry clamped to the 7-day ceiling the R2
+ * signature in the query, the expiry clamped to the 7-day ceiling the S3
  * backend shares, and the signer's verify accepting what it minted), and the
- * Content-Disposition builder; the factory's r2/unknown refusals; and the
+ * Content-Disposition builder; the factory's s3/unknown refusals; and the
  * wider surface: size, the typed not-found, the contained copy,
  * presigned-PUT over the skill-transfer-lane mechanism, and
  * registered-driver factory selection.
@@ -32,7 +32,7 @@ import {
   newArtifactStorage,
 } from "../artifact-storage.js";
 import type { ArtifactStorage } from "../artifact-storage.js";
-import { R2_MAX_EXPIRATION_MS } from "../r2-storage.js";
+import { S3_MAX_EXPIRATION_MS } from "../s3-storage.js";
 import { MAX_SIGNED_URL_TTL_MS } from "../url-signer.js";
 import { testUrlSigner } from "../__test-utils__/url-signer.js";
 
@@ -182,14 +182,14 @@ describe("LocalArtifactStorage", () => {
     expect(signer.verify(key, url.searchParams)).toBe(true);
   });
 
-  it("signed URL: the expiry is clamped to the 7-day ceiling the R2 backend shares", async () => {
+  it("signed URL: the expiry is clamped to the 7-day ceiling the S3 backend shares", async () => {
     const url = new URL(
       await storage.getSignedUrl("artifacts/run_1/plan.md", 30 * 24 * 3600_000, "", "person"),
     );
     expect(Number(url.searchParams.get("exp"))).toBe(
       Math.floor((NOW + MAX_SIGNED_URL_TTL_MS) / 1000),
     );
-    expect(MAX_SIGNED_URL_TTL_MS).toBe(R2_MAX_EXPIRATION_MS);
+    expect(MAX_SIGNED_URL_TTL_MS).toBe(S3_MAX_EXPIRATION_MS);
   });
 
   it("signed URL: a resolved serve URL is read at every mint, not at construction", async () => {
@@ -348,13 +348,13 @@ describe("LocalArtifactStorage presignPut over the transfer-lane slots", () => {
   });
 });
 
-const NO_R2 = {
-  r2Bucket: "",
-  r2Endpoint: "",
-  r2AccessKeyId: "",
-  r2SecretAccessKey: "",
-  r2Region: "",
-  r2RunnerEndpoint: "",
+const NO_S3 = {
+  s3Bucket: "",
+  s3Endpoint: "",
+  s3AccessKeyId: "",
+  s3SecretAccessKey: "",
+  s3Region: "",
+  s3RunnerEndpoint: "",
 } as const;
 
 describe("newArtifactStorage factory", () => {
@@ -366,7 +366,7 @@ describe("newArtifactStorage factory", () => {
         localBasePath: path.join(parent, "store"),
         localServeUrl: "http://localhost:7235",
         localUrlSigner: signer,
-        ...NO_R2,
+        ...NO_S3,
       });
       expect(s).toBeInstanceOf(LocalArtifactStorage);
     } finally {
@@ -374,18 +374,18 @@ describe("newArtifactStorage factory", () => {
     }
   });
 
-  it("r2 constructs the R2 backend (validation pins live in r2-storage tests)", () => {
-    // The r2 arm constructs, and an incomplete config fails with the
+  it("s3 constructs the S3 backend (validation pins live in s3-storage tests)", () => {
+    // The s3 arm constructs, and an incomplete config fails with the
     // driver's required-config copy.
     expect(() =>
-      newArtifactStorage({ type: "r2", localBasePath: "", localServeUrl: "", localUrlSigner: signer, ...NO_R2 }),
-    ).toThrow("R2 bucket name is required");
+      newArtifactStorage({ type: "s3", localBasePath: "", localServeUrl: "", localUrlSigner: signer, ...NO_S3 }),
+    ).toThrow("S3 bucket name is required");
   });
 
   it("unknown type refuses", () => {
     expect(() =>
-      newArtifactStorage({ type: "s3", localBasePath: "", localServeUrl: "", localUrlSigner: signer, ...NO_R2 }),
-    ).toThrow("unknown storage type: s3 (must be 'local' or 'r2')");
+      newArtifactStorage({ type: "gcs", localBasePath: "", localServeUrl: "", localUrlSigner: signer, ...NO_S3 }),
+    ).toThrow("unknown storage type: gcs (must be 'local' or 's3')");
   });
 
   it("selects a registered driver by name — and only constructs the selected one", () => {
@@ -396,7 +396,7 @@ describe("newArtifactStorage factory", () => {
     >;
     const registered = new Map([
       [
-        "cloud-r2",
+        "bucket-per-domain",
         () => {
           constructed += 1;
           return fake;
@@ -411,7 +411,7 @@ describe("newArtifactStorage factory", () => {
       ],
     ]);
     const s = newArtifactStorage(
-      { type: "cloud-r2", localBasePath: "", localServeUrl: "", localUrlSigner: signer, ...NO_R2 },
+      { type: "bucket-per-domain", localBasePath: "", localServeUrl: "", localUrlSigner: signer, ...NO_S3 },
       registered,
     );
     expect(s).toBe(fake);
@@ -422,10 +422,10 @@ describe("newArtifactStorage factory", () => {
   it("unknown type names the registered drivers in its refusal", () => {
     expect(() =>
       newArtifactStorage(
-        { type: "s3", localBasePath: "", localServeUrl: "", localUrlSigner: signer, ...NO_R2 },
-        new Map([["cloud-r2", () => ({}) as never]]),
+        { type: "gcs", localBasePath: "", localServeUrl: "", localUrlSigner: signer, ...NO_S3 },
+        new Map([["bucket-per-domain", () => ({}) as never]]),
       ),
-    ).toThrow("unknown storage type: s3 (must be 'local' or 'r2' or 'cloud-r2')");
+    ).toThrow("unknown storage type: gcs (must be 'local' or 's3' or 'bucket-per-domain')");
   });
 });
 

@@ -1,0 +1,37 @@
+# A Stigmer whose files live in a bucket and whose database is backed up to
+# it: artifacts, Files and Skills under their own prefixes, the database's
+# archive under postgres/, a full backup daily and a backup before every
+# upgrade. Backups need cert-manager on the cluster; the operator installs
+# CloudNativePG's Barman Cloud plugin itself.
+#
+#   kubectl -n stigmer create secret generic bucket \
+#     --from-literal=ACCESS_KEY_ID=<key id> --from-literal=SECRET_ACCESS_KEY=<secret>
+#   kubectl apply -f bucket.yaml
+#   kubectl -n stigmer get stigmer        # the Backup column: the last full backup
+#
+# To restore into a new cluster, keep the keys Secret (stigmer-keys) from the
+# old one, then declare spec.database.postgresql.bundled.recoverFrom with the
+# old install's status.backup.serverName and the moment to restore to.
+apiVersion: stigmer.ai/v1
+kind: Stigmer
+metadata:
+  name: stigmer
+  namespace: stigmer
+spec:
+  owner:
+    email: priya@acme.dev
+  runner:
+    llm:
+      secretName: anthropic
+  objectStore:
+    s3:
+      bucket: acme-stigmer
+      region: us-east-1
+      credentialsSecret:
+        name: bucket
+  database:
+    postgresql:
+      bundled:
+        backup:
+          schedule: "0 0 2 * * *"
+          retention: 30d

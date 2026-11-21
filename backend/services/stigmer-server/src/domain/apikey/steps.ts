@@ -5,7 +5,11 @@
  *     plaintext AFTER BuildNewState, stores hash + fingerprint on the
  *     spec, and parks the plaintext under the context key for the
  *     response step. The client can never choose key material — whatever
- *     spec.key_hash/fingerprint the request carried is overwritten.
+ *     spec.key_hash/fingerprint the request carried is overwritten. The
+ *     one exception is not a client: the server's own boot provisioning of
+ *     the shared runner's key (boot/runner-key.ts) hands the step a
+ *     plaintext the operator generated, through a function no route
+ *     reaches (controller.ts, newServiceAccountKeyProvisioner).
  *   - ReplaceHashWithPlainText: AFTER Persist,
  *     swaps the plaintext into spec.key_hash of the RESPONSE only. This
  *     is the ONLY time the plaintext ever leaves the server; the store
@@ -71,8 +75,12 @@ export const API_KEY_PLAINTEXT_KEY = "API_KEY_PLAINTEXT";
 
 type ApiKeyDesc = typeof ApiKeySchema;
 
-/** Mints the key material onto newState.spec; parks the plaintext. */
-export function newGenerateApiKeyStep(): PipelineStep<ApiKeyDesc> {
+/**
+ * Mints the key material onto newState.spec; parks the plaintext.
+ * `supplied` is the boot provisioning's plaintext (the module header);
+ * every route builds the step without it.
+ */
+export function newGenerateApiKeyStep(supplied?: string): PipelineStep<ApiKeyDesc> {
   return {
     name: "GenerateApiKey",
     execute(ctx: RequestContext<ApiKeyDesc>): void {
@@ -83,7 +91,7 @@ export function newGenerateApiKeyStep(): PipelineStep<ApiKeyDesc> {
           "generate api key",
         );
       }
-      const plaintext = generateApiKeyPlaintext();
+      const plaintext = supplied ?? generateApiKeyPlaintext();
       resource.spec.keyHash = hashApiKey(plaintext);
       resource.spec.fingerprint = fingerprintOf(plaintext);
       ctx.set(API_KEY_PLAINTEXT_KEY, plaintext);

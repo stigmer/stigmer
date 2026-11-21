@@ -1,0 +1,15 @@
+{{- /*
+The Stigmer definition, from files/stigmer.ai_stigmers.yaml, which
+`make manifests` in deploy/operator generates from the API types. Rendered as
+a template, not shipped in crds/: Helm installs crds/ once and never upgrades
+it, so a release that changes a field would run its operator against the old
+definition. As a template, `helm upgrade` applies it before the new operator
+rolls (Helm orders definitions first). The keep policy leaves it on
+`helm uninstall`, so removing the operator never deletes a Stigmer; a later
+install under the same release name and namespace adopts it again.
+*/ -}}
+{{- $crd := .Files.Get "files/stigmer.ai_stigmers.yaml" | fromYaml }}
+{{- $labels := include "stigmer-operator.labels" . | fromYaml }}
+{{- $_ := set $crd.metadata "labels" $labels }}
+{{- $_ := set $crd.metadata "annotations" (merge (dict "helm.sh/resource-policy" "keep") ($crd.metadata.annotations | default dict)) }}
+{{ toYaml $crd }}

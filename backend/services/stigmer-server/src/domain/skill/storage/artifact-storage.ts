@@ -26,7 +26,7 @@ export { ArtifactNotFoundError } from "../../../archive/content-store.js";
 /** Storage abstraction for skill artifacts. */
 export type SkillArtifactStorage = ContentAddressedArchiveStore;
 
-/** The key prefix shared with cloud R2 and the download lane's containment check. */
+/** The key prefix shared with a bucket store and the download lane's containment check. */
 export const SKILL_ARTIFACT_KEY_PREFIX = "skills/";
 
 /** The skill store over a blob driver: "skills/<hash>.zip". */

@@ -1,6 +1,6 @@
 /**
  * Signed, expiring download links for the local blob backend: what a
- * bucket's presigned URL gives the R2 backend, given to the two lanes that
+ * bucket's presigned URL gives the S3 backend, given to the two lanes that
  * serve local blobs over HTTP (the artifact file server, and the skill
  * transfer lane's GET route). A link minted by `LocalArtifactStorage`
  * carries `exp` (its expiry, Unix seconds) and `sig` (an HMAC-SHA256 over
@@ -35,7 +35,7 @@ export const DOWNLOAD_URL_KEY_ENV_VAR = "STIGMER_DOWNLOAD_URL_KEY";
 export const DOWNLOAD_URL_KEY_FILE_NAME = "download-url.key";
 
 /**
- * The longest a signed download URL lives, on every backend: the R2
+ * The longest a signed download URL lives, on every backend: the S3
  * presign maximum, and the local backend's clamp.
  */
 export const MAX_SIGNED_URL_TTL_MS = 7 * 24 * 60 * 60 * 1000;

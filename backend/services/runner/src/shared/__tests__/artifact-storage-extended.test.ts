@@ -10,6 +10,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { LocalArtifactStorage, ProxyArtifactStorage, createArtifactStorage } from "../artifact-storage.js";
+import { withRunCredential } from "../run-credential-store.js";
 
 function makeTempDir(): string {
   return mkdtempSync(join(tmpdir(), "as-test-"));
@@ -239,5 +240,46 @@ describe("createArtifactStorage", () => {
       proxyEndpoint: "https://proxy.example.com",
       proxyAuthToken: null,
     })).toThrow("STIGMER_TOKEN");
+  });
+
+  it("builds without a process token inside a run, which carries its own credential", async () => {
+    const storage = await withRunCredential("run-credential", () =>
+      Promise.resolve(createArtifactStorage({
+        type: "proxy",
+        localPath: "/var/artifacts",
+        proxyEndpoint: "https://proxy.example.com",
+        proxyAuthToken: { current: null },
+      })),
+    );
+    expect(storage).toBeInstanceOf(ProxyArtifactStorage);
+  });
+});
+
+describe("ProxyArtifactStorage's credential", () => {
+  const originalFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  function presented(run: () => Promise<unknown>): Promise<string[]> {
+    const seen: string[] = [];
+    globalThis.fetch = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("presigned-download-url")) {
+        seen.push(new Headers(init?.headers as ConstructorParameters<typeof Headers>[0]).get("authorization") ?? "");
+        return new Response(JSON.stringify({ url: "https://bucket.example.com/get" }), { status: 200 });
+      }
+      return new Response("x", { status: 200 });
+    }) as typeof fetch;
+    return run().then(() => seen);
+  }
+
+  it("presents the run's own credential inside a run, and the process token outside one", async () => {
+    const storage = new ProxyArtifactStorage("https://server.example.com", { current: "process-token" });
+    const seen = await presented(async () => {
+      await withRunCredential("run-credential", () => storage.download("artifacts/run_1/a"));
+      await storage.download("artifacts/run_1/a");
+    });
+    expect(seen).toEqual(["Bearer run-credential", "Bearer process-token"]);
   });
 });

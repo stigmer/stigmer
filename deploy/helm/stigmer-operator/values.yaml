@@ -1,0 +1,33 @@
+# The operator's own settings. Everything about the Stigmer install itself
+# is declared on the Stigmer resource, not here.
+
+image:
+  # The operator's image. An empty tag means v<appVersion>.
+  repository: ghcr.io/stigmer/stigmer-operator
+  tag: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+# One replica reconciles at a time (leader election), so more replicas only
+# shorten a failover.
+replicas: 1
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    memory: 512Mi
+
+# Log verbosity for the operator's zap logger: info or debug.
+logLevel: info
+
+# For development clusters only: the in-cluster address of the cluster's
+# local registry, such as kind-registry:5000 on kind. Agent Substrate's node
+# agent pulls localhost image references (a sandbox image built on your
+# machine) through it. Leave empty on a real cluster, whose images come from
+# a registry with TLS.
+localRegistry: ""
+
+nodeSelector: {}
+tolerations: []

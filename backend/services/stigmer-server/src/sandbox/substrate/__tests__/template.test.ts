@@ -39,6 +39,8 @@
  *     hosting many organisations), which no operator setting overrides;
  *   - the keeper says once per process that an owner must grant the
  *     atespace's bindings when it may not write them;
+ *   - the keeper tells its listeners once when it becomes ready and once
+ *     when it is invalidated, and nothing after they stop listening;
  *   - the keeper prepares once however many callers wait, waits for the
  *     golden snapshot, recreates a failed template once and then fails, and
  *     gives up after its cap;
@@ -104,6 +106,7 @@ const config: SandboxDriverConfig = {
   runnerEnv: { ANTHROPIC_BASE_URL: "http://fake-model.example:18555" },
   runnerSecretEnv: { ANTHROPIC_API_KEY: "sk-test" },
   serverRelease: "",
+  artifactLane: false,
 };
 
 const settings: SubstrateDriverSettings = {
@@ -186,6 +189,14 @@ describe("the template", () => {
       expect(env).not.toHaveProperty(secret);
     }
     expect(Object.keys(env)).toEqual([...Object.keys(env)].sort());
+  });
+
+  it("hands a bucket-store server's runner its artifact lane, the server's own address, and a local-store server's none", () => {
+    const lane = envOf(buildRunnerTemplate({ config: { ...config, artifactLane: true }, settings, runnerMode: "local" }));
+    expect(lane["STIGMER_ARTIFACT_PROXY_ENDPOINT"]).toBe(config.backendEndpoint);
+    const none = envOf(buildRunnerTemplate({ config, settings, runnerMode: "local" }));
+    expect(none).not.toHaveProperty("STIGMER_ARTIFACT_PROXY_ENDPOINT");
+    expect(none).not.toHaveProperty("STIGMER_PROXY_ENDPOINT");
   });
 
   it("mounts the workspace and the actor's name, and snapshots for the ladder", () => {
@@ -500,6 +511,19 @@ describe("the keeper", () => {
       substrate.calls.filter((c) => c.startsWith("createTemplate")),
     ).toHaveLength(1);
     expect(k.readyNow()).toBe(true);
+  });
+
+  it("tells its listeners when it becomes ready and when it is invalidated, once each", async () => {
+    const k = keeper(new FakeSubstrate());
+    const seen: boolean[] = [];
+    const stop = k.onReadyChange((ready) => seen.push(ready));
+    await k.ready();
+    await k.ready();
+    k.invalidate();
+    k.invalidate();
+    stop();
+    await k.ready();
+    expect(seen).toEqual([true, false]);
   });
 
   it("recreates a template whose golden snapshot failed, once", async () => {

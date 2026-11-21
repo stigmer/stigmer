@@ -9,6 +9,10 @@
  * The driver declares no Environment support, so an Environment that
  * limits networking or installs packages is refused before it reaches one.
  *
+ * With the runner artifact lane on (a bucket-backed artifact store), the
+ * runner is told to ask the server for its artifact URLs, at the server's
+ * own address; with it off it is told nothing.
+ *
  * Unix-only like the runner itself; deterministic (poll with timeout,
  * never sleep). Every poll gets an explicit budget: vitest's default
  * second is enough on an idle laptop and not under the full suite's
@@ -65,6 +69,7 @@ describe.skipIf(process.platform === "win32")(
       runnerEnv: { ANTHROPIC_BASE_URL: "http://127.0.0.1:18555" },
       runnerSecretEnv: { ANTHROPIC_API_KEY: "k-model-smoke" },
       serverRelease: "",
+      artifactLane: false,
     };
     const driver = newLocalProcessSandboxProvisioner({
       config,
@@ -133,6 +138,8 @@ describe.skipIf(process.platform === "win32")(
       // STIGMER_SANDBOX_RUNNER_ENV and STIGMER_SANDBOX_RUNNER_SECRETS).
       expect(dump).toContain("ANTHROPIC_BASE_URL=http://127.0.0.1:18555");
       expect(dump).toContain("ANTHROPIC_API_KEY=k-model-smoke");
+      // No runner artifact lane on this server: the runner is told of none.
+      expect(dump).not.toContain("STIGMER_ARTIFACT_PROXY_ENDPOINT=");
       delete process.env["STIGMER_TEMPORAL_TLS_SERVER_CA_CERT_PATH"];
       delete process.env["STIGMER_TEMPORAL_API_KEY"];
     });
@@ -203,6 +210,7 @@ describe("the local-process driver and an Environment", () => {
         runnerEnv: {},
         runnerSecretEnv: {},
         serverRelease: "",
+        artifactLane: false,
       },
       logger: silentLogger,
     });
@@ -227,6 +235,7 @@ describe.skipIf(process.platform === "win32")("the local-process driver with no 
         runnerEnv: {},
         runnerSecretEnv: {},
         serverRelease: "",
+        artifactLane: false,
       },
       logger: silentLogger,
     });
@@ -248,6 +257,48 @@ describe.skipIf(process.platform === "win32")("the local-process driver with no 
       expect(dump).toContain("TEMPORAL_SERVICE_ADDRESS=localhost:7234");
     } finally {
       await driver.deprovisionSessionSandbox("ses_default");
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe.skipIf(process.platform === "win32")("the local-process driver on a server with the runner artifact lane", () => {
+  it("tells its runner to ask the server for artifact URLs, at the server's own address", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "local-process-artifact-lane-"));
+    const script = path.join(dir, "fake-runner.sh");
+    writeFileSync(script, `#!/bin/sh\nenv > "${dir}/env.dump"\nwhile true; do sleep 1; done\n`);
+    chmodSync(script, 0o755);
+    const driver = newLocalProcessSandboxProvisioner({
+      config: {
+        backendEndpoint: "http://127.0.0.1:7234",
+        mcpPublicEndpoint: "",
+        temporalNamespace: "default",
+        runnerImage: "unused-by-this-driver",
+        runnerCommand: script,
+        kubernetesNamespace: "unused-by-this-driver",
+        runnerEnv: {},
+        runnerSecretEnv: {},
+        serverRelease: "",
+        artifactLane: true,
+      },
+      logger: silentLogger,
+    });
+    try {
+      await driver.ensureSessionSandbox("ses_artifact_lane", {
+        taskQueue: "session:ses_artifact_lane",
+        stigmerToken: "tok",
+        callerClass: "user",
+        executionId: "aex_test",
+      });
+      // The shell creates env.dump before `env` writes into it, so wait for
+      // what it holds, not for the file.
+      const dumpPath = path.join(dir, "env.dump");
+      await vi.waitFor(() => expect(existsSync(dumpPath) ? readFileSync(dumpPath, "utf8") : "").toContain("STIGMER_ARTIFACT_PROXY_ENDPOINT="), {
+        timeout: CHILD_SETTLE_TIMEOUT_MS,
+      });
+      expect(readFileSync(dumpPath, "utf8")).toContain("STIGMER_ARTIFACT_PROXY_ENDPOINT=http://127.0.0.1:7234");
+    } finally {
+      await driver.deprovisionSessionSandbox("ses_artifact_lane");
       rmSync(dir, { recursive: true, force: true });
     }
   });

@@ -8,9 +8,19 @@
  * The CLI's serverGate TCP probe keys off the port bind, which the boot
  * sequence therefore performs only after this state is SERVING.
  *
+ * One named service beside it, stigmer.sandboxes, says whether a new
+ * session can start now: NOT_SERVING while the sandbox driver builds what
+ * every new sandbox starts from (Agent Substrate's golden snapshot),
+ * SERVING once it exists, and SERVING from boot under a driver with no such
+ * image. It never touches the overall status, so the console and the API
+ * answer while the image builds; an installer that wants an install Ready
+ * only when sessions can start asks it by name (the Kubernetes operator's
+ * runner component does).
+ *
  * Semantics are the gRPC health protocol's: Check on an unknown service is
  * NOT_FOUND; Watch answers immediately with the current status
- * (SERVICE_UNKNOWN if unset), stays open, and streams changes.
+ * (SERVICE_UNKNOWN if unset), stays open, and streams changes; List names
+ * every service with a status.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -24,6 +34,9 @@ type StatusListener = (status: ServingStatus) => void;
 /** The "" service name = the server's overall health (gRPC convention). */
 const OVERALL = "";
 
+/** The named service that says whether a new session can start now. */
+export const SANDBOXES_HEALTH_SERVICE = "stigmer.sandboxes";
+
 export class HealthState {
   private readonly statuses = new Map<string, ServingStatus>();
   private readonly listeners = new Map<string, Set<StatusListener>>();
@@ -33,10 +46,20 @@ export class HealthState {
   }
 
   setOverall(status: ServingStatus): void {
-    this.statuses.set(OVERALL, status);
-    for (const listener of this.listeners.get(OVERALL) ?? []) {
+    this.set(OVERALL, status);
+  }
+
+  /** Sets one service's status and tells its watchers. */
+  set(service: string, status: ServingStatus): void {
+    this.statuses.set(service, status);
+    for (const listener of this.listeners.get(service) ?? []) {
       listener(status);
     }
+  }
+
+  /** Every service with a status, by name. */
+  services(): ReadonlyMap<string, ServingStatus> {
+    return this.statuses;
   }
 
   status(service: string): ServingStatus | undefined {
@@ -72,9 +95,8 @@ export function registerHealthService(
 
     list: () => {
       const statuses: Record<string, { status: ServingStatus }> = {};
-      const overall = state.status(OVERALL);
-      if (overall !== undefined) {
-        statuses[OVERALL] = { status: overall };
+      for (const [service, status] of state.services()) {
+        statuses[service] = { status };
       }
       return { statuses };
     },

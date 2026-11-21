@@ -121,6 +121,7 @@ describe("docker driver against a Docker daemon", () => {
     runnerEnv: { ANTHROPIC_BASE_URL: "http://host.docker.internal:18555" },
     runnerSecretEnv: { ANTHROPIC_API_KEY: "sk-docker-live" },
     serverRelease: "",
+    artifactLane: false,
   };
   const driver = newDockerSandboxProvisioner({
     config,
@@ -200,6 +201,7 @@ describe("docker driver moving a container to another image (stigmer#1843)", () 
     runnerEnv: {},
     runnerSecretEnv: {},
     serverRelease: "",
+    artifactLane: false,
   };
   const facts: SandboxFacts = {
     taskQueue: `session:${sessionId}`,

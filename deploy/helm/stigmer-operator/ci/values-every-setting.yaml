@@ -1,0 +1,25 @@
+# Every value the chart takes, set, so `make lint-operator` lints and
+# kubeconform-validates the render with each branch of every template taken.
+# Not a recommendation for any cluster; not packaged (.helmignore).
+image:
+  repository: registry.example.com/mirror/stigmer-operator
+  tag: v0.0.0-lint
+  pullPolicy: Always
+  pullSecrets:
+    - name: mirror-credentials
+replicas: 2
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    memory: 1Gi
+logLevel: debug
+localRegistry: kind-registry:5000
+nodeSelector:
+  kubernetes.io/os: linux
+tolerations:
+  - key: dedicated
+    operator: Equal
+    value: platform
+    effect: NoSchedule

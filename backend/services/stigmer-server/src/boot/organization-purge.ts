@@ -248,6 +248,8 @@ export function assertOrganizationPurgeCoverage(input: {
 export function orderOrganizationPurgeStages(input: {
   readonly quiesce: OrganizationPurgeStage;
   readonly units: ResolvedOrganizationPurge;
+  /** The runner artifact lane's stage, when the store can delete by prefix. */
+  readonly runArtifacts?: OrganizationPurgeStage;
   readonly content: OrganizationPurgeStage;
   readonly shred: OrganizationPurgeStage;
   readonly children: OrganizationPurgeStage;
@@ -256,6 +258,7 @@ export function orderOrganizationPurgeStages(input: {
   return [
     input.quiesce,
     ...input.units.stages.map(({ stage }) => stage),
+    ...(input.runArtifacts === undefined ? [] : [input.runArtifacts]),
     input.content,
     input.shred,
     input.children,

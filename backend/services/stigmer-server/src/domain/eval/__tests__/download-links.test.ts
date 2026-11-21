@@ -1,5 +1,5 @@
 /**
- * Pins whose address an eval download link is signed for, over the R2
+ * Pins whose address an eval download link is signed for, over the S3
  * driver with a runner address of its own (a self-host or a local stack
  * whose sandboxes reach the bucket elsewhere than people do): the public
  * getDownloadUrl, which the CLI's `download eval` and the SDK ask, signs
@@ -23,7 +23,7 @@ import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { ContentAddressedArchiveStore } from "../../../archive/content-store.js";
-import { R2ArtifactStorage } from "../../../artifactstorage/r2-storage.js";
+import { S3ArtifactStorage } from "../../../artifactstorage/s3-storage.js";
 import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import { createApiResourceInterceptor } from "../../../pipeline/interceptors/apiresource.js";
@@ -44,7 +44,7 @@ const BUCKET = "stigmer-artifacts";
 const PERSON_ENDPOINT = "https://accountid.r2.cloudflarestorage.com";
 const RUNNER_ENDPOINT = "http://host.docker.internal:9000";
 
-const bucket = new R2ArtifactStorage({
+const bucket = new S3ArtifactStorage({
   bucket: BUCKET,
   endpoint: PERSON_ENDPOINT,
   runnerEndpoint: RUNNER_ENDPOINT,

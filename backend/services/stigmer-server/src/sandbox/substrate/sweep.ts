@@ -165,6 +165,12 @@ export interface SubstrateSweepOptions {
   readonly now?: () => number;
   /** True once the sweep is stopping: a pass ends between sandboxes. */
   readonly stopping?: () => boolean;
+  /**
+   * Told whether a new session can start now: whether the current
+   * template's golden snapshot is published (provisioner.ts,
+   * SandboxBackgroundContext.reportReady).
+   */
+  readonly reportReady?: (ready: boolean) => void;
 }
 
 /** What one sweep keeps between passes. */
@@ -200,11 +206,25 @@ export function startSubstrateSweep(
   let stopped = false;
 
   // Prepare the template in the background, so the first turn rarely waits
-  // for its golden snapshot; prepare() logs a failure and never rejects.
-  void lifecycle.prepare();
+  // for its golden snapshot, and again on every pass until it is ready, so
+  // a preparation that failed heals without waiting for a turn. prepare()
+  // logs a failure and never rejects; one in flight is shared.
+  const { reportReady } = options;
+  let unwatch: (() => void) | undefined;
+  if (reportReady !== undefined) {
+    reportReady(driver.keeper.readyNow());
+    unwatch = driver.keeper.onReadyChange(reportReady);
+  }
+  const prepareUnlessReady = (): void => {
+    if (!driver.keeper.readyNow()) void lifecycle.prepare();
+  };
+  prepareUnlessReady();
 
   const tick = (): void => {
-    if (stopped || running !== undefined) return;
+    /* v8 ignore next -- @preserve: defensive; stop() clears the interval in the same step that sets the flag, so no tick runs after it */
+    if (stopped) return;
+    prepareUnlessReady();
+    if (running !== undefined) return;
     running = runSweepPass(state, { ...options, stopping: () => stopped })
       .catch((error: unknown) => {
         logger.error("Substrate idle sweep pass failed", {
@@ -223,6 +243,7 @@ export function startSubstrateSweep(
     async stop() {
       stopped = true;
       clearInterval(timer);
+      unwatch?.();
       await running;
     },
     makeRoom: (forSessionId) =>

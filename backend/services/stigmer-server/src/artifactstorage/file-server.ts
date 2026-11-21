@@ -16,13 +16,18 @@
  * in the server log, so a broken artifact never reads as a gone one
  * (stigmer#1352; __tests__/file-server-faults.test.ts). A bind failure
  * fails the boot: the composition binds the lane before SERVING and lets
- * listen()'s rejection stand (stigmer#1089). It is not a unified-port lane:
- * it is its own listener.
+ * listen()'s rejection stand (stigmer#1089). The same handler is also a
+ * unified-port lane under `/artifacts/` (createArtifactDownloadLane), so a
+ * server reached at one hostname through a front door serves its files
+ * there: ARTIFACT_LOCAL_SERVE_URL then names `<origin>/artifacts`, and the
+ * links it mints carry the prefix, which the lane strips before the key is
+ * read. The signature covers the key, never the prefix, so one link
+ * verifies at either door.
  *
  * Disposition contract (proven by __tests__/file-server.test.ts and, on
  * links the storage mints, __tests__/file-server-signing.test.ts): a
  * request carrying ?download=<name> (set by getSignedUrl) is served as a
- * browser download named by that parameter — mirroring the R2 backend,
+ * browser download named by that parameter — mirroring the S3 backend,
  * which signs Content-Disposition into the presigned URL. Requests without
  * the parameter are served INLINE with no disposition header.
  *
@@ -38,6 +43,8 @@ import http from "node:http";
 import path from "node:path";
 
 import { contentDispositionAttachment, LOCAL_DOWNLOAD_QUERY_PARAM } from "./artifact-storage.js";
+import { ARTIFACT_DOWNLOAD_PATH_PREFIX } from "../transport/constants.js";
+import type { LaneHandler, LaneRequest, LaneResponse } from "../transport/lanes.js";
 import type { DownloadUrlSigner } from "./url-signer.js";
 import type { Logger } from "../boot/logger.js";
 
@@ -69,7 +76,7 @@ export function createArtifactFileServer(
   const { basePath, signer, logger } = options;
 
   const server = http.createServer((req, res) => {
-    void serveArtifact(basePath, signer, req, res, logger);
+    void serveArtifact(basePath, signer, "/", req, res, logger);
   });
 
   return {
@@ -104,27 +111,46 @@ export function createArtifactFileServer(
   };
 }
 
+/**
+ * The download lane on the unified port, under ARTIFACT_DOWNLOAD_PATH_PREFIX
+ * (the module header). The unified port routes only that prefix here.
+ */
+export function createArtifactDownloadLane(
+  options: ArtifactFileServerOptions,
+): LaneHandler {
+  const { basePath, signer, logger } = options;
+  return (request, response) => {
+    void serveArtifact(basePath, signer, ARTIFACT_DOWNLOAD_PATH_PREFIX, request, response, logger);
+  };
+}
+
 async function serveArtifact(
   basePath: string,
   signer: DownloadUrlSigner,
-  req: http.IncomingMessage,
-  res: http.ServerResponse,
+  prefix: string,
+  req: LaneRequest,
+  res: LaneResponse,
   logger: Logger,
 ): Promise<void> {
   try {
     if (req.method !== "GET" && req.method !== "HEAD") {
-      res.writeHead(405, { Allow: "GET, HEAD" });
+      setStatus(res, 405, { Allow: "GET, HEAD" });
       res.end();
       return;
     }
 
     const url = new URL(req.url ?? "/", "http://localhost");
+    if (!url.pathname.startsWith(prefix)) {
+      setStatus(res, 404);
+      res.end("404 page not found\n");
+      return;
+    }
     let key: string;
     try {
-      key = decodeURIComponent(url.pathname.replace(/^\/+/, ""));
+      key = decodeURIComponent(url.pathname.slice(prefix.length).replace(/^\/+/, ""));
     } catch {
       // Malformed percent-escapes are a client error, not a server fault.
-      res.writeHead(404);
+      setStatus(res, 404);
       res.end("404 page not found\n");
       return;
     }
@@ -132,7 +158,7 @@ async function serveArtifact(
     // A live signature over the key, or the same answer a missing key
     // gets: nothing below runs for a link the server did not mint.
     if (!signer.verify(key, url.searchParams)) {
-      res.writeHead(404);
+      setStatus(res, 404);
       res.end("404 page not found\n");
       return;
     }
@@ -142,7 +168,7 @@ async function serveArtifact(
     const root = path.resolve(basePath);
     const filePath = path.resolve(root, key);
     if (filePath !== root && !filePath.startsWith(root + path.sep)) {
-      res.writeHead(404);
+      setStatus(res, 404);
       res.end("404 page not found\n");
       return;
     }
@@ -157,7 +183,7 @@ async function serveArtifact(
       // (stigmer#1352). The body is static, so no path reaches the wire.
       const code = (error as NodeJS.ErrnoException).code;
       if (code === "ENOENT" || code === "ENOTDIR") {
-        res.writeHead(404);
+        setStatus(res, 404);
         res.end("404 page not found\n");
         return;
       }
@@ -166,12 +192,12 @@ async function serveArtifact(
         code,
         error: error instanceof Error ? error.message : String(error),
       });
-      res.writeHead(500);
+      setStatus(res, 500);
       res.end("500 internal server error\n");
       return;
     }
     if (!info.isFile()) {
-      res.writeHead(404);
+      setStatus(res, 404);
       res.end("404 page not found\n");
       return;
     }
@@ -186,7 +212,7 @@ async function serveArtifact(
       headers["Content-Disposition"] = contentDispositionAttachment(downloadName);
     }
 
-    res.writeHead(200, headers);
+    setStatus(res, 200, headers);
     if (req.method === "HEAD") {
       res.end();
       return;
@@ -205,8 +231,24 @@ async function serveArtifact(
       error: error instanceof Error ? error.message : String(error),
     });
     if (!res.headersSent) {
-      res.writeHead(500);
+      setStatus(res, 500);
     }
     res.end();
+  }
+}
+
+/**
+ * Status and headers through the members both protocol stacks share
+ * (transport/lanes.ts): the lane answers HTTP/1.1 and HTTP/2 alike, and the
+ * second listener HTTP/1.1.
+ */
+function setStatus(
+  res: LaneResponse,
+  status: number,
+  headers: Readonly<Record<string, string>> = {},
+): void {
+  res.statusCode = status;
+  for (const [name, value] of Object.entries(headers)) {
+    res.setHeader(name, value);
   }
 }

@@ -57,14 +57,16 @@ x-artifacts-path: &artifacts-path "/data/.stigmer/data/artifacts"
 # consumers (your browser, the CLI), so they use the host-published port —
 # NOT the in-network address. Serving this stack to other machines? Set
 # STIGMER_ARTIFACT_PUBLIC_URL in .env to the address they reach the artifact
-# lane on (the chart's server.artifactPublicUrl); the default is the
-# single-machine posture.
+# lane on (on Kubernetes the operator derives it from the Stigmer resource's
+# spec.ingress.hostname); the default is the single-machine posture.
 x-artifact-serve-url: &artifact-serve-url "${STIGMER_ARTIFACT_PUBLIC_URL:-http://localhost:7235}"
 
 services:
   postgres:
-    # An exact minor release, never the floating `16`; the chart's
-    # postgres.image is the same tag (its parity test holds the two equal).
+    # An exact minor release, never the floating `16`; the Kubernetes
+    # operator's bundled Postgres runs the same release (its Compose parity
+    # test, deploy/operator/internal/render/parity_test.go, holds the two
+    # equal).
     image: postgres:16.15
     restart: unless-stopped
     environment:
@@ -248,7 +250,7 @@ services:
       # Skill push/download capability URLs are host-consumed too (the CLI
       # and SDKs); same reasoning as the artifact serve URL. Behind a TLS
       # proxy, STIGMER_PUBLIC_URL in .env is the address clients reach the
-      # API on (the chart's server.publicUrl).
+      # API on (the Stigmer resource's spec.ingress.hostname on Kubernetes).
       SKILL_TRANSFER_BASE_URL: "${STIGMER_PUBLIC_URL:-http://localhost:7234}"
       # Explicit keys, loud fail: the server would otherwise
       # auto-generate keys into the volume, making the backup/rotation
@@ -265,18 +267,25 @@ services:
       # issuer is THE switch: the server treats an empty value as unset,
       # refuses an issuer without an audience at boot, and warns when the
       # console's or the desktop app's client id is missing. The same four
-      # as the chart's
-      # server.oidc.{issuer,audience,consoleClientId,nativeClientId}.
+      # as the Stigmer resource's
+      # spec.identity.oidc.{issuer,audience,consoleClientId,nativeClientId}.
       STIGMER_OIDC_ISSUER: ${STIGMER_OIDC_ISSUER:-}
       STIGMER_OIDC_AUDIENCE: ${STIGMER_OIDC_AUDIENCE:-}
       STIGMER_OIDC_CONSOLE_CLIENT_ID: ${STIGMER_OIDC_CONSOLE_CLIENT_ID:-}
       STIGMER_OIDC_NATIVE_CLIENT_ID: ${STIGMER_OIDC_NATIVE_CLIENT_ID:-}
+      # Where the server fetches the issuer's discovery document when it
+      # cannot reach the issuer's public name (a split-horizon network).
+      STIGMER_OIDC_DISCOVERY_URL: ${STIGMER_OIDC_DISCOVERY_URL:-}
+      # The runner's key, the same value the runner reads as STIGMER_TOKEN:
+      # with sign-in on, the server stores it at boot as the `runner`
+      # service account's key, so the runner starts signed in.
+      STIGMER_RUNNER_API_KEY: ${STIGMER_TOKEN:-}
       # Where your people ask for help, off until .env sets it (see
-      # .env.example). The chart's server.help.{url,label}.
+      # .env.example). The Stigmer resource's spec.server.help.{url,label}.
       STIGMER_HELP_URL: ${STIGMER_HELP_URL:-}
       STIGMER_HELP_LABEL: ${STIGMER_HELP_LABEL:-}
       # Your own team's sign-in addresses, left out of the onboarding count
-      # (see .env.example). The chart's server.internalAccounts.
+      # (see .env.example). The Stigmer resource's spec.server.internalAccounts.
       STIGMER_INTERNAL_ACCOUNTS: ${STIGMER_INTERNAL_ACCOUNTS:-}
     volumes:
       # Server state beyond Postgres: the skill content store
@@ -304,8 +313,8 @@ services:
       MODE: local
       STIGMER_BACKEND_ENDPOINT: http://stigmer-server:7234
       # The address a remote MCP server dials back on: the one clients reach
-      # the API on (the server's SKILL_TRANSFER_BASE_URL, the chart's
-      # server.publicUrl). The runner fills a declared STIGMER_SERVER_ADDRESS
+      # the API on (the server's SKILL_TRANSFER_BASE_URL; on Kubernetes the
+      # Stigmer resource's spec.ingress.hostname). The runner fills a declared STIGMER_SERVER_ADDRESS
       # from it; the in-network address above reaches no one outside.
       STIGMER_MCP_PUBLIC_ENDPOINT: "${STIGMER_PUBLIC_URL:-http://localhost:7234}"
       TEMPORAL_SERVICE_ADDRESS: temporal:7233
@@ -325,14 +334,14 @@ services:
       # front of Anthropic instead; empty means Anthropic's own address.
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
-      # The runner's own API key (the chart's runner.stigmerToken); an empty
+      # The runner's own API key (the Kubernetes operator mints its own); an empty
       # value reads as unset, and the authentication guide says when to set
       # it. Each run the runner serves is attributed to the member who
       # started it, not to this key's holder.
       STIGMER_TOKEN: ${STIGMER_TOKEN:-}
     # The runner starts the agent's side as its own user, stigmer-agent, so
     # nothing an agent runs can read the keys above. It keeps only the five
-    # capabilities that takes, as the Helm chart's runner does, DAC_OVERRIDE
+    # capabilities that takes, as the Kubernetes operator's runner does, DAC_OVERRIDE
     # among them for the artifact volume, which is the server's user's.
     cap_drop: ["ALL"]
     cap_add: ["SETUID", "SETGID", "CHOWN", "KILL", "DAC_OVERRIDE"]
@@ -351,8 +360,9 @@ services:
 # The Temporal server refuses to start without a dynamic-config file, and its
 # image ships none. This one is empty on purpose: Temporal's defaults are this
 # stack's settings. A Temporal setting this stack ever needs goes here, under
-# Temporal's own dynamic-config key, and the chart's <release>-temporal
-# ConfigMap carries the same text (its parity test holds the two equal).
+# Temporal's own dynamic-config key, and the same setting is then owed to the
+# Kubernetes operator's bundled Temporal (deploy/operator/internal/render/
+# temporal.go), which runs Temporal's own chart on its defaults.
 # Compose interpolates this text, so it carries no dollar sign. Inline content
 # needs Docker Compose 2.23.1 or newer.
 configs:

@@ -126,7 +126,8 @@ export interface ServerConfig {
    * that discover their coordinates from this server instead of being
    * given them (STIGMER_RUNNER_BOOTSTRAP_TEMPORAL_ADDRESS; stigmer#1357).
    * Defaults to TEMPORAL_HOST_PORT — right whenever those runners share
-   * this server's network (a laptop, the compose stack, the chart). Set
+   * this server's network (a laptop, the compose stack, the Kubernetes
+   * operator's shared runner). Set
    * it when they do not: a server in a cluster that dials Temporal by its
    * internal service name, and a desktop runner that must dial the
    * frontend's external ingress. The namespace is not split; one
@@ -151,8 +152,8 @@ export interface ServerConfig {
   readonly runnerBootstrapMcpBridgeEndpoint: string;
   /**
    * Artifact blob storage (attachments + execution outputs). "local" is
-   * the OSS default; "r2" selects
-   * Cloudflare R2 with the settings below.
+   * the OSS default; "s3" selects an S3-compatible bucket with the S3_*
+   * settings below.
    */
   readonly artifactStorageType: string;
   /** The artifact root — shared with the runner's LOCAL_ARTIFACT_PATH (#285). */
@@ -191,19 +192,22 @@ export interface ServerConfig {
    * through the container boundary.
    */
   readonly grpcHost: string | undefined;
-  /** Cloudflare R2 settings (S3-compatible; validated when type is "r2"). */
-  readonly r2Bucket: string;
-  readonly r2Endpoint: string;
-  readonly r2AccessKeyId: string;
-  readonly r2SecretAccessKey: string;
-  readonly r2Region: string;
   /**
-   * R2_RUNNER_ENDPOINT: the address runners dial the store at, when it is
-   * not R2_ENDPOINT (a local cluster whose sandboxes reach a store on the
-   * host's loopback by another name). Links a runner downloads or uploads
-   * through are signed for it; "" signs every link for R2_ENDPOINT.
+   * The bucket's settings (any S3-compatible store; validated when either
+   * storage type is "s3"). S3_ENDPOINT empty means AWS S3 itself.
    */
-  readonly r2RunnerEndpoint: string;
+  readonly s3Bucket: string;
+  readonly s3Endpoint: string;
+  readonly s3AccessKeyId: string;
+  readonly s3SecretAccessKey: string;
+  readonly s3Region: string;
+  /**
+   * S3_RUNNER_ENDPOINT: the address runners dial the store at, when it is
+   * not S3_ENDPOINT (a local cluster whose sandboxes reach a store on the
+   * host's loopback by another name). Links a runner downloads or uploads
+   * through are signed for it; "" signs every link for S3_ENDPOINT.
+   */
+  readonly s3RunnerEndpoint: string;
   /**
    * Stigmer's own login apps switched on (domain/vault/login-providers.ts):
    * each catalog entry's STIGMER_<KEY>_CLIENT_ID and
@@ -241,8 +245,8 @@ export interface ServerConfig {
    * ARTIFACT_STORAGE_TYPE: skill artifacts stay on the local storagePath
    * root regardless of the
    * generic artifact store's backend, until a deployment opts skill in
-   * here explicitly. "" or "local" is today's local arm; "r2" shares the
-   * artifact store's R2 settings; any other name selects a
+   * here explicitly. "" or "local" is today's local arm; "s3" shares the
+   * artifact store's S3_* settings; any other name selects a
    * composition-registered driver.
    */
   readonly skillArtifactStorageType: string;
@@ -282,9 +286,21 @@ export interface ServerConfig {
    * Required whenever the issuer is set — a verifier that skipped
    * audience validation would accept any token the issuer ever minted
    * for any other service (the confused-deputy failure). Half-configured
-   * OIDC is boot-fatal, the R2/operator-identity loud-fail precedent.
+   * OIDC is boot-fatal, the S3/operator-identity loud-fail precedent.
    */
   readonly oidcAudience: string;
+  /**
+   * Where this server fetches its issuer's discovery document from
+   * (STIGMER_OIDC_DISCOVERY_URL), when that is not the issuer's public
+   * name: a sign-in server beside Stigmer in one cluster answers browsers at
+   * the public name and this process at an in-cluster address. The document
+   * must still name STIGMER_OIDC_ISSUER as its issuer
+   * (identity/oidc-discovery.ts). An http address is accepted anywhere: it
+   * is an address inside the operator's own network, the one hop the
+   * operator controls. Empty, the default, fetches from the issuer.
+   * Boot-fatal when it is not a URL or is set without the issuer.
+   */
+  readonly oidcDiscoveryUrl: string;
   /**
    * The OAuth client the served web console signs in with
    * (STIGMER_OIDC_CONSOLE_CLIENT_ID):
@@ -313,6 +329,16 @@ export interface ServerConfig {
    * nothing to describe, and the composition root WARNs that it is unused.
    */
   readonly oidcNativeClientId: string;
+  /**
+   * The shared runner's API key (STIGMER_RUNNER_API_KEY): an `stk_` key the
+   * operator generated and also hands the runner as STIGMER_TOKEN. On a
+   * server that holds one organization with sign-in on, boot stores it as
+   * the `runner` service account's key (boot/runner-key.ts), so the runner
+   * starts signed in. Empty, the default, stores nothing. Boot-fatal when it
+   * is not an `stk_` key; a server holding several organizations refuses it
+   * at start, and one with sign-in off ignores it with a log line.
+   */
+  readonly runnerApiKey: string;
   /**
    * Where a person stuck on this server asks for help (STIGMER_HELP_URL):
    * the operator's support desk, team chat or community, as an absolute
@@ -431,7 +457,8 @@ export interface ServerConfig {
    * runners reach none, and a run that needs one is refused at create
    * (extensions/provider-availability.ts). `stigmer up` sets it from the
    * runner environment it builds; an operator whose runners hold keys sets
-   * it for a compose or Helm install.
+   * it for a compose install, or in a Kubernetes install's
+   * spec.server.extraEnv.
    */
   readonly runnerProviders: ReadonlySet<ModelProvider> | undefined;
   /**
@@ -561,33 +588,33 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   const artifactHttpPort = envOptionalInt(env, "ARTIFACT_HTTP_PORT");
   const artifactHttpHost = envString(env, "ARTIFACT_HTTP_HOST", "127.0.0.1");
   const artifactStorageType = envString(env, "ARTIFACT_STORAGE_TYPE", "local");
-  const r2 = {
-    r2Bucket: envString(env, "R2_BUCKET", ""),
-    r2Endpoint: envString(env, "R2_ENDPOINT", ""),
-    r2AccessKeyId: envString(env, "R2_ACCESS_KEY_ID", ""),
-    r2SecretAccessKey: envString(env, "R2_SECRET_ACCESS_KEY", ""),
-    r2Region: envString(env, "R2_REGION", "auto"),
-    r2RunnerEndpoint: envString(env, "R2_RUNNER_ENDPOINT", ""),
+  const s3 = {
+    s3Bucket: envString(env, "S3_BUCKET", ""),
+    s3Endpoint: envString(env, "S3_ENDPOINT", ""),
+    s3AccessKeyId: envString(env, "S3_ACCESS_KEY_ID", ""),
+    s3SecretAccessKey: envString(env, "S3_SECRET_ACCESS_KEY", ""),
+    s3Region: envString(env, "S3_REGION", "us-east-1"),
+    s3RunnerEndpoint: envString(env, "S3_RUNNER_ENDPOINT", ""),
   };
   const skillArtifactStorageType = envString(
     env,
     "SKILL_ARTIFACT_STORAGE_TYPE",
     "",
   );
-  // validateR2Config: boot-fatal on incomplete r2 configuration — a
+  // validateS3Config: boot-fatal on incomplete s3 configuration — a
   // second deliberate exception to the lenient-loader posture (a server
-  // that silently ignored half an R2 config would write blobs nowhere).
-  // Skill's per-domain knob shares the settings, so its r2 arm gets
+  // that silently ignored half a bucket config would write blobs nowhere).
+  // Skill's per-domain knob shares the settings, so its s3 arm gets
   // the same completeness gate.
-  if (artifactStorageType === "r2" || skillArtifactStorageType === "r2") {
-    validateR2Config(r2);
+  if (artifactStorageType === "s3" || skillArtifactStorageType === "s3") {
+    validateS3Config(s3);
   }
   return {
     grpcPort,
     grpcHost: env.GRPC_HOST?.trim() || undefined,
     artifactHttpPort,
     artifactHttpHost,
-    ...r2,
+    ...s3,
     temporalHostPort: envString(env, "TEMPORAL_HOST_PORT", "localhost:7233"),
     temporalNamespace: envString(env, "TEMPORAL_NAMESPACE", "default"),
     temporalConnection: loadTemporalConnectionConfig((name) => env[name]),
@@ -645,6 +672,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     ...loadOidcConfig(env),
     oidcConsoleClientId: envString(env, "STIGMER_OIDC_CONSOLE_CLIENT_ID", ""),
     oidcNativeClientId: envString(env, "STIGMER_OIDC_NATIVE_CLIENT_ID", "").trim(),
+    runnerApiKey: loadRunnerApiKey(env),
     helpUrl: envString(env, "STIGMER_HELP_URL", "").trim(),
     helpLabel: envString(env, "STIGMER_HELP_LABEL", "").trim(),
     internalAccounts: envString(env, "STIGMER_INTERNAL_ACCOUNTS", "").trim(),
@@ -704,7 +732,7 @@ const PLAINTEXT_LOOPBACK_HOSTS: ReadonlySet<string> = new Set([
 
 /**
  * OIDC issuer/audience — boot-FATAL on the certain misconfigurations,
- * joining the operator-identity and R2 exceptions to the lenient-loader
+ * joining the operator-identity and S3 exceptions to the lenient-loader
  * posture: an issuer that is not an https URL (or an http URL on loopback)
  * can never be trusted for discovery, and an issuer without an audience (or
  * the reverse) is half an auth configuration — silently serving
@@ -714,11 +742,18 @@ const PLAINTEXT_LOOPBACK_HOSTS: ReadonlySet<string> = new Set([
 function loadOidcConfig(env: NodeJS.ProcessEnv): {
   oidcIssuer: string;
   oidcAudience: string;
+  oidcDiscoveryUrl: string;
 } {
   const issuer = (env["STIGMER_OIDC_ISSUER"] ?? "").trim();
   const audience = (env["STIGMER_OIDC_AUDIENCE"] ?? "").trim();
+  const discoveryUrl = (env["STIGMER_OIDC_DISCOVERY_URL"] ?? "").trim();
   if (issuer === "" && audience === "") {
-    return { oidcIssuer: "", oidcAudience: "" };
+    if (discoveryUrl !== "") {
+      throw new Error(
+        "STIGMER_OIDC_DISCOVERY_URL is set without STIGMER_OIDC_ISSUER — it names where the issuer's discovery document is fetched from, so set the issuer and audience too, or unset it",
+      );
+    }
+    return { oidcIssuer: "", oidcAudience: "", oidcDiscoveryUrl: "" };
   }
   if (issuer === "" || audience === "") {
     throw new Error(
@@ -740,7 +775,37 @@ function loadOidcConfig(env: NodeJS.ProcessEnv): {
       `STIGMER_OIDC_ISSUER "${issuer}" must be an https URL — OIDC discovery and the signing keys are fetched from it; http is accepted only on localhost, 127.0.0.1 or [::1]`,
     );
   }
-  return { oidcIssuer: issuer, oidcAudience: audience };
+  if (discoveryUrl !== "") {
+    let discoveryParsed: URL | undefined;
+    try {
+      discoveryParsed = new URL(discoveryUrl);
+    } catch {
+      discoveryParsed = undefined;
+    }
+    if (
+      discoveryParsed === undefined ||
+      (discoveryParsed.protocol !== "https:" && discoveryParsed.protocol !== "http:")
+    ) {
+      throw new Error(
+        `STIGMER_OIDC_DISCOVERY_URL "${discoveryUrl}" is not an http or https URL — it names the address this server fetches the issuer's discovery document from`,
+      );
+    }
+  }
+  return { oidcIssuer: issuer, oidcAudience: audience, oidcDiscoveryUrl: discoveryUrl };
+}
+
+/** An `stk_` key as the server mints them: the prefix and 32 bytes, base64url. */
+const RUNNER_API_KEY_SHAPE = /^stk_[A-Za-z0-9_-]{43}$/;
+
+/** STIGMER_RUNNER_API_KEY, boot-fatal when it is not an `stk_` key. */
+function loadRunnerApiKey(env: NodeJS.ProcessEnv): string {
+  const key = (env["STIGMER_RUNNER_API_KEY"] ?? "").trim();
+  if (key !== "" && !RUNNER_API_KEY_SHAPE.test(key)) {
+    throw new Error(
+      "STIGMER_RUNNER_API_KEY is not an stk_ key: generate one with  echo \"stk_$(openssl rand -base64 32 | tr '+/' '-_' | tr -d '=')\"  and hand the same value to the runner as STIGMER_TOKEN",
+    );
+  }
+  return key;
 }
 
 /**
@@ -775,23 +840,24 @@ function loadRunnerBootstrapMcpBridgeEndpoint(env: NodeJS.ProcessEnv): string {
   return endpoint;
 }
 
-/** The four required r2 fields, each named in the boot refusal. */
-function validateR2Config(r2: {
-  r2Bucket: string;
-  r2Endpoint: string;
-  r2AccessKeyId: string;
-  r2SecretAccessKey: string;
+/**
+ * The three required s3 fields, each named in the boot refusal. The
+ * endpoint is not among them: empty is AWS S3 itself.
+ */
+function validateS3Config(s3: {
+  s3Bucket: string;
+  s3AccessKeyId: string;
+  s3SecretAccessKey: string;
 }): void {
   const requirements: Array<[string, string]> = [
-    [r2.r2Bucket, "R2_BUCKET"],
-    [r2.r2Endpoint, "R2_ENDPOINT"],
-    [r2.r2AccessKeyId, "R2_ACCESS_KEY_ID"],
-    [r2.r2SecretAccessKey, "R2_SECRET_ACCESS_KEY"],
+    [s3.s3Bucket, "S3_BUCKET"],
+    [s3.s3AccessKeyId, "S3_ACCESS_KEY_ID"],
+    [s3.s3SecretAccessKey, "S3_SECRET_ACCESS_KEY"],
   ];
   for (const [value, name] of requirements) {
     if (value === "") {
       throw new Error(
-        `invalid R2 configuration: ${name} is required when ARTIFACT_STORAGE_TYPE=r2`,
+        `invalid S3 configuration: ${name} is required when a storage type is s3`,
       );
     }
   }

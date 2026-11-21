@@ -16,11 +16,14 @@
  * facts, two stores.
  *
  * Exactly one writer — `interceptors/run-credential-activity.ts`, the
- * activity inbound interceptor both worker roots register — and exactly one
- * reader — the auth interceptor in `client/stigmer-client.ts`. Nothing else
- * may read this: a user task's outbound HTTP (`activities/call-http.ts`) must
- * never carry the run's credential, and the way that stays true is that no
- * code path but the control-plane client asks for it.
+ * activity inbound interceptor both worker roots register — and exactly two
+ * readers, both the control plane's own: the auth interceptor in
+ * `client/stigmer-client.ts`, and the server's artifact lane client in
+ * `shared/artifact-storage.ts` (its presign requests only, never the
+ * presigned PUT or GET, which carry no credential). Nothing else may read
+ * this: a user task's outbound HTTP (`activities/call-http.ts`) must never
+ * carry the run's credential, and the way that stays true is that no code
+ * path but the control plane's clients asks for it.
  */
 
 import { AsyncLocalStorage } from "node:async_hooks";

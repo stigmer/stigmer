@@ -1590,28 +1590,110 @@ jobs:
   # points a fresh clone at images the same run is proving.
 
   # ---------------------------------------------------------------------------
-  # The Helm chart: oci://ghcr.io/<owner>/charts/stigmer. docker-compose.yml
-  # translated for
-  # Kubernetes, pinning the two images this same run pushed. Chart.yaml is
-  # a release pin (version == appVersion == the release version;
-  # `make release` refuses to tag otherwise), verified here before anything
-  # is packaged. Order: package once → install the PACKAGED chart on kind
-  # against the PUSHED image tags, natively on amd64 and arm64, with the
-  # same test/install/smoke-helm.mjs the PR gate runs from source → push. Smoke
-  # before push: a chart, unlike an image, has no `latest` pointer to
-  # withhold — the moment it is in the registry, `helm install` without a
-  # version resolves to it. Pre-releases are pushed too; Helm's semver
-  # resolution hides them from a version-less install.
+  # The Kubernetes operator: ghcr.io/<owner>/stigmer-operator:v<version> and
+  # its chart at oci://ghcr.io/<owner>/charts/stigmer-operator. Operator vX
+  # runs Stigmer vX: the image is stamped with the version, and with the
+  # digest of the release's per-session sandbox image (ghcr.io/<owner>/runner,
+  # built and smoked by release.runner-images.yaml from the same tag), so
+  # every sandbox an install starts runs exactly the image that release
+  # proved. Chart.yaml is a release pin (version == appVersion == the release
+  # version; `make release` refuses to tag otherwise), verified here before
+  # anything is packaged.
   #
-  # Starts as soon as both version tags are pushed, beside the compose
-  # smokes rather than after them: the kind install is its own proof of the
-  # same pushed tags, and sequencing two independent proofs adds nothing
-  # but minutes to the tail. `stigmer-runner:latest` still waits for the
-  # compose smokes (promote-runner-image-latest); the chart still waits for
-  # its own.
+  # Order: the image waits for the sandbox image's two-architecture version
+  # tag, then builds for amd64 and arm64 and pushes its version tag; the
+  # chart is packaged once; the PACKAGED chart is installed on kind against
+  # the PUSHED images, natively on amd64 and arm64, by the same
+  # test/install/smoke-operator.mjs the PR gate runs from source (--published:
+  # nothing built, every image pulled at the release's tag); then the chart
+  # is pushed. Smoke before push: a chart, unlike an image, has no `latest`
+  # pointer to withhold, so the moment it is in the registry
+  # `helm install` without a version resolves to it. Pre-releases are pushed
+  # too; Helm's semver resolution hides them from a version-less install.
   # ---------------------------------------------------------------------------
-  package-helm-chart:
-    needs: [determine-version, publish-server-image, publish-runner-image]
+  publish-operator-image:
+    needs: [determine-version]
+    runs-on: ubuntu-24.04
+    # Up to 60 minutes waiting for the sandbox image, then a few minutes of
+    # cross-compiled build: the builder runs on this machine's architecture,
+    # and the final stage only copies, so nothing runs under emulation.
+    timeout-minutes: 80
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # release.runner-images.yaml writes runner:v<version> only after both
+      # architectures' images pass their smoke, as one index of the two
+      # (publish-runner-version). Its digest is what every sandbox runs.
+      - name: Wait for the release's sandbox image, both architectures
+        id: sandbox
+        env:
+          OWNER: ${{ github.repository_owner }}
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          ref="ghcr.io/$OWNER/runner:v$VERSION"
+          deadline=$(( $(date +%s) + 3600 ))
+          until docker buildx imagetools inspect "$ref" --raw >/tmp/sandbox-index.json 2>/dev/null; do
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "$ref did not appear within 60 minutes: release.sandbox-cloud's run for this tag publishes it after both architectures' smokes; the operator cannot pin a sandbox image the release has not proven" >&2
+              exit 1
+            fi
+            echo "waiting for $ref"
+            sleep 30
+          done
+          platforms="$(jq -r '[.manifests[]?.platform | select(.os == "linux") | "\(.os)/\(.architecture)"] | unique | join(" ")' /tmp/sandbox-index.json)"
+          for want in linux/amd64 linux/arm64; do
+            if [[ " $platforms " != *" $want "* ]]; then
+              echo "$ref names ${platforms:-no platform}, not $want: a release's operator runs sandboxes on clusters of either architecture" >&2
+              exit 1
+            fi
+          done
+          digest="$(docker buildx imagetools inspect "$ref" --format '{{ json .Manifest }}' | jq -r .digest)"
+          [[ "$digest" == sha256:* ]] || { echo "could not read $ref's digest (got '$digest')" >&2; exit 1; }
+          echo "$ref is $digest ($platforms)"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push the operator image (version tag)
+        env:
+          OWNER: ${{ github.repository_owner }}
+          VERSION: ${{ needs.determine-version.outputs.version }}
+          SANDBOX_RUNNER_DIGEST: ${{ steps.sandbox.outputs.digest }}
+        run: |
+          # The words GHCR shows on the package page: the index annotation, read
+          # from the Dockerfile's description label (scripts/lib/image-description.mjs).
+          IMAGE_DESCRIPTION="$(node scripts/lib/image-description.mjs --file deploy/operator/Dockerfile)"
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --file deploy/operator/Dockerfile \
+            --build-arg STIGMER_VERSION="v${VERSION}" \
+            --build-arg SANDBOX_RUNNER_DIGEST="${SANDBOX_RUNNER_DIGEST}" \
+            --tag "ghcr.io/${OWNER}/stigmer-operator:v${VERSION}" \
+            --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" \
+            --push \
+            deploy/operator
+
+      # A new image package is made public once, by hand, in the org's
+      # package settings after its first push (GHCR has no endpoint for it),
+      # as stigmer-server-ee was; stigmer-operator and charts/stigmer-operator
+      # are next.
+
+  package-operator-chart:
+    needs: [determine-version]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -1633,11 +1715,11 @@ jobs:
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
-          CHART_VERSION="$(sed -n 's/^version: //p' deploy/helm/stigmer/Chart.yaml)"
-          APP_VERSION="$(sed -n 's/^appVersion: //p' deploy/helm/stigmer/Chart.yaml | tr -d '"')"
+          CHART_VERSION="$(sed -n 's/^version: //p' deploy/helm/stigmer-operator/Chart.yaml)"
+          APP_VERSION="$(sed -n 's/^appVersion: //p' deploy/helm/stigmer-operator/Chart.yaml | tr -d '"')"
           if [ "$CHART_VERSION" != "$VERSION" ] || [ "$APP_VERSION" != "$VERSION" ]; then
-            echo "ERROR: deploy/helm/stigmer/Chart.yaml has version=$CHART_VERSION appVersion=$APP_VERSION but this release publishes $VERSION."
-            echo "The chart's default image tags are v<appVersion>: bump the pin in the same commit you tag (make release-pins)."
+            echo "ERROR: deploy/helm/stigmer-operator/Chart.yaml has version=$CHART_VERSION appVersion=$APP_VERSION but this release publishes $VERSION."
+            echo "The operator's image tag is v<appVersion>: bump the pin in the same commit you tag (make release-pins)."
             exit 1
           fi
           echo "Chart.yaml pins $VERSION"
@@ -1646,22 +1728,22 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist-chart
-          helm lint --strict deploy/helm/stigmer -f deploy/helm/stigmer/ci/values-bundled.yaml --quiet
-          helm package deploy/helm/stigmer --destination dist-chart
+          helm lint --strict deploy/helm/stigmer-operator --quiet
+          helm package deploy/helm/stigmer-operator --destination dist-chart
           ls -l dist-chart
 
       - name: Upload the packaged chart
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: helm-chart
-          path: dist-chart/stigmer-*.tgz
+          name: operator-chart
+          path: dist-chart/stigmer-operator-*.tgz
           retention-days: 7
           if-no-files-found: error
 
-  smoke-helm-amd64:
-    needs: [determine-version, package-helm-chart]
+  smoke-operator-amd64:
+    needs: [determine-version, package-operator-chart, publish-operator-image, publish-server-image, publish-runner-image]
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 40
     permissions:
       contents: read
       packages: read
@@ -1681,7 +1763,7 @@ jobs:
       - name: Download the packaged chart
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: helm-chart
+          name: operator-chart
           path: dist-chart
 
       - name: Install helm and kind (pinned)
@@ -1689,21 +1771,22 @@ jobs:
           set -euo pipefail
           curl -fsSL "https://get.helm.sh/helm-v3.16.2-linux-amd64.tar.gz" | tar -xz -C /tmp
           sudo install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
-          curl -fsSL -o /tmp/kind "https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64"
+          curl -fsSL -o /tmp/kind "https://kind.sigs.k8s.io/dl/v0.33.0/kind-linux-amd64"
           sudo install -m 0755 /tmp/kind /usr/local/bin/kind
 
-      - name: Install the packaged chart on kind against the pushed tags (native amd64)
+      - name: Install the packaged chart on kind against the pushed images (native amd64)
         run: |
-          node test/install/smoke-helm.mjs --published \
+          node test/install/smoke-operator.mjs --published \
             --version="v${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}" \
-            --chart="$(ls dist-chart/stigmer-*.tgz)"
+            --chart="$(ls dist-chart/stigmer-operator-*.tgz)" \
+            --profiles=bundled
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
 
-  smoke-helm-arm64:
-    needs: [determine-version, package-helm-chart]
+  smoke-operator-arm64:
+    needs: [determine-version, package-operator-chart, publish-operator-image, publish-server-image, publish-runner-image]
     runs-on: ubuntu-24.04-arm
-    timeout-minutes: 30
+    timeout-minutes: 40
     permissions:
       contents: read
       packages: read
@@ -1723,7 +1806,7 @@ jobs:
       - name: Download the packaged chart
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: helm-chart
+          name: operator-chart
           path: dist-chart
 
       - name: Install helm and kind (pinned)
@@ -1731,71 +1814,20 @@ jobs:
           set -euo pipefail
           curl -fsSL "https://get.helm.sh/helm-v3.16.2-linux-arm64.tar.gz" | tar -xz -C /tmp
           sudo install -m 0755 /tmp/linux-arm64/helm /usr/local/bin/helm
-          curl -fsSL -o /tmp/kind "https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-arm64"
+          curl -fsSL -o /tmp/kind "https://kind.sigs.k8s.io/dl/v0.33.0/kind-linux-arm64"
           sudo install -m 0755 /tmp/kind /usr/local/bin/kind
 
-      - name: Install the packaged chart on kind against the pushed tags (native arm64)
+      - name: Install the packaged chart on kind against the pushed images (native arm64)
         run: |
-          node test/install/smoke-helm.mjs --published \
+          node test/install/smoke-operator.mjs --published \
             --version="v${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}" \
-            --chart="$(ls dist-chart/stigmer-*.tgz)"
+            --chart="$(ls dist-chart/stigmer-operator-*.tgz)" \
+            --profiles=bundled
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
 
-  rehearse-helm:
-    # `helm upgrade` from the newest stable release's published chart to the
-    # packaged chart, before it is pushed: the push waits for it, prereleases
-    # included, since the chart publishes on every release.
-    needs: [determine-version, package-helm-chart]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    permissions:
-      contents: read
-      packages: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with:
-          persist-credentials: false
-
-      - name: Setup Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
-        with:
-          # No restored npm cache in a release (v5+ caches by default).
-          package-manager-cache: false
-          node-version-file: ".nvmrc"
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Download the packaged chart
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          name: helm-chart
-          path: dist-chart
-
-      - name: Install helm and kind (pinned)
-        run: |
-          set -euo pipefail
-          curl -fsSL "https://get.helm.sh/helm-v3.16.2-linux-amd64.tar.gz" | tar -xz -C /tmp
-          sudo install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
-          curl -fsSL -o /tmp/kind "https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64"
-          sudo install -m 0755 /tmp/kind /usr/local/bin/kind
-
-      - name: Rehearse the upgrade from the last release to the pushed version
-        run: |
-          node test/install/rehearse-upgrade.mjs --artifact=helm \
-            --to="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}" \
-            --chart="$(ls dist-chart/stigmer-*.tgz)"
-        env:
-          NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
-
-  publish-helm-chart:
-    needs: [determine-version, smoke-helm-amd64, smoke-helm-arm64, rehearse-helm]
+  publish-operator-chart:
+    needs: [determine-version, smoke-operator-amd64, smoke-operator-arm64]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -1805,7 +1837,7 @@ jobs:
       - name: Download the packaged chart
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: helm-chart
+          name: operator-chart
           path: dist-chart
 
       - name: Install helm (pinned)
@@ -1815,19 +1847,21 @@ jobs:
           sudo install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
 
       - name: Log in to GitHub Container Registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$GITHUB_TOKEN" | helm registry login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
 
       # The chart's `sources` becomes the manifest's org.opencontainers.image.source
       # annotation, which links the package to this repository so the token
       # keeps write access (the image packages' load-bearing linkage).
       - name: Push the smoked chart
+        env:
+          OWNER: ${{ github.repository_owner }}
+          VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           set -euo pipefail
-          helm push "$(ls dist-chart/stigmer-*.tgz)" "oci://ghcr.io/${{ github.repository_owner }}/charts"
-          helm show chart "oci://ghcr.io/${{ github.repository_owner }}/charts/stigmer" \
-            --version "${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
-        env:
-          NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
+          helm push "$(ls dist-chart/stigmer-operator-*.tgz)" "oci://ghcr.io/${OWNER}/charts"
+          helm show chart "oci://ghcr.io/${OWNER}/charts/stigmer-operator" --version "${VERSION}"
 
   smoke-cli-published:
     # The CLI after npm has published it. npm's dist-tag moved with the

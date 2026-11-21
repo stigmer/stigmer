@@ -765,10 +765,11 @@ pages:
     fate: keep
     diataxis: landing
     teaches:
-      Which of the three self-hosting shapes (laptop, one server, Kubernetes)
-      fits the reader's team, where each shape's guide is, and what every shape
-      shares — sign-in off until turned on, the runner as one trust domain, one
-      Organization, the reader's own provider keys and backups.
+      Which of the three self-hosting shapes (laptop, one server, Kubernetes
+      through the Stigmer operator) fits the reader's team, where each shape's
+      guide is, and what every shape shares — sign-in off until a front door or
+      a provider turns it on, the runner as one trust domain, one Organization,
+      the reader's own provider keys and backups.
     medium: none
 
   guides/self-hosting/cloud-vs-self-hosted:
@@ -780,8 +781,8 @@ pages:
       drivers), what Stigmer Enterprise adds on the reader's own infrastructure
       (many organizations, teams and invitations, federation, the access
       history), what Stigmer Cloud adds (hosted sign-in, channels, plans and
-      billing, managed ops), and the honest limitation of self-hosting today
-      (two production packagings, no operator).
+      billing, managed ops), and the honest limitations of self-hosting today
+      (one server replica; one install per cluster at the operator's version).
     medium: none
 
   guides/self-hosting/all-in-one:
@@ -815,39 +816,44 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Install the complete stack on a Kubernetes cluster with the Helm chart on
-      one rule, every setting is a line in your values file — create the
-      Secrets, write the values file and install, reach the console through a
-      port-forward (the server made its one Organization at first start),
-      connect the CLI as a named backend and run a first Agent, add the two-host
-      Ingress, turn authentication on, bring your own Postgres and Temporal,
-      back up and upgrade — with the no-auth trust model stated up front.
+      Run Stigmer on a Kubernetes cluster through the Stigmer operator — install
+      it with Helm, declare one Stigmer resource with the model key's Secret,
+      read its status, reach the console through a port-forward, connect the CLI
+      and run a first Agent; then one hostname with the bundled sign-in (the
+      owner first, sign-up for declared domains) or your own issuer, your own
+      Postgres and Temporal, a bucket with backups, a sandbox per Session on
+      agent-sandbox or Agent Substrate, Stigmer Enterprise, upgrade, change a
+      setting and delete — with the no-sign-in posture without a front door
+      stated up front.
     medium: none
 
   guides/self-hosting/authentication:
     fate: keep
     diataxis: how-to
     teaches:
-      Turn on authentication for the Compose stack or the Helm chart with your
+      Turn on authentication for the Compose stack, or name your own provider on
+      a Kubernetes install instead of the operator's bundled sign-in, with your
       own OIDC provider and API keys, in order — register the console as a
       public PKCE client (redirect and post-logout URIs, web origins, refresh
       tokens, the audience on the token, Dex's audience-is-the-client-ID rule),
-      set issuer, audience and console client ID as .env lines or values-file
-      lines, read the server's /config.json to confirm, sign in, create the
-      runner's never-expiring key and your own under Settings → API keys, give
-      the runner its key (the chart's Secret and the order it forces), point the
-      CLI at the stack on 443 — then what changes (roles, run attribution, what
-      stays open) and what still needs an API key.
+      set issuer, audience and console client ID as .env lines or Stigmer
+      resource fields, read the server's /config.json to confirm, sign in,
+      create your own key under Settings → API keys, the runner's key (a line
+      on Compose, minted by the operator on Kubernetes), point the CLI at the
+      stack on 443 — then what changes (roles, run attribution, what stays open)
+      and what still needs an API key.
     medium: none
 
   guides/self-hosting/operations:
     fate: keep
     diataxis: how-to
     teaches:
-      One backup format for both team shapes (a dump of the three databases, a
-      tarball per file store, the keys as a flat file); back up, restore, move
-      between Compose and Kubernetes, upgrade by version pin, change a setting
-      or rotate the runner's key, uninstall, each per shape.
+      What a complete backup is on both team shapes (the databases, the files,
+      the keys); on Compose a dump, tarballs and the keys file, on Kubernetes
+      the operator's continuous backups to the bucket and the keys Secret, or a
+      dump without a bucket; restore (to a point in time with recoverFrom, or
+      from a dump), move between shapes, upgrade (the operator's backup first),
+      change a setting or rotate the runner's key, uninstall, each per shape.
     medium: none
 
   guides/self-hosting/runners:
@@ -1025,6 +1031,10 @@ pages:
 cohorts:
   cli/commands/:
     generator: gen-cli-docs
+    diataxis: reference
+    medium: none
+  guides/self-hosting/kubernetes-reference/:
+    generator: gen-operator-docs
     diataxis: reference
     medium: none
   sdk/react/:

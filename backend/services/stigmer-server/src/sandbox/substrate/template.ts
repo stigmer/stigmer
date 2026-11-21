@@ -104,6 +104,7 @@ import { createHash } from "node:crypto";
 import { create, toBinary } from "@bufbuild/protobuf";
 
 import type { SandboxDriverConfig } from "../provisioner.js";
+import { ARTIFACT_LANE_ENDPOINT_ENV } from "../provisioner.js";
 import { temporalAddressThroughServer } from "../../transport/temporal-worker-door/address.js";
 import {
   AGENT_HOME,
@@ -192,6 +193,9 @@ export function buildRunnerTemplate(input: RunnerTemplateInput): ActorTemplate {
   };
   if (config.mcpPublicEndpoint !== "") {
     env["STIGMER_MCP_PUBLIC_ENDPOINT"] = config.mcpPublicEndpoint;
+  }
+  if (config.artifactLane) {
+    env[ARTIFACT_LANE_ENDPOINT_ENV] = config.backendEndpoint;
   }
   // Only a release server names its release, so a re-pin between
   // development builds leaves the template's content, and its name, alone.
@@ -338,6 +342,11 @@ export interface TemplateKeeper {
   readyNow(): boolean;
   /** Forget a ready template that turned out to be gone (another server retired it). */
   invalidate(): void;
+  /**
+   * Calls `listener` whenever readyNow() changes; returns the call that
+   * stops it.
+   */
+  onReadyChange(listener: (ready: boolean) => void): () => void;
 }
 
 export function newTemplateKeeper(options: {
@@ -356,6 +365,12 @@ export function newTemplateKeeper(options: {
   const name = template.metadata?.name ?? "";
   let inFlight: Promise<string> | undefined;
   let isReady = false;
+  const listeners = new Set<(ready: boolean) => void>();
+  const setReady = (ready: boolean): void => {
+    if (ready === isReady) return;
+    isReady = ready;
+    for (const listener of listeners) listener(ready);
+  };
   let recreated = false;
   let deniedLogged = false;
 
@@ -385,7 +400,7 @@ export function newTemplateKeeper(options: {
           template: name,
           waitedMs: now() - started,
         });
-        isReady = true;
+        setReady(true);
         return name;
       } else if (current.goldenError !== "") {
         const failure = goldenFailureMessage(name, current.goldenError);
@@ -420,7 +435,13 @@ export function newTemplateKeeper(options: {
     readyNow: () => isReady,
     invalidate() {
       inFlight = undefined;
-      isReady = false;
+      setReady(false);
+    },
+    onReadyChange(listener) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
     },
   };
 }

@@ -752,8 +752,9 @@ manages its process.
 A lane has the shape of its target. On the execution targets the sibling is
 booted WITH its own Temporal (`SiblingExecutionServer`; the primary's engine
 cannot be shared, since the trusted-local runner polls the same queue) and a
-runner keyed with the founder's API key — the Helm chart's single-operator-key
-install, driven by the harness (`harness/enforcing-execution-lane.ts`, which
+runner keyed with the founder's API key — a self-hosted install's runner
+before the server provisioned the runner's own key at boot, driven by the
+harness (`harness/enforcing-execution-lane.ts`, which
 composes `enforcing-lane.ts` rather than restating it). The lane then also
 carries `llmProxy()`, the mock that runner dials, and an execution arm can
 dispatch a run under enforcement and read what the runner did as whom. The

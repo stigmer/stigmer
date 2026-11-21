@@ -57,6 +57,7 @@ const config: SandboxDriverConfig = {
   runnerEnv: {},
   runnerSecretEnv: {},
   serverRelease: "",
+  artifactLane: false,
 };
 
 const env = {
@@ -192,6 +193,16 @@ describe("the runner container", () => {
       key: "STIGMER_TOKEN",
       optional: true,
     });
+  });
+
+  it("a bucket-store server hands the runner its artifact lane, its own address; a local-store server none", () => {
+    expect(containerOf({ ...config, artifactLane: true })?.env).toContainEqual({
+      name: "STIGMER_ARTIFACT_PROXY_ENDPOINT",
+      value: config.backendEndpoint,
+    });
+    const names = (containerOf(config)?.env ?? []).map((entry) => entry.name);
+    expect(names).not.toContain("STIGMER_ARTIFACT_PROXY_ENDPOINT");
+    expect(names).not.toContain("STIGMER_PROXY_ENDPOINT");
   });
 
   it("a server with no public address hands the runner none", () => {

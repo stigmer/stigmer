@@ -9,7 +9,13 @@
  *   - actual cross-origin RPC responses carry the echoed-origin headers;
  *   - the skill-transfer prefix is a seam: with no handler installed it
  *     falls through to 404 exactly like an unknown path;
- *   - shutdown drains promptly with idle keepalive clients connected.
+ *   - the runner artifact lane's two exact paths reach it when it is
+ *     installed, a query string included, and nothing else under them
+ *     does; with none installed they are the adapter's 404;
+ *   - shutdown drains promptly with idle keepalive clients connected;
+ *   - the health service keeps whether sessions can start as its own named
+ *     status (stigmer.sandboxes), apart from the overall one, and answers
+ *     it over Connect JSON as the Kubernetes operator asks it.
  *
  * This suite boots WITHOUT a console lane, so its arms also pin the
  * lane-absent posture (no bundled export → the router behaves exactly as
@@ -26,7 +32,11 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createLogger } from "../../boot/logger.js";
-import { HealthState, registerHealthService } from "../health.js";
+import {
+  HealthState,
+  registerHealthService,
+  SANDBOXES_HEALTH_SERVICE,
+} from "../health.js";
 import { createUnifiedPortServer, type UnifiedPortServer } from "../server.js";
 
 const silentLogger = createLogger({
@@ -79,6 +89,46 @@ describe("lane priority", () => {
   it("answers 404 for arbitrary unknown paths", async () => {
     const response = await fetch(`${baseUrl}/definitely/not/a/route`);
     expect(response.status).toBe(404);
+  });
+});
+
+describe("the runner artifact lane", () => {
+  const UPLOAD = "/v1/proxy/artifacts/presigned-upload-url";
+  const DOWNLOAD = "/v1/proxy/artifacts/presigned-download-url";
+
+  it("is the adapter's 404 while no lane is installed", async () => {
+    expect((await fetch(`${baseUrl}${UPLOAD}`, { method: "POST" })).status).toBe(404);
+    expect((await fetch(`${baseUrl}${DOWNLOAD}`, { method: "POST" })).status).toBe(404);
+  });
+
+  it("routes exactly its two paths to the installed lane, a query string included", async () => {
+    const withLane = createUnifiedPortServer({
+      logger: silentLogger,
+      routes: () => {},
+      interceptors: [],
+      modelRegistryLane: (_request, response) => {
+        response.end("{}");
+      },
+      runnerArtifactLane: (request, response) => {
+        response.setHeader("x-lane", "runner-artifacts");
+        response.setHeader("x-url", request.url ?? "");
+        response.end();
+      },
+    });
+    const port = await withLane.listen(0, "127.0.0.1");
+    try {
+      const at = `http://127.0.0.1:${port}`;
+      for (const route of [UPLOAD, DOWNLOAD, `${UPLOAD}?attempt=2`]) {
+        const response = await fetch(`${at}${route}`, { method: "POST" });
+        expect(response.headers.get("x-lane"), route).toBe("runner-artifacts");
+        expect(response.headers.get("x-url"), route).toBe(route);
+      }
+      const beneath = await fetch(`${at}${UPLOAD}/more`, { method: "POST" });
+      expect(beneath.headers.get("x-lane")).toBeNull();
+      expect(beneath.status).toBe(404);
+    } finally {
+      await withLane.shutdown();
+    }
   });
 });
 
@@ -136,5 +186,30 @@ describe("RPC surface", () => {
     healthState.setOverall(ServingStatus.SERVING);
     const after = await client.check({});
     expect(after.status).toBe(ServingStatus.SERVING);
+  });
+
+  it("keeps whether sessions can start as its own named status, apart from the overall one", async () => {
+    const client = createClient(Health, createGrpcTransport({ baseUrl }));
+    healthState.setOverall(ServingStatus.SERVING);
+    healthState.set(SANDBOXES_HEALTH_SERVICE, ServingStatus.NOT_SERVING);
+
+    expect((await client.check({})).status).toBe(ServingStatus.SERVING);
+    expect(
+      (await client.check({ service: SANDBOXES_HEALTH_SERVICE })).status,
+    ).toBe(ServingStatus.NOT_SERVING);
+    const listed = await client.list({});
+    expect(Object.keys(listed.statuses).sort()).toEqual([
+      "",
+      SANDBOXES_HEALTH_SERVICE,
+    ]);
+
+    // The operator asks it over Connect JSON (deploy/operator/internal/serverhealth).
+    healthState.set(SANDBOXES_HEALTH_SERVICE, ServingStatus.SERVING);
+    const response = await fetch(`${baseUrl}/grpc.health.v1.Health/Check`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ service: SANDBOXES_HEALTH_SERVICE }),
+    });
+    expect(await response.json()).toEqual({ status: "SERVING" });
   });
 });

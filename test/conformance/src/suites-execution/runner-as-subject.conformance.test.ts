@@ -3,11 +3,11 @@
 // Domain: agentic / agentexecution + platform (the runner's credential lane).
 //
 // The contract: on a self-hosted server with sign-in on, ONE long-lived runner
-// serves every person's runs and holds one operator's API key as its process
-// credential (the Helm chart's install). Under an enforcing authorizer,
-// reporting on a run is `can_edit` on the execution, which the run's human
-// holds — so a runner that acted as its key's holder could report on the
-// operator's runs and on nobody else's. Instead the server mints each run its
+// serves every person's runs and holds one process credential, here a
+// signed-in person's API key as the runner's one token. Under an enforcing
+// authorizer, reporting on a run is `can_edit` on the execution, which the
+// run's human holds — so a runner that acted as its key's holder could
+// report on the operator's runs and on nobody else's. Instead the server mints each run its
 // own credential at dispatch and carries it on the engine's run input; the runner
 // presents it on every RPC about that run; and the built-in verifier admits
 // its bearer AS THE RUN'S HUMAN. What follows over the wire, and is pinned here:
@@ -72,7 +72,7 @@
 //     acquireScopedRunnerToken pins the short-circuit; a conformance arm
 //     reads outcomes, never a server log;
 //   - the tools listing's read of the plugin itself: it rides the runner's
-//     own credential, an organization admin's under the chart's install,
+//     own credential, an organization admin's in this lane,
 //     who may read every plugin in the organization. No arm here tells that
 //     key from the member's listing credential — every plugin a member may
 //     list is one both may read — so which key the read rides is the
