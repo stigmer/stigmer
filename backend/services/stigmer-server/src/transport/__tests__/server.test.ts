@@ -9,6 +9,9 @@
  *   - actual cross-origin RPC responses carry the echoed-origin headers;
  *   - the skill-transfer prefix is a seam: with no handler installed it
  *     falls through to 404 exactly like an unknown path;
+ *   - the runner artifact lane's two exact paths reach it when it is
+ *     installed, a query string included, and nothing else under them
+ *     does; with none installed they are the adapter's 404;
  *   - shutdown drains promptly with idle keepalive clients connected;
  *   - the health service keeps whether sessions can start as its own named
  *     status (stigmer.sandboxes), apart from the overall one, and answers
@@ -86,6 +89,45 @@ describe("lane priority", () => {
   it("answers 404 for arbitrary unknown paths", async () => {
     const response = await fetch(`${baseUrl}/definitely/not/a/route`);
     expect(response.status).toBe(404);
+  });
+});
+
+describe("the runner artifact lane", () => {
+  const UPLOAD = "/v1/proxy/artifacts/presigned-upload-url";
+  const DOWNLOAD = "/v1/proxy/artifacts/presigned-download-url";
+
+  it("is the adapter's 404 while no lane is installed", async () => {
+    expect((await fetch(`${baseUrl}${UPLOAD}`, { method: "POST" })).status).toBe(404);
+    expect((await fetch(`${baseUrl}${DOWNLOAD}`, { method: "POST" })).status).toBe(404);
+  });
+
+  it("routes exactly its two paths to the installed lane, a query string included", async () => {
+    const withLane = createUnifiedPortServer({
+      logger: silentLogger,
+      routes: () => {},
+      interceptors: [],
+      modelRegistryLane: (_request, response) => {
+        response.end("{}");
+      },
+      runnerArtifactLane: (request, response) => {
+        response.setHeader("x-lane", "runner-artifacts");
+        response.end(request.url ?? "");
+      },
+    });
+    const port = await withLane.listen(0, "127.0.0.1");
+    try {
+      const at = `http://127.0.0.1:${port}`;
+      for (const route of [UPLOAD, DOWNLOAD, `${UPLOAD}?attempt=2`]) {
+        const response = await fetch(`${at}${route}`, { method: "POST" });
+        expect(response.headers.get("x-lane"), route).toBe("runner-artifacts");
+        expect(await response.text(), route).toBe(route);
+      }
+      const beneath = await fetch(`${at}${UPLOAD}/more`, { method: "POST" });
+      expect(beneath.headers.get("x-lane")).toBeNull();
+      expect(beneath.status).toBe(404);
+    } finally {
+      await withLane.shutdown();
+    }
   });
 });
 

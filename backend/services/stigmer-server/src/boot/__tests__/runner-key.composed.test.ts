@@ -15,6 +15,14 @@
  *     recording it is finished by the next start, which records that
  *     account and stores the key on it;
  *   - a key that is not an `stk_` key is a boot error naming the variable.
+ *
+ * And where the key is never stored, the server says why and starts:
+ *
+ *   - a server composed to hold any number of organizations warns that it
+ *     never makes the shared runner a key of its own;
+ *   - a one-organization server whose store holds several (made while it
+ *     held any number) warns that it holds no single organization yet;
+ *   - a server with sign-in off says the runner needs no key.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -26,6 +34,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ApiKeyCommandController } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/command_pb";
 import { IdentityAccountQueryController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { IdentityAccountCommandController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/command_pb";
+import { OrganizationCommandController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
@@ -62,10 +71,14 @@ interface Started {
 
 let dir: string;
 
-async function start(key: string): Promise<Started> {
+async function start(
+  key: string,
+  units: ReadonlyArray<ServerExtension> = [signIn],
+  at: string = dir,
+): Promise<Started> {
   const messages: string[] = [];
   const server = await composeServer({
-    config: loadConfig({ ...baseConfig(dir), STIGMER_RUNNER_API_KEY: key }),
+    config: loadConfig({ ...baseConfig(at), STIGMER_RUNNER_API_KEY: key }),
     logger: createLogger({
       level: "info",
       pretty: false,
@@ -73,7 +86,7 @@ async function start(key: string): Promise<Started> {
         messages.push(String((JSON.parse(line) as { message?: unknown }).message ?? ""));
       },
     }),
-    extensions: [signIn],
+    extensions: units,
     portOverride: 0,
     host: "127.0.0.1",
   });
@@ -222,5 +235,78 @@ describe("the shared runner's key at boot", () => {
     expect(() =>
       loadConfig({ ...baseConfig(dir), STIGMER_RUNNER_API_KEY: "runner-secret" }),
     ).toThrow(/STIGMER_RUNNER_API_KEY is not an stk_ key/);
+  });
+});
+
+describe("the shared runner's key where the server never stores it", () => {
+  // The same sign-in, composed to hold any number of organizations.
+  const anyNumber: ServerExtension = {
+    name: "fake-sign-in-any-number",
+    requireAuthentication: true,
+    identityVerifiers: [fakeVerifier],
+  };
+  const key = generateApiKeyPlaintext();
+  let own: string;
+
+  beforeAll(() => {
+    own = mkdtempSync(path.join(tmpdir(), "runner-key-unstored-"));
+  });
+
+  afterAll(() => {
+    rmSync(own, { recursive: true, force: true });
+  });
+
+  it("warns on a server of any number of organizations, and makes no runner account", async () => {
+    const at = await start(key, [anyNumber], own);
+    try {
+      expect(at.messages).toContain(
+        "STIGMER_RUNNER_API_KEY is not stored: the server holds several organizations, so it never makes the shared runner a key of its own; the runner keeps the key it is handed (STIGMER_TOKEN)",
+      );
+      expect(await at.server.store.bootstrapState.get(SERVER_RUNNER_ACCOUNT_KEY)).toBe("");
+
+      // Two organizations, as people make them on such a server.
+      const person = transportFor(at.port, fakeJwt("person", "person@example.com"));
+      await createClient(IdentityAccountCommandController, person).provisionMyAccount({});
+      for (const slug of ["acme", "globex"]) {
+        await createClient(OrganizationCommandController, person).create({
+          apiVersion: "tenancy.stigmer.ai/v1",
+          kind: "Organization",
+          metadata: { name: slug, slug, org: "" },
+          spec: { description: slug },
+        });
+      }
+    } finally {
+      await at.server.shutdown();
+    }
+  });
+
+  it("warns on a one-organization server whose store holds several, and starts without storing it", async () => {
+    const at = await start(key, [signIn], own);
+    try {
+      expect(at.messages).toContain(
+        "STIGMER_RUNNER_API_KEY is set but the server holds no single organization yet, so the runner's key is not stored this start",
+      );
+      expect(await at.server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe("");
+      expect(await at.server.store.bootstrapState.get(SERVER_RUNNER_ACCOUNT_KEY)).toBe("");
+    } finally {
+      await at.server.shutdown();
+    }
+  });
+
+  it("says the key is ignored when sign-in is off", async () => {
+    const trusted = mkdtempSync(path.join(tmpdir(), "runner-key-trusted-"));
+    try {
+      const at = await start(key, [], trusted);
+      try {
+        expect(at.messages).toContain(
+          "STIGMER_RUNNER_API_KEY is ignored: sign-in is off, so the runner needs no key",
+        );
+        expect(await at.server.store.bootstrapState.get(SERVER_RUNNER_ACCOUNT_KEY)).toBe("");
+      } finally {
+        await at.server.shutdown();
+      }
+    } finally {
+      rmSync(trusted, { recursive: true, force: true });
+    }
   });
 });

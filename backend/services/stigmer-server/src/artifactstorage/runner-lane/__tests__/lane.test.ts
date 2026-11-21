@@ -10,11 +10,15 @@
  *   - an upload answers `{url, method, headers}` signed for the declared
  *     content type (the default when none is declared), a download `{url}`
  *     signed for the runner's address;
- *   - every refusal has an empty body; a body over the cap is a 413; a
+ *   - every refusal has an empty body; a body over the cap is a 413,
+ *     whether its length is declared or only counted as it streams; a
  *     method other than POST is a 405 with `Allow`;
+ *   - a store that fails as it presigns is an empty 500, logged with the
+ *     route and the cause, never a URL;
+ *   - the run a key names is read only from a key under `artifacts/`;
  *   - a store without the runner upload capability serves no lane.
  */
-import { createServer, type Server } from "node:http";
+import { createServer, request, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -22,6 +26,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createLogger } from "../../../boot/logger.js";
 import type { ArtifactStorage } from "../../artifact-storage.js";
 import type { IdentityVerifier } from "../../../extensions/identity.js";
+import { runIdFromArtifactKey } from "../key-rules.js";
 import {
   createRunnerArtifactLane,
   isRunnerArtifactPath,
@@ -30,11 +35,19 @@ import {
   type RunnerLaneStore,
 } from "../lane.js";
 
-const logger = createLogger({ level: "error", pretty: false, write: () => {} });
+/** The lane's error lines, as written. */
+const errors: string[] = [];
+const logger = createLogger({ level: "error", pretty: false, write: (line) => errors.push(line) });
+
+/** A key whose presign the fake store fails, as a bucket that cannot be reached would. */
+const FAULTING_KEY = "artifacts/run_1/unreachable";
 
 const presigned: Array<{ key: string; contentType?: string; reader?: string }> = [];
 const storage: RunnerLaneStore = {
   presignRunnerUpload(key, contentType) {
+    if (key === FAULTING_KEY) {
+      return Promise.reject(new Error("bucket unreachable"));
+    }
     presigned.push({ key, contentType });
     return Promise.resolve({ url: `https://bucket.test/${key}?put`, method: "PUT", headers: { "content-type": contentType } });
   },
@@ -180,6 +193,48 @@ describe("the runner artifact lane", () => {
     const get = await fetch(`${base}${UPLOAD}`, { headers: { authorization: "Bearer runner" } });
     expect(get.status).toBe(405);
     expect(get.headers.get("allow")).toBe("POST");
+  });
+
+  it("counts a streamed body with no declared length against the cap, a 413", async () => {
+    const answer = await new Promise<{ status: number; body: string }>((resolve, reject) => {
+      const sent = request(
+        `${base}${UPLOAD}`,
+        { method: "POST", agent: false, headers: { authorization: "Bearer runner", "content-type": "application/json" } },
+        (response) => {
+          let body = "";
+          response.setEncoding("utf8");
+          response.on("data", (chunk: string) => {
+            body += chunk;
+          });
+          response.on("end", () => resolve({ status: response.statusCode ?? 0, body }));
+        },
+      );
+      sent.on("error", reject);
+      // Two writes and no Content-Length: the body goes chunked, so only
+      // counting it as it arrives can find it over the cap.
+      const half = Buffer.alloc(RUNNER_LANE_BODY_MAX_BYTES / 2 + 1, "a");
+      sent.write(half);
+      sent.write(half);
+      sent.end();
+    });
+    expect(answer).toEqual({ status: 413, body: "" });
+  });
+
+  it("answers a store that fails as it presigns with an empty 500, logging the route and the cause", async () => {
+    errors.length = 0;
+    const answer = await post(UPLOAD, JSON.stringify({ key: FAULTING_KEY }));
+    expect(answer.status).toBe(500);
+    expect(answer.text).toBe("");
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("runner artifact lane failed");
+    expect(errors[0]).toContain(UPLOAD);
+    expect(errors[0]).toContain("bucket unreachable");
+  });
+
+  it("reads the run only from a key under artifacts/", () => {
+    expect(runIdFromArtifactKey("artifacts/run_1/out.txt")).toBe("run_1");
+    expect(runIdFromArtifactKey("attachments/run_1/out.txt")).toBeUndefined();
+    expect(runIdFromArtifactKey("artifacts/run_1/")).toBeUndefined();
   });
 
   it("is served only by a store that can presign a runner's upload", () => {

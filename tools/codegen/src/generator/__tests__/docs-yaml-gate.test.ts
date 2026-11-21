@@ -7,7 +7,10 @@
  * marker with no anchor, a no-validate marker with no reason and a manifest
  * that does not decode each fail the gate with their own message;
  * the Kubernetes operator's Stigmer resource, whole or anchored, validates
- * against the operator's definition and fails on a field it does not have;
+ * against the operator's definition and fails on a field it does not have,
+ * and an anchored Stigmer fragment that does not decode or holds nothing
+ * fails with its own message; a problem on the generated Kubernetes reference
+ * page names, once, the Go doc comment to fix instead;
  * and report mode prints a protovalidate violation without failing the build.
  */
 import * as fs from "node:fs";
@@ -159,6 +162,25 @@ describe("the docs YAML gate", () => {
     expect(printed).toContain('spec: unknown field "ingres" (did you mean "ingress"?)');
     expect(printed).toContain('spec.image.pullPolicy: "Sometimes" is not one of "Always", "IfNotPresent", "Never"');
     expect(printed).toContain('validate-as "Stigmer.fleet": spec has no object field "fleet"');
+  });
+
+  it("fails an anchored Stigmer fragment that does not decode or holds nothing, and points a generated reference page at its source once", () => {
+    writeDoc(
+      "docs/guides/self-hosting/kubernetes-reference/stigmer.mdx",
+      [
+        fence('validate-as="Stigmer.ingress"', "hostname: [unclosed"),
+        fence('validate-as="Stigmer.ingress"', "# only a comment"),
+      ].join("\n"),
+    );
+
+    expect(() => runDocsYamlCheck(path.join(root, "docs"), [], "off")).toThrow(
+      "docs YAML validation failed with 2 problem(s)",
+    );
+    expect(printed).toMatch(/stigmer\.mdx:1\n {4}invalid YAML: /);
+    expect(printed).toContain("empty yaml block");
+    const hint =
+      "note: this page is generated — fix the Go doc comment in deploy/operator/api/v1, then run 'make manifests' in deploy/operator and 'make gen-operator-docs'";
+    expect(printed.split(hint).length - 1).toBe(1);
   });
 
   it("reports a protovalidate violation in report mode without failing the build", () => {

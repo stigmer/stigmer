@@ -10,9 +10,13 @@
  *     download it carries;
  *   - an unsigned link under the prefix is answered as a missing key;
  *   - the same key without the prefix never reaches the lane (the adapter's
- *     404), so a key cannot meet a console route.
+ *     404), so a key cannot meet a console route;
+ *   - a raw path the router sends under the prefix whose dot segments climb
+ *     out of it is answered as a missing key, even signed for where it
+ *     lands, so the prefix is the only door to the store.
  */
 import { mkdtempSync, rmSync } from "node:fs";
+import { request } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -88,5 +92,27 @@ describe("the download lane under /artifacts/ on the unified port", () => {
     const response = await fetch(outside);
 
     expect(response.status).not.toBe(200);
+  });
+
+  it("answers a path whose dot segments climb out of the prefix as a missing key", async () => {
+    const minted = new URL(await storage.getSignedUrl(KEY, HOUR_MS, "", "person"));
+    // Sent raw: fetch would resolve the dot segments before the request
+    // left, and the router would never see the prefix.
+    const climbing = `/artifacts/../${KEY}${minted.search}`;
+
+    const answer = await new Promise<{ status: number; body: string }>((resolve, reject) => {
+      const sent = request(minted.origin, { path: climbing, agent: false }, (response) => {
+        let body = "";
+        response.setEncoding("utf8");
+        response.on("data", (chunk: string) => {
+          body += chunk;
+        });
+        response.on("end", () => resolve({ status: response.statusCode ?? 0, body }));
+      });
+      sent.on("error", reject);
+      sent.end();
+    });
+
+    expect(answer).toEqual({ status: 404, body: "404 page not found\n" });
   });
 });

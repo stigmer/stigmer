@@ -9,10 +9,12 @@
  *   - one bound to a run of another session, or of another organization,
  *     is refused, and never reaches the identity path;
  *   - a composition's own runner decision admits on yes, and on no leaves
- *     the bearer to the identity path;
+ *     the bearer to the identity path; one that throws refuses, and the
+ *     identity path is never asked;
  *   - an identity is admitted by the authorizer's allow on the run, with
  *     edit for an upload and view for a download; deny and not-found
- *     refuse, unavailable is unavailable;
+ *     refuse, unavailable is unavailable, and an answer outside the
+ *     authorizer's contract is an error, never an admission;
  *   - a caller the composed classifier names a visitor, or one it throws
  *     on, is refused before the authorizer is asked;
  *   - no credential, or one no verifier claims, is unauthenticated, and a
@@ -143,6 +145,15 @@ describe("decideArtifactAccess: a runner credential", () => {
     expect(await decideArtifactAccess(deps, "sandbox", "run_3", true)).toEqual({ kind: "allow", by: "runner" });
     expect(await decideArtifactAccess(deps, "person", "run_3", true)).toEqual({ kind: "allow", by: "ida_person" });
   });
+
+  it("refuses when a composition's own runner decision throws, and never asks the identity path", async () => {
+    const deps = depsOf({
+      authorizeRunnerForRun: () => Promise.reject(new Error("session store down")),
+      decide: () => ({ kind: "allow" }),
+    });
+    expect(await decideArtifactAccess(deps, "person", "run_1", false)).toEqual({ kind: "deny" });
+    expect(deps.checks).toEqual([]);
+  });
 });
 
 describe("decideArtifactAccess: an identity", () => {
@@ -162,6 +173,15 @@ describe("decideArtifactAccess: an identity", () => {
     [{ kind: "unavailable", cause: new Error("fga down") } as AuthzDecision, { kind: "unavailable", cause: "fga down" }],
   ])("maps the authorizer's %o", async (decision, expected) => {
     expect(await decideArtifactAccess(depsOf({ decide: () => decision }), "person", "run_1", false)).toEqual(expected);
+  });
+
+  it("refuses to answer, never admitting, when the authorizer answers outside its contract", async () => {
+    // An Authorizer is a composition's own code; a kind it was never typed
+    // to return must not fall through to an admission.
+    const odd = { kind: "maybe" } as unknown as AuthzDecision;
+    await expect(decideArtifactAccess(depsOf({ decide: () => odd }), "person", "run_1", false)).rejects.toThrow(
+      "unknown authorization decision",
+    );
   });
 
   it("is unauthenticated with no credential, one nobody claims, or one a verifier refuses", async () => {

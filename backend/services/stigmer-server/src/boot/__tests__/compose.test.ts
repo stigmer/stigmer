@@ -22,7 +22,9 @@
  *     port, and without one an ephemeral port still derives nothing
  *     (stigmer#1200);
  *   - a sandbox driver's background work starts with the server, reading
- *     the server's own sessions, and is stopped, awaited, at shutdown;
+ *     the server's own sessions, and is stopped, awaited, at shutdown; what
+ *     it reports about whether sessions can start is the server's
+ *     stigmer.sandboxes health status;
  *   - a sandbox driver is handed, as the server's release, the version
  *     getServerInfo reports when it is a release, and "" for a development
  *     version, so the runner layer's pairing check can never compare a
@@ -63,6 +65,7 @@ import { loadConfig } from "../config.js";
 import { composeServer } from "../compose.js";
 import { createLogger } from "../logger.js";
 import type { LogEntry, Logger } from "../logger.js";
+import { SANDBOXES_HEALTH_SERVICE } from "../../transport/health.js";
 import { seedOrganizations } from "../../domain/organization/__tests__/support.js";
 import type { ServerExtension } from "../../extensions/registry.js";
 import type {
@@ -329,7 +332,7 @@ describe("the MCP OAuth callback", () => {
 });
 
 describe("a sandbox driver's background work", () => {
-  it("starts with the server over its sessions and is stopped at shutdown", async () => {
+  it("starts with the server over its sessions, reports whether sessions can start, and is stopped at shutdown", async () => {
     const events: string[] = [];
     let context: SandboxBackgroundContext | undefined;
     const provisioner = {
@@ -378,6 +381,14 @@ describe("a sandbox driver's background work", () => {
       const ids: string[] = [];
       for await (const id of context!.sessions.sessionIds()) ids.push(id);
       expect(ids).toEqual([]);
+
+      // Whether sessions can start is the driver's to report, as the
+      // server's named health status.
+      expect(server.healthState.status(SANDBOXES_HEALTH_SERVICE)).toBe(ServingStatus.SERVING);
+      context?.reportReady?.(false);
+      expect(server.healthState.status(SANDBOXES_HEALTH_SERVICE)).toBe(ServingStatus.NOT_SERVING);
+      context?.reportReady?.(true);
+      expect(server.healthState.status(SANDBOXES_HEALTH_SERVICE)).toBe(ServingStatus.SERVING);
     } finally {
       await server.shutdown();
       vi.unstubAllEnvs();

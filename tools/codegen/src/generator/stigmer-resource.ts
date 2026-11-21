@@ -292,16 +292,29 @@ function kubernetesType(n: SchemaNode): string | undefined {
 }
 
 /**
+ * Code for a Markdown table cell (a column's JSON path): a backslash and a
+ * pipe escaped, so neither ends the cell or escapes what follows.
+ */
+function tableCode(text: string): string {
+  return text.replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
+}
+
+/**
+ * Prose (already through `prose`, which escaped its backslashes) for a
+ * Markdown table cell: only a pipe is left to escape, so it does not end
+ * the cell. Escaping a backslash again would make MDX read the brace
+ * `prose` escaped as an expression.
+ */
+function proseCell(escaped: string): string {
+  return escaped.split("|").join("\\|");
+}
+
+/**
  * Prose safe in MDX: a Go doc comment's lines joined, and braces and angle
  * brackets escaped outside inline code, which MDX shows as written. A bare
  * URL in a comment is an example address (http://minio.storage.svc:9000),
  * never a page to visit, so it is shown as code rather than linked.
  */
-/** Text for a Markdown table cell: a backslash and a pipe escaped, so neither ends the cell or escapes what follows. */
-function tableCell(text: string): string {
-  return text.replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
-}
-
 function prose(text: string): string {
   return text
     .split(/\n\s*\n/)
@@ -459,7 +472,7 @@ export function renderStigmerReference(def: StigmerDefinition): string {
     "",
     "| Column | Field | What it says |",
     "| --- | --- | --- |",
-    ...def.columns.map((c) => `| ${c.name} | \`${tableCell(c.jsonPath)}\` | ${tableCell(columnWords(c, def))} |`),
+    ...def.columns.map((c) => `| ${c.name} | \`${tableCode(c.jsonPath)}\` | ${proseCell(columnWords(c, def))} |`),
     "",
   );
   renderObject(def.status, "status", 2, out);

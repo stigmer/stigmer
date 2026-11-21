@@ -107,8 +107,6 @@ export async function newSiblingEnforcingExecutionLane(
   const mock = new MockLlmProxy();
   let runner: RunningRunner | undefined;
   try {
-    // The runner's key: minted by the founder in an organization of their
-    // own, a signed-in person's key as the runner's one token.
     // Newcomers the people lane provisions are revoked on this organization
     // like every other the founder holds, so no arm ever meets it.
     const home = await people.lane.provisionTenancy();

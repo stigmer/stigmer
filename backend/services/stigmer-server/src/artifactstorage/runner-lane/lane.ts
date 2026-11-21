@@ -141,6 +141,7 @@ async function serve(
       return { status: 503, reason: `authorization unavailable: ${access.cause}`, key };
     case "allow":
       break;
+    /* v8 ignore next 4 -- @preserve: the compile-time exhaustiveness check; decideArtifactAccess returns only the four kinds above */
     default: {
       const exhaustive: never = access;
       throw new Error(`unknown access decision ${String(exhaustive)}`);

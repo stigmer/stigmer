@@ -221,6 +221,7 @@ export function startSubstrateSweep(
   prepareUnlessReady();
 
   const tick = (): void => {
+    /* v8 ignore next -- @preserve: defensive; stop() clears the interval in the same step that sets the flag, so no tick runs after it */
     if (stopped) return;
     prepareUnlessReady();
     if (running !== undefined) return;

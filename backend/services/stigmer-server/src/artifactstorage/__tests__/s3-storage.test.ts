@@ -7,7 +7,9 @@
  * with the signed Content-Length), a runner's links (downloads and
  * uploads) signed for the runner's address when one is set, the
  * server-side copy, the runner lane's upload (content type signed, no
- * length) and removal by prefix.
+ * length) and removal by prefix; every call wraps a store's fault in an
+ * error naming the call, the SDK's error kept as its cause; and the exported
+ * constructor builds the same driver a composition registers.
  */
 import { describe, expect, it } from "vitest";
 
@@ -16,6 +18,7 @@ import {
   S3ArtifactStorage,
   S3_MAX_EXPIRATION_MS,
   isNotFoundError,
+  newS3ArtifactStorage,
 } from "../s3-storage.js";
 
 const VALID = {
@@ -35,6 +38,12 @@ describe("S3ArtifactStorage config validation (the required-config copy)", () =>
     [{ ...VALID, secretAccessKey: "" }, "S3 secret access key is required"],
   ])("refuses incomplete config", (config, message) => {
     expect(() => new S3ArtifactStorage(config)).toThrow(message);
+  });
+
+  it("the exported constructor builds the driver a composition registers, refusing the same incomplete config", async () => {
+    const url = await newS3ArtifactStorage(VALID).getSignedUrl("k", 60_000, "", "person");
+    expect(url.startsWith(`${VALID.endpoint}/${VALID.bucket}/k?`)).toBe(true);
+    expect(() => newS3ArtifactStorage({ ...VALID, bucket: "" })).toThrow("S3 bucket name is required");
   });
 
   it("an empty endpoint is AWS S3 itself, addressed by region and bucket host", async () => {
@@ -305,5 +314,60 @@ describe("S3ArtifactStorage deletePrefix", () => {
     await expect(storage.deletePrefix("", 10)).rejects.toThrow("is not one folder");
     await expect(storage.deletePrefix("p", 10)).rejects.toThrow("is not one folder");
     await expect(storage.deletePrefix("p/", 10)).rejects.toThrow("1 of 2 objects under 'p/' were not deleted (first: AccessDenied)");
+  });
+});
+
+describe("S3ArtifactStorage faults", () => {
+  const refused = new Error("connection refused");
+
+  /** A store whose every call and every presign fail with `refused`. */
+  function unreachable(): S3ArtifactStorage {
+    return new S3ArtifactStorage(VALID, {
+      client: { send: () => Promise.reject(refused) } as never,
+      presign: () => Promise.reject(refused),
+    });
+  }
+
+  it.each([
+    ["upload", (s: S3ArtifactStorage) => s.upload("k", new Uint8Array([1]), "text/plain"), "s3 upload failed: connection refused"],
+    ["presignPut", (s: S3ArtifactStorage) => s.presignPut("k", 1, 60_000, "person"), "s3 presign failed: connection refused"],
+    ["getSignedUrl", (s: S3ArtifactStorage) => s.getSignedUrl("k", 60_000, "", "person"), "s3 presign failed: connection refused"],
+    ["presignRunnerUpload", (s: S3ArtifactStorage) => s.presignRunnerUpload("artifacts/run_1/k", "text/plain", 60_000), "s3 presign failed: connection refused"],
+    ["deletePrefix's listing", (s: S3ArtifactStorage) => s.deletePrefix("p/", 10), "s3 list failed: connection refused"],
+    ["delete", (s: S3ArtifactStorage) => s.delete("k"), "s3 delete failed: connection refused"],
+    ["exists", (s: S3ArtifactStorage) => s.exists("k"), "s3 head failed: connection refused"],
+    ["health", (s: S3ArtifactStorage) => s.health(), "s3 health check failed: connection refused"],
+  ])("%s wraps the store's fault, naming the call, with the SDK's error as the cause", async (_call, act, message) => {
+    const failure = await act(unreachable()).then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+    expect(failure).toBeInstanceOf(Error);
+    expect((failure as Error).message).toBe(message);
+    expect((failure as Error).cause).toBe(refused);
+  });
+
+  it("deletePrefix wraps a refused delete after a listing that found keys", async () => {
+    const storage = new S3ArtifactStorage(VALID, {
+      client: {
+        send: (command: { constructor: { name: string } }) =>
+          command.constructor.name === "ListObjectsV2Command"
+            ? Promise.resolve({ Contents: [{ Key: "p/1" }], IsTruncated: false })
+            : Promise.reject(refused),
+      } as never,
+      presign: () => Promise.resolve("unused"),
+    });
+    await expect(storage.deletePrefix("p/", 10)).rejects.toThrow("s3 delete failed: connection refused");
+  });
+
+  it("exists answers true for a present key and false for a missing one, never a fault", async () => {
+    let next: Promise<unknown> = Promise.resolve({});
+    const storage = new S3ArtifactStorage(VALID, {
+      client: { send: () => next } as never,
+      presign: () => Promise.resolve("unused"),
+    });
+    expect(await storage.exists("k")).toBe(true);
+    next = Promise.reject(Object.assign(new Error("not here"), { name: "NotFound" }));
+    expect(await storage.exists("k")).toBe(false);
   });
 });

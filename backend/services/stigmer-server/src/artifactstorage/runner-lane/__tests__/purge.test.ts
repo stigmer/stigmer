@@ -1,7 +1,8 @@
 /**
  * Pins the runner artifact lane's purge stage (purge.ts) over an in-memory
  * bucket: each of the organization's runs' folders is emptied and nothing
- * else (a sibling run's folder whose id shares a prefix is kept); a second
+ * else (a sibling run's folder whose id shares a prefix is kept), past the
+ * first page of the organization's runs too; a second
  * call removes nothing; past the batch the stage answers `more`; an id that
  * could escape its folder is skipped; a store fault is thrown for the purge
  * to retry.
@@ -56,6 +57,13 @@ describe("the run artifact purge stage", () => {
     expect(await stage.run(contextOf(["run_1"]))).toEqual({ more: false });
     expect([...bucket.objects].sort()).toEqual(["artifacts/run_10/a", "files/acme/f"]);
     expect(await stage.run(contextOf(["run_1"]))).toEqual({ more: false });
+  });
+
+  it("reads every page of the organization's runs, emptying the folders past the first", async () => {
+    const runIds = Array.from({ length: 501 }, (_, i) => `run_${String(i).padStart(3, "0")}`);
+    const bucket = bucketOf([...runIds.map((id) => `artifacts/${id}/out.txt`), "artifacts/run_other/kept"]);
+    expect(await newRunArtifactPurgeStage(bucket).run(contextOf(runIds))).toEqual({ more: false });
+    expect([...bucket.objects]).toEqual(["artifacts/run_other/kept"]);
   });
 
   it("answers more past one batch", async () => {
