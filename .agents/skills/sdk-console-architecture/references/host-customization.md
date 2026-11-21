@@ -17,10 +17,10 @@ This file is the contract for the first three: every part of the viewer and
 whether a host may change it, the asks that justify each way to customize, each
 mechanism's data contract, what stays fixed for every host, and where each
 setting lives. `SKILL.md` names the decision ("Hosts customize through
-mechanisms"); this file is its long form. A mechanism marked "designed" here is
-the agreed shape for code not yet written, and a sentence about it in the
-present tense describes that design, not today's code. A change to a design is a
-change to this file first.
+mechanisms"); this file is its long form. A mechanism marked "built" is in the
+code. One marked "designed" is the agreed shape for code not yet written, and a
+sentence about it in the present tense describes that design, not today's code.
+A change to a design is a change to this file first.
 
 ## The rules
 
@@ -72,20 +72,20 @@ The thread draws twenty row kinds (`ThreadItem` in
 components (`MessageThreadSlots`); the rest are closed, each for its reason. No
 closed kind opens without corpus evidence.
 
-| Part (row kind)                                                        | Today's seam                                                 | Decision                                                                                                                                                                      |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `message`, `queued-message`                                            | `MessageEntry` slot                                          | Open. The slot also receives the message's view and the host's message actions as data (below).                                                                               |
-| `approval-request`                                                     | `ApprovalCard` slot                                          | Open for its look, for an ask with no row of its own; an ask inside a tool's row is drawn by that row. What either shows and records is fixed.                                |
-| `todos`                                                                | `TodoCard`, `TodoRow` slots                                  | Open. Replacing either switches off the plan layout a to-do turn draws (the steps go back to time order); the docs say so.                                                    |
-| `plan-completion`, `plan-writing`                                      | `PlanFileCard`, `PlanCompletionCard`, `PlanStreamingCard`    | Open.                                                                                                                                                                         |
-| `setup-progress`, `recalled-memories`, `execution-error`, `liveness`   | one slot each                                                | Open.                                                                                                                                                                         |
-| `tool-group` (a tool call's row)                                       | `registerToolPresenter`, wording only                        | The row and its step line are closed. The **body** of a row for a named MCP tool or the host's own custom tool opens to a host's tool card.                                   |
-| `plan`, `how-it-got-there`, `subagent`                                 | none                                                         | Closed: the structure of a turn's work, which the viewer's redesigns change (stigmer/stigmer#3046).                                                                           |
-| `outcome`                                                              | `turnOutcome`, on a hand-built `MessageThread` only          | Closed in the viewer: the record of what the turn made and changed.                                                                                                           |
-| `turn-scores`                                                          | none                                                         | Kit-owned: the scores of a completed turn with no closing message, at its foot. A turn with one carries them in the message's row instead, beside the host's actions (below). |
-| `phase-badge`, `context-compacted`, `agent-version`, `loaded-versions` | none                                                         | Closed: the transcript's integrity (which version answered, what was dropped).                                                                                                |
-| header                                                                 | `headerActions`, `accessSlot`, `nextStep` on `SessionViewer` | Unchanged. `AgentChat` does not forward them until a host asks.                                                                                                               |
-| composer, links in the agent's text                                    | none                                                         | Not asked; corpus rows marked "not asked".                                                                                                                                    |
+| Part (row kind)                                                        | Today's seam                                                 | Decision                                                                                                                                                                                                                    |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `message`, `queued-message`                                            | `MessageEntry` slot                                          | Open. The slot also receives the message's view and the host's message actions as data (below).                                                                                                                             |
+| `approval-request`                                                     | `ApprovalCard` slot                                          | Open for its look, for an ask with no row of its own; an ask inside a tool's row is drawn by that row. What either shows and records is fixed.                                                                              |
+| `todos`                                                                | `TodoCard`, `TodoRow` slots                                  | Open. Replacing either switches off the plan layout a to-do turn draws (the steps go back to time order); the docs say so.                                                                                                  |
+| `plan-completion`, `plan-writing`                                      | `PlanFileCard`, `PlanCompletionCard`, `PlanStreamingCard`    | Open.                                                                                                                                                                                                                       |
+| `setup-progress`, `recalled-memories`, `execution-error`, `liveness`   | one slot each                                                | Open.                                                                                                                                                                                                                       |
+| `tool-group` (a tool call's row)                                       | `registerToolPresenter`, wording only                        | The row and its step line are closed. The **body** of a row for a named MCP tool or the host's own custom tool opens to a host's tool card.                                                                                 |
+| `plan`, `how-it-got-there`, `subagent`                                 | none                                                         | Closed: the structure of a turn's work, which the viewer's redesigns change (stigmer/stigmer#3046).                                                                                                                         |
+| `outcome`                                                              | `turnOutcome`, on a hand-built `MessageThread` only          | Closed in the viewer: the record of what the turn made and changed.                                                                                                                                                         |
+| `turn-scores`                                                          | none                                                         | Kit-owned: the scores of a completed turn with no final answer (it ended on a step, or Stigmer stopped it), at its foot. A turn with one carries them in its final answer's row instead, beside the host's actions (below). |
+| `phase-badge`, `context-compacted`, `agent-version`, `loaded-versions` | none                                                         | Closed: the transcript's integrity (which version answered, what was dropped).                                                                                                                                              |
+| header                                                                 | `headerActions`, `accessSlot`, `nextStep` on `SessionViewer` | Unchanged. `AgentChat` does not forward them until a host asks.                                                                                                                                                             |
+| composer, links in the agent's text                                    | none                                                         | Not asked; corpus rows marked "not asked".                                                                                                                                                                                  |
 
 Tool cards add no row kind of their own: where a finished turn shows them is
 presentation (below), so the redesigns stay free to move it.
@@ -98,8 +98,8 @@ developer's ask joins this table when one comes.
 
 | Row | Ask                                                       | Kinds of source                                   | Public trace                                                                                                                                          | Answer                                                                                                                                   |
 | --- | --------------------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| C1  | A host's own card when its own MCP tool runs              | real host; market                                 | stigmer/stigmer#3379 (where the ask came from is in its comments); assistant-ui tool UI, CopilotKit tool rendering                                    | Tool cards (designed)                                                                                                                    |
-| C2  | The host's own actions on a message, the answer above all | real host; market; the kit's own use (the scores) | stigmer/stigmer#3380 (its comments); AI Elements message, assistant-ui thread                                                                         | Message actions (designed)                                                                                                               |
+| C1  | A host's own card when its own MCP tool runs              | real host; market                                 | stigmer/stigmer#3379 (where the ask came from is in its comments); assistant-ui tool UI, CopilotKit tool rendering                                    | Tool cards (built)                                                                                                                       |
+| C2  | The host's own actions on a message, the answer above all | real host; market; the kit's own use (the scores) | stigmer/stigmer#3380 (its comments); AI Elements message, assistant-ui thread                                                                         | Message actions (built)                                                                                                                  |
 | C3  | A right-click menu on the answer                          | real host, once                                   | inside stigmer/stigmer#3380                                                                                                                           | Asked once: no menu drawn by the kit; the bubble slot's data (for C2 and C5) lets a host build one                                       |
 | C4  | The agent asks the host to open its own screens           | real host; market; modelled                       | stigmer/stigmer#973; Managed Agents custom tools, CopilotKit frontend tools, AI SDK tool usage; the integrate bank's `move-off-claude-managed-agents` | Custom tools (designed)                                                                                                                  |
 | C5  | The host's design system on thread parts                  | real host                                         | stigmer/stigmer#187                                                                                                                                   | Done: `threadSlots`                                                                                                                      |
@@ -137,7 +137,7 @@ The market, read 2026-11-21:
 The modelled cases are the coding-agent plugin's integration bank
 (`coding-agents/evals/integrate`).
 
-## Tool cards (designed; stigmer/stigmer#3379; C1, C4)
+## Tool cards (built for MCP tools; stigmer/stigmer#3379; C1, C4)
 
 A host draws the body of its own tool's row.
 
@@ -147,9 +147,13 @@ A host draws the body of its own tool's row.
   `backend/libs/ts/plugin-package/src/tool-names.ts`), and the declared name for
   a custom tool. It is the name the agent's tool list, hooks and the console
   already show. The kit composes it from the call's server slug and bare tool,
-  which every record carries; it never parses a name. Built-in tools (shell,
-  edit, read and the rest) have no such name, stay the kit's, and keep the
-  wording seam.
+  which every record carries; it never parses a name (the client's
+  `toolPublicName`, held equal to the runner's by
+  `test/fixtures/tool-view/public-names.json`). Built-in tools (shell, edit,
+  read and the rest), the memory attachment's tools and a server tool named like
+  a built-in resolve to the kit's own kinds, have no such name, stay the kit's,
+  and keep the wording seam. A custom tool's name joins with custom tools
+  (below).
 - **The card receives a narrowed view** and, for a custom tool's call a viewer
   may answer, the answer:
 
@@ -194,33 +198,40 @@ A host draws the body of its own tool's row.
 - **The row stays ours.** The step line (mark, words, time) keeps its failed
   mark and words when the call failed: a failure is never hidden, and the card
   draws it in its own look from `state` and `result.isError`. The tool presenter
-  (`registerToolPresenter`) still words that step line. While an approval waits,
-  the approval is drawn by the row (`sdk/react/src/run/ToolCallItem.tsx`); the
-  host's card appears once it is answered. The card replaces only the body
-  (`ToolCallDetail`, whose MCP case is `McpToolDetail`,
-  `sdk/react/src/run/ToolCallDetail.tsx`), open by default. An error boundary
-  falls back to our body when the card throws.
+  (`registerToolPresenter`) still words that step line. While an approval waits
+  for a viewer who answers it, the approval is the row
+  (`sdk/react/src/run/ToolCallItem.tsx`) and the host's card appears once it is
+  answered. For a viewer who cannot answer, the card draws with `needs-approval`
+  under our line, which says whom it waits on; the card gets no way to answer,
+  so the decision stays ours. The card replaces only the body (`ToolCallDetail`,
+  whose MCP case is `McpToolDetail`, `sdk/react/src/run/ToolCallDetail.tsx`),
+  open by default. An error boundary falls back to our body when the card
+  throws.
 - **Stable by the provider, module-level by the host.** The provider compares
   the `toolCards` map entry by entry, as it keeps the host's `loadMermaid`
   stable (`sdk/react/src/provider.tsx`), so a map literal does not re-render
   every row; the cards themselves are module-level components, because the rows
   rely on `React.memo` (Reference stability is architectural).
 - **A call with a host card is never inside a closed region.** It is the host
-  saying "the person should see this". Five places close a step today, and each
-  treats such a call as it treats a failure, from one shared test, never a copy
-  per place:
+  saying "the person should see this". Six places close a step, and each treats
+  such a call as it treats a failure, from one shared test
+  (`sdk/react/src/run/step-fold.ts` and `sdk/react/src/run/tool-card.tsx`),
+  never a copy per place:
   - a working turn's quiet stretch folds into one line (`MessageThread.tsx`);
-  - a to-do item's steps fold the same way, split per step (`PlanSteps.tsx`);
+  - a plan's loose steps fold the same way (`PlanSteps.tsx`);
   - a to-do item's steps close once the item stops being live (`PlanSteps.tsx`,
-    `useAutoDisclosure`);
-  - a helper's card closes when the helper stops running
-    (`sdk/react/src/run/SubagentSection.tsx`);
+    `useAutoDisclosure`), unless a step under it, its own or a helper's at any
+    depth, has a card;
+  - a helper's row closes when its call stops running: the thread draws a helper
+    through `ToolCallItem`, whose helper body is flat; a host that draws
+    `SubagentSection` itself gets its closing form
+    (`sdk/react/src/run/SubagentSection.tsx`), held the same way;
   - a run of grouped calls folds into one chip
-    (`sdk/react/src/run/ToolRunGroup.tsx`): a call with a host card is never
-    grouped, whatever the presenter's `runGroupable` says.
-
-  The fold test is copied today in `MessageThread.tsx` and `PlanSteps.tsx`; it
-  becomes one function before such a call joins it.
+    (`sdk/react/src/run/segment-tool-calls.ts`, drawn by `ToolRunGroup`): a call
+    with a host card is never grouped, whatever the presenter's `runGroupable`
+    says;
+  - a finished turn folds its working under "How it got there": the cards come
+    out of the fold (below).
 
 - **After the turn ends, each host card is visible once, in time order**,
   without opening anything. Where a finished turn shows it is presentation, not
@@ -261,7 +272,10 @@ A host draws the body of its own tool's row.
   `shortcut` would let a host capture a key; `group` and `buttonVariant` place
   acts on a page, not in a quiet row. Thinking and notes get no actions, and
   neither do queued, pending or failed bubbles: they are not in the session's
-  log yet, so an act would name a message that does not exist.
+  log yet, so an act would name a message that does not exist. Nor does a
+  person's message before the session's events carry it (the thread draws it
+  under a made-up id), an agent message still streaming (its text still
+  changes), or a plan document (it has its own acts and no quiet row).
 
 - **Drawn by us**, so the look and keyboard access stay ours: on an agent
   message in the quiet row after Copy, on a person's bubble in its floating
@@ -271,10 +285,10 @@ A host draws the body of its own tool's row.
   (`sdk/react/src/resource-detail/ResourceActionBar.tsx`), reachable by Tab and
   arrows; no key shortcuts.
 - **The bubble slot gets the data too.** `MessageEntryProps` gains the message's
-  `MessageInfo` and its `MessageAction[]` as data, beside the drawn `actions`
-  node it has today. A host that replaced the bubble through the slots (C5)
-  still serves C2, and can put the same acts in its own right-click menu (C3)
-  without the kit drawing one.
+  `MessageInfo` and its `MessageAction[]` as data (`messageInfo` and
+  `messageActions`), beside the drawn `actions` node it has today. A host that
+  replaced the bubble through the slots (C5) still serves C2, and can put the
+  same acts in its own right-click menu (C3) without the kit drawing one.
 - **The run scores** are a stateful control (thumbs with a comment, health,
   judge and eval chips, their popovers; `sdk/react/src/score/RunScores.tsx`)
   that a data act cannot express. They stay the kit's entry in the same row,
@@ -290,9 +304,9 @@ not by Stigmer's own stop, which ends a turn the agent had not finished
 (`finishedTurn`, same file). A completed Plan-mode turn has none: its plan is a
 document, not an answer. `isFinalAnswer` is false while the turn works, for a
 stopped or failed turn, for a turn Stigmer stopped, and for every message of a
-turn that ended on a step; those messages still get the host's actions. Today
-the scores sit on the closing message of a turn Stigmer stopped too; once one
-function decides, they sit wherever the lead does. A custom tool waiting on the
+turn that ended on a step; those messages still get the host's actions. The
+function is `finalAnswerId` (same file): the scores sit wherever the lead does,
+so a turn Stigmer stopped carries them at its foot. A custom tool waiting on the
 host is not an ending: the turn resumes after the answer.
 
 ## Custom tools: the host's side (designed; stigmer/stigmer#973; C4)

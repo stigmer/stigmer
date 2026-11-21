@@ -1,0 +1,12 @@
+{
+  "comment": "A tool call's public name: the key a host registers its own card under, and the name the agent's tool list, hooks and the console show. A connected server's tool is `mcp__<server>__<tool>` (the runner's mcpToolName, backend/services/runner/src/shared/mcp-tool-names.ts); a call the kit draws as its own kind (a built-in, the memory attachment's tools, a server tool named like a built-in) has none, written as null. Asserted by the runner's mcp-tool-names tests (writer side, the cases with a name) and the @stigmer/client tool-view tests (reader side, toolPublicName).",
+  "cases": [
+    { "name": "a_server_tool", "tool": "create_invoice", "mcpServerSlug": "billing", "publicName": "mcp__billing__create_invoice" },
+    { "name": "a_plugin_server_tool", "tool": "search_code", "mcpServerSlug": "plugin_github_github", "publicName": "mcp__plugin_github_github__search_code" },
+    { "name": "a_tool_with_a_double_underscore", "tool": "list__all", "mcpServerSlug": "crm", "publicName": "mcp__crm__list__all" },
+    { "name": "a_built_in_has_none", "tool": "Edit", "mcpServerSlug": "", "publicName": null },
+    { "name": "a_server_tool_named_like_a_built_in_has_none", "tool": "read_file", "mcpServerSlug": "files", "publicName": null },
+    { "name": "the_memory_attachment_has_none", "tool": "remember", "mcpServerSlug": "stigmer-memory", "publicName": null },
+    { "name": "another_server_remember_is_a_server_tool", "tool": "remember", "mcpServerSlug": "notes", "publicName": "mcp__notes__remember" }
+  ]
+}

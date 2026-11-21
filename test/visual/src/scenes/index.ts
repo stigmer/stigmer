@@ -84,6 +84,7 @@ import {
 } from "./session.tsx";
 import { asksFirstScene, hoursScene, inProductScene, keysScene, ownComputerScene, wallsScene } from "./story.tsx";
 import { threadScene } from "./thread.tsx";
+import { HOST_CUSTOMIZATION_DRAWINGS } from "./host-customization.tsx";
 import {
   agentMakeItYoursScene,
   dashboardJourneyFoldedScene,
@@ -376,5 +377,6 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "help-none": helpNoneScene,
   ...AROUND_CONSOLE_DRAWINGS,
   ...DESKTOP_SCREEN_DRAWINGS,
+  ...HOST_CUSTOMIZATION_DRAWINGS,
   ...presets,
 };

@@ -10,6 +10,10 @@
  * its prefix leaves 11 characters for the tool.
  */
 
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "vitest";
 
 import { ENGINE_TOOL_NAME_MAX, McpToolIndex, McpToolNameCollisionError, engineToolName, mcpToolName } from "../mcp-tool-names.js";
@@ -22,6 +26,19 @@ describe("mcpToolName", () => {
   it("is Claude Code's name for a server's tool", () => {
     expect(mcpToolName("github", "search_code")).toBe("mcp__github__search_code");
   });
+
+  // The clients compose the same name to match a host's card to a call
+  // (`toolPublicName` in @stigmer/client); the shared fixture holds both
+  // sides equal. Cases with no public name are the clients' alone.
+  const here = dirname(fileURLToPath(import.meta.url));
+  const fixture = JSON.parse(readFileSync(resolve(here, "../../../../../../test/fixtures/tool-view/public-names.json"), "utf8")) as {
+    cases: { name: string; tool: string; mcpServerSlug: string; publicName: string | null }[];
+  };
+  for (const c of fixture.cases.filter((c) => c.publicName !== null)) {
+    it(`is the clients' public name: ${c.name}`, () => {
+      expect(mcpToolName(c.mcpServerSlug, c.tool)).toBe(c.publicName);
+    });
+  }
 });
 
 describe("engineToolName", () => {

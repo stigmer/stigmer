@@ -5,7 +5,9 @@
 // host's own listener, and Escape on the host's page leaves it open); Escape
 // from inside closes it and focus returns to its button; on a phone it fills
 // the screen; the moment the agent needs the person is announced while the
-// chat is closed.
+// chat is closed; a host's message actions inside the popup keep their
+// menu's Escape to the menu, which closes back to its trigger while the
+// popup stays open.
 //
 // The two session views are small probes (a text box and a button, and a
 // conversation that reports its activity): what is under test is the frame.
@@ -22,9 +24,10 @@ import { StigmerProvider } from "../../provider.js";
 import { SCENARIO_CLOCK, conversationOf, scenarios } from "../../test/index.js";
 import type { ChatActivity } from "../chat-activity.js";
 import { chatActivityOf } from "../chat-activity-of.js";
+import { MessageEntry } from "../../run/MessageEntry.js";
 
-/** Whether the launcher probe opens a modal File preview inside the chat, as the session view does. */
-const probe = { preview: false };
+/** Whether the launcher probe opens a modal File preview inside the chat, as the session view does, and whether the conversation probe draws a message with a host's actions. */
+const probe = { preview: false, actions: false };
 
 /** A modal dialog the chat opens inside the popup (a File's preview), on the kit's one dialog shell. */
 function FilePreview() {
@@ -56,10 +59,21 @@ vi.mock("../../session/SessionViewer.js", async () => {
     SessionViewer: () => {
       reporter.current = useContext(ChatActivityReporterContext);
       return (
-        <label>
-          Reply
-          <textarea />
-        </label>
+        <>
+          {probe.actions && (
+            <MessageEntry
+              message={{ kind: "message", id: "m1", text: "The invoice is ready.", live: false, processedAt: "2026-11-21T10:00:00.000Z" }}
+              messageActions={[
+                { id: "send", label: "Send to customer", onAction: () => {} },
+                { id: "delete", label: "Delete draft", variant: "destructive", onAction: () => {} },
+              ]}
+            />
+          )}
+          <label>
+            Reply
+            <textarea />
+          </label>
+        </>
       );
     },
   };
@@ -79,6 +93,7 @@ beforeEach(async () => {
   vi.setSystemTime(new Date(SCENARIO_CLOCK));
   reporter.current = null;
   probe.preview = false;
+  probe.actions = false;
 });
 
 afterEach(() => {
@@ -184,6 +199,20 @@ describe("AgentChat popup", () => {
     expect(dialog().open).toBe(true);
     await userEvent.click(screen.getByRole("button", { name: "Host action" }));
     expect(hostClicks).toBe(1);
+  });
+
+  it("KIT-11 leaves a message's More actions Escape to the menu: it closes back to its trigger, the popup stays", async () => {
+    probe.actions = true;
+    renderHost("light", "ses_1");
+    await userEvent.click(screen.getByRole("button", { name: "Open the chat with Billing agent" }));
+    const more = await screen.findByRole("button", { name: "More actions" });
+    more.focus();
+    await userEvent.keyboard("{Enter}");
+    await screen.findAllByRole("menuitem");
+    await userEvent.keyboard("{Escape}");
+    await vi.waitFor(() => expect(screen.queryAllByRole("menuitem")).toHaveLength(0));
+    expect(document.activeElement).toBe(more);
+    expect(dialog().open).toBe(true);
   });
 
   it("fills a phone's screen, closing from its header back to the button", async () => {
