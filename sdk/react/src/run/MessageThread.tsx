@@ -458,8 +458,10 @@ export interface MessageThreadProps {
    * `MessageEntry` slot receives the same actions as data
    * (`MessageEntryProps.messageActions`).
    *
-   * Called once per message, and again when the function changes; a host
-   * that re-renders often may keep it stable (`useCallback`), and need not.
+   * Called once per message, and again for every message when the function
+   * changes: keep it stable (`useCallback`, or a function at module level),
+   * or each render of your component asks every message again and redraws
+   * every bubble.
    *
    * @example
    * ```tsx

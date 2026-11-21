@@ -16,6 +16,7 @@ import type { ReactNode } from "react";
 import type { ToolUse, TurnSteps } from "@stigmer/client";
 import { ToolCallItem } from "../ToolCallItem";
 import { PlanSteps } from "../PlanSteps";
+import { SubagentSection } from "../SubagentSection";
 import { MessageThread, buildThreadItems, type ThreadItem } from "../MessageThread";
 import { segmentToolCalls } from "../segment-tool-calls";
 import { ApprovalContext } from "../ApprovalContext";
@@ -23,7 +24,7 @@ import { ThreadPresentationContext } from "../ThreadPresentationContext";
 import { ToolCardsContext, type ToolCardProps, type ToolCards } from "../tool-cards-context";
 import { hostCardOf, toolCallInfoOf } from "../tool-card";
 import { thread, toolUse } from "./__fixtures__/fold-values";
-import { result, said, status, toolId, turnsOf, use, user } from "./__fixtures__/thread-events";
+import { result, said, status, subagent, toolId, turnsOf, use, user } from "./__fixtures__/thread-events";
 
 afterEach(cleanup);
 
@@ -180,6 +181,16 @@ describe("ToolCallItem with a host card", () => {
     error.mockRestore();
   });
 
+  it("keeps a helper's own collapsible step open after it finished while a step inside has a card", () => {
+    const done = thread({ state: "completed", items: [invoice({ threadId: "t1", result: "INV-1" })] });
+    render(withCards(<SubagentSection thread={done} subject="bill the customer" collapsible />));
+    expect(screen.getByTestId("invoice-card")).toBeTruthy();
+
+    cleanup();
+    render(<SubagentSection thread={done} subject="bill the customer" collapsible />);
+    expect(screen.queryByText(/INV-1/)).toBeNull();
+  });
+
   it("keeps a helper's row open after it finished while a step inside has a card", () => {
     const helper = toolUse({
       name: "task",
@@ -261,6 +272,41 @@ describe("a finished turn's host cards", () => {
     const items = buildThreadItems(turns, [], { includeLiveness: false, hasToolCard: (tool) => hostCardOf(CARDS, tool) !== undefined });
     const how = items.find((item): item is Extract<ThreadItem, { kind: "how-it-got-there" }> => item.kind === "how-it-got-there");
     expect(how?.cards.map((tool) => tool.id)).toEqual([toolId(R, "c1")]);
+  });
+
+  it("lifts a helper's card out of the fold too", () => {
+    const threadId = toolId(R, "task1");
+    const helperTurns = turnsOf(
+      user(R, "Bill Acme"),
+      status(R, "running"),
+      use(R, "task1", "task", { description: "bill Acme" }),
+      subagent(R, "task1", {
+        items: [use(R, "c1", "create_invoice", { customer: "Acme" }, { mcpServerName: "billing", threadId }), result(R, "c1", "INV-7", { threadId })],
+        finished: "completed",
+        reply: "Billed.",
+      }),
+      result(R, "task1", "Billed."),
+      said(R, 0, "Acme is billed."),
+      status(R, "completed"),
+    );
+    const items = buildThreadItems(helperTurns, [], { includeLiveness: false, hasToolCard: (tool) => hostCardOf(CARDS, tool) !== undefined });
+    const how = items.find((item): item is Extract<ThreadItem, { kind: "how-it-got-there" }> => item.kind === "how-it-got-there");
+    expect(how?.cards.map((tool) => tool.id)).toEqual([toolId(R, "c1")]);
+
+    render(withCards(<MessageThread turns={helperTurns} />));
+    expect(screen.getAllByTestId("invoice-card").map((card) => card.textContent)).toEqual([expect.stringContaining("INV-7")]);
+  });
+
+  it("puts the kit's body above the fold when a lifted card throws", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    function Broken(): never {
+      throw new Error("card broke");
+    }
+    render(withCards(<MessageThread turns={turns} />, { mcp__billing__create_invoice: Broken }));
+    const lifted = document.querySelector('[data-cursor-target="host-tool-card"]');
+    expect(lifted).not.toBeNull();
+    expect(lifted!.textContent).toContain("INV-1");
+    error.mockRestore();
   });
 
   it("draws each card once, after the answer and above the fold, and the step inside draws the kit's body", () => {
