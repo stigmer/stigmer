@@ -26,8 +26,9 @@
  *   Secret (and the Secret the test wrote); declaring it again finds the
  *   same keys.
  *
- * byo: a Postgres and a Temporal the operator did not install (the chart's
- *   ci/byo-infra.yaml), declared as external; the operator runs neither, and
+ * byo: a Postgres and a Temporal the operator did not install
+ *   (test/install/fixtures/byo-infra.yaml), declared as external; the
+ *   operator runs neither, and
  *   the stack passes the same probes against them.
  *
  * enterprise (run only when named; it builds the Enterprise image): a
@@ -417,10 +418,10 @@ async function runByo(fake, modelBaseUrl) {
   const namespace = "smoke-byo";
   log(`=== profile byo (namespace ${namespace}) ===`);
   const password = `${randomBytes(12).toString("hex")}@:/${randomBytes(12).toString("hex")}`;
-  log("applying the bring-your-own Postgres and Temporal (deploy/helm/stigmer/ci/byo-infra.yaml)");
+  log("applying the bring-your-own Postgres and Temporal (test/install/fixtures/byo-infra.yaml)");
   kubectl(["create", "namespace", "byo-infra"]);
   kubectl(["-n", "byo-infra", "create", "secret", "generic", "byo-secrets", `--from-literal=POSTGRES_PASSWORD=${password}`]);
-  kubectl(["apply", "-f", join(repoRoot, "deploy", "helm", "stigmer", "ci", "byo-infra.yaml")], { stdio: "inherit" });
+  kubectl(["apply", "-f", join(repoRoot, "test", "install", "fixtures", "byo-infra.yaml")], { stdio: "inherit" });
   kubectl(["-n", "byo-infra", "rollout", "status", "statefulset/byo-postgres", "--timeout=8m"], { stdio: "inherit" });
   kubectl(["-n", "byo-infra", "rollout", "status", "deployment/byo-temporal", "--timeout=8m"], { stdio: "inherit" });
 

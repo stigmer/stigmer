@@ -657,53 +657,6 @@ export const LANES = {
       ".github/workflows/ci.go-sdk.yaml",
     ],
   },
-  "ci.helm-chart.yaml": {
-    paths: [
-      "deploy/helm/stigmer/**",
-      // The parity test reads the compose file: a compose-only change must
-      // run it, or the drift it exists to catch merges green.
-      "docker-compose.yml",
-      "test/install/smoke-helm.mjs",
-      // The whole lib: the smoke imports stigmer-smoke.mjs (#1087).
-      "scripts/lib/**",
-      // The install layer's drivers and probes, and the two test/support
-      // modules it loads (the fake model and its wire); the rest of
-      // test/support is the contract and e2e suites' machinery.
-      "test/install/lib/**",
-      // The hidden-setup split doc-steps.mjs writes a page's files through.
-      "site/src/lib/snippet-setup.mjs",
-      "test/support/src/fake-llm-upstream.ts",
-      "test/support/src/llm-wire.ts",
-      // The kind gate builds the compose-runner image, which installs the
-      // CLI tarballs these two stage (ci.compose-stack lists them too).
-      "scripts/stage-compose-runner-cli.mjs",
-      "scripts/publish-libs.mjs",
-      // The compose-runner image itself, and the start script its CMD runs.
-      "backend/services/runner/Dockerfile.sandbox",
-      "backend/services/runner/layer/**",
-      // The runner image bundles the slim runner artifact in its build
-      // (Dockerfile.sandbox's builder stage runs build:slim), so the
-      // bundler, the native-bridge shim it aliases and the attach rule it
-      // imports are what the image contains.
-      "backend/services/runner/scripts/bundle-slim.mjs",
-      "backend/services/runner/scripts/claude-engine-pin.mjs",
-      "backend/services/runner/scripts/core-bridge-shim.cjs",
-      "backend/services/runner/scripts/attach-graph-rule.mjs",
-      // The server's packaging script, which `make smoke-helm` runs
-      // (scripts/lane-triggers.test.mjs fails when it is missing).
-      "backend/services/stigmer-server/scripts/bundle-slim.mjs",
-      // The runner's model path (ci.all-in-one says why these files).
-      "backend/services/runner/src/shared/model-client.ts",
-      "backend/services/runner/src/shared/llm-backend.ts",
-      "backend/services/runner/src/shared/llm-proxy.ts",
-      "Makefile",
-      // What the lane sets up and installs from (ci.all-in-one says why).
-      ".nvmrc",
-      "package.json",
-      "package-lock.json",
-      ".github/workflows/ci.helm-chart.yaml",
-    ],
-  },
   "ci.install-script.yaml": {
     paths: ["site/public/install.sh", ".github/workflows/ci.install-script.yaml"],
   },
@@ -804,29 +757,39 @@ export const LANES = {
       "deploy/operator/**",
       "deploy/helm/stigmer-operator/**",
       // The byo profile's stand-in Postgres and Temporal.
-      "deploy/helm/stigmer/ci/byo-infra.yaml",
+      "test/install/fixtures/**",
       // The parity test reads the compose file: a compose-only change must
       // run it, or the drift it exists to catch merges green.
       "docker-compose.yml",
       "test/install/smoke-operator.mjs",
       "scripts/lib/**",
       // The install layer's drivers and probes, and the two test/support
-      // modules it loads (the fake model and its wire).
+      // modules it loads (the fake model and its wire); the rest of
+      // test/support is the contract and e2e suites' machinery.
       "test/install/lib/**",
+      // The hidden-setup split doc-steps.mjs writes a page's files through.
       "site/src/lib/snippet-setup.mjs",
       "test/support/src/fake-llm-upstream.ts",
       "test/support/src/llm-wire.ts",
-      // The kind gate builds the compose images (ci.helm-chart says why
-      // each of these is what they contain).
+      // The kind gate builds the compose-runner image, which installs the
+      // CLI tarballs these two stage (ci.compose-stack lists them too).
       "scripts/stage-compose-runner-cli.mjs",
       "scripts/publish-libs.mjs",
+      // The compose-runner image itself, and the start script its CMD runs.
       "backend/services/runner/Dockerfile.sandbox",
       "backend/services/runner/layer/**",
+      // The runner image bundles the slim runner artifact in its build
+      // (Dockerfile.sandbox's builder stage runs build:slim), so the
+      // bundler, the native-bridge shim it aliases and the attach rule it
+      // imports are what the image contains.
       "backend/services/runner/scripts/bundle-slim.mjs",
       "backend/services/runner/scripts/claude-engine-pin.mjs",
       "backend/services/runner/scripts/core-bridge-shim.cjs",
       "backend/services/runner/scripts/attach-graph-rule.mjs",
+      // The server's packaging script, which `make smoke-operator` runs
+      // (scripts/lane-triggers.test.mjs fails when it is missing).
       "backend/services/stigmer-server/scripts/bundle-slim.mjs",
+      // The runner's model path (ci.all-in-one says why these files).
       "backend/services/runner/src/shared/model-client.ts",
       "backend/services/runner/src/shared/llm-backend.ts",
       "backend/services/runner/src/shared/llm-proxy.ts",
@@ -1018,7 +981,6 @@ export const LANES = {
       "backend/services/stigmer-server/src/store/**",
       // The artifacts it rehearses; the operator has no release to
       // rehearse from yet.
-      "deploy/helm/stigmer/**",
       "deploy/all-in-one/**",
       "deploy/runner-layer/**",
       "docker-compose.yml",
@@ -1058,7 +1020,7 @@ export const LANES = {
       "backend/libs/ts/artifact-fetch/**",
       "backend/services/runner/scripts/core-bridge-shim.cjs",
       "backend/services/runner/scripts/attach-graph-rule.mjs",
-      // The server's packaging script, which the compose, Helm and CLI
+      // The server's packaging script, which the compose and CLI
       // rehearsals run (scripts/lane-triggers.test.mjs fails when it is missing).
       "backend/services/stigmer-server/scripts/bundle-slim.mjs",
       "Makefile",

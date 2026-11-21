@@ -6,8 +6,7 @@
 // that are all half-published or a registry that cannot be read still fail;
 // what the one registry read takes from npm's install document; what the command line
 // accepts (only forward upgrades, a release or a prerelease as the target,
-// only a stable base, one of the four artifacts, a packaged chart only for a
-// published Helm target); which server version the upgraded
+// only a stable base, one of the three artifacts); which server version the upgraded
 // install must report (the release's own, or this checkout's from-source
 // version); and when the running images are not the release's. The installs
 // themselves are exercised by running the rehearsal (`make rehearse-upgrade
@@ -82,11 +81,11 @@ test("a prerelease target upgrades from the newest stable release below its X.Y.
 
 test("the base is the newest release whose own artifacts are published, and a release passed over is named", async () => {
   const logged = [];
-  const unpublished = { "3.41.0": "ghcr.io/stigmer/charts/stigmer:3.41.0", "3.40.1": "ghcr.io/stigmer/stigmer-server:v3.40.1" };
+  const unpublished = { "3.41.0": "ghcr.io/stigmer/stigmer-runner:v3.41.0", "3.40.1": "ghcr.io/stigmer/stigmer-server:v3.40.1" };
   const base = await pickPublishedBase(PUBLISHED, { kind: "build" }, async (version) => unpublished[version], (line) => logged.push(line));
   assert.equal(base, "3.40.0");
   assert.deepEqual(logged, [
-    "base 3.41.0 passed over: ghcr.io/stigmer/charts/stigmer:3.41.0 is not published",
+    "base 3.41.0 passed over: ghcr.io/stigmer/stigmer-runner:v3.41.0 is not published",
     "base 3.40.1 passed over: ghcr.io/stigmer/stigmer-server:v3.40.1 is not published",
   ]);
 });
@@ -100,7 +99,7 @@ test("the base is the newest release when everything is published, asked about o
 
 test("no fully published release below the target is refused, naming every one tried; a registry fault is not a gap", async () => {
   await assert.rejects(
-    pickPublishedBase(only("3.40.1", "3.41.0"), { kind: "build" }, async () => "the chart", () => {}),
+    pickPublishedBase(only("3.40.1", "3.41.0"), { kind: "build" }, async () => "the runner image", () => {}),
     /no release below this build has every artifact this install needs published \(tried 3\.41\.0, 3\.40\.1\)/,
   );
   await assert.rejects(
@@ -171,9 +170,9 @@ test("the first release is stated on stdout, and in the job summary only when th
   const written = [];
   const appended = [];
   const append = (path, text) => appended.push([path, text]);
-  reportNothingToUpgrade("helm", "0.1.0", { env: { GITHUB_STEP_SUMMARY: "/summary.md" }, write: (line) => written.push(line), append });
-  assert.deepEqual(written, [`rehearse-upgrade: helm to 0.1.0: ${NOTHING_TO_UPGRADE}`]);
-  assert.deepEqual(appended, [["/summary.md", `### Upgrade rehearsal: helm\n\nhelm to 0.1.0: ${NOTHING_TO_UPGRADE}\n`]]);
+  reportNothingToUpgrade("compose", "0.1.0", { env: { GITHUB_STEP_SUMMARY: "/summary.md" }, write: (line) => written.push(line), append });
+  assert.deepEqual(written, [`rehearse-upgrade: compose to 0.1.0: ${NOTHING_TO_UPGRADE}`]);
+  assert.deepEqual(appended, [["/summary.md", `### Upgrade rehearsal: compose\n\ncompose to 0.1.0: ${NOTHING_TO_UPGRADE}\n`]]);
 
   reportNothingToUpgrade("cli", "0.1.0", { env: {}, write: () => {}, append });
   assert.equal(appended.length, 1);
@@ -244,41 +243,29 @@ test("the command line: the artifact, an optional base, the target, and a leadin
     artifact: "compose",
     from: "",
     to: { kind: "build" },
-    chart: undefined,
     keep: false,
   });
-  assert.deepEqual(parseRehearsalArgs(["--artifact=helm", "--from=v3.40.1", "--to=v3.41.0", "--keep"]), {
-    artifact: "helm",
+  assert.deepEqual(parseRehearsalArgs(["--artifact=all-in-one", "--from=v3.40.1", "--to=v3.41.0", "--keep"]), {
+    artifact: "all-in-one",
     from: "3.40.1",
     to: { kind: "published", version: "3.41.0" },
-    chart: undefined,
     keep: true,
   });
 });
 
-test("the command line: a prerelease target, and the release's packaged chart for a published Helm target", () => {
+test("the command line: a prerelease target", () => {
   assert.deepEqual(parseRehearsalArgs(["--artifact=compose", "--to=v3.42.0-rc.1"]).to, { kind: "published", version: "3.42.0-rc.1" });
-  assert.equal(
-    parseRehearsalArgs(["--artifact=helm", "--to=3.42.0", "--chart=dist-chart/stigmer-3.42.0.tgz"]).chart,
-    "dist-chart/stigmer-3.42.0.tgz",
-  );
 });
 
-test("the command line refuses a prerelease base, a base at the target's X.Y.Z, a malformed prerelease and a misplaced chart", () => {
+test("the command line refuses a prerelease base, a base at the target's X.Y.Z and a malformed prerelease", () => {
   assert.throws(() => parseRehearsalArgs(["--artifact=cli", "--from=3.41.0-rc.1"]), /--from must be a release X\.Y\.Z/);
   assert.throws(() => parseRehearsalArgs(["--artifact=cli", "--from=3.42.0", "--to=3.42.0-rc.1"]), /an upgrade only moves forward/);
   assert.throws(() => parseRehearsalArgs(["--artifact=cli", "--to=3.42.0-"]), /--to must be build or a release/);
   assert.throws(() => parseRehearsalArgs(["--artifact=cli", "--to=3.42.0-rc.1!"]), /--to must be build or a release/);
-  for (const argv of [
-    ["--artifact=compose", "--to=3.42.0", "--chart=c.tgz"],
-    ["--artifact=helm", "--chart=c.tgz"],
-  ]) {
-    assert.throws(() => parseRehearsalArgs(argv), /--chart applies only to --artifact=helm with a published --to/, argv.join(" "));
-  }
 });
 
 test("the command line refuses an unknown artifact, a non-release version, a backward move and a stray flag", () => {
-  assert.throws(() => parseRehearsalArgs([]), /--artifact must be one of: compose, all-in-one, helm, cli/);
+  assert.throws(() => parseRehearsalArgs([]), /--artifact must be one of: compose, all-in-one, cli/);
   assert.throws(() => parseRehearsalArgs(["--artifact=desktop"]), /--artifact must be one of/);
   assert.throws(() => parseRehearsalArgs(["--artifact=cli", "--from=latest"]), /--from must be a release X\.Y\.Z/);
   assert.throws(() => parseRehearsalArgs(["--artifact=cli", "--to=3.41"]), /--to must be build or a release X\.Y\.Z/);

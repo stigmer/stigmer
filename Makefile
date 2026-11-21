@@ -809,33 +809,6 @@ smoke-compose: build-server build-web stage-compose-runner-cli ## Build the comp
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
 	node test/install/smoke-compose.mjs --build
 
-# The Helm chart (deploy/helm/stigmer):
-# docker-compose.yml translated for Kubernetes. Three gates, the compose
-# stack's shape: lint-helm is the static pass (helm lint --strict and
-# kubeconform on every CI values profile), test-helm the render tests
-# (goldens, the compose-parity test, the schema refusals — also in the root
-# test:scripts lane), smoke-helm the kind install with the same probes as
-# smoke-compose plus the adversarial arms, from source-built images (the
-# release lane runs the same script against the pushed tags).
-# smoke-helm-enterprise runs its opt-in enterprise profile, which builds the
-# Enterprise image too, so it is not part of the gate.
-HELM_CHART_DIR := deploy/helm/stigmer
-HELM_PROFILES := bundled byo ingress-oidc enterprise
-# The floor Chart.yaml declares (native gRPC probes are GA in 1.27).
-HELM_KUBE_VERSION := 1.27.0
-
-.PHONY: lint-helm
-lint-helm: ## Lint the Helm chart on every CI values profile and validate its render against the Kubernetes schemas (needs helm, kubeconform)
-	@command -v helm >/dev/null 2>&1 || { echo "error: helm not found"; exit 1; }
-	@command -v kubeconform >/dev/null 2>&1 || { echo "error: kubeconform not found — https://github.com/yannh/kubeconform"; exit 1; }
-	@for profile in $(HELM_PROFILES); do \
-		echo "helm lint --strict ($$profile)"; \
-		helm lint --strict $(HELM_CHART_DIR) -f $(HELM_CHART_DIR)/ci/values-$$profile.yaml --quiet || exit 1; \
-		echo "kubeconform ($$profile)"; \
-		helm template stigmer $(HELM_CHART_DIR) -f $(HELM_CHART_DIR)/ci/values-$$profile.yaml \
-			| kubeconform -strict -kubernetes-version $(HELM_KUBE_VERSION) -summary || exit 1; \
-	done
-
 # zizmor, the workflow auditor; the workflows lane (.github/workflows/ci.workflows.yaml)
 # pins the same version, so a local run and the lane judge alike.
 ZIZMOR_VERSION := 1.30.1
@@ -850,10 +823,6 @@ lint-workflows: ## Audit .github with zizmor, as the workflows lane does (needs 
 		uvx zizmor==$(ZIZMOR_VERSION) --offline .github; \
 	fi
 
-.PHONY: test-helm
-test-helm: node_modules ## Run the chart's render, compose-parity and schema tests (needs helm)
-	node --test $(HELM_CHART_DIR)/__tests__/*.test.mjs
-
 .PHONY: test-agent-sandbox
 test-agent-sandbox: build-server ## Run the agent-sandbox driver's live test and the turn proof (a Stigmer turn outliving its pod) on a kind cluster of its own with agent-sandbox installed (needs Docker, kind, kubectl, temporal; AGENT_SANDBOX_VERSION=latest tests upstream's newest release, RUNNER_IMAGE a local image; both reach the script through the environment, which checks them)
 	@for tool in docker kind kubectl temporal; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the agent-sandbox live test needs it"; exit 1; }; done
@@ -863,18 +832,6 @@ test-agent-sandbox: build-server ## Run the agent-sandbox driver's live test and
 test-docker-sandbox: build-server ## Run the Docker driver's live test alone: a runner container through the real docker CLI, its labels and env, its teardown (needs a Docker daemon; RUNNER_IMAGE a local image, else the published runner). ci.agent-sandbox runs it with the rest of the live class
 	@command -v docker >/dev/null 2>&1 || { echo "error: docker not found — the Docker driver's live test needs it"; exit 1; }
 	cd $(SERVER_DIR) && if [ -n "$${RUNNER_IMAGE:-}" ]; then export STIGMER_SANDBOX_RUNNER_IMAGE="$$RUNNER_IMAGE"; fi && npm run test:live -- src/sandbox/__tests__/docker.live.test.ts
-
-.PHONY: smoke-helm
-smoke-helm: build-server build-web stage-compose-runner-cli ## Build both images from source, install the chart on kind and run the gate smoke (needs Docker, kind, helm, kubectl)
-	@for tool in docker kind helm kubectl; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the Helm smoke needs it"; exit 1; }; done
-	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
-	node test/install/smoke-helm.mjs --build
-
-.PHONY: smoke-helm-enterprise
-smoke-helm-enterprise: build-server build-web stage-compose-runner-cli bundle-ee-slim ## Build the server, runner and Enterprise images from source and install the chart's enterprise profile on kind: the licensed server refuses a key it cannot verify (needs Docker, kind, helm, kubectl)
-	@for tool in docker kind helm kubectl; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the Helm smoke needs it"; exit 1; }; done
-	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
-	node test/install/smoke-helm.mjs --build --profiles=enterprise
 
 # The Stigmer operator (deploy/operator, its own Go module outside go.work,
 # and its chart deploy/helm/stigmer-operator). build/test/lint delegate to
@@ -910,14 +867,15 @@ smoke-operator: build-server build-web stage-compose-runner-cli ## Build the ima
 # target builds what its artifact's smoke builds, stamped with the checkout's
 # from-source version (scripts/lib/source-version.mjs), so the rehearsal can
 # require the upgraded server to report exactly that. REHEARSE_ARGS passes
-# through, e.g. REHEARSE_ARGS=--from=0.1.0. compose, helm and cli bind port
-# 7234: stop any running stack first.
+# through, e.g. REHEARSE_ARGS=--from=0.1.0. compose and cli bind port 7234:
+# stop any running stack first. The operator has no release to rehearse from
+# yet; smoke-operator's upgrade profile proves its own upgrade loop.
 SOURCE_BUILD_VERSION = $$(node $(CURDIR)/scripts/lib/source-version.mjs)
 LINUX_SLIM_PLATFORM = linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
 
 .PHONY: rehearse-upgrade
-rehearse-upgrade: ## Rehearse an upgrade from the last release to this checkout: ARTIFACT=compose|all-in-one|helm|cli [REHEARSE_ARGS=--from=X.Y.Z]
-	@test -n "$(ARTIFACT)" || { echo "error: set ARTIFACT=compose|all-in-one|helm|cli"; exit 1; }
+rehearse-upgrade: ## Rehearse an upgrade from the last release to this checkout: ARTIFACT=compose|all-in-one|cli [REHEARSE_ARGS=--from=X.Y.Z]
+	@test -n "$(ARTIFACT)" || { echo "error: set ARTIFACT=compose|all-in-one|cli"; exit 1; }
 	$(MAKE) rehearse-upgrade-$(ARTIFACT)
 
 .PHONY: rehearse-upgrade-compose
@@ -931,12 +889,6 @@ rehearse-upgrade-all-in-one: build-runner build-server build-web ## Rehearse the
 	@command -v docker >/dev/null 2>&1 || { echo "error: docker not found — the all-in-one rehearsal needs a Docker daemon"; exit 1; }
 	node scripts/stage-all-in-one.mjs
 	node test/install/rehearse-upgrade.mjs --artifact=all-in-one $(REHEARSE_ARGS)
-
-.PHONY: rehearse-upgrade-helm
-rehearse-upgrade-helm: build-server build-web stage-compose-runner-cli ## Rehearse the Helm chart's upgrade from the last release to this checkout on kind (needs Docker, kind, helm, kubectl)
-	@for tool in docker kind helm kubectl; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the Helm rehearsal needs it"; exit 1; }; done
-	@cd $(SERVER_DIR) && STIGMER_SERVER_VERSION=$(SOURCE_BUILD_VERSION) node scripts/bundle-slim.mjs --platform=$(LINUX_SLIM_PLATFORM)
-	node test/install/rehearse-upgrade.mjs --artifact=helm $(REHEARSE_ARGS)
 
 .PHONY: rehearse-upgrade-cli
 rehearse-upgrade-cli: build-runner build-server build-web ## Rehearse the CLI's `stigmer up` upgrade from the last release to this checkout

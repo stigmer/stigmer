@@ -2,14 +2,14 @@
  * Whether a published release can be an install's upgrade base: only once
  * every artifact that install pulls at that version is published. The
  * release (.github/workflows/release.npm-libs.yaml) puts the npm packages up
- * first, and the images, the all-in-one image and the Helm chart later, each
- * after its own smokes. So while a release runs, and for good when one of its
- * later pushes is held, the newest version on npm has no image or chart yet.
+ * first, and the images and the all-in-one image later, each after its own
+ * smokes. So while a release runs, and for good when one of its later pushes
+ * is held, the newest version on npm has no image yet.
  * The upgrade rehearsal (test/install/rehearse-upgrade.mjs) picks its base with
  * this rule, not from the npm version list alone.
  *
  * Read from the public registries without credentials: ghcr.io's anonymous
- * token and a manifest HEAD for an image or a chart, and npm's install
+ * token and a manifest HEAD for an image, and npm's install
  * document for a package (`installGap`, scripts/publish-standalone.mjs).
  * "Not published" is an answer; a registry that cannot be read is not, and
  * throws, so an outage never quietly moves the base to an older release.
@@ -19,7 +19,6 @@
 
 import { configuredRegistry, installGap } from "../../../scripts/publish-standalone.mjs";
 import { ALL_IN_ONE_REPOSITORY } from "./install-all-in-one.mjs";
-import { PUBLISHED_CHART } from "./install-helm.mjs";
 
 /** The server's and the runner's published image repositories. */
 export const PUBLISHED_IMAGES = Object.freeze({
@@ -40,8 +39,7 @@ const REQUEST_TIMEOUT_MS = 30_000;
 
 /**
  * What an install of `artifact` pulls at release `version`: ghcr.io
- * references (images are tagged `v<version>`, the chart `<version>`) and npm
- * package names.
+ * references (images are tagged `v<version>`) and npm package names.
  */
 export function releaseArtifacts(artifact, version) {
   const images = [`${PUBLISHED_IMAGES.server}:v${version}`, `${PUBLISHED_IMAGES.runner}:v${version}`];
@@ -50,8 +48,6 @@ export function releaseArtifacts(artifact, version) {
       return { oci: images, npm: [] };
     case "all-in-one":
       return { oci: [`${ALL_IN_ONE_REPOSITORY}:v${version}`], npm: [] };
-    case "helm":
-      return { oci: [`${PUBLISHED_CHART.replace(/^oci:\/\//, "")}:${version}`, ...images], npm: [] };
     case "cli":
       return { oci: [], npm: [...CLI_PACKAGES] };
     default:

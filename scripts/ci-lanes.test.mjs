@@ -77,7 +77,7 @@ test("a path in a lane's list selects that lane; the always lane runs for every 
 });
 
 test("the runner's model path runs every install journey beside the runner's own lanes", () => {
-  const installs = ["all-in-one", "cli-up", "compose-stack", "conformance", "conformance-enterprise", "conformance-execution", "e2e-interactive", "docs-snippets", "helm-chart", "operator", "runner", "ts-workspace"];
+  const installs = ["all-in-one", "cli-up", "compose-stack", "conformance", "conformance-enterprise", "conformance-execution", "e2e-interactive", "docs-snippets", "operator", "runner", "ts-workspace"];
   assert.deepEqual(selected(["backend/services/runner/src/shared/model-client.ts"]), installs);
   assert.deepEqual(selected(["backend/services/runner/src/shared/llm-backend.ts"]), installs);
   assert.deepEqual(selected(["backend/services/runner/src/shared/llm-proxy.ts"]), installs);
@@ -120,7 +120,7 @@ test("a store migration runs the upgrade rehearsal; a CLI command runs `stigmer 
 test("the runner image's start script runs every lane that boots the compose runner", () => {
   for (const changed of ["backend/services/runner/layer/start.sh", "backend/services/runner/Dockerfile.sandbox"]) {
     const lanes = selected([changed]);
-    for (const lane of ["compose-stack", "helm-chart", "upgrade-rehearsal"]) {
+    for (const lane of ["compose-stack", "operator", "upgrade-rehearsal"]) {
       assert.ok(lanes.includes(lane), `${changed} does not run ${lane}`);
     }
   }

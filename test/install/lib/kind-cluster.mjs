@@ -1,8 +1,7 @@
 /**
  * A kind cluster an install test drives: created for the run (or an existing
  * one named), the address a pod reaches this machine by, and the images the
- * test built loaded into its node. Shared by the Helm chart's smoke and
- * upgrade rehearsal (install-helm.mjs) and the operator's install test
+ * test built loaded into its node, for the operator's install test
  * (install-operator.mjs), so the one place that knows how a test cluster is
  * made is this one.
  *
@@ -59,7 +58,7 @@ export function substrateKindConfig(base = { kind: "Cluster", apiVersion: "kind.
  * A kind cluster: `existing` names one the caller owns (left as found);
  * otherwise one is created on `start` and deleted on `stop`.
  */
-export function createKindCluster({ existing = "", prefix = "stigmer-helm-smoke", log, config }) {
+export function createKindCluster({ existing = "", prefix = "stigmer-install-test", log, config }) {
   const own = existing === "";
   const name = own ? `${prefix}-${Date.now()}` : existing;
   const workDir = mkdtempSync(join(tmpdir(), "stigmer-kind-"));
@@ -138,8 +137,8 @@ export function createKindCluster({ existing = "", prefix = "stigmer-helm-smoke"
     },
     /**
      * Both images built from source (compose's build, install-compose.mjs),
-     * tagged as the chart's repositories at `compose-dev`, and loaded into
-     * the node.
+     * tagged as their published repositories at `compose-dev`, and loaded
+     * into the node.
      */
     loadSourceImages() {
       const built = buildSourceImages({ log });
@@ -170,7 +169,7 @@ export function createKindCluster({ existing = "", prefix = "stigmer-helm-smoke"
     /**
      * The Stigmer Enterprise image built from source by its own smoke's
      * build (`make bundle-ee-slim` first, for ee/server/dist-slim), tagged
-     * as the chart's enterprise repository at `compose-dev`, and loaded.
+     * as its published repository at `compose-dev`, and loaded.
      */
     loadEnterpriseSourceImage() {
       log("building stigmer-server-ee through its image smoke (--build-only)");

@@ -1,12 +1,13 @@
-# The "bring your own" stand-ins for the BYO smoke profile: a Postgres and a
-# Temporal the chart did NOT install, in their own namespace, so the
-# externalDatabase and externalTemporal values are proven against
-# addresses the release does not own. Plain manifests mirroring the compose
+# The "bring your own" stand-ins for the operator install test's byo
+# profile (test/install/smoke-operator.mjs): a Postgres and a Temporal the
+# operator did NOT install, in their own namespace, so spec.database
+# .postgresql.external and spec.temporal.external are proven against
+# addresses the install does not own. Plain manifests mirroring the compose
 # services (postgres:16.15; temporalio/server with its schema and namespace
 # steps on temporalio/admin-tools, and the namespace-exists readiness,
-# stigmer#904). The smoke creates the `byo-secrets` Secret with
-# the same POSTGRES_PASSWORD it gives the chart's Secret before applying
-# this file. Not for any use beyond the smoke.
+# stigmer#904). The test creates the `byo-secrets` Secret with the
+# POSTGRES_PASSWORD it declares on the Stigmer before applying this file.
+# Not for any use beyond the test.
 apiVersion: v1
 kind: Namespace
 metadata:

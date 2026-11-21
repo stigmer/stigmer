@@ -5,7 +5,7 @@
  * to the candidate by the procedure its guide gives a user, and proven to
  * have kept what the old release stored.
  *
- * For --artifact=compose, all-in-one, helm or cli, one pass:
+ * For --artifact=compose, all-in-one or cli, one pass:
  *   1. installs --from (default: the newest stable release below --to that
  *      npm does not mark deprecated and whose artifacts for this install are
  *      all published, test/install/lib/published-release.mjs) the way its
@@ -19,8 +19,6 @@
  *                    `docker compose pull`, `up -d` (operations.mdx)
  *        all-in-one  stop and remove the container, the new tag on the same
  *                    volume (all-in-one.mdx)
- *        helm        `helm upgrade` to the new chart with the same values,
- *                    --wait, a new port-forward (operations.mdx)
  *        cli         `stigmer down`, the new CLI, `stigmer up` on the same
  *                    home (docs/cli/index.mdx)
  *      and checks that the server now reports --to, and that the new images
@@ -38,10 +36,7 @@
  * and stamps it. --to=<X.Y.Z> is a published release, which is how the
  * release rehearses the version it just pushed before `:latest` moves; a
  * prerelease (X.Y.Z-rc.1) is one too, rehearsed from the newest stable
- * release below its X.Y.Z, since the release publishes its chart as well.
- * --chart=<dir|.tgz> (helm, a published --to only) upgrades to that chart
- * with the release's images: the release's packaged chart, before it is
- * pushed. The base is always installed from the published chart.
+ * release below its X.Y.Z, since the release publishes its images as well.
  *
  * A deprecated release is not a base: a version line that starts over
  * deprecates the old line's releases, which are not what a user of the new
@@ -56,21 +51,24 @@
  * an artifact differently.
  *
  * Usage:
- *   node test/install/rehearse-upgrade.mjs --artifact=<compose|all-in-one|helm|cli>
- *       [--from=X.Y.Z] [--to=build|X.Y.Z[-pre]] [--chart=<dir|.tgz>] [--keep]
+ *   node test/install/rehearse-upgrade.mjs --artifact=<compose|all-in-one|cli>
+ *       [--from=X.Y.Z] [--to=build|X.Y.Z[-pre]] [--keep]
  *
  *   --keep   leave the upgraded install running for debugging (the fake
  *            model stops with this process, so agent runs then fail).
  *
- * compose, helm and cli bind the product's port 7234 and refuse to start if
- * it is taken; all-in-one publishes random loopback ports.
+ * compose and cli bind the product's port 7234 and refuse to start if it is
+ * taken; all-in-one publishes random loopback ports.
  *
- * Plain node plus the tools each artifact needs (docker; kind, helm and
- * kubectl for helm; npm for its configured registry, read for the release
- * list), no dependencies.
+ * The Kubernetes operator is not rehearsed here yet: it has no release to
+ * upgrade from. Its own upgrade loop (a backup before the server rolls) is
+ * proven by the operator install test's upgrade profile
+ * (test/install/smoke-operator.mjs).
+ *
+ * Plain node plus the tools each artifact needs (docker; npm for its
+ * configured registry, read for the release list), no dependencies.
  */
 
-import { randomBytes } from "node:crypto";
 import { appendFileSync } from "node:fs";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
@@ -85,14 +83,6 @@ import {
   composeFileAtRelease,
   createComposeStack,
 } from "./lib/install-compose.mjs";
-import {
-  HELM_ARTIFACT_PORT,
-  HELM_SERVER_PORT,
-  chartFor,
-  createKindCluster,
-  createStigmerRelease,
-  profileValues,
-} from "./lib/install-helm.mjs";
 import { PUBLISHED_IMAGES, unpublishedArtifact } from "./lib/published-release.mjs";
 import { INSTALL_METADATA_ACCEPT, configuredRegistry } from "../../scripts/publish-standalone.mjs";
 import { sourceBuildVersion } from "../../scripts/lib/source-version.mjs";
@@ -106,7 +96,7 @@ import {
   waitForServing,
 } from "./lib/stigmer-smoke.mjs";
 
-const ARTIFACTS = ["compose", "all-in-one", "helm", "cli"];
+const ARTIFACTS = ["compose", "all-in-one", "cli"];
 const SERVING_TIMEOUT_MS = 300_000;
 const RUN_TIMEOUT_MS = 240_000;
 const REGISTRY_TIMEOUT_MS = 30_000;
@@ -123,21 +113,20 @@ function log(step) {
 }
 
 /**
- * The command line as `{ artifact, from, to, chart, keep }`: `to` is { kind:
- * "build" } or { kind: "published", version }, `from` a version or "" (pick
- * the newest release below `to`), `chart` the target chart or undefined.
+ * The command line as `{ artifact, from, to, keep }`: `to` is { kind:
+ * "build" } or { kind: "published", version }, and `from` a version or ""
+ * (pick the newest release below `to`).
  * Throws on anything else.
  */
 export function parseRehearsalArgs(argv) {
-  const parsed = { artifact: "", from: "", to: { kind: "build" }, chart: undefined, keep: false };
+  const parsed = { artifact: "", from: "", to: { kind: "build" }, keep: false };
   for (const arg of argv) {
     let m;
     if ((m = arg.match(/^--artifact=(.+)$/)) !== null) parsed.artifact = m[1];
     else if ((m = arg.match(/^--from=v?(.+)$/)) !== null) parsed.from = m[1];
     else if ((m = arg.match(/^--to=v?(.+)$/)) !== null) {
       parsed.to = m[1] === "build" ? { kind: "build" } : { kind: "published", version: m[1] };
-    } else if ((m = arg.match(/^--chart=(.+)$/)) !== null) parsed.chart = m[1];
-    else if (arg === "--keep") parsed.keep = true;
+    } else if (arg === "--keep") parsed.keep = true;
     else throw new Error(`unknown argument: ${arg}`);
   }
   if (!ARTIFACTS.includes(parsed.artifact)) {
@@ -149,9 +138,6 @@ export function parseRehearsalArgs(argv) {
   }
   if (parsed.from !== "" && parsed.to.kind === "published" && compareVersions(parsed.from, versionCore(parsed.to.version)) >= 0) {
     throw new Error(`--from ${parsed.from} is not below --to ${parsed.to.version}: an upgrade only moves forward`);
-  }
-  if (parsed.chart !== undefined && (parsed.artifact !== "helm" || parsed.to.kind !== "published")) {
-    throw new Error("--chart applies only to --artifact=helm with a published --to (the release's packaged chart)");
   }
   return parsed;
 }
@@ -198,8 +184,8 @@ function releasesBelow({ versions, deprecated = [] }, to) {
  * release `pickFromVersion` would choose whose own artifacts are all
  * published (`unpublishedAt(version)` names the first that is not, or is
  * undefined), or undefined when no undeprecated release is below `to` (the
- * line's first release). npm lists a release before its images and its
- * chart are pushed, and a held push never arrives, so a newer release is
+ * line's first release). npm lists a release before its images are
+ * pushed, and a held push never arrives, so a newer release is
  * passed over, and named, rather than installed half-published; releases
  * that exist but none of them whole is a refusal, not a first release.
  */
@@ -350,61 +336,6 @@ const INSTALLS = {
       };
     },
   },
-  helm: {
-    ports: [HELM_SERVER_PORT, HELM_ARTIFACT_PORT],
-    create(fake, { chart }) {
-      const cluster = createKindCluster({ log });
-      let release;
-      let forward;
-      const connectForward = async () => {
-        forward = await release.portForward();
-      };
-      // The base always comes from the published chart; only the target may
-      // be the release's packaged chart.
-      const chartSpec = (target, options = {}) => {
-        if (target.kind === "build") cluster.loadSourceImages();
-        return chartFor(target, options);
-      };
-      return {
-        baseUrl: () => forward.baseUrl,
-        async start(target) {
-          await cluster.start();
-          const modelBaseUrl = fakeModelEnv(fake, cluster.hostAddress()).ANTHROPIC_BASE_URL;
-          // The guide's namespace and the default profile: the chart's own
-          // Postgres and Temporal, which is what a user gets.
-          release = createStigmerRelease(cluster, {
-            namespace: "stigmer",
-            valuesFile: profileValues("bundled"),
-            modelBaseUrl,
-            postgresPassword: randomBytes(24).toString("hex"),
-            log,
-          });
-          release.createSecrets();
-          log(`helm install stigmer (${describe(target)})`);
-          await release.install(chartSpec(target));
-          await connectForward();
-        },
-        async upgrade(target) {
-          forward.stop();
-          log(`helm upgrade stigmer (${describe(target)}), same values, --wait`);
-          await release.upgrade(chartSpec(target, { chart }));
-          await connectForward();
-        },
-        async images(target) {
-          const tag = target.kind === "build" ? "compose-dev" : `v${target.version}`;
-          return {
-            running: await release.images(),
-            want: { server: `${PUBLISHED_IMAGES.server}:${tag}`, runner: `${PUBLISHED_IMAGES.runner}:${tag}` },
-          };
-        },
-        diagnostics: () => (release === undefined ? "--- no release was installed ---" : release.diagnostics()),
-        async stop({ keep }) {
-          forward?.stop();
-          await cluster.stop({ keep });
-        },
-      };
-    },
-  },
   cli: {
     ports: [7234],
     create(fake) {
@@ -480,7 +411,7 @@ async function main() {
     console.error(`rehearse-upgrade: FAIL — ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   }
-  log(`${args.artifact}: ${describe(from)} -> ${describe(to)}${args.chart === undefined ? "" : ` (chart ${args.chart})`}`);
+  log(`${args.artifact}: ${describe(from)} -> ${describe(to)}`);
 
   const started = Date.now();
   const lap = (() => {
@@ -494,7 +425,7 @@ async function main() {
   })();
 
   const fake = await startFakeModel({ host: args.artifact === "cli" ? "127.0.0.1" : "0.0.0.0" });
-  const install = spec.create(fake, { chart: args.chart });
+  const install = spec.create(fake);
   let failed = false;
   try {
     await install.start(from);
