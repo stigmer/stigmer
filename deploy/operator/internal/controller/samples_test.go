@@ -3,8 +3,9 @@
 // real API server with the generated definition installed, so its schema,
 // its defaults and every CEL rule run against it. The create is a strict
 // server-side dry run: an unknown or misspelt field is refused rather than
-// pruned, and nothing is stored for the controller to reconcile. A sample
-// that drifts from the definition fails here, not in someone's cluster.
+// pruned, and nothing is stored for the controller to reconcile; a misspelt
+// field is the control that shows it. A sample that drifts from the
+// definition fails here, not in someone's cluster.
 
 package controller
 
@@ -52,5 +53,18 @@ func TestEverySampleIsAcceptedByTheAPIServer(t *testing.T) {
 				}
 			}
 		})
+	}
+
+	// The control: the same strict dry run refuses a misspelt field, so a
+	// sample that passed above was checked, not pruned.
+	misspelt := unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "stigmer.ai/v1",
+		"kind":       "Stigmer",
+		"metadata":   map[string]any{"name": "stigmer", "namespace": ns},
+		"spec":       map[string]any{"ingres": map[string]any{"hostname": "stigmer.example.com"}},
+	}}
+	err = k8s.Create(context.Background(), &misspelt, client.DryRunAll, client.FieldValidation("Strict"))
+	if err == nil || !strings.Contains(err.Error(), "ingres") {
+		t.Errorf("a misspelt field was not refused by name: %v", err)
 	}
 }

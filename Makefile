@@ -867,7 +867,9 @@ test-docker-sandbox: build-server ## Run the Docker driver's live test alone: a 
 OPERATOR_DIR := deploy/operator
 OPERATOR_CHART_DIR := deploy/helm/stigmer-operator
 # The floor the chart's Chart.yaml declares (kubeVersion), its render
-# validated against that release's schemas.
+# validated against that release's schemas. kubeconform carries no schema for
+# a CustomResourceDefinition; the Stigmer definition is the generated one,
+# which every envtest run loads into a real API server.
 OPERATOR_KUBE_VERSION := 1.30.0
 PROFILE ?= bundled
 
@@ -886,7 +888,7 @@ lint-operator: ## gofmt, go vet, go mod tidy and generated files for the operato
 		echo "helm lint --strict $(OPERATOR_CHART_DIR) $$values"; \
 		helm lint --strict $(OPERATOR_CHART_DIR) $$values --quiet || exit 1; \
 		helm template stigmer-operator $(OPERATOR_CHART_DIR) --namespace stigmer-system $$values \
-			| kubeconform -strict -kubernetes-version $(OPERATOR_KUBE_VERSION) -summary || exit 1; \
+			| kubeconform -strict -kubernetes-version $(OPERATOR_KUBE_VERSION) -skip CustomResourceDefinition -summary || exit 1; \
 	done
 
 smoke-operator: build-server build-web stage-compose-runner-cli ## Build the images and the operator from source and run the operator's install test on kind, PROFILE=bundled|byo|bucket|exposed|agent-sandbox|substrate|upgrade|enterprise; CHART=<dir|.tgz> installs a packaged chart (needs Docker, kind, helm, kubectl)
