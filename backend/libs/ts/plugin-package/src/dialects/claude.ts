@@ -58,6 +58,23 @@ export const CLAUDE_KNOWN_FIELDS: ReadonlySet<string> = new Set([
   "dependencies",
   "defaultEnabled",
   "settings",
+  // Documented by Claude Code's manifest reference and read by tools other
+  // than Stigmer: `$schema` by editors, `displayName` by Claude Code's UI,
+  // `metadata` by nobody, `engines`, `network` and `types` by Claude Code
+  // itself, and the five listing fields by Anthropic's plugin directory. None
+  // maps to a Stigmer resource; they are known so a well-formed manifest
+  // installs without a warning (stigmer/stigmer#3389).
+  "$schema",
+  "displayName",
+  "metadata",
+  "engines",
+  "network",
+  "types",
+  "icon",
+  "documentationUrl",
+  "supportUrl",
+  "privacyPolicyUrl",
+  "termsOfServiceUrl",
 ]);
 
 /** The default MCP configuration file when the manifest declares none. */
