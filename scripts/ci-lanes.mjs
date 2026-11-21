@@ -487,6 +487,13 @@ export const LANES = {
       "sdk/ink/src/recordings.ts",
       "sdk/ink/src/__tests__/__recordings__/**",
       "test/bundle-budgets.json",
+      // The built site's browser suite, which the lane runs against the
+      // export it builds, the accessibility policy it judges by, and the
+      // body of the action that installs its browser.
+      "test/site/**",
+      "test/support/src/axe-policy.ts",
+      "test/support/package.json",
+      "scripts/playwright-chromium.mjs",
       // The resource reference pages import every Python SDK name from
       // `stigmer`, so a change to what the package exports can break them.
       "sdk/python/src/stigmer/__init__.py",

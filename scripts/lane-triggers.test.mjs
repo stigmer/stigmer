@@ -988,7 +988,7 @@ test("the action rule still finds the bodies and lanes it exists for", () => {
   });
   const callers = (name) =>
     [...laneCalls].filter(([, { actions: called }]) => called.includes(name)).map(([file]) => laneId(file));
-  assert.deepEqual(callers("playwright-chromium"), ["e2e-interactive", "ts-workspace"]);
+  assert.deepEqual(callers("playwright-chromium"), ["docs", "e2e-interactive", "ts-workspace"]);
   assert.deepEqual(callers("temporal-cli"), ["agent-sandbox", "conformance-execution", "e2e-interactive"]);
 });
 

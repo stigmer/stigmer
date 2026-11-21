@@ -48,7 +48,9 @@ jobs:
   lint-and-build:
     name: Lint & Build
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # scripts/ci-timeouts.mjs's rule over 17 green runs to 2026-11-21 (median
+    # 6.8 min, slowest 9.9 min) gives 25 with the site audit's minute added.
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -118,6 +120,25 @@ jobs:
 
       - name: Build documentation site
         run: make build-site
+
+      # The built site's browser suite (test/site): its static server's unit
+      # checks, then a sample of the export's pages, served as the host
+      # serves them, audited with axe at a phone and a desktop width. It reads
+      # the export the step above wrote, so it builds nothing itself.
+      - name: Install Playwright's Chromium
+        uses: ./.github/actions/playwright-chromium
+
+      - name: Audit the built site's accessibility
+        run: npm run test:site -w @stigmer/site-tests
+
+      - name: Upload the site audit's traces
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: site-audit-test-results
+          path: test/site/test-results/
+          if-no-files-found: ignore
+          retention-days: 14
 
   sdk-docs-freshness:
     name: SDK Docs Freshness
