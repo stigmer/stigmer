@@ -8,8 +8,9 @@
  *
  *   - SESSION: long-lived, one sandbox per session, ensure is IDEMPOTENT
  *     ensure-as-state-machine (absent → provision; stopped → start;
- *     running → fast path). Invoked non-critically after the execution's
- *     workflow starts (see steps.ts).
+ *     running → fast path). Invoked non-critically by the agent-execution
+ *     workflow before each runner invocation of a turn
+ *     (session-sandbox.ts, temporal/agentexecution/activities.ts).
  *   - CONNECT: request-scoped, NOT idempotent; the caller must
  *     deprovision when the connect settles. Every MCP connect provisions
  *     one when a provisioner is composed, and its workflow runs on the
@@ -30,7 +31,7 @@
  * provisioning failure. On each such ask, a driver that offers `makeRoom`
  * first puts one idle sandbox to sleep for the waiting run, so it takes
  * that sandbox's seat rather than waiting out an idle window
- * (make-room.ts, steps.ts). The built-in `local-process`, `docker` and
+ * (make-room.ts, session-sandbox.ts). The built-in `local-process`, `docker` and
  * `agent-sandbox` drivers never throw it, and offer no `makeRoom`.
  *
  * "Not carried" is part of the contract too. A sandbox started under

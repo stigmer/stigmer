@@ -7,7 +7,7 @@
  *
  * When a run waits because the fleet has no room (provisioner.ts, "No
  * room"), the agent-execution workflow's ask for its sandbox asks the
- * provisioner to make room (provisioner.ts `makeRoom`, steps.ts). The
+ * provisioner to make room (provisioner.ts `makeRoom`, session-sandbox.ts). The
  * provisioner puts one idle sandbox to sleep and stops, so the sandboxes
  * put to sleep at any moment are bounded by the runs asking: a run that
  * keeps losing the freed seat to another start asks again on its next
