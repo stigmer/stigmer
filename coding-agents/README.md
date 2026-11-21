@@ -60,11 +60,14 @@ one is for the coding agent on a person's laptop.
   `decide.mjs` holds the one decision (`reasonFor`) and each tool's side:
   - `hooks.json` is Claude Code's: a `PreToolUse` hook (`guard.mjs`, through
     `decide`);
-  - `cursor-hooks.json` is Cursor's: `beforeMCPExecution` and
-    `beforeShellExecution`, the two events on which Cursor enforces an `ask`
-    (`cursor-guard.mjs`, through `decideCursor`, only for this plugin's server,
-    `CURSOR_SERVER_NAMES`). Both fail open. A Cursor run that allows every
-    command (`agent -p --force`) passes over an ask, as the person chose;
+  - `cursor-hooks.json` is Cursor's: `beforeShellExecution` alone
+    (`cursor-guard.mjs`, through `decideCursor`), the one event on which Cursor
+    turns an `ask` into a prompt. Its MCP executor acts on a
+    `beforeMCPExecution` answer only when it is `deny`, and any MCP hook makes it
+    refuse every server's call that carries a file path, so the plugin hooks no
+    MCP call there and Cursor's own tool approval asks before the tool server's
+    tools. Both entries fail open. A Cursor run that allows every command
+    (`agent -p --force`) passes over an ask, as the person chose;
   - Codex's hooks cannot ask, so `codex-hooks.json` is empty and Codex asks
     before the tools from their marks (`mcp-server/src/domains/toolmarks.ts`).
 
@@ -151,11 +154,11 @@ the person's words, and `graders/`:
   opposite, denies it or warns against it does not do it:", then names the
   wrong claim exactly. A line that is a judgement ("runs Claude Managed
   Agents down", "a price other than these") says in its point what does not
-  count ("saying plainly what it lacks", "leaving a price out"). Every job was
-  moved to this question after the same probe (its misgraded answers and a
-  wrong answer for each line, through `claude plugin eval` on a scratch
-  plugin whose case repeats a given answer word for word), and a new line is
-  probed the same way;
+  count ("saying plainly what it lacks", "leaving a price out"). The question
+  was probed once (misgraded answers and a wrong answer for each line,
+  through `claude plugin eval` on a scratch plugin whose case repeats a given
+  answer word for word); every job then moved to it, each line re-read
+  against the docs and the job scored by the bank;
 - `cites-the-page.md`: the answer links a page that answers it, as published
   (`stigmer\.ai/docs/<page>`, or several as `stigmer\.ai/docs/(<page>|<page>)`;
   a link to the docs' source on GitHub doesn't count). The list names every

@@ -35,10 +35,12 @@ brings:
 - **Stigmer's tool server**, `stigmer mcp-server`, started from the
   [command line](/docs/cli/commands/mcp-server) on its own sign-in. Nothing to
   paste: the plugin acts on whichever Stigmer you signed the command line in to.
-- **A guard**, in Claude Code and Cursor: it asks you before anything that can't
-  be undone or is yours to give (deleting an Agent or Skill, cancelling a run,
-  answering a run's approval), even after you allowed the plugin's tools. Codex
-  asks from the tools' own marks.
+- **A guard**, in Claude Code: it asks you before anything that can't be undone
+  or is yours to give (deleting an Agent or Skill, cancelling a run, answering a
+  run's approval), even after you allowed the plugin's tools. In Cursor it asks
+  before a `stigmer` command forced past its own question or one that answers a
+  run's approval, and Cursor's own tool approval asks before the plugin's tools.
+  Codex asks from the tools' own marks.
 
 It needs the command line, signed in:
 

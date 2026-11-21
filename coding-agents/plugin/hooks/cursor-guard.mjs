@@ -1,5 +1,5 @@
-// Cursor's beforeMCPExecution and beforeShellExecution hook for Stigmer's
-// plugin: reads the call from stdin and prints decideCursor()'s answer
+// Cursor's beforeShellExecution hook for Stigmer's plugin: reads the shell
+// line from stdin and prints decideCursor()'s answer
 // (decide.mjs). It fails open: on any error of its own it prints `{}`, which
 // leaves the call to Cursor's own permissions, and exits 0. `failClosed`
 // stays off in cursor-hooks.json for the same reason: a fault in the guard

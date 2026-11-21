@@ -28,8 +28,8 @@
 //     a model of its own"), so the fail-if question says an answer that
 //     says the opposite, denies it or warns against it does not do it;
 //     probed on five such answers and five wrong ones, it graded all ten
-//     right. Every case's fail-if lines ask that question: each job was
-//     re-probed under it, setup last, and none may go back;
+//     right. Every case's fail-if lines ask that question: each job moved to
+//     it, setup last, its lines re-read against the docs, and none may go back;
 //   - a case cites the published page (`stigmer.ai/docs/<page>`), never a
 //     bare `docs/<page>` that a link to the docs' source on GitHub would
 //     also match, and every page it cites exists, by the site's own URL rule

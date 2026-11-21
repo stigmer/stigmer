@@ -2,9 +2,14 @@
 // say nothing and let the coding agent's own permissions decide. The
 // decision is the tool's own (reasonFor); each coding agent's side reads its
 // hook input and writes its answer: decide() for Claude Code's PreToolUse
-// hook (guard.mjs), decideCursor() for Cursor's beforeMCPExecution and
-// beforeShellExecution hooks (cursor-guard.mjs). Codex's hooks cannot ask,
-// so Codex asks from the tool server's own marks instead.
+// hook (guard.mjs), decideCursor() for Cursor's beforeShellExecution hook
+// (cursor-guard.mjs). Cursor turns a shell hook's `ask` into a prompt, but
+// acts on a beforeMCPExecution answer only when it is `deny`, and any MCP
+// hook makes it refuse every server's tool call that carries a file path
+// (read in cursor-agent 2026.11.19's bundled executor), so the plugin hooks
+// no MCP call there: Cursor's own tool approval asks before the tool
+// server's tools. Codex's hooks cannot ask, so Codex asks from the tool
+// server's own marks.
 //
 // It asks before an act that can't be undone, or that is the person's to
 // give, even when they once chose "always allow" for the plugin's tools:
@@ -37,15 +42,6 @@ export const APPROVAL_TOOL = "submit_run_approval";
 
 /** How Claude Code names this plugin's server's tools. */
 export const TOOL_PREFIX = "mcp__plugin_stigmer_stigmer__";
-
-/**
- * The `mcp_server_name` Cursor gives this plugin's tool server: a plugin's
- * server is `plugin-<plugin folder>-<server>` (measured on Cursor's CLI
- * 2026.11.19, the folder the install line clones into being `stigmer`), and
- * a person's own `mcp.json` entry for `stigmer mcp-server` is `stigmer`.
- * Another server's tools are never this guard's to judge.
- */
-export const CURSOR_SERVER_NAMES = ["stigmer", "plugin-stigmer-stigmer"];
 
 /**
  * The CLI commands whose force flag skips a confirmation or overwrites,
@@ -105,37 +101,17 @@ export function decide(input) {
 }
 
 /**
- * Cursor's side: the answer to one beforeMCPExecution or
- * beforeShellExecution input, `{ permission: "ask", user_message,
- * agent_message }`, or `{}` to say nothing. Cursor hands `tool_input` as a
- * JSON string and the tool's bare name, beside the server's name. Never
- * throws. Cursor asks the person in its window; a run that allows every
- * command (`--force`) passes over an ask, which is the person's own choice.
+ * Cursor's side: the answer to one beforeShellExecution input, `{
+ * permission: "ask", user_message, agent_message }`, or `{}` to say
+ * nothing. Any other event says nothing. Never throws. Cursor asks the
+ * person in its window; a run that allows every command (`--force`) passes
+ * over an ask, which is the person's own choice.
  */
 export function decideCursor(input) {
   try {
-    if (input === null || typeof input !== "object") return {};
-    let reason = null;
-    if (input.hook_event_name === "beforeShellExecution") {
-      reason = reasonFor({ kind: "shell", command: typeof input.command === "string" ? input.command : "" });
-    } else if (input.hook_event_name === "beforeMCPExecution") {
-      if (!CURSOR_SERVER_NAMES.includes(input.mcp_server_name)) return {};
-      const name = typeof input.tool_name === "string" ? input.tool_name : "";
-      reason = reasonFor({ kind: "tool", name, args: toolInput(input.tool_input) });
-    }
+    if (input === null || typeof input !== "object" || input.hook_event_name !== "beforeShellExecution") return {};
+    const reason = reasonFor({ kind: "shell", command: typeof input.command === "string" ? input.command : "" });
     return reason === null ? {} : { permission: "ask", user_message: reason, agent_message: `${reason} ${AGENT_LINE}` };
-  } catch {
-    return {};
-  }
-}
-
-/** Cursor's `tool_input`: a JSON string, read as an object; anything else is no arguments. */
-function toolInput(raw) {
-  if (raw !== null && typeof raw === "object") return raw;
-  if (typeof raw !== "string") return {};
-  try {
-    const parsed = JSON.parse(raw);
-    return parsed !== null && typeof parsed === "object" ? parsed : {};
   } catch {
     return {};
   }
