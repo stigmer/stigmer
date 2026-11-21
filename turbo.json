@@ -172,10 +172,16 @@
       "outputs": [],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/backend/services/runner/package.json"]
     },
+    // The kit reads the tool-view fixture, and holds its row-kind map to the
+    // host-customization contract's table (run/__tests__/row-kinds.test.ts).
     "@stigmer/react-sdk#test": {
       "dependsOn": ["^build"],
       "outputs": [],
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/test/fixtures/tool-view/**"]
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/test/fixtures/tool-view/**",
+        "$TURBO_ROOT$/.agents/skills/sdk-console-architecture/references/**"
+      ]
     },
     // The CLI holds the notes the docs' terminal recordings show `--download`
     // writing to its own words, reading the terminal kit's held recordings,
