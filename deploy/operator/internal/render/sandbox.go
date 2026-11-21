@@ -1,6 +1,6 @@
 // Per-session sandboxes: what the server is told when each session runs in a
-// sandbox of its own, on agent-sandbox, instead of on the shared runner
-// beside it.
+// sandbox of its own, on agent-sandbox or on Agent Substrate, instead of on
+// the shared runner beside it.
 //
 // The server drives every sandbox itself (backend/services/stigmer-server/
 // src/sandbox); the operator installs what the sandboxes run on, gives the
@@ -8,7 +8,8 @@
 // runner. A sandbox reaches the server and nothing else of the install: it
 // dials the server's unified port for the API, its artifact lane and the
 // Temporal worker lane (transport/temporal-worker-door), so the backend
-// endpoint is the server's Service by its full DNS name, plain HTTP.
+// endpoint is the server's Service by its full DNS name, plain HTTP, which
+// is the form Substrate's egress rules accept (sandbox/substrate/egress.ts).
 //
 // The sandbox namespace is one per install, made and stamped by the
 // operator. It is cluster-scoped, so it carries no owner reference; the
@@ -63,6 +64,8 @@ func provisionerType(d stigmerv1.SandboxDriver) string {
 	switch d {
 	case stigmerv1.SandboxDriverAgentSandbox:
 		return "agent-sandbox"
+	case stigmerv1.SandboxDriverSubstrate:
+		return "substrate"
 	default:
 		return ""
 	}
@@ -138,6 +141,8 @@ func sandboxEnv(st *stigmerv1.Stigmer, modelKeys []string) []corev1.EnvVar {
 		if idle := idleSeconds(st); idle != "" {
 			env = append(env, value("STIGMER_SANDBOX_AGENT_SANDBOX_SUSPEND_AFTER_SECONDS", idle))
 		}
+	case stigmerv1.SandboxDriverSubstrate:
+		env = append(env, substrateEnv(st)...)
 	}
 	llm := st.Spec.Runner.LLM
 	var plain, secret []string
@@ -164,10 +169,14 @@ func sandboxEnv(st *stigmerv1.Stigmer, modelKeys []string) []corev1.EnvVar {
 // SandboxNamespaceObject is the namespace the install's sandboxes run in.
 // Its Pod Security level is what its pods need and no more: agent-sandbox's
 // runner adds only capabilities baseline allows (SETUID, SETGID, CHOWN,
-// KILL, DAC_OVERRIDE).
+// KILL, DAC_OVERRIDE), while Substrate's gVisor workers run privileged.
 func SandboxNamespaceObject(st *stigmerv1.Stigmer) *corev1.Namespace {
+	level := "baseline"
+	if Driver(st) == stigmerv1.SandboxDriverSubstrate {
+		level = "privileged"
+	}
 	labels := Labels(st, ComponentSandboxes)
-	labels["pod-security.kubernetes.io/enforce"] = "baseline"
+	labels["pod-security.kubernetes.io/enforce"] = level
 	return &corev1.Namespace{
 		TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "Namespace"},
 		ObjectMeta: metav1.ObjectMeta{Name: SandboxNamespace(st), Labels: labels},

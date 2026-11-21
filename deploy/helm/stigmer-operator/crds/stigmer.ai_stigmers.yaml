@@ -666,6 +666,15 @@ spec:
                     - auto
                     - skip
                     type: string
+                  substrate:
+                    default: auto
+                    description: |-
+                      Substrate is Agent Substrate's control plane, which runs the
+                      substrate driver's actors.
+                    enum:
+                    - auto
+                    - skip
+                    type: string
                 type: object
               runner:
                 description: |-
@@ -959,11 +968,13 @@ spec:
                     default: shared
                     description: |-
                       Driver is where each session runs: shared (the shared runner beside
-                      the server) or agentSandbox (a pod per session). A per-session driver
-                      needs spec.objectStore, and the operator installs what it runs on.
+                      the server), agentSandbox (a pod per session) or substrate (an Agent
+                      Substrate actor per session). Both per-session drivers need
+                      spec.objectStore, and the operator installs what they run on.
                     enum:
                     - shared
                     - agentSandbox
+                    - substrate
                     type: string
                   idleSeconds:
                     description: |-
@@ -973,12 +984,185 @@ spec:
                     format: int32
                     minimum: 30
                     type: integer
+                  substrate:
+                    description: Substrate tunes the substrate driver.
+                    properties:
+                      egress:
+                        description: Egress names the extra cleartext addresses a
+                          sandbox may reach.
+                        properties:
+                          http:
+                            description: |-
+                              HTTP lists host:port addresses a sandbox may reach over plain HTTP,
+                              such as an in-cluster model gateway (models.ai.svc.cluster.local:8080).
+                              Each host is a DNS name of at least two labels, never an address. The
+                              server and the bucket are added by the operator.
+                            items:
+                              maxLength: 259
+                              type: string
+                            maxItems: 64
+                            type: array
+                            x-kubernetes-validations:
+                            - message: spec.sandboxes.substrate.egress.http holds
+                                host:port addresses whose host is a DNS name of two
+                                or more labels, such as models.ai.svc.cluster.local:8080
+                              rule: self.all(h, h.matches('^[a-z0-9]([a-z0-9-]*[a-z0-9])?([.][a-z0-9]([a-z0-9-]*[a-z0-9])?)+:[0-9]{1,5}$')
+                                && !h.matches('^[0-9.]+:[0-9]+$'))
+                        type: object
+                      sandbox:
+                        description: Sandbox sizes each session's sandbox.
+                        properties:
+                          cpuMillicores:
+                            description: |-
+                              CPUMillicores is each sandbox's processor ceiling. Absent keeps the
+                              server's default of 2000.
+                            format: int32
+                            maximum: 999999
+                            minimum: 1
+                            type: integer
+                          memoryMiB:
+                            description: |-
+                              MemoryMiB is each sandbox's memory ceiling. Absent keeps the server's
+                              default of 2048.
+                            format: int32
+                            minimum: 1
+                            type: integer
+                        type: object
+                      worker:
+                        description: |-
+                          Worker shapes each worker pod. Its limits are the room every sandbox
+                          on it shares.
+                        properties:
+                          nodeSelector:
+                            additionalProperties:
+                              type: string
+                            description: NodeSelector places the workers on matching
+                              nodes.
+                            type: object
+                          resources:
+                            description: Resources overrides each worker's requests
+                              and limits.
+                            properties:
+                              claims:
+                                description: |-
+                                  Claims lists the names of resources, defined in spec.resourceClaims,
+                                  that are used by this container.
+
+                                  This field depends on the
+                                  DynamicResourceAllocation feature gate.
+
+                                  This field is immutable. It can only be set for containers.
+                                items:
+                                  description: ResourceClaim references one entry
+                                    in PodSpec.ResourceClaims.
+                                  properties:
+                                    name:
+                                      description: |-
+                                        Name must match the name of one entry in pod.spec.resourceClaims of
+                                        the Pod where this field is used. It makes that resource available
+                                        inside a container.
+                                      type: string
+                                    request:
+                                      description: |-
+                                        Request is the name chosen for a request in the referenced claim.
+                                        If empty, everything from the claim is made available, otherwise
+                                        only the result of this request.
+                                      type: string
+                                  required:
+                                  - name
+                                  type: object
+                                type: array
+                                x-kubernetes-list-map-keys:
+                                - name
+                                x-kubernetes-list-type: map
+                              limits:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                description: |-
+                                  Limits describes the maximum amount of compute resources allowed.
+                                  More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                                type: object
+                              requests:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                description: |-
+                                  Requests describes the minimum amount of compute resources required.
+                                  If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                                  otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                                  More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                                type: object
+                            type: object
+                          tolerations:
+                            description: Tolerations let the workers run on tainted
+                              nodes.
+                            items:
+                              description: |-
+                                The pod this Toleration is attached to tolerates any taint that matches
+                                the triple <key,value,effect> using the matching operator <operator>.
+                              properties:
+                                effect:
+                                  description: |-
+                                    Effect indicates the taint effect to match. Empty means match all taint effects.
+                                    When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                                  type: string
+                                key:
+                                  description: |-
+                                    Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                                    If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                                  type: string
+                                operator:
+                                  description: |-
+                                    Operator represents a key's relationship to the value.
+                                    Valid operators are Exists, Equal, Lt, and Gt. Defaults to Equal.
+                                    Exists is equivalent to wildcard for value, so that a pod can
+                                    tolerate all taints of a particular category.
+                                    Lt and Gt perform numeric comparisons (requires feature gate TaintTolerationComparisonOperators).
+                                  type: string
+                                tolerationSeconds:
+                                  description: |-
+                                    TolerationSeconds represents the period of time the toleration (which must be
+                                    of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                                    it is not set, which means tolerate the taint forever (do not evict). Zero and
+                                    negative values will be treated as 0 (evict immediately) by the system.
+                                  format: int64
+                                  type: integer
+                                value:
+                                  description: |-
+                                    Value is the taint value the toleration matches to.
+                                    If the operator is Exists, the value should be empty, otherwise just a regular string.
+                                  type: string
+                              type: object
+                            type: array
+                        type: object
+                      workers:
+                        default: 1
+                        description: |-
+                          Workers is how many gVisor workers the pool keeps. Sessions beyond
+                          what they hold wait for room and start when a seat frees. The
+                          operator never sizes the pool from demand: Agent Substrate's own
+                          autoscaler does that once it ships.
+                        format: int32
+                        minimum: 1
+                        type: integer
+                    type: object
                 type: object
                 x-kubernetes-validations:
                 - message: 'spec.sandboxes.agentSandbox tunes the agentSandbox driver:
                     set spec.sandboxes.driver to agentSandbox, or remove it'
                   rule: '!has(self.agentSandbox) || (has(self.driver) && self.driver
                     == ''agentSandbox'')'
+                - message: 'spec.sandboxes.substrate tunes the substrate driver: set
+                    spec.sandboxes.driver to substrate, or remove it'
+                  rule: '!has(self.substrate) || (has(self.driver) && self.driver
+                    == ''substrate'')'
               server:
                 description: Server sizes and tunes the Stigmer server.
                 properties:
@@ -1030,8 +1214,8 @@ spec:
                       fenced:
                         description: |-
                           Fenced lets the server reach only DNS, the Kubernetes API, what the
-                          install runs (its database, Temporal, the bundled sign-in), the
-                          bucket, the public internet and AllowCIDRs.
+                          install runs (its database, Temporal, the bundled sign-in, Agent
+                          Substrate), the bucket, the public internet and AllowCIDRs.
                         type: boolean
                     type: object
                   extraEnv:

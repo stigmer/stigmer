@@ -37,6 +37,9 @@ spec:
             - --leader-elect
             - --health-probe-bind-address=:8081
             - --zap-log-level={{ .Values.logLevel }}
+            {{- with .Values.localRegistry }}
+            - --local-registry={{ . }}
+            {{- end }}
           ports:
             - name: probes
               containerPort: 8081

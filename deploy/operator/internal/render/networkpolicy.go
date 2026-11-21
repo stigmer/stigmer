@@ -13,14 +13,16 @@
 //   server's unified port, the bucket, the public internet (every address
 //   but the private, shared, link-local and loopback ranges) and the
 //   private ranges the declaration names. Always on under that driver:
-//   agents run commands nobody reviewed.
+//   agents run commands nobody reviewed. Substrate's actors are fenced by
+//   Substrate's own egress gateway instead (substrate.go), which lets them
+//   out only to the lanes the server names.
 // - The server's egress is fenced only when asked for (spec.server.egress)
 //   or under an Enterprise license whose outbound egress is strict, as the
 //   Helm chart had it: a server's own outbound calls include an issuer or an
 //   MCP server on the adopter's private network, which a default fence
 //   would cut. Fenced, it reaches DNS, the Kubernetes API (the agent-sandbox
-//   driver's), its database, Temporal, the bundled sign-in, the bucket, the
-//   public internet and the declared ranges.
+//   driver's), its database, Temporal, the bundled sign-in, Substrate, the
+//   bucket, the public internet and the declared ranges.
 //
 // The server and the bundled sign-in take no ingress fence: the front door's
 // controller runs in a namespace the operator does not know.
@@ -41,6 +43,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	stigmerv1 "github.com/stigmer/stigmer/deploy/operator/api/v1"
+	"github.com/stigmer/stigmer/deploy/operator/internal/substrate"
 )
 
 // The ranges "the public internet" leaves out.
@@ -279,6 +282,11 @@ func ServerEgressPolicyObject(st *stigmerv1.Stigmer, in FenceInputs) *networking
 	}
 	if BundledIdentity(st) {
 		rules = append(rules, networkingv1.NetworkPolicyEgressRule{To: []networkingv1.NetworkPolicyPeer{pods(SelectorLabels(st, ComponentIdentity))}})
+	}
+	if Driver(st) == stigmerv1.SandboxDriverSubstrate {
+		rules = append(rules,
+			networkingv1.NetworkPolicyEgressRule{To: []networkingv1.NetworkPolicyPeer{podsIn(substrate.Namespace, substrate.APIServerPodLabels())}, Ports: tcpPorts(substrate.APIServerPort)},
+			networkingv1.NetworkPolicyEgressRule{To: []networkingv1.NetworkPolicyPeer{podsIn(substrate.Namespace, substrate.RouterPodLabels())}, Ports: tcpPorts(substrate.RouterPort)})
 	}
 	if r, ok := bucketRule(in); ok {
 		rules = append(rules, r)

@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/discovery"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -36,9 +37,11 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	stigmerv1 "github.com/stigmer/stigmer/deploy/operator/api/v1"
+	"github.com/stigmer/stigmer/deploy/operator/internal/component"
 	"github.com/stigmer/stigmer/deploy/operator/internal/controller"
 	"github.com/stigmer/stigmer/deploy/operator/internal/janitor"
 	"github.com/stigmer/stigmer/deploy/operator/internal/render"
+	"github.com/stigmer/stigmer/deploy/operator/internal/serverhealth"
 	"github.com/stigmer/stigmer/deploy/operator/internal/singleton"
 	"github.com/stigmer/stigmer/deploy/operator/internal/version"
 )
@@ -50,9 +53,12 @@ const janitorEvery = 15 * time.Second
 func main() {
 	var metricsAddr, probeAddr string
 	var leaderElect bool
+	var localRegistry string
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "Address the metrics endpoint binds to; 0 turns it off.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "Address the health probes bind to.")
 	flag.BoolVar(&leaderElect, "leader-elect", true, "Elect a leader so only one replica reconciles.")
+	flag.StringVar(&localRegistry, "local-registry", "",
+		"On a development cluster, the in-cluster address of its local registry (kind-registry:5000 on kind), which Agent Substrate's node agent pulls localhost image references through. Empty on a real cluster.")
 	opts := zap.Options{}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
@@ -110,10 +116,18 @@ func main() {
 		os.Exit(1)
 	}
 
+	disc, err := discovery.NewDiscoveryClientForConfig(cfg)
+	if err != nil {
+		log.Error(err, "could not build a discovery client")
+		os.Exit(1)
+	}
 	reconciler := &controller.StigmerReconciler{
-		Client:   mgr.GetClient(),
-		Reader:   mgr.GetAPIReader(),
-		Recorder: mgr.GetEventRecorderFor("stigmer-operator"),
+		Client:       mgr.GetClient(),
+		Reader:       mgr.GetAPIReader(),
+		Recorder:     mgr.GetEventRecorderFor("stigmer-operator"),
+		Discovery:    component.ClusterDiscovery{Client: disc},
+		Operator:     component.OperatorSettings{LocalRegistry: localRegistry},
+		ServerHealth: serverhealth.New(),
 	}
 	if err := reconciler.SetupWithManager(mgr); err != nil {
 		log.Error(err, "could not set up the controller")

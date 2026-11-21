@@ -147,7 +147,9 @@ func volume(name, claim string) corev1.Volume {
 // modelKeys are the keys the model Secret holds (ServerEnv).
 //
 // The pod runs as the server's own ServiceAccount. Its token is mounted only
-// for agent-sandbox, whose driver calls the Kubernetes API with it.
+// for agent-sandbox, whose driver calls the Kubernetes API with it; the
+// substrate driver is handed a token for Substrate's audience alone, in a
+// projected volume beside its client certificate and trust bundle.
 func ServerDeploymentObject(st *stigmerv1.Stigmer, modelKeys []string) *appsv1.Deployment {
 	pull := st.Spec.Image.PullPolicy
 	if pull == "" {
@@ -182,6 +184,11 @@ func ServerDeploymentObject(st *stigmerv1.Stigmer, modelKeys []string) *appsv1.D
 	if onVolume {
 		server.VolumeMounts = append(server.VolumeMounts, corev1.VolumeMount{Name: "artifacts", MountPath: ArtifactsMount})
 		volumes = append(volumes, volume("artifacts", ArtifactsClaim(st)))
+	}
+	if Driver(st) == stigmerv1.SandboxDriverSubstrate {
+		v, m := substrateIdentityVolume()
+		server.VolumeMounts = append(server.VolumeMounts, m)
+		volumes = append(volumes, v)
 	}
 	containers := []corev1.Container{server}
 	if RunnerEnabled(st) {

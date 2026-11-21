@@ -56,6 +56,23 @@ var (
 	// 1 GiB under a realm import and a burst of sign-ins, so the limit leaves
 	// room above the request. Not declarable: nothing an adopter tunes.
 	KeycloakSizing = size("100m", "512Mi", "1536Mi", "512Mi")
+	// SubstrateWorkerSizing is one gVisor worker's. Unlike the others its
+	// CPU is limited: a worker's limits are the room Substrate places
+	// sandboxes in, so 4 cores and 8 GiB hold two sandboxes at the server's
+	// default of 2 cores and 2 GiB each.
+	SubstrateWorkerSizing = withPath(Sizing{
+		Default: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse("500m"),
+				corev1.ResourceMemory: resource.MustParse("1Gi"),
+			},
+			Limits: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse("4"),
+				corev1.ResourceMemory: resource.MustParse("8Gi"),
+			},
+		},
+		MemoryFloor: resource.MustParse("512Mi"),
+	}, "spec.sandboxes.substrate.worker.resources")
 )
 
 func withPath(s Sizing, path string) Sizing {
@@ -114,6 +131,7 @@ func SizingRefusal(st *stigmerv1.Stigmer) string {
 		{RunnerSizing, st.Spec.Runner.Resources, RunnerEnabled(st)},
 		{PostgresSizing, BundledDatabase(st).Resources, Database(st).Bundled},
 		{TemporalSizing, bundledTemporalResources(st), Temporal(st).Bundled},
+		{SubstrateWorkerSizing, substrateSpec(st).Worker.Resources, Driver(st) == stigmerv1.SandboxDriverSubstrate},
 	}
 	for _, c := range checks {
 		if !c.on {

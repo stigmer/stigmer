@@ -22,5 +22,12 @@ resources:
 # Log verbosity for the operator's zap logger: info or debug.
 logLevel: info
 
+# For development clusters only: the in-cluster address of the cluster's
+# local registry, such as kind-registry:5000 on kind. Agent Substrate's node
+# agent pulls localhost image references (a sandbox image built on your
+# machine) through it. Leave empty on a real cluster, whose images come from
+# a registry with TLS.
+localRegistry: ""
+
 nodeSelector: {}
 tolerations: []

@@ -49,31 +49,21 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/stigmer/stigmer/deploy/operator/internal/render"
+	"github.com/stigmer/stigmer/deploy/operator/internal/substrate"
 )
 
-// Substrate's public contract, the names an install of any origin serves.
+// Substrate's public contract, as this package names it.
 const (
-	// Namespace holds Substrate's control plane.
-	Namespace = "ate-system"
+	Namespace         = substrate.Namespace
+	WorkerPoolCRD     = substrate.WorkerPoolCRD
+	APIServerName     = substrate.APIServerName
+	ServiceDNSSigner  = substrate.ServiceDNSSigner
+	PodIdentitySigner = substrate.PodIdentitySigner
+	TrustBundleLabel  = substrate.TrustBundleLabel
 	// PodCertNamespace holds the pod-certificate controller.
 	PodCertNamespace = "podcertificate-controller-system"
-	// WorkerPoolCRD is the definition a Substrate install is recognised by.
-	WorkerPoolCRD = "workerpools.ate.dev"
-	// APIServerName is the API's in-cluster name and its tokens' audience.
-	APIServerName = "api.ate-system.svc"
-	// RouterServerName is the router's in-cluster name.
-	RouterServerName = "atenet-router.ate-system.svc"
 	// ActorJWTIssuer is the issuer of actors' tokens.
 	ActorJWTIssuer = "https://idp.ate-system.svc"
-	// ServiceDNSSigner issues the certificates Substrate's services are
-	// served under.
-	ServiceDNSSigner = "servicedns.podcert.ate.dev/identity"
-	// PodIdentitySigner issues a pod's client certificate.
-	PodIdentitySigner = "podidentity.podcert.ate.dev/identity"
-	// TrustBundleLabel selects the live trust bundles.
-	TrustBundleLabel = "podcert.ate.dev/canarying"
-	// APIAccessLabel admits a namespace's pods to Substrate's API.
-	APIAccessLabel = "ate.dev/api-access"
 )
 
 const (

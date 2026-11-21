@@ -184,6 +184,11 @@ func (Runner) Reconcile(ctx context.Context, env *Env) (Result, error) {
 		keyNote = "; no model key is declared (spec.runner.llm), so agents cannot run until one is"
 	}
 	if render.PerSession(st) {
+		if render.Driver(st) == stigmerv1.SandboxDriverSubstrate {
+			if wait := waitForSandboxImage(ctx, env); wait != nil {
+				return *wait, nil
+			}
+		}
 		r := Ready(fmt.Sprintf("agents run in per-session sandboxes (%s), so there is no shared runner%s", render.Driver(st), keyNote))
 		r.Reason = stigmerv1.ReasonPerSessionSandboxes
 		return r, nil
@@ -263,4 +268,27 @@ func ensureRunnerKey(ctx context.Context, env *Env) error {
 		return fmt.Errorf("creating Secret %s: %w", name, err)
 	}
 	return nil
+}
+
+// waitForSandboxImage holds the runner component, and so the install, out of
+// Ready while the server builds the image every new sandbox starts from:
+// after an install, and after every upgrade that brings a new runner. The
+// server itself stays Ready, so the console answers meanwhile. A server the
+// operator cannot ask counts as still preparing; the next pass asks again.
+func waitForSandboxImage(ctx context.Context, env *Env) *Result {
+	if env.ServerHealth == nil {
+		return nil
+	}
+	st := env.Stigmer
+	base := fmt.Sprintf("http://%s.%s.svc:%d", render.ServerService(st), st.Namespace, render.GRPCPort)
+	serving, err := env.ServerHealth.SandboxesServing(ctx, base)
+	if serving {
+		return nil
+	}
+	message := "the server is preparing the image every new sandbox starts from (Agent Substrate's golden snapshot); the console already answers"
+	if err != nil {
+		message += "; the server could not be asked: " + err.Error()
+	}
+	r := Deploying(stigmerv1.ReasonPreparingSandboxImage, Ref("Deployment", st.Namespace, render.ServerDeployment(st)), message)
+	return &r
 }

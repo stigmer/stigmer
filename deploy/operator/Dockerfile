@@ -4,12 +4,15 @@
 # runs on the build machine's architecture and cross-compiles for the
 # target's, so a multi-architecture build never emulates the compiler. The
 # version is stamped into the binary: it is the tag of every Stigmer image
-# the operator runs.
+# the operator runs. So is the per-session runner image's digest, which
+# pins every sandbox to the same bytes; a build without one runs agent-sandbox
+# sessions by tag and refuses the substrate driver, which needs the digest.
 
 FROM --platform=$BUILDPLATFORM golang:1.25 AS build
 ARG TARGETOS
 ARG TARGETARCH
 ARG STIGMER_VERSION=dev
+ARG SANDBOX_RUNNER_DIGEST=
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
@@ -18,7 +21,7 @@ COPY cmd/ cmd/
 COPY internal/ internal/
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} GOWORK=off \
     go build -trimpath \
-    -ldflags "-s -w -X github.com/stigmer/stigmer/deploy/operator/internal/version.Stigmer=${STIGMER_VERSION}" \
+    -ldflags "-s -w -X github.com/stigmer/stigmer/deploy/operator/internal/version.Stigmer=${STIGMER_VERSION} -X github.com/stigmer/stigmer/deploy/operator/internal/version.SandboxRunnerDigest=${SANDBOX_RUNNER_DIGEST}" \
     -o /out/stigmer-operator ./cmd
 
 FROM gcr.io/distroless/static:nonroot

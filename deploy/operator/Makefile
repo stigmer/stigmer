@@ -18,6 +18,9 @@ ENVTEST_K8S_VERSION = $(shell go list -m -f '{{.Version}}' k8s.io/api | sed -E '
 # release overrides both.
 IMG ?= ghcr.io/stigmer/stigmer-operator:compose-dev
 STIGMER_VERSION ?= compose-dev
+# The per-session runner image's digest (sha256:...), stamped beside the
+# version; empty runs sandboxes by tag and refuses the substrate driver.
+SANDBOX_RUNNER_DIGEST ?=
 
 # Third-party pieces embedded in the binary, at the versions it is tested
 # against. Bump with `make vendor-cloudnative-pg vendor-barman-cloud-plugin
@@ -34,7 +37,7 @@ AGENT_SANDBOX_VERSION := v1.0.5
 SUBSTRATE_VERSION := v1.0.1
 
 OPERATOR_CHART := ../helm/stigmer-operator
-VERSION_FLAG := -X github.com/stigmer/stigmer/deploy/operator/internal/version.Stigmer=$(STIGMER_VERSION)
+VERSION_FLAG := -X github.com/stigmer/stigmer/deploy/operator/internal/version.Stigmer=$(STIGMER_VERSION) -X github.com/stigmer/stigmer/deploy/operator/internal/version.SandboxRunnerDigest=$(SANDBOX_RUNNER_DIGEST)
 
 .DEFAULT_GOAL := help
 
@@ -85,7 +88,7 @@ build: ## Build the operator binary into ./bin
 
 .PHONY: docker-build
 docker-build: ## Build the operator image for this machine's architecture
-	docker build --build-arg STIGMER_VERSION=$(STIGMER_VERSION) -t $(IMG) .
+	docker build --build-arg STIGMER_VERSION=$(STIGMER_VERSION) --build-arg SANDBOX_RUNNER_DIGEST=$(SANDBOX_RUNNER_DIGEST) -t $(IMG) .
 
 .PHONY: vendor-cloudnative-pg
 vendor-cloudnative-pg: ## Fetch CloudNativePG's release manifest at the pinned version

@@ -4,12 +4,17 @@ kind: ClusterRole
 metadata:
   name: stigmer-operator
 rules:
+- nonResourceURLs:
+  - /.well-known/openid-configuration
+  verbs:
+  - get
 - apiGroups:
   - ""
   resources:
   - configmaps
   - namespaces
   - persistentvolumeclaims
+  - resourcequotas
   - secrets
   - serviceaccounts
   - services
@@ -43,6 +48,8 @@ rules:
   - admissionregistration.k8s.io
   resources:
   - mutatingwebhookconfigurations
+  - validatingadmissionpolicies
+  - validatingadmissionpolicybindings
   - validatingwebhookconfigurations
   verbs:
   - create
@@ -79,8 +86,23 @@ rules:
 - apiGroups:
   - apps
   resources:
+  - daemonsets
   - deployments
   - statefulsets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ate.dev
+  resources:
+  - csidriverconfigs
+  - sandboxconfigs
+  - workerpools
   verbs:
   - create
   - delete
@@ -125,6 +147,15 @@ rules:
   - list
   - patch
   - update
+  - watch
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - clustertrustbundles
+  verbs:
+  - get
+  - list
+  - patch
   - watch
 - apiGroups:
   - coordination.k8s.io

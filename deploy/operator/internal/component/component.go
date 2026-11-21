@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	stigmerv1 "github.com/stigmer/stigmer/deploy/operator/api/v1"
+	"github.com/stigmer/stigmer/deploy/operator/internal/substrate/install"
 )
 
 // Component is one part of an install.
@@ -46,6 +47,28 @@ type Env struct {
 	Reader client.Reader
 	// Stigmer is the resource being reconciled.
 	Stigmer *stigmerv1.Stigmer
+	// Discovery answers questions about the cluster's APIs.
+	Discovery install.Discovery
+	// Operator is how the operator itself was configured for this cluster.
+	Operator OperatorSettings
+	// ServerHealth asks the running server whether sessions can start.
+	ServerHealth ServerHealth
+}
+
+// ServerHealth asks a running server whether a new session can start now
+// (internal/serverhealth).
+type ServerHealth interface {
+	SandboxesServing(ctx context.Context, baseURL string) (bool, error)
+}
+
+// OperatorSettings are the operator's own settings, from its chart: facts
+// about the cluster it runs in, not about any one Stigmer.
+type OperatorSettings struct {
+	// LocalRegistry is the in-cluster address of a development cluster's
+	// local registry (kind-registry:5000 on kind), which Agent Substrate's
+	// node agent pulls loopback image references through. Empty on a real
+	// cluster.
+	LocalRegistry string
 }
 
 // Result is a component's standing after one pass.

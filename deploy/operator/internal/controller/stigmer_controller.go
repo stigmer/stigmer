@@ -40,6 +40,7 @@ import (
 	"github.com/stigmer/stigmer/deploy/operator/internal/render"
 	"github.com/stigmer/stigmer/deploy/operator/internal/singleton"
 	"github.com/stigmer/stigmer/deploy/operator/internal/status"
+	"github.com/stigmer/stigmer/deploy/operator/internal/substrate/install"
 )
 
 // RequeueAfter is how often a Stigmer is reconciled with nothing to wake it.
@@ -68,6 +69,13 @@ type StigmerReconciler struct {
 	Reader client.Reader
 	// Recorder records Events on the Stigmer.
 	Recorder record.EventRecorder
+	// Discovery answers questions about the cluster's APIs.
+	Discovery install.Discovery
+	// Operator is how the operator itself was configured for this cluster.
+	Operator component.OperatorSettings
+	// ServerHealth asks the running server whether sessions can start; nil
+	// skips the question, for tests with no server.
+	ServerHealth component.ServerHealth
 	// Components defaults to Components().
 	Components []component.Component
 	// Now defaults to the wall clock.
@@ -81,7 +89,12 @@ type StigmerReconciler struct {
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=events.k8s.io,resources=events,verbs=create;patch
-// +kubebuilder:rbac:groups=apps,resources=deployments;statefulsets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=apps,resources=deployments;statefulsets;daemonsets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=resourcequotas,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=ate.dev,resources=workerpools;sandboxconfigs;csidriverconfigs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=certificates.k8s.io,resources=clustertrustbundles,verbs=get;list;watch;patch
+// +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=validatingadmissionpolicies;validatingadmissionpolicybindings,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:urls=/.well-known/openid-configuration,verbs=get
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;watch;create;update;patch;delete
@@ -126,7 +139,7 @@ func (r *StigmerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		components = Components()
 	}
 	now := r.now()
-	env := &component.Env{Client: r.Client, Reader: r.Reader, Stigmer: &st}
+	env := &component.Env{Client: r.Client, Reader: r.Reader, Stigmer: &st, Discovery: r.Discovery, Operator: r.Operator, ServerHealth: r.ServerHealth}
 	phases := map[string]stigmerv1.Phase{}
 	names := make([]string, 0, len(components))
 	for _, c := range components {

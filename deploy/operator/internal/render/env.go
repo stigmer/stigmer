@@ -431,15 +431,24 @@ func OwnedEnvNames(container string) []string {
 	// Each per-session driver sets its own names, with every model key held
 	// and every optional setting declared.
 	idle := int32(300)
+	cpu, mem := int32(1000), int32(1024)
 	agentSandbox := bucket.DeepCopy()
 	agentSandbox.Spec.Ingress = &stigmerv1.IngressSpec{Hostname: "x.x"}
 	agentSandbox.Spec.Sandboxes = &stigmerv1.SandboxesSpec{Driver: stigmerv1.SandboxDriverAgentSandbox, IdleSeconds: &idle}
+	substrateArm := agentSandbox.DeepCopy()
+	substrateArm.Spec.Sandboxes = &stigmerv1.SandboxesSpec{Driver: stigmerv1.SandboxDriverSubstrate, IdleSeconds: &idle,
+		Substrate: &stigmerv1.SubstrateSpec{
+			Sandbox: stigmerv1.SubstrateSandboxSpec{CPUMillicores: &cpu, MemoryMiB: &mem},
+			Egress:  stigmerv1.SubstrateEgressSpec{HTTP: []string{"x.x:1"}},
+		}}
+	substrateHTTPS := substrateArm.DeepCopy()
+	substrateHTTPS.Spec.ObjectStore.S3.RunnerEndpoint = "https://x.x"
 	var env []corev1.EnvVar
 	if container == "runner" {
 		env = append(RunnerEnv(full), RunnerEnv(bucket)...)
 	} else {
 		env = append(append(ServerEnv(full, nil), ServerEnv(bucket, nil)...), ServerEnv(open, nil)...)
-		for _, arm := range []*stigmerv1.Stigmer{agentSandbox} {
+		for _, arm := range []*stigmerv1.Stigmer{agentSandbox, substrateArm, substrateHTTPS} {
 			env = append(env, ServerEnv(arm, RunnerModelKeys)...)
 		}
 	}

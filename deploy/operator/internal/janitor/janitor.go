@@ -9,11 +9,16 @@
 // janitor removes those, in an order that lets each controller finish its
 // own objects first:
 //
-//  1. the sandbox namespaces the operator made, with their sandboxes and
-//     the server's access in them;
-//  2. agent-sandbox, once no Sandbox remains anywhere;
-//  3. the backup plugin, once no ObjectStore and no database pod remains;
-//  4. CloudNativePG, once no Cluster and no database pod remains.
+//  1. the sandbox namespaces the operator made, with their sandboxes, the
+//     Substrate worker pool and the server's access in them;
+//  2. the label that admitted the server's namespace to Agent Substrate's
+//     API, withdrawn under the field manager that set it;
+//  3. Agent Substrate, once no WorkerPool remains anywhere: its two
+//     namespaces take its database, its key material and (through their
+//     owner references) the trust bundles its controllers wrote;
+//  4. agent-sandbox, once no Sandbox remains anywhere;
+//  5. the backup plugin, once no ObjectStore and no database pod remains;
+//  6. CloudNativePG, once no Cluster and no database pod remains.
 //
 // It runs only when no Stigmer exists: a Stigmer's owned database is
 // deleted by garbage collection after the Stigmer is gone, and CloudNativePG
@@ -44,6 +49,8 @@ import (
 	stigmerv1 "github.com/stigmer/stigmer/deploy/operator/api/v1"
 	"github.com/stigmer/stigmer/deploy/operator/internal/manifests"
 	"github.com/stigmer/stigmer/deploy/operator/internal/render"
+	"github.com/stigmer/stigmer/deploy/operator/internal/substrate"
+	"github.com/stigmer/stigmer/deploy/operator/internal/substrate/install"
 )
 
 // Verdict is what a sweep did with one prerequisite.
@@ -101,6 +108,12 @@ const cnpgInstanceLabel = "cnpg.io/cluster"
 func prerequisites() []prerequisite {
 	return []prerequisite{
 		{
+			name:      "Agent Substrate",
+			crd:       substrate.WorkerPoolCRD,
+			instances: []schema.GroupVersionKind{render.SubstratePoolGVK},
+			manifests: install.Objects,
+		},
+		{
 			name:      "agent-sandbox",
 			crd:       "sandboxes.agents.x-k8s.io",
 			instances: []schema.GroupVersionKind{{Group: "agents.x-k8s.io", Version: "v1beta1", Kind: "Sandbox"}},
@@ -142,9 +155,15 @@ func Sweep(ctx context.Context, c Client) ([]Outcome, error) {
 	}
 	outcomes = append(outcomes, o)
 	if o.Verdict == Draining {
-		// agent-sandbox's controller still clears the sandboxes in them.
+		// agent-sandbox's and Substrate's controllers still clear the
+		// sandboxes and workers in them.
 		return outcomes, nil
 	}
+	o, err = withdrawAPIAccess(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+	outcomes = append(outcomes, o)
 	for _, p := range prerequisites() {
 		o, err := sweepPrerequisite(ctx, c, p)
 		if err != nil {
@@ -297,4 +316,34 @@ func removalOrder(objs []*unstructured.Unstructured) []*unstructured.Unstructure
 type Direct struct {
 	client.Reader
 	client.Writer
+}
+
+// withdrawAPIAccess removes the label that admitted a Stigmer's namespace to
+// Agent Substrate's API, from every namespace where this operator's field
+// manager set it. A label someone else set stays: an empty apply under the
+// manager drops only what the manager owns.
+func withdrawAPIAccess(ctx context.Context, c Client) (Outcome, error) {
+	out := Outcome{Name: "Agent Substrate's API access label", Verdict: Removed}
+	var namespaces metav1.PartialObjectMetadataList
+	namespaces.SetGroupVersionKind(schema.GroupVersionKind{Version: "v1", Kind: "NamespaceList"})
+	if err := c.List(ctx, &namespaces, client.HasLabels{substrate.APIAccessLabel}); err != nil {
+		return out, fmt.Errorf("listing namespaces labelled %s: %w", substrate.APIAccessLabel, err)
+	}
+	for i := range namespaces.Items {
+		ns := &namespaces.Items[i]
+		if !slices.ContainsFunc(ns.ManagedFields, func(f metav1.ManagedFieldsEntry) bool {
+			return f.Manager == render.SubstrateAccessFieldManager
+		}) {
+			continue
+		}
+		empty := &unstructured.Unstructured{}
+		empty.SetAPIVersion("v1")
+		empty.SetKind("Namespace")
+		empty.SetName(ns.Name)
+		if err := c.Patch(ctx, empty, client.Apply, client.FieldOwner(render.SubstrateAccessFieldManager), client.ForceOwnership); err != nil {
+			return out, fmt.Errorf("withdrawing %s from namespace %s: %w", substrate.APIAccessLabel, ns.Name, err)
+		}
+		out.Detail = "namespace " + ns.Name
+	}
+	return out, nil
 }
