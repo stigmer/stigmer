@@ -48,7 +48,9 @@ jobs:
   lint-and-build:
     name: Lint & Build
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # scripts/ci-timeouts.mjs's rule over 17 green runs to 2026-11-21 (median
+    # 6.8 min, slowest 9.9 min) gives 25 with the site audit's minute added.
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
