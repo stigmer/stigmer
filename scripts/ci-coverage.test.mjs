@@ -83,6 +83,10 @@ const NOT_SUBJECTS = new Map([
     "test/visual",
     "the kit's gallery, a test package: its vitest checks hold the gallery's catalogue and its browser pin, and what the package exists to judge, how the kit draws, its screenshots judge; no shipped code is measured here",
   ],
+  [
+    "test/site",
+    "the built site's browser suite, a test package: its vitest checks hold the static server the audit reads the export through, and what the package exists to judge, the built pages, its axe audit judges; no shipped code is measured here",
+  ],
 ]);
 
 const isUpload = (step) => String(step.uses ?? "").startsWith("actions/upload-artifact@");

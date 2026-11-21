@@ -52,8 +52,8 @@ skill" when it could be misread.
   subprocess (desktop).
 - `tools/codegen/`: the generator behind every `gen-*` target;
   `tools/eslint-plugin-stigmer/`.
-- `test/conformance/`: the cross-edition gRPC contract suite; `test/e2e/`:
-  Playwright; `test/extension-consumer/`.
+- `test/conformance/`: cross-edition gRPC contract suite; `test/e2e/`:
+  Playwright; `test/extension-consumer/`; `test/site/`.
 - `plugins/`: the official plugin marketplace, published as `@stigmer/plugins`;
   what `stigmer install` and the console's Marketplace offer when no other
   source is named. Nothing in it is installed unasked.

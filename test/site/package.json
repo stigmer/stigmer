@@ -1,0 +1,20 @@
+{
+  "name": "@stigmer/site-tests",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The built website's browser suite: the static export served as its host serves it, and a sample of its pages audited with axe at a phone and a desktop width.",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:site": "vitest run && playwright test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.3",
+    "@playwright/test": "1.60.0",
+    "@stigmer/test-support": "*",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.4"
+  }
+}

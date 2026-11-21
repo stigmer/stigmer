@@ -30,6 +30,7 @@
     "test/support",
     "test/conformance",
     "test/e2e",
+    "test/site",
     "test/visual"
   ],
   "scripts": {
