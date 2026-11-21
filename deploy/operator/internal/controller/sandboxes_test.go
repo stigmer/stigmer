@@ -2,7 +2,8 @@
 //
 // Under agent-sandbox, with agent-sandbox already installed by someone else,
 // the component makes the sandbox namespace, its fence and the server's Role
-// and binding there, and the runner component reports the install as one
+// and binding there, and never takes over a namespace of that name it did not
+// make, and the runner component reports the install as one
 // without a shared runner. A licensed install that declares the shared
 // driver is refused in words naming the per-session drivers.
 //
@@ -78,7 +79,40 @@ func TestAgentSandboxGivesTheServerItsNamespace(t *testing.T) {
 	if err := k8s.Get(ctx, client.ObjectKey{Namespace: sandboxes, Name: render.SandboxEgressPolicy(s)}, &fence); err != nil {
 		t.Errorf("the sandboxes are not fenced: %v", err)
 	}
+	if res, err := (component.Sandboxes{}).Reconcile(ctx, env); err != nil || res.Phase != stigmerv1.PhaseReady {
+		t.Fatalf("a second pass over the operator's own sandbox namespace: %+v %v", res, err)
+	}
 	unstamp(t, sandboxes)
+}
+
+func TestASandboxNamespaceSomeoneElseMadeIsNeverTakenOver(t *testing.T) {
+	ctx := context.Background()
+	ns := namespace(t)
+	createIgnoringExisting(t, sandboxCRD(map[string]string{render.ManagedByLabel: "Helm"}))
+	s := stigmer(ns, "stigmer")
+	s.UID = types.UID("u")
+	s.Spec.ObjectStore = &stigmerv1.ObjectStoreSpec{S3: stigmerv1.S3Spec{Bucket: "acme", CredentialsSecret: corev1.LocalObjectReference{Name: "bucket"}}}
+	s.Spec.Sandboxes = &stigmerv1.SandboxesSpec{Driver: stigmerv1.SandboxDriverAgentSandbox}
+	theirs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: render.SandboxNamespace(s), Labels: map[string]string{"team": "data"}}}
+	if err := k8s.Create(ctx, theirs); err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := component.Sandboxes{}.Reconcile(ctx, &component.Env{Client: k8s, Reader: k8s, Stigmer: s})
+	if err != nil || res.Phase != stigmerv1.PhaseRefused || !strings.Contains(res.Message, "did not make it") {
+		t.Fatalf("a namespace someone else made: %+v %v", res, err)
+	}
+	var after corev1.Namespace
+	if err := k8s.Get(ctx, client.ObjectKey{Name: theirs.Name}, &after); err != nil {
+		t.Fatal(err)
+	}
+	if _, stamped := after.Labels[render.ManagedByLabel]; stamped || after.Labels["pod-security.kubernetes.io/enforce"] != "" || after.Labels["team"] != "data" {
+		t.Errorf("their namespace was changed: %v", after.Labels)
+	}
+	var fence networkingv1.NetworkPolicy
+	if err := k8s.Get(ctx, client.ObjectKey{Namespace: theirs.Name, Name: render.SandboxEgressPolicy(s)}, &fence); !apierrors.IsNotFound(err) {
+		t.Errorf("their namespace was fenced: %v", err)
+	}
 }
 
 // unstamp takes the operator's stamp off a namespace a test made, so the

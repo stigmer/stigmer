@@ -61,6 +61,15 @@ func AgentSandboxPrerequisite(st *stigmerv1.Stigmer) Prerequisite {
 // Reconcile implements Component.
 func (Sandboxes) Reconcile(ctx context.Context, env *Env) (Result, error) {
 	st := env.Stigmer
+	if d := render.Driver(st); d == stigmerv1.SandboxDriverAgentSandbox || d == stigmerv1.SandboxDriverSubstrate {
+		refusal, err := foreignSandboxNamespace(ctx, env)
+		if err != nil {
+			return Result{}, err
+		}
+		if refusal != "" {
+			return Refused(stigmerv1.ReasonConfigurationRefused, Ref("Namespace", "", render.SandboxNamespace(st)), refusal), nil
+		}
+	}
 	switch render.Driver(st) {
 	case stigmerv1.SandboxDriverAgentSandbox:
 		return reconcileAgentSandbox(ctx, env)
@@ -96,6 +105,36 @@ func reconcileAgentSandbox(ctx context.Context, env *Env) (Result, error) {
 	}
 	return Ready(fmt.Sprintf("sessions run in agent-sandbox pods in namespace %s, fenced to the server, the bucket and the public internet",
 		render.SandboxNamespace(st))), nil
+}
+
+// foreignSandboxNamespace says why the install may not use its sandbox
+// namespace, or "" when it may: the namespace does not exist yet, or it
+// carries this Stigmer's stamp. A namespace of that name someone else made,
+// or another Stigmer's, is never taken over: the operator would fence it,
+// set its Pod Security level and, once no Stigmer remains, the janitor would
+// delete it with everything in it.
+func foreignSandboxNamespace(ctx context.Context, env *Env) (string, error) {
+	st := env.Stigmer
+	name := render.SandboxNamespace(st)
+	var ns corev1.Namespace
+	err := env.Reader.Get(ctx, client.ObjectKey{Name: name}, &ns)
+	if apierrors.IsNotFound(err) {
+		return "", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("reading namespace %s: %w", name, err)
+	}
+	l := ns.Labels
+	if l[render.ManagedByLabel] != render.ManagedByValue || l[render.ComponentLabel] != render.ComponentSandboxes {
+		return fmt.Sprintf("the sandbox namespace %s already exists and the operator did not make it: "+
+			"the operator never takes over a namespace it did not create, since it fences it and removes it when the install is deleted; "+
+			"move what is in it and delete it, or install Stigmer in another namespace", name), nil
+	}
+	if l[render.InstanceLabel] != st.Name {
+		return fmt.Sprintf("the sandbox namespace %s belongs to the Stigmer %q in namespace %s: one namespace holds one Stigmer with per-session sandboxes",
+			name, l[render.InstanceLabel], st.Namespace), nil
+	}
+	return "", nil
 }
 
 // sandboxNamespaceObjects is the sandbox namespace and the fence around the

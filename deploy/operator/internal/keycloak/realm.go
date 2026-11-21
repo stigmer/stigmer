@@ -57,9 +57,10 @@ type Desired struct {
 	ConsoleClientID string
 	NativeClientID  string
 	OwnerEmail      string
-	// OwnerPassword is the one-time password, used only to create the
-	// owner's account.
-	OwnerPassword string
+	// OwnerPassword returns the one-time password. It is called only when
+	// the owner's account must be created, so a caller that mints the
+	// password mints it then and never on a pass after the owner signed in.
+	OwnerPassword func() (string, error)
 	SignUpDomains []string
 	SMTP          *SMTP
 }
@@ -354,7 +355,13 @@ func convergeUserProfile(ctx context.Context, c *Client, d Desired) error {
 func convergeOwner(ctx context.Context, c *Client, d Desired) (bool, error) {
 	user, err := c.UserByEmail(ctx, d.Realm, d.OwnerEmail)
 	if errors.Is(err, ErrNotFound) {
-		if d.OwnerPassword == "" {
+		password := ""
+		if d.OwnerPassword != nil {
+			if password, err = d.OwnerPassword(); err != nil {
+				return false, err
+			}
+		}
+		if password == "" {
 			return false, fmt.Errorf("the owner's account does not exist and there is no one-time password to create it with")
 		}
 		rep := Object{
@@ -365,7 +372,7 @@ func convergeOwner(ctx context.Context, c *Client, d Desired) (bool, error) {
 			"requiredActions": []any{"UPDATE_PASSWORD"},
 			"credentials": []any{Object{
 				"type":      "password",
-				"value":     d.OwnerPassword,
+				"value":     password,
 				"temporary": true,
 			}},
 		}

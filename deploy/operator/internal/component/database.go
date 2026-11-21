@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"time"
 
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -121,7 +122,11 @@ func (Database) Reconcile(ctx context.Context, env *Env) (Result, error) {
 		keepLiveBootstrap(cluster, existing)
 		attaching = backup.Archive && render.LiveArchiveServerName(existing) == ""
 	}
-	if err := Apply(ctx, env, cluster, render.PostgresPolicyObject(st)); err != nil {
+	operatorNamespace, err := postgresOperatorNamespace(ctx, env)
+	if err != nil {
+		return Result{}, err
+	}
+	if err := Apply(ctx, env, cluster, render.PostgresPolicyObject(st, operatorNamespace)); err != nil {
 		return Result{}, err
 	}
 	databases := render.TemporalDatabaseObjects(st)
@@ -239,4 +244,29 @@ func conditionTrue(u *unstructured.Unstructured, condition string) bool {
 		}
 	}
 	return false
+}
+
+// cnpgWebhook is the webhook configuration CloudNativePG registers, by its
+// release manifest and its Helm chart alike.
+const cnpgWebhook = "cnpg-mutating-webhook-configuration"
+
+// postgresOperatorNamespace is the namespace CloudNativePG's controller runs
+// in: the namespace of the Service its own webhook calls, so a CloudNativePG
+// someone else installed anywhere is admitted to the database it drives. With
+// no webhook to read, its release's own namespace.
+func postgresOperatorNamespace(ctx context.Context, env *Env) (string, error) {
+	var hook admissionregistrationv1.MutatingWebhookConfiguration
+	err := env.Reader.Get(ctx, client.ObjectKey{Name: cnpgWebhook}, &hook)
+	if apierrors.IsNotFound(err) {
+		return manifests.CloudNativePGNamespace, nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("reading CloudNativePG's webhook %s: %w", cnpgWebhook, err)
+	}
+	for _, w := range hook.Webhooks {
+		if s := w.ClientConfig.Service; s != nil && s.Namespace != "" {
+			return s.Namespace, nil
+		}
+	}
+	return manifests.CloudNativePGNamespace, nil
 }

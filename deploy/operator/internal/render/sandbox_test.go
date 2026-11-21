@@ -182,7 +182,10 @@ func TestTheServerIsFencedOnlyWhenAsked(t *testing.T) {
 
 func TestTheDatabaseAndTemporalAdmitOnlyTheInstall(t *testing.T) {
 	st := profiles()["bundled"]
-	pg := PostgresPolicyObject(st)
+	pg := PostgresPolicyObject(st, "cnpg")
+	if got := pg.Spec.Ingress[0].From[1].NamespaceSelector.MatchLabels["kubernetes.io/metadata.name"]; got != "cnpg" {
+		t.Errorf("the database admits the Postgres operator from %q, not the namespace it runs in", got)
+	}
 	var from []map[string]string
 	for _, r := range pg.Spec.Ingress {
 		for _, peer := range r.From {

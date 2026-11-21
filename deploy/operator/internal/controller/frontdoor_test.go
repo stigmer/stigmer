@@ -240,8 +240,34 @@ func TestTheBundledSignInCreatesTheOwnerAndOpensSignUpAfterThem(t *testing.T) {
 	if err := k8s.Get(ctx, client.ObjectKey{Namespace: ns, Name: render.OwnerSetupSecret(s)}, &setup); !apierrors.IsNotFound(err) {
 		t.Errorf("the one-time password outlived its use: %v", err)
 	}
+	// Every later pass converges: no pass mints a one-time password, even
+	// one it would remove again before the pass ends.
+	counting := &creates{Client: k8s, name: render.OwnerSetupSecret(s)}
+	later := &component.Env{Client: counting, Reader: k8s, Stigmer: s}
+	for range 2 {
+		if _, err := identity.Reconcile(ctx, later); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if counting.n != 0 {
+		t.Errorf("passes after the owner signed in minted %d one-time passwords", counting.n)
+	}
 	smtp, _ := fake.Realm("stigmer")["smtpServer"].(map[string]any)
 	if smtp["user"] != "u" || smtp["from"] != "stigmer@acme.dev" {
 		t.Errorf("mail settings %v", smtp)
 	}
+}
+
+// creates counts the creates of one named object through a client.
+type creates struct {
+	client.Client
+	name string
+	n    int
+}
+
+func (c *creates) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
+	if obj.GetName() == c.name {
+		c.n++
+	}
+	return c.Client.Create(ctx, obj, opts...)
 }

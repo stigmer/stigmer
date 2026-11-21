@@ -102,7 +102,7 @@ func (i Identity) Reconcile(ctx context.Context, env *Env) (Result, error) {
 	}
 
 	setup := render.OwnerSetupSecret(st)
-	setupPassword, setupExists, err := ownerSetupPassword(ctx, env)
+	setupExists, err := ownerSetupExists(ctx, env)
 	if err != nil {
 		return Result{}, err
 	}
@@ -129,7 +129,7 @@ func (i Identity) Reconcile(ctx context.Context, env *Env) (Result, error) {
 		ConsoleClientID: render.ConsoleClientID,
 		NativeClientID:  render.NativeClientID,
 		OwnerEmail:      strings.ToLower(st.Spec.Owner.Email),
-		OwnerPassword:   setupPassword,
+		OwnerPassword:   func() (string, error) { return ownerSetupPassword(ctx, env) },
 		SignUpDomains:   domains,
 		SMTP:            smtp,
 	})
@@ -155,22 +155,40 @@ func (i Identity) Reconcile(ctx context.Context, env *Env) (Result, error) {
 	return Ready(sentence), nil
 }
 
-// ownerSetupPassword reads the owner's one-time password, minting the Secret
-// that holds it while the owner's account may still need creating.
-func ownerSetupPassword(ctx context.Context, env *Env) (string, bool, error) {
+// ownerSetupExists reports whether the Secret holding the owner's one-time
+// password exists. It never mints one: a pass after the owner signed in
+// only removes it.
+func ownerSetupExists(ctx context.Context, env *Env) (bool, error) {
 	st := env.Stigmer
 	name := render.OwnerSetupSecret(st)
 	var secret corev1.Secret
 	err := env.Reader.Get(ctx, client.ObjectKey{Namespace: st.Namespace, Name: name}, &secret)
 	if err == nil {
-		return string(secret.Data[render.OwnerSetupPasswordKey]), true, nil
+		return true, nil
+	}
+	if apierrors.IsNotFound(err) {
+		return false, nil
+	}
+	return false, fmt.Errorf("reading Secret %s: %w", name, err)
+}
+
+// ownerSetupPassword reads the owner's one-time password, minting the Secret
+// that holds it. Converge calls it only while the owner's account does not
+// exist yet.
+func ownerSetupPassword(ctx context.Context, env *Env) (string, error) {
+	st := env.Stigmer
+	name := render.OwnerSetupSecret(st)
+	var secret corev1.Secret
+	err := env.Reader.Get(ctx, client.ObjectKey{Namespace: st.Namespace, Name: name}, &secret)
+	if err == nil {
+		return string(secret.Data[render.OwnerSetupPasswordKey]), nil
 	}
 	if !apierrors.IsNotFound(err) {
-		return "", false, fmt.Errorf("reading Secret %s: %w", name, err)
+		return "", fmt.Errorf("reading Secret %s: %w", name, err)
 	}
 	password, err := Password()
 	if err != nil {
-		return "", false, err
+		return "", err
 	}
 	created := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -182,10 +200,17 @@ func ownerSetupPassword(ctx context.Context, env *Env) (string, bool, error) {
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{render.OwnerSetupPasswordKey: []byte(password)},
 	}
-	if err := env.Client.Create(ctx, created); err != nil && !apierrors.IsAlreadyExists(err) {
-		return "", false, fmt.Errorf("creating Secret %s: %w", name, err)
+	if err := env.Client.Create(ctx, created); err != nil {
+		if !apierrors.IsAlreadyExists(err) {
+			return "", fmt.Errorf("creating Secret %s: %w", name, err)
+		}
+		// Another pass minted it first: use the password it holds.
+		if err := env.Reader.Get(ctx, client.ObjectKey{Namespace: st.Namespace, Name: name}, &secret); err != nil {
+			return "", fmt.Errorf("reading Secret %s: %w", name, err)
+		}
+		return string(secret.Data[render.OwnerSetupPasswordKey]), nil
 	}
-	return password, true, nil
+	return password, nil
 }
 
 // secretPair reads two keys of a Secret.

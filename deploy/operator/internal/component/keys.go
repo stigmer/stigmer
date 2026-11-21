@@ -153,6 +153,10 @@ func (Keys) Reconcile(ctx context.Context, env *Env) (Result, error) {
 	}
 	if len(missing) > 0 {
 		before := secret.DeepCopy()
+		if secret.Data == nil {
+			// A Secret made with no data (`kubectl create secret generic`).
+			secret.Data = map[string][]byte{}
+		}
 		for k, v := range missing {
 			secret.Data[k] = v
 		}

@@ -34,7 +34,7 @@ func desired() keycloak.Desired {
 		ConsoleClientID: "stigmer-console",
 		NativeClientID:  "stigmer-native",
 		OwnerEmail:      "priya@acme.dev",
-		OwnerPassword:   "one-time",
+		OwnerPassword:   func() (string, error) { return "one-time", nil },
 		SignUpDomains:   []string{"acme.dev"},
 		SMTP:            &keycloak.SMTP{Host: "mail", Port: 587, From: "stigmer@acme.dev", User: "u", Password: "p"},
 	}

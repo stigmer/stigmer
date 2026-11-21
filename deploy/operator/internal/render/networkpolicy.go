@@ -52,10 +52,6 @@ var (
 	privateIPv6 = []string{"fc00::/7", "fe80::/10", "::1/128"}
 )
 
-// PostgresOperatorNamespace is where CloudNativePG runs, whoever installed
-// it: its release's own namespace.
-const PostgresOperatorNamespace = "cnpg-system"
-
 // ServicePeer is an in-cluster Service's pods as a fence names them.
 type ServicePeer struct {
 	Namespace string
@@ -212,13 +208,14 @@ func bucketRule(in FenceInputs) (networkingv1.NetworkPolicyEgressRule, bool) {
 	return rule, true
 }
 
-// PostgresPolicyObject fences the bundled database's ingress.
-func PostgresPolicyObject(st *stigmerv1.Stigmer) *networkingv1.NetworkPolicy {
+// PostgresPolicyObject fences the bundled database's ingress. operatorNamespace
+// is the namespace CloudNativePG's controller runs in, whoever installed it.
+func PostgresPolicyObject(st *stigmerv1.Stigmer, operatorNamespace string) *networkingv1.NetworkPolicy {
 	p := policy(st, st.Namespace, PostgresPolicy(st), ComponentDatabase, PostgresPodLabels(st), []networkingv1.PolicyType{networkingv1.PolicyTypeIngress})
 	p.Spec.Ingress = []networkingv1.NetworkPolicyIngressRule{
 		// Its own instances (replication, the instance manager) and the
 		// Postgres operator, which drives it and its backup plugin.
-		{From: []networkingv1.NetworkPolicyPeer{pods(PostgresPodLabels(st)), podsIn(PostgresOperatorNamespace, nil)}},
+		{From: []networkingv1.NetworkPolicyPeer{pods(PostgresPodLabels(st)), podsIn(operatorNamespace, nil)}},
 		{
 			From: []networkingv1.NetworkPolicyPeer{
 				pods(SelectorLabels(st, ComponentServer)),
