@@ -44,7 +44,7 @@ The name of a test file is read at its last dotted segments before `.test` or `.
 ### Placement
 
 - A TypeScript test sits in a `__tests__` directory beside the module it tests. The suites' own trees are the exception: `test/conformance/src/suites*/` and `test/e2e/tests/`.
-- A `*.spec.ts` sits only under `test/e2e/tests/`, `test/visual/tests/` or `site/e2e/`.
+- A `*.spec.ts` sits only under `test/e2e/tests/`, `test/visual/tests/` or `test/site/tests/`.
 - A `*.test.mjs` sits beside the script it tests.
 - Machinery that two or more suites use lives once, in `test/support`: it imports only `node:*` and its own files, in TypeScript that Node runs without a build, so the install layer can load it with no install. A suite's own machinery stays in the suite.
 - The install layer lives in `test/install`: plain-Node scripts that run straight after a checkout, with no install, importing only `node:*`, their own files, `test/support` by relative path, and the release scripts under `scripts/`.
